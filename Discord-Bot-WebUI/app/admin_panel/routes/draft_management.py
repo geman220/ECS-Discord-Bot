@@ -473,7 +473,11 @@ def draft_session_setup():
 @role_required(['Global Admin', 'Pub League Admin'])
 def draft_setup_page():
     """Admin page to set the team pick order + format, then start the on-the-clock draft."""
-    season = db.session.query(Season).filter_by(is_current=True).first()
+    # Scope to the current PUB LEAGUE season. There are two is_current seasons
+    # (Pub League + ECS FC); a bare .first() nondeterministically returned the ECS FC
+    # one, locking the whole setup page (and the Start→live-board redirect) to
+    # "2024 Fall ECS FC". The draft is per-current-Pub-League-season.
+    season = db.session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
     leagues = []
     if season:
         leagues = db.session.query(League).filter_by(season_id=season.id).order_by(League.name).all()

@@ -1033,18 +1033,21 @@ def draft_league(league_name: str):
     print(f"🔴 DRAFT_ENHANCED ROUTE HIT: {league_name}")
     logger.info(f"🔴 Enhanced draft route accessed: {league_name}")
     
-    # Validate league name
+    # Validate league name. Accept both the slug ('ecs_fc') and the display name
+    # ('ECS FC') — URLs built from a League's display name were failing with
+    # "Invalid league name: ECS FC" because of the space.
     valid_leagues = ['classic', 'premier', 'ecs_fc']
-    if league_name.lower() not in valid_leagues:
+    norm_league = league_name.lower().replace(' ', '_')
+    if norm_league not in valid_leagues:
         show_error(f'Invalid league name: {league_name}')
         return redirect(url_for('main.index'))
-    
+
     # Normalize league name for database lookup
     db_league_name = {
         'classic': 'Classic',
-        'premier': 'Premier', 
+        'premier': 'Premier',
         'ecs_fc': 'ECS FC'
-    }.get(league_name.lower())
+    }.get(norm_league)
     
     current_league, all_leagues = DraftService.get_league_data(db_league_name)
     
@@ -1219,8 +1222,27 @@ def draft_league(league_name: str):
     except Exception as _clk_err:
         logger.warning(f"draft clock state load failed: {_clk_err}")
 
+    # Teams the VIEWING user coaches in this league — lets the board flash a
+    # "your pick" alert + chime + prominent countdown when this coach's own team
+    # is on the clock (vs the shared, everyone-sees-it clock bar).
+    viewer_team_ids = []
+    try:
+        from app.models.players import player_teams
+        _pid = getattr(getattr(current_user, 'player', None), 'id', None)
+        _team_ids_here = [t.id for t in teams]
+        if _pid and _team_ids_here:
+            _rows = db.session.query(player_teams.c.team_id).filter(
+                player_teams.c.player_id == _pid,
+                player_teams.c.is_coach == True,  # noqa: E712
+                player_teams.c.team_id.in_(_team_ids_here)
+            ).all()
+            viewer_team_ids = [tid for (tid,) in _rows]
+    except Exception as _vt_err:
+        logger.warning(f"viewer_team_ids resolve failed: {_vt_err}")
+
     return render_template(
         'draft_enhanced_flowbite.html',
+        viewer_team_ids=viewer_team_ids,
         title=f'{db_league_name} League Draft',
         league_name=league_name,
         db_league_name=db_league_name,
@@ -1245,18 +1267,21 @@ def draft_league_pitch_view(league_name: str):
     """Soccer pitch view for visual team drafting."""
     logger.info(f"🏟️ Pitch view route accessed: {league_name}")
     
-    # Validate league name
+    # Validate league name. Accept both the slug ('ecs_fc') and the display name
+    # ('ECS FC') — URLs built from a League's display name were failing with
+    # "Invalid league name: ECS FC" because of the space.
     valid_leagues = ['classic', 'premier', 'ecs_fc']
-    if league_name.lower() not in valid_leagues:
+    norm_league = league_name.lower().replace(' ', '_')
+    if norm_league not in valid_leagues:
         show_error(f'Invalid league name: {league_name}')
         return redirect(url_for('main.index'))
-    
+
     # Normalize league name for database lookup
     db_league_name = {
         'classic': 'Classic',
-        'premier': 'Premier', 
+        'premier': 'Premier',
         'ecs_fc': 'ECS FC'
-    }.get(league_name.lower())
+    }.get(norm_league)
     
     current_league, all_leagues = DraftService.get_league_data(db_league_name)
     

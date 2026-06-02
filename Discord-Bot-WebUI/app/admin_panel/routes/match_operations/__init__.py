@@ -36,6 +36,7 @@ def register_match_operations_routes():
         ajax,
         substitutes,
         substitute_contact,
+        unified_substitutes,
         verification,
         substitute_pools,
         check_in,

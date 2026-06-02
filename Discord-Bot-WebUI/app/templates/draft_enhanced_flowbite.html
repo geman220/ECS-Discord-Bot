@@ -38,7 +38,16 @@
     <section id="onTheClockBar"
              data-season="{{ current_season_id }}" data-league-id="{{ current_league_id }}"
              data-deadline="{{ clk.pick_deadline or '' }}" data-status="{{ clk.status }}"
+             data-my-teams="{{ (viewer_team_ids or [])|join(',') }}"
+             data-current-team="{{ clk.current_team.id if clk.current_team else '' }}"
+             data-up-next="{{ (clk.up_next or [])|selectattr('id')|map(attribute='id')|join(',') }}"
+             data-overall-pick="{{ clk.overall_pick if clk.overall_pick is not none else '' }}"
              class="rounded-xl border-2 {{ 'border-red-400 dark:border-red-500/50' if clk.overdue else 'border-ecs-green/50' }} bg-ecs-green-50 dark:bg-ecs-green-900/10 overflow-hidden mb-5 sm:mb-6">
+      {# Coach-only alert: shown by JS when the VIEWER's own team is on the clock / up next. #}
+      <div id="coachTurnBanner" class="hidden items-center gap-2 px-4 py-2 text-sm font-semibold text-white" role="status" aria-live="assertive">
+        <i class="ti ti-bell-ringing-2 text-base" aria-hidden="true"></i>
+        <span id="coachTurnText">It's your pick!</span>
+      </div>
       <div class="flex flex-col lg:flex-row">
         <div class="flex items-center gap-3 p-4 lg:border-r border-gray-200 dark:border-gray-700 min-w-0 lg:w-[34%]">
           <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wide bg-ecs-green text-white shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse" aria-hidden="true"></span> On the Clock</span>
@@ -281,7 +290,7 @@
                              draggable="true">
                             <!-- avatar + experience ring -->
                             <div class="relative shrink-0">
-                                <img src="{{ player.profile_picture_url or player.profile_picture_medium or '/static/img/default_player.png' }}"
+                                <img src="{{ player.profile_picture_url or player.profile_picture_medium or '/static/img/default_player.png' }}" onerror="this.onerror=null;this.src='/static/img/default_player.png'"
                                      alt="{{ player.name }}" loading="lazy"
                                      class="w-9 h-9 rounded-lg object-cover object-top ring-2
                                             {{ 'ring-green-500' if _exp == 'Veteran' else 'ring-yellow-500' if _exp == 'Experienced' else 'ring-gray-300 dark:ring-gray-500' }}">
@@ -475,7 +484,7 @@
                             <div id="teamPlayers{{ team.id }}" class="space-y-1.5 js-draft-drop-zone rounded-lg border border-dashed border-gray-200 dark:border-gray-700 p-2" data-team-id="{{ team.id }}" data-drop-target="team">
                                 {% for player in drafted_players_by_team[team.id] %}
                                 <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg js-draggable-player cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" draggable="true" data-player-id="{{ player.id }}">
-                                    <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
+                                    <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}" onerror="this.onerror=null;this.src='/static/img/default_player.png'"
                                          alt="{{ player.name }}"
                                          class="w-8 h-8 rounded-lg object-cover object-top shrink-0">
                                     <div class="flex-1 min-w-0">
@@ -652,7 +661,7 @@
                              draggable="true">
                             <!-- Player Image -->
                             <div class="relative h-32 bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-600 dark:to-gray-700">
-                                <img src="{{ player.profile_picture_medium or player.profile_picture_webp or player.profile_picture_url or '/static/img/default_player.png' }}"
+                                <img src="{{ player.profile_picture_medium or player.profile_picture_webp or player.profile_picture_url or '/static/img/default_player.png' }}" onerror="this.onerror=null;this.src='/static/img/default_player.png'"
                                      alt="{{ player.name }}"
                                      class="w-full h-full object-cover object-top"
                                      loading="lazy">
@@ -832,7 +841,7 @@
                             <div id="teamPlayers{{ team.id }}" class="space-y-2 js-draft-drop-zone" data-team-id="{{ team.id }}" data-drop-target="team">
                                 {% for player in drafted_players_by_team[team.id] %}
                                 <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg js-draggable-player" draggable="true" data-player-id="{{ player.id }}">
-                                    <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
+                                    <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}" onerror="this.onerror=null;this.src='/static/img/default_player.png'"
                                          alt="{{ player.name }}"
                                          class="w-8 h-8 rounded-full object-cover">
                                     <div class="flex-1 min-w-0">
@@ -960,6 +969,53 @@
     render(); tick = setInterval(render, 1000);
   }
 
+  // ---- Coach "your turn" alert — fires only for the team(s) the viewer coaches ----
+  var _myTeams = null, _lastMyTurnPick = null, _audioCtx = null;
+  var _reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function myTeams() {
+    if (_myTeams === null) {
+      var b = bar();
+      _myTeams = ((b && b.getAttribute('data-my-teams')) || '').split(',').filter(Boolean).map(Number);
+    }
+    return _myTeams;
+  }
+  function chime() {
+    try {
+      _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      var o = _audioCtx.createOscillator(), g = _audioCtx.createGain();
+      o.type = 'sine'; o.frequency.value = 880; o.connect(g); g.connect(_audioCtx.destination);
+      g.gain.setValueAtTime(0.0001, _audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.25, _audioCtx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, _audioCtx.currentTime + 0.5);
+      o.start(); o.stop(_audioCtx.currentTime + 0.5);
+    } catch (e) {}
+    if (navigator.vibrate) { try { navigator.vibrate([200, 100, 200]); } catch (e) {} }
+  }
+  function notifyTurn(text) {
+    try { if (window.Notification && Notification.permission === 'granted') new Notification('Draft — your pick', { body: text }); } catch (e) {}
+  }
+  function updateCoachAlert(s) {
+    var mine = myTeams();
+    var banner = document.getElementById('coachTurnBanner'), txt = document.getElementById('coachTurnText'), b = bar();
+    if (!banner || !mine.length) return;
+    var curId = s.current_team && s.current_team.id;
+    var upNext = (s.up_next || []).filter(Boolean);
+    var onClock = mine.indexOf(curId) >= 0;
+    var upNextMine = upNext.length && mine.indexOf(upNext[0].id) >= 0;
+    function show(bg, msg) { banner.className = 'flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white ' + bg; if (txt) txt.textContent = msg; }
+    if (onClock) {
+      show('bg-red-500' + (_reduceMotion ? '' : ' animate-pulse'), "It's your pick — you're on the clock!");
+      if (b && !_reduceMotion) { b.classList.add('ring-4', 'ring-red-400'); }
+      if (s.overall_pick !== _lastMyTurnPick) { _lastMyTurnPick = s.overall_pick; chime(); notifyTurn("You're on the clock — make your pick!"); }
+    } else if (upNextMine) {
+      show('bg-amber-500', "You're up next — get ready.");
+      if (b) b.classList.remove('ring-4', 'ring-red-400');
+    } else {
+      banner.className = 'hidden items-center gap-2 px-4 py-2 text-sm font-semibold text-white';
+      if (b) b.classList.remove('ring-4', 'ring-red-400');
+    }
+  }
+
   function applyState(s) {
     var b = bar(); if (!b) return;
     if (!s || (s.status !== 'active' && s.status !== 'paused')) { if (tick) clearInterval(tick); b.style.display = 'none'; return; }
@@ -981,6 +1037,7 @@
     }
     var prog = document.getElementById('clockProgress'); if (prog) prog.style.width = (s.progress_pct || 0) + '%';
     var pauseLabel = document.querySelector('.clock-pause-label'); if (pauseLabel) pauseLabel.textContent = (s.status === 'paused') ? 'Resume' : 'Pause';
+    updateCoachAlert(s);
     countdown();
   }
 
@@ -996,6 +1053,20 @@
   function bind() {
     var b = bar(); if (!b) return;
     countdown();
+    // Coach alert: ask for notification permission + run an initial check from the
+    // server-rendered state (join_draft_room doesn't push state, so without this a
+    // coach who loads the page already on the clock wouldn't be alerted until the
+    // next pick).
+    if (myTeams().length) {
+      if (window.Notification && Notification.permission === 'default') { try { Notification.requestPermission(); } catch (e) {} }
+      var _cur = parseInt(b.getAttribute('data-current-team'), 10) || null;
+      var _un = (b.getAttribute('data-up-next') || '').split(',').filter(Boolean).map(Number);
+      updateCoachAlert({
+        current_team: _cur ? { id: _cur } : null,
+        up_next: _un.map(function (id) { return { id: id }; }),
+        overall_pick: parseInt(b.getAttribute('data-overall-pick'), 10)
+      });
+    }
     var pause = document.getElementById('clockPauseBtn');
     if (pause) pause.addEventListener('click', function () {
       post(b.dataset.status === 'paused' ? '/admin-panel/draft/session/resume' : '/admin-panel/draft/session/pause');

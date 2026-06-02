@@ -23,7 +23,7 @@
 <div id="draftSetup"
      data-season="{{ season.id if season else '' }}"
      data-league-id="{{ current_league.id if current_league else '' }}"
-     {% if current_league %}data-board-url="{{ url_for('draft_enhanced.draft_league', league_name=current_league.name) }}"{% endif %}
+     {% if current_league %}data-board-url="{{ url_for('draft_enhanced.draft_league', league_name=current_league.name|lower|replace(' ', '_')) }}"{% endif %}
      class="space-y-4">
 
   {% if not season or not current_league %}
@@ -207,6 +207,22 @@
 
   // Keep snake/linear pick badges in sync when the format toggles
   document.querySelectorAll('input[name=format]').forEach(function (r) { r.addEventListener('change', renumber); });
+
+  // Move the green active-highlight when a timeout option is picked. The label
+  // highlight is server-rendered from the saved value, so without this the radio
+  // selects natively but the border never moves — looked like "can't change it".
+  var _timeoutActive = ['border-ecs-green', 'bg-ecs-green-50', 'dark:bg-ecs-green-900/20'];
+  var _timeoutIdle = ['border-gray-300', 'dark:border-gray-600'];
+  document.querySelectorAll('input[name=timeout]').forEach(function (r) {
+    r.addEventListener('change', function () {
+      document.querySelectorAll('input[name=timeout]').forEach(function (radio) {
+        var label = radio.closest('label');
+        if (!label) return;
+        if (radio.checked) { label.classList.add.apply(label.classList, _timeoutActive); label.classList.remove.apply(label.classList, _timeoutIdle); }
+        else { label.classList.remove.apply(label.classList, _timeoutActive); label.classList.add.apply(label.classList, _timeoutIdle); }
+      });
+    });
+  });
 
   // Live-update the Summary KPIs from rounds / seconds-per-pick
   function updateSummary() {

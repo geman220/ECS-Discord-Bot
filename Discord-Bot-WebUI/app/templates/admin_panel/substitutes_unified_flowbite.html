@@ -1,0 +1,547 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, empty_state %}
+
+{% block admin_title %}Substitutes (Unified){% endblock %}
+{% block panel_description %}Unified substitute requests across Pub League and ECS FC{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.match_operations') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Match Operations</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Substitutes</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{# Unified board — league-agnostic, driven entirely off the normalized `items` dicts
+   from app/services/unified_substitute_service.py. Every action posts/links to the
+   EXISTING per-league endpoints carried on item.action_urls. #}
+
+{% set csrf_token_value = csrf_token() if csrf_token is defined else '' %}
+
+{# Reusable action cluster macro — drives buttons entirely off item.action_urls + league.
+   Defined first so it is available everywhere below (Jinja macros are not hoisted). #}
+{% macro item_actions(item, mobile=false) %}
+{% set btn_base = 'inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors' %}
+{% set btn_mh = ('min-h-[44px] ' if mobile else '') %}
+<div class="flex items-center {{ 'justify-start flex-wrap gap-1.5' if mobile else 'justify-end gap-1.5 flex-wrap' }}">
+  {% if item.ready_to_assign and item.action_urls.assign and item.action_urls.available %}
+  <button type="button"
+          data-assign-open
+          data-league="{{ item.league }}"
+          data-assign-url="{{ item.action_urls.assign }}"
+          data-available-url="{{ item.action_urls.available }}"
+          data-request-id="{{ item.id }}"
+          data-match-id="{{ item.match_id if item.match_id is not none else '' }}"
+          data-team-id="{{ item.team_id if item.team_id is not none else '' }}"
+          data-match-label="{{ item.match_label|e }}"
+          class="{{ btn_mh }}inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-user-check" aria-hidden="true"></i>Assign
+  </button>
+  {% endif %}
+
+  {% if item.status == 'OPEN' and item.action_urls.contact %}
+  {% if item.league == 'pub_league' %}
+  {# Pub League contact dispatches a single JSON POST to notify_substitute_pool (all subs). #}
+  <button type="button"
+          data-contact-pool
+          data-contact-url="{{ item.action_urls.contact }}"
+          data-request-id="{{ item.id }}"
+          data-league-type="{{ item.league_type|e }}"
+          data-needed="{{ item.needed }}"
+          class="{{ btn_mh }}{{ btn_base }} text-ecs-green bg-ecs-green/10 hover:bg-ecs-green/20 dark:bg-ecs-green/15 dark:hover:bg-ecs-green/25">
+    <i class="ti ti-send" aria-hidden="true"></i>Contact
+  </button>
+  {% elif item.action_urls.view %}
+  {# ECS FC board-level contact requires the match-aware modal on the RSVP page. #}
+  <a href="{{ item.action_urls.view }}" title="Contact subs on the match RSVP page"
+     class="{{ btn_mh }}{{ btn_base }} text-ecs-green bg-ecs-green/10 hover:bg-ecs-green/20 dark:bg-ecs-green/15 dark:hover:bg-ecs-green/25">
+    <i class="ti ti-send" aria-hidden="true"></i>Contact
+  </a>
+  {% endif %}
+  {% endif %}
+
+  {% if item.action_urls.view %}
+  <a href="{{ item.action_urls.view }}" title="View / manage"
+     class="{{ btn_mh }}{{ btn_base }} text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:hover:bg-blue-500/25">
+    <i class="ti ti-eye" aria-hidden="true"></i>View
+  </a>
+  {% else %}
+  <span class="{{ btn_base }} text-gray-400 bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed" title="No match linked — view unavailable">
+    <i class="ti ti-eye-off" aria-hidden="true"></i>View
+  </span>
+  {% endif %}
+
+  {% if item.status == 'OPEN' and item.action_urls.cancel %}
+  <form method="POST" action="{{ item.action_urls.cancel }}"
+        onsubmit="return confirm('Cancel this substitute request?');" class="inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token_value }}">
+    <input type="hidden" name="request_id" value="{{ item.id }}">
+    <button type="submit" class="{{ btn_mh }}{{ btn_base }} text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25">
+      <i class="ti ti-x" aria-hidden="true"></i>Cancel
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{{ page_header("Substitutes", subtitle="Unified board · Pub League + ECS FC") }}
+
+{# ---- Command banner: ready-to-assign summary ---- #}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 mb-5 sm:mb-6">
+  <div class="flex items-center gap-3 min-w-0">
+    <span class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl
+                 {% if ready_count %}bg-ecs-green/10 text-ecs-green{% else %}bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500{% endif %}">
+      <i class="ti ti-user-check text-xl" aria-hidden="true"></i>
+    </span>
+    <div class="min-w-0">
+      <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Ready to assign</p>
+      {% if ready_count %}
+      <p class="text-sm font-semibold text-gray-900 dark:text-white">
+        <span class="font-mono text-ecs-green">{{ ready_count }}</span>
+        request{{ 's' if ready_count != 1 else '' }} on this page have an available sub waiting on you
+      </p>
+      {% else %}
+      <p class="text-sm font-semibold text-gray-900 dark:text-white">No requests on this page are waiting on an assignment</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ---- KPI band ---- #}
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
+  {% call stat_card("ti-clipboard-list", "Showing", items|length, tone="info") %}of {{ total }} matching request{{ 's' if total != 1 else '' }}{% endcall %}
+  {% call stat_card("ti-user-check", "Ready to Assign", ready_count, tone="success") %}available sub waiting{% endcall %}
+  {% call stat_card("ti-users", "Sub Pool", pool_members|length, tone="primary") %}across both leagues{% endcall %}
+</div>
+
+{# ---- Filter bar: league + status (server-side GET, submit-on-change) ---- #}
+<form method="get" class="flex flex-wrap items-center gap-2 mb-5 sm:mb-6">
+  <div role="group" aria-label="Filter by league"
+       class="inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+    {% for opt, lbl in [('all','All Leagues'), ('pub_league','Pub League'), ('ecs_fc','ECS FC')] %}
+    <label class="cursor-pointer">
+      <input type="radio" name="league" value="{{ opt }}" onchange="this.form.submit()"
+             class="sr-only peer" {% if league_filter == opt %}checked{% endif %}>
+      <span class="inline-flex items-center h-8 px-3 rounded-md text-xs font-semibold transition-colors
+                   text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white
+                   peer-checked:bg-white peer-checked:text-gray-900 peer-checked:shadow-sm
+                   dark:peer-checked:bg-gray-700 dark:peer-checked:text-white">{{ lbl }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  <div role="group" aria-label="Filter by status"
+       class="inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+    {% for opt, lbl in [('active','Active'), ('open','Open'), ('filled','Filled'), ('cancelled','Cancelled'), ('expired','Expired'), ('all','All')] %}
+    <label class="cursor-pointer">
+      <input type="radio" name="status" value="{{ opt }}" onchange="this.form.submit()"
+             class="sr-only peer" {% if status_filter == opt %}checked{% endif %}>
+      <span class="inline-flex items-center h-8 px-3 rounded-md text-xs font-semibold transition-colors
+                   text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white
+                   peer-checked:bg-white peer-checked:text-gray-900 peer-checked:shadow-sm
+                   dark:peer-checked:bg-gray-700 dark:peer-checked:text-white">{{ lbl }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  <button type="submit"
+          class="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-search" aria-hidden="true"></i>Apply
+  </button>
+  {% if league_filter != 'all' or status_filter != 'active' %}
+  <a href="{{ url_for('admin_panel.unified_substitutes') }}"
+     class="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium transition-colors">
+    <i class="ti ti-x" aria-hidden="true"></i>Clear
+  </a>
+  {% endif %}
+</form>
+
+{# ===== Board: requests (left, 2 cols) ↔ unified sub pool (right) ===== #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 mb-5 sm:mb-6">
+
+{# LEFT: unified requests board #}
+<div class="lg:col-span-2">
+{% if items %}
+{% call data_table("Substitute Requests", icon="ti-clipboard-list", count=total, filters=false) %}
+  {# md+ table — status accent rail + fill meter + tally chips #}
+  <table class="hidden md:table w-full text-sm text-left">
+    <thead class="bg-gray-50 dark:bg-gray-700/40">
+      <tr>
+        {{ data_table_th("League",    sortable=false) }}
+        {{ data_table_th("Match",     sortable=false) }}
+        {{ data_table_th("Team",      sortable=false, hide='md') }}
+        {{ data_table_th("Status",    sortable=false) }}
+        {{ data_table_th("Fill",      sortable=false) }}
+        {{ data_table_th("Responses", sortable=false, hide='sm') }}
+        {{ data_table_th("Actions",   sortable=false, align='right') }}
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+      {% for item in items %}
+      {% set needed = item.needed or 1 %}
+      {% set complete = item.assigned >= needed %}
+      {% set rail = 'bg-amber-400 dark:bg-amber-500' if item.status == 'OPEN' else ('bg-green-500' if item.status == 'FILLED' else ('bg-red-400 dark:bg-red-500' if item.status == 'CANCELLED' else 'bg-gray-300 dark:bg-gray-600')) %}
+      <tr class="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+        <td class="px-3 py-3 align-top">
+          {% if item.league == 'ecs_fc' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-ecs-green/15 text-ecs-green">FC</span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">PUB</span>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 align-top">
+          <div class="flex gap-3">
+            <span class="mt-0.5 w-1 self-stretch rounded-full shrink-0 {{ rail }}" aria-hidden="true"></span>
+            <div class="min-w-0">
+              <div class="font-semibold text-gray-900 dark:text-white truncate">{{ item.match_label }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ item.match_date.strftime('%b %d, %Y') if item.match_date else 'No date' }}</div>
+              {% if item.positions %}<div class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"><span class="font-medium">Positions:</span> {{ item.positions }}</div>{% endif %}
+              {% if item.notes %}<div class="mt-0.5 text-xs text-gray-400 dark:text-gray-500 line-clamp-2"><i class="ti ti-note text-[11px]" aria-hidden="true"></i> {{ item.notes }}</div>{% endif %}
+            </div>
+          </div>
+        </td>
+        <td class="px-3 py-3 align-top hidden lg:table-cell">
+          <span class="font-medium text-gray-900 dark:text-white">{{ item.team_name }}</span>
+        </td>
+        <td class="px-3 py-3 align-top">
+          {% if item.status == 'OPEN' %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock text-[12px]" aria-hidden="true"></i>Open</span>
+          {% elif item.status == 'FILLED' %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check text-[12px]" aria-hidden="true"></i>Filled</span>
+          {% elif item.status == 'CANCELLED' %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"><i class="ti ti-x text-[12px]" aria-hidden="true"></i>Cancelled</span>
+          {% elif item.status == 'EXPIRED' %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-clock-off text-[12px]" aria-hidden="true"></i>Expired</span>
+          {% else %}
+          <span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ item.status }}</span>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 align-top">
+          <div class="font-mono text-sm font-semibold {% if complete %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">
+            {{ item.assigned }}<span class="text-gray-400 dark:text-gray-500">/{{ needed }}</span>
+          </div>
+          <div class="mt-1 h-1.5 w-20 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" role="presentation">
+            <div class="h-full rounded-full {% if complete %}bg-green-500{% else %}bg-ecs-green{% endif %}"
+                 style="width: {{ ((item.assigned / needed * 100) if needed else 0) | round | int }}%"></div>
+          </div>
+        </td>
+        <td class="px-3 py-3 align-top hidden md:table-cell">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            {% if item.tally.available > 0 %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300" title="Available"><i class="ti ti-check text-xs" aria-hidden="true"></i>{{ item.tally.available }}</span>
+            {% endif %}
+            {% if item.tally.unavailable > 0 %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300" title="Unavailable"><i class="ti ti-x text-xs" aria-hidden="true"></i>{{ item.tally.unavailable }}</span>
+            {% endif %}
+            {% if item.tally.pending > 0 %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300" title="Awaiting response"><i class="ti ti-clock text-xs" aria-hidden="true"></i>{{ item.tally.pending }}</span>
+            {% endif %}
+            {% if item.total_contacted == 0 %}
+            <span class="text-xs text-gray-400 dark:text-gray-500">No contacts</span>
+            {% endif %}
+          </div>
+          {% if item.ready_to_assign %}
+          <div class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-user-check text-[11px]" aria-hidden="true"></i>{{ item.tally.available }} ready to assign</div>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 align-top text-right">
+          {{ item_actions(item) }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {# mobile stacked cards #}
+  <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+    {% for item in items %}
+    {% set needed = item.needed or 1 %}
+    {% set complete = item.assigned >= needed %}
+    {% set rail = 'bg-amber-400 dark:bg-amber-500' if item.status == 'OPEN' else ('bg-green-500' if item.status == 'FILLED' else ('bg-red-400 dark:bg-red-500' if item.status == 'CANCELLED' else 'bg-gray-300 dark:bg-gray-600')) %}
+    <div class="px-4 py-3.5 flex gap-3">
+      <span class="w-1 self-stretch rounded-full shrink-0 {{ rail }}" aria-hidden="true"></span>
+      <div class="min-w-0 flex-1">
+      <div class="flex items-start justify-between gap-2">
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5">
+            {% if item.league == 'ecs_fc' %}
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-ecs-green/15 text-ecs-green">FC</span>
+            {% else %}
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">PUB</span>
+            {% endif %}
+            <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ item.match_label }}</div>
+          </div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ item.match_date.strftime('%b %d, %Y') if item.match_date else 'No date' }}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ item.team_name }}</div>
+        </div>
+        {% if item.status == 'OPEN' %}
+        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock text-[12px]" aria-hidden="true"></i>Open</span>
+        {% elif item.status == 'FILLED' %}
+        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check text-[12px]" aria-hidden="true"></i>Filled</span>
+        {% elif item.status == 'CANCELLED' %}
+        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"><i class="ti ti-x text-[12px]" aria-hidden="true"></i>Cancelled</span>
+        {% elif item.status == 'EXPIRED' %}
+        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-clock-off text-[12px]" aria-hidden="true"></i>Expired</span>
+        {% else %}
+        <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ item.status }}</span>
+        {% endif %}
+      </div>
+      {% if item.positions or item.ready_to_assign %}
+      <div class="mt-2 flex flex-wrap items-center gap-1.5">
+        {% if item.positions %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ item.positions }}</span>
+        {% endif %}
+        {% if item.ready_to_assign %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-user-check text-[11px]" aria-hidden="true"></i>{{ item.tally.available }} ready to assign</span>
+        {% endif %}
+      </div>
+      {% endif %}
+      <div class="mt-2 flex items-center gap-2">
+        <span class="font-mono text-xs font-semibold {% if complete %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ item.assigned }}<span class="text-gray-400 dark:text-gray-500">/{{ needed }}</span></span>
+        <div class="h-1.5 w-16 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+          <div class="h-full rounded-full {% if complete %}bg-green-500{% else %}bg-ecs-green{% endif %}" style="width: {{ ((item.assigned / needed * 100) if needed else 0) | round | int }}%"></div>
+        </div>
+      </div>
+      {% if item.total_contacted > 0 %}
+      <div class="mt-2 grid grid-cols-3 gap-1.5">
+        <div class="rounded-lg bg-green-100 dark:bg-green-500/15 px-2 py-1.5 text-center"><span class="block font-mono text-base font-bold text-green-700 dark:text-green-300">{{ item.tally.available }}</span><span class="block text-[10px] uppercase tracking-wide text-green-600/80 dark:text-green-400/80">Available</span></div>
+        <div class="rounded-lg bg-amber-100 dark:bg-amber-500/15 px-2 py-1.5 text-center"><span class="block font-mono text-base font-bold text-amber-700 dark:text-amber-300">{{ item.tally.pending }}</span><span class="block text-[10px] uppercase tracking-wide text-amber-600/80 dark:text-amber-400/80">Pending</span></div>
+        <div class="rounded-lg bg-red-100 dark:bg-red-500/15 px-2 py-1.5 text-center"><span class="block font-mono text-base font-bold text-red-700 dark:text-red-300">{{ item.tally.unavailable }}</span><span class="block text-[10px] uppercase tracking-wide text-red-600/80 dark:text-red-400/80">Unavail.</span></div>
+      </div>
+      {% endif %}
+      <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+        {{ item_actions(item, mobile=true) }}
+      </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% endcall %}
+
+{# ---- Server-side pagination (prev / numbers / next, preserving league+status) ---- #}
+{% if pages > 1 %}
+<nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
+  <span class="text-xs text-gray-500 dark:text-gray-400">Page <span class="font-mono">{{ page }}</span> of <span class="font-mono">{{ pages }}</span> · <span class="font-mono">{{ total }}</span> total</span>
+  <div class="inline-flex items-center gap-1">
+    {% if page > 1 %}
+    <a href="{{ url_for('admin_panel.unified_substitutes', league=league_filter, status=status_filter, page=page-1) }}"
+       class="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="ti ti-chevron-left" aria-hidden="true"></i>Prev</a>
+    {% else %}
+    <span class="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-300 dark:text-gray-600 cursor-not-allowed"><i class="ti ti-chevron-left" aria-hidden="true"></i>Prev</span>
+    {% endif %}
+    {% for p in range(1, pages + 1) %}
+    {% if p == page %}
+    <span aria-current="page" class="inline-flex items-center justify-center h-9 min-w-[2.25rem] px-2 rounded-lg bg-ecs-green text-white text-sm font-semibold font-mono">{{ p }}</span>
+    {% else %}
+    <a href="{{ url_for('admin_panel.unified_substitutes', league=league_filter, status=status_filter, page=p) }}"
+       class="inline-flex items-center justify-center h-9 min-w-[2.25rem] px-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium font-mono text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">{{ p }}</a>
+    {% endif %}
+    {% endfor %}
+    {% if page < pages %}
+    <a href="{{ url_for('admin_panel.unified_substitutes', league=league_filter, status=status_filter, page=page+1) }}"
+       class="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Next<i class="ti ti-chevron-right" aria-hidden="true"></i></a>
+    {% else %}
+    <span class="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-300 dark:text-gray-600 cursor-not-allowed">Next<i class="ti ti-chevron-right" aria-hidden="true"></i></span>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+{% else %}
+{{ empty_state("ti-clipboard-off", "No substitute requests found", "Adjust the league or status filters above. Active hides expired and past-match requests.") }}
+{% endif %}
+</div>{# /left column #}
+
+{# RIGHT: unified Sub Pool panel — both leagues' active pool members #}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col overflow-hidden">
+  <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+    <i class="ti ti-user-check text-blue-500" aria-hidden="true"></i>
+    <h2 class="font-semibold text-gray-900 dark:text-white">Sub Pool</h2>
+    <span class="ml-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ pool_members | length }}</span>
+  </div>
+  {% if pool_members %}
+  <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+    <label for="poolSearch" class="sr-only">Search sub pool</label>
+    <div class="relative">
+      <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
+      <input id="poolSearch" type="text" placeholder="Search subs by name or position…"
+             class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    </div>
+  </div>
+  <ul class="divide-y divide-gray-200 dark:divide-gray-700 max-h-[28rem] overflow-y-auto" data-pool-list>
+    {% for m in pool_members %}
+    {% set initials = (m.name.split()|map('first')|join)[:2]|upper if m.name else '?' %}
+    <li class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        data-pool-member data-pool-search="{{ (m.name ~ ' ' ~ m.positions)|lower }}">
+      <span class="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-xs font-mono font-bold text-gray-500 dark:text-gray-300">{{ initials }}</span>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ m.name }}<span class="ml-1.5 text-[10px] font-mono text-gray-400 dark:text-gray-500" title="Player ID">#{{ m.player_id }}</span></p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{% if m.positions %}{{ m.positions }}{% else %}No position set{% endif %}</p>
+      </div>
+      {% if m.league == 'ecs_fc' %}
+      <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-ecs-green/15 text-ecs-green">FC</span>
+      {% else %}
+      <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">PUB</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="px-4 py-8 text-center">
+    <i class="ti ti-users-off text-3xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No active subs in either pool yet</p>
+  </div>
+  {% endif %}
+</section>
+</div>{# /board grid #}
+
+{# Client-side pool search (no fetch). #}
+<script>
+(function () {
+  var ps = document.getElementById('poolSearch');
+  if (ps) ps.addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase();
+    document.querySelectorAll('[data-pool-member]').forEach(function (li) {
+      li.classList.toggle('hidden', q && li.getAttribute('data-pool-search').indexOf(q) === -1);
+    });
+  });
+})();
+</script>
+
+{# ===== Assign modal — fetches available subs from item.action_urls.available,
+   then POSTs a chosen player to item.action_urls.assign. League-agnostic:
+   ECS FC carries request_id in the URL; Pub League needs match_id/team_id/request_id
+   in the body. The hidden fields below carry whatever the selected row provides. ===== #}
+<div id="assignModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 p-4">
+  <div class="w-full max-w-md rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+      <i class="ti ti-user-check text-ecs-green" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Assign Substitute</h2>
+      <button type="button" data-assign-close aria-label="Close" class="ml-auto h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-x text-xl"></i></button>
+    </div>
+    <form id="assignForm" method="POST" action="">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token_value }}">
+      <input type="hidden" name="request_id" id="assignRequestId" value="">
+      <input type="hidden" name="match_id" id="assignMatchId" value="">
+      <input type="hidden" name="team_id" id="assignTeamId" value="">
+      <div class="p-4 space-y-3">
+        <p id="assignContext" class="text-sm text-gray-600 dark:text-gray-300"></p>
+        <div>
+          <label for="assignPlayer" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Available substitute</label>
+          <select name="player_id" id="assignPlayer" required
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+        <p id="assignError" class="hidden text-sm text-red-600 dark:text-red-400"></p>
+      </div>
+      <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+        <button type="button" data-assign-close class="h-9 px-3 inline-flex items-center rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancel</button>
+        <button type="submit" id="assignSubmit" class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-user-check" aria-hidden="true"></i>Assign</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  var modal = document.getElementById('assignModal');
+  if (!modal) return;
+  var form = document.getElementById('assignForm');
+  var sel = document.getElementById('assignPlayer');
+  var ctx = document.getElementById('assignContext');
+  var err = document.getElementById('assignError');
+  var rId = document.getElementById('assignRequestId');
+  var mId = document.getElementById('assignMatchId');
+  var tId = document.getElementById('assignTeamId');
+
+  function show() { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+  function hide() { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+  function setErr(m) { if (m) { err.textContent = m; err.classList.remove('hidden'); } else { err.textContent = ''; err.classList.add('hidden'); } }
+
+  modal.querySelectorAll('[data-assign-close]').forEach(function (b) { b.addEventListener('click', hide); });
+  modal.addEventListener('click', function (e) { if (e.target === modal) hide(); });
+
+  document.querySelectorAll('[data-assign-open]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setErr('');
+      form.action = btn.getAttribute('data-assign-url') || '';
+      rId.value = btn.getAttribute('data-request-id') || '';
+      mId.value = btn.getAttribute('data-match-id') || '';
+      tId.value = btn.getAttribute('data-team-id') || '';
+      ctx.textContent = btn.getAttribute('data-match-label') || '';
+      var league = btn.getAttribute('data-league');
+      sel.innerHTML = '<option value="">Loading…</option>';
+      show();
+
+      var availUrl = btn.getAttribute('data-available-url');
+      fetch(availUrl, {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          // Pub League returns {players:[{id,name,positions}]}; ECS FC returns {available_subs:[{player_id,player_name}]}.
+          var list = [];
+          if (j && j.players) {
+            list = j.players.map(function (p) { return {id: p.id, name: p.name + (p.positions ? ' (' + p.positions + ')' : '')}; });
+          } else if (j && j.available_subs) {
+            list = j.available_subs.map(function (p) { return {id: p.player_id, name: p.player_name}; });
+          }
+          if (!list.length) {
+            sel.innerHTML = '<option value="">No available subs</option>';
+            setErr('No substitutes have marked themselves available yet.');
+            return;
+          }
+          sel.innerHTML = list.map(function (p) { return '<option value="' + p.id + '">' + p.name + '</option>'; }).join('');
+        })
+        .catch(function () { sel.innerHTML = '<option value="">Error</option>'; setErr('Could not load available substitutes.'); });
+    });
+  });
+})();
+</script>
+
+{# Pub League "Contact" — single JSON POST to notify_substitute_pool (all subs in pool). #}
+<script>
+(function () {
+  var csrf = document.querySelector('meta[name=csrf-token]');
+  document.querySelectorAll('[data-contact-pool]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (!confirm('Notify all subs in this pool for this request?')) return;
+      var url = btn.getAttribute('data-contact-url');
+      var payload = {
+        request_id: parseInt(btn.getAttribute('data-request-id'), 10),
+        league_type: btn.getAttribute('data-league-type'),
+        recipient_type: 'all',
+        subs_needed: parseInt(btn.getAttribute('data-needed'), 10) || 1
+      };
+      var headers = {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'};
+      if (csrf) headers['X-CSRFToken'] = csrf.content;
+      var orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ti ti-loader animate-spin"></i>Sending…';
+      fetch(url, {method: 'POST', headers: headers, body: JSON.stringify(payload), credentials: 'same-origin'})
+        .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, body: j}; }); })
+        .then(function (res) {
+          var ok = res.ok && res.body && res.body.success !== false;
+          if (window.Swal) {
+            var isDark = document.documentElement.classList.contains('dark');
+            window.Swal.fire({
+              icon: ok ? 'success' : 'error',
+              title: ok ? 'Subs contacted' : 'Could not contact subs',
+              text: (res.body && (res.body.message || res.body.error)) || '',
+              background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+            });
+          } else if (!ok) {
+            alert((res.body && (res.body.message || res.body.error)) || 'Could not contact subs.');
+          }
+        })
+        .catch(function () { if (window.Swal) { window.Swal.fire({icon: 'error', title: 'Network error'}); } else { alert('Network error.'); } })
+        .finally(function () { btn.disabled = false; btn.innerHTML = orig; });
+    });
+  });
+})();
+</script>
+{% endblock %}
