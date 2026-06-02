@@ -750,11 +750,16 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
+    var makeChart = function (el, config) {
+        var prev = (window.Chart && Chart.getChart) ? Chart.getChart(el) : null;
+        if (prev) { prev.destroy(); }
+        return new Chart(el, config);
+    };
 
     // Match Status Chart
     const statusChartEl = document.getElementById('matchStatusChart');
     if (statusChartEl) {
-        new Chart(statusChartEl, {
+        makeChart(statusChartEl, {
             type: 'doughnut',
             data: {
                 labels: ['Completed', 'Pending', 'Scheduled'],
@@ -782,7 +787,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Matches per Week Chart
     const weekChartEl = document.getElementById('matchesPerWeekChart');
     if (weekChartEl) {
-        new Chart(weekChartEl, {
+        makeChart(weekChartEl, {
             type: 'line',
             data: {
                 labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],

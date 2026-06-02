@@ -749,11 +749,14 @@ def recalculate_statistics():
                 recompute_team_standings(session, team, current_season)
                 recalc_count += 1
 
+        # Attendance recompute runs in the BACKGROUND. Doing it inline here looped
+        # every PlayerAttendanceStats in the web request, which timed out and rolled
+        # back (leaving stats stale). Dispatch a Celery task with per-player commits.
+        attendance_dispatched = False
         if scope in ('all', 'attendance'):
-            attendance_stats = session.query(PlayerAttendanceStats).all()
-            for stat in attendance_stats:
-                stat.update_stats(session)
-                recalc_count += 1
+            from app.tasks.tasks_maintenance import recalculate_all_attendance_stats
+            recalculate_all_attendance_stats.delay()
+            attendance_dispatched = True
 
         session.commit()
 
@@ -767,10 +770,10 @@ def recalculate_statistics():
             user_agent=request.headers.get('User-Agent')
         )
 
-        return jsonify({
-            'success': True,
-            'message': f'Recalculated {recalc_count} statistics records'
-        })
+        msg = f'Recalculated {recalc_count} records'
+        if attendance_dispatched:
+            msg += '. Attendance recalculation is running in the background — refresh the report in 1–2 minutes.'
+        return jsonify({'success': True, 'message': msg})
 
     except Exception as e:
         logger.error(f"Error recalculating statistics: {e}")

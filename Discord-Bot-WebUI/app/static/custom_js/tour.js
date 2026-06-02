@@ -65,11 +65,14 @@ export function initTour() {
     // a stable `data-tour` hook (or an existing id). Steps whose target is not on
     // the current page are skipped, so the tour never attaches to a missing
     // element and floats scrambled in the middle of the screen.
+    // Ordered to match the dashboard's top-to-bottom layout so the tour scrolls
+    // monotonically downward (Teams → Announcements → Next Match → Matches)
+    // rather than jumping back up.
     const candidateSteps = [
         { title: 'Welcome', text: "Glad you're here! Here's a quick tour of your dashboard.", element: null },
         { title: 'Your Teams', text: 'Your current teams show up here.', element: '[data-tour="teams"]', on: 'bottom' },
-        { title: 'Your Next Match', text: "Your next match — RSVP right here so your coach knows you're coming.", element: '[data-tour="next-match"]', on: 'bottom' },
         { title: 'Announcements', text: 'League announcements show up here.', element: '#announcementsCarousel', on: 'bottom' },
+        { title: 'Your Next Match', text: "Your next match — RSVP right here so your coach knows you're coming.", element: '[data-tour="next-match"]', on: 'bottom' },
         { title: 'Upcoming Matches', text: 'All your upcoming matches, with RSVP and details.', element: '[data-tour="matches"]', on: 'top' }
     ];
 

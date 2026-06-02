@@ -171,5 +171,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-{% block extra_js %}{% endblock %}
+{# NOTE: do NOT render {% block extra_js %} here — the global base_flowbite.html
+   already outputs it as a standalone block. Nesting it inside custom_js made every
+   admin page's extra_js render TWICE (its <script> ran twice → "Canvas is already
+   in use" on chart pages, and double-bound listeners elsewhere). Single render now. #}
 {% endblock %}

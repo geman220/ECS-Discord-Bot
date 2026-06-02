@@ -322,9 +322,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const leagueColor = '{{ league_config.color }}';
 
     // Initialize chart
+    var makeChart = function (el, config) {
+        var prev = (window.Chart && Chart.getChart) ? Chart.getChart(el) : null;
+        if (prev) { prev.destroy(); }
+        return new Chart(el, config);
+    };
     const ctx = document.getElementById('performanceChart');
     if (ctx) {
-        new Chart(ctx.getContext('2d'), {
+        makeChart(ctx.getContext('2d'), {
             type: 'line',
             data: {
                 labels: {{ chart_labels | tojson }},

@@ -511,6 +511,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
     const textColor = isDark ? '#9ca3af' : '#6b7280';
     const gridColor = isDark ? '#374151' : '#e5e7eb';
+    var makeChart = function (el, config) {
+        var prev = (window.Chart && Chart.getChart) ? Chart.getChart(el) : null;
+        if (prev) { prev.destroy(); }
+        return new Chart(el, config);
+    };
 
     // ECS Brand Colors
     const ecsGreen = '#1a472a';
@@ -521,7 +526,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const ordersCanvas = document.getElementById('ordersChart');
     if (ordersCanvas) {
     const ordersCtx = ordersCanvas.getContext('2d');
-    new Chart(ordersCtx, {
+    makeChart(ordersCtx, {
         type: 'line',
         data: {
             labels: ordersData.map(d => d.date),
@@ -577,7 +582,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const statusCanvas = document.getElementById('statusChart');
     if (statusCanvas) {
     const statusCtx = statusCanvas.getContext('2d');
-    new Chart(statusCtx, {
+    makeChart(statusCtx, {
         type: 'doughnut',
         data: {
             labels: statusLabels,

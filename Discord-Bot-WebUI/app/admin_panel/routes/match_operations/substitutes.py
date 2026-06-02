@@ -84,7 +84,11 @@ def substitute_management():
             Schedule, Match.schedule_id == Schedule.id
         ).filter(
             SubstituteRequest.status.in_(['OPEN', 'PENDING', 'APPROVED']),
-            Schedule.season_id.in_(current_season_ids)
+            Schedule.season_id.in_(current_season_ids),
+            # Exclude requests whose match already happened — past-match OPEN requests
+            # aren't actionable and were cluttering the queue. The nightly
+            # expire_past_match_sub_requests task also marks these EXPIRED for good.
+            Match.date >= datetime.utcnow().date()
         ).order_by(SubstituteRequest.created_at.desc())
 
         sub_requests = sub_requests_query.limit(50).all()

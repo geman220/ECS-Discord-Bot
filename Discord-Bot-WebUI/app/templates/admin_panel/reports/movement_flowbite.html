@@ -58,7 +58,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!el || typeof Chart === 'undefined') return;
     var d = JSON.parse(document.getElementById('movement-data').textContent || '{}');
     if (!d.labels || !d.labels.length) return;
-    new Chart(el, {
+    var makeChart = function (el, config) {
+        var prev = Chart.getChart(el);
+        if (prev) { prev.destroy(); }
+        return new Chart(el, config);
+    };
+    makeChart(el, {
         type: 'bar',
         data: { labels: d.labels, datasets: [{ label: 'Players', data: d.counts, backgroundColor: '#16a34a', borderRadius: 4 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },

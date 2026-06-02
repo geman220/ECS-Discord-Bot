@@ -213,13 +213,29 @@
 }
 .shepherd-element .shepherd-content .shepherd-header {
   padding: 1.25rem 1.25rem 0;
+  /* Defensive layout: keep title (left) and close "x" (right) on one row,
+     regardless of global button/Tailwind resets that could force-wrap them. */
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 .shepherd-element .shepherd-content .shepherd-header .shepherd-title {
   font-weight: 500 !important;
   font-size: 1.125rem !important;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
 }
 .shepherd-element .shepherd-content .shepherd-header .shepherd-cancel-icon {
   font-size: 1.85rem !important;
+  flex: 0 0 auto;
+  width: auto;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
 }
 .shepherd-element .shepherd-content .shepherd-header .shepherd-cancel-icon:focus {
   outline: 0;
@@ -230,9 +246,18 @@
 }
 .shepherd-element .shepherd-content .shepherd-footer {
   padding: 0 1.25rem 1.25rem !important;
+  /* Defensive layout: keep footer buttons side-by-side with even spacing,
+     so Skip/Next don't squish together or stack vertically. */
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
 }
-.shepherd-element .shepherd-content .shepherd-footer .shepherd-button:not(:last-child) {
-  margin-right: 0.75rem !important;
+.shepherd-element .shepherd-content .shepherd-footer .shepherd-button {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
 }
 .shepherd-element[data-popper-placement=bottom] {
   margin-top: 0.8rem !important;

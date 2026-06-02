@@ -210,11 +210,16 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
+    var makeChart = function (el, config) {
+        var prev = (window.Chart && Chart.getChart) ? Chart.getChart(el) : null;
+        if (prev) { prev.destroy(); }
+        return new Chart(el, config);
+    };
 
     {% if total_responses > 0 %}
     // Overall results chart
     const ctx = document.getElementById('overallChart').getContext('2d');
-    new Chart(ctx, {
+    makeChart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Yes', 'No', 'Maybe'],

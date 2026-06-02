@@ -759,6 +759,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
+    var makeChart = function (el, config) {
+        var prev = (window.Chart && Chart.getChart) ? Chart.getChart(el) : null;
+        if (prev) { prev.destroy(); }
+        return new Chart(el, config);
+    };
 
     const chartColors = {
         primary: '#1a472a',
@@ -789,7 +794,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Response Time Chart
     const responseTimeEl = document.getElementById('responseTimeChart');
     if (responseTimeEl) {
-        new Chart(responseTimeEl.getContext('2d'), {
+        makeChart(responseTimeEl.getContext('2d'), {
             type: 'line',
             data: {
                 labels: chartData.responseTime.labels.length ? chartData.responseTime.labels : ['12:00', '12:15', '12:30', '12:45', '13:00'],
@@ -817,7 +822,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Request Distribution Chart
     const requestDistEl = document.getElementById('requestDistributionChart');
     if (requestDistEl) {
-        new Chart(requestDistEl.getContext('2d'), {
+        makeChart(requestDistEl.getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: chartData.requestDistribution.labels,
@@ -837,7 +842,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Historical Chart
     const historicalEl = document.getElementById('historicalChart');
     if (historicalEl) {
-        new Chart(historicalEl.getContext('2d'), {
+        makeChart(historicalEl.getContext('2d'), {
             type: 'line',
             data: {
                 labels: chartData.timeline.labels.length ? chartData.timeline.labels : ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],

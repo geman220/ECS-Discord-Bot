@@ -91,7 +91,14 @@ def recompute_team_standings(session, team, season):
         session.add(standing)
         logger.info(f"Created new standings record for team_id={team.id}, season_id={season.id}")
 
-    # Query all reported matches for this team in this season
+    # Query all reported matches for this team in this season.
+    #
+    # Special weeks (FUN/TST/BYE/BONUS) are stored as self-vs-self placeholder rows
+    # (home_team_id == away_team_id, is_special_week=True). They must never reach the
+    # league table: a score reported against one — e.g. a BYE-week placeholder scored
+    # 0-0 — would otherwise land as a phantom "draw against itself" and inflate the
+    # team's games-played. Exclude both the self-match shape and the flag so neither a
+    # mistaken report nor a stray flag can pollute standings.
     matches = (
         session.query(Match)
         .join(Schedule, Match.schedule_id == Schedule.id)
@@ -100,6 +107,8 @@ def recompute_team_standings(session, team, season):
             or_(Match.home_team_id == team.id, Match.away_team_id == team.id),
             Match.home_team_score.isnot(None),
             Match.away_team_score.isnot(None),
+            Match.home_team_id != Match.away_team_id,
+            Match.is_special_week.isnot(True),
         )
         .all()
     )

@@ -698,13 +698,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
     const textColor = isDark ? '#9ca3af' : '#6b7280';
     const gridColor = isDark ? '#374151' : '#e5e7eb';
+    var makeChart = function (el, config) {
+        var prev = (window.Chart && Chart.getChart) ? Chart.getChart(el) : null;
+        if (prev) { prev.destroy(); }
+        return new Chart(el, config);
+    };
 
     // Registration Trends Chart
     let registrationChart = null;
     const registrationCtx = document.getElementById('registrationTrendsChart');
     if (registrationCtx) {
         const trendsData = {{ analytics_data.registration_trends|tojson }};
-        registrationChart = new Chart(registrationCtx, {
+        registrationChart = makeChart(registrationCtx, {
             type: 'line',
             data: {
                 labels: trendsData.map(d => d.date || d.period),
@@ -743,7 +748,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const approvalCtx = document.getElementById('approvalStatusChart');
     if (approvalCtx) {
         const approvalsData = {{ analytics_data.approvals|tojson }};
-        new Chart(approvalCtx, {
+        makeChart(approvalCtx, {
             type: 'doughnut',
             data: {
                 labels: ['Approved', 'Pending', 'Denied'],

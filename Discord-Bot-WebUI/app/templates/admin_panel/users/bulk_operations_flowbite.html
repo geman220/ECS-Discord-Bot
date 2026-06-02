@@ -700,7 +700,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const data = Object.values(roleStats);
         const colors = ['#1a472a', '#c9a227', '#22c55e', '#3b82f6', '#eab308', '#ef4444', '#15803d', '#ec4899'];
 
-        new Chart(roleCtx, {
+        var makeChart = function (el, config) {
+            var prev = (window.Chart && Chart.getChart) ? Chart.getChart(el) : null;
+            if (prev) { prev.destroy(); }
+            return new Chart(el, config);
+        };
+        makeChart(roleCtx, {
             type: 'doughnut',
             data: {
                 labels: labels,

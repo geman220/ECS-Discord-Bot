@@ -608,6 +608,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
+    var makeChart = function (el, config) {
+        var prev = (window.Chart && Chart.getChart) ? Chart.getChart(el) : null;
+        if (prev) { prev.destroy(); }
+        return new Chart(el, config);
+    };
 
     // Export analytics buttons
     document.querySelectorAll('[data-action="export-analytics"]').forEach(btn => {
@@ -628,7 +633,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Requests Over Time Chart
     const requestsData = {{ analytics.daily_requests | tojson }};
     const requestsCtx = document.getElementById('requestsChart').getContext('2d');
-    new Chart(requestsCtx, {
+    makeChart(requestsCtx, {
         type: 'line',
         data: {
             labels: requestsData.map(d => d.date),
@@ -687,7 +692,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Error Distribution Chart
     const errorData = {{ error_analysis.error_types | tojson }};
     const errorCtx = document.getElementById('errorChart').getContext('2d');
-    new Chart(errorCtx, {
+    makeChart(errorCtx, {
         type: 'doughnut',
         data: {
             labels: errorData.map(d => d.type),

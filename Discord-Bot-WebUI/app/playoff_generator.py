@@ -453,6 +453,12 @@ class PlayoffGenerator:
                 match.is_playoff_game = True
                 match.playoff_round = match_data['playoff_round']
                 match.week_type = 'PLAYOFF'
+                # Playoff placeholders are created with is_special_week=True (so the
+                # mobile app hides RSVP/availability while teams are TBD). Once real
+                # teams are assigned this is a normal fixture — clear the flag so the
+                # app shows RSVP/availability/events again. PLAYOFF/is_playoff_game
+                # stay set for labeling; only is_special_week gates the mobile UI.
+                match.is_special_week = False
 
                 # Update time/date/location if they changed
                 match.time = match_data['time']

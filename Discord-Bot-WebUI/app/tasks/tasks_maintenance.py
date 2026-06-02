@@ -59,6 +59,15 @@ def setup_periodic_tasks(sender, **kwargs):
         name='cleanup-presence-set'
     )
 
+    # Expire substitute requests whose match date has passed - daily at 3 AM.
+    # Keeps the Priority Fill Queue / sub-request boards free of stale OPEN
+    # requests for matches that already happened (both Pub League + ECS FC).
+    sender.add_periodic_task(
+        crontab(hour=3, minute=0),
+        expire_past_match_sub_requests.s(),
+        name='expire-past-match-sub-requests'
+    )
+
 
 @celery.task
 def cleanup_database_connections():
@@ -495,3 +504,82 @@ def emergency_queue_purge(self, session):
     except Exception as e:
         logger.error(f"Error during emergency queue purge: {str(e)}", exc_info=True)
         return {"status": "error", "message": str(e)}
+
+
+@celery_task(
+    name='app.tasks.tasks_maintenance.recalculate_all_attendance_stats',
+    bind=True,
+    queue='celery',
+    max_retries=0,
+)
+def recalculate_all_attendance_stats(self, session):
+    """Recompute every PlayerAttendanceStats row (career + current-season) in the
+    background.
+
+    The admin "Recalculate Statistics" button used to do this inline in the web
+    request — looping hundreds of players, each now doing several queries — which
+    exceeded the request timeout and rolled the whole transaction back, so stored
+    attendance stayed frozen (career showed the old buggy calc, season read 0%).
+    Running it as a task with a per-player commit removes the timeout and lets
+    partial progress persist; one bad player can't lose the rest.
+    """
+    from app.models.stats import PlayerAttendanceStats
+
+    player_ids = [pid for (pid,) in session.query(PlayerAttendanceStats.player_id).all()]
+    updated = 0
+    errors = 0
+    for pid in player_ids:
+        try:
+            stat = session.query(PlayerAttendanceStats).filter_by(player_id=pid).first()
+            if stat is not None:
+                stat.update_stats(session)
+                session.commit()
+                updated += 1
+        except Exception as e:
+            session.rollback()
+            errors += 1
+            logger.warning(f"recalculate_all_attendance_stats: player {pid} failed: {e}")
+    logger.info(f"recalculate_all_attendance_stats: {updated} updated, {errors} errors, {len(player_ids)} total")
+    return {'updated': updated, 'errors': errors, 'total': len(player_ids)}
+
+
+@celery_task(
+    name='app.tasks.tasks_maintenance.expire_past_match_sub_requests',
+    bind=True,
+    queue='celery',
+    max_retries=1,
+)
+def expire_past_match_sub_requests(self, session):
+    """Mark substitute requests EXPIRED once their match date has passed.
+
+    Neither the Pub League (SubstituteRequest) nor the ECS FC (EcsFcSubRequest)
+    system filtered by match date or had any auto-expiry, so OPEN requests for
+    matches that already happened piled up in the Priority Fill Queue / sub-request
+    boards forever (e.g. the ~19 stale items). This expires active requests whose
+    match is in the past so the boards only show what's actually actionable. EXPIRED
+    is terminal and excluded from the active/open views; rows are kept for history.
+    """
+    today = datetime.utcnow().date()
+    active = ('OPEN', 'PENDING', 'APPROVED')
+
+    from app.models.substitutes import SubstituteRequest, EcsFcSubRequest
+    from app.models.matches import Match
+    from app.models.ecs_fc import EcsFcMatch
+
+    pl = (session.query(SubstituteRequest)
+          .join(Match, SubstituteRequest.match_id == Match.id)
+          .filter(SubstituteRequest.status.in_(active), Match.date < today)
+          .all())
+    for req in pl:
+        req.status = 'EXPIRED'
+
+    ecs = (session.query(EcsFcSubRequest)
+           .join(EcsFcMatch, EcsFcSubRequest.match_id == EcsFcMatch.id)
+           .filter(EcsFcSubRequest.status.in_(active), EcsFcMatch.match_date < today)
+           .all())
+    for req in ecs:
+        req.status = 'EXPIRED'
+
+    session.commit()
+    logger.info(f"expire_past_match_sub_requests: expired {len(pl)} Pub League + {len(ecs)} ECS FC past-match requests")
+    return {'pub_league_expired': len(pl), 'ecs_fc_expired': len(ecs)}

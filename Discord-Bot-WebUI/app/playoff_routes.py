@@ -303,6 +303,9 @@ def assign_playoff_matches(league_id: int):
                         match.notes = description
                         match.week_type = 'PLAYOFF'
                         match.is_playoff_game = True
+                        # Real teams assigned -> normal fixture. Clear the special-week
+                        # flag that the placeholder carried so mobile shows RSVP again.
+                        match.is_special_week = False
                         updates_made += 1
                         
                         # Update associated schedule entries
@@ -813,6 +816,9 @@ def apply_playoff_schedule(league_id: int):
             match.is_playoff_game = True
             match.playoff_round = match_data.get('playoff_round', 1)
             match.week_type = 'PLAYOFF'
+            # Real teams assigned -> normal fixture. Clear the special-week flag the
+            # placeholder carried so the mobile app shows RSVP/availability again.
+            match.is_special_week = False
 
             # Update date/time/location if provided
             if 'date' in match_data:
@@ -1194,7 +1200,12 @@ def auto_assign_playoffs(league_id: int):
         for match in playoff_matches:
             match.week_type = 'PLAYOFF'
             match.is_playoff_game = True
-        
+            # Only clear the special-week flag once two real teams are set. The
+            # Premier final is left as a TBD self-match placeholder here, so guard
+            # against re-enabling RSVP on a self-vs-self row.
+            if match.home_team_id != match.away_team_id:
+                match.is_special_week = False
+
         session.commit()
         
         return jsonify({'success': True, 'message': 'Playoff teams auto-assigned based on standings'})

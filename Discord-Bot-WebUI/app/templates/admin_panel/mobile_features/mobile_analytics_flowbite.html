@@ -529,18 +529,20 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         const isDark = document.documentElement.classList.contains('dark');
+        var makeChart = function (el, config) {
+            var prev = (window.Chart && Chart.getChart) ? Chart.getChart(el) : null;
+            if (prev) { prev.destroy(); }
+            return new Chart(el, config);
+        };
 
         // Engagement chart (only if data exists)
         const engagementEl = document.getElementById('engagementChart');
         if (engagementEl && analyticsData.daily_engagement && analyticsData.daily_engagement.length > 0) {
-            const existingEngagement = Chart.getChart(engagementEl);
-            if (existingEngagement) existingEngagement.destroy();
-
             const labels = analyticsData.daily_engagement.map(d => d.date);
             const dauData = analyticsData.daily_engagement.map(d => d.dau);
             const sessionsData = analyticsData.daily_engagement.map(d => d.sessions);
 
-            new Chart(engagementEl.getContext('2d'), {
+            makeChart(engagementEl.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: labels,
@@ -575,10 +577,7 @@
         // Platform chart
         const platformEl = document.getElementById('platformChart');
         if (platformEl) {
-            const existingPlatform = Chart.getChart(platformEl);
-            if (existingPlatform) existingPlatform.destroy();
-
-            new Chart(platformEl.getContext('2d'), {
+            makeChart(platformEl.getContext('2d'), {
                 type: 'doughnut',
                 data: {
                     labels: ['iOS', 'Android', 'Unknown'],

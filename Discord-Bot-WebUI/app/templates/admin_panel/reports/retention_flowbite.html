@@ -47,7 +47,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!el || typeof Chart === 'undefined') return;
     var d = JSON.parse(document.getElementById('retention-data').textContent || '{}');
     if (!d.labels || !d.labels.length) return;
-    new Chart(el, {
+    var makeChart = function (el, config) {
+        var prev = Chart.getChart(el);
+        if (prev) { prev.destroy(); }
+        return new Chart(el, config);
+    };
+    makeChart(el, {
         type: 'line',
         data: {
             labels: d.labels,
