@@ -37,122 +37,157 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state, alert as kit_alert, modal as kit_modal %}
-{% from 'macros/flowbite.html' import input as fb_input %}
-{% set _ns_total = namespace(subs=0, matches=0, requests=0) %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state, modal as kit_modal %}
+{% set _ns = namespace(subs=0, matches=0, requests=0, accepted=0, on_break=0, pending=0) %}
 {% for _lt, _d in pools_data.items() %}
-  {% set _ns_total.subs = _ns_total.subs + _d.total_active %}
+  {% set _ns.subs = _ns.subs + _d.total_active %}
+  {% set _ns.on_break = _ns.on_break + _d.total_on_break %}
+  {% set _ns.pending = _ns.pending + _d.total_pending %}
   {% for _p in _d.active_pools %}
-    {% set _ns_total.matches = _ns_total.matches + _p.matches_played %}
-    {% set _ns_total.requests = _ns_total.requests + _p.requests_received %}
+    {% set _ns.matches = _ns.matches + _p.matches_played %}
+    {% set _ns.requests = _ns.requests + _p.requests_received %}
+    {% set _ns.accepted = _ns.accepted + _p.requests_accepted %}
   {% endfor %}
 {% endfor %}
+{% set _overall_rate = ((_ns.accepted / _ns.requests) * 100) if _ns.requests else 0 %}
 <div class="space-y-6">
 
-  {{ page_header(
+  {# ---- Command header: title + one primary CTA (Add Player) ---- #}
+  {% call page_header(
       ('ECS FC Substitute Pool' if pool_context == 'ecs-fc' else ('Pub League Substitute Pools' if pool_context == 'pub-league' else 'Substitute Pools')),
-      subtitle=('Manage the ECS FC substitute player pool' if pool_context == 'ecs-fc' else ('Manage Classic and Premier substitute pools' if pool_context == 'pub-league' else 'Manage substitute player pools'))
-  ) }}
+      subtitle=('Manage the ECS FC substitute player pool' if pool_context == 'ecs-fc' else ('Manage Classic and Premier substitute pools' if pool_context == 'pub-league' else 'Availability, requests and acceptance across every pool'))
+  ) %}
+    <a href="{{ url_for('admin_panel.substitute_management') }}"
+       class="inline-flex items-center justify-center gap-1.5 h-9 min-h-[44px] sm:min-h-0 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-clipboard-list" aria-hidden="true"></i><span class="hidden sm:inline">Sub Requests</span>
+    </a>
+    <button type="button" data-action="search-player"
+            class="js-search-player inline-flex items-center justify-center gap-1.5 h-9 min-h-[44px] sm:min-h-0 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-user-plus" aria-hidden="true"></i>Add Player
+    </button>
+  {% endcall %}
 
-  {% if pool_context == 'ecs-fc' %}
-    {{ kit_alert('info', 'Add players, track availability, and manage substitute requests for the ECS FC pool.', title='Substitute Pool Management', dismissible=False) }}
-  {% elif pool_context == 'pub-league' %}
-    {{ kit_alert('info', 'Add players to Classic and Premier pools, track availability, and manage substitute requests.', title='Substitute Pool Management', dismissible=False) }}
-  {% else %}
-    {{ kit_alert('info', 'Manage substitute pools for ECS FC, Classic, and Premier divisions. Add players, track availability, and manage requests.', title='Substitute Pool Management', dismissible=False) }}
-  {% endif %}
-
-  <!-- Overall KPI band (real data) -->
+  {# ---- KPI band (real aggregates) ---- #}
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-users-group', 'Total Substitutes', _ns_total.subs, tone='info') }}
-    {{ stat_card('ti-ball-football', 'Matches Played', _ns_total.matches, tone='success') }}
-    {{ stat_card('ti-clipboard-list', 'Requests Received', _ns_total.requests, tone='primary') }}
-    {{ stat_card('ti-stack-2', (pools_data|length), sublabel=('Active Pool' if pools_data|length == 1 else 'Active Pools'), tone='gold') }}
+    {% call stat_card('ti-users-group', 'Active Substitutes', _ns.subs, tone='primary') %}
+      <span class="font-mono">{{ _ns.on_break }}</span> on break · <span class="font-mono">{{ _ns.pending }}</span> pending
+    {% endcall %}
+    {% call stat_card('ti-ball-football', 'Matches Covered', _ns.matches, tone='success') %}
+      across <span class="font-mono">{{ pools_data|length }}</span> {{ 'pool' if pools_data|length == 1 else 'pools' }}
+    {% endcall %}
+    {% call stat_card('ti-clipboard-list', 'Requests Received', _ns.requests, tone='info') %}
+      <span class="font-mono">{{ _ns.accepted }}</span> accepted
+    {% endcall %}
+    {% call stat_card('ti-percentage', 'Acceptance Rate', '%.0f%%'|format(_overall_rate), tone='gold') %}
+      pool-wide, active subs
+    {% endcall %}
   </div>
 
-  <!-- League Pool Cards -->
+  {# ---- Per-league feature cards: header bar + status pills + tri-state + roster table ---- #}
   {% if pools_data %}
-  <div class="grid grid-cols-1 sm:grid-cols-2 {% if pools_data|length >= 3 %}lg:grid-cols-3{% endif %} gap-4 sm:gap-5">
+  <div class="grid grid-cols-1 {% if pools_data|length >= 2 %}xl:grid-cols-2{% endif %} gap-4 sm:gap-5">
     {% for league_type, data in pools_data.items() %}
-    {% call section_card(data.config.name, icon='ti-shield-half') %}
-    <div class="p-4 sm:p-5 space-y-4">
-      <div class="flex items-center justify-between gap-2">
-        <span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Pool status</span>
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
-          <i class="ti ti-circle-check" aria-hidden="true"></i><span class="font-mono">{{ data.total_active }}</span> Active
+    {% set _coverage = data.active_pools|sum(attribute='matches_played') if data.active_pools else 0 %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+      {# header bar #}
+      <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-14 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-bold flex items-center gap-2 text-gray-900 dark:text-white min-w-0">
+          <i class="ti ti-shield-half text-ecs-green shrink-0" aria-hidden="true"></i>
+          <span class="truncate">{{ data.config.name }}</span>
+        </h2>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+            <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i><span class="font-mono">{{ data.total_active }}</span>
+          </span>
+          {% if data.total_pending %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300" title="Awaiting approval">
+            <i class="ti ti-clock-hour-4 text-[12px]" aria-hidden="true"></i><span class="font-mono">{{ data.total_pending }}</span>
+          </span>
+          {% endif %}
+        </div>
+      </div>
+
+      {# tri-state availability strip (Flutter parity) #}
+      <div class="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700 border-b border-gray-200 dark:border-gray-700">
+        <div class="px-3 py-3 text-center" title="Approved and active — assignable">
+          <div class="font-mono text-2xl font-bold text-green-600 dark:text-green-400 leading-none">{{ data.total_active }}</div>
+          <div class="mt-1 text-[11px] uppercase tracking-wide font-medium text-gray-500 dark:text-gray-400">Active</div>
+        </div>
+        <div class="px-3 py-3 text-center" title="Approved but on break — eligible if reactivated">
+          <div class="font-mono text-2xl font-bold text-amber-600 dark:text-amber-400 leading-none">{{ data.total_on_break }}</div>
+          <div class="mt-1 text-[11px] uppercase tracking-wide font-medium text-gray-500 dark:text-gray-400">On Break</div>
+        </div>
+        <div class="px-3 py-3 text-center" title="Awaiting admin approval — cannot be contacted yet">
+          <div class="font-mono text-2xl font-bold text-gray-700 dark:text-gray-300 leading-none">{{ data.total_pending }}</div>
+          <div class="mt-1 text-[11px] uppercase tracking-wide font-medium text-gray-500 dark:text-gray-400">Pending</div>
+        </div>
+      </div>
+
+      {# roster table — real tabular sub data with mono numerals #}
+      <div class="flex-1">
+        {% if data.active_pools %}
+        {% set _roster = data.active_pools|sort(attribute='matches_played', reverse=True) %}
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+              <th scope="col" class="px-4 sm:px-5 py-2 text-left font-semibold uppercase tracking-wide text-[11px] text-gray-500 dark:text-gray-400">Substitute</th>
+              <th scope="col" class="px-2 py-2 text-right font-semibold uppercase tracking-wide text-[11px] text-gray-500 dark:text-gray-400 hidden sm:table-cell">Reqs</th>
+              <th scope="col" class="px-2 py-2 text-right font-semibold uppercase tracking-wide text-[11px] text-gray-500 dark:text-gray-400">Matches</th>
+              <th scope="col" class="px-4 sm:px-5 py-2 text-right font-semibold uppercase tracking-wide text-[11px] text-gray-500 dark:text-gray-400">Accept</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            {% for pool in _roster[:6] %}
+            {% set _rate = pool.acceptance_rate %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+              <td class="px-4 sm:px-5 py-2.5">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="font-mono text-xs text-gray-400 dark:text-gray-500 w-4 text-right shrink-0">{{ loop.index }}</span>
+                  <span class="font-medium text-gray-900 dark:text-white truncate">{{ pool.player.name if pool.player else 'Unknown' }}</span>
+                </div>
+              </td>
+              <td class="px-2 py-2.5 text-right font-mono text-gray-600 dark:text-gray-300 hidden sm:table-cell">{{ pool.requests_received }}</td>
+              <td class="px-2 py-2.5 text-right font-mono font-semibold text-gray-900 dark:text-white">{{ pool.matches_played }}</td>
+              <td class="px-4 sm:px-5 py-2.5 text-right">
+                {% if pool.requests_received %}
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold font-mono
+                  {% if _rate >= 80 %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300
+                  {% elif _rate >= 50 %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300
+                  {% else %}bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300{% endif %}">{{ _rate|round(0)|int }}%</span>
+                {% else %}
+                <span class="font-mono text-xs text-gray-400 dark:text-gray-500">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if data.active_pools|length > 6 %}
+        <div class="px-4 sm:px-5 py-2 border-t border-gray-100 dark:border-gray-700/60 text-xs text-gray-500 dark:text-gray-400">
+          Showing top <span class="font-mono">6</span> of <span class="font-mono">{{ data.active_pools|length }}</span> active subs
+        </div>
+        {% endif %}
+        {% else %}
+        {{ empty_state('ti-users-group', 'No active substitutes', 'Add players to this pool to start covering matches.') }}
+        {% endif %}
+      </div>
+
+      {# footer: coverage figure + manage CTA #}
+      <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700">
+        <span class="text-xs text-gray-500 dark:text-gray-400">
+          <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ _coverage }}</span> matches covered
         </span>
+        <a href="{{ url_for('admin_panel.substitute_pool_detail', league_type=league_type) }}"
+           class="inline-flex items-center justify-center gap-1.5 h-9 min-h-[44px] sm:min-h-0 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-settings" aria-hidden="true"></i>Manage Pool
+        </a>
       </div>
-
-      <!-- Tri-state pool model (matches Flutter mobile app) -->
-      <div class="grid grid-cols-3 gap-2">
-        <div class="text-center p-3 rounded-lg bg-green-50 dark:bg-green-500/10" title="Approved and active — assignable">
-          <div class="font-mono text-2xl font-bold text-green-700 dark:text-green-400">{{ data.total_active }}</div>
-          <div class="text-xs text-green-700 dark:text-green-400">Active</div>
-        </div>
-        <div class="text-center p-3 rounded-lg bg-amber-50 dark:bg-amber-500/10" title="Approved but currently on break — eligible if reactivated">
-          <div class="font-mono text-2xl font-bold text-amber-700 dark:text-amber-400">{{ data.total_on_break }}</div>
-          <div class="text-xs text-amber-700 dark:text-amber-400">On Break</div>
-        </div>
-        <div class="text-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50" title="Awaiting admin approval — cannot be contacted yet">
-          <div class="font-mono text-2xl font-bold text-gray-700 dark:text-gray-300">{{ data.total_pending }}</div>
-          <div class="text-xs text-gray-500 dark:text-gray-400">Pending</div>
-        </div>
-      </div>
-
-      <div class="text-center p-2 rounded-lg bg-gray-50 dark:bg-gray-700/30 text-sm text-gray-600 dark:text-gray-400">
-        <strong class="font-mono text-gray-900 dark:text-white">{{ data.active_pools|sum(attribute='matches_played') if data.active_pools else 0 }}</strong> matches played by active subs
-      </div>
-
-      {% if data.active_pools %}
-      <div>
-        <h4 class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Top Substitutes</h4>
-        <ul role="list" class="space-y-2 max-h-48 overflow-y-auto">
-          {% for pool in data.active_pools[:5] %}
-          <li class="flex items-center justify-between gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ pool.player.name if pool.player else 'Unknown' }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ pool.matches_played }} matches</p>
-            </div>
-            <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold font-mono bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">{{ pool.acceptance_rate|round(1) }}%</span>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% else %}
-      {{ empty_state('ti-users-group', 'No active substitutes', 'Add players to this pool to get started.') }}
-      {% endif %}
-
-      <a href="{{ url_for('admin_panel.substitute_pool_detail', league_type=league_type) }}"
-         class="block w-full text-center min-h-[44px] px-4 py-2.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-settings mr-1" aria-hidden="true"></i>Manage Pool
-      </a>
-    </div>
-    {% endcall %}
+    </section>
     {% endfor %}
   </div>
   {% else %}
   {{ empty_state('ti-users-group', 'No substitute pools', 'No pools are configured for this context yet.') }}
   {% endif %}
-
-  <!-- Quick Actions -->
-  {% call section_card('Quick Actions', icon='ti-bolt') %}
-  <div class="p-4 sm:p-5">
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <a href="{{ url_for('admin_panel.substitute_management') }}"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        <i class="ti ti-clipboard-list" aria-hidden="true"></i>View Sub Requests
-      </a>
-      <button type="button" data-action="search-player"
-              class="js-search-player inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-user-plus" aria-hidden="true"></i>Add Player to Pool
-      </button>
-      <a href="{{ url_for('admin_panel.match_operations') }}"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        <i class="ti ti-soccer-field" aria-hidden="true"></i>Match Operations
-      </a>
-    </div>
-  </div>
-  {% endcall %}
 
 </div>
 

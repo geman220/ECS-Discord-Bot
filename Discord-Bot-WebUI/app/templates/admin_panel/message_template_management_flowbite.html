@@ -16,134 +16,243 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state, alert as kit_alert %}
+{% from 'macros/_modern_kit.html' import page_header, data_table, data_table_th, empty_state, alert as kit_alert %}
+
+{# --- Channel-type metadata: maps the model's CHANNEL_TYPES to icons + tone classes (real values only). --- #}
+{% set channel_meta = {
+  'discord_dm':      {'label': 'Discord DM',      'icon': 'ti-message-circle',  'cls': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300'},
+  'discord_channel': {'label': 'Discord Channel', 'icon': 'ti-hash',            'cls': 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300'},
+  'sms':             {'label': 'SMS',             'icon': 'ti-device-mobile',   'cls': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'},
+  'email':           {'label': 'Email',           'icon': 'ti-mail',            'cls': 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'},
+  'announcement':    {'label': 'Announcement',    'icon': 'ti-speakerphone',    'cls': 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300'}
+} %}
+
+{# --- Derive real aggregates from the provided template list (no fabrication). --- #}
+{% set inactive_count = (stats.total_templates or 0) - (stats.active_templates or 0) %}
+{% set chan_counts = namespace(discord_dm=0, discord_channel=0, sms=0, email=0, announcement=0, unset=0) %}
+{% for t in templates %}
+  {% if t.channel_type == 'discord_dm' %}{% set chan_counts.discord_dm = chan_counts.discord_dm + 1 %}
+  {% elif t.channel_type == 'discord_channel' %}{% set chan_counts.discord_channel = chan_counts.discord_channel + 1 %}
+  {% elif t.channel_type == 'sms' %}{% set chan_counts.sms = chan_counts.sms + 1 %}
+  {% elif t.channel_type == 'email' %}{% set chan_counts.email = chan_counts.email + 1 %}
+  {% elif t.channel_type == 'announcement' %}{% set chan_counts.announcement = chan_counts.announcement + 1 %}
+  {% else %}{% set chan_counts.unset = chan_counts.unset + 1 %}{% endif %}
+{% endfor %}
+
 <div class="space-y-6">
 
-  {{ page_header('Message Templates', subtitle='Manage message templates and categories') }}
-
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-    {{ stat_card('ti-template', 'Total Templates', stats.total_templates or 0, tone='info') }}
-    {{ stat_card('ti-circle-check', 'Active Templates', stats.active_templates or 0, tone='success') }}
-    {{ stat_card('ti-category', 'Categories', stats.total_categories or 0, tone='primary') }}
-  </div>
-
-  <!-- Quick Actions -->
-  {% call section_card('Quick Actions', icon='ti-bolt') %}
-    <div class="p-4 sm:p-5">
-      <div class="flex flex-wrap gap-3">
-        <button type="button" data-action="create-template"
-                class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-          <i class="ti ti-plus" aria-hidden="true"></i>New Template
-        </button>
-        <button type="button" data-action="create-category"
-                class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-          <i class="ti ti-category" aria-hidden="true"></i>New Category
-        </button>
-        <button type="button" data-action="bulk-activate"
-                class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-sm font-semibold hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-          <i class="ti ti-checks" aria-hidden="true"></i>Bulk Activate
-        </button>
-        <button type="button" data-action="export-templates"
-                class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-          <i class="ti ti-download" aria-hidden="true"></i>Export All
-        </button>
-      </div>
-    </div>
+  {% call page_header('Message Templates', subtitle='Communication library') %}
+    <button type="button" data-action="create-category"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-category" aria-hidden="true"></i>New Category
+    </button>
+    <button type="button" data-action="create-template"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-plus" aria-hidden="true"></i>New Template
+    </button>
   {% endcall %}
 
-  <!-- Templates by Category -->
-  {% if categories %}
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-    {% for category in categories %}
-    {% call section_card(category.name, icon='ti-folder') %}
-      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
-        <span class="text-xs text-gray-500 dark:text-gray-400 truncate">
-          {% if category.description %}{{ category.description }}{% endif %}
-        </span>
-        <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ category.templates|length }} templates</span>
+  <!-- ============ Primary KPI band (real data, mono figures + divider footers) ============ -->
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Templates</span>
+        <i class="ti ti-template text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
       </div>
-      <div class="p-4 sm:p-5">
-        {% if category.templates %}
-        <div class="space-y-2">
-          {% for template in category.templates[:5] %}
-          <a href="#" data-action="view-template" data-template-id="{{ template.id }}"
-             class="block p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <div class="flex justify-between items-center gap-2">
-              <div class="min-w-0">
-                <div class="font-medium text-gray-900 dark:text-white truncate">{{ template.name }}</div>
-                {% if template.description %}
-                <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ template.description[:60] }}{% if template.description|length > 60 %}...{% endif %}</p>
-                {% endif %}
-              </div>
-              <div class="flex items-center gap-2 shrink-0">
-                {% if template.is_active %}
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>
-                {% else %}
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-circle" aria-hidden="true"></i>Inactive</span>
-                {% endif %}
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-              </div>
-            </div>
-          </a>
-          {% endfor %}
-          {% if category.templates|length > 5 %}
-          <a href="#" data-action="view-category" data-category-id="{{ category.id }}"
-             class="block p-3 text-center text-sm font-medium text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded-lg">
-            View {{ category.templates|length - 5 }} more templates...
-          </a>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ stats.total_templates or 0 }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        across <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ stats.total_categories or 0 }}</span> categories
+      </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active</span>
+        <i class="ti ti-circle-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ stats.active_templates or 0 }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        {% if (stats.total_templates or 0) > 0 %}<span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ ((stats.active_templates or 0) / (stats.total_templates or 1) * 100) | round | int }}%</span> of library live{% else %}no templates yet{% endif %}
+      </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Inactive</span>
+        <i class="ti ti-circle-off text-lg {% if inactive_count > 0 %}text-amber-600 dark:text-amber-400{% else %}text-gray-400 dark:text-gray-500{% endif %} shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none {% if inactive_count > 0 %}text-amber-600 dark:text-amber-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ inactive_count }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        {% if inactive_count > 0 %}
+        <button type="button" data-action="bulk-activate" class="font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">Bulk activate &rarr;</button>
+        {% else %}all templates live{% endif %}
+      </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Categories</span>
+        <i class="ti ti-category text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ stats.total_categories or 0 }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs">
+        <a href="#" data-action="export-templates" class="font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">Export library &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Channel coverage strip (derived from real channel_type values) ============ -->
+  {% if templates %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-broadcast text-ecs-green" aria-hidden="true"></i>Channel Coverage
+      </h2>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700">
+      {% for ckey, cval in [('discord_dm', chan_counts.discord_dm), ('discord_channel', chan_counts.discord_channel), ('email', chan_counts.email), ('sms', chan_counts.sms), ('announcement', chan_counts.announcement)] %}
+      {% set cm = channel_meta[ckey] %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-md {{ cm.cls }}"><i class="ti {{ cm.icon }} text-xs" aria-hidden="true"></i></span>
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{{ cm.label }}</span>
+        </div>
+        <span class="font-mono text-2xl font-bold leading-none text-gray-900 dark:text-white">{{ cval }}</span>
+      </div>
+      {% endfor %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-help-circle text-xs" aria-hidden="true"></i></span>
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">Unassigned</span>
+        </div>
+        <span class="font-mono text-2xl font-bold leading-none {% if chan_counts.unset > 0 %}text-gray-500 dark:text-gray-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ chan_counts.unset }}</span>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ============ Library by category (feature cards: header bar + dense rows) ============ -->
+  {% if categories %}
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+    {% for category in categories %}
+    {% set active_in_cat = category.templates | selectattr('is_active') | list | length %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+      <!-- header bar -->
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-folder text-ecs-green shrink-0" aria-hidden="true"></i>
+            <span class="truncate">{{ category.name }}</span>
+          </h3>
+          {% if category.description %}
+          <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400 truncate">{{ category.description }}</p>
           {% endif %}
         </div>
-        {% else %}
-        {{ empty_state('ti-inbox', 'No templates yet', 'No templates in this category yet.') }}
-        <div class="text-center pb-2">
-          <button type="button" data-action="create-template-in-category" data-category-id="{{ category.id }}"
-                  class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-plus" aria-hidden="true"></i>Add Template
-          </button>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium font-mono bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300" title="Templates in category">{{ category.templates|length }}</span>
+          {% if category.templates %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium font-mono bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" title="Active in category"><i class="ti ti-circle-check text-[10px]" aria-hidden="true"></i>{{ active_in_cat }}</span>
+          {% endif %}
         </div>
+      </div>
+      <!-- dense template rows -->
+      <div class="flex-1">
+        {% if category.templates %}
+        <ul role="list" class="divide-y divide-gray-100 dark:divide-gray-700/60">
+          {% for template in category.templates[:5] %}
+          {% set cm = channel_meta.get(template.channel_type) %}
+          <li>
+            <a href="#" data-action="view-template" data-template-id="{{ template.id }}"
+               class="flex items-center gap-3 px-4 sm:px-5 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0 {% if cm %}{{ cm.cls }}{% else %}bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400{% endif %}">
+                <i class="ti {% if cm %}{{ cm.icon }}{% else %}ti-file-text{% endif %} text-sm" aria-hidden="true"></i>
+              </span>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ template.name }}</span>
+                  {% if not template.is_active %}
+                  <span class="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Off</span>
+                  {% endif %}
+                </div>
+                <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  <span class="font-mono truncate">{{ template.key }}</span>
+                  {% if template.variables %}
+                  <span class="inline-flex items-center gap-0.5 shrink-0"><i class="ti ti-variable text-[11px]" aria-hidden="true"></i><span class="font-mono">{{ template.variables|length }}</span></span>
+                  {% endif %}
+                </div>
+              </div>
+              <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% if category.templates|length > 5 %}
+        <a href="#" data-action="view-category" data-category-id="{{ category.id }}"
+           class="flex items-center justify-center gap-1 px-4 py-2.5 border-t border-gray-100 dark:border-gray-700/60 text-sm font-semibold text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+          View {{ category.templates|length - 5 }} more <i class="ti ti-arrow-right text-sm" aria-hidden="true"></i>
+        </a>
+        {% endif %}
+        {% else %}
+        {{ empty_state('ti-inbox', 'No templates yet', 'This category has no templates.', action={'label': 'Add Template', 'url': '#', 'icon': 'ti-plus'}) }}
         {% endif %}
       </div>
-    {% endcall %}
+      {% if not category.templates %}
+      <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700">
+        <button type="button" data-action="create-template-in-category" data-category-id="{{ category.id }}"
+                class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-plus" aria-hidden="true"></i>Add Template
+        </button>
+      </div>
+      {% endif %}
+    </section>
     {% endfor %}
   </div>
   {% else %}
-  <div>
-    {{ kit_alert('info', 'Start by creating categories to organize your message templates.', title='No Categories Found', dismissible=false) }}
-    <div class="mt-3">
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    {{ empty_state('ti-category', 'No categories yet', 'Start by creating a category to organize your message templates.', action={'label': 'Create First Category', 'url': '#', 'icon': 'ti-plus'}) }}
+    <div class="px-6 pb-8 -mt-4 text-center">
       <button type="button" data-action="create-category"
               class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-plus" aria-hidden="true"></i>Create First Category
       </button>
     </div>
-  </div>
+  </section>
   {% endif %}
 
-  <!-- All Templates Table -->
+  <!-- ============ All templates — real table (mono key, channel pill, variable count) ============ -->
   {% if templates %}
   {% call data_table('All Templates', icon='ti-list', count=templates|length, search_placeholder='Filter templates…', search_id='templateFilter') %}
     <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
       <thead>
         <tr class="border-b border-gray-200 dark:border-gray-700">
-          {{ data_table_th('Template Name', key='name') }}
+          {{ data_table_th('Template', key='name') }}
           {{ data_table_th('Category', key='category', hide='sm') }}
+          {{ data_table_th('Channel', key='channel', hide='md') }}
+          {{ data_table_th('Vars', key='vars', align='right', hide='md') }}
           {{ data_table_th('Status', key='status') }}
-          {{ data_table_th('Last Updated', key='updated', hide='sm') }}
+          {{ data_table_th('Updated', key='updated', hide='sm') }}
           {{ data_table_th('Actions', sortable=false, align='right') }}
         </tr>
       </thead>
       <tbody>
         {% for template in templates[:20] %}
+        {% set cm = channel_meta.get(template.channel_type) %}
         <tr data-row class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
           <td class="px-3 py-3">
             <div class="font-medium text-gray-900 dark:text-white" data-cell="name">{{ template.name }}</div>
+            <div class="text-xs font-mono text-gray-400 dark:text-gray-500">{{ template.key }}</div>
             {% if template.description %}
-            <p class="text-xs text-gray-500 dark:text-gray-400">{{ template.description[:80] }}{% if template.description|length > 80 %}...{% endif %}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ template.description[:80] }}{% if template.description|length > 80 %}...{% endif %}</p>
             {% endif %}
           </td>
           <td class="px-3 py-3 hidden md:table-cell" data-cell="category">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ template.category.name if template.category else 'Uncategorized' }}</span>
           </td>
+          <td class="px-3 py-3 hidden lg:table-cell" data-cell="channel">
+            {% if cm %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {{ cm.cls }}"><i class="ti {{ cm.icon }} text-[11px]" aria-hidden="true"></i>{{ cm.label }}</span>
+            {% else %}
+            <span class="text-xs text-gray-400 dark:text-gray-500">&mdash;</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 hidden lg:table-cell text-right font-mono text-xs text-gray-600 dark:text-gray-300" data-cell="vars">{{ template.variables|length if template.variables else 0 }}</td>
           <td class="px-3 py-3" data-cell="status">
             {% if template.is_active %}
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>
@@ -175,6 +284,7 @@
     <!-- Mobile stacked cards -->
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
       {% for template in templates[:20] %}
+      {% set cm = channel_meta.get(template.channel_type) %}
       <div data-row class="px-4 py-3.5">
         <div class="flex items-center justify-between gap-2">
           <span class="text-sm font-semibold text-gray-900 dark:text-white truncate" data-cell="name">{{ template.name }}</span>
@@ -184,23 +294,29 @@
           <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300" data-cell="status"><i class="ti ti-circle" aria-hidden="true"></i>Inactive</span>
           {% endif %}
         </div>
-        <div class="mt-1 flex items-center justify-between gap-2">
-          <span class="text-xs text-gray-500 dark:text-gray-400" data-cell="category">{{ template.category.name if template.category else 'Uncategorized' }}</span>
-          <span class="text-xs text-gray-500 dark:text-gray-400 font-mono" data-cell="updated">{{ template.updated_at.strftime('%Y-%m-%d') if template.updated_at else 'Never' }}</span>
+        <div class="mt-0.5 text-xs font-mono text-gray-400 dark:text-gray-500">{{ template.key }}</div>
+        <div class="mt-1.5 flex items-center justify-between gap-2">
+          <span class="text-xs text-gray-500 dark:text-gray-400 truncate" data-cell="category">{{ template.category.name if template.category else 'Uncategorized' }}</span>
+          {% if cm %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {{ cm.cls }}" data-cell="channel"><i class="ti {{ cm.icon }} text-[11px]" aria-hidden="true"></i>{{ cm.label }}</span>
+          {% endif %}
         </div>
-        <div class="mt-2 flex items-center gap-1">
-          <button type="button" data-action="view-template" data-template-id="{{ template.id }}" title="View" aria-label="View template"
-                  class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-eye" aria-hidden="true"></i>
-          </button>
-          <button type="button" data-action="edit-template" data-template-id="{{ template.id }}" title="Edit" aria-label="Edit template"
-                  class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-edit" aria-hidden="true"></i>
-          </button>
-          <button type="button" data-action="toggle-template" data-template-id="{{ template.id }}" title="Toggle" aria-label="Toggle template status"
-                  class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green {% if template.is_active %}text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30{% else %}text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30{% endif %}">
-            <i class="ti ti-{% if template.is_active %}power{% else %}check{% endif %}" aria-hidden="true"></i>
-          </button>
+        <div class="mt-2 flex items-center justify-between gap-1">
+          <span class="text-xs text-gray-400 dark:text-gray-500 font-mono" data-cell="updated">{{ template.updated_at.strftime('%Y-%m-%d') if template.updated_at else 'Never' }}</span>
+          <div class="flex items-center gap-1">
+            <button type="button" data-action="view-template" data-template-id="{{ template.id }}" title="View" aria-label="View template"
+                    class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-eye" aria-hidden="true"></i>
+            </button>
+            <button type="button" data-action="edit-template" data-template-id="{{ template.id }}" title="Edit" aria-label="Edit template"
+                    class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-edit" aria-hidden="true"></i>
+            </button>
+            <button type="button" data-action="toggle-template" data-template-id="{{ template.id }}" title="Toggle" aria-label="Toggle template status"
+                    class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green {% if template.is_active %}text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30{% else %}text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30{% endif %}">
+              <i class="ti ti-{% if template.is_active %}power{% else %}check{% endif %}" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
       </div>
       {% endfor %}

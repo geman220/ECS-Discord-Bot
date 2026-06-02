@@ -30,119 +30,221 @@
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
 
-{{ page_header(season.name, subtitle="Season Details") }}
+{# --- Derived from real data only (no fabrication) ----------------------------- #}
+{% set total_teams   = summary.total_teams   if summary else (season.leagues|sum(attribute='teams')|length) %}
+{% set total_matches = summary.total_matches if summary else 0 %}
+{% set played        = summary.matches_played if summary else 0 %}
+{% set remaining     = summary.matches_remaining if summary else 0 %}
+{% set pct_played    = ((played * 100) // total_matches) if total_matches else 0 %}
 
-{# KPI band: 2-up mobile -> 4-up lg #}
+{# Command header: lead with the page's ONE job + primary/secondary CTAs #}
+{% call page_header(season.name, subtitle="Season " ~ season.league_type) %}
+    {% if not season.is_current %}
+    <button type="button" data-action="set-current-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
+                   border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white bg-white dark:bg-gray-800
+                   hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-check" aria-hidden="true"></i><span class="hidden sm:inline">Set Current</span>
+    </button>
+    {% endif %}
+    <button type="button" data-action="edit-league-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
+            data-season-start="{{ season.start_date.strftime('%Y-%m-%d') if season.start_date else '' }}"
+            data-season-end="{{ season.end_date.strftime('%Y-%m-%d') if season.end_date else '' }}"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
+                   bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-edit" aria-hidden="true"></i>Edit Season
+    </button>
+{% endcall %}
+
+{# KPI band: mono figures, divider footers (concept treatment) #}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
-    {{ stat_card('ti-shield-half', 'Total Teams', summary.total_teams if summary else season.leagues|sum(attribute='teams')|length, sublabel='across leagues', tone='info') }}
-    {{ stat_card('ti-ball-football', 'Matches', summary.total_matches if summary else 0, sublabel='scheduled', tone='primary') }}
-    {{ stat_card('ti-circle-check', 'Played', summary.matches_played if summary else 0, sublabel='completed', tone='success') }}
-    {{ stat_card('ti-clock', 'Remaining', summary.matches_remaining if summary else 0, sublabel='to play', tone='warning') }}
+    {% call stat_card('ti-shield-half', 'Total Teams', total_teams, sublabel='rostered', tone='info') %}
+        Across <span class="font-mono font-semibold text-gray-700 dark:text-gray-200">{{ season.leagues|length }}</span> league{{ '' if season.leagues|length == 1 else 's' }}
+    {% endcall %}
+    {% call stat_card('ti-ball-football', 'Matches', total_matches, sublabel='scheduled', tone='primary') %}
+        Full season fixture list
+    {% endcall %}
+    {% call stat_card('ti-circle-check', 'Played', played, sublabel='completed', tone='success') %}
+        <span class="font-mono font-semibold text-gray-700 dark:text-gray-200">{{ pct_played }}%</span> of fixtures
+    {% endcall %}
+    {% call stat_card('ti-clock', 'Remaining', remaining, sublabel='to play', tone='warning') %}
+        Still on the calendar
+    {% endcall %}
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-5 sm:mb-6">
-    {# Season Overview #}
-    {% call section_card("Season Overview", icon="ti-calendar") %}
-    <div class="p-4 sm:p-5">
-        <div class="flex items-center gap-2 mb-4 flex-wrap">
-            <span class="px-2.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ season.league_type }}</span>
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-5 sm:mb-6">
+    {# Feature card: the primary object — season identity + progress (xl:2 cols) #}
+    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+            <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <i class="ti ti-tournament text-ecs-green" aria-hidden="true"></i>Season Overview
+            </h2>
             {% if season.is_current %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
-                <i class="ti ti-circle-check" aria-hidden="true"></i>Current Season
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+                <i class="ti ti-circle-check" aria-hidden="true"></i>Current
             </span>
             {% else %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                 <i class="ti ti-circle" aria-hidden="true"></i>Inactive
             </span>
             {% endif %}
         </div>
-        <dl class="space-y-3 text-sm">
-            {% if season.start_date %}
-            <div class="flex justify-between gap-2">
-                <dt class="text-gray-500 dark:text-gray-400">Start Date</dt>
-                <dd class="font-mono text-gray-900 dark:text-white">{{ season.start_date.strftime('%b %d, %Y') }}</dd>
+        <div class="p-4 sm:p-5">
+            {# Identity strip #}
+            <div class="flex items-start gap-4">
+                <div class="w-12 h-12 shrink-0 rounded-xl bg-ecs-green/10 dark:bg-ecs-green/15 flex items-center justify-center">
+                    <i class="ti ti-trophy text-2xl text-ecs-green" aria-hidden="true"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <h3 class="text-lg font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ season.name }}</h3>
+                    <div class="mt-1 flex flex-wrap items-center gap-2">
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ season.league_type }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Season ID <span class="font-mono text-gray-700 dark:text-gray-200">#{{ season.id }}</span></span>
+                    </div>
+                </div>
             </div>
-            {% endif %}
-            {% if season.end_date %}
-            <div class="flex justify-between gap-2">
-                <dt class="text-gray-500 dark:text-gray-400">End Date</dt>
-                <dd class="font-mono text-gray-900 dark:text-white">{{ season.end_date.strftime('%b %d, %Y') }}</dd>
-            </div>
-            {% endif %}
-            <div class="flex justify-between gap-2">
-                <dt class="text-gray-500 dark:text-gray-400">Total Leagues</dt>
-                <dd class="font-mono font-semibold text-gray-900 dark:text-white">{{ season.leagues|length }}</dd>
-            </div>
-        </dl>
-    </div>
-    <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 flex flex-wrap gap-2">
-        <button type="button" data-action="edit-league-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
-                       bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-edit" aria-hidden="true"></i>Edit
-        </button>
-        {% if not season.is_current %}
-        <button type="button" data-action="set-current-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
-                       border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white bg-white dark:bg-gray-700
-                       hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-check" aria-hidden="true"></i>Set Current
-        </button>
-        {% endif %}
-    </div>
-    {% endcall %}
 
-    {# Quick Actions #}
+            {# Season window — date-range row #}
+            <dl class="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-px rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-700">
+                <div class="bg-white dark:bg-gray-800 px-4 py-3">
+                    <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Start</dt>
+                    <dd class="mt-1 font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ season.start_date.strftime('%b %d, %Y') if season.start_date else '—' }}</dd>
+                </div>
+                <div class="bg-white dark:bg-gray-800 px-4 py-3">
+                    <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">End</dt>
+                    <dd class="mt-1 font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ season.end_date.strftime('%b %d, %Y') if season.end_date else '—' }}</dd>
+                </div>
+                <div class="bg-white dark:bg-gray-800 px-4 py-3 col-span-2 sm:col-span-1">
+                    <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Leagues</dt>
+                    <dd class="mt-1 font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ season.leagues|length }}</dd>
+                </div>
+            </dl>
+
+            {# Progress bar — derived from real played/total #}
+            <div class="mt-5">
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Season Progress</span>
+                    <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ played }}<span class="text-gray-400">/</span>{{ total_matches }} <span class="text-gray-400">·</span> {{ pct_played }}%</span>
+                </div>
+                <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" role="progressbar" aria-valuenow="{{ pct_played }}" aria-valuemin="0" aria-valuemax="100" aria-label="Season match completion">
+                    <div class="h-full rounded-full bg-ecs-green" style="width: {{ pct_played }}%"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# Quick Actions — command list #}
     {% call section_card("Quick Actions", icon="ti-bolt") %}
-    <div class="p-4 sm:p-5 space-y-2 lg:col-span-2">
+    <div class="p-3 sm:p-4 space-y-2">
         <a href="{{ url_for('admin_panel.league_management_teams') }}?season_id={{ season.id }}"
-           class="flex items-center gap-2 min-h-[44px] px-4 py-2 text-sm font-medium rounded-lg
-                  text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                  hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
+           class="group flex items-center gap-3 min-h-[44px] px-3 py-2 rounded-lg
+                  text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
                   focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-users-group" aria-hidden="true"></i>View Teams
+            <i class="ti ti-users-group text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+            <span class="flex-1 text-sm font-medium">View Teams</span>
+            <i class="ti ti-chevron-right text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200" aria-hidden="true"></i>
         </a>
         <a href="{{ url_for('admin_panel.draft_history') }}?season={{ season.id }}"
-           class="flex items-center gap-2 min-h-[44px] px-4 py-2 text-sm font-medium rounded-lg
-                  text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                  hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
+           class="group flex items-center gap-3 min-h-[44px] px-3 py-2 rounded-lg
+                  text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
                   focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-list-numbers" aria-hidden="true"></i>Draft History
+            <i class="ti ti-list-numbers text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+            <span class="flex-1 text-sm font-medium">Draft History</span>
+            <i class="ti ti-chevron-right text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200" aria-hidden="true"></i>
         </a>
         <a href="{{ url_for('draft_predictions.admin_dashboard') }}?season_id={{ season.id }}"
-           class="flex items-center gap-2 min-h-[44px] px-4 py-2 text-sm font-medium rounded-lg
-                  text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                  hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
+           class="group flex items-center gap-3 min-h-[44px] px-3 py-2 rounded-lg
+                  text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
                   focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-chart-dots" aria-hidden="true"></i>Draft Predictions
+            <i class="ti ti-chart-dots text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+            <span class="flex-1 text-sm font-medium">Draft Predictions</span>
+            <i class="ti ti-chevron-right text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200" aria-hidden="true"></i>
         </a>
         <a href="{{ url_for('auto_schedule.schedule_manager') }}"
-           class="flex items-center gap-2 min-h-[44px] px-4 py-2 text-sm font-medium rounded-lg
-                  text-gray-500 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600
-                  hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
+           class="group flex items-center gap-3 min-h-[44px] px-3 py-2 rounded-lg
+                  text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
                   focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-calendar-event" aria-hidden="true"></i>Auto Schedule
+            <i class="ti ti-calendar-event text-lg text-gray-400 shrink-0" aria-hidden="true"></i>
+            <span class="flex-1 text-sm font-medium">Auto Schedule</span>
+            <i class="ti ti-chevron-right text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200" aria-hidden="true"></i>
         </a>
     </div>
     {% endcall %}
 </div>
 
-{# Leagues #}
-{% call section_card("Leagues (" ~ season.leagues|length ~ ")", icon="ti-trophy") %}
-<div class="p-4 sm:p-5">
+{# Leagues — real table (md+) / stacked rows (mobile), mono numerals #}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <i class="ti ti-trophy text-ecs-green" aria-hidden="true"></i>Leagues
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ season.leagues|length }}</span>
+        </h2>
+    </div>
     {% if season.leagues %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+    {# md+ : real table #}
+    <table class="hidden md:table w-full text-sm">
+        <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+                <th scope="col" class="px-5 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">League</th>
+                <th scope="col" class="px-5 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 w-24">Teams</th>
+                <th scope="col" class="px-5 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Roster</th>
+                <th scope="col" class="px-5 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 w-32"><span class="sr-only">Actions</span></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for league in season.leagues %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <td class="px-5 py-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <i class="ti ti-shield-half text-ecs-green shrink-0" aria-hidden="true"></i>
+                        <span class="font-semibold text-gray-900 dark:text-white truncate">{{ league.name }}</span>
+                    </div>
+                </td>
+                <td class="px-5 py-3 text-right">
+                    <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ league.teams|length }}</span>
+                </td>
+                <td class="px-5 py-3">
+                    {% if league.teams %}
+                    <div class="flex flex-wrap gap-1">
+                        {% for team in league.teams[:5] %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ team.name }}</span>
+                        {% endfor %}
+                        {% if league.teams|length > 5 %}
+                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-400 font-mono">+{{ league.teams|length - 5 }}</span>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <span class="text-xs text-gray-400 dark:text-gray-500 italic">No teams yet</span>
+                    {% endif %}
+                </td>
+                <td class="px-5 py-3 text-right">
+                    <a href="{{ url_for('admin_panel.league_management_teams') }}?league_id={{ league.id }}"
+                       class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold
+                              text-ecs-green border border-ecs-green/30 dark:border-ecs-green/40 bg-ecs-green/5 dark:bg-ecs-green/10
+                              hover:bg-ecs-green/10 dark:hover:bg-ecs-green/20 transition-colors
+                              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        <i class="ti ti-eye" aria-hidden="true"></i>Teams
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {# mobile : stacked rows #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
         {% for league in season.leagues %}
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-2">
-                <h4 class="font-semibold text-gray-900 dark:text-white truncate">{{ league.name }}</h4>
+        <div class="px-4 py-3.5">
+            <div class="flex items-center justify-between gap-2">
+                <span class="font-semibold text-gray-900 dark:text-white truncate flex items-center gap-2">
+                    <i class="ti ti-shield-half text-ecs-green shrink-0" aria-hidden="true"></i>{{ league.name }}
+                </span>
                 <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
                     <span class="font-mono">{{ league.teams|length }}</span> Teams
                 </span>
             </div>
-            <div class="px-4 py-3">
+            <div class="mt-2">
                 {% if league.teams %}
                 <div class="flex flex-wrap gap-1">
                     {% for team in league.teams[:5] %}
@@ -153,26 +255,23 @@
                     {% endif %}
                 </div>
                 {% else %}
-                <p class="text-sm text-gray-500 dark:text-gray-400">No teams in this league yet</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 italic">No teams in this league yet</p>
                 {% endif %}
             </div>
-            <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-                <a href="{{ url_for('admin_panel.league_management_teams') }}?league_id={{ league.id }}"
-                   class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2 rounded-lg text-sm font-semibold
-                          text-ecs-green border border-ecs-green/30 dark:border-ecs-green/40 bg-ecs-green/5 dark:bg-ecs-green/10
-                          hover:bg-ecs-green/10 dark:hover:bg-ecs-green/20 transition-colors
-                          focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                    <i class="ti ti-eye" aria-hidden="true"></i>View Teams
-                </a>
-            </div>
+            <a href="{{ url_for('admin_panel.league_management_teams') }}?league_id={{ league.id }}"
+               class="mt-3 w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2 rounded-lg text-sm font-semibold
+                      text-ecs-green border border-ecs-green/30 dark:border-ecs-green/40 bg-ecs-green/5 dark:bg-ecs-green/10
+                      hover:bg-ecs-green/10 dark:hover:bg-ecs-green/20 transition-colors
+                      focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <i class="ti ti-eye" aria-hidden="true"></i>View Teams
+            </a>
         </div>
         {% endfor %}
     </div>
     {% else %}
     {{ empty_state('ti-trophy-off', 'No leagues yet', 'This season does not have any leagues assigned.') }}
     {% endif %}
-</div>
-{% endcall %}
+</section>
 
 {% else %}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -376,6 +475,8 @@
         if (action === 'edit-league-season') {
             document.getElementById('editSeasonId').value = target.dataset.seasonId;
             document.getElementById('editSeasonName').value = target.dataset.seasonName;
+            document.getElementById('editSeasonStartDate').value = target.dataset.seasonStart || '';
+            document.getElementById('editSeasonEndDate').value = target.dataset.seasonEnd || '';
             const modal = FlowbiteInstances.getInstance('Modal', 'editSeasonModal');
             if (modal) modal.show();
         }
@@ -392,7 +493,7 @@
                 ...swalTheme()
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch(`/admin-panel/league-management/seasons/${seasonId}/set-current`, {
+                    fetch(`/admin-panel/league-management/seasons/api/${seasonId}/set-current`, {
                         method: 'POST',
                         headers: { 'X-CSRFToken': csrfToken() }
                     })
@@ -415,7 +516,7 @@
         const startDate = document.getElementById('editSeasonStartDate').value;
         const endDate = document.getElementById('editSeasonEndDate').value;
 
-        fetch(`/admin-panel/league-management/seasons/${seasonId}`, {
+        fetch(`/admin-panel/league-management/seasons/api/${seasonId}/update`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',

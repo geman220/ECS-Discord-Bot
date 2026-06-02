@@ -16,8 +16,20 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
-{% from 'macros/flowbite.html' import badge as fb_badge %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state, alert %}
+
+{# ── Derive ONLY from the real route vars (info dict + critical_settings list).
+   No fabricated fields. database_status is a literal string from the route;
+   counts are real DB aggregates. We compute coverage + the disabled count and
+   pull out maintenance_mode (a real critical_settings row) to gate the page. #}
+{% set db_ok = info.database_status|lower in ['connected', 'online', 'ok', 'healthy'] %}
+{% set total = info.total_settings or 0 %}
+{% set enabled = info.enabled_settings or 0 %}
+{% set disabled = total - enabled %}
+{% set coverage = ((enabled / total) * 100) | round | int if total else 0 %}
+{% set maint = critical_settings | selectattr('key', 'equalto', 'maintenance_mode') | first %}
+{% set maint_on = maint and maint.parsed_value %}
+
 <div class="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 sm:space-y-6">
     {% call page_header("System Information", subtitle="System health and configuration status") %}
         <a href="{{ url_for('admin_panel.feature_toggles') }}"
@@ -34,68 +46,171 @@
         </a>
     {% endcall %}
 
-    {# KPI band: 2-up mobile -> 3-up lg #}
-    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        {{ stat_card('ti-database', 'Database Status', info.database_status, sublabel='connection', tone='success') }}
-        {{ stat_card('ti-users', 'Total Users', info.total_users, sublabel='accounts', tone='info') }}
-        {{ stat_card('ti-shield', 'Total Roles', info.total_roles, sublabel='defined', tone='primary') }}
-        {{ stat_card('ti-settings', 'Total Settings', info.total_settings, sublabel='configured', tone='neutral') }}
-        {{ stat_card('ti-toggle-right', 'Enabled Settings', info.enabled_settings, sublabel='active', tone='success') }}
-        {{ stat_card('ti-activity', 'Activity (24h)', info.recent_activity, sublabel='recent events', tone='warning') }}
+    {# Maintenance mode is the one flag that gates the whole site for non-admins.
+       When it's ON, lead with a loud banner — this is real data from the
+       maintenance_mode critical_settings row, not a synthetic alert. #}
+    {% if maint_on %}
+    {{ alert('warning', 'New sign-ins and non-admin access are blocked sitewide until this flag is turned off in Feature Toggles.', title='Maintenance mode is active.', dismissible=False) }}
+    {% endif %}
+
+    {# ── PRIMARY OBJECT: system-health feature card ─────────────────────────
+       The page's one job: is the platform healthy? A header status pill rolls
+       up DB connectivity + maintenance state; the body pairs the BIG database
+       verdict with a real config-coverage meter (enabled / total settings). #}
+    {% set ok_overall = db_ok and not maint_on %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <i class="ti ti-heartbeat text-ecs-green" aria-hidden="true"></i> System Health
+            </h2>
+            {% if ok_overall %}
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                <i class="ti ti-circle-check" aria-hidden="true"></i> Operational
+            </span>
+            {% elif db_ok and maint_on %}
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+                <i class="ti ti-tool" aria-hidden="true"></i> Maintenance
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">
+                <i class="ti ti-alert-octagon" aria-hidden="true"></i> Degraded
+            </span>
+            {% endif %}
+        </div>
+        <div class="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 sm:divide-x divide-gray-200 dark:divide-gray-700">
+            {# Database verdict — the big mono figure #}
+            <div class="flex items-center gap-4">
+                <span class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0
+                             {% if db_ok %}bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400{% else %}bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400{% endif %}">
+                    <i class="ti ti-database text-2xl" aria-hidden="true"></i>
+                </span>
+                <div class="min-w-0">
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Database</p>
+                    <p class="font-mono text-2xl sm:text-3xl font-bold leading-none {% if db_ok %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ info.database_status }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-mono">{{ info.recent_activity }} audit event{{ '' if info.recent_activity == 1 else 's' }} · last 24h</p>
+                </div>
+            </div>
+            {# Config coverage — derived progress meter from enabled / total #}
+            <div class="sm:pl-6 flex flex-col justify-center">
+                <div class="flex items-end justify-between gap-2">
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Config Coverage</p>
+                    <p class="font-mono text-2xl font-bold leading-none text-ecs-green">{{ coverage }}<span class="text-base text-gray-400 dark:text-gray-500">%</span></p>
+                </div>
+                <div class="mt-2 h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="progressbar" aria-valuenow="{{ coverage }}" aria-valuemin="0" aria-valuemax="100" aria-label="Configuration coverage">
+                    <div class="h-full rounded-full bg-ecs-green" style="width: {{ coverage }}%"></div>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 font-mono">
+                    <span class="text-green-600 dark:text-green-400 font-semibold">{{ enabled }}</span> enabled ·
+                    <span class="text-gray-600 dark:text-gray-300 font-semibold">{{ disabled }}</span> off ·
+                    <span class="text-gray-600 dark:text-gray-300 font-semibold">{{ total }}</span> total
+                </p>
+            </div>
+        </div>
+    </section>
+
+    {# KPI band: directory-scale counts. 2-up mobile -> 4-up lg. Mono figures,
+       divider-footer captions carry real derived context (not invented). #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {% call stat_card('ti-users', 'Total Users', info.total_users, sublabel='accounts', tone='info') %}
+            <span class="inline-flex items-center gap-1"><i class="ti ti-shield" aria-hidden="true"></i>across {{ info.total_roles }} role{{ '' if info.total_roles == 1 else 's' }}</span>
+        {% endcall %}
+        {% call stat_card('ti-shield', 'Total Roles', info.total_roles, sublabel='defined', tone='primary') %}
+            <span class="inline-flex items-center gap-1"><i class="ti ti-lock" aria-hidden="true"></i>RBAC permission sets</span>
+        {% endcall %}
+        {% call stat_card('ti-toggle-right', 'Enabled Settings', info.enabled_settings, sublabel='of ' ~ total, tone='success') %}
+            <span class="inline-flex items-center gap-1"><i class="ti ti-circle-check" aria-hidden="true"></i>{{ coverage }}% of flags active</span>
+        {% endcall %}
+        {% call stat_card('ti-activity', 'Activity', info.recent_activity, sublabel='last 24h', tone=('warning' if info.recent_activity else 'neutral')) %}
+            <span class="inline-flex items-center gap-1"><i class="ti ti-history" aria-hidden="true"></i>audit-log events</span>
+        {% endcall %}
     </div>
 
+    {# ── CRITICAL SETTINGS: rich real table (description, category, owner, last change) ── #}
     {% if critical_settings %}
     {% call data_table('Critical Settings', icon='ti-alert-triangle', count=critical_settings|length, search_placeholder='Filter settings…', search_id='criticalFilter') %}
-        {# md+ table #}
+        {# md+ table — mono key, value pill, category chip, status, last-changed audit #}
         <table class="hidden md:table w-full text-sm">
             <thead>
                 <tr class="border-b border-gray-200 dark:border-gray-700">
                     {{ data_table_th('Setting', key='setting') }}
                     {{ data_table_th('Value', key='value') }}
+                    {{ data_table_th('Category', key='category', hide='md') }}
                     {{ data_table_th('Status', key='status') }}
+                    {{ data_table_th('Last Changed', key='changed', hide='sm', align='right') }}
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 {% for setting in critical_settings %}
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-row>
-                    <td class="px-3 py-3 font-medium text-gray-900 dark:text-white" data-cell="setting">{{ setting.key|replace('_', ' ')|title }}</td>
-                    <td class="px-3 py-3 text-gray-600 dark:text-gray-300" data-cell="value">
-                        {% if setting.value_type == 'boolean' %}
-                            {% if setting.value == 'true' %}
-                                <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400 font-medium"><i class="ti ti-check" aria-hidden="true"></i>Enabled</span>
-                            {% else %}
-                                <span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-medium"><i class="ti ti-x" aria-hidden="true"></i>Disabled</span>
-                            {% endif %}
-                        {% else %}
-                            <span class="font-mono text-xs">{{ setting.value }}</span>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors align-top" data-row>
+                    <td class="px-3 py-3" data-cell="setting">
+                        <div class="font-semibold text-gray-900 dark:text-white">{{ setting.key|replace('_', ' ')|title }}</div>
+                        <div class="font-mono text-xs text-gray-400 dark:text-gray-500">{{ setting.key }}</div>
+                        {% if setting.description %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 max-w-xs">{{ setting.description }}</p>
                         {% endif %}
+                    </td>
+                    <td class="px-3 py-3" data-cell="value">
+                        {% if setting.data_type == 'boolean' %}
+                            {% if setting.parsed_value %}
+                                <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold"><i class="ti ti-toggle-right-filled" aria-hidden="true"></i>Enabled</span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-semibold"><i class="ti ti-toggle-left" aria-hidden="true"></i>Disabled</span>
+                            {% endif %}
+                        {% elif setting.value %}
+                            <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 break-all">{{ setting.value }}</span>
+                        {% else %}
+                            <span class="text-xs text-gray-400 dark:text-gray-500 italic">not set</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3 hidden lg:table-cell" data-cell="category">
+                        <span class="inline-flex items-center gap-1 font-mono text-xs uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                            <i class="ti ti-tag text-[11px]" aria-hidden="true"></i>{{ setting.category }}
+                        </span>
                     </td>
                     <td class="px-3 py-3" data-cell="status">
                         {% if setting.is_enabled %}
-                            {{ fb_badge('Active', variant='success') }}
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-point-filled" aria-hidden="true"></i>Active</span>
                         {% else %}
-                            {{ fb_badge('Inactive', variant='secondary') }}
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-point" aria-hidden="true"></i>Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3 text-right hidden md:table-cell" data-cell="changed">
+                        {% if setting.updated_at %}
+                        <div class="font-mono text-xs text-gray-600 dark:text-gray-300">{{ setting.updated_at.strftime('%Y-%m-%d') }}</div>
+                        {% endif %}
+                        {% if setting.updated_by_user %}
+                        <div class="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[140px] inline-block">by {{ setting.updated_by_user.name }}</div>
+                        {% elif not setting.updated_at %}
+                        <span class="text-xs text-gray-400 dark:text-gray-500">—</span>
                         {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-        {# mobile cards #}
+        {# mobile dense cards #}
         <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
             {% for setting in critical_settings %}
-            {% call data_table_row_card(setting.key|replace('_', ' ')|title, badge=(fb_badge('Active', variant='success') if setting.is_enabled else fb_badge('Inactive', variant='secondary'))) %}
-                <p>
-                    {% if setting.value_type == 'boolean' %}
-                        {% if setting.value == 'true' %}
-                            <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400 font-medium"><i class="ti ti-check" aria-hidden="true"></i>Enabled</span>
+            {% call data_table_row_card(setting.key|replace('_', ' ')|title, badge=('<span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">Active</span>'|safe if setting.is_enabled else '<span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">Inactive</span>'|safe)) %}
+                <p class="font-mono text-gray-400 dark:text-gray-500">{{ setting.key }}</p>
+                {% if setting.description %}<p class="text-gray-500 dark:text-gray-400">{{ setting.description }}</p>{% endif %}
+                <p class="flex items-center gap-2 pt-0.5">
+                    <span class="font-mono uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ setting.category }}</span>
+                    {% if setting.data_type == 'boolean' %}
+                        {% if setting.parsed_value %}
+                            <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold"><i class="ti ti-toggle-right-filled" aria-hidden="true"></i>Enabled</span>
                         {% else %}
-                            <span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-medium"><i class="ti ti-x" aria-hidden="true"></i>Disabled</span>
+                            <span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-semibold"><i class="ti ti-toggle-left" aria-hidden="true"></i>Disabled</span>
                         {% endif %}
+                    {% elif setting.value %}
+                        <span class="font-mono px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 break-all">{{ setting.value }}</span>
                     {% else %}
-                        <span class="font-mono">{{ setting.value }}</span>
+                        <span class="italic">not set</span>
                     {% endif %}
                 </p>
+                {% if setting.updated_at %}
+                <p class="font-mono text-gray-400 dark:text-gray-500">Changed {{ setting.updated_at.strftime('%Y-%m-%d') }}{% if setting.updated_by_user %} by {{ setting.updated_by_user.name }}{% endif %}</p>
+                {% endif %}
             {% endcall %}
             {% endfor %}
         </div>

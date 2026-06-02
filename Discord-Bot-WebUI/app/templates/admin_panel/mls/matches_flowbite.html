@@ -24,191 +24,300 @@
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state, modal %}
 
-{{ page_header('MLS Matches', subtitle='Match management and scheduling') }}
-
-{# --- KPI band: real data only --- #}
-<div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
-  {{ stat_card('ti-calendar', 'Upcoming', matches|length, sublabel='current & upcoming', tone='primary') }}
-  {{ stat_card('ti-message', 'Threads Created', matches|selectattr('thread_created')|list|length, sublabel='of ' ~ (matches|length), tone='info') }}
-  {{ stat_card('ti-history', 'Historical', historical_count if historical_count is defined else (historical_matches|length if historical_matches else 0), sublabel='completed', tone='neutral') }}
-</div>
-
-{# --- Action bar (all data-action / data-modal-* hooks copied verbatim) --- #}
-{% call section_card('Match Management', icon='ti-settings') %}
-<div class="flex flex-wrap gap-2 p-4 sm:p-5">
+{# ===== Command toolbar: lead with the primary CTA; all data-action / data-modal-* hooks verbatim ===== #}
+{% call page_header('MLS Matches', subtitle='Live-reporting operations · Seattle Sounders FC') %}
   <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="createMatchModal" data-modal-toggle="createMatchModal">
     <i class="ti ti-plus" aria-hidden="true"></i>Create Match
   </button>
-  <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="fetchByDateModal" data-modal-toggle="fetchByDateModal">
-    <i class="ti ti-calendar-search" aria-hidden="true"></i>Fetch by Date
-  </button>
-  <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="fetch-espn">
-    <i class="ti ti-download" aria-hidden="true"></i>Fetch ESPN
-  </button>
-  <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="mls-schedule-all-matches">
-    <i class="ti ti-calendar-event" aria-hidden="true"></i>Schedule All
-  </button>
-  <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="refresh-match-statuses">
-    <i class="ti ti-refresh" aria-hidden="true"></i>Refresh
-  </button>
-</div>
 {% endcall %}
 
-<div class="mt-5 sm:mt-6">
-{% if matches %}
-{% call data_table('Current & Upcoming Matches', icon='ti-calendar', count=matches|length, search_placeholder='Filter matches…', search_id='mlsMatchFilter') %}
-  {# md+ table #}
-  <table class="hidden md:table w-full text-sm text-left">
-    <thead>
-      <tr class="border-b border-gray-200 dark:border-gray-700">
-        {{ data_table_th('Match', key='match') }}
-        {{ data_table_th('Date/Time', key='datetime', hide='sm') }}
-        {{ data_table_th('Competition', key='competition', sortable=False, hide='sm') }}
-        {{ data_table_th('Thread', key='thread', sortable=False, hide='sm') }}
-        {{ data_table_th('Status', key='status', sortable=False, hide='sm') }}
-        {{ data_table_th('Actions', sortable=False, align='right') }}
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-      {% for match in matches %}
-      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" id="match-row-{{ match.id }}">
-        <td class="px-3 py-3 align-top">
-          <div class="text-gray-900 dark:text-white">
-            {% if match.is_home_game %}
-            <span class="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 mr-1"><i class="ti ti-home" aria-hidden="true"></i>Home</span>
-            <span class="font-bold">Seattle Sounders FC</span> <span class="text-gray-500 dark:text-gray-400">vs</span> {{ match.opponent }}
-            {% else %}
-            <span class="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 dark:text-gray-400 mr-1"><i class="ti ti-plane" aria-hidden="true"></i>Away</span>
-            {{ match.opponent }} <span class="text-gray-500 dark:text-gray-400">vs</span> <span class="font-bold">Seattle Sounders FC</span>
-            {% endif %}
-          </div>
-          {% if match.venue %}
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ match.venue }}</p>
-          {% endif %}
-        </td>
-        <td class="px-3 py-3 align-top mls-match-time hidden md:table-cell" data-utc="{{ match.date_time.isoformat() }}">
-          <p class="font-mono text-sm text-gray-900 dark:text-white mls-date">{{ match.date_time.strftime('%b %d, %Y') }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mls-time font-mono">{{ match.date_time.strftime('%I:%M %p') }} UTC</p>
-        </td>
-        <td class="px-3 py-3 align-top hidden md:table-cell">
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ match.competition or 'MLS' }}</span>
-        </td>
-        <td class="px-3 py-3 align-top hidden md:table-cell">
-          {% if match.thread_created %}
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-check" aria-hidden="true"></i>Created</span>
-          {% else %}
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-minus" aria-hidden="true"></i>Not Created</span>
-          {% endif %}
-        </td>
-        <td class="px-3 py-3 align-top hidden md:table-cell">
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if match.status_color == 'success' else 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400' if match.status_color == 'warning' else 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400' if match.status_color == 'info' else 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' }}" id="status-{{ match.id }}">
-            <i class="ti {{ match.status_icon }}" aria-hidden="true"></i>{{ match.status_display }}
-          </span>
-        </td>
-        <td class="px-3 py-3 align-top">
-          <div class="flex flex-wrap justify-end gap-1">
-            <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-edit-match" data-modal-target="editMatchModal" data-modal-toggle="editMatchModal" data-action="edit-match" data-match-id="{{ match.id }}" data-opponent="{{ match.opponent }}" data-date-time="{{ match.date_time.isoformat() }}" data-venue="{{ match.venue or '' }}" data-competition="{{ match.competition or 'usa.1' }}" data-is-home="{{ 'true' if match.is_home_game else 'false' }}" title="Edit Match" aria-label="Edit Match">
-              <i class="ti ti-edit" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-schedule-match" data-action="mls-schedule-match" data-match-id="{{ match.id }}" title="Schedule Tasks" aria-label="Schedule Tasks">
-              <i class="ti ti-calendar-event" aria-hidden="true"></i>
-            </button>
-            {% if not match.thread_created %}
-            <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-create-thread" data-action="create-thread" data-match-id="{{ match.id }}" title="Create Thread" aria-label="Create Thread">
-              <i class="ti ti-message-plus" aria-hidden="true"></i>
-            </button>
-            {% endif %}
-            {% if match.live_reporting_status != 'running' %}
-            <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-start-reporting" data-action="start-reporting" data-match-id="{{ match.id }}" title="Start Reporting" aria-label="Start Reporting">
-              <i class="ti ti-player-play" aria-hidden="true"></i>
-            </button>
-            {% else %}
-            <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-stop-reporting" data-action="stop-reporting" data-match-id="{{ match.id }}" title="Stop Reporting" aria-label="Stop Reporting">
-              <i class="ti ti-player-stop" aria-hidden="true"></i>
-            </button>
-            {% endif %}
-            <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green js-resync-match" data-action="resync-match" data-match-id="{{ match.id }}" title="Resync Match" aria-label="Resync Match">
-              <i class="ti ti-refresh" aria-hidden="true"></i>
-            </button>
-            <a href="{{ url_for('admin_panel.match_debug', match_id=match.id) }}" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Debug Match" aria-label="Debug Match" target="_blank">
-              <i class="ti ti-bug" aria-hidden="true"></i>
-            </a>
-            <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-remove-match" data-action="remove-match" data-match-id="{{ match.id }}" title="Remove Match" aria-label="Remove Match">
-              <i class="ti ti-trash" aria-hidden="true"></i>
-            </button>
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+{# --- KPI band: real data only (live_reporting_status drives the Live figure) --- #}
+{% set thread_count = matches|selectattr('thread_created')|list|length %}
+{% set live_count = matches|selectattr('live_reporting_status', 'equalto', 'running')|list|length %}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+  {{ stat_card('ti-calendar', 'Upcoming', matches|length, sublabel='within window', tone='primary') }}
+  {{ stat_card('ti-broadcast', 'Reporting Live', live_count, sublabel='of ' ~ (matches|length), tone=('success' if live_count else 'neutral')) }}
+  {{ stat_card('ti-message', 'Threads Ready', thread_count, sublabel='of ' ~ (matches|length), tone='info') }}
+  {{ stat_card('ti-history', 'Historical', historical_count if historical_count is defined else (historical_matches|length if historical_matches else 0), sublabel='completed', tone='neutral') }}
+</div>
 
-  {# mobile stacked cards #}
-  <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-    {% for match in matches %}
-    <div class="px-4 py-3.5" id="match-row-{{ match.id }}">
-      <div class="flex items-start justify-between gap-2">
-        <div class="min-w-0">
-          <p class="text-sm font-semibold text-gray-900 dark:text-white">
-            {% if match.is_home_game %}
-            Seattle Sounders FC vs {{ match.opponent }}
-            {% else %}
-            {{ match.opponent }} vs Seattle Sounders FC
-            {% endif %}
-          </p>
-          <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400 mls-match-time" data-utc="{{ match.date_time.isoformat() }}">
-            <span class="font-mono mls-date">{{ match.date_time.strftime('%b %d, %Y') }}</span>
-            <span class="font-mono mls-time">{{ match.date_time.strftime('%I:%M %p') }} UTC</span>
-          </p>
-          {% if match.venue %}<p class="text-xs text-gray-500 dark:text-gray-400">{{ match.venue }}</p>{% endif %}
+{# ===== Secondary command toolbar (fetch / bulk schedule / refresh — hooks verbatim) ===== #}
+<div class="flex flex-wrap items-center gap-2 mb-5 sm:mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+  <span class="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 pl-1 pr-2 mr-1 border-r border-gray-200 dark:border-gray-700"><i class="ti ti-tool" aria-hidden="true"></i>Operations</span>
+  <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="fetchByDateModal" data-modal-toggle="fetchByDateModal">
+    <i class="ti ti-calendar-search text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Fetch by Date
+  </button>
+  <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="fetch-espn">
+    <i class="ti ti-download text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Fetch ESPN
+  </button>
+  <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="mls-schedule-all-matches">
+    <i class="ti ti-calendar-event text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Schedule All
+  </button>
+  <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 sm:ml-auto" data-action="refresh-match-statuses">
+    <i class="ti ti-refresh" aria-hidden="true"></i>Refresh Statuses
+  </button>
+</div>
+
+{% if matches %}
+{# ===== Calendar month grid — built from real match data the route provides ===== #}
+{#  Reference month = month of the soonest upcoming match (matches are date-ascending).
+    Prev/Next jump anchors to the previous/next month section that actually has matches
+    in the loaded window; "Today" anchors to the current month if it has matches.
+    TODO backend: month-paginated querystring (?month=YYYY-MM) for browsing months with no
+    loaded matches — the route currently loads a fixed -3d..+60d window only. #}
+{% set cal_ref = matches[0].date_time %}
+{% set cal_first = cal_ref.replace(day=1) %}
+{# leading blanks for a Sunday-first grid: Python weekday() is Mon=0 → (wd+1)%7 #}
+{% set cal_lead = (cal_first.weekday() + 1) % 7 %}
+{# days in the reference month: probe 28..31 and keep the last day still in this month #}
+{% set dim = namespace(days=28) %}
+{% for d in range(28, 32) %}
+  {% if (cal_first + timedelta(days=d)).month == cal_first.month %}{% set dim.days = d + 1 %}{% endif %}
+{% endfor %}
+{% set cal_total = cal_lead + dim.days %}
+{% set cal_cells = cal_total + ((7 - (cal_total % 7)) % 7) %}
+{# matches that fall inside the reference month #}
+{% set month_matches = matches | selectattr('date_time') | selectattr('date_time.year', 'equalto', cal_first.year) | selectattr('date_time.month', 'equalto', cal_first.month) | list %}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-5 sm:mb-6">
+  {# Month navigation strip #}
+  <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <i class="ti ti-calendar-month text-ecs-green" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">{{ cal_first.strftime('%B %Y') }}</h2>
+      <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ month_matches|length }}</span>
+    </div>
+    <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden text-sm self-start sm:self-auto">
+      <button type="button" data-action="mls-cal-prev" aria-label="Previous month with matches" class="h-9 w-9 inline-flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-r border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+      <button type="button" data-action="mls-cal-today" class="h-9 px-3 inline-flex items-center text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 border-r border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">Today</button>
+      <button type="button" data-action="mls-cal-next" aria-label="Next month with matches" class="h-9 w-9 inline-flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  {# Month grid: weekday header + day cells with match chips #}
+  <div class="p-3 sm:p-4 overflow-x-auto">
+    <div class="min-w-[640px]">
+      <div class="grid grid-cols-7 gap-1 mb-1">
+        {% for wd in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] %}
+        <div class="text-center text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 py-1">{{ wd }}</div>
+        {% endfor %}
+      </div>
+      <div class="grid grid-cols-7 gap-1 auto-rows-[90px]">
+        {% for cell in range(cal_cells) %}
+        {% set day_num = cell - cal_lead + 1 %}
+        {% if day_num < 1 or day_num > dim.days %}
+        <div class="rounded-lg border border-gray-200/50 dark:border-gray-700/50 bg-gray-50/40 dark:bg-gray-900/30"></div>
+        {% else %}
+        {% set day_matches = month_matches | selectattr('date_time.day', 'equalto', day_num) | list %}
+        {% set is_today = (cal_first.year == current_time.year and cal_first.month == current_time.month and day_num == current_time.day) %}
+        <div class="rounded-lg border {{ 'border-ecs-green ring-1 ring-ecs-green/40' if is_today else 'border-gray-200 dark:border-gray-700' }} bg-white dark:bg-gray-800 p-1.5 overflow-hidden">
+          <div class="text-[11px] font-mono {{ 'text-ecs-green font-bold' if is_today else 'text-gray-500 dark:text-gray-400' }} mb-1">{{ day_num }}</div>
+          {% for match in day_matches %}
+          {% if match.live_reporting_status == 'running' %}
+          {% set chip = 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' %}
+          {% elif match.status_color == 'success' %}
+          {% set chip = 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' %}
+          {% elif match.status_color == 'warning' %}
+          {% set chip = 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400' %}
+          {% elif match.status_color == 'info' %}
+          {% set chip = 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400' %}
+          {% else %}
+          {% set chip = 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' %}
+          {% endif %}
+          <button type="button" data-action="focus-match" data-match-id="{{ match.id }}" class="w-full text-left rounded-md {{ chip }} px-1.5 py-1 mb-1 text-[11px] font-semibold leading-tight truncate hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="{% if match.is_home_game %}vs {{ match.opponent }}{% else %}@ {{ match.opponent }}{% endif %}">
+            {% if match.is_home_game %}<i class="ti ti-home text-[9px]" aria-hidden="true"></i> vs {{ match.opponent }}{% else %}<i class="ti ti-plane text-[9px]" aria-hidden="true"></i> @ {{ match.opponent }}{% endif %}
+          </button>
+          {% endfor %}
         </div>
-        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if match.status_color == 'success' else 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400' if match.status_color == 'warning' else 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400' if match.status_color == 'info' else 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' }}" id="status-{{ match.id }}">
-          <i class="ti {{ match.status_icon }}" aria-hidden="true"></i>{{ match.status_display }}
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# Legend #}
+  <div class="px-4 py-2.5 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-green-500/40"></span> Live now</span>
+    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-blue-500/40"></span> Scheduled</span>
+    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-amber-500/40"></span> Needs setup</span>
+    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-gray-400/50"></span> Upcoming</span>
+    <span class="flex items-center gap-1.5"><i class="ti ti-home" aria-hidden="true"></i> Home</span>
+    <span class="flex items-center gap-1.5"><i class="ti ti-plane" aria-hidden="true"></i> Away</span>
+  </div>
+</section>
+{% endif %}
+
+{% if matches %}
+{# ===== FEATURE CARD: the soonest upcoming match (matches are date-ascending from the route) ===== #}
+{% set next_match = matches[0] %}
+{% set ns = {'success': 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400', 'warning': 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400', 'info': 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400'} %}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-5 sm:mb-6" id="match-row-{{ next_match.id }}">
+  <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-700/30">
+    <div class="flex items-center gap-2">
+      <i class="ti ti-flame text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+      <span class="text-xs font-bold uppercase tracking-wide text-gray-900 dark:text-white">Next Match</span>
+    </div>
+    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ next_match.competition or 'MLS' }}</span>
+  </div>
+  <div class="p-4 sm:p-6 flex flex-col lg:flex-row lg:items-center gap-5">
+    {# matchup #}
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-2 mb-3">
+        {% if next_match.is_home_game %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-home text-[12px]" aria-hidden="true"></i>Home</span>
+        {% else %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-plane text-[12px]" aria-hidden="true"></i>Away</span>
+        {% endif %}
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {{ ns.get(next_match.status_color, 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300') }}" id="status-{{ next_match.id }}"><i class="ti {{ next_match.status_icon }}" aria-hidden="true"></i>{{ next_match.status_display }}</span>
+      </div>
+      <div class="flex items-center gap-3 sm:gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-11 h-11 rounded-xl bg-ecs-green/10 text-ecs-green flex items-center justify-center shrink-0"><i class="ti ti-shield-filled text-2xl" aria-hidden="true"></i></div>
+          <div class="min-w-0">
+            <div class="text-base sm:text-lg font-bold leading-tight truncate text-gray-900 dark:text-white">{{ 'Seattle Sounders FC' if next_match.is_home_game else next_match.opponent }}</div>
+            <div class="text-[11px] text-gray-500 dark:text-gray-400">Home</div>
+          </div>
+        </div>
+        <span class="font-mono text-sm font-bold text-gray-400 dark:text-gray-500 px-1">vs</span>
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 flex items-center justify-center shrink-0 border border-gray-200 dark:border-gray-600"><i class="ti ti-shield text-2xl" aria-hidden="true"></i></div>
+          <div class="min-w-0">
+            <div class="text-base sm:text-lg font-bold leading-tight truncate text-gray-900 dark:text-white">{{ next_match.opponent if next_match.is_home_game else 'Seattle Sounders FC' }}</div>
+            <div class="text-[11px] text-gray-500 dark:text-gray-400">Away</div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4 text-sm text-gray-500 dark:text-gray-400 mls-match-time" data-utc="{{ next_match.date_time.isoformat() }}">
+        <span class="flex items-center gap-1.5"><i class="ti ti-calendar text-base" aria-hidden="true"></i><span class="font-mono mls-date">{{ next_match.date_time.strftime('%a, %b %d, %Y') }}</span></span>
+        <span class="flex items-center gap-1.5"><i class="ti ti-clock text-base" aria-hidden="true"></i><span class="font-mono mls-time">{{ next_match.date_time.strftime('%I:%M %p') }} UTC</span></span>
+        {% if next_match.venue %}<span class="flex items-center gap-1.5"><i class="ti ti-map-pin text-base" aria-hidden="true"></i>{{ next_match.venue }}</span>{% endif %}
+        <span class="flex items-center gap-1.5">
+          {% if next_match.thread_created %}<i class="ti ti-message text-base text-green-600 dark:text-green-400" aria-hidden="true"></i>Thread ready{% else %}<i class="ti ti-message-off text-base" aria-hidden="true"></i>No thread{% endif %}
         </span>
       </div>
-      <div class="mt-1 flex flex-wrap gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ match.competition or 'MLS' }}</span>
-        {% if match.thread_created %}
-        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-check" aria-hidden="true"></i>Thread</span>
+    </div>
+    {# lifecycle actions #}
+    <div class="lg:w-px lg:h-28 lg:bg-gray-200 lg:dark:bg-gray-700 lg:mx-1 shrink-0"></div>
+    <div class="shrink-0 flex flex-col gap-2 lg:w-48">
+      <div class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Live reporting</div>
+      {% if next_match.live_reporting_status != 'running' %}
+      <button type="button" class="inline-flex items-center justify-center gap-1.5 h-11 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 js-start-reporting" data-action="start-reporting" data-match-id="{{ next_match.id }}" aria-label="Start Reporting">
+        <i class="ti ti-player-play" aria-hidden="true"></i>Start Reporting
+      </button>
+      {% else %}
+      <button type="button" class="inline-flex items-center justify-center gap-1.5 h-11 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 js-stop-reporting" data-action="stop-reporting" data-match-id="{{ next_match.id }}" aria-label="Stop Reporting">
+        <i class="ti ti-player-stop" aria-hidden="true"></i>Stop Reporting
+      </button>
+      {% endif %}
+      <div class="flex gap-2">
+        {% if not next_match.thread_created %}
+        <button type="button" class="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-cyan-600 dark:text-cyan-400 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green js-create-thread" data-action="create-thread" data-match-id="{{ next_match.id }}" title="Create Thread" aria-label="Create Thread">
+          <i class="ti ti-message-plus" aria-hidden="true"></i>Thread
+        </button>
         {% else %}
-        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-minus" aria-hidden="true"></i>No Thread</span>
+        <button type="button" class="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green js-schedule-match" data-action="mls-schedule-match" data-match-id="{{ next_match.id }}" title="Schedule Tasks" aria-label="Schedule Tasks">
+          <i class="ti ti-calendar-event" aria-hidden="true"></i>Schedule
+        </button>
         {% endif %}
-      </div>
-      <div class="mt-2 flex flex-wrap gap-1">
-        <button type="button" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-edit-match" data-modal-target="editMatchModal" data-modal-toggle="editMatchModal" data-action="edit-match" data-match-id="{{ match.id }}" data-opponent="{{ match.opponent }}" data-date-time="{{ match.date_time.isoformat() }}" data-venue="{{ match.venue or '' }}" data-competition="{{ match.competition or 'usa.1' }}" data-is-home="{{ 'true' if match.is_home_game else 'false' }}" title="Edit Match" aria-label="Edit Match">
+        <a href="{{ url_for('admin_panel.match_debug', match_id=next_match.id) }}" class="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-cyan-600 dark:text-cyan-400 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Debug Match" aria-label="Debug Match" target="_blank">
+          <i class="ti ti-bug" aria-hidden="true"></i>
+        </a>
+        <button type="button" class="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green js-edit-match" data-modal-target="editMatchModal" data-modal-toggle="editMatchModal" data-action="edit-match" data-match-id="{{ next_match.id }}" data-opponent="{{ next_match.opponent }}" data-date-time="{{ next_match.date_time.isoformat() }}" data-venue="{{ next_match.venue or '' }}" data-competition="{{ next_match.competition or 'usa.1' }}" data-is-home="{{ 'true' if next_match.is_home_game else 'false' }}" title="Edit Match" aria-label="Edit Match">
           <i class="ti ti-edit" aria-hidden="true"></i>
         </button>
-        <button type="button" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-schedule-match" data-action="mls-schedule-match" data-match-id="{{ match.id }}" title="Schedule Tasks" aria-label="Schedule Tasks">
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ===== DENSE ROWS w/ date-group dividers — the reporting queue ===== #}
+<section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+    <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+      <i class="ti ti-list-check text-ecs-green" aria-hidden="true"></i>Reporting Queue
+      <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ matches|length }}</span>
+    </h2>
+    <div class="relative flex-1 sm:max-w-xs">
+      <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+      <input type="search" id="mlsMatchFilter" placeholder="Filter matches…" class="input-ecs h-9 pl-9 pr-3 text-sm w-full" aria-label="Filter matches">
+    </div>
+  </div>
+
+  {% set ns_grp = namespace(day='') %}
+  {% for match in matches %}
+  {% set day_key = match.date_time.strftime('%Y-%m-%d') %}
+  {% if day_key != ns_grp.day %}
+  {% set ns_grp.day = day_key %}
+  <div class="px-4 sm:px-5 pt-4 pb-1 flex items-center gap-2 mls-match-time" data-utc="{{ match.date_time.isoformat() }}">
+    <span class="font-mono text-[11px] font-semibold text-ecs-green uppercase mls-date">{{ match.date_time.strftime('%a · %b %d') }}</span>
+    <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+  </div>
+  {% endif %}
+  <div class="match-row border-t border-gray-100 dark:border-gray-700/60 first:border-t-0 px-4 sm:px-5 py-3.5 flex flex-col lg:flex-row lg:items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" id="match-row-{{ match.id }}">
+    <div class="flex items-start gap-3 flex-1 min-w-0">
+      {% if match.is_home_game %}
+      <span class="shrink-0 w-7 h-7 rounded-md bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400 flex items-center justify-center text-[11px] font-bold font-mono mt-0.5" title="Home">H</span>
+      {% else %}
+      <span class="shrink-0 w-7 h-7 rounded-md bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 flex items-center justify-center text-[11px] font-bold font-mono mt-0.5" title="Away">A</span>
+      {% endif %}
+      <div class="min-w-0">
+        <div class="text-sm font-semibold truncate text-gray-900 dark:text-white">
+          {% if match.is_home_game %}
+          <span class="text-ecs-green">Seattle Sounders FC</span> <span class="text-gray-400 dark:text-gray-500 font-normal">vs</span> {{ match.opponent }}
+          {% else %}
+          {{ match.opponent }} <span class="text-gray-400 dark:text-gray-500 font-normal">vs</span> <span class="text-ecs-green">Seattle Sounders FC</span>
+          {% endif %}
+        </div>
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-500 dark:text-gray-400 mls-match-time" data-utc="{{ match.date_time.isoformat() }}">
+          <span class="flex items-center gap-1"><i class="ti ti-clock" aria-hidden="true"></i><span class="font-mono mls-time">{{ match.date_time.strftime('%I:%M %p') }} UTC</span></span>
+          {% if match.venue %}<span class="flex items-center gap-1"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ match.venue }}</span>{% endif %}
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ match.competition or 'MLS' }}</span>
+          {% if match.thread_created %}
+          <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400"><i class="ti ti-check" aria-hidden="true"></i>Thread</span>
+          {% else %}
+          <span class="inline-flex items-center gap-1"><i class="ti ti-minus" aria-hidden="true"></i>No thread</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 shrink-0 pl-10 lg:pl-0">
+      <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {{ ns.get(match.status_color, 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300') }}" id="status-{{ match.id }}">
+        <i class="ti {{ match.status_icon }}" aria-hidden="true"></i>{{ match.status_display }}
+      </span>
+      <div class="flex flex-wrap items-center justify-end gap-1">
+        <button type="button" class="inline-flex items-center justify-center w-10 h-10 lg:w-9 lg:h-9 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-edit-match" data-modal-target="editMatchModal" data-modal-toggle="editMatchModal" data-action="edit-match" data-match-id="{{ match.id }}" data-opponent="{{ match.opponent }}" data-date-time="{{ match.date_time.isoformat() }}" data-venue="{{ match.venue or '' }}" data-competition="{{ match.competition or 'usa.1' }}" data-is-home="{{ 'true' if match.is_home_game else 'false' }}" title="Edit Match" aria-label="Edit Match">
+          <i class="ti ti-edit" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="inline-flex items-center justify-center w-10 h-10 lg:w-9 lg:h-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-schedule-match" data-action="mls-schedule-match" data-match-id="{{ match.id }}" title="Schedule Tasks" aria-label="Schedule Tasks">
           <i class="ti ti-calendar-event" aria-hidden="true"></i>
         </button>
         {% if not match.thread_created %}
-        <button type="button" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-create-thread" data-action="create-thread" data-match-id="{{ match.id }}" title="Create Thread" aria-label="Create Thread">
+        <button type="button" class="inline-flex items-center justify-center w-10 h-10 lg:w-9 lg:h-9 rounded-lg text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-create-thread" data-action="create-thread" data-match-id="{{ match.id }}" title="Create Thread" aria-label="Create Thread">
           <i class="ti ti-message-plus" aria-hidden="true"></i>
         </button>
         {% endif %}
         {% if match.live_reporting_status != 'running' %}
-        <button type="button" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-start-reporting" data-action="start-reporting" data-match-id="{{ match.id }}" title="Start Reporting" aria-label="Start Reporting">
+        <button type="button" class="inline-flex items-center justify-center w-10 h-10 lg:w-9 lg:h-9 rounded-lg text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-start-reporting" data-action="start-reporting" data-match-id="{{ match.id }}" title="Start Reporting" aria-label="Start Reporting">
           <i class="ti ti-player-play" aria-hidden="true"></i>
         </button>
         {% else %}
-        <button type="button" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-stop-reporting" data-action="stop-reporting" data-match-id="{{ match.id }}" title="Stop Reporting" aria-label="Stop Reporting">
+        <button type="button" class="inline-flex items-center justify-center w-10 h-10 lg:w-9 lg:h-9 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-stop-reporting" data-action="stop-reporting" data-match-id="{{ match.id }}" title="Stop Reporting" aria-label="Stop Reporting">
           <i class="ti ti-player-stop" aria-hidden="true"></i>
         </button>
         {% endif %}
-        <button type="button" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green js-resync-match" data-action="resync-match" data-match-id="{{ match.id }}" title="Resync Match" aria-label="Resync Match">
+        <button type="button" class="inline-flex items-center justify-center w-10 h-10 lg:w-9 lg:h-9 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green js-resync-match" data-action="resync-match" data-match-id="{{ match.id }}" title="Resync Match" aria-label="Resync Match">
           <i class="ti ti-refresh" aria-hidden="true"></i>
         </button>
-        <a href="{{ url_for('admin_panel.match_debug', match_id=match.id) }}" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Debug Match" aria-label="Debug Match" target="_blank">
+        <a href="{{ url_for('admin_panel.match_debug', match_id=match.id) }}" class="inline-flex items-center justify-center w-10 h-10 lg:w-9 lg:h-9 rounded-lg text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Debug Match" aria-label="Debug Match" target="_blank">
           <i class="ti ti-bug" aria-hidden="true"></i>
         </a>
-        <button type="button" class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-remove-match" data-action="remove-match" data-match-id="{{ match.id }}" title="Remove Match" aria-label="Remove Match">
+        <button type="button" class="inline-flex items-center justify-center w-10 h-10 lg:w-9 lg:h-9 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green js-remove-match" data-action="remove-match" data-match-id="{{ match.id }}" title="Remove Match" aria-label="Remove Match">
           <i class="ti ti-trash" aria-hidden="true"></i>
         </button>
       </div>
     </div>
-    {% endfor %}
   </div>
-{% endcall %}
+  {% endfor %}
+</section>
 {% else %}
 {{ empty_state('ti-calendar-off', 'No Upcoming Matches', 'No upcoming matches found.', action={'label': 'Fetch Matches from ESPN', 'url': '#', 'icon': 'ti-download'}) }}
 {# Note: the empty-state CTA mirrors the data-action="fetch-espn" button below for hook parity. #}
@@ -218,7 +327,6 @@
   </button>
 </div>
 {% endif %}
-</div>
 
 {% if historical_matches %}
 <div class="mt-5 sm:mt-6">
@@ -701,4 +809,51 @@
 {% block extra_js %}
 {# Inline scripts migrated to mls-handlers.js #}
 {# Actions: fetch-espn, schedule-all-matches, refresh-match-statuses, schedule-match, create-thread, start-reporting, stop-reporting, resync-match, remove-match #}
+{# Calendar grid interactions (console shell only): focus a match row from a calendar chip,
+   and jump between match-bearing day groups via the month nav strip. Self-contained — no
+   dependency on the EventDelegation module, so safe to run inline. #}
+<script>
+(function () {
+  function focusRow(matchId) {
+    var row = document.getElementById('match-row-' + matchId);
+    if (!row) return;
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.classList.add('ring-2', 'ring-ecs-green', 'ring-offset-2', 'dark:ring-offset-gray-900');
+    setTimeout(function () {
+      row.classList.remove('ring-2', 'ring-ecs-green', 'ring-offset-2', 'dark:ring-offset-gray-900');
+    }, 1600);
+  }
+  function dayAnchors() {
+    return Array.prototype.slice.call(document.querySelectorAll('[data-modern-table] .mls-match-time[data-utc]'))
+      .filter(function (el) { return el.querySelector('.mls-date'); });
+  }
+  function scrollToAnchor(el) {
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  document.addEventListener('click', function (e) {
+    var chip = e.target.closest('[data-action="focus-match"]');
+    if (chip) { e.preventDefault(); focusRow(chip.getAttribute('data-match-id')); return; }
+
+    var nav = e.target.closest('[data-action="mls-cal-prev"], [data-action="mls-cal-next"], [data-action="mls-cal-today"]');
+    if (!nav) return;
+    e.preventDefault();
+    var anchors = dayAnchors();
+    if (!anchors.length) return;
+    var action = nav.getAttribute('data-action');
+    if (action === 'mls-cal-prev') {
+      scrollToAnchor(anchors[0]);
+    } else if (action === 'mls-cal-next') {
+      scrollToAnchor(anchors[anchors.length - 1]);
+    } else {
+      // Today: jump to the first day group on/after now, else the last group.
+      var now = Date.now();
+      var target = anchors.find(function (el) {
+        var t = Date.parse(el.getAttribute('data-utc'));
+        return !isNaN(t) && t >= now;
+      });
+      scrollToAnchor(target || anchors[anchors.length - 1]);
+    }
+  });
+})();
+</script>
 {% endblock %}

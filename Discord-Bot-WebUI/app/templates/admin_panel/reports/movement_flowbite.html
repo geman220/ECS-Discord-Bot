@@ -1,0 +1,69 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'admin_panel/reports/_preview.html' import preview_table, kpi_tiles, filter_chips %}
+
+{% block admin_title %}Player Movement Export{% endblock %}
+{% block panel_description %}Promotions and drops between Classic and Premier across seasons{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+    <a href="{{ url_for('admin_panel.reports_center') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400">Reports</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Movement</span></div></li>
+{% endblock %}
+
+{% set btn_primary = "inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green/90 focus:ring-4 focus:ring-ecs-green/30" %}
+{% set btn_secondary = "inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700" %}
+
+{% block panel_content %}
+{{ kpi_tiles(kpis) }}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+    <form method="get" class="space-y-5">
+        <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input type="checkbox" name="movers_only" value="1" {{ 'checked' if args.movers_only }} class="w-4 h-4 rounded text-ecs-green focus:ring-ecs-green border-gray-300">
+            Only show players who actually moved (Classic↔Premier)
+        </label>
+        <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 p-4 text-xs text-gray-500 dark:text-gray-400 space-y-1">
+            <p>Each player's pub-league playing path is traced across seasons (oldest to newest).</p>
+            <p>A player rostered in <em>both</em> Classic and Premier the same season counts as Premier (the higher tier), so a dual-league season is never a Classic→Premier move. A real move up requires Classic <em>alone</em> in an earlier season and Premier in a later one.</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <button type="submit" formaction="{{ url_for('admin_panel.movement_report') }}" class="{{ btn_secondary }}">
+                <i class="ti ti-eye"></i> Preview
+            </button>
+            <button type="submit" formaction="{{ url_for('admin_panel.movement_export') }}" class="{{ btn_primary }}">
+                <i class="ti ti-file-spreadsheet"></i> Download Excel
+            </button>
+        </div>
+    </form>
+
+    {{ filter_chips(chips) }}
+
+    {% if total_count %}
+    <div class="mt-6 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Movement by category</h3>
+        <div class="relative h-64"><canvas id="movementChart"></canvas></div>
+    </div>
+    {% endif %}
+
+    {{ preview_table(preview_rows, total_count) }}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="movement-data" type="application/json">{{ chart_data | tojson }}</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var el = document.getElementById('movementChart');
+    if (!el || typeof Chart === 'undefined') return;
+    var d = JSON.parse(document.getElementById('movement-data').textContent || '{}');
+    if (!d.labels || !d.labels.length) return;
+    new Chart(el, {
+        type: 'bar',
+        data: { labels: d.labels, datasets: [{ label: 'Players', data: d.counts, backgroundColor: '#16a34a', borderRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                   scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+});
+</script>
+{% endblock %}

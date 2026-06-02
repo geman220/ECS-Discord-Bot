@@ -33,17 +33,25 @@
    counts live where they belong: on the filter control itself. New Campaign is
    the single primary CTA, lifted into the page header.
 --------------------------------------------------------------------------- #}
-{% set ns = namespace(sent=0, delivered=0, clicked=0) %}
+{% set ns = namespace(sent=0, delivered=0, clicked=0, failed=0) %}
 {% for c in campaigns.items %}
   {% set ns.sent = ns.sent + (c.sent_count or 0) %}
   {% set ns.delivered = ns.delivered + (c.delivered_count or 0) %}
   {% set ns.clicked = ns.clicked + (c.click_count or 0) %}
+  {% set ns.failed = ns.failed + (c.failed_count or 0) %}
 {% endfor %}
 {% set delivery_rate = ((ns.delivered / ns.sent) * 100) | round(0, 'floor') | int if ns.sent else 0 %}
 {% set click_rate = ((ns.clicked / ns.delivered) * 100) | round(0, 'floor') | int if ns.delivered else 0 %}
+{% set pipeline = (status_counts.scheduled or 0) + (status_counts.draft or 0) %}
 
 <div class="space-y-6">
-  {{ page_header('Push Campaigns', subtitle='Communication') }}
+  {# Primary CTA lives in the header — the page's one job is launching/managing pushes #}
+  {% call page_header('Push Campaigns', subtitle='Communication / Reach') %}
+    <button type="button" data-modal-target="createCampaignModal" data-modal-toggle="createCampaignModal"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-plus text-sm" aria-hidden="true"></i>New Campaign
+    </button>
+  {% endcall %}
 
   {# ---- KPI band: reach & engagement first (the page's real intent) ---- #}
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -51,22 +59,16 @@
       across <span class="font-mono">{{ status_counts.sent }}</span> sent campaign{{ '' if status_counts.sent == 1 else 's' }}
     {% endcall %}
     {% call stat_card('ti-circle-check', 'Delivered', '{:,}'.format(ns.delivered), tone='success') %}
-      <span class="font-mono">{{ delivery_rate }}%</span> delivery rate
+      <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ delivery_rate }}%</span> delivered
+      {% if ns.failed %}· <span class="font-mono text-red-600 dark:text-red-400">{{ '{:,}'.format(ns.failed) }}</span> failed{% endif %}
     {% endcall %}
     {% call stat_card('ti-click', 'Clicked', '{:,}'.format(ns.clicked), tone='gold') %}
-      <span class="font-mono">{{ click_rate }}%</span> click-through
+      <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ click_rate }}%</span> click-through
     {% endcall %}
-    {% call stat_card('ti-clock', 'Scheduled', status_counts.scheduled, tone='warning') %}
-      <span class="font-mono">{{ status_counts.draft }}</span> draft{{ '' if status_counts.draft == 1 else 's' }} waiting
+    {% call stat_card('ti-clock', 'In Pipeline', pipeline, tone='warning') %}
+      <span class="font-mono">{{ status_counts.scheduled }}</span> scheduled ·
+      <span class="font-mono">{{ status_counts.draft }}</span> draft{{ '' if status_counts.draft == 1 else 's' }}
     {% endcall %}
-  </div>
-
-  {# ---- Primary action ---- #}
-  <div class="flex justify-end">
-    <button type="button" data-modal-target="createCampaignModal" data-modal-toggle="createCampaignModal"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-      <i class="ti ti-plus text-sm" aria-hidden="true"></i>New Campaign
-    </button>
   </div>
 
   {# ---- Campaigns table — status filter folded into the card header as one control surface ---- #}
@@ -74,9 +76,11 @@
     {% set seg_base = 'inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold border-y border-r first:border-l first:rounded-l-lg last:rounded-r-lg transition-colors focus:outline-none focus:z-10 focus:ring-2 focus:ring-ecs-green' %}
     {% set seg_on = 'bg-ecs-green text-white border-ecs-green' %}
     {% set seg_off = 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700' %}
+    {% set page_lo = (campaigns.page - 1) * campaigns.per_page + 1 %}
+    {% set page_hi = page_lo + (campaigns.items | length) - 1 %}
     {% call data_table('Push Campaigns', icon='ti-broadcast', count=status_counts.all, filters=false) %}
-      {# segmented status filter — single connected control, counts live here (not duplicated in the KPI band) #}
-      <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      {# command toolbar: segmented status filter is the single control surface; counts live here (not duplicated in the KPI band) #}
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <span class="sr-only" id="campaignFilterLabel">Filter campaigns by status</span>
         <nav class="inline-flex" aria-labelledby="campaignFilterLabel">
           <a href="{{ url_for('admin_panel.campaigns_list') }}"
@@ -103,7 +107,18 @@
             <i class="ti ti-check text-sm" aria-hidden="true"></i>Sent
             <span class="font-mono font-bold px-1.5 py-0.5 rounded {% if status_filter == 'sent' %}bg-white/20{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">{{ status_counts.sent }}</span>
           </a>
+          {% if status_counts.failed %}
+          <a href="{{ url_for('admin_panel.campaigns_list', status='failed') }}"
+             class="{{ seg_base }} {% if status_filter == 'failed' %}bg-red-600 text-white border-red-600{% else %}{{ seg_off }}{% endif %}"
+             {% if status_filter == 'failed' %}aria-current="true"{% endif %}>
+            <i class="ti ti-alert-triangle text-sm" aria-hidden="true"></i>Failed
+            <span class="font-mono font-bold px-1.5 py-0.5 rounded {% if status_filter == 'failed' %}bg-white/20{% else %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400{% endif %}">{{ status_counts.failed }}</span>
+          </a>
+          {% endif %}
         </nav>
+        <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">
+          {{ page_lo }}&ndash;{{ page_hi }} of {{ campaigns.total }}
+        </span>
       </div>
       {# md+ table #}
       <table class="hidden md:table w-full text-sm text-left">
@@ -113,7 +128,7 @@
             {{ data_table_th('Target', sortable=false) }}
             {{ data_table_th('Status', sortable=false) }}
             {{ data_table_th('Schedule', sortable=false) }}
-            {{ data_table_th('Analytics', sortable=false) }}
+            {{ data_table_th('Delivery', sortable=false) }}
             {{ data_table_th('Actions', sortable=false, align='right') }}
           </tr>
         </thead>
@@ -122,7 +137,7 @@
           <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
             <td class="px-3 py-3 align-top">
               <div class="font-semibold text-gray-900 dark:text-white">{{ campaign.name }}</div>
-              <div class="text-sm text-gray-500 dark:text-gray-400">{{ campaign.title }}</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">{{ campaign.title }}</div>
               {% if campaign.priority == 'urgent' %}
               <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400 mt-1">
                 <i class="ti ti-alert-octagon text-[12px]" aria-hidden="true"></i>Urgent
@@ -143,35 +158,49 @@
                 {% if status == 'sent' %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400
                 {% elif status == 'scheduled' %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400
                 {% elif status == 'draft' %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300
+                {% elif status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400
                 {% else %}bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400{% endif %}">
                 {% if status == 'sent' %}<i class="ti ti-check text-[12px]" aria-hidden="true"></i>
                 {% elif status == 'scheduled' %}<i class="ti ti-clock text-[12px]" aria-hidden="true"></i>
                 {% elif status == 'draft' %}<i class="ti ti-file-text text-[12px]" aria-hidden="true"></i>
+                {% elif status == 'failed' %}<i class="ti ti-alert-octagon text-[12px]" aria-hidden="true"></i>
                 {% else %}<i class="ti ti-broadcast text-[12px]" aria-hidden="true"></i>{% endif %}
                 {{ status|title }}
               </span>
             </td>
             <td class="px-3 py-3 align-top">
               {% if campaign.scheduled_send_time %}
-              <span class="text-sm font-mono text-gray-700 dark:text-gray-300">{{ campaign.scheduled_send_time.strftime('%Y-%m-%d %H:%M') }}</span>
+              <span class="text-xs font-mono text-gray-700 dark:text-gray-300">{{ campaign.scheduled_send_time.strftime('%Y-%m-%d %H:%M') }}</span>
               {% elif campaign.actual_send_time %}
-              <span class="text-sm font-mono text-gray-700 dark:text-gray-300">Sent: {{ campaign.actual_send_time.strftime('%Y-%m-%d %H:%M') }}</span>
+              <div class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Sent</div>
+              <span class="text-xs font-mono text-gray-700 dark:text-gray-300">{{ campaign.actual_send_time.strftime('%Y-%m-%d %H:%M') }}</span>
               {% else %}
-              <span class="text-sm text-gray-400 dark:text-gray-500">Not scheduled</span>
+              <span class="text-sm text-gray-400 dark:text-gray-500">&mdash;</span>
               {% endif %}
             </td>
+            {# Delivery: signature engagement treatment — mono delivered/sent ratio + progress bar, then click-rate #}
             <td class="px-3 py-3 align-top">
-              <div class="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                <span class="inline-flex items-center" title="Sent">
-                  <i class="ti ti-send text-blue-500 dark:text-blue-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.sent_count or 0 }}</span>
-                </span>
-                <span class="inline-flex items-center" title="Delivered">
-                  <i class="ti ti-check text-green-500 dark:text-green-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.delivered_count or 0 }}</span>
-                </span>
-                <span class="inline-flex items-center" title="Clicked">
-                  <i class="ti ti-click text-purple-500 dark:text-purple-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.click_count or 0 }}</span>
-                </span>
+              {% if campaign.sent_count %}
+              {% set d_pct = campaign.delivery_rate | round(0, 'floor') | int %}
+              <div class="flex items-center gap-2">
+                <div class="w-16 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="img" aria-label="{{ d_pct }}% delivered">
+                  <div class="h-full {% if d_pct >= 90 %}bg-green-500{% elif d_pct >= 70 %}bg-amber-500{% else %}bg-red-500{% endif %}" style="width: {{ d_pct }}%"></div>
+                </div>
+                <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ campaign.delivered_count or 0 }}/{{ campaign.sent_count }}</span>
               </div>
+              <div class="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                <span class="inline-flex items-center" title="Click-through rate">
+                  <i class="ti ti-click text-purple-500 dark:text-purple-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.click_rate | round(0, 'floor') | int }}%</span>
+                </span>
+                {% if campaign.failed_count %}
+                <span class="inline-flex items-center text-red-600 dark:text-red-400" title="Failed deliveries">
+                  <i class="ti ti-alert-triangle mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.failed_count }}</span>
+                </span>
+                {% endif %}
+              </div>
+              {% else %}
+              <span class="text-sm text-gray-400 dark:text-gray-500">Not sent</span>
+              {% endif %}
             </td>
             <td class="px-3 py-3 align-top">
               <div class="flex items-center justify-end gap-1">
@@ -220,6 +249,7 @@
               {% if status == 'sent' %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400
               {% elif status == 'scheduled' %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400
               {% elif status == 'draft' %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300
+              {% elif status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400
               {% else %}bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400{% endif %}">
               {{ status|title }}
             </span>
@@ -229,13 +259,22 @@
             {% if campaign.priority == 'urgent' %}<span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-semibold"><i class="ti ti-alert-octagon text-[12px]" aria-hidden="true"></i>Urgent</span>
             {% elif campaign.priority == 'high' %}<span class="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400 font-semibold"><i class="ti ti-alert-triangle text-[12px]" aria-hidden="true"></i>High</span>{% endif %}
           </div>
-          <div class="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-            <span class="inline-flex items-center"><i class="ti ti-send text-blue-500 dark:text-blue-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.sent_count or 0 }}</span></span>
-            <span class="inline-flex items-center"><i class="ti ti-check text-green-500 dark:text-green-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.delivered_count or 0 }}</span></span>
-            <span class="inline-flex items-center"><i class="ti ti-click text-purple-500 dark:text-purple-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.click_count or 0 }}</span></span>
-            {% if campaign.scheduled_send_time %}<span class="font-mono">{{ campaign.scheduled_send_time.strftime('%m/%d %H:%M') }}</span>
-            {% elif campaign.actual_send_time %}<span class="font-mono">Sent {{ campaign.actual_send_time.strftime('%m/%d %H:%M') }}</span>{% endif %}
+          {% if campaign.sent_count %}
+          {% set m_pct = campaign.delivery_rate | round(0, 'floor') | int %}
+          <div class="mt-2 flex items-center gap-2">
+            <div class="w-20 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="img" aria-label="{{ m_pct }}% delivered">
+              <div class="h-full {% if m_pct >= 90 %}bg-green-500{% elif m_pct >= 70 %}bg-amber-500{% else %}bg-red-500{% endif %}" style="width: {{ m_pct }}%"></div>
+            </div>
+            <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ campaign.delivered_count or 0 }}/{{ campaign.sent_count }} delivered</span>
+            <span class="inline-flex items-center text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-click text-purple-500 dark:text-purple-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.click_rate | round(0, 'floor') | int }}%</span></span>
           </div>
+          {% endif %}
+          {% if campaign.scheduled_send_time or campaign.actual_send_time %}
+          <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {% if campaign.scheduled_send_time %}<i class="ti ti-clock mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.scheduled_send_time.strftime('%m/%d %H:%M') }}</span>
+            {% elif campaign.actual_send_time %}<i class="ti ti-check mr-1" aria-hidden="true"></i>Sent <span class="font-mono">{{ campaign.actual_send_time.strftime('%m/%d %H:%M') }}</span>{% endif %}
+          </div>
+          {% endif %}
           <div class="mt-2 flex flex-wrap items-center gap-1">
             <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View" aria-label="View campaign" data-action="view-campaign" data-campaign-id="{{ campaign.id }}">
               <i class="ti ti-eye" aria-hidden="true"></i>

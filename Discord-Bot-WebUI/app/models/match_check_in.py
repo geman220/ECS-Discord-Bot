@@ -33,6 +33,10 @@ class MatchCheckInToken(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     created_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
     revoked_at = db.Column(db.DateTime, nullable=True)
+    # Hard expiry — set at creation to kickoff + a window. Once this passes the
+    # token stops resolving on the public landing (and anywhere is_valid is
+    # checked), so the "Codes expire after the match window closes" copy is true.
+    expires_at = db.Column(db.DateTime, nullable=True)
 
     created_by = db.relationship('User', foreign_keys=[created_by_user_id])
 
@@ -49,30 +53,62 @@ class MatchCheckInToken(db.Model):
         return secrets.token_urlsafe(16)
 
     @property
+    def is_expired(self) -> bool:
+        """True once we're past expires_at. Tokens with no expiry never expire."""
+        if self.expires_at is None:
+            return False
+        return datetime.utcnow() >= self.expires_at
+
+    @property
     def is_active(self) -> bool:
-        return self.revoked_at is None
+        """Active == not revoked AND not expired."""
+        return self.revoked_at is None and not self.is_expired
+
+    @property
+    def is_valid(self) -> bool:
+        """Alias for is_active — the public landing / scan paths check this."""
+        return self.is_active
 
     @classmethod
     def find_active_by_token(cls, token: str) -> Optional['MatchCheckInToken']:
+        """Resolve a token, treating revoked OR expired tokens as not found.
+
+        The expiry filter is applied in Python (not SQL) so a NULL expires_at
+        is always treated as non-expiring regardless of DB NULL semantics.
+        """
         if not token:
             return None
-        return cls.query.filter_by(token=token, revoked_at=None).first()
+        ct = cls.query.filter_by(token=token, revoked_at=None).first()
+        if ct is None or ct.is_expired:
+            return None
+        return ct
 
     @classmethod
     def find_active_for_match(cls, league_type: str, match_id: int) -> Optional['MatchCheckInToken']:
-        return cls.query.filter_by(
+        """Return the live (non-revoked, non-expired) token for this match.
+
+        There can be at most one non-revoked row per match; if it's expired we
+        treat it as gone so callers regenerate rather than reuse a dead code.
+        """
+        ct = cls.query.filter_by(
             league_type=league_type,
             match_id=match_id,
             revoked_at=None
         ).first()
+        if ct is None or ct.is_expired:
+            return None
+        return ct
 
     @classmethod
     def get_or_create_for_match(
-        cls, league_type: str, match_id: int, user_id: Optional[int] = None
+        cls, league_type: str, match_id: int, user_id: Optional[int] = None,
+        expires_at: Optional[datetime] = None,
     ) -> 'MatchCheckInToken':
         """Return the active token for this match, creating one if none exists.
 
-        Caller must commit. Idempotent — safe to call repeatedly.
+        Caller must commit. Idempotent — safe to call repeatedly. `expires_at`
+        is applied only when a new token is created (existing tokens keep their
+        original expiry).
         """
         existing = cls.find_active_for_match(league_type, match_id)
         if existing:
@@ -82,6 +118,7 @@ class MatchCheckInToken(db.Model):
             match_id=match_id,
             league_type=league_type,
             created_by_user_id=user_id,
+            expires_at=expires_at,
         )
         db.session.add(ct)
         return ct

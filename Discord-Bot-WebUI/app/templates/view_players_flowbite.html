@@ -5,42 +5,88 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, empty_state %}
+{% from 'macros/_modern_kit.html' import empty_state %}
 {% from 'macros/flowbite.html' import pagination_nav %}
-<div class="container mx-auto px-4 py-8 max-w-7xl">
-    {% call page_header("Player Directory", subtitle="Search and manage every registered player") %}
-        <form method="POST" action="{{ url_for('players.update_players') }}" class="inline">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit"
-                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
-                           border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
-                           text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-                <i class="ti ti-refresh text-sm" aria-hidden="true"></i>
-                <span class="hidden sm:inline">Update Players</span>
-            </button>
-        </form>
-        <button type="button" data-modal-target="createPlayerModal" data-modal-toggle="createPlayerModal"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
-                       bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-            <i class="ti ti-plus text-sm" aria-hidden="true"></i>
-            <span class="hidden sm:inline">Create Player</span>
-        </button>
-    {% endcall %}
+{% set page_start = ((pagination.page - 1) * pagination.per_page) + 1 %}
+{% set page_end = ((pagination.page - 1) * pagination.per_page) + (players|length) %}
+<div class="container mx-auto px-4 py-6 sm:py-8 max-w-7xl space-y-6">
 
-    {# At-a-glance band — real figures from the paginated result set #}
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
-        {{ stat_card("ti-users", "Total Players", pagination.total, sublabel=("matching “" ~ search_term ~ "”") if search_term else "registered", tone="primary") }}
-        {{ stat_card("ti-list-details", "On This Page", players|length, sublabel="rows shown", tone="info") }}
-        {% call stat_card("ti-stack-2", "Page", pagination.page, sublabel="of " ~ pagination.pages, tone="neutral") %}
-            {{ "Showing %d–%d" | format(((pagination.page - 1) * pagination.per_page) + 1, ((pagination.page - 1) * pagination.per_page) + (players|length)) }}
-        {% endcall %}
+    {# ===== HEADER ROW — eyebrow + title + primary actions ===== #}
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div class="min-w-0">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Roster Management</p>
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">Player Directory</h1>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <form method="POST" action="{{ url_for('players.update_players') }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg
+                               border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
+                               text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    <i class="ti ti-refresh text-sm" aria-hidden="true"></i>
+                    <span class="hidden sm:inline">Update Players</span>
+                </button>
+            </form>
+            <button type="button" data-modal-target="createPlayerModal" data-modal-toggle="createPlayerModal"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg
+                           bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                <i class="ti ti-plus text-sm" aria-hidden="true"></i>
+                <span class="hidden sm:inline">Create Player</span>
+            </button>
+        </div>
     </div>
 
-    {# Primary job of this page: find a player. Lead with a prominent search. #}
+    {# ===== STAT BAND — big mono figures with divider footers ===== #}
+    <section class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Players</span>
+                <i class="ti ti-users text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 flex items-end gap-2">
+                <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ pagination.total }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ ("matching “" ~ search_term ~ "”") if search_term else "registered" }}</span>
+            </div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <i class="ti ti-database text-[12px]" aria-hidden="true"></i> Full registry
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">On This Page</span>
+                <i class="ti ti-list-details text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 flex items-end gap-2">
+                <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ players|length }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">shown</span>
+            </div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                {% if players %}<i class="ti ti-arrows-up-down text-[12px]" aria-hidden="true"></i> <span class="font-mono">{{ page_start }}–{{ page_end }}</span> of {{ pagination.total }}{% else %}<i class="ti ti-circle-off text-[12px]" aria-hidden="true"></i> none on page{% endif %}
+            </div>
+        </div>
+
+        <div class="col-span-2 sm:col-span-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Page</span>
+                <i class="ti ti-stack-2 text-lg text-gray-900 dark:text-white shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 flex items-end gap-2">
+                <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ pagination.page }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">of {{ pagination.pages }}</span>
+            </div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <i class="ti ti-layout-grid text-[12px]" aria-hidden="true"></i> {{ pagination.per_page }} per page
+            </div>
+        </div>
+    </section>
+
+    {# ===== SEARCH — prominent; the page's primary job is finding a player ===== #}
     <form method="GET" action="{{ url_for('players.view_players') }}"
-          class="flex flex-wrap items-center gap-2 mb-5 sm:mb-6">
+          class="flex flex-wrap items-center gap-2">
         <div class="relative flex-1 min-w-[200px]">
             <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base pointer-events-none" aria-hidden="true"></i>
             <input type="search" name="search" value="{{ search_term }}"
@@ -67,133 +113,102 @@
     </form>
 
     {% if players %}
-    {% call data_table("Players", icon="ti-users", count=pagination.total, filters=False) %}
-        {# md+ : real table. Headers are non-sortable: results are server-paginated, so a client-side sort affordance would be misleading. #}
-        <table class="hidden md:table w-full text-sm">
-            <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
-                <tr>
-                    {{ data_table_th("Player", key="name", sortable=False) }}
-                    {{ data_table_th("Email", key="email", sortable=False, hide="sm") }}
-                    {{ data_table_th("Phone", key="phone", sortable=False, hide="md") }}
-                    {{ data_table_th("Jersey", key="jersey", sortable=False, hide="sm") }}
-                    {{ data_table_th("Primary League", key="league", sortable=False, hide="md") }}
-                    {{ data_table_th("Actions", sortable=False, align="right") }}
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                {% for player in players %}
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <td class="px-3 py-3" data-cell="name">
-                        <div class="flex items-center gap-3">
-                            <div class="relative flex-shrink-0">
-                                {% if player.profile_picture_url %}
-                                <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}"
-                                     class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600">
-                                {% else %}
-                                <img src="{{ url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}"
-                                     class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600">
-                                {% endif %}
-                            </div>
-                            <span class="font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</span>
-                        </div>
-                    </td>
-                    <td class="px-3 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs hidden md:table-cell" data-cell="email">{{ player.user.email }}</td>
-                    <td class="px-3 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs hidden lg:table-cell" data-cell="phone">{{ player.phone }}</td>
-                    <td class="px-3 py-3 hidden md:table-cell" data-cell="jersey">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
-                            {{ player.jersey_size }}
-                        </span>
-                    </td>
-                    <td class="px-3 py-3 hidden lg:table-cell" data-cell="league">
-                        {% if player.primary_league %}
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green">
-                            <i class="ti ti-trophy" aria-hidden="true"></i>
-                            {{ player.primary_league.name }}
-                        </span>
-                        {% else %}
-                        <span class="text-gray-400 text-sm">N/A</span>
-                        {% endif %}
-                    </td>
-                    <td class="px-3 py-3 text-right">
-                        <div class="flex items-center justify-end gap-2">
-                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
-                               class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-semibold rounded-lg
-                                      bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
-                                      focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                                <i class="ti ti-eye" aria-hidden="true"></i>
-                                <span class="hidden sm:inline">View</span>
-                            </a>
-                            <button type="button"
-                                    class="delete-player-btn inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-semibold rounded-lg
-                                           bg-red-600 hover:bg-red-700 text-white transition-colors
-                                           focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                                    data-player-id="{{ player.id }}"
-                                    data-player-name="{{ player.name }}">
-                                <i class="ti ti-trash" aria-hidden="true"></i>
-                                <span class="hidden sm:inline">Delete</span>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    {# ===== RICH CARD GRID (default) — avatar, identity, position/jersey, team + league pills, mono figures ===== #}
+    <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+        {% for player in players %}
+        <article class="group relative flex flex-col rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden hover:border-ecs-green/60 dark:hover:border-ecs-green/60 transition-colors">
+            {# header bar: status + jersey number #}
+            <div class="px-4 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 flex items-center justify-between gap-2">
+                {% if player.is_current_player %}
+                <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-ecs-green">
+                    <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i> Active
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    <i class="ti ti-circle text-[8px]" aria-hidden="true"></i> Inactive
+                </span>
+                {% endif %}
+                {% if player.jersey_number is not none %}
+                <span class="font-mono text-xs font-bold text-gray-500 dark:text-gray-400">#{{ player.jersey_number }}</span>
+                {% endif %}
+            </div>
 
-        {# mobile : stacked cards #}
-        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-            {% for player in players %}
-            <div data-row-card class="px-4 py-3.5">
-                <div class="flex items-center gap-3">
-                    <div class="relative flex-shrink-0">
-                        {% if player.profile_picture_url %}
-                        <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}"
-                             class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600">
-                        {% else %}
-                        <img src="{{ url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}"
-                             class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600">
-                        {% endif %}
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white truncate" data-cell="name">{{ player.name }}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate" data-cell="email">{{ player.user.email }}</p>
-                    </div>
-                    {% if player.primary_league %}
-                    <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green">
-                        <i class="ti ti-trophy" aria-hidden="true"></i>
-                        {{ player.primary_league.name }}
-                    </span>
+            {# identity #}
+            <div class="p-4 flex items-start gap-3">
+                <div class="relative shrink-0">
+                    {% if player.profile_picture_url %}
+                    <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}"
+                         class="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-600">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}"
+                         class="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-600">
                     {% endif %}
                 </div>
-                <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                    {% if player.phone %}<span class="font-mono" data-cell="phone"><i class="ti ti-phone mr-1" aria-hidden="true"></i>{{ player.phone }}</span>{% endif %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300" data-cell="jersey">{{ player.jersey_size }}</span>
-                </div>
-                <div class="mt-3 flex items-center gap-2">
-                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
-                       class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg
-                              bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                        <i class="ti ti-eye" aria-hidden="true"></i>
-                        <span>View</span>
-                    </a>
-                    <button type="button"
-                            class="delete-player-btn flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg
-                                   bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors
-                                   focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                            data-player-id="{{ player.id }}"
-                            data-player-name="{{ player.name }}">
-                        <i class="ti ti-trash" aria-hidden="true"></i>
-                        <span>Delete</span>
-                    </button>
+                <div class="min-w-0 flex-1">
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white truncate" data-cell="name">{{ player.name }}</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {% if player.favorite_position %}{{ player.favorite_position }}{% else %}<span class="text-gray-400 dark:text-gray-500">Position not set</span>{% endif %}
+                    </p>
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate mt-1" data-cell="email">{{ player.user.email }}</p>
                 </div>
             </div>
-            {% endfor %}
-        </div>
-    {% endcall %}
+
+            {# team + league pills #}
+            <div class="px-4 pb-3 flex flex-wrap items-center gap-1.5">
+                {% if player.primary_team %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                    <i class="ti ti-shield text-[12px]" aria-hidden="true"></i> {{ player.primary_team.name }}
+                </span>
+                {% endif %}
+                {% if player.primary_league %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-ecs-green/10 text-ecs-green" data-cell="league">
+                    <i class="ti ti-trophy text-[12px]" aria-hidden="true"></i> {{ player.primary_league.name }}
+                </span>
+                {% endif %}
+                {% if not player.primary_team and not player.primary_league %}
+                <span class="text-[11px] text-gray-400 dark:text-gray-500 italic">No team assignment</span>
+                {% endif %}
+            </div>
+
+            {# stat strip: jersey size + phone — mono, divided #}
+            <div class="mt-auto grid grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700 text-center">
+                <div class="px-3 py-2.5">
+                    <div class="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Jersey</div>
+                    <div class="font-mono text-sm font-bold text-gray-900 dark:text-white mt-0.5" data-cell="jersey">{{ player.jersey_size or '—' }}</div>
+                </div>
+                <div class="px-3 py-2.5 min-w-0">
+                    <div class="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Phone</div>
+                    <div class="font-mono text-sm font-bold text-gray-900 dark:text-white mt-0.5 truncate" data-cell="phone">{{ player.phone or '—' }}</div>
+                </div>
+            </div>
+
+            {# actions #}
+            <div class="px-3 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
+                   class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                          bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                          focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-eye" aria-hidden="true"></i>
+                    <span>View Profile</span>
+                </a>
+                <button type="button"
+                        class="delete-player-btn inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg
+                               border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400
+                               hover:bg-red-50 hover:text-red-600 hover:border-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-400 dark:hover:border-red-500/40 transition-colors
+                               focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                        data-player-id="{{ player.id }}"
+                        data-player-name="{{ player.name }}"
+                        title="Delete {{ player.name }}" aria-label="Delete {{ player.name }}">
+                    <i class="ti ti-trash" aria-hidden="true"></i>
+                </button>
+            </div>
+        </article>
+        {% endfor %}
+    </section>
 
     {# Pagination #}
     {% if pagination.pages > 1 %}
-    <div class="mt-6">
+    <div>
         {{ pagination_nav(pagination, 'players.view_players', extra_params={'search': search_term}) }}
     </div>
     {% endif %}

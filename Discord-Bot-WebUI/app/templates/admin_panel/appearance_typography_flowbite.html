@@ -21,84 +21,270 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, alert %}
+{# Real data shape (route admin_panel.typography): typography + default_typography,
+   each a dict of {display_font, body_font, mono_font, scale_multiplier(float)}.
+   RBAC lives on the route (@role_required(['Global Admin'])); no template guards to copy.
+   Read-only page (Classic has no form / no JS hooks). #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card %}
 {% set font_roles = [
-    {'key': 'display_font', 'icon': 'ti-typography',   'label': 'Display Font', 'hint': 'Headings & page titles', 'sample': 'Headline Aa'},
-    {'key': 'body_font',    'icon': 'ti-letter-case',  'label': 'Body Font',    'hint': 'Paragraphs & UI text',   'sample': 'The quick brown fox'},
-    {'key': 'mono_font',    'icon': 'ti-code',         'label': 'Monospace',    'hint': 'Figures, codes, IDs',    'sample': '0123 · ID-4567'}
+    {'key': 'display_font', 'icon': 'ti-typography',   'label': 'Display Font', 'hint': 'Headings & page titles', 'role_tag': 'H1–H6', 'sample': 'Headline Aa', 'weight': 'font-extrabold'},
+    {'key': 'body_font',    'icon': 'ti-letter-case',  'label': 'Body Font',    'hint': 'Paragraphs & UI text',  'role_tag': 'BODY',  'sample': 'The quick brown fox jumps over the lazy dog.', 'weight': 'font-normal'},
+    {'key': 'mono_font',    'icon': 'ti-code',         'label': 'Monospace',    'hint': 'Figures, codes, IDs',   'role_tag': 'MONO',  'sample': '0123456789 · ID-4567 · 2:1', 'weight': 'font-medium'}
+] %}
+{# Derived (real) values — counts/state computed from the provided tokens, nothing fabricated. #}
+{% set ns = namespace(changed=0) %}
+{% for role in font_roles %}{% if typography[role.key] != default_typography[role.key] %}{% set ns.changed = ns.changed + 1 %}{% endif %}{% endfor %}
+{% set scale_changed = typography.scale_multiplier != default_typography.scale_multiplier %}
+{% set total_changed = ns.changed + (1 if scale_changed else 0) %}
+{# Type-scale ladder rows — REAL computed px values derived from the actual scale_multiplier.
+   'preview' is a fixed Tailwind size class for the Aa swatch (no inline styles allowed);
+   'px' (computed below per row) is the real derived figure shown in mono. #}
+{% set scale_steps = [
+    {'name': 'Display', 'base': 36, 'role': 'display_font', 'preview': 'text-4xl'},
+    {'name': 'Heading', 'base': 24, 'role': 'display_font', 'preview': 'text-2xl'},
+    {'name': 'Subhead', 'base': 18, 'role': 'display_font', 'preview': 'text-lg'},
+    {'name': 'Body',    'base': 16, 'role': 'body_font',    'preview': 'text-base'},
+    {'name': 'Caption', 'base': 13, 'role': 'body_font',    'preview': 'text-xs'}
 ] %}
 <div class="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
-    {{ page_header("Typography", subtitle="Appearance") }}
 
-    {{ alert('info', 'These fonts and the type scale are applied across the application.', title='Typography settings.', dismissible=false) }}
+    {# Command header — primary job is to view the active type system; the one real
+       navigation action (back to Appearance) lives in the toolbar. #}
+    {% call page_header("Typography", subtitle="Appearance / Design System") %}
+        <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
+            <i class="ti ti-arrows-diagonal text-ecs-green" aria-hidden="true"></i>
+            <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ typography.scale_multiplier }}×</span> scale
+        </span>
+        <a href="{{ url_for('admin_panel.appearance') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                  bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-palette text-sm" aria-hidden="true"></i> Appearance
+        </a>
+    {% endcall %}
 
-    {# KPI band — the one genuinely numeric figure leads. #}
-    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {{ stat_card('ti-arrows-diagonal', 'Type Scale', typography.scale_multiplier ~ '×', sublabel='default ' ~ default_typography.scale_multiplier ~ '×', tone='neutral') }}
-        {% for role in font_roles %}
-        {% set changed = typography[role.key] != default_typography[role.key] %}
-        {{ stat_card(role.icon, role.label, typography[role.key], sublabel=('changed from ' ~ default_typography[role.key]) if changed else 'default', tone=('gold' if changed else 'primary')) }}
-        {% endfor %}
+    {# State banner — at-a-glance override summary, mirrors the mock's customized callout.
+       Pure display of REAL derived values (total_changed / token count); no fabricated data. #}
+    {% if total_changed %}
+    <div class="rounded-xl border border-ecs-gold-500/30 bg-ecs-gold-500/10 px-4 py-3 flex items-start gap-2.5">
+        <i class="ti ti-pencil text-lg mt-0.5 text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+        <div class="text-sm text-gray-700 dark:text-gray-200">
+            <span class="font-semibold text-gray-900 dark:text-white">{{ total_changed }} of {{ font_roles | length + 1 }} type tokens {{ 'is' if total_changed == 1 else 'are' }} customized.</span>
+            These values override the default type system applied site-wide.
+        </div>
+    </div>
+    {% else %}
+    <div class="rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 flex items-start gap-2.5">
+        <i class="ti ti-shield-check text-lg mt-0.5 text-green-600 dark:text-green-400" aria-hidden="true"></i>
+        <div class="text-sm text-gray-700 dark:text-gray-200">
+            <span class="font-semibold text-gray-900 dark:text-white">All {{ font_roles | length + 1 }} type tokens use system defaults.</span>
+            The stock type system ({{ default_typography.display_font }} / {{ default_typography.body_font }} / {{ default_typography.mono_font }} at {{ default_typography.scale_multiplier }}×) is applied site-wide.
+        </div>
+    </div>
+    {% endif %}
+
+    {# KPI band — leads with the genuinely numeric figure (scale) + real derived state. #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {{ stat_card('ti-arrows-diagonal', 'Type Scale', typography.scale_multiplier ~ '×',
+            sublabel=('+' ~ ((typography.scale_multiplier - default_typography.scale_multiplier) | round(2)) ~ ' vs default') if scale_changed else ('default ' ~ default_typography.scale_multiplier ~ '×'),
+            tone=('gold' if scale_changed else 'neutral')) }}
+        {{ stat_card('ti-typography', 'Font Roles', font_roles | length, sublabel='display · body · mono', tone='primary') }}
+        {{ stat_card('ti-pencil', 'Customized', total_changed, sublabel='of ' ~ (font_roles | length + 1) ~ ' tokens', tone=('gold' if total_changed else 'neutral')) }}
+        {{ stat_card('ti-shield-check', 'Defaults', (font_roles | length + 1) - total_changed, sublabel='unchanged tokens', tone='success') }}
     </div>
 
-    {# Font roles with live previews — show the fonts, don't just name them. #}
-    {% call section_card("Active Fonts", icon="ti-typography") %}
-    <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for role in font_roles %}
-        {% set current = typography[role.key] %}
-        {% set default = default_typography[role.key] %}
-        <li class="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-5 py-4">
-            <div class="flex items-center gap-3 sm:w-56 shrink-0">
-                <span class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
-                    <i class="ti {{ role.icon }} text-ecs-green" aria-hidden="true"></i>
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+        {# ===== PRIMARY OBJECT: type specimen sheet (the page's reason to exist) ===== #}
+        <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                    <i class="ti ti-typography text-ecs-green" aria-hidden="true"></i> Type Specimen
+                </h2>
+                {% if total_changed %}
+                <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2 py-1 rounded-md bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400">
+                    <i class="ti ti-pencil text-[11px]" aria-hidden="true"></i> Customized
                 </span>
-                <div class="min-w-0">
-                    <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ current }}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ role.hint }}</p>
-                </div>
-            </div>
-            <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ role.label }}</p>
-                <p class="mt-0.5 text-lg text-gray-900 dark:text-white truncate {% if role.key == 'mono_font' %}font-mono{% endif %}">{{ role.sample }}</p>
-            </div>
-            <div class="shrink-0 sm:text-right">
-                {% if current != default %}
-                <span class="inline-flex items-center gap-1 text-xs font-semibold text-ecs-gold-500 dark:text-ecs-gold-400">
-                    <i class="ti ti-pencil text-[12px]" aria-hidden="true"></i> Customized
-                </span>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">default {{ default }}</p>
                 {% else %}
-                <span class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                    <i class="ti ti-check text-[12px]" aria-hidden="true"></i> Default
+                <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2 py-1 rounded-md bg-green-500/10 text-green-600 dark:text-green-400">
+                    <i class="ti ti-check text-[11px]" aria-hidden="true"></i> Stock
                 </span>
                 {% endif %}
             </div>
-        </li>
-        {% endfor %}
-    </ul>
-    {% endcall %}
+            <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for role in font_roles %}
+                {% set current = typography[role.key] %}
+                {% set default = default_typography[role.key] %}
+                {% set changed = current != default %}
+                <li class="px-4 sm:px-5 py-4">
+                    {# meta row: role tag + family + status pill #}
+                    <div class="flex items-center justify-between gap-3 mb-2.5">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <span class="font-mono text-[11px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 shrink-0">{{ role.role_tag }}</span>
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ current }}</span>
+                        </div>
+                        {% if changed %}
+                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400">Custom</span>
+                        {% else %}
+                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Default</span>
+                        {% endif %}
+                    </div>
+                    {# the specimen itself — big, the point of the page #}
+                    <p class="text-2xl sm:text-3xl leading-tight text-gray-900 dark:text-white truncate {{ role.weight }} {% if role.key == 'mono_font' %}font-mono{% endif %}">{{ role.sample }}</p>
+                    {# footer divider + mono metadata #}
+                    <div class="mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700/60 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                        <span class="inline-flex items-center gap-1"><i class="ti {{ role.icon }}" aria-hidden="true"></i> {{ role.hint }}</span>
+                        <span class="font-mono">stack: {{ current }}</span>
+                        {% if changed %}<span class="font-mono text-gray-400 dark:text-gray-500">was {{ default }}</span>{% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
 
-    {# Defaults reference. #}
-    {% call section_card("Application Defaults", icon="ti-restore") %}
-    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-4 sm:px-5 py-4">
-        <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Display Font</dt>
-            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ default_typography.display_font }}</dd>
+        {# ===== Type-scale ladder: REAL derived px figures from scale_multiplier ===== #}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                    <i class="ti ti-line-height text-ecs-green" aria-hidden="true"></i> Scale Ladder
+                </h2>
+                <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded {% if scale_changed %}bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ typography.scale_multiplier }}×</span>
+            </div>
+            <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700 flex-1">
+                {% for step in scale_steps %}
+                {% set px = (step.base * typography.scale_multiplier) | round(1) %}
+                <li class="flex items-baseline justify-between gap-3 px-4 sm:px-5 py-3">
+                    <div class="min-w-0">
+                        <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ step.name }}</p>
+                        <p class="leading-none text-gray-900 dark:text-white truncate {{ step.preview }} {% if step.role == 'display_font' %}font-extrabold{% endif %}">Aa</p>
+                    </div>
+                    <div class="shrink-0 text-right">
+                        <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ px }}px</span>
+                        <p class="font-mono text-[11px] text-gray-400 dark:text-gray-500">base {{ step.base }}px</p>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                Computed at <span class="font-mono text-gray-900 dark:text-white">{{ typography.scale_multiplier }}×</span> · default <span class="font-mono">{{ default_typography.scale_multiplier }}×</span>
+            </div>
+        </section>
+    </div>
+
+    {# ===== System Defaults reference — read-only baseline from real default_typography ===== #}
+    <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+        <div class="flex items-center gap-1.5 mb-1.5 font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+            <i class="ti ti-shield-check text-green-600 dark:text-green-400" aria-hidden="true"></i> System Defaults
         </div>
-        <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Body Font</dt>
-            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ default_typography.body_font }}</dd>
+        <p class="font-mono">{{ default_typography.display_font }} / {{ default_typography.body_font }} / {{ default_typography.mono_font }} at scale {{ default_typography.scale_multiplier }}×</p>
+    </div>
+
+    {# ===== Spec sheet: real table (tabular data, mono numerals) ===== #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <i class="ti ti-table text-ecs-green" aria-hidden="true"></i> Token Spec Sheet
+            </h2>
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ font_roles | length + 1 }}</span>
         </div>
-        <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Monospace Font</dt>
-            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ default_typography.mono_font }}</dd>
+        <div class="md:overflow-x-auto">
+            {# md+ : real table #}
+            <table class="hidden md:table w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                        <th scope="col" class="px-4 sm:px-5 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Token</th>
+                        <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Current</th>
+                        <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Default</th>
+                        <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Usage</th>
+                        <th scope="col" class="px-4 sm:px-5 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for role in font_roles %}
+                    {% set current = typography[role.key] %}
+                    {% set default = default_typography[role.key] %}
+                    {% set changed = current != default %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td class="px-4 sm:px-5 py-3">
+                            <span class="inline-flex items-center gap-2">
+                                <i class="ti {{ role.icon }} text-ecs-green" aria-hidden="true"></i>
+                                <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ role.key }}</span>
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 font-semibold text-gray-900 dark:text-white {% if role.key == 'mono_font' %}font-mono{% endif %}">{{ current }}</td>
+                        <td class="px-3 py-3 text-gray-500 dark:text-gray-400 hidden lg:table-cell {% if role.key == 'mono_font' %}font-mono{% endif %}">{{ default }}</td>
+                        <td class="px-3 py-3 text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ role.hint }}</td>
+                        <td class="px-4 sm:px-5 py-3 text-right">
+                            {% if changed %}
+                            <span class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400"><i class="ti ti-pencil text-[11px]" aria-hidden="true"></i> Custom</span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-check text-[11px]" aria-hidden="true"></i> Default</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {# scale_multiplier row — numeric token #}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td class="px-4 sm:px-5 py-3">
+                            <span class="inline-flex items-center gap-2">
+                                <i class="ti ti-arrows-diagonal text-ecs-green" aria-hidden="true"></i>
+                                <span class="font-mono text-xs text-gray-500 dark:text-gray-400">scale_multiplier</span>
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 font-mono font-semibold text-gray-900 dark:text-white">{{ typography.scale_multiplier }}×</td>
+                        <td class="px-3 py-3 font-mono text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ default_typography.scale_multiplier }}×</td>
+                        <td class="px-3 py-3 text-gray-500 dark:text-gray-400 hidden lg:table-cell">Global type-size ratio</td>
+                        <td class="px-4 sm:px-5 py-3 text-right">
+                            {% if scale_changed %}
+                            <span class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400"><i class="ti ti-pencil text-[11px]" aria-hidden="true"></i> Custom</span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-check text-[11px]" aria-hidden="true"></i> Default</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            {# mobile : stacked rows #}
+            <ul role="list" class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                {% for role in font_roles %}
+                {% set current = typography[role.key] %}
+                {% set changed = current != default_typography[role.key] %}
+                <li class="px-4 py-3.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="inline-flex items-center gap-2 min-w-0">
+                            <i class="ti {{ role.icon }} text-ecs-green shrink-0" aria-hidden="true"></i>
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate {% if role.key == 'mono_font' %}font-mono{% endif %}">{{ current }}</span>
+                        </span>
+                        {% if changed %}
+                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400">Custom</span>
+                        {% else %}
+                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Default</span>
+                        {% endif %}
+                    </div>
+                    <p class="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">{{ role.key }} · {{ role.hint }}</p>
+                </li>
+                {% endfor %}
+                <li class="px-4 py-3.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="inline-flex items-center gap-2 min-w-0">
+                            <i class="ti ti-arrows-diagonal text-ecs-green shrink-0" aria-hidden="true"></i>
+                            <span class="text-sm font-mono font-semibold text-gray-900 dark:text-white">{{ typography.scale_multiplier }}×</span>
+                        </span>
+                        {% if scale_changed %}
+                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400">Custom</span>
+                        {% else %}
+                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Default</span>
+                        {% endif %}
+                    </div>
+                    <p class="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">scale_multiplier · default {{ default_typography.scale_multiplier }}×</p>
+                </li>
+            </ul>
         </div>
-        <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Scale Multiplier</dt>
-            <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white">{{ default_typography.scale_multiplier }}×</dd>
+        <div class="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+            <span>Applied across the application.</span>
+            <span class="font-mono"><span class="text-gray-900 dark:text-white font-bold">{{ total_changed }}</span> / {{ font_roles | length + 1 }} customized</span>
         </div>
-    </dl>
-    {% endcall %}
+    </section>
 </div>
 {% else %}
 <div class="p-4 space-y-6">

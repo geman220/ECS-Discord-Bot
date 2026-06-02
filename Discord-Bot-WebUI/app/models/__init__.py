@@ -113,7 +113,8 @@ from .predictions import (
 
 from .league_features import (
     LeaguePoll, LeaguePollResponse, LeaguePollDiscordMessage,
-    DraftOrderHistory, MessageCategory, MessageTemplate, LeagueSetting
+    DraftOrderHistory, MessageCategory, MessageTemplate, LeagueSetting,
+    DraftSession, DraftPickSlot
 )
 
 # Backward-compat alias: legacy SubRequest is now SubstituteRequest
@@ -133,7 +134,8 @@ from .theme_preset import (
 )
 
 from .api_logs import (
-    APIRequestLog
+    APIRequestLog,
+    TaskExecution
 )
 
 from .ai_assistant import (
@@ -277,6 +279,7 @@ __all__ = [
     'SubRequest',  # backward-compat alias for SubstituteRequest
     'LeaguePoll', 'LeaguePollResponse', 'LeaguePollDiscordMessage',
     'DraftOrderHistory', 'MessageCategory', 'MessageTemplate', 'LeagueSetting',
+    'DraftSession', 'DraftPickSlot',
     
     # I-Spy models
     'ISpySeason', 'ISpyCategory', 'ISpyShot', 'ISpyShotTarget', 'ISpyCooldown',
@@ -290,6 +293,7 @@ __all__ = [
 
     # API logging models
     'APIRequestLog',
+    'TaskExecution',
     'AIAssistantLog',
 
     # Security models

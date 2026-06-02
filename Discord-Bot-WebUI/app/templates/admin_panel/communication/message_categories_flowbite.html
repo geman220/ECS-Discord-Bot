@@ -17,9 +17,12 @@
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+{% set total_templates = categories|map(attribute='templates')|map('length')|sum if categories else 0 %}
+{% set active_templates = namespace(n=0) %}
+{% if categories %}{% for c in categories %}{% for t in c.templates %}{% if t.is_active %}{% set active_templates.n = active_templates.n + 1 %}{% endif %}{% endfor %}{% endfor %}{% endif %}
 <div class="space-y-6">
 
-  {% call page_header('Message Management', subtitle='Communication') %}
+  {% call page_header('Message Management', subtitle='Communication / Discord Bot Templates') %}
     <button type="button" onclick="history.back()"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Back</span>
@@ -38,10 +41,17 @@
 
   <!-- KPI band (real data) -->
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-message-2', 'Message Categories', categories|length if categories else 0, tone='info') }}
-    {{ stat_card('ti-file-text', 'Total Templates', categories|map(attribute='templates')|map('length')|sum if categories else 0, tone='success') }}
-    {{ stat_card('ti-speakerphone', 'Active Announcements', announcements|length if announcements else 0, tone='gold') }}
-    {% call stat_card('ti-brand-discord', 'Discord Bot', 'Test', sublabel='messaging', tone='primary') %}
+    {% call stat_card('ti-message-2', 'Categories', categories|length if categories else 0, tone='info') %}
+      Message groups
+    {% endcall %}
+    {% call stat_card('ti-file-text', 'Templates', total_templates, tone='primary') %}
+      <span class="font-mono text-green-600 dark:text-green-400">{{ active_templates.n }}</span> active
+      {% if total_templates - active_templates.n > 0 %}<span aria-hidden="true">·</span> <span class="font-mono">{{ total_templates - active_templates.n }}</span> off{% endif %}
+    {% endcall %}
+    {% call stat_card('ti-speakerphone', 'Announcements', announcements|length if announcements else 0, tone='gold') %}
+      Site-wide notices
+    {% endcall %}
+    {% call stat_card('ti-brand-discord', 'Discord Bot', 'Live', tone='success') %}
       <a href="{{ url_for('admin.discord_onboarding.admin_test_onboarding') }}" class="inline-flex items-center gap-1 text-ecs-green hover:underline">
         <i class="ti ti-test-pipe" aria-hidden="true"></i>Test onboarding
       </a>
@@ -53,87 +63,117 @@
     <div class="lg:col-span-2 space-y-6">
       {% if categories %}
       {% for category in categories %}
-      {% set tone_word = 'ECS FC' if ('ecs' in category.name.lower() or 'fc' in category.name.lower()) else ('Premier' if 'premier' in category.name.lower() else ('Classic' if 'classic' in category.name.lower() else 'System')) %}
-      {% set cat_icon = 'ti-shield' if ('ecs' in category.name.lower() or 'fc' in category.name.lower()) else ('ti-star' if ('premier' in category.name.lower() or 'pub' in category.name.lower()) else ('ti-heart' if 'classic' in category.name.lower() else 'ti-world')) %}
-      {% call section_card(category.name, icon=cat_icon) %}
-        <div class="p-4 space-y-4">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ category.templates|length }} template{{ '' if category.templates|length == 1 else 's' }}</span>
-            <button type="button" data-action="create-template" data-category-id="{{ category.id }}" data-category-name="{{ category.name }}"
-                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-              <i class="ti ti-plus" aria-hidden="true"></i><span>New Template</span>
-            </button>
-          </div>
+      {% set is_ecs = ('ecs' in category.name.lower() or 'fc' in category.name.lower()) %}
+      {% set is_premier = ('premier' in category.name.lower() or 'pub' in category.name.lower()) %}
+      {% set is_classic = 'classic' in category.name.lower() %}
+      {% set cat_icon = 'ti-shield' if is_ecs else ('ti-star' if is_premier else ('ti-heart' if is_classic else 'ti-world')) %}
+      {% set cat_active = category.templates|selectattr('is_active')|list|length %}
 
-          {% if category.templates %}
-          <div class="space-y-3">
-            {% for template in category.templates %}
-            <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-              <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
-                    <h4 class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ template.name }}</h4>
-                    {% if template.is_active %}
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Active</span>
-                    {% else %}
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-circle-x text-[12px]" aria-hidden="true"></i>Inactive</span>
-                    {% endif %}
-                  </div>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Key: <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">{{ template.key }}</code></p>
-                  {% if template.description %}
-                  <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">{{ template.description }}</p>
+      <!-- Feature card: one message category (header bar + body) -->
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <!-- Header bar -->
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg bg-ecs-green/10 text-ecs-green">
+              <i class="ti {{ cat_icon }} text-lg" aria-hidden="true"></i>
+            </span>
+            <div class="min-w-0">
+              <h2 class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ category.name }}</h2>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                <span class="font-mono">{{ category.templates|length }}</span> template{{ '' if category.templates|length == 1 else 's' }}
+                <span aria-hidden="true">·</span> <span class="font-mono text-green-600 dark:text-green-400">{{ cat_active }}</span> active
+              </p>
+            </div>
+          </div>
+          <button type="button" data-action="create-template" data-category-id="{{ category.id }}" data-category-name="{{ category.name }}"
+                  class="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-plus" aria-hidden="true"></i><span>New Template</span>
+          </button>
+        </div>
+
+        {% if category.description %}
+        <p class="px-4 sm:px-5 pt-3 text-xs text-gray-500 dark:text-gray-400">{{ category.description }}</p>
+        {% endif %}
+
+        {% if category.templates %}
+        <!-- Dense template rows -->
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+          {% for template in category.templates %}
+          <li class="px-4 sm:px-5 py-4">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                  <h3 class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ template.name }}</h3>
+                  {% if template.is_active %}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Active</span>
+                  {% else %}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-circle-x text-[12px]" aria-hidden="true"></i>Inactive</span>
                   {% endif %}
-                  <div class="bg-gray-50 dark:bg-gray-700 p-2 rounded text-xs text-gray-600 dark:text-gray-300">
-                    {{ template.message_content[:150] }}{% if template.message_content|length > 150 %}...{% endif %}
-                  </div>
-                  {% if template.variables %}
-                  <div class="mt-2">
-                    <span class="text-xs text-gray-500 dark:text-gray-400">Variables: </span>
-                    {% for var in template.variables %}
-                    <code class="font-mono text-xs bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 px-1 rounded">{{'{'}}{{ var }}{{'}'}}</code>{% if not loop.last %} {% endif %}
-                    {% endfor %}
-                  </div>
+                  {% if template.channel_type %}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-rss text-[12px]" aria-hidden="true"></i>{{ template.get_channel_type_display() }}</span>
                   {% endif %}
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 font-mono">Last updated: {{ template.updated_at.strftime('%b %d, %Y at %I:%M %p') }}</p>
                 </div>
-                <div class="flex flex-col gap-1 shrink-0">
-                  <a href="{{ url_for('admin.message_config.edit_template', template_id=template.id) }}"
-                     class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-3 rounded text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                    <i class="ti ti-edit" aria-hidden="true"></i>Edit
-                  </a>
-                  <button type="button" data-action="preview-template" data-template-id="{{ template.id }}"
-                          class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-3 rounded text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-300 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                    <i class="ti ti-eye" aria-hidden="true"></i>Preview
-                  </button>
-                  <button type="button" data-action="copy-template" data-template-id="{{ template.id }}"
-                          class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-3 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                    <i class="ti ti-copy" aria-hidden="true"></i>Copy
-                  </button>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2 text-xs text-gray-500 dark:text-gray-400">
+                  <span class="inline-flex items-center gap-1"><i class="ti ti-key text-[12px]" aria-hidden="true"></i><code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded text-gray-700 dark:text-gray-200">{{ template.key }}</code></span>
+                  <span class="inline-flex items-center gap-1 font-mono"><i class="ti ti-clock text-[12px]" aria-hidden="true"></i>{{ template.updated_at.strftime('%b %d, %Y · %I:%M %p') }}</span>
                 </div>
+                {% if template.description %}
+                <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">{{ template.description }}</p>
+                {% endif %}
+                <pre class="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 p-2.5 rounded-lg text-xs font-mono text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-words">{{ template.message_content[:180] }}{% if template.message_content|length > 180 %}…{% endif %}</pre>
+                {% if template.variables %}
+                <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Variables</span>
+                  {% for var in template.variables %}
+                  <code class="font-mono text-xs bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">{{'{'}}{{ var }}{{'}'}}</code>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </div>
+              <!-- Command toolbar (per template) -->
+              <div class="flex sm:flex-col gap-1 shrink-0">
+                <a href="{{ url_for('admin.message_config.edit_template', template_id=template.id) }}"
+                   class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-3 rounded text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  <i class="ti ti-edit" aria-hidden="true"></i>Edit
+                </a>
+                <button type="button" data-action="preview-template" data-template-id="{{ template.id }}"
+                        class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-3 rounded text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-300 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  <i class="ti ti-eye" aria-hidden="true"></i>Preview
+                </button>
+                <button type="button" data-action="copy-template" data-template-id="{{ template.id }}"
+                        class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-3 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  <i class="ti ti-copy" aria-hidden="true"></i>Copy
+                </button>
               </div>
             </div>
-            {% endfor %}
-          </div>
-          {% else %}
-          {{ empty_state('ti-file-text', 'No templates', 'This category has no templates yet.') }}
-          {% endif %}
+            {% if template.usage_context %}
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-info-circle mr-1" aria-hidden="true"></i>{{ template.usage_context }}</p>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        {{ empty_state('ti-file-text', 'No templates', 'This category has no templates yet.') }}
+        {% endif %}
 
-          <div class="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
-            <p class="text-xs text-gray-600 dark:text-gray-400">
-              <span class="font-semibold text-gray-900 dark:text-white">Context:</span>
-              {% if 'ecs' in category.name.lower() or 'fc' in category.name.lower() %}
-              ECS FC division messages for competitive league players.
-              {% elif 'premier' in category.name.lower() %}
-              Premier division messages for competitive recreational players.
-              {% elif 'classic' in category.name.lower() %}
-              Classic division messages for casual recreational players.
-              {% else %}
-              System-wide messages used across all leagues.
-              {% endif %}
-            </p>
-          </div>
+        <!-- Footer divider: category context -->
+        <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+          <p class="text-xs text-gray-600 dark:text-gray-400">
+            <span class="font-semibold text-gray-900 dark:text-white uppercase tracking-wide">Context</span>
+            <span class="ml-1">
+            {% if is_ecs %}
+            ECS FC division messages for competitive league players.
+            {% elif is_premier %}
+            Premier division messages for competitive recreational players.
+            {% elif is_classic %}
+            Classic division messages for casual recreational players.
+            {% else %}
+            System-wide messages used across all leagues.
+            {% endif %}
+            </span>
+          </p>
         </div>
-      {% endcall %}
+      </section>
       {% endfor %}
       {% else %}
       {{ empty_state('ti-message-off', 'No message templates found', 'Initialize the message system to get started with Discord bot communications.', action={'label': 'Initialize System', 'url': '#', 'icon': 'ti-settings'}) }}
@@ -142,47 +182,51 @@
 
     <!-- Sidebar -->
     <div class="space-y-6">
-      {% call section_card('Website Announcements', icon='ti-speakerphone') %}
-        <div class="p-4">
-          <div class="flex items-center justify-between gap-2 mb-4">
-            <span class="text-xs text-gray-500 dark:text-gray-400">Manage site-wide announcements</span>
-            <button type="button" data-action="create-announcement" aria-label="Create announcement"
-                    class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 rounded-lg text-ecs-green hover:bg-ecs-green/10 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-              <i class="ti ti-plus" aria-hidden="true"></i>
-            </button>
-          </div>
-          {% if announcements %}
-          <div class="divide-y divide-gray-200 dark:divide-gray-700">
-            {% for announcement in announcements[:3] %}
-            <div class="py-3 first:pt-0 last:pb-0">
-              <div class="flex items-start justify-between gap-2">
-                <div class="flex-1 min-w-0">
-                  <h4 class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ announcement.title }}</h4>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ announcement.content[:60] }}{% if announcement.content|length > 60 %}...{% endif %}</p>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 font-mono">{{ announcement.created_at.strftime('%b %d, %Y') }}</p>
-                </div>
-                <div class="flex gap-1 shrink-0">
-                  <button type="button" data-action="edit-announcement" data-announcement-id="{{ announcement.id }}" aria-label="Edit announcement"
-                          class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 rounded text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                    <i class="ti ti-edit text-sm" aria-hidden="true"></i>
-                  </button>
-                  <button type="button" data-action="delete-announcement" data-announcement-id="{{ announcement.id }}" aria-label="Delete announcement"
-                          class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 rounded text-red-600 hover:bg-red-100 dark:hover:bg-red-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                    <i class="ti ti-trash text-sm" aria-hidden="true"></i>
-                  </button>
-                </div>
+      <!-- Website announcements: header bar + dense rows -->
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-speakerphone text-ecs-green" aria-hidden="true"></i>Announcements
+            {% if announcements %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ announcements|length }}</span>{% endif %}
+          </h2>
+          <button type="button" data-action="create-announcement" aria-label="Create announcement"
+                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 rounded-lg text-ecs-green hover:bg-ecs-green/10 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-plus" aria-hidden="true"></i>
+          </button>
+        </div>
+        {% if announcements %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+          {% for announcement in announcements[:3] %}
+          <li class="px-4 py-3">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ announcement.title }}</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ announcement.content[:60] }}{% if announcement.content|length > 60 %}...{% endif %}</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 font-mono"><i class="ti ti-calendar text-[12px] mr-0.5" aria-hidden="true"></i>{{ announcement.created_at.strftime('%b %d, %Y') }}</p>
+              </div>
+              <div class="flex gap-1 shrink-0">
+                <button type="button" data-action="edit-announcement" data-announcement-id="{{ announcement.id }}" aria-label="Edit announcement"
+                        class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 rounded text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  <i class="ti ti-edit text-sm" aria-hidden="true"></i>
+                </button>
+                <button type="button" data-action="delete-announcement" data-announcement-id="{{ announcement.id }}" aria-label="Delete announcement"
+                        class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 rounded text-red-600 hover:bg-red-100 dark:hover:bg-red-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  <i class="ti ti-trash text-sm" aria-hidden="true"></i>
+                </button>
               </div>
             </div>
-            {% endfor %}
-          </div>
-          {% if announcements|length > 3 %}
-          <p class="text-center text-xs text-gray-500 dark:text-gray-400 mt-3">Showing 3 of {{ announcements|length }} announcements</p>
-          {% endif %}
-          {% else %}
-          {{ empty_state('ti-speakerphone', 'No announcements yet', 'Create your first site-wide announcement.') }}
-          {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% if announcements|length > 3 %}
+        <div class="px-4 py-2.5 border-t border-gray-200 dark:border-gray-700">
+          <p class="text-center text-xs text-gray-500 dark:text-gray-400">Showing <span class="font-mono">3</span> of <span class="font-mono">{{ announcements|length }}</span></p>
         </div>
-      {% endcall %}
+        {% endif %}
+        {% else %}
+        {{ empty_state('ti-speakerphone', 'No announcements yet', 'Create your first site-wide announcement.') }}
+        {% endif %}
+      </section>
 
       {% call section_card('Quick Actions', icon='ti-bolt') %}
         <div class="p-4 space-y-2">

@@ -21,72 +21,330 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, alert %}
-{% set at_default = (animations.enabled == default_animations.enabled) and (animations.speed == default_animations.speed) %}
-<div class="space-y-6">
+{% from 'macros/_modern_kit.html' import page_header, stat_card %}
+{% set motion_custom = animations.enabled != default_animations.enabled %}
+{% set speed_custom = animations.speed != default_animations.speed %}
+{% set at_default = (not motion_custom) and (not speed_custom) %}
+{# Ordered speed scale (matches the route's valid_speeds) for the segmented track. #}
+{% set speed_scale = ['slow', 'default', 'fast'] %}
+{% set cur_idx = speed_scale.index(animations.speed) if animations.speed in speed_scale else 1 %}
+{% set drift_init = (1 if motion_custom else 0) + (1 if speed_custom else 0) %}
+<div class="space-y-6"
+     data-default-enabled="{{ 'true' if default_animations.enabled else 'false' }}"
+     data-default-speed="{{ default_animations.speed }}">
 
-  {{ page_header('Animation Settings', subtitle='Appearance') }}
+  {% call page_header('Animation Settings', subtitle='Appearance / Motion') %}
+    <button type="button" id="anim-reset-btn"
+      class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-100 dark:hover:bg-red-500/20"
+      aria-label="Reset animation settings to default">
+      <i class="ti ti-restore" aria-hidden="true"></i><span class="hidden sm:inline">Reset to Default</span>
+    </button>
+    <button type="button" id="anim-save-btn"
+      class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green/90 focus:ring-2 focus:ring-ecs-green/40">
+      <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Changes
+    </button>
+  {% endcall %}
 
-  {{ alert('info', 'Toggle motion and adjust transition speed across the application.', title='Animation settings.', dismissible=False) }}
+  {# ---- Drift banner: surfaces customization at the top of the page ---- #}
+  <div id="anim-drift-banner"
+    class="rounded-xl border border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 px-4 py-3 flex items-start gap-2.5 {{ 'hidden' if at_default else '' }}">
+    <i class="ti ti-pencil text-lg mt-0.5" aria-hidden="true"></i>
+    <div class="text-sm">
+      <span class="font-semibold">Settings are customized.</span>
+      <span id="anim-drift-text">{{ ('1 of 2 settings differs' if drift_init == 1 else (drift_init | string) ~ ' of 2 settings differ') }} from the shipped defaults (motion {{ 'on' if default_animations.enabled else 'off' }}, {{ default_animations.speed }} speed).</span>
+    </div>
+  </div>
 
-  {# KPI band — current effective settings #}
-  <div class="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-4">
+  {# ---- KPI band: the four facts that answer "what's live right now?" ---- #}
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
     {% if animations.enabled %}
-      {{ stat_card('ti-wand', 'Animations', 'On', sublabel='motion enabled', tone='success') }}
+      {% call stat_card('ti-wand', 'Motion', 'On', sublabel='enabled', tone='success') %}
+        Transitions render across the app.
+      {% endcall %}
     {% else %}
-      {{ stat_card('ti-wand-off', 'Animations', 'Off', sublabel='motion disabled', tone='neutral') }}
+      {% call stat_card('ti-wand-off', 'Motion', 'Off', sublabel='disabled', tone='neutral') %}
+        Instant state changes, no transitions.
+      {% endcall %}
     {% endif %}
-    {{ stat_card('ti-gauge', 'Speed', animations.speed | capitalize, sublabel='transition speed', tone='primary') }}
-  </div>
 
-  {# Current vs default comparison — makes "is this customized?" answerable at a glance #}
-  {% call section_card('Configuration', icon='ti-adjustments') %}
-  <dl class="divide-y divide-gray-200 dark:divide-gray-700">
-    <div class="flex items-center justify-between gap-4 px-4 sm:px-5 py-3">
-      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center gap-2">
-        <i class="ti ti-bolt text-gray-400" aria-hidden="true"></i> Motion
-      </dt>
-      <dd class="text-sm font-semibold text-gray-900 dark:text-white">
-        {{ 'Enabled' if animations.enabled else 'Disabled' }}
-        {% if animations.enabled != default_animations.enabled %}
-          <span class="ml-2 text-xs font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">Customized</span>
-        {% endif %}
-      </dd>
-    </div>
-    <div class="flex items-center justify-between gap-4 px-4 sm:px-5 py-3">
-      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center gap-2">
-        <i class="ti ti-gauge text-gray-400" aria-hidden="true"></i> Speed
-      </dt>
-      <dd class="text-sm font-semibold text-gray-900 dark:text-white">
-        <span class="font-mono">{{ animations.speed }}</span>
-        {% if animations.speed != default_animations.speed %}
-          <span class="ml-2 text-xs font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">Customized</span>
-        {% endif %}
-      </dd>
-    </div>
-  </dl>
-  {% endcall %}
+    {% call stat_card('ti-gauge', 'Speed', animations.speed | capitalize, sublabel='transition pace', tone='primary') %}
+      Position {{ cur_idx + 1 }} of {{ speed_scale | length }} on the pace scale.
+    {% endcall %}
 
-  {# Defaults reference #}
-  {% call section_card('Defaults', icon='ti-restore') %}
-  <div class="px-4 sm:px-5 py-4 space-y-2">
-    <p class="text-sm text-gray-500 dark:text-gray-400">
-      Application default: motion <span class="font-semibold text-gray-900 dark:text-white">{{ 'enabled' if default_animations.enabled else 'disabled' }}</span>
-      at <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ default_animations.speed }}</span> speed.
-    </p>
+    {% set drift = (1 if motion_custom else 0) + (1 if speed_custom else 0) %}
     {% if at_default %}
-      <p class="text-xs text-green-700 dark:text-green-400 flex items-center gap-1.5">
-        <i class="ti ti-circle-check" aria-hidden="true"></i> Currently matching the defaults.
-      </p>
+      {% call stat_card('ti-circle-check', 'Overrides', '0', sublabel='matches default', tone='success') %}
+        Running the shipped configuration.
+      {% endcall %}
     {% else %}
-      <p class="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-        <i class="ti ti-alert-triangle" aria-hidden="true"></i> Settings differ from the defaults.
-      </p>
+      {% call stat_card('ti-pencil', 'Overrides', drift, sublabel='of 2 settings', tone='warning') %}
+        Customized away from defaults.
+      {% endcall %}
     {% endif %}
+
+    {% call stat_card('ti-restore', 'Default Pace', default_animations.speed | capitalize, sublabel='shipped value', tone='neutral') %}
+      Motion {{ 'on' if default_animations.enabled else 'off' }} by default.
+    {% endcall %}
   </div>
-  {% endcall %}
+
+  {# ---- PRIMARY OBJECT: the editable animation profile (toggle + speed) ---- #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    {# header bar w/ status pill #}
+    <div class="flex items-center justify-between gap-3 px-4 sm:px-5 h-14 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-bolt text-ecs-green" aria-hidden="true"></i> Motion Profile
+      </h2>
+      <span id="anim-status-pill"
+        class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full
+          {% if at_default %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400{% else %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400{% endif %}">
+        <i class="ti {{ 'ti-circle-check' if at_default else 'ti-pencil' }}" aria-hidden="true"></i>
+        <span>{{ 'Synced to default' if at_default else 'Customized' }}</span>
+      </span>
+    </div>
+
+    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+
+      {# Toggle row: Enable Motion #}
+      <div class="px-4 sm:px-5 py-4 flex items-start justify-between gap-4">
+        <div class="flex items-start gap-3 min-w-0">
+          <span class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400">
+            <i class="ti ti-wand text-lg" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0">
+            <span class="text-sm font-semibold text-gray-900 dark:text-white">Enable Motion</span>
+            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Render transitions and animations site-wide. Turn off for instant state changes with no motion (better for reduced-motion preferences).</p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Default: <span class="font-mono text-gray-700 dark:text-gray-300">{{ 'enabled' if default_animations.enabled else 'disabled' }}</span></p>
+          </div>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+          <input type="checkbox" id="anim-enabled" class="sr-only peer" {{ 'checked' if animations.enabled else '' }} aria-label="Enable motion">
+          <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-full peer peer-checked:bg-ecs-green peer-checked:border-ecs-green peer-focus:ring-2 peer-focus:ring-ecs-green/40 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></div>
+        </label>
+      </div>
+
+      {# Segmented speed selector #}
+      <div class="px-4 sm:px-5 py-4">
+        <div class="flex items-start gap-3">
+          <span class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-ecs-green/15 text-ecs-green">
+            <i class="ti ti-gauge text-lg" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0 flex-1">
+            <span class="text-sm font-semibold text-gray-900 dark:text-white">Transition Speed</span>
+            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">How quickly transitions play. Default: <span class="font-mono text-gray-700 dark:text-gray-300">{{ default_animations.speed }}</span>.</p>
+
+            <div id="anim-speed-group" class="mt-3 inline-flex w-full sm:w-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-1" role="radiogroup" aria-label="Transition speed">
+              {% set speed_icons = {'slow': 'ti-walk', 'default': 'ti-run', 'fast': 'ti-bolt'} %}
+              {% for step in speed_scale %}
+              <label class="flex-1 sm:flex-none">
+                <input type="radio" name="anim-speed" value="{{ step }}" class="sr-only peer" {{ 'checked' if step == animations.speed else '' }} aria-label="{{ step | capitalize }} speed">
+                <span class="flex items-center justify-center gap-1.5 px-3.5 h-9 rounded-md text-sm font-medium text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-900 dark:hover:text-white peer-checked:bg-ecs-green peer-checked:text-white peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green/40">
+                  <i class="ti {{ speed_icons[step] }}" aria-hidden="true"></i>{{ step | capitalize }}
+                </span>
+              </label>
+              {% endfor %}
+            </div>
+
+            {# Speed scale track visualizing current selection (updated live by JS) #}
+            <div id="anim-speed-track" class="mt-4 grid grid-cols-3 gap-1.5 max-w-md" role="img" aria-label="Speed set to {{ animations.speed }}">
+              {% for step in speed_scale %}
+              <div class="flex flex-col items-center gap-1" data-step="{{ step }}">
+                <div class="anim-track-bar h-1.5 w-full rounded-full {% if step == animations.speed %}bg-ecs-green{% else %}bg-gray-200 dark:bg-gray-700{% endif %}"></div>
+                <span class="anim-track-label text-[11px] font-medium {% if step == animations.speed %}text-ecs-green{% else %}text-gray-400 dark:text-gray-500{% endif %}">{{ step | capitalize }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  {# ---- Current vs Default comparison TABLE (tabular config → real table) ---- #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-adjustments text-ecs-green" aria-hidden="true"></i> Current vs Default
+      </h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-700">
+            <th scope="col" class="text-left px-4 sm:px-5 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Setting</th>
+            <th scope="col" class="text-left px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Current</th>
+            <th scope="col" class="text-left px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Default</th>
+            <th scope="col" class="text-right px-4 sm:px-5 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">State</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-4 sm:px-5 py-3 font-medium text-gray-900 dark:text-white">
+              <i class="ti ti-bolt text-gray-400 mr-1.5" aria-hidden="true"></i>Motion
+            </td>
+            <td class="px-4 py-3 font-mono text-gray-900 dark:text-white">{{ 'enabled' if animations.enabled else 'disabled' }}</td>
+            <td class="px-4 py-3 font-mono text-gray-500 dark:text-gray-400">{{ 'enabled' if default_animations.enabled else 'disabled' }}</td>
+            <td class="px-4 sm:px-5 py-3 text-right">
+              {% if motion_custom %}
+                <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-pencil text-[11px]" aria-hidden="true"></i> Custom</span>
+              {% else %}
+                <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-equal text-[11px]" aria-hidden="true"></i> Default</span>
+              {% endif %}
+            </td>
+          </tr>
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-4 sm:px-5 py-3 font-medium text-gray-900 dark:text-white">
+              <i class="ti ti-gauge text-gray-400 mr-1.5" aria-hidden="true"></i>Speed
+            </td>
+            <td class="px-4 py-3 font-mono text-gray-900 dark:text-white">{{ animations.speed }}</td>
+            <td class="px-4 py-3 font-mono text-gray-500 dark:text-gray-400">{{ default_animations.speed }}</td>
+            <td class="px-4 sm:px-5 py-3 text-right">
+              {% if speed_custom %}
+                <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-pencil text-[11px]" aria-hidden="true"></i> Custom</span>
+              {% else %}
+                <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-equal text-[11px]" aria-hidden="true"></i> Default</span>
+              {% endif %}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="flex items-center gap-1.5 px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 text-xs">
+      {% if at_default %}
+        <i class="ti ti-circle-check text-green-600 dark:text-green-400" aria-hidden="true"></i>
+        <span class="text-gray-500 dark:text-gray-400">All settings match the shipped defaults.</span>
+      {% else %}
+        <i class="ti ti-alert-triangle text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+        <span class="text-gray-500 dark:text-gray-400">{{ ('1 setting' if drift == 1 else (drift | string) ~ ' settings') }} differ from the shipped defaults.</span>
+      {% endif %}
+    </div>
+  </section>
 
 </div>
+
+<script>
+(function () {
+  const root = document.querySelector('[data-page="admin-appearance-animations"]') || document.querySelector('div[data-default-speed]');
+  if (!root) return;
+
+  const defaultEnabled = root.getAttribute('data-default-enabled') === 'true';
+  const defaultSpeed = root.getAttribute('data-default-speed');
+
+  const enabledInput = document.getElementById('anim-enabled');
+  const speedGroup = document.getElementById('anim-speed-group');
+  const trackWrap = document.getElementById('anim-speed-track');
+  const saveBtn = document.getElementById('anim-save-btn');
+  const resetBtn = document.getElementById('anim-reset-btn');
+  const statusPill = document.getElementById('anim-status-pill');
+  const banner = document.getElementById('anim-drift-banner');
+  const bannerText = document.getElementById('anim-drift-text');
+
+  const isDark = document.documentElement.classList.contains('dark');
+  const swalTheme = { background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' };
+
+  function getSpeed() {
+    const checked = speedGroup.querySelector('input[name="anim-speed"]:checked');
+    return checked ? checked.value : defaultSpeed;
+  }
+
+  function updateTrack(speed) {
+    trackWrap.querySelectorAll('[data-step]').forEach(function (cell) {
+      const active = cell.getAttribute('data-step') === speed;
+      const bar = cell.querySelector('.anim-track-bar');
+      const label = cell.querySelector('.anim-track-label');
+      bar.className = 'anim-track-bar h-1.5 w-full rounded-full ' + (active ? 'bg-ecs-green' : 'bg-gray-200 dark:bg-gray-700');
+      label.className = 'anim-track-label text-[11px] font-medium ' + (active ? 'text-ecs-green' : 'text-gray-400 dark:text-gray-500');
+    });
+    trackWrap.setAttribute('aria-label', 'Speed set to ' + speed);
+  }
+
+  function refreshDrift() {
+    let drift = 0;
+    if (enabledInput.checked !== defaultEnabled) drift++;
+    if (getSpeed() !== defaultSpeed) drift++;
+    const atDefault = drift === 0;
+
+    if (statusPill) {
+      statusPill.className = 'inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ' +
+        (atDefault
+          ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400'
+          : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400');
+      statusPill.querySelector('i').className = 'ti ' + (atDefault ? 'ti-circle-check' : 'ti-pencil');
+      statusPill.querySelector('span').textContent = atDefault ? 'Synced to default' : 'Customized';
+    }
+    if (banner) {
+      banner.classList.toggle('hidden', atDefault);
+      if (!atDefault && bannerText) {
+        const word = drift === 1 ? 'setting differs' : 'settings differ';
+        bannerText.textContent = drift + ' of 2 ' + word + ' from the shipped defaults (motion ' +
+          (defaultEnabled ? 'on' : 'off') + ', ' + defaultSpeed + ' speed).';
+      }
+    }
+  }
+
+  if (speedGroup) {
+    speedGroup.addEventListener('change', function () {
+      updateTrack(getSpeed());
+      refreshDrift();
+    });
+  }
+  if (enabledInput) {
+    enabledInput.addEventListener('change', refreshDrift);
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function () {
+      enabledInput.checked = defaultEnabled;
+      const radio = speedGroup.querySelector('input[name="anim-speed"][value="' + defaultSpeed + '"]');
+      if (radio) radio.checked = true;
+      updateTrack(defaultSpeed);
+      refreshDrift();
+    });
+  }
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function () {
+      const original = saveBtn.innerHTML;
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="ti ti-loader-2 animate-spin" aria-hidden="true"></i>Saving';
+
+      fetch('{{ url_for("admin_panel.save_animations") }}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ enabled: enabledInput.checked, speed: getSpeed() })
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          window.Swal.fire(Object.assign({
+            toast: true, position: 'top-end', icon: 'success',
+            title: data.message || 'Animation settings saved',
+            showConfirmButton: false, timer: 2500
+          }, swalTheme));
+        } else {
+          window.Swal.fire(Object.assign({
+            icon: 'error', title: 'Error',
+            text: data.message || 'Failed to save animation settings'
+          }, swalTheme));
+        }
+      })
+      .catch(function (err) {
+        console.error('Error saving animations:', err);
+        window.Swal.fire(Object.assign({
+          icon: 'error', title: 'Error', text: 'Failed to save animation settings'
+        }, swalTheme));
+      })
+      .finally(function () {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = original;
+      });
+    });
+  }
+})();
+</script>
 {% else %}
 <div class="p-4 space-y-6">
     <div class="flex items-center p-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 dark:border-blue-800" role="alert">

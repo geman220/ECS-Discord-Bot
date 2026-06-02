@@ -8,8 +8,8 @@
 {% if shell == 'console' %}
 {% import "macros/_modern_kit.html" as kit %}
 
-{# --- Derive season record across the whole schedule (real data) --- #}
-{% set ns = namespace(w=0, l=0, d=0, played=0, upcoming=0) %}
+{# --- Derive season record + recent form across the whole schedule (real data) --- #}
+{% set ns = namespace(w=0, l=0, d=0, played=0, upcoming=0, gf=0, ga=0, form=[]) %}
 {% if schedule %}
   {% for date, matches_on_date in schedule.items() %}
     {% for match in matches_on_date %}
@@ -17,8 +17,12 @@
         {% if match.reported %}
           {% if match.result_text == 'W' %}{% set ns.w = ns.w + 1 %}
           {% elif match.result_text == 'L' %}{% set ns.l = ns.l + 1 %}
-          {% elif match.result_text == 'D' %}{% set ns.d = ns.d + 1 %}{% endif %}
+          {% elif match.result_text in ['D', 'T'] %}{% set ns.d = ns.d + 1 %}{% endif %}
+          {% if match.your_team_score is number %}{% set ns.gf = ns.gf + match.your_team_score %}{% endif %}
+          {% if match.opponent_score is number %}{% set ns.ga = ns.ga + match.opponent_score %}{% endif %}
           {% set ns.played = ns.played + 1 %}
+          {# collect reported results in chronological order; we slice the last 5 below #}
+          {% set ns.form = ns.form + [match.result_text] %}
         {% else %}
           {% set ns.upcoming = ns.upcoming + 1 %}
         {% endif %}
@@ -26,19 +30,20 @@
     {% endfor %}
   {% endfor %}
 {% endif %}
+{% set recent_form = ns.form[-5:] %}
 
 <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
 
   {# ============================================================
-     TEAM IDENTITY HERO — kit + background image are the one thing
-     that makes THIS a team page; bring them back as the brand band.
-     Dynamic bg uses an <img src> (attribute, not inline style).
+     TEAM IDENTITY HERO — crest/kit + dynamic background as the brand
+     band, with division + derived season record surfaced inline.
+     bg uses <img src> (attribute, not inline style).
      ============================================================ #}
   <section class="relative rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 mb-5 sm:mb-6">
     {% if team.background_image_url %}
     <img src="{{ team.background_image_url }}" alt="" aria-hidden="true"
          class="absolute inset-0 w-full h-full object-cover object-center">
-    <div class="absolute inset-0 bg-gradient-to-r from-black/75 via-black/55 to-black/35"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/35"></div>
     {% else %}
     <div class="absolute inset-0 bg-gradient-to-r from-ecs-green to-ecs-green-700"></div>
     {% endif %}
@@ -64,6 +69,13 @@
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/15 text-white">
                 <i class="ti ti-users" aria-hidden="true"></i><span class="font-mono">{{ players|length }}</span> players
               </span>
+              {% if can_view_game_results and ns.played > 0 %}
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/15 text-white">
+                <i class="ti ti-trophy" aria-hidden="true"></i>
+                <span class="font-mono">{{ ns.w }}–{{ ns.l }}–{{ ns.d }}</span>
+                <span class="text-white/60 font-normal">W-L-D</span>
+              </span>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -91,89 +103,229 @@
   </section>
 
   {# ============================================================
-     SEASON-PERFORMANCE KPI BAND — answers the page's real intent
-     ("how is this team doing?") at a glance. Record is derived from
-     the schedule; next match is the actionable forward-looker.
+     KPI BAND — token cards (eyebrow label, BIG mono figure, divider
+     footer) answering "how is this team doing?". Record/GF/GA derived
+     from the schedule; gated by can_view_game_results. Recent form as
+     W/D/L pills. Where results are hidden, fall back to roster/schedule
+     volume so the band is never empty.
      ============================================================ #}
   <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Season at a glance</p>
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+
     {% if can_view_game_results %}
-      {{ kit.stat_card("ti-trophy", "Record (W-L-D)", ns.w ~ '-' ~ ns.l ~ '-' ~ ns.d, sublabel=(ns.played ~ ' played'), tone="primary") }}
-      {{ kit.stat_card("ti-circle-check", "Wins", ns.w, sublabel="this season", tone="success") }}
+    {# Record #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Record</span>
+        <i class="ti ti-trophy text-gray-400 dark:text-gray-500 text-lg" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ ns.w }}-{{ ns.l }}-{{ ns.d }}</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <i class="ti ti-ball-football text-[12px]" aria-hidden="true"></i><span class="font-mono">{{ ns.played }}</span> played · W-L-D
+      </div>
+    </div>
+
+    {# Goals for / against #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Goals</span>
+        <i class="ti ti-target-arrow text-gray-400 dark:text-gray-500 text-lg" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ ns.gf }}</span>
+        <span class="font-mono text-lg font-semibold text-gray-400 dark:text-gray-500 mb-0.5">:</span>
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-400 dark:text-gray-500">{{ ns.ga }}</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <i class="ti ti-arrows-diff text-[12px]" aria-hidden="true"></i>
+        <span class="font-mono">{{ '%+d'|format(ns.gf - ns.ga) }}</span> goal difference
+      </div>
+    </div>
     {% else %}
-      {{ kit.stat_card("ti-users", "Total Players", players|length, sublabel="on roster", tone="info") }}
-      {{ kit.stat_card("ti-calendar-event", "Matches", (ns.played + ns.upcoming), sublabel="scheduled", tone="neutral") }}
+    {# Results hidden — show roster + schedule volume instead of fabricating record #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Players</span>
+        <i class="ti ti-users text-gray-400 dark:text-gray-500 text-lg" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ players|length }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">on roster</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <i class="ti ti-shield-half text-[12px]" aria-hidden="true"></i>{{ team.name }}
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Matches</span>
+        <i class="ti ti-calendar-event text-gray-400 dark:text-gray-500 text-lg" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ ns.played + ns.upcoming }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">scheduled</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <i class="ti ti-calendar text-[12px]" aria-hidden="true"></i>{{ season.name if season else 'No active season' }}
+      </div>
+    </div>
     {% endif %}
-    {{ kit.stat_card("ti-calendar-due", "Upcoming", ns.upcoming, sublabel="to play", tone="info") }}
-    {% if next_match %}
-      {{ kit.stat_card("ti-calendar-time", "Next Match", next_match.date.strftime('%b %d'), sublabel=next_match.time.strftime('%I:%M %p') ~ ' · ' ~ next_match.location, tone="warning") }}
+
+    {# Upcoming #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Upcoming</span>
+        <i class="ti ti-calendar-due text-gray-400 dark:text-gray-500 text-lg" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ ns.upcoming }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">to play</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        {% if next_match %}
+        <i class="ti ti-calendar-time text-[12px]" aria-hidden="true"></i>
+        Next <span class="font-mono">{{ next_match.date.strftime('%b %d') }}</span> · <span class="font-mono">{{ next_match.time.strftime('%I:%M %p') }}</span>
+        {% else %}
+        <i class="ti ti-calendar-off text-[12px]" aria-hidden="true"></i> none scheduled
+        {% endif %}
+      </div>
+    </div>
+
+    {# Recent form — W/D/L pills (real data, gated by can_view_game_results) #}
+    {% if can_view_game_results %}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Form</span>
+        <i class="ti ti-activity-heartbeat text-gray-400 dark:text-gray-500 text-lg" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-center gap-1.5">
+        {% if recent_form %}
+          {% for r in recent_form %}
+          <span class="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold font-mono
+              {% if r == 'W' %}bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300
+              {% elif r == 'L' %}bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300
+              {% elif r in ['D', 'T'] %}bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300
+              {% else %}bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400{% endif %}">
+            {{ 'D' if r == 'T' else r }}
+          </span>
+          {% endfor %}
+        {% else %}
+          <span class="font-mono text-2xl font-bold text-gray-300 dark:text-gray-600">—</span>
+        {% endif %}
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <i class="ti ti-history text-[12px]" aria-hidden="true"></i> last {{ recent_form|length }} result{{ '' if recent_form|length == 1 else 's' }}
+      </div>
+    </div>
     {% else %}
-      {{ kit.stat_card("ti-calendar-off", "Next Match", "—", sublabel="none scheduled", tone="neutral") }}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Next Match</span>
+        <i class="ti ti-calendar-time text-gray-400 dark:text-gray-500 text-lg" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        {% if next_match %}
+        <span class="font-mono text-2xl sm:text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ next_match.date.strftime('%b %d') }}</span>
+        {% else %}
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-300 dark:text-gray-600">—</span>
+        {% endif %}
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        {% if next_match %}
+        <i class="ti ti-map-pin text-[12px]" aria-hidden="true"></i>{{ next_match.location }}
+        {% else %}
+        <i class="ti ti-calendar-off text-[12px]" aria-hidden="true"></i> none scheduled
+        {% endif %}
+      </div>
+    </div>
     {% endif %}
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-start">
 
-    {# ---- Roster ---- #}
-    {% call kit.section_card("Team Members", icon="ti-users") %}
-      <div class="flex flex-wrap items-center justify-end gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
-        {% if has_role('Global Admin') or has_role('Pub League Admin') %}
-        <button type="button" id="assign-discord-btn" data-action="assign-discord-roles" data-team-id="{{ team.id }}"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-[#5865F2] text-white text-xs font-semibold hover:bg-[#4752c4] transition-colors focus:outline-none focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-          <i class="ti ti-brand-discord" aria-hidden="true"></i>
-          <span>Assign Roles</span>
-        </button>
-        {% endif %}
-        {% if can_add_player %}
-        <a href="{{ url_for('teams.add_player', team_id=team.id) }}"
-           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-          <i class="ti ti-plus" aria-hidden="true"></i>
-          <span>Add Player</span>
-        </a>
-        {% endif %}
-      </div>
-      {% if players %}
-      {# 2-up scannable roster grid (single col <sm) #}
-      <ul role="list" class="grid grid-cols-1 sm:grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700">
-        {% for player in players %}
-        <li class="bg-white dark:bg-gray-800">
-          <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
-             class="flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green h-full">
-            <div class="relative flex-shrink-0">
-              <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
-                   alt="{{ player.name }}"
-                   class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600">
-              {% if player.is_coach %}
-              <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-ecs-gold flex items-center justify-center" title="Coach">
-                <i class="ti ti-trophy text-xs text-gray-900" aria-hidden="true"></i>
-              </span>
-              {% endif %}
-            </div>
-            <div class="flex-1 min-w-0">
-              <h6 class="font-medium text-gray-900 dark:text-white truncate group-hover:text-ecs-green">{{ player.name }}</h6>
-              {% if player.favorite_position %}
-              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ format_position(player.favorite_position) }}</p>
-              {% endif %}
-            </div>
-            <div class="flex items-center gap-1 text-xs shrink-0">
-              {% if can_view_player_stats %}
-              <span class="font-mono px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" title="Goals">
-                <i class="ti ti-ball-football mr-0.5" aria-hidden="true"></i>{{ player.season_goals(season.id) }}
-              </span>
-              <span class="font-mono px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" title="Assists">
-                <i class="ti ti-arrow-big-right-lines mr-0.5" aria-hidden="true"></i>{{ player.season_assists(season.id) }}
-              </span>
-              {% endif %}
-              {% if player.discord_id %}
-              <span class="text-[#5865F2]" title="Discord: {{ player.discord_username or player.discord_id }}">
-                <i class="ti ti-brand-discord" aria-hidden="true"></i>
-              </span>
-              {% endif %}
-            </div>
+    {# ============================================================
+       ROSTER — dense rows: jersey # (mono) · avatar · name/position
+       · G/A mono figures. Feature-card header with action bar.
+       ============================================================ #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3 bg-gray-50 dark:bg-gray-700/30">
+        <div class="flex items-center gap-2">
+          <i class="ti ti-users text-ecs-green" aria-hidden="true"></i>
+          <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Roster</h3>
+          <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{{ players|length }}</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          {% if has_role('Global Admin') or has_role('Pub League Admin') %}
+          <button type="button" id="assign-discord-btn" data-action="assign-discord-roles" data-team-id="{{ team.id }}"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-[#5865F2] text-white text-xs font-semibold hover:bg-[#4752c4] transition-colors focus:outline-none focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-brand-discord" aria-hidden="true"></i>
+            <span>Assign Roles</span>
+          </button>
+          {% endif %}
+          {% if can_add_player %}
+          <a href="{{ url_for('teams.add_player', team_id=team.id) }}"
+             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-plus" aria-hidden="true"></i>
+            <span>Add Player</span>
           </a>
-        </li>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if players %}
+      <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for player in players %}
+        <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
+           class="flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+          {# jersey number (mono) — falls back to a dash when unset #}
+          <span class="shrink-0 w-8 text-center font-mono text-sm font-bold text-gray-400 dark:text-gray-500">
+            {% if player.jersey_number is not none %}{{ player.jersey_number }}{% else %}<span class="text-gray-300 dark:text-gray-600">·</span>{% endif %}
+          </span>
+          <div class="relative flex-shrink-0">
+            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
+                 alt="{{ player.name }}"
+                 class="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-gray-600">
+            {% if player.is_coach %}
+            <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-ecs-gold flex items-center justify-center" title="Coach">
+              <i class="ti ti-trophy text-[10px] text-gray-900" aria-hidden="true"></i>
+            </span>
+            {% endif %}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-ecs-green">{{ player.name }}</span>
+              {% if player.is_coach %}
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-ecs-gold/15 text-ecs-gold-700 dark:text-ecs-gold">Coach</span>
+              {% endif %}
+            </div>
+            {% if player.favorite_position %}
+            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ format_position(player.favorite_position) }}</p>
+            {% endif %}
+          </div>
+          {% if can_view_player_stats %}
+          <div class="flex items-center gap-3 shrink-0 text-right">
+            <div class="flex flex-col items-center leading-none">
+              <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ player.season_goals(season.id) }}</span>
+              <span class="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mt-0.5">G</span>
+            </div>
+            <span class="w-px h-7 bg-gray-200 dark:bg-gray-700"></span>
+            <div class="flex flex-col items-center leading-none">
+              <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ player.season_assists(season.id) }}</span>
+              <span class="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mt-0.5">A</span>
+            </div>
+          </div>
+          {% endif %}
+          {% if player.discord_id %}
+          <span class="shrink-0 text-[#5865F2]" title="Discord: {{ player.discord_username or player.discord_id }}">
+            <i class="ti ti-brand-discord" aria-hidden="true"></i>
+          </span>
+          {% endif %}
+        </a>
         {% endfor %}
-      </ul>
+      </div>
       {% else %}
         {% if can_add_player %}
           {{ kit.empty_state("ti-users-off", "No players yet", "No players have been assigned to this team yet.", action={'label': 'Add Player', 'url': url_for('teams.add_player', team_id=team.id), 'icon': 'ti-plus'}) }}
@@ -181,142 +333,273 @@
           {{ kit.empty_state("ti-users-off", "No players yet", "No players have been assigned to this team yet.") }}
         {% endif %}
       {% endif %}
-    {% endcall %}
+    </section>
 
-    {# ---- Schedule / Results ---- #}
-    {% call kit.section_card("Team Schedule", icon="ti-calendar-event") %}
-      <div class="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
-        {% if can_view_game_results and ns.played > 0 %}
-        <div class="flex items-center gap-1.5 text-xs">
-          <span class="font-mono px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">{{ ns.w }}W</span>
-          <span class="font-mono px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">{{ ns.l }}L</span>
-          <span class="font-mono px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">{{ ns.d }}D</span>
+    {# ============================================================
+       SCHEDULE / RESULTS — date-group dividers (mono primary date +
+       h-px rule + matchday context), then dense match rows with H/A
+       badges and mono scores. RSVP-style segmented control dropped:
+       this route passes no per-user availability, so we keep the
+       report/details affordances that the route DOES support.
+       ============================================================ #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3 bg-gray-50 dark:bg-gray-700/30">
+        <div class="flex items-center gap-2">
+          <i class="ti ti-calendar-event text-ecs-green" aria-hidden="true"></i>
+          <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Schedule &amp; Results</h3>
+          {% if can_view_game_results and ns.played > 0 %}
+          <span class="hidden sm:inline-flex items-center gap-1 ml-1">
+            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">{{ ns.w }}W</span>
+            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">{{ ns.l }}L</span>
+            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">{{ ns.d }}D</span>
+          </span>
+          {% endif %}
         </div>
-        {% else %}
-        <span></span>
-        {% endif %}
-        <div class="flex flex-wrap items-center gap-2">
-        {% if schedule %}
-        <button type="button" id="expand-all-btn"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-          <i class="ti ti-arrows-maximize" aria-hidden="true"></i>
-          Expand
-        </button>
-        {% endif %}
-        {% if can_add_match %}
-        <a href="{{ url_for('matches.add_match', team_id=team.id) }}"
-           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        {# Add Match (pub-league): opens a modal that POSTs to
+           publeague.schedule.add_match (ScheduleManager.create_match). Only shown
+           for non-ECS-FC teams that have at least one possible opponent in the
+           same league. ECS FC teams use the separate EcsFcScheduleManager flow. #}
+        {% if can_add_match and not is_ecs_fc and opponent_teams %}
+        <button type="button" id="modern-add-match-btn"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors">
           <i class="ti ti-plus" aria-hidden="true"></i>
           Add Match
-        </a>
+        </button>
         {% endif %}
-        </div>
       </div>
-      <div class="p-4 max-h-[500px] overflow-y-auto">
-        {% if schedule %}
-        <div class="space-y-2">
-          {% for date, matches_on_date in schedule.items() %}
-          {% set wins = matches_on_date|selectattr('result_text', 'equalto', 'W')|list|length %}
-          {% set losses = matches_on_date|selectattr('result_text', 'equalto', 'L')|list|length %}
-          {% set draws = matches_on_date|selectattr('result_text', 'equalto', 'D')|list|length %}
-          {% set pending = matches_on_date|rejectattr('reported')|list|length %}
-          <details class="group border border-gray-200 dark:border-gray-700 rounded-lg">
-            <summary class="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg">
-              <div class="flex items-center gap-2">
-                <i class="ti ti-calendar-event text-ecs-green" aria-hidden="true"></i>
-                <span class="font-medium text-gray-900 dark:text-white">{{ date.strftime('%B %d, %Y') }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                {% if wins > 0 %}
-                <span class="font-mono px-1.5 py-0.5 text-xs rounded bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">W{{ wins }}</span>
-                {% endif %}
-                {% if losses > 0 %}
-                <span class="font-mono px-1.5 py-0.5 text-xs rounded bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">L{{ losses }}</span>
-                {% endif %}
-                {% if draws > 0 %}
-                <span class="font-mono px-1.5 py-0.5 text-xs rounded bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">D{{ draws }}</span>
-                {% endif %}
-                {% if pending > 0 %}
-                <span class="font-mono px-1.5 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ pending }}</span>
-                {% endif %}
-                <i class="ti ti-chevron-down transition-transform group-open:rotate-180 text-gray-400" aria-hidden="true"></i>
-              </div>
-            </summary>
-            <div class="p-3 pt-0 space-y-2">
-              {% for match in matches_on_date %}
-              {% set current_team_id = team.id %}
-              {% if match.home_team_id == current_team_id %}
-                  {% set display_home = match.home_team_name %}
-                  {% set display_away = match.away_team_name %}
-              {% else %}
-                  {% set display_home = match.away_team_name %}
-                  {% set display_away = match.home_team_name %}
-              {% endif %}
-              <div class="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm">
-                {% if match.week_type == 'BYE' %}
-                <span class="text-gray-400 flex items-center gap-1">
-                  <i class="ti ti-calendar-off" aria-hidden="true"></i>
-                </span>
-                <div class="flex-1 min-w-0">
-                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">BYE WEEK</span>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">No game scheduled - week off</div>
-                </div>
-                {% else %}
-                <span class="text-gray-500 dark:text-gray-400 flex items-center gap-1 font-mono">
-                  <i class="ti ti-clock" aria-hidden="true"></i>
-                  {{ match.time.strftime('%I:%M %p') }}
-                </span>
-                <div class="flex-1 min-w-0">
+
+      {% if schedule %}
+      <div class="max-h-[560px] overflow-y-auto">
+        {% for date, matches_on_date in schedule.items() %}
+        {# date-group divider: mono primary date + h-px rule #}
+        <div class="px-4 sm:px-5 pt-4 pb-1 flex items-center gap-2">
+          <span class="font-mono text-[11px] font-semibold text-ecs-green uppercase">{{ date.strftime('%a · %b %d') }}</span>
+          <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+          {% set day_pending = matches_on_date|rejectattr('reported')|list|length %}
+          {% if day_pending > 0 %}
+          <span class="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">{{ day_pending }} to play</span>
+          {% endif %}
+        </div>
+
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for match in matches_on_date %}
+          {% set current_team_id = team.id %}
+          {% set is_home = (match.home_team_id == current_team_id) %}
+          {% if is_home %}
+            {% set display_home = match.home_team_name %}
+            {% set display_away = match.away_team_name %}
+          {% else %}
+            {% set display_home = match.away_team_name %}
+            {% set display_away = match.home_team_name %}
+          {% endif %}
+
+          <div class="px-4 sm:px-5 py-3.5 flex items-start gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            {% if match.week_type == 'BYE' %}
+            <span class="shrink-0 w-7 h-7 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 flex items-center justify-center mt-0.5">
+              <i class="ti ti-calendar-off" aria-hidden="true"></i>
+            </span>
+            <div class="flex-1 min-w-0">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">Bye Week</span>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">No game scheduled — week off</div>
+            </div>
+            {% else %}
+            {# H/A badge, or special-week icon #}
+            {% if match.week_type in ['FUN', 'TST', 'BONUS', 'PLAYOFF', 'PRACTICE'] %}
+            <span class="shrink-0 w-7 h-7 rounded-md bg-ecs-gold/15 text-ecs-gold-700 dark:text-ecs-gold flex items-center justify-center mt-0.5">
+              <i class="ti ti-confetti" aria-hidden="true"></i>
+            </span>
+            {% elif is_home %}
+            <span class="shrink-0 w-7 h-7 rounded-md bg-ecs-green/12 text-ecs-green flex items-center justify-center text-[11px] font-bold font-mono mt-0.5">H</span>
+            {% else %}
+            <span class="shrink-0 w-7 h-7 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[11px] font-bold font-mono mt-0.5">A</span>
+            {% endif %}
+
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
                   {% if match.is_ecs_fc %}
-                  <a href="{{ url_for('match_pages.view_match', match_id='ecs_' ~ match.ecs_fc_match_id) }}" class="hover:text-ecs-green">
+                  <a href="{{ url_for('match_pages.view_match', match_id='ecs_' ~ match.ecs_fc_match_id) }}" class="text-sm font-semibold text-gray-900 dark:text-white hover:text-ecs-green truncate block">
                   {% else %}
-                  <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="hover:text-ecs-green">
+                  <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="text-sm font-semibold text-gray-900 dark:text-white hover:text-ecs-green truncate block">
                   {% endif %}
-                      {% if match.week_type in ['FUN', 'TST', 'BONUS', 'PLAYOFF', 'PRACTICE'] %}
-                      <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">{{ match.week_type }}</span>
-                      {% else %}
-                      <span class="font-medium text-gray-900 dark:text-white">{{ display_home }}</span>
-                      <span class="text-gray-400 mx-1">vs</span>
-                      <span class="font-medium text-gray-900 dark:text-white">{{ display_away }}</span>
-                      {% endif %}
+                    {% if match.week_type in ['FUN', 'TST', 'BONUS', 'PLAYOFF', 'PRACTICE'] %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-ecs-gold/15 text-ecs-gold-700 dark:text-ecs-gold">{{ match.week_type }}</span>
+                    {% else %}
+                    <span class="text-gray-900 dark:text-white">{{ display_home }}</span>
+                    <span class="text-gray-400 font-normal mx-0.5">vs</span>
+                    <span class="text-gray-900 dark:text-white">{{ display_away }}</span>
+                    {% endif %}
                   </a>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
-                    <i class="ti ti-map-pin" aria-hidden="true"></i>
-                    {{ match.location }}{% if match.field_name %} - {{ match.field_name }}{% endif %}
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <span class="flex items-center gap-1"><i class="ti ti-clock" aria-hidden="true"></i><span class="font-mono">{{ match.time.strftime('%I:%M %p') }}</span></span>
+                    <span class="flex items-center gap-1 min-w-0"><i class="ti ti-map-pin" aria-hidden="true"></i><span class="truncate">{{ match.location }}{% if match.field_name %} — {{ match.field_name }}{% endif %}</span></span>
                   </div>
                 </div>
-                {% endif %}
-                {% if can_view_game_results and match.reported %}
-                <span class="font-mono px-2 py-0.5 text-xs rounded font-medium
-                    {% if match.result_text == 'W' %}bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300
-                    {% elif match.result_text == 'L' %}bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300
-                    {% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %}">
-                  {{ match.result_text }}
-                </span>
-                {% endif %}
-                {% if can_report_match %}
-                <button type="button"
-                        class="flex-shrink-0 p-1.5 rounded-lg transition-colors edit-match-btn
-                            {% if match.reported %}bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900{% else %}bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900{% endif %}"
-                        data-action="edit-match-report"
-                        data-match-id="{{ match.id }}"
-                        title="{{ 'Edit Match' if match.reported else 'Report Match' }}">
-                  <i class="ti ti-{% if match.reported %}edit{% else %}clipboard-list{% endif %} w-4 h-4" aria-hidden="true"></i>
-                </button>
-                {% endif %}
+
+                <div class="flex items-center gap-2 shrink-0">
+                  {% if can_view_game_results and match.reported %}
+                  <div class="text-right leading-none">
+                    <span class="font-mono text-base font-bold
+                        {% if match.result_text == 'W' %}text-green-600 dark:text-green-400
+                        {% elif match.result_text == 'L' %}text-red-600 dark:text-red-400
+                        {% else %}text-gray-700 dark:text-gray-300{% endif %}">{{ match.display_score }}</span>
+                    <span class="block mt-1 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded uppercase
+                        {% if match.result_text == 'W' %}bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300
+                        {% elif match.result_text == 'L' %}bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300
+                        {% else %}bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300{% endif %}">{{ 'D' if match.result_text == 'T' else match.result_text }}</span>
+                  </div>
+                  {% endif %}
+                  {% if can_report_match %}
+                  <button type="button"
+                          class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-colors edit-match-btn
+                              {% if match.reported %}bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900{% else %}bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900{% endif %}"
+                          data-action="edit-match-report"
+                          data-match-id="{{ match.id }}"
+                          title="{{ 'Edit Match' if match.reported else 'Report Match' }}">
+                    <i class="ti ti-{% if match.reported %}edit{% else %}clipboard-list{% endif %}" aria-hidden="true"></i>
+                  </button>
+                  {% endif %}
+                </div>
               </div>
-              {% endfor %}
             </div>
-          </details>
+            {% endif %}
+          </div>
           {% endfor %}
         </div>
-        {% else %}
-          {{ kit.empty_state("ti-calendar-off", "No matches scheduled", "No matches have been scheduled for this team yet.") }}
-        {% endif %}
+        {% endfor %}
       </div>
-    {% endcall %}
+      {% else %}
+        {{ kit.empty_state("ti-calendar-off", "No matches scheduled", "No matches have been scheduled for this team yet.") }}
+      {% endif %}
+    </section>
 
   </div>
+
+  {# ============================================================
+     TEAM INFORMATION — compact reference grid (players · season ·
+     division · next match). Mirrors the mock's footer band; all
+     values come straight off the route context (real data).
+     ============================================================ #}
+  <section class="mt-5 sm:mt-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 bg-gray-50 dark:bg-gray-700/30">
+      <i class="ti ti-info-circle text-ecs-green" aria-hidden="true"></i>
+      <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Team Information</h3>
+    </div>
+    <div class="p-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0">
+            <i class="ti ti-users text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Total players</p>
+            <p class="text-lg font-bold font-mono text-gray-900 dark:text-white">{{ players|length }}</p>
+          </div>
+        </div>
+        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <i class="ti ti-calendar-event text-emerald-600 dark:text-emerald-400" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Current season</p>
+            <p class="text-lg font-bold text-gray-900 dark:text-white truncate">{{ season.name if season else 'N/A' }}</p>
+          </div>
+        </div>
+        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-ecs-gold/15 flex items-center justify-center shrink-0">
+            <i class="ti ti-trophy text-ecs-gold-700 dark:text-ecs-gold" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Division</p>
+            <p class="text-lg font-bold text-gray-900 dark:text-white truncate">{{ league.name }}</p>
+          </div>
+        </div>
+        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center gap-3 col-span-2 md:col-span-1">
+          <div class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center shrink-0">
+            <i class="ti ti-calendar-time text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Next match</p>
+            {% if next_match %}
+            <p class="font-semibold text-sm text-gray-900 dark:text-white">{{ next_match.date.strftime('%b %d') }} at {{ next_match.time.strftime('%I:%M %p') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ next_match.location }}</p>
+            {% else %}
+            <p class="font-semibold text-sm text-gray-500 dark:text-gray-400">None scheduled</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ============================================================
+     ADD MATCH MODAL (pub-league) — POSTs to publeague.schedule.add_match.
+     Fields map 1:1 to ScheduleManager.create_match: week, date, time,
+     location, team_a (this team), team_b (opponent), season_id.
+     ============================================================ #}
+  {% if can_add_match and not is_ecs_fc and opponent_teams %}
+  <div id="modern-add-match-modal" tabindex="-1" aria-hidden="true"
+       class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 p-4">
+    <div class="w-full max-w-md rounded-xl bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700">
+      <div class="flex items-center justify-between px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Add Match</h3>
+        <button type="button" data-add-match-close
+                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+      </div>
+      <form id="modern-add-match-form"
+            action="{{ url_for('publeague.schedule.add_match') }}" method="post" class="p-5 space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="team_a" value="{{ team.id }}">
+        {% if season_id %}<input type="hidden" name="season_id" value="{{ season_id }}">{% endif %}
+        <div>
+          <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Opponent</label>
+          <select name="team_b" required
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white px-3 py-2">
+            {% for opp in opponent_teams %}
+            <option value="{{ opp.id }}">{{ opp.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+            <input type="date" name="date" required
+                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white px-3 py-2">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+            <input type="time" name="time" required
+                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white px-3 py-2">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Week</label>
+            <input type="text" name="week" required placeholder="e.g. 1"
+                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white px-3 py-2">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+            <input type="text" name="location" required placeholder="Field / venue"
+                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white px-3 py-2">
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-1">
+          <button type="button" data-add-match-close
+                  class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+            Cancel
+          </button>
+          <button type="submit" id="modern-add-match-submit"
+                  class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">
+            Create Match
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% else %}
 <div class="container mx-auto px-4 py-8">
@@ -688,10 +971,74 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<i class="ti ti-arrows-maximize"></i> Expand';
         });
     }
+
+    // Modern shell: Add Match modal (pub-league) -> publeague.schedule.add_match
+    const addMatchBtn = document.getElementById('modern-add-match-btn');
+    const addMatchModal = document.getElementById('modern-add-match-modal');
+    const addMatchForm = document.getElementById('modern-add-match-form');
+    if (addMatchBtn && addMatchModal && addMatchForm) {
+        const openModal = () => {
+            addMatchModal.classList.remove('hidden');
+            addMatchModal.classList.add('flex');
+        };
+        const closeModal = () => {
+            addMatchModal.classList.add('hidden');
+            addMatchModal.classList.remove('flex');
+        };
+        addMatchBtn.addEventListener('click', openModal);
+        addMatchModal.querySelectorAll('[data-add-match-close]').forEach(el => {
+            el.addEventListener('click', closeModal);
+        });
+        addMatchModal.addEventListener('click', (e) => {
+            if (e.target === addMatchModal) closeModal();
+        });
+
+        addMatchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('modern-add-match-submit');
+            const originalText = submitBtn ? submitBtn.innerHTML : '';
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = 'Saving...'; }
+
+            const formData = new FormData(addMatchForm);
+            fetch(addMatchForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': (formData.get('csrf_token') || '') },
+                credentials: 'same-origin'
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                if (data && data.success) {
+                    closeModal();
+                    if (window.Swal) {
+                        window.Swal.fire({ icon: 'success', title: 'Match created', timer: 1200, showConfirmButton: false })
+                            .then(() => window.location.reload());
+                    } else {
+                        window.location.reload();
+                    }
+                } else {
+                    const msg = (data && data.message) ? data.message : 'Could not create match.';
+                    if (window.Swal) {
+                        window.Swal.fire({ icon: 'error', title: 'Error', text: msg });
+                    } else {
+                        alert(msg);
+                    }
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalText; }
+                }
+            })
+            .catch(() => {
+                if (window.Swal) {
+                    window.Swal.fire({ icon: 'error', title: 'Error', text: 'Network error while creating match.' });
+                } else {
+                    alert('Network error while creating match.');
+                }
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalText; }
+            });
+        });
+    }
 });
 </script>
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script src="{{ url_for('static', filename='custom_js/team-detail.js') }}"></script>
 {% endif %}
 <!-- report_match.js loaded globally in base.html -->
 {% endblock %}

@@ -6,11 +6,13 @@ SMS Analytics & Cost Dashboard Routes
 Provides visibility into SMS usage, costs, and delivery metrics.
 """
 
+import csv
+import io
 import logging
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-from flask import render_template, jsonify, request
+from flask import render_template, jsonify, request, Response
 from flask_login import login_required
 from sqlalchemy import func, case
 
@@ -158,6 +160,45 @@ def sms_analytics_dashboard():
             recent_logs=[],
             error="Unable to load SMS analytics. Database may be unavailable."
         )
+
+
+@admin_panel_bp.route('/communication/sms-analytics/export')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def sms_analytics_export():
+    """Export SMS activity logs as a downloadable CSV (real SMSLog rows)."""
+    try:
+        days = request.args.get('days', 30, type=int)
+        if days > 365:
+            days = 365
+        start_date = datetime.utcnow() - timedelta(days=days)
+
+        logs = SMSLog.query.filter(
+            SMSLog.sent_at >= start_date
+        ).order_by(SMSLog.sent_at.desc()).all()
+
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(['Sent At', 'Message Type', 'Status', 'Source', 'Cost Estimate', 'Actual Cost'])
+        for log in logs:
+            writer.writerow([
+                log.sent_at.strftime('%Y-%m-%d %H:%M:%S') if log.sent_at else '',
+                log.message_type or '',
+                log.twilio_status or '',
+                log.source or '',
+                f'{float(log.cost_estimate):.4f}' if log.cost_estimate is not None else '0.0000',
+                f'{float(log.actual_cost):.4f}' if log.actual_cost is not None else '',
+            ])
+
+        filename = f'sms-report-{datetime.utcnow().strftime("%Y%m%d")}.csv'
+        return Response(
+            buf.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        logger.error(f"Error exporting SMS report: {e}")
+        return jsonify({'success': False, 'error': 'Unable to export SMS report.'}), 500
 
 
 @admin_panel_bp.route('/communication/sms-analytics/api/stats')

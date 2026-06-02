@@ -76,7 +76,63 @@ def mobile_features():
             mobile_app_version = str(AdminConfig.get_setting('mobile_app_version', 'v1.0.0'))
         except Exception:
             mobile_app_version = 'v1.0.0'
-        
+
+        # Version / Update control — real AdminConfig values owned by
+        # APP_CONFIG_FIELDS (edited on the App Config page). Surfaced read-only
+        # here so the Version & Update Control section reflects live config
+        # instead of em-dash placeholders.
+        def _cfg(key, default=''):
+            try:
+                return AdminConfig.get_setting(key, default)
+            except Exception:
+                return default
+
+        app_force_update = str(_cfg('app_force_update', 'false')).lower() in ('true', '1', 'yes', 'on')
+        app_config = {
+            'min_build': _cfg('app_min_build_number', None),
+            'latest_build': _cfg('app_latest_build_number', None),
+            'force_update': app_force_update,
+            'ios_update_url': _cfg('app_ios_update_url', '') or '',
+            'android_update_url': _cfg('app_android_update_url', '') or '',
+        }
+
+        # Push notification category defaults applied to new device
+        # registrations — these are the real column defaults on the User model
+        # (match_reminder_notifications / rsvp_reminder_notifications /
+        # team_update_notifications all default to True at the schema level).
+        # opted_in counts are live adoption across current mobile users.
+        push_defaults = []
+        try:
+            push_defaults = [
+                {
+                    'key': 'match_reminders',
+                    'default_on': User.match_reminder_notifications.default.arg is True,
+                    'opted_in': User.query.join(UserFCMToken).filter(
+                        UserFCMToken.is_active == True,
+                        User.match_reminder_notifications == True
+                    ).distinct().count(),
+                },
+                {
+                    'key': 'rsvp_reminders',
+                    'default_on': User.rsvp_reminder_notifications.default.arg is True,
+                    'opted_in': User.query.join(UserFCMToken).filter(
+                        UserFCMToken.is_active == True,
+                        User.rsvp_reminder_notifications == True
+                    ).distinct().count(),
+                },
+                {
+                    'key': 'team_updates',
+                    'default_on': User.team_update_notifications.default.arg is True,
+                    'opted_in': User.query.join(UserFCMToken).filter(
+                        UserFCMToken.is_active == True,
+                        User.team_update_notifications == True
+                    ).distinct().count(),
+                },
+            ]
+        except Exception as e:
+            logger.warning(f"Error loading push notification defaults: {e}")
+            push_defaults = []
+
         stats = {
             'total_app_installs': total_app_installs,
             'mobile_users': mobile_users,
@@ -89,8 +145,13 @@ def mobile_features():
             'mobile_app_version': mobile_app_version,
             'last_updated': _get_mobile_features_last_updated()
         }
-        
-        return render_template('admin_panel/mobile_features_flowbite.html', stats=stats)
+
+        return render_template(
+            'admin_panel/mobile_features_flowbite.html',
+            stats=stats,
+            app_config=app_config,
+            push_defaults=push_defaults,
+        )
     except Exception as e:
         logger.error(f"Error loading mobile features: {e}")
         flash('Mobile features dashboard unavailable. Check database connectivity.', 'error')
@@ -732,6 +793,249 @@ def deactivate_device_token():
         return jsonify({'success': False, 'message': 'Error deactivating device token'})
 
 
+@admin_panel_bp.route('/mobile-features/device-token/activate', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def activate_device_token():
+    """Activate a device token (re-enable push notifications)."""
+    try:
+        token_id = request.form.get('token_id')
+        if not token_id:
+            return jsonify({'success': False, 'message': 'Token ID is required'})
+
+        device_token = UserFCMToken.query.get_or_404(token_id)
+        device_token.is_active = True
+        device_token.updated_at = datetime.utcnow()
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='activate_device_token',
+            resource_type='mobile_features',
+            resource_id=str(token_id),
+            old_value='inactive',
+            new_value='active',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({'success': True, 'message': 'Device token activated successfully'})
+    except Exception as e:
+        logger.error(f"Error activating device token: {e}")
+        return jsonify({'success': False, 'message': 'Error activating device token'})
+
+
+@admin_panel_bp.route('/mobile-features/device-token/delete', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def delete_device_token():
+    """Permanently delete a device token."""
+    try:
+        token_id = request.form.get('token_id')
+        if not token_id:
+            return jsonify({'success': False, 'message': 'Token ID is required'})
+
+        device_token = UserFCMToken.query.get_or_404(token_id)
+        db.session.delete(device_token)
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='delete_device_token',
+            resource_type='mobile_features',
+            resource_id=str(token_id),
+            old_value='exists',
+            new_value='deleted',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({'success': True, 'message': 'Device token deleted successfully'})
+    except Exception as e:
+        logger.error(f"Error deleting device token: {e}")
+        return jsonify({'success': False, 'message': 'Error deleting device token'})
+
+
+@admin_panel_bp.route('/mobile-features/device-token/test', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def test_device_token():
+    """Send a real test push notification to a single device token via FCM."""
+    try:
+        token_id = request.form.get('token_id')
+        if not token_id:
+            return jsonify({'success': False, 'message': 'Token ID is required'})
+
+        device_token = UserFCMToken.query.get_or_404(token_id)
+
+        from app.services.notification_service import notification_service
+        if not getattr(notification_service, '_initialized', False):
+            return jsonify({'success': False, 'message': 'Push notification service is not configured'})
+
+        result = notification_service.send_test_notification(device_token.fcm_token)
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='test_device_token',
+            resource_type='mobile_features',
+            resource_id=str(token_id),
+            new_value=f'Test push sent (success={result.get("success")})',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        if result.get('success'):
+            return jsonify({'success': True, 'message': 'Test notification sent to the device.'})
+        return jsonify({'success': False, 'message': result.get('error') or 'Failed to send test notification'})
+    except Exception as e:
+        logger.error(f"Error sending test notification: {e}")
+        return jsonify({'success': False, 'message': 'Error sending test notification'})
+
+
+def _parse_token_ids(raw):
+    """Parse a comma-separated or list payload of token ids into a list of ints."""
+    if raw is None:
+        return []
+    if isinstance(raw, (list, tuple)):
+        items = raw
+    else:
+        items = str(raw).split(',')
+    out = []
+    for item in items:
+        try:
+            out.append(int(str(item).strip()))
+        except (ValueError, TypeError):
+            continue
+    return out
+
+
+@admin_panel_bp.route('/mobile-features/device-token/bulk-activate', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def bulk_activate_tokens():
+    """Activate multiple device tokens at once."""
+    try:
+        token_ids = _parse_token_ids(request.form.get('token_ids'))
+        if not token_ids:
+            return jsonify({'success': False, 'message': 'No token IDs provided'})
+
+        updated = UserFCMToken.query.filter(UserFCMToken.id.in_(token_ids)).update(
+            {'is_active': True, 'updated_at': datetime.utcnow()},
+            synchronize_session=False
+        )
+        AdminAuditLog.log_action(
+            user_id=current_user.id, action='bulk_activate_device_tokens',
+            resource_type='mobile_features', resource_id='bulk',
+            new_value=f'Activated {updated} tokens',
+            ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({'success': True, 'count': updated, 'message': f'{updated} device tokens activated'})
+    except Exception as e:
+        logger.error(f"Error bulk activating tokens: {e}")
+        return jsonify({'success': False, 'message': 'Error activating tokens'})
+
+
+@admin_panel_bp.route('/mobile-features/device-token/bulk-deactivate', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def bulk_deactivate_tokens():
+    """Deactivate multiple device tokens at once."""
+    try:
+        token_ids = _parse_token_ids(request.form.get('token_ids'))
+        if not token_ids:
+            return jsonify({'success': False, 'message': 'No token IDs provided'})
+
+        updated = UserFCMToken.query.filter(UserFCMToken.id.in_(token_ids)).update(
+            {'is_active': False, 'updated_at': datetime.utcnow()},
+            synchronize_session=False
+        )
+        AdminAuditLog.log_action(
+            user_id=current_user.id, action='bulk_deactivate_device_tokens',
+            resource_type='mobile_features', resource_id='bulk',
+            new_value=f'Deactivated {updated} tokens',
+            ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({'success': True, 'count': updated, 'message': f'{updated} device tokens deactivated'})
+    except Exception as e:
+        logger.error(f"Error bulk deactivating tokens: {e}")
+        return jsonify({'success': False, 'message': 'Error deactivating tokens'})
+
+
+@admin_panel_bp.route('/mobile-features/device-token/cleanup-inactive', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def cleanup_inactive_tokens():
+    """Delete tokens that are already inactive, plus active tokens unused for 30+ days."""
+    try:
+        stale_threshold = datetime.utcnow() - timedelta(days=30)
+
+        # Already-inactive tokens
+        inactive_q = UserFCMToken.query.filter(UserFCMToken.is_active == False)
+        # Active but unused for 30+ days (stale)
+        stale_q = UserFCMToken.query.filter(
+            UserFCMToken.is_active == True,
+            UserFCMToken.last_used < stale_threshold
+        )
+        to_delete = {t.id: t for t in inactive_q.all()}
+        for t in stale_q.all():
+            to_delete[t.id] = t
+
+        count = len(to_delete)
+        for t in to_delete.values():
+            db.session.delete(t)
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id, action='cleanup_inactive_device_tokens',
+            resource_type='mobile_features', resource_id='cleanup',
+            new_value=f'Removed {count} inactive/stale tokens',
+            ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({'success': True, 'count': count,
+                        'message': f'{count} inactive/stale device tokens removed'})
+    except Exception as e:
+        logger.error(f"Error cleaning up inactive tokens: {e}")
+        return jsonify({'success': False, 'message': 'Error cleaning up tokens'})
+
+
+@admin_panel_bp.route('/mobile-features/device-token/export')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def export_subscriptions():
+    """Export device token subscriptions as CSV."""
+    import csv
+    import io
+
+    token_ids = _parse_token_ids(request.args.get('token_ids'))
+    query = UserFCMToken.query
+    if token_ids:
+        query = query.filter(UserFCMToken.id.in_(token_ids))
+    tokens = query.order_by(UserFCMToken.created_at.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['id', 'user_id', 'username', 'email', 'platform', 'app_version',
+                     'is_active', 'created_at', 'updated_at', 'last_used', 'fcm_token'])
+    for t in tokens:
+        writer.writerow([
+            t.id, t.user_id,
+            t.user.username if t.user else '',
+            t.user.email if t.user else '',
+            t.platform or '', t.app_version or '',
+            t.is_active,
+            t.created_at.isoformat() if t.created_at else '',
+            t.updated_at.isoformat() if t.updated_at else '',
+            t.last_used.isoformat() if t.last_used else '',
+            t.fcm_token,
+        ])
+
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=push_subscriptions.csv'}
+    )
+
+
 @admin_panel_bp.route('/mobile-features/user/details')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -1109,6 +1413,224 @@ def mobile_analytics_api():
 
 # Mobile Error Analytics Routes (migrated from legacy mobile_analytics_admin)
 
+# Supported analytics periods. Maps a UI token to (label, lookback timedelta,
+# series-bucket granularity). 24h is bucketed hourly; 7d/30d are bucketed daily.
+ERROR_PERIODS = {
+    '24h': {'label': '24h', 'delta': timedelta(hours=24), 'bucket': 'hour'},
+    '7d': {'label': '7 Days', 'delta': timedelta(days=7), 'bucket': 'day'},
+    '30d': {'label': '30 Days', 'delta': timedelta(days=30), 'bucket': 'day'},
+}
+
+
+def _build_error_volume_payload(period):
+    """Build the real error-volume payload for a given period token.
+
+    Returns a dict with the volume series (one point per bucket, continuous so
+    empty buckets render as 0), the peak, the in-period total, the recovery
+    rate, a critical-trend direction (this period vs the immediately preceding
+    period of equal length), the top platform (from MobileLogs), and an
+    error-free rate (share of mobile log lines that are not ERROR/FATAL).
+
+    Every query is wrapped defensively: a missing/empty table must never raise.
+    """
+    from sqlalchemy import func
+
+    cfg = ERROR_PERIODS.get(period) or ERROR_PERIODS['7d']
+    period = period if period in ERROR_PERIODS else '7d'
+    delta = cfg['delta']
+    bucket = cfg['bucket']
+
+    now = datetime.utcnow()
+    period_start = now - delta
+    prev_start = now - (delta * 2)
+
+    payload = {
+        'period': period,
+        'period_label': cfg['label'],
+        'volume_series': [],
+        'volume_peak': 0,
+        'period_total': 0,
+        'recovery_rate_pct': None,
+        'critical_this': 0,
+        'critical_prev': 0,
+        'critical_trend': 'flat',      # 'up' | 'down' | 'flat'
+        'critical_delta': 0,
+        'top_platform': None,          # display string e.g. 'iOS' / 'Android' or None
+        'error_free_pct': None,        # share of non-error/fatal log lines, or None if no logs
+        'error_free_total_logs': 0,
+    }
+
+    try:
+        from app.models_mobile_analytics import MobileErrorAnalytics, MobileLogs
+    except ImportError:
+        return payload
+
+    # ---- Volume series (grouped on real `timestamp` column) ----
+    try:
+        if bucket == 'hour':
+            # Group by hour for the 24h view. func.strftime/date_trunc differ by
+            # backend, so we bucket in Python from raw timestamps instead — robust
+            # across PostgreSQL and SQLite without dialect-specific SQL.
+            rows = db.session.query(MobileErrorAnalytics.timestamp).filter(
+                MobileErrorAnalytics.timestamp >= period_start
+            ).all()
+            counts = {}
+            for (ts,) in rows:
+                if ts is None:
+                    continue
+                key = ts.replace(minute=0, second=0, microsecond=0)
+                counts[key] = counts.get(key, 0) + 1
+            base = now.replace(minute=0, second=0, microsecond=0)
+            for offset in range(23, -1, -1):
+                h = base - timedelta(hours=offset)
+                c = counts.get(h, 0)
+                payload['volume_series'].append({
+                    'date': h.isoformat(),
+                    'label': h.strftime('%-I%p').lower() if hasattr(h, 'strftime') else str(h),
+                    'count': c,
+                })
+        else:
+            ndays = delta.days
+            volume_rows = db.session.query(
+                func.date(MobileErrorAnalytics.timestamp).label('day'),
+                func.count(MobileErrorAnalytics.id).label('count')
+            ).filter(
+                MobileErrorAnalytics.timestamp >= period_start
+            ).group_by(func.date(MobileErrorAnalytics.timestamp)).all()
+
+            counts_by_day = {}
+            for row in volume_rows:
+                day = row.day
+                key = day.isoformat()[:10] if hasattr(day, 'isoformat') else str(day)[:10]
+                counts_by_day[key] = counts_by_day.get(key, 0) + (row.count or 0)
+
+            today = now.date()
+            for offset in range(ndays - 1, -1, -1):
+                d = today - timedelta(days=offset)
+                key = d.isoformat()
+                payload['volume_series'].append({
+                    'date': key,
+                    'label': d.strftime('%b %d'),
+                    'count': counts_by_day.get(key, 0),
+                })
+        payload['volume_peak'] = max((pt['count'] for pt in payload['volume_series']), default=0)
+        payload['period_total'] = sum(pt['count'] for pt in payload['volume_series'])
+    except Exception as trend_err:
+        logger.warning(f"Error building error volume series ({period}): {trend_err}")
+        payload['volume_series'] = []
+        payload['volume_peak'] = 0
+        payload['period_total'] = 0
+
+    # ---- Recovery rate over the period (real `was_recovered` boolean) ----
+    try:
+        recoverable = db.session.query(func.count(MobileErrorAnalytics.id)).filter(
+            MobileErrorAnalytics.timestamp >= period_start,
+            MobileErrorAnalytics.was_recovered.isnot(None)
+        ).scalar() or 0
+        recovered = db.session.query(func.count(MobileErrorAnalytics.id)).filter(
+            MobileErrorAnalytics.timestamp >= period_start,
+            MobileErrorAnalytics.was_recovered.is_(True)
+        ).scalar() or 0
+        if recoverable > 0:
+            payload['recovery_rate_pct'] = round((recovered / recoverable) * 100, 1)
+    except Exception as rec_err:
+        logger.warning(f"Error computing recovery rate ({period}): {rec_err}")
+
+    # ---- Critical trend: this period vs immediately-preceding period ----
+    try:
+        crit_this = db.session.query(func.count(MobileErrorAnalytics.id)).filter(
+            MobileErrorAnalytics.timestamp >= period_start,
+            MobileErrorAnalytics.severity == 'critical'
+        ).scalar() or 0
+        crit_prev = db.session.query(func.count(MobileErrorAnalytics.id)).filter(
+            MobileErrorAnalytics.timestamp >= prev_start,
+            MobileErrorAnalytics.timestamp < period_start,
+            MobileErrorAnalytics.severity == 'critical'
+        ).scalar() or 0
+        payload['critical_this'] = crit_this
+        payload['critical_prev'] = crit_prev
+        payload['critical_delta'] = crit_this - crit_prev
+        if crit_this > crit_prev:
+            payload['critical_trend'] = 'up'
+        elif crit_this < crit_prev:
+            payload['critical_trend'] = 'down'
+        else:
+            payload['critical_trend'] = 'flat'
+    except Exception as ct_err:
+        logger.warning(f"Error computing critical trend ({period}): {ct_err}")
+
+    # ---- Top platform over the period (real `platform` field on MobileLogs) ----
+    try:
+        plat_row = db.session.query(
+            MobileLogs.platform,
+            func.count(MobileLogs.id).label('count')
+        ).filter(
+            MobileLogs.created_at >= period_start,
+            MobileLogs.platform.isnot(None),
+            MobileLogs.platform != ''
+        ).group_by(MobileLogs.platform).order_by(
+            func.count(MobileLogs.id).desc()
+        ).first()
+        if plat_row and plat_row.platform:
+            raw = str(plat_row.platform).strip().lower()
+            payload['top_platform'] = {
+                'ios': 'iOS', 'android': 'Android', 'web': 'Web',
+            }.get(raw, str(plat_row.platform).strip())
+    except Exception as plat_err:
+        logger.warning(f"Error computing top platform ({period}): {plat_err}")
+
+    # ---- Error-free rate: share of mobile log lines NOT at ERROR/FATAL level ----
+    # This is an accurate label for what we can measure from MobileLogs.level.
+    # It is NOT a crash-free-sessions metric (no session-outcome data exists),
+    # so the template labels it "Error-Free Logs" rather than "Crash-Free".
+    try:
+        total_logs = db.session.query(func.count(MobileLogs.id)).filter(
+            MobileLogs.created_at >= period_start
+        ).scalar() or 0
+        if total_logs > 0:
+            err_logs = db.session.query(func.count(MobileLogs.id)).filter(
+                MobileLogs.created_at >= period_start,
+                MobileLogs.level.in_(['ERROR', 'FATAL'])
+            ).scalar() or 0
+            payload['error_free_total_logs'] = total_logs
+            payload['error_free_pct'] = round((1 - (err_logs / total_logs)) * 100, 1)
+    except Exception as ef_err:
+        logger.warning(f"Error computing error-free rate ({period}): {ef_err}")
+
+    return payload
+
+
+@admin_panel_bp.route('/mobile-features/error-analytics/volume')
+@login_required
+@role_required(['Global Admin'])
+def mobile_error_volume():
+    """AJAX: error-volume series + derived stats for a chosen period (24h/7d/30d).
+
+    Returns JSON consumed by the period-toggle on the error analytics dashboard.
+    Always crash-safe — returns a zeroed payload rather than 500 on empty data.
+    """
+    period = request.args.get('period', '7d')
+    if period not in ERROR_PERIODS:
+        period = '7d'
+    try:
+        payload = _build_error_volume_payload(period)
+        return jsonify({'success': True, **payload})
+    except Exception as e:
+        logger.error(f"Error in mobile_error_volume ({period}): {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'period': period,
+            'volume_series': [],
+            'volume_peak': 0,
+            'period_total': 0,
+            'recovery_rate_pct': None,
+            'critical_trend': 'flat',
+            'critical_delta': 0,
+            'top_platform': None,
+            'error_free_pct': None,
+        })
+
+
 @admin_panel_bp.route('/mobile-features/error-analytics')
 @login_required
 @role_required(['Global Admin'])
@@ -1167,6 +1689,47 @@ def mobile_error_analytics():
             MobileErrorAnalytics.severity == 'critical'
         ).count()
 
+        # ---- Severity Breakdown (real structured `severity` field) ----
+        # The model defines a CHECK constraint: severity IN ('low','medium','high','critical').
+        # We break down the week's errors by that real field. No fabricated buckets.
+        severity_order = ['critical', 'high', 'medium', 'low']
+        severity_counts = {s: 0 for s in severity_order}
+        try:
+            severity_rows = db.session.query(
+                MobileErrorAnalytics.severity,
+                func.count(MobileErrorAnalytics.id).label('count')
+            ).filter(
+                MobileErrorAnalytics.created_at >= week_ago
+            ).group_by(MobileErrorAnalytics.severity).all()
+            for row in severity_rows:
+                sev = (row.severity or 'low')
+                severity_counts[sev] = severity_counts.get(sev, 0) + (row.count or 0)
+        except Exception as sev_err:
+            logger.warning(f"Error building mobile severity breakdown: {sev_err}")
+            severity_counts = {s: 0 for s in severity_order}
+
+        severity_total = sum(severity_counts.values())
+        severity_breakdown = [
+            {
+                'level': sev,
+                'count': severity_counts.get(sev, 0),
+                'pct': round((severity_counts.get(sev, 0) / severity_total) * 100, 1) if severity_total else 0,
+            }
+            for sev in severity_order
+        ]
+
+        # ---- Period-derived payload (default 7d): drives the volume series,
+        # recovery rate, critical trend, top platform, and error-free rate.
+        # Reuses the same builder the AJAX toggle calls so server-render and
+        # client-toggle stay byte-for-byte consistent. ----
+        default_period = '7d'
+        period_payload = _build_error_volume_payload(default_period)
+        # Prefer the period builder's series/peak (continuous, period-aware) but
+        # keep the established 7d values identical to before.
+        volume_series = period_payload['volume_series']
+        daily_peak = period_payload['volume_peak']
+        recovery_rate_pct = period_payload['recovery_rate_pct']
+
         stats = {
             'total_errors': total_errors,
             'total_logs': total_logs,
@@ -1181,7 +1744,22 @@ def mobile_error_analytics():
                     'count': error.count
                 } for error in top_errors
             ],
-            'active_patterns': [pattern.to_dict() for pattern in active_patterns]
+            'active_patterns': [pattern.to_dict() for pattern in active_patterns],
+            'volume_series': volume_series,
+            'volume_peak': daily_peak,
+            'severity_breakdown': severity_breakdown,
+            'severity_week_total': severity_total,
+            'recovery_rate_pct': recovery_rate_pct,
+            # Period-aware extras (default 7d) — drive toggle, platform, trend, error-free tiles
+            'current_period': default_period,
+            'period_total': period_payload['period_total'],
+            'top_platform': period_payload['top_platform'],
+            'critical_trend': period_payload['critical_trend'],
+            'critical_delta': period_payload['critical_delta'],
+            'critical_this': period_payload['critical_this'],
+            'critical_prev': period_payload['critical_prev'],
+            'error_free_pct': period_payload['error_free_pct'],
+            'error_free_total_logs': period_payload['error_free_total_logs'],
         }
 
         return render_template('admin_panel/mobile_features/error_analytics_flowbite.html', stats=stats)
@@ -1214,7 +1792,15 @@ def mobile_error_list():
         per_page = request.args.get('per_page', 50, type=int)
         severity_filter = request.args.get('severity')
         error_type_filter = request.args.get('error_type')
-        days_filter = request.args.get('days', 7, type=int)
+        # 'days' may be an int or the literal 'all' (export dialog) — treat 'all' as no date filter.
+        days_raw = request.args.get('days', '7')
+        if str(days_raw).lower() == 'all':
+            days_filter = None
+        else:
+            try:
+                days_filter = int(days_raw)
+            except (ValueError, TypeError):
+                days_filter = 7
 
         # Build query
         query = db.session.query(MobileErrorAnalytics)
@@ -1234,6 +1820,38 @@ def mobile_error_list():
 
         # Order by most recent
         query = query.order_by(desc(MobileErrorAnalytics.created_at))
+
+        # Export branch (CSV / JSON) — uses the same filtered query, no pagination.
+        if request.args.get('export') == 'true':
+            export_format = (request.args.get('format') or 'csv').lower()
+            rows = query.all()
+            if export_format == 'json':
+                payload = json.dumps([r.to_dict() for r in rows], default=str, indent=2)
+                return Response(
+                    payload, mimetype='application/json',
+                    headers={'Content-Disposition': 'attachment; filename=mobile_errors.json'}
+                )
+            # default CSV
+            import csv
+            import io
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(['id', 'error_type', 'severity', 'error_message',
+                             'user_id', 'device_info', 'app_version',
+                             'was_recovered', 'timestamp', 'created_at'])
+            for r in rows:
+                writer.writerow([
+                    r.id, r.error_type, r.severity, r.error_message or '',
+                    r.user_id if r.user_id is not None else '',
+                    r.device_info or '', r.app_version or '',
+                    r.was_recovered,
+                    r.timestamp.isoformat() if r.timestamp else '',
+                    r.created_at.isoformat() if r.created_at else '',
+                ])
+            return Response(
+                output.getvalue(), mimetype='text/csv',
+                headers={'Content-Disposition': 'attachment; filename=mobile_errors.csv'}
+            )
 
         # Paginate
         errors = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -1342,3 +1960,466 @@ def api_mobile_error_details(error_id):
     except Exception as e:
         logger.error(f"Error getting error details: {str(e)}", exc_info=True)
         return jsonify({'error': 'Internal Server Error'}), 500
+
+
+# =============================================================================
+# PUSH CAMPAIGN ACTIONS (compose page)
+# =============================================================================
+
+# Map the compose-form audience values to real campaign target types.
+# 'all' resolves to every active token; the form does not collect team/user
+# IDs, so audiences that require IDs are not supported for direct send/save.
+_AUDIENCE_TARGET_MAP = {
+    'all': 'all',
+    'active': 'all',  # form has no per-user selection; broadcast to all active devices
+}
+
+
+def _campaign_form_payload():
+    """Extract + validate the campaign compose form into a normalized payload."""
+    name = (request.form.get('campaign_name') or '').strip()
+    title = (request.form.get('notification_title') or '').strip()
+    body = (request.form.get('notification_message') or '').strip()
+    audience = (request.form.get('target_audience') or 'all').strip()
+    priority = 'high' if request.form.get('high_priority') in ('on', 'true', '1') else 'normal'
+
+    if not name or not title or not body:
+        return None, 'Campaign name, title, and message are required'
+
+    target_type = _AUDIENCE_TARGET_MAP.get(audience)
+    if not target_type:
+        return None, ('This audience requires selecting specific teams or users, '
+                      'which is not available from this form. Choose "All Users".')
+
+    return {
+        'name': name, 'title': title, 'body': body,
+        'target_type': target_type, 'priority': priority,
+    }, None
+
+
+@admin_panel_bp.route('/mobile-features/push-campaigns/save-draft', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def save_campaign_draft():
+    """Save the compose form as a draft PushNotificationCampaign (status stays 'draft')."""
+    try:
+        from app.models.push_campaigns import PushNotificationCampaign, CampaignStatus
+
+        payload, error = _campaign_form_payload()
+        if error:
+            return jsonify({'success': False, 'message': error})
+
+        campaign = PushNotificationCampaign(
+            name=payload['name'], title=payload['title'][:100], body=payload['body'],
+            target_type=payload['target_type'], platform_filter='all',
+            status=CampaignStatus.DRAFT.value, send_immediately=True,
+            priority=payload['priority'], created_by=current_user.id,
+        )
+        db.session.add(campaign)
+        db.session.flush()
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id, action='save_push_campaign_draft',
+            resource_type='mobile_features', resource_id=str(campaign.id),
+            new_value=f'Saved draft "{payload["name"]}"',
+            ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({'success': True, 'campaign_id': campaign.id,
+                        'message': 'Campaign saved as draft'})
+    except Exception as e:
+        logger.error(f"Error saving campaign draft: {e}")
+        return jsonify({'success': False, 'message': 'Error saving draft'})
+
+
+@admin_panel_bp.route('/mobile-features/push-campaigns/send', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def send_campaign():
+    """Create and immediately send a push campaign from the compose form."""
+    try:
+        from app.services.push_campaign_service import push_campaign_service
+
+        payload, error = _campaign_form_payload()
+        if error:
+            return jsonify({'success': False, 'message': error})
+
+        campaign = push_campaign_service.create_campaign(
+            name=payload['name'], title=payload['title'], body=payload['body'],
+            target_type=payload['target_type'], priority=payload['priority'],
+            send_immediately=True, created_by=current_user.id,
+        )
+        result = push_campaign_service.send_campaign_now(campaign.id)
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id, action='send_push_campaign',
+            resource_type='mobile_features', resource_id=str(campaign.id),
+            new_value=f'Sent campaign "{payload["name"]}" to {result.get("sent_count", 0)} devices',
+            ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent')
+        )
+
+        if result.get('success'):
+            return jsonify({
+                'success': True, 'campaign_id': campaign.id,
+                'message': f'Campaign sent to {result.get("sent_count", 0)} devices',
+                **result
+            })
+        return jsonify({'success': False,
+                        'message': result.get('error') or 'Failed to send campaign',
+                        'campaign_id': campaign.id})
+    except Exception as e:
+        logger.error(f"Error sending campaign: {e}")
+        return jsonify({'success': False, 'message': 'Error sending campaign'})
+
+
+@admin_panel_bp.route('/mobile-features/push-campaigns/<int:campaign_id>/details')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def campaign_details(campaign_id):
+    """Return real campaign details as JSON for the details modal."""
+    try:
+        from app.models.push_campaigns import PushNotificationCampaign
+        campaign = PushNotificationCampaign.query.get(campaign_id)
+        if not campaign:
+            return jsonify({'success': False, 'message': 'Campaign not found'}), 404
+        return jsonify({'success': True, 'campaign': campaign.to_dict()})
+    except Exception as e:
+        logger.error(f"Error loading campaign details: {e}")
+        return jsonify({'success': False, 'message': 'Error loading campaign details'})
+
+
+@admin_panel_bp.route('/mobile-features/push-campaigns/<int:campaign_id>/report')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def campaign_report(campaign_id):
+    """Export a single campaign's analytics as CSV."""
+    import csv
+    import io
+    from app.models.push_campaigns import PushNotificationCampaign
+
+    campaign = PushNotificationCampaign.query.get_or_404(campaign_id)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['field', 'value'])
+    rows = [
+        ('id', campaign.id), ('name', campaign.name), ('title', campaign.title),
+        ('body', campaign.body), ('status', campaign.status),
+        ('target_type', campaign.target_type),
+        ('target_count', campaign.target_count), ('sent_count', campaign.sent_count),
+        ('delivered_count', campaign.delivered_count),
+        ('failed_count', campaign.failed_count), ('click_count', campaign.click_count),
+        ('delivery_rate', f'{campaign.delivery_rate}%'),
+        ('click_rate', f'{campaign.click_rate}%'),
+        ('created_at', campaign.created_at.isoformat() if campaign.created_at else ''),
+        ('actual_send_time', campaign.actual_send_time.isoformat() if campaign.actual_send_time else ''),
+    ]
+    for k, v in rows:
+        writer.writerow([k, v])
+
+    return Response(
+        output.getvalue(), mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename=campaign_{campaign_id}_report.csv'}
+    )
+
+
+# =============================================================================
+# MOBILE USER NOTIFICATION ACTIONS
+# =============================================================================
+
+def _send_push_to_user_ids(user_ids, title, body):
+    """Send a push notification to all active tokens for the given user ids.
+
+    Returns a (success_bool, message, result_dict) tuple.
+    """
+    from app.services.notification_service import notification_service
+
+    if not getattr(notification_service, '_initialized', False):
+        return False, 'Push notification service is not configured', {}
+
+    tokens = [row[0] for row in db.session.query(UserFCMToken.fcm_token).filter(
+        UserFCMToken.user_id.in_(user_ids),
+        UserFCMToken.is_active == True
+    ).all()]
+    tokens = list(set(tokens))
+
+    if not tokens:
+        return False, 'No active devices found for the selected user(s)', {}
+
+    result = notification_service.send_general_notification(tokens, title, body)
+    delivered = result.get('success', 0)
+    return True, f'Notification sent to {delivered} device(s)', result
+
+
+@admin_panel_bp.route('/mobile-features/user/send-notification', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def send_user_notification():
+    """Send a push notification to a single mobile user's devices."""
+    try:
+        user_id = request.form.get('user_id', type=int)
+        title = (request.form.get('title') or '').strip()
+        message = (request.form.get('message') or '').strip()
+
+        if not user_id:
+            return jsonify({'success': False, 'message': 'User ID is required'})
+        if not title or not message:
+            return jsonify({'success': False, 'message': 'Title and message are required'})
+
+        ok, msg, result = _send_push_to_user_ids([user_id], title, message)
+        AdminAuditLog.log_action(
+            user_id=current_user.id, action='send_user_push_notification',
+            resource_type='mobile_features', resource_id=str(user_id),
+            new_value=f'{title} ({msg})',
+            ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({'success': ok, 'message': msg, 'result': result})
+    except Exception as e:
+        logger.error(f"Error sending user notification: {e}")
+        return jsonify({'success': False, 'message': 'Error sending notification'})
+
+
+@admin_panel_bp.route('/mobile-features/user/send-bulk-notification', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def send_bulk_user_notification():
+    """Send a push notification to multiple selected mobile users."""
+    try:
+        user_ids = _parse_token_ids(request.form.get('user_ids'))
+        title = (request.form.get('title') or '').strip()
+        message = (request.form.get('message') or '').strip()
+
+        if not user_ids:
+            return jsonify({'success': False, 'message': 'No users selected'})
+        if not title or not message:
+            return jsonify({'success': False, 'message': 'Title and message are required'})
+
+        ok, msg, result = _send_push_to_user_ids(user_ids, title, message)
+        AdminAuditLog.log_action(
+            user_id=current_user.id, action='send_bulk_user_push_notification',
+            resource_type='mobile_features', resource_id='bulk',
+            new_value=f'{title} to {len(user_ids)} users ({msg})',
+            ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({'success': ok, 'message': msg, 'result': result})
+    except Exception as e:
+        logger.error(f"Error sending bulk notification: {e}")
+        return jsonify({'success': False, 'message': 'Error sending notification'})
+
+
+@admin_panel_bp.route('/mobile-features/user/export')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def export_user_data():
+    """Export mobile users (users with device tokens) as CSV."""
+    import csv
+    import io
+
+    user_ids = _parse_token_ids(request.args.get('user_ids'))
+
+    base = User.query.join(UserFCMToken).filter(UserFCMToken.is_active == True).distinct()
+    if user_ids:
+        base = base.filter(User.id.in_(user_ids))
+    users = base.order_by(User.created_at.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['user_id', 'username', 'email', 'created_at',
+                     'active_device_count', 'platforms'])
+    for u in users:
+        tokens = UserFCMToken.query.filter_by(user_id=u.id, is_active=True).all()
+        platforms = ','.join(sorted({t.platform for t in tokens if t.platform}))
+        writer.writerow([
+            u.id, u.username, u.email or '',
+            u.created_at.isoformat() if u.created_at else '',
+            len(tokens), platforms,
+        ])
+
+    return Response(
+        output.getvalue(), mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=mobile_users.csv'}
+    )
+
+
+@admin_panel_bp.route('/mobile-features/user/bulk-device-action', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def bulk_user_device_action():
+    """Activate / deactivate / cleanup device tokens for selected users."""
+    try:
+        user_ids = _parse_token_ids(request.form.get('user_ids'))
+        action = (request.form.get('device_action') or '').strip()
+
+        if not user_ids:
+            return jsonify({'success': False, 'message': 'No users selected'})
+
+        if action == 'deactivate':
+            count = UserFCMToken.query.filter(UserFCMToken.user_id.in_(user_ids)).update(
+                {'is_active': False, 'updated_at': datetime.utcnow()},
+                synchronize_session=False
+            )
+            msg = f'Deactivated {count} devices for selected users'
+        elif action == 'reactivate':
+            count = UserFCMToken.query.filter(UserFCMToken.user_id.in_(user_ids)).update(
+                {'is_active': True, 'updated_at': datetime.utcnow()},
+                synchronize_session=False
+            )
+            msg = f'Reactivated {count} devices for selected users'
+        elif action == 'cleanup':
+            stale_threshold = datetime.utcnow() - timedelta(days=30)
+            stale = UserFCMToken.query.filter(
+                UserFCMToken.user_id.in_(user_ids),
+                UserFCMToken.last_used < stale_threshold
+            ).all()
+            count = len(stale)
+            for t in stale:
+                db.session.delete(t)
+            msg = f'Removed {count} devices unused for 30+ days'
+        else:
+            return jsonify({'success': False, 'message': 'Unknown device action'})
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id, action=f'bulk_user_device_{action}',
+            resource_type='mobile_features', resource_id='bulk',
+            new_value=msg,
+            ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({'success': True, 'count': count, 'message': msg})
+    except Exception as e:
+        logger.error(f"Error in bulk device action: {e}")
+        return jsonify({'success': False, 'message': 'Error performing device action'})
+
+
+# =============================================================================
+# PUSH HISTORY ACTIONS
+# =============================================================================
+
+@admin_panel_bp.route('/mobile-features/push-history/details')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def push_history_details():
+    """Return real details for a push-history entry (individual notification or campaign)."""
+    try:
+        source = request.args.get('source', 'campaign')
+        notif_id = request.args.get('id', type=int)
+        if not notif_id:
+            return jsonify({'success': False, 'message': 'Notification ID is required'})
+
+        if source == 'individual':
+            from app.models.communication import Notification
+            n = Notification.query.get(notif_id)
+            if not n:
+                return jsonify({'success': False, 'message': 'Notification not found'}), 404
+            return jsonify({'success': True, 'notification': {
+                'id': n.id,
+                'source': 'individual',
+                'title': 'Push Notification',
+                'content': n.content or '',
+                'notification_type': n.notification_type,
+                'created_at': n.created_at.isoformat() if n.created_at else None,
+                'recipient': n.user.username if n.user else None,
+                'recipient_email': n.user.email if n.user else None,
+            }})
+
+        # default: campaign
+        from app.models.push_campaigns import PushNotificationCampaign
+        c = PushNotificationCampaign.query.get(notif_id)
+        if not c:
+            return jsonify({'success': False, 'message': 'Campaign not found'}), 404
+        return jsonify({'success': True, 'notification': {
+            'id': c.id,
+            'source': 'campaign',
+            'title': c.title or c.name,
+            'content': c.body or '',
+            'notification_type': 'Campaign',
+            'status': c.status,
+            'created_at': (c.actual_send_time or c.created_at).isoformat() if (c.actual_send_time or c.created_at) else None,
+            'recipients': c.sent_count or c.target_count or 0,
+            'delivered_count': c.delivered_count or 0,
+            'failed_count': c.failed_count or 0,
+            'click_count': c.click_count or 0,
+            'delivery_rate': f'{c.delivery_rate}%',
+        }})
+    except Exception as e:
+        logger.error(f"Error loading push history details: {e}")
+        return jsonify({'success': False, 'message': 'Error loading notification details'})
+
+
+@admin_panel_bp.route('/mobile-features/push-history/export')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def export_push_history():
+    """Export push history (individual notifications + campaigns) as CSV."""
+    import csv
+    import io
+    from app.models.communication import Notification
+    from app.models.push_campaigns import PushNotificationCampaign
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['source', 'id', 'title', 'content', 'type', 'status',
+                     'created_at', 'recipients', 'delivered', 'failed', 'clicks'])
+
+    try:
+        individual = Notification.query.filter_by(notification_type='push').order_by(
+            Notification.created_at.desc()).limit(500).all()
+        for n in individual:
+            writer.writerow([
+                'individual', n.id, 'Push Notification', n.content or '',
+                'Individual', 'sent',
+                n.created_at.isoformat() if n.created_at else '',
+                1, '', '', '',
+            ])
+    except Exception as e:
+        logger.warning(f"Error exporting individual notifications: {e}")
+
+    try:
+        campaigns = PushNotificationCampaign.query.filter(
+            PushNotificationCampaign.status.in_(['sent', 'failed', 'sending', 'cancelled'])
+        ).order_by(PushNotificationCampaign.created_at.desc()).limit(500).all()
+        for c in campaigns:
+            writer.writerow([
+                'campaign', c.id, c.title or c.name or 'Campaign', c.body or '',
+                'Campaign', c.status,
+                (c.actual_send_time or c.created_at).isoformat() if (c.actual_send_time or c.created_at) else '',
+                c.sent_count or c.target_count or 0,
+                c.delivered_count or 0, c.failed_count or 0, c.click_count or 0,
+            ])
+    except Exception as e:
+        logger.warning(f"Error exporting campaigns: {e}")
+
+    return Response(
+        output.getvalue(), mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=push_history.csv'}
+    )
+
+
+@admin_panel_bp.route('/mobile-features/push-history/cleanup-old', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def cleanup_old_push_history():
+    """Delete individual push notifications older than 90 days."""
+    try:
+        from app.models.communication import Notification
+        cutoff = datetime.utcnow() - timedelta(days=90)
+        old = Notification.query.filter(
+            Notification.notification_type == 'push',
+            Notification.created_at < cutoff
+        ).all()
+        count = len(old)
+        for n in old:
+            db.session.delete(n)
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id, action='cleanup_old_push_history',
+            resource_type='mobile_features', resource_id='cleanup',
+            new_value=f'Removed {count} push notifications older than 90 days',
+            ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({'success': True, 'count': count,
+                        'message': f'{count} old push notifications removed'})
+    except Exception as e:
+        logger.error(f"Error cleaning up old push history: {e}")
+        return jsonify({'success': False, 'message': 'Error cleaning up notifications'})

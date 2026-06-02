@@ -178,6 +178,9 @@ class Player(db.Model):
     sms_consent_given = db.Column(db.Boolean, default=False)
     sms_consent_timestamp = db.Column(db.DateTime)
     sms_opt_out_timestamp = db.Column(db.DateTime)
+    # Liability waiver / terms-of-participation acceptance audit trail. Set once
+    # at registration when the player checks the waiver box; null = never accepted.
+    terms_accepted_at = db.Column(db.DateTime, nullable=True)
     jersey_size = db.Column(db.String(10), nullable=True)
     jersey_number = db.Column(db.Integer, nullable=True)
     is_coach = db.Column(db.Boolean, default=False)
@@ -231,6 +234,10 @@ class Player(db.Model):
     career_stats = db.relationship('PlayerCareerStats', back_populates='player', passive_deletes=True)
     order_history = db.relationship('PlayerOrderHistory', back_populates='player', cascade='all, delete')
     discord_roles = db.Column(JSON)
+    # When this player record was first created (i.e. when they joined). Backfilled
+    # from the associated user's created_at for pre-existing rows; new rows default
+    # to insert time. Surfaced as the "Joined" date on the player profile.
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     discord_last_verified = db.Column(DateTime)
     discord_needs_update = db.Column(Boolean, default=False)

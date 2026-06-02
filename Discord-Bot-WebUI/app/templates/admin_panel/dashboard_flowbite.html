@@ -6,77 +6,338 @@
 
 {% block panel_content %}
 {% if shell == 'console' %}
-{# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import stat_card, attention_list, attention_item, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
-{% set _sev_icon = {'danger': 'ti-alert-octagon', 'warning': 'ti-alert-triangle', 'info': 'ti-info-circle'} %}
-<div class="space-y-6">
+{# ===================== Modern admin console (shell == 'console') — Operations Cockpit ===================== #}
+{% from 'macros/_modern_kit.html' import attention_item, empty_state %}
+{# Map the route's severity vocabulary (danger/warning/info) onto the kit's a11y
+   severity tokens (icon+word+tone, never color-only) + a per-subject icon. #}
+{% set _sev = {'danger': 'critical', 'warning': 'warning', 'info': 'notice'} %}
+{% set _subj_icon = {
+  'approvals': 'ti-user-check', 'unreported': 'ti-clipboard-off',
+  'verification': 'ti-checkup-list', 'subs': 'ti-arrows-shuffle',
+  'live': 'ti-broadcast'
+} %}
+<div class="space-y-4 sm:space-y-5">
 
-  <!-- KPI band (real data from build_attention_queue) -->
-  <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-    {{ stat_card('ti-tournament', 'Season', attention.kpis.season or '—') }}
-    {{ stat_card('ti-shield', 'Teams', attention.kpis.teams or 0) }}
-    {{ stat_card('ti-users', 'Active players', attention.kpis.active_players or 0) }}
-    {{ stat_card('ti-calendar-event', 'Matches this week', attention.kpis.matches_this_week or 0) }}
-    {{ stat_card('ti-broadcast', 'Live now', attention.live_count or 0) }}
+  <!-- ============ TITLE + CONTEXT STRIP + COMMAND TOOLBAR ============ -->
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Operations Overview</p>
+      <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Operations Cockpit</h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        {% if attention.kpis.season %}
+          <span class="font-semibold text-gray-900 dark:text-white">{{ attention.kpis.season }}</span>
+          <span class="text-gray-300 dark:text-gray-600" aria-hidden="true">|</span>
+          <span class="font-mono">{{ attention.kpis.active_players or 0 }}</span> active players
+          <span class="text-gray-300 dark:text-gray-600" aria-hidden="true">|</span>
+          <span class="font-mono">{{ attention.kpis.teams or 0 }}</span> teams
+        {% else %}
+          <span class="font-semibold text-gray-400 dark:text-gray-500">No active Pub League season</span>
+        {% endif %}
+      </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 shrink-0">
+      <a href="{{ url_for('admin_panel.audit_logs') }}"
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-history text-base" aria-hidden="true"></i><span class="hidden sm:inline">Audit log</span>
+      </a>
+      <a href="{{ url_for('auto_schedule.schedule_manager') }}"
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-wand text-base" aria-hidden="true"></i> Season Builder
+      </a>
+    </div>
   </div>
 
-  <!-- Needs your attention -->
-  {% call attention_list('Needs your attention', count=attention.attention|length) %}
+  <!-- Quick-actions command toolbar -->
+  <div class="flex flex-wrap gap-2">
+    {% for label, icon, endpoint, tone in [
+        ('Match Dashboard', 'ti-trophy', 'admin_panel.match_operations', 'text-ecs-green'),
+        ('Users', 'ti-users', 'admin_panel.users_comprehensive', 'text-blue-600 dark:text-blue-400'),
+        ('Approvals', 'ti-user-check', 'admin_panel.user_approvals', 'text-amber-600 dark:text-amber-400'),
+        ('Communication', 'ti-message-circle', 'admin_panel.communication_hub', 'text-ecs-gold-500 dark:text-ecs-gold-400') ] %}
+    <a href="{{ url_for(endpoint) }}"
+       class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti {{ icon }} text-base {{ tone }}" aria-hidden="true"></i> {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- ============ NEEDS YOUR ATTENTION — the page's ONE primary job ============ -->
+  <section aria-labelledby="adm-queue-head" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 id="adm-queue-head" class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-alert-triangle text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> Needs Your Attention
+        {% if attention.attention %}
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">{{ attention.attention|length }} {% if attention.attention|length == 1 %}item{% else %}items{% endif %}</span>
+        {% endif %}
+      </h2>
+    </div>
     {% if attention.attention %}
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list" aria-live="polite">
       {% for a in attention.attention %}
-        {{ attention_item(_sev_icon.get(a.severity, 'ti-info-circle'), a.label, a.count, a.severity, a.url) }}
+        {{ attention_item(_subj_icon.get(a.key, 'ti-info-circle'), a.label, a.count, _sev.get(a.severity, 'notice'), a.url) }}
       {% endfor %}
+    </ul>
     {% else %}
       {{ empty_state('ti-circle-check', 'All clear', 'Nothing needs your attention right now.') }}
     {% endif %}
-  {% endcall %}
+  </section>
 
-  <!-- Upcoming matches (kit data_table: sort + filter + responsive cards) -->
-  {% call data_table('Upcoming matches', icon='ti-calendar', count=upcoming_matches|length, search_placeholder='Filter matches…', search_id='admUpcoming') %}
-    <table class="hidden md:table w-full text-sm">
-      <thead><tr>
-        {{ data_table_th('Date', key='date') }}
-        {{ data_table_th('Home', key='home') }}
-        {{ data_table_th('Away', key='away') }}
-        {{ data_table_th('Time', key='time', hide='sm') }}
-      </tr></thead>
-      <tbody>
-        {% for m in upcoming_matches %}
-        <tr class="border-t border-gray-100 dark:border-gray-700">
-          <td class="px-3 py-2.5 whitespace-nowrap font-mono" data-sort-value="{{ m.date.isoformat() if m.date else '' }}">{{ m.date.strftime('%b %d') if m.date else 'TBD' }}</td>
-          <td class="px-3 py-2.5 text-gray-900 dark:text-white">{{ m.home_team.name if m.home_team else 'TBD' }}</td>
-          <td class="px-3 py-2.5 text-gray-900 dark:text-white">{{ m.away_team.name if m.away_team else 'TBD' }}</td>
-          <td class="px-3 py-2.5 hidden md:table-cell font-mono text-gray-500 dark:text-gray-400">{{ m.time.strftime('%I:%M %p') if m.time else 'TBD' }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <div class="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
-      {% for m in upcoming_matches %}
-        {% call data_table_row_card((m.home_team.name if m.home_team else 'TBD') ~ ' vs ' ~ (m.away_team.name if m.away_team else 'TBD')) %}
-          {{ m.date.strftime('%b %d') if m.date else 'TBD' }} · {{ m.time.strftime('%I:%M %p') if m.time else 'TBD' }}
-        {% endcall %}
-      {% endfor %}
-    </div>
-    {% if not upcoming_matches %}{{ empty_state('ti-calendar-off', 'No upcoming matches', 'Nothing scheduled in the next 7 days.') }}{% endif %}
-  {% endcall %}
+  <!-- ============ KPI / STATUS BAND (bullet-style, value always mono text) ============ -->
+  <section aria-labelledby="adm-kpi-head">
+    <h2 id="adm-kpi-head" class="sr-only">Key operational metrics</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
 
-  <!-- Quick actions -->
-  {% call section_card('Quick actions', icon='ti-bolt') %}
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-      {% for label, icon, endpoint in [
-          ('Season Builder', 'ti-wand', 'auto_schedule.schedule_manager'),
-          ('Match Dashboard', 'ti-trophy', 'admin_panel.match_operations'),
-          ('Users', 'ti-users', 'admin_panel.users_comprehensive'),
-          ('Approvals', 'ti-user-check', 'admin_panel.user_approvals'),
-          ('Communication', 'ti-message-circle', 'admin_panel.communication_hub'),
-          ('Audit Logs', 'ti-history', 'admin_panel.audit_logs') ] %}
-      <a href="{{ url_for(endpoint) }}" class="flex items-center gap-2 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-sm text-gray-700 dark:text-gray-300">
-        <i class="ti {{ icon }} text-ecs-green"></i>{{ label }}
+      <!-- Pending approvals (operational, real) -->
+      <a href="{{ url_for('admin_panel.user_approvals') }}"
+         class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Pending Approvals</span>
+          <i class="ti ti-user-check text-lg shrink-0 {{ 'text-amber-600 dark:text-amber-400' if pending_approvals else 'text-gray-400 dark:text-gray-500' }}" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none {{ 'text-amber-600 dark:text-amber-400' if pending_approvals else 'text-gray-900 dark:text-white' }}">{{ pending_approvals }}</div>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">awaiting review</p>
       </a>
-      {% endfor %}
+
+      <!-- Matches this week -->
+      <a href="{{ url_for('admin_panel.match_operations') }}"
+         class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Matches This Week</span>
+          <i class="ti ti-calendar-event text-lg shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ attention.kpis.matches_this_week or 0 }}</div>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">next 7 days</p>
+      </a>
+
+      <!-- Active players -->
+      <a href="{{ url_for('admin_panel.users_comprehensive') }}"
+         class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Active Players</span>
+          <i class="ti ti-users text-lg shrink-0 text-ecs-green" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ attention.kpis.active_players or 0 }}</div>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ attention.kpis.teams or 0 }} teams · {{ attention.kpis.leagues or 0 }} leagues</p>
+      </a>
+
+      <!-- Total users -->
+      <a href="{{ url_for('admin_panel.users_comprehensive') }}"
+         class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Users</span>
+          <i class="ti ti-id-badge-2 text-lg shrink-0 text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ total_users }}</div>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">all accounts</p>
+      </a>
+
+      <!-- Live matches (status w/ pulse) -->
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 col-span-2 sm:col-span-1">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Live Matches</span>
+          {% if attention.live_count %}
+          <span class="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 dark:text-red-400">
+            <span class="w-1.5 h-1.5 rounded-full bg-red-600 dark:bg-red-400 animate-pulse" aria-hidden="true"></span>LIVE
+          </span>
+          {% else %}
+          <i class="ti ti-broadcast text-lg shrink-0 text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+          {% endif %}
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none {{ 'text-red-600 dark:text-red-400' if attention.live_count else 'text-gray-900 dark:text-white' }}">{{ attention.live_count or 0 }}</div>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">in progress now</p>
+      </div>
     </div>
-  {% endcall %}
+  </section>
+
+  <!-- ============ SECTION QUICK-LINKS (Pub League / Communication / Users) ============ -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+    <!-- Pub League -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-tournament text-ecs-green" aria-hidden="true"></i>
+        <h2 class="font-semibold text-gray-900 dark:text-white">Pub League</h2>
+      </div>
+      <div class="p-2">
+        {% for label, icon, endpoint in [
+            ('Season Builder', 'ti-wand', 'auto_schedule.schedule_manager'),
+            ('All Seasons', 'ti-calendar-stats', 'admin_panel.league_management_seasons'),
+            ('All Teams', 'ti-shirt-sport', 'admin_panel.league_management_teams'),
+            ('Match Dashboard', 'ti-trophy', 'admin_panel.match_operations') ] %}
+        <a href="{{ url_for(endpoint) }}"
+           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti {{ icon }} text-gray-400 dark:text-gray-500 group-hover:text-ecs-green" aria-hidden="true"></i>
+          <span class="text-sm text-gray-700 dark:text-gray-300">{{ label }}</span>
+          <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Communication -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-message-circle text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+        <h2 class="font-semibold text-gray-900 dark:text-white">Communication</h2>
+      </div>
+      <div class="p-2">
+        {% for label, icon, endpoint in [
+            ('Communication Hub', 'ti-message-circle', 'admin_panel.communication_hub'),
+            ('Push Notifications', 'ti-bell', 'admin_panel.push_notifications'),
+            ('Announcements', 'ti-speakerphone', 'admin_panel.announcements'),
+            ('Email Broadcasts', 'ti-mail-forward', 'admin_panel.email_broadcasts_list') ] %}
+        <a href="{{ url_for(endpoint) }}"
+           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti {{ icon }} text-gray-400 dark:text-gray-500 group-hover:text-ecs-green" aria-hidden="true"></i>
+          <span class="text-sm text-gray-700 dark:text-gray-300">{{ label }}</span>
+          <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Users -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-users text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+        <h2 class="font-semibold text-gray-900 dark:text-white">Users</h2>
+      </div>
+      <div class="p-2">
+        <a href="{{ url_for('admin_panel.users_comprehensive') }}"
+           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-users text-gray-400 dark:text-gray-500 group-hover:text-ecs-green" aria-hidden="true"></i>
+          <span class="text-sm text-gray-700 dark:text-gray-300">Users</span>
+          <span class="ml-auto text-xs text-gray-400 dark:text-gray-500 font-mono">{{ total_users }} total</span>
+        </a>
+        <a href="{{ url_for('admin_panel.user_approvals') }}"
+           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-user-check text-gray-400 dark:text-gray-500 group-hover:text-ecs-green" aria-hidden="true"></i>
+          <span class="text-sm text-gray-700 dark:text-gray-300">Approvals</span>
+          {% if pending_approvals %}
+          <span class="ml-auto inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold font-mono bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">{{ pending_approvals }}</span>
+          {% else %}
+          <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
+          {% endif %}
+        </a>
+        <a href="{{ url_for('admin_panel.roles_comprehensive') }}"
+           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-shield-check text-gray-400 dark:text-gray-500 group-hover:text-ecs-green" aria-hidden="true"></i>
+          <span class="text-sm text-gray-700 dark:text-gray-300">Roles</span>
+          <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
+        </a>
+        <a href="{{ url_for('admin_panel.user_waitlist') }}"
+           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-clock text-gray-400 dark:text-gray-500 group-hover:text-ecs-green" aria-hidden="true"></i>
+          <span class="text-sm text-gray-700 dark:text-gray-300">Waitlist</span>
+          <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
+        </a>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ DATA TABLE: Upcoming matches + Recent activity (two-up on xl) ============ -->
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+
+    <!-- Upcoming matches (real table, mono dates, H/A treatment) -->
+    <section aria-labelledby="adm-matches-head" class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 id="adm-matches-head" class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i> Upcoming Matches
+          {% if upcoming_matches %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ upcoming_matches|length }}</span>{% endif %}
+        </h2>
+        {% if current_pub_league %}
+        <a href="{{ url_for('auto_schedule.current_season_schedule') }}" class="text-xs font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">Full schedule</a>
+        {% endif %}
+      </div>
+
+      {% if upcoming_matches %}
+      <div class="md:overflow-x-auto">
+        <table class="hidden md:table w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/30">
+              <th class="px-4 py-2.5 font-semibold">Kickoff</th>
+              <th class="px-4 py-2.5 font-semibold">Matchup</th>
+              <th class="px-4 py-2.5 font-semibold text-right">Time</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+            {% for m in upcoming_matches %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <td class="px-4 py-3 whitespace-nowrap font-mono text-gray-900 dark:text-white">{{ m.date.strftime('%a %b %d') if m.date else 'TBD' }}</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1 text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green mr-1">H</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ m.home_team.name if m.home_team else 'TBD' }}</span>
+                <span class="text-gray-400 dark:text-gray-500 mx-1.5">vs</span>
+                <span class="inline-flex items-center gap-1 text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 mr-1">A</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ m.away_team.name if m.away_team else 'TBD' }}</span>
+              </td>
+              <td class="px-4 py-3 text-right whitespace-nowrap font-mono text-gray-500 dark:text-gray-400">{{ m.time.strftime('%I:%M %p') if m.time else 'TBD' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <ul class="md:hidden divide-y divide-gray-100 dark:divide-gray-700" role="list">
+        {% for m in upcoming_matches %}
+        <li class="px-4 py-3">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+              {{ m.home_team.name if m.home_team else 'TBD' }} <span class="text-gray-400 dark:text-gray-500 font-normal">vs</span> {{ m.away_team.name if m.away_team else 'TBD' }}
+            </span>
+          </div>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ m.date.strftime('%a %b %d') if m.date else 'TBD' }} · {{ m.time.strftime('%I:%M %p') if m.time else 'TBD' }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        {% if current_pub_league %}
+          {{ empty_state('ti-calendar-off', 'No upcoming matches', 'Nothing scheduled in the next 7 days.', action={'label': 'View full schedule', 'url': url_for('auto_schedule.current_season_schedule'), 'icon': 'ti-calendar'}) }}
+        {% else %}
+          {{ empty_state('ti-calendar-off', 'No active season', 'Create one in Season Builder to schedule matches.', action={'label': 'Open Season Builder', 'url': url_for('auto_schedule.schedule_manager'), 'icon': 'ti-wand'}) }}
+        {% endif %}
+      {% endif %}
+    </section>
+
+    <!-- Recent admin activity (real audit feed, icon-typed) -->
+    <section aria-labelledby="adm-audit-head" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 id="adm-audit-head" class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-history text-ecs-green" aria-hidden="true"></i> Recent Activity
+        </h2>
+        <a href="{{ url_for('admin_panel.audit_logs') }}" class="text-xs font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">Audit log</a>
+      </div>
+      {% if recent_actions %}
+      {% set _act = {
+        'create': {'i': 'ti-plus',         'c': 'bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400'},
+        'update': {'i': 'ti-edit',         'c': 'bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'},
+        'toggle': {'i': 'ti-toggle-right', 'c': 'bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'},
+        'delete': {'i': 'ti-trash',        'c': 'bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400'}
+      } %}
+      <ul class="divide-y divide-gray-100 dark:divide-gray-700 text-sm" role="list">
+        {% for action in recent_actions[:6] %}
+        {% set a = _act.get(action.action, {'i': 'ti-point', 'c': 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}) %}
+        <li class="flex items-start gap-3 px-4 py-2.5">
+          <span class="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0 {{ a.c }}">
+            <i class="ti {{ a.i }} text-sm" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-gray-900 dark:text-white">
+              <span class="font-medium capitalize">{{ action.action|replace('_', ' ') }}</span>
+              <span class="text-gray-400 dark:text-gray-500"> · </span>
+              <span>{{ action.resource_type }}{% if action.resource_id %} <span class="font-mono text-gray-500 dark:text-gray-400">#{{ action.resource_id }}</span>{% endif %}</span>
+            </p>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 font-mono mt-0.5">
+              {% if action.user %}{{ action.user.name or action.user.username }}{% else %}User {{ action.user_id }}{% endif %} · {{ action.timestamp.strftime('%m/%d %H:%M') if action.timestamp else '' }}
+            </p>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        {{ empty_state('ti-activity', 'No recent activity', 'Admin actions will appear here.') }}
+      {% endif %}
+    </section>
+  </div>
 
 </div>
 {% else %}

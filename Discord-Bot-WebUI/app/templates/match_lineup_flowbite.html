@@ -119,57 +119,68 @@
 {% block main_content %}
 {% if shell == 'console' %}
 {# ===================== MODERN (console) ===================== #}
+{# Derive real RSVP tallies from the route-provided roster (no fabrication). #}
+{% set rsvp = namespace(yes=0, maybe=0, no=0, none=0) %}
+{% for p in roster %}
+  {% if p.rsvp_status == 'yes' %}{% set rsvp.yes = rsvp.yes + 1 %}
+  {% elif p.rsvp_status == 'maybe' %}{% set rsvp.maybe = rsvp.maybe + 1 %}
+  {% elif p.rsvp_status == 'no' %}{% set rsvp.no = rsvp.no + 1 %}
+  {% else %}{% set rsvp.none = rsvp.none + 1 %}{% endif %}
+{% endfor %}
 <div class="max-w-7xl mx-auto px-4 py-4 sm:py-6">
-    {{ page_header(team.name ~ ' vs ' ~ opponent.name,
-                   subtitle='Match Lineup · ' ~ (match.date.strftime('%b %d, %Y') if match.date else 'TBD') ~ (' @ ' ~ match.time.strftime('%I:%M %p') if match.time else '')) }}
+    {% call page_header(team.name ~ ' vs ' ~ opponent.name,
+                   subtitle='Lineup Editor · ' ~ (match.date.strftime('%a %b %d, %Y') if match.date else 'TBD') ~ (' · ' ~ match.time.strftime('%I:%M %p') if match.time else '') ~ (' · ' ~ match.location if match.location else '')) %}
+        <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-400">
+            <i class="ti ti-versions text-ecs-green" aria-hidden="true"></i>
+            <span class="font-mono font-bold text-gray-900 dark:text-white" id="lineupVersion">v{{ lineup.version if lineup else 1 }}</span>
+        </span>
+        <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
+           class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i>
+            <span class="hidden sm:inline">Back to Match</span>
+        </a>
+    {% endcall %}
 
-    {# Meta + coach presence + back action #}
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 mb-4 sm:mb-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600 dark:text-gray-400">
-                {% if match.location %}
-                <span class="inline-flex items-center gap-1.5">
-                    <i class="ti ti-map-pin text-ecs-green" aria-hidden="true"></i>{{ match.location }}
-                </span>
-                {% endif %}
-                <span class="inline-flex items-center gap-1.5">
-                    <i class="ti ti-versions text-ecs-green" aria-hidden="true"></i>
-                    Lineup <span class="font-mono" id="lineupVersion">v{{ lineup.version if lineup else 1 }}</span>
-                </span>
-                <div class="coach-presence" id="coachPresence">
-                    <span class="text-gray-500 dark:text-gray-400">Coaches online:</span>
-                    <div class="flex -space-x-2" id="coachAvatars">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
+    {# RSVP availability KPI band — the load-bearing signal for picking a lineup #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Available</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0" aria-hidden="true"></span>
             </div>
-            <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
-               class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <i class="ti ti-arrow-left" aria-hidden="true"></i>
-                <span>Back to Match</span>
-            </a>
+            <div class="mt-3 flex items-end gap-2">
+                <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ rsvp.yes }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">said yes</span>
+            </div>
         </div>
-    </div>
-
-    {# RSVP Legend #}
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 mb-4 sm:mb-6">
-        <div class="flex flex-wrap items-center gap-4 text-sm">
-            <span class="font-medium text-gray-700 dark:text-gray-300">RSVP Status:</span>
-            <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-green-500" aria-hidden="true"></span>
-                <span class="text-gray-600 dark:text-gray-400">Yes</span>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Maybe</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500 shrink-0" aria-hidden="true"></span>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-yellow-500" aria-hidden="true"></span>
-                <span class="text-gray-600 dark:text-gray-400">Maybe</span>
+            <div class="mt-3 flex items-end gap-2">
+                <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ rsvp.maybe }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">tentative</span>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-red-500" aria-hidden="true"></span>
-                <span class="text-gray-600 dark:text-gray-400">No</span>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Declined</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" aria-hidden="true"></span>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-gray-500" aria-hidden="true"></span>
-                <span class="text-gray-600 dark:text-gray-400">No Response</span>
+            <div class="mt-3 flex items-end gap-2">
+                <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-red-600 dark:text-red-400">{{ rsvp.no }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">said no</span>
+            </div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">No Response</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-gray-400 shrink-0" aria-hidden="true"></span>
+            </div>
+            <div class="mt-3 flex items-end gap-2">
+                <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-700 dark:text-gray-300">{{ rsvp.none }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">silent</span>
             </div>
         </div>
     </div>
@@ -177,14 +188,16 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
         <!-- Available Players Pool -->
         <div class="lg:col-span-4 order-2 lg:order-1">
-            {% call section_card('Available Players', icon='ti-users') %}
-            <div class="lg:sticky lg:top-4">
-                <div class="px-4 pt-3 flex items-center justify-end">
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden lg:sticky lg:top-4">
+                <div class="px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-users text-ecs-green" aria-hidden="true"></i> Player Pool
+                    </h3>
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-ecs-green/10 text-ecs-green" id="availablePlayerCount">
                         {{ roster|length }}
                     </span>
                 </div>
-                <div class="p-4 pt-2">
+                <div class="p-4">
                     <!-- Search -->
                     <div class="mb-3">
                         <div class="relative">
@@ -243,14 +256,33 @@
                         </div>
                         {% endfor %}
                     </div>
+                    {# Coach presence — real-time collaboration signal, populated by JS #}
+                    <div class="coach-presence mt-4 pt-3 border-t border-gray-200 dark:border-gray-700" id="coachPresence">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Coaches online:</span>
+                        <div class="flex -space-x-2" id="coachAvatars">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
                 </div>
-            </div>
-            {% endcall %}
+            </section>
         </div>
 
         <!-- Soccer Pitch -->
         <div class="lg:col-span-8 order-1 lg:order-2 space-y-4 sm:space-y-6">
-            {% call section_card(team.name ~ ' Formation', icon='ti-layout-grid') %}
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                {# Command toolbar: primary object header + live formation chips #}
+                <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-layout-grid text-ecs-green" aria-hidden="true"></i> {{ team.name }} Formation
+                    </h3>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-medium">GK <span class="font-mono font-bold" id="gk-count">0</span></span>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-ecs-green/10 text-ecs-green text-xs font-medium">DEF <span class="font-mono font-bold" id="def-count">0</span></span>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-ecs-green/10 text-ecs-green text-xs font-medium">MID <span class="font-mono font-bold" id="mid-count">0</span></span>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 dark:bg-amber-500/10 text-ecs-gold-500 dark:text-ecs-gold-400 text-xs font-medium">FWD <span class="font-mono font-bold" id="fwd-count">0</span></span>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium">BENCH <span class="font-mono font-bold" id="bench-count">0</span></span>
+                    </div>
+                </div>
                 <div class="p-2 md:p-4">
                     <!-- Soccer Pitch -->
                     <div class="soccer-pitch" id="pitch" data-team-id="{{ team.id }}" data-match-id="{{ match.id }}">
@@ -333,45 +365,28 @@
                         </div>
                     </div>
 
-                    <!-- Formation Stats -->
-                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
-                        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-                            <div class="font-mono text-2xl font-bold text-blue-600 dark:text-blue-400" id="gk-count">0</div>
-                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-1">GK</div>
-                        </div>
-                        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-                            <div class="font-mono text-2xl font-bold text-ecs-green" id="def-count">0</div>
-                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-1">DEF</div>
-                        </div>
-                        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-                            <div class="font-mono text-2xl font-bold text-ecs-green" id="mid-count">0</div>
-                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-1">MID</div>
-                        </div>
-                        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-                            <div class="font-mono text-2xl font-bold text-ecs-gold-500 dark:text-ecs-gold-400" id="fwd-count">0</div>
-                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-1">FWD</div>
-                        </div>
-                        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center col-span-2 sm:col-span-1">
-                            <div class="font-mono text-2xl font-bold text-gray-700 dark:text-gray-300" id="bench-count">0</div>
-                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-1">BENCH</div>
-                        </div>
-                    </div>
                 </div>
-            {% endcall %}
+            </section>
 
             <!-- Notes Section -->
-            {% call section_card('Lineup Notes', icon='ti-notes') %}
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-notes text-ecs-green" aria-hidden="true"></i> Lineup Notes
+                    </h3>
+                </div>
                 <div class="p-4">
                     <textarea id="lineupNotes" rows="3"
                               class="input-ecs w-full text-sm"
                               placeholder="Add notes about rotation, substitution plans, etc...">{{ lineup.notes if lineup else '' }}</textarea>
                     <div class="flex justify-end mt-3">
-                        <button id="saveNotesBtn" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-4 bg-ecs-green text-white rounded-lg text-sm font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <button id="saveNotesBtn" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-4 bg-ecs-green text-white rounded-lg text-sm font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            <i class="ti ti-device-floppy" aria-hidden="true"></i>
                             Save Notes
                         </button>
                     </div>
                 </div>
-            {% endcall %}
+            </section>
         </div>
     </div>
 </div>

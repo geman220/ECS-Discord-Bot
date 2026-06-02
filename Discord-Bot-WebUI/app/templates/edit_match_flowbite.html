@@ -5,56 +5,110 @@
 {% block main_content %}
 {% if shell == 'console' %}
 {% import "macros/_modern_kit.html" as kit %}
-<div class="max-w-2xl mx-auto px-4 py-6 sm:py-8">
+{# Resolve current matchup names from the real `teams` list (Schedule.team_id / Schedule.opponent FKs). #}
+{% set ns = namespace(team_a='Team A', team_b='Team B') %}
+{% for t in teams %}
+  {% if t.id == match.team_id %}{% set ns.team_a = t.name %}{% endif %}
+  {% if t.id == match.opponent %}{% set ns.team_b = t.name %}{% endif %}
+{% endfor %}
+<div class="max-w-5xl mx-auto px-4 py-6 sm:py-8 space-y-5 sm:space-y-6">
+
+    {# ---- Command header: identity + toolbar (back / save the open form) ---- #}
     {% call kit.page_header("Edit Match", subtitle=season.name ~ " · " ~ league_name ~ " League") %}
         <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}"
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-arrow-left" aria-hidden="true"></i>
-            <span>Back to Schedule</span>
+            <span class="hidden sm:inline">Back to Schedule</span>
+            <span class="sm:hidden">Schedule</span>
         </a>
+        <button type="submit" form="edit-match-form"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-check" aria-hidden="true"></i>
+            <span>Save</span>
+        </button>
     {% endcall %}
 
-    {% call kit.section_card("Match Details", icon="ti-calendar-event") %}
-        <form method="POST" action="{{ url_for('publeague.schedule.edit_match', match_id=match.id) }}" class="p-4 sm:p-6 space-y-6">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {# ---- Two-column workspace: form (primary) + record rail (the object's identity card) ---- #}
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6 items-start">
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {# ================= LEFT: the editing form (primary job) ================= #}
+      <form id="edit-match-form" method="POST" action="{{ url_for('publeague.schedule.edit_match', match_id=match.id) }}" class="xl:col-span-2 space-y-5 sm:space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {# ---- Feature card: Matchup — the primary object, header bar + crest avatars ---- #}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-versus text-ecs-green" aria-hidden="true"></i> Matchup
+                </h2>
+                <span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">#{{ match.id }}</span>
+            </div>
+
+            {# Current state, derived from the real Schedule FKs. Avatars use team initials (no opponent branding). #}
+            <div class="px-4 sm:px-6 py-5 flex items-center justify-center gap-3 sm:gap-5 bg-gradient-to-b from-gray-50/60 to-transparent dark:from-gray-700/20">
+                <div class="flex-1 min-w-0 flex items-center justify-end gap-3 text-right">
+                    <div class="min-w-0">
+                        <p class="text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">Team A</p>
+                        <p class="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">{{ ns.team_a }}</p>
+                    </div>
+                    <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full bg-ecs-green/10 text-ecs-green font-mono text-sm font-bold ring-1 ring-ecs-green/20">{{ ns.team_a[0] | upper }}</span>
+                </div>
+                <span class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 font-mono text-xs font-bold text-gray-500 dark:text-gray-400">vs</span>
+                <div class="flex-1 min-w-0 flex items-center gap-3 text-left">
+                    <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-mono text-sm font-bold ring-1 ring-gray-200 dark:ring-gray-600">{{ ns.team_b[0] | upper }}</span>
+                    <div class="min-w-0">
+                        <p class="text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">Team B</p>
+                        <p class="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">{{ ns.team_b }}</p>
+                    </div>
+                </div>
+            </div>
+
+            {# Team selects — the editable matchup. Field names/IDs preserved verbatim. #}
+            <div class="px-4 sm:px-6 py-5 border-t border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label for="edit-match-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Date <span class="text-red-500">*</span>
+                    <label for="teamA" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Team A <span class="text-red-500">*</span>
                     </label>
-                    <input type="date" id="edit-match-date" name="date" value="{{ match.date }}" required class="input-ecs">
+                    <select id="teamA" name="teamA" class="select-ecs">
+                        {% for team in teams %}
+                        <option value="{{ team.id }}" {% if team.id == match.team_id %}selected{% endif %}>{{ team.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div>
-                    <label for="edit-match-time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Time <span class="text-red-500">*</span>
+                    <label for="teamB" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Team B <span class="text-red-500">*</span>
                     </label>
-                    <input type="time" id="edit-match-time" name="time" value="{{ match.time }}" required class="input-ecs">
+                    <select id="teamB" name="teamB" class="select-ecs">
+                        {% for team in teams %}
+                        <option value="{{ team.id }}" {% if team.id == match.opponent %}selected{% endif %}>{{ team.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
+        </section>
 
+        {# ---- Fieldset: When ---- #}
+        {% call kit.section_card("Kickoff", icon="ti-clock") %}
+        <div class="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-                <label for="teamA" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Team A <span class="text-red-500">*</span>
+                <label for="edit-match-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Date <span class="text-red-500">*</span>
                 </label>
-                <select id="teamA" name="teamA" class="select-ecs">
-                    {% for team in teams %}
-                    <option value="{{ team.id }}" {% if team.id == match.team_id %}selected{% endif %}>{{ team.name }}</option>
-                    {% endfor %}
-                </select>
+                <input type="date" id="edit-match-date" name="date" value="{{ match.date }}" required class="input-ecs">
             </div>
-
             <div>
-                <label for="teamB" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Team B <span class="text-red-500">*</span>
+                <label for="edit-match-time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Time <span class="text-red-500">*</span>
                 </label>
-                <select id="teamB" name="teamB" class="select-ecs">
-                    {% for team in teams %}
-                    <option value="{{ team.id }}" {% if team.id == match.opponent %}selected{% endif %}>{{ team.name }}</option>
-                    {% endfor %}
-                </select>
+                <input type="time" id="edit-match-time" name="time" value="{{ match.time }}" required class="input-ecs">
             </div>
+        </div>
+        {% endcall %}
 
+        {# ---- Fieldset: Venue ---- #}
+        {% call kit.section_card("Venue", icon="ti-map-pin") %}
+        <div class="p-4 sm:p-6 space-y-4">
             <div>
                 <label for="edit-match-location" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Location <span class="text-red-500">*</span>
@@ -64,36 +118,100 @@
                     <option value="South" {% if match.location == 'South' %}selected{% endif %}>South</option>
                 </select>
             </div>
-
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label for="edit-match-latitude" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Latitude</label>
+                    <label for="edit-match-latitude" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Latitude <span class="text-gray-400 dark:text-gray-500 font-normal">(optional)</span>
+                    </label>
                     <input type="number" id="edit-match-latitude" name="latitude" step="any"
                            value="{% if match.latitude is not none %}{{ match.latitude }}{% endif %}"
-                           placeholder="e.g., 47.6062" class="input-ecs">
+                           placeholder="e.g., 47.6062" class="input-ecs font-mono">
                 </div>
                 <div>
-                    <label for="edit-match-longitude" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Longitude</label>
+                    <label for="edit-match-longitude" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Longitude <span class="text-gray-400 dark:text-gray-500 font-normal">(optional)</span>
+                    </label>
                     <input type="number" id="edit-match-longitude" name="longitude" step="any"
                            value="{% if match.longitude is not none %}{{ match.longitude }}{% endif %}"
-                           placeholder="e.g., -122.3321" class="input-ecs">
+                           placeholder="e.g., -122.3321" class="input-ecs font-mono">
                 </div>
             </div>
+        </div>
+        {% endcall %}
 
-            <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}"
-                   class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                    <i class="ti ti-arrow-left" aria-hidden="true"></i>
-                    Back
-                </a>
-                <button type="submit"
-                        class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                    <i class="ti ti-check" aria-hidden="true"></i>
-                    Save Changes
-                </button>
+        {# ---- Action bar ---- #}
+        <div class="flex flex-col sm:flex-row sm:justify-end gap-3">
+            <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}"
+               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <i class="ti ti-arrow-left" aria-hidden="true"></i>
+                Back
+            </a>
+            <button type="submit"
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti ti-check" aria-hidden="true"></i>
+                Save Changes
+            </button>
+        </div>
+      </form>
+
+      {# ================= RIGHT: record rail — current persisted state at a glance ================= #}
+      <aside class="xl:col-span-1 space-y-5 sm:space-y-6 xl:sticky xl:top-6">
+        {# Current scheduled state, mono figures, divider footers — read-only mirror of the row being edited. #}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-calendar-event text-ecs-green" aria-hidden="true"></i> Current Booking
+                </h2>
             </div>
-        </form>
-    {% endcall %}
+            <dl class="divide-y divide-gray-200 dark:divide-gray-700">
+                <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Week</dt>
+                    <dd class="font-mono text-sm font-bold text-ecs-green">{{ match.week or '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Date</dt>
+                    <dd class="font-mono text-sm font-bold text-gray-900 dark:text-white truncate">{{ match.date }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Time</dt>
+                    <dd class="font-mono text-sm font-bold text-gray-900 dark:text-white truncate">{{ match.time }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Field</dt>
+                    <dd class="font-mono text-sm font-bold text-gray-900 dark:text-white truncate">{{ match.location }}</dd>
+                </div>
+            </dl>
+            <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-700/20">
+                <p class="text-[11px] text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-link mr-1" aria-hidden="true"></i>Edits update both paired schedule rows.
+                </p>
+            </div>
+        </section>
+
+        {# Provenance — real season/league context, no fabricated metrics. #}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-id text-ecs-green" aria-hidden="true"></i> Context
+                </h2>
+            </div>
+            <dl class="divide-y divide-gray-200 dark:divide-gray-700">
+                <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Match ID</dt>
+                    <dd class="font-mono text-sm font-bold text-gray-900 dark:text-white">#{{ match.id }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">League</dt>
+                    <dd class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ league_name }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Season</dt>
+                    <dd class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ season.name }}</dd>
+                </div>
+            </dl>
+        </section>
+      </aside>
+    </div>
 </div>
 {% else %}
 <div class="container mx-auto px-4 py-8">

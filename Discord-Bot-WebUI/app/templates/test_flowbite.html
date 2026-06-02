@@ -10,19 +10,117 @@
 {% from 'macros/flowbite.html' import card as fb_card, button as fb_button, input as fb_input, select as fb_select, badge as fb_badge, avatar as fb_avatar, spinner as fb_spinner %}
 <div class="space-y-5 sm:space-y-6">
 
-    {{ kit.page_header("Component Test", subtitle="Modern kit & primitives showcase") }}
+    {# ── Command header: page's ONE job is verifying the kit renders ── #}
+    {% call kit.page_header("Design System Reference", subtitle="Modern kit · live component verification") %}
+        <span class="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700
+                     bg-white dark:bg-gray-800 text-xs font-medium text-gray-500 dark:text-gray-400">
+            <i class="ti ti-contrast-2" aria-hidden="true"></i>Theme toggle lives in the top bar
+        </span>
+        <a href="#kit-macros"
+           class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-list-details" aria-hidden="true"></i><span>Macro index</span>
+        </a>
+    {% endcall %}
 
-    {{ kit.alert("info", "This is a test page to verify the Modern design-language kit and Flowbite primitives render correctly.", title="Testing mode") }}
+    {{ kit.alert("info", "Every component below is rendered from the live kit + Flowbite primitives. If the page reads as one coherent product in both light and dark, the system is wired correctly.", title="Verification page") }}
 
-    <!-- Stat Cards Row (kit) -->
-    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {{ kit.stat_card("ti-users", "Total Players", "156", sublabel="+12%", tone="success") }}
-        {{ kit.stat_card("ti-users-group", "Active Teams", "12", tone="primary") }}
-        {{ kit.stat_card("ti-ball-football", "Matches Played", "48", sublabel="-3%", tone="danger") }}
-        {{ kit.stat_card("ti-target", "Goals Scored", "127", tone="gold") }}
+    {# ── KPI band: real, verifiable inventory of the design system (not fabricated domain data) ── #}
+    <section aria-labelledby="kitKpiHead">
+        <h2 id="kitKpiHead" class="sr-only">Design system inventory</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {% call kit.stat_card("ti-components", "Kit macros", "14", tone="primary") %}
+                page_header · stat_card · data_table …
+            {% endcall %}
+            {% call kit.stat_card("ti-forms", "Form primitives", "9", tone="info") %}
+                from <span class="font-mono">flowbite.html</span>
+            {% endcall %}
+            {% call kit.stat_card("ti-palette", "Token families", "2", sublabel="green · gold", tone="gold") %}
+                + zinc neutral scale
+            {% endcall %}
+            {% call kit.stat_card("ti-moon", "Color modes", "2", sublabel="light · dark", tone="success") %}
+                every surface paired
+            {% endcall %}
+        </div>
+    </section>
+
+    {# ── Token swatches: the brand palette, rendered as real surfaces ── #}
+    {% call kit.section_card("Brand & Semantic Tokens", icon="ti-color-swatch") %}
+    <div class="p-4 sm:p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {% set swatches = [
+            ('ECS Green', 'bg-ecs-green', 'primary action'),
+            ('ECS Gold', 'bg-ecs-gold-500', 'highlight only'),
+            ('Info', 'bg-blue-600', 'home / neutral'),
+            ('Success', 'bg-green-600', 'win / yes'),
+            ('Warning', 'bg-amber-500', 'maybe / draw'),
+            ('Danger', 'bg-red-600', 'loss / no')
+        ] %}
+        {% for name, swatch, role in swatches %}
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="{{ swatch }} h-12"></div>
+            <div class="px-3 py-2">
+                <p class="text-xs font-bold text-gray-900 dark:text-white">{{ name }}</p>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate">{{ role }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endcall %}
+
+    {# ── Macro reference: a REAL table with mono signatures ── #}
+    <div id="kit-macros">
+    {% call kit.data_table("Kit Macro Reference", icon="ti-list-details", count="14", filters=false) %}
+        {% set macros = [
+            ('page_header', 'page_header(title, subtitle)', 'In-content page header + actions slot'),
+            ('stat_card', 'stat_card(icon, label, value, …)', 'KPI tile with mono figure'),
+            ('attention_list', 'attention_list(title, count, icon)', 'Action-queue container'),
+            ('attention_item', 'attention_item(icon, label, …)', 'Queue row (severity = icon+text)'),
+            ('section_card', 'section_card(title, icon)', 'Titled content card'),
+            ('data_table', 'data_table(title, icon, count, …)', 'Sortable/filterable responsive table'),
+            ('data_table_th', 'data_table_th(label, key, …)', 'Sortable header cell (aria-sort)'),
+            ('data_table_filter_bar', 'data_table_filter_bar(…)', 'Search + chips filter row'),
+            ('data_table_row_card', 'data_table_row_card(title, …)', 'Mobile card form of a row'),
+            ('empty_state', 'empty_state(icon, title, msg, …)', 'No-data state'),
+            ('skeleton', 'skeleton(rows=3)', 'Loading placeholder'),
+            ('toast', 'toast(id=\'modernToast\')', 'aria-live toast region'),
+            ('alert', 'alert(kind, message, title, …)', 'Inline alert banner'),
+            ('modal', 'modal(id, title, icon, size)', 'Flowbite-native themed modal')
+        ] %}
+        <table class="hidden md:table w-full text-sm">
+            <thead>
+                <tr class="text-left border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+                    {{ kit.data_table_th("Macro", sortable=false) }}
+                    {{ kit.data_table_th("Signature", sortable=false) }}
+                    {{ kit.data_table_th("Purpose", sortable=false, hide="sm") }}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for name, sig, purpose in macros %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td class="px-3 py-2.5">
+                        <span class="font-mono text-xs font-semibold text-ecs-green">{{ name }}</span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                        <code class="font-mono text-xs text-gray-600 dark:text-gray-300">{{ sig }}</code>
+                    </td>
+                    <td class="px-3 py-2.5 hidden lg:table-cell text-gray-500 dark:text-gray-400">{{ purpose }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {% for name, sig, purpose in macros %}
+            <div class="px-4 py-3">
+                <span class="font-mono text-xs font-semibold text-ecs-green">{{ name }}</span>
+                <code class="block mt-1 font-mono text-[11px] text-gray-600 dark:text-gray-300 break-all">{{ sig }}</code>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ purpose }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    {% endcall %}
     </div>
 
-    <!-- Two Column Layout -->
+    {# ── Component galleries: two-up ── #}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
 
         <!-- Buttons (flowbite primitive) -->
@@ -37,12 +135,14 @@
                 {{ fb_button("Ghost", variant="ghost") }}
                 {{ fb_button("Outline", variant="outline") }}
             </div>
-            <div class="flex flex-wrap gap-3">
+            <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <span class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 w-full">Sizes</span>
                 {{ fb_button("Small", variant="primary", size="sm") }}
                 {{ fb_button("Medium", variant="primary", size="md") }}
                 {{ fb_button("Large", variant="primary", size="lg") }}
             </div>
-            <div class="flex flex-wrap gap-3">
+            <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <span class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 w-full">With icons</span>
                 {{ fb_button("With Icon", variant="primary", icon="plus") }}
                 {{ fb_button("Edit", variant="secondary", icon="edit") }}
                 {{ fb_button("Delete", variant="danger", icon="trash") }}
@@ -62,15 +162,31 @@
                 {{ fb_badge("Danger", variant="danger") }}
                 {{ fb_badge("Info", variant="info") }}
             </div>
-            <div class="flex flex-wrap gap-3">
+            <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <span class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 w-full">Status dots</span>
                 {{ fb_badge("Online", variant="success", dot=true) }}
                 {{ fb_badge("Away", variant="warning", dot=true) }}
                 {{ fb_badge("Offline", variant="danger", dot=true) }}
+            </div>
+            <div class="flex flex-wrap items-center gap-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <span class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 w-full">Avatars</span>
+                {{ fb_avatar(size="xs", fallback="A") }}
+                {{ fb_avatar(size="sm", fallback="B") }}
+                {{ fb_avatar(size="md", fallback="C", status="online") }}
+                {{ fb_avatar(size="lg", fallback="D", status="away") }}
+                {{ fb_avatar(size="xl", fallback="E", status="offline") }}
             </div>
         </div>
         {% endcall %}
 
     </div>
+
+    {# ── Attention-queue gallery: severity rows (kit) ── #}
+    {% call kit.attention_list("Attention Queue Demo", count="3", icon="ti-alert-triangle") %}
+        {{ kit.attention_item("ti-user-check", "Critical severity row — icon + word, never color-only", "8", "critical", "#", age="oldest 3 days ago") }}
+        {{ kit.attention_item("ti-checkup-list", "Warning severity row", "14", "warning", "#", age="of 25 this week") }}
+        {{ kit.attention_item("ti-info-circle", "Notice severity row", "5", "notice", "#") }}
+    {% endcall %}
 
     <!-- Form Elements (flowbite primitives) -->
     {% call kit.section_card("Form Elements", icon="ti-forms") %}
@@ -90,31 +206,46 @@
     </form>
     {% endcall %}
 
-    <!-- Avatars (flowbite primitive) -->
-    {% call kit.section_card("Avatar Examples", icon="ti-user-circle") %}
-    <div class="p-4 sm:p-5">
-        <div class="flex items-center gap-4">
-            {{ fb_avatar(size="xs", fallback="A") }}
-            {{ fb_avatar(size="sm", fallback="B") }}
-            {{ fb_avatar(size="md", fallback="C", status="online") }}
-            {{ fb_avatar(size="lg", fallback="D", status="away") }}
-            {{ fb_avatar(size="xl", fallback="E", status="offline") }}
-        </div>
-    </div>
-    {% endcall %}
+    <!-- States: alerts + empty + loading -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
 
-    <!-- Alerts (kit) -->
-    {% call kit.section_card("Alert Variants", icon="ti-bell") %}
-    <div class="p-4 sm:p-5 space-y-3">
-        {{ kit.alert("info", "This is an info message.") }}
-        {{ kit.alert("success", "Operation completed successfully!") }}
-        {{ kit.alert("warning", "Please review your input.") }}
-        {{ kit.alert("danger", "An error occurred. Please try again.") }}
+        <!-- Alerts (kit) -->
+        {% call kit.section_card("Alert Variants", icon="ti-bell") %}
+        <div class="p-4 sm:p-5 space-y-3">
+            {{ kit.alert("info", "This is an info message.") }}
+            {{ kit.alert("success", "Operation completed successfully!") }}
+            {{ kit.alert("warning", "Please review your input.") }}
+            {{ kit.alert("danger", "An error occurred. Please try again.") }}
+        </div>
+        {% endcall %}
+
+        <!-- Loading + skeleton (kit + flowbite primitive) -->
+        {% call kit.section_card("Loading States", icon="ti-loader") %}
+        <div class="p-4 sm:p-5">
+            <div class="flex items-center gap-6">
+                <div class="text-center">
+                    {{ fb_spinner(size="sm") }}
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 font-mono">sm</p>
+                </div>
+                <div class="text-center">
+                    {{ fb_spinner(size="md") }}
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 font-mono">md</p>
+                </div>
+                <div class="text-center">
+                    {{ fb_spinner(size="lg") }}
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 font-mono">lg</p>
+                </div>
+            </div>
+        </div>
+        <div class="border-t border-gray-200 dark:border-gray-700">
+            {{ kit.skeleton(rows=2) }}
+        </div>
+        {% endcall %}
+
     </div>
-    {% endcall %}
 
     <!-- Empty State (kit) -->
-    {% call kit.section_card("Empty State Example", icon="ti-mood-empty") %}
+    {% call kit.section_card("Empty State", icon="ti-mood-empty") %}
     {{ kit.empty_state(
         "ti-calendar-off",
         "No matches scheduled",
@@ -123,43 +254,9 @@
     ) }}
     {% endcall %}
 
-    <!-- Loading Spinner (flowbite primitive) -->
-    {% call kit.section_card("Loading States", icon="ti-loader") %}
-    <div class="p-4 sm:p-5">
-        <div class="flex items-center gap-6">
-            <div class="text-center">
-                {{ fb_spinner(size="sm") }}
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Small</p>
-            </div>
-            <div class="text-center">
-                {{ fb_spinner(size="md") }}
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Medium</p>
-            </div>
-            <div class="text-center">
-                {{ fb_spinner(size="lg") }}
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Large</p>
-            </div>
-        </div>
-    </div>
-    {% endcall %}
-
-    <!-- Skeleton (kit) -->
-    {% call kit.section_card("Skeleton Loader", icon="ti-layout-list") %}
-    {{ kit.skeleton(rows=3) }}
-    {% endcall %}
-
-    <!-- Dark Mode Test -->
-    {% call kit.section_card("Dark Mode Test", icon="ti-moon") %}
-    <div class="p-4 sm:p-5">
-        <p class="text-gray-700 dark:text-gray-300">
-            This text should change color between light and dark mode.
-            The cards, inputs, and all components should adapt automatically.
-        </p>
-        <div class="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
-            <p class="text-gray-800 dark:text-gray-200">This box has a different background in dark mode.</p>
-        </div>
-    </div>
-    {% endcall %}
+    <p class="text-center text-xs text-gray-500 dark:text-gray-400 font-mono pt-2">
+        ECS FC · Modern design-system reference · all components are live (no placeholder data)
+    </p>
 
 </div>
 {% else %}

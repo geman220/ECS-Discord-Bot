@@ -171,11 +171,30 @@ def mls_overview():
             MLSMatch.date_time <= future_cutoff
         ).order_by(MLSMatch.date_time).limit(10).all()
 
+        # Attach live-reporting telemetry (score, events posted, last ESPN sync)
+        # from the persisted LiveReportingSession records, keyed by MLSMatch.match_id.
+        from app.models import LiveReportingSession
+        match_id_keys = [str(m.match_id) for m in visible_matches]
+        live_sessions = {}
+        if match_id_keys:
+            live_sessions = {
+                s.match_id: s
+                for s in session.query(LiveReportingSession).filter(
+                    LiveReportingSession.is_active.is_(True),
+                    LiveReportingSession.match_id.in_(match_id_keys)
+                ).all()
+            }
+
         # Add status data for display
         for match in visible_matches:
             match.status_color = get_status_color(match.live_reporting_status)
             match.status_icon = get_status_icon(match.live_reporting_status)
             match.status_display = get_status_display(match.live_reporting_status)
+
+            live_session = live_sessions.get(str(match.match_id))
+            match.live_score = live_session.last_score if live_session else None
+            match.live_events_posted = live_session.update_count if live_session else None
+            match.live_last_sync = live_session.last_update if live_session else None
 
         stats = {
             'total_matches': total_matches,

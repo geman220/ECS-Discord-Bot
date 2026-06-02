@@ -14,13 +14,22 @@
 
 {% block panel_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
 {% from 'macros/flowbite.html' import button, badge %}
+{% set s_total = stats.total or 0 %}
+{% set s_not_started = stats.not_started or 0 %}
+{% set s_pending = stats.pending or 0 %}
+{% set s_partial = stats.partial or 0 %}
+{% set s_linked = stats.fully_linked or 0 %}
+{% set s_cancelled = stats.cancelled or 0 %}
+{% set needs_work = s_not_started + s_pending + s_partial %}
+{% set linkable = s_total - s_cancelled %}
+{% set pct_linked = ((s_linked / linkable) * 100) | round | int if linkable > 0 else 0 %}
 <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8 space-y-6">
-    {% call page_header("Pub League Orders", subtitle="WooCommerce orders for Pub League pass linking") %}
+    {% call page_header("Pub League Orders", subtitle="WooCommerce · pass linking queue") %}
         <button type="button" data-collapse-toggle="productUrlSettings"
                 class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-settings text-base" aria-hidden="true"></i> Product URLs
+            <i class="ti ti-link text-base" aria-hidden="true"></i> Product URLs
         </button>
     {% endcall %}
 
@@ -76,14 +85,90 @@
         {% endcall %}
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        {{ stat_card("ti-receipt", "Total", stats.total or 0, tone="info") }}
-        {{ stat_card("ti-clock", "Not Started", stats.not_started or 0, tone="neutral") }}
-        {{ stat_card("ti-clock-pause", "Pending", stats.pending or 0, tone="warning") }}
-        {{ stat_card("ti-progress", "Partial", stats.partial or 0, tone="warning") }}
-        {{ stat_card("ti-circle-check", "Linked", stats.fully_linked or 0, tone="success") }}
-        {{ stat_card("ti-circle-x", "Cancelled", stats.cancelled or 0, tone="danger") }}
+    <!-- KPI band: lead with the linking queue (the page's primary job) -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+        <!-- Hero: orders awaiting linking work -->
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 flex flex-col">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Needs Linking</span>
+                <i class="ti ti-progress-alert text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 flex items-end gap-2">
+                <span class="font-mono text-5xl font-bold leading-none {{ 'text-amber-600 dark:text-amber-400' if needs_work else 'text-gray-900 dark:text-white' }}">{{ needs_work }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mb-1.5">of {{ s_total }} orders open</span>
+            </div>
+            <div class="mt-4 grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700 pt-3 -mx-1">
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='not_started') }}" class="px-1 group focus:outline-none">
+                    <span class="block text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 group-hover:text-ecs-green transition-colors">Not Started</span>
+                    <span class="block font-mono text-xl font-bold text-gray-900 dark:text-white">{{ s_not_started }}</span>
+                </a>
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='pending') }}" class="px-1 group focus:outline-none">
+                    <span class="block text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 group-hover:text-ecs-green transition-colors">Pending</span>
+                    <span class="block font-mono text-xl font-bold text-amber-600 dark:text-amber-400">{{ s_pending }}</span>
+                </a>
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='partially_linked') }}" class="px-1 group focus:outline-none">
+                    <span class="block text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 group-hover:text-ecs-green transition-colors">Partial</span>
+                    <span class="block font-mono text-xl font-bold text-orange-600 dark:text-orange-400">{{ s_partial }}</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Linking progress + lifecycle figures -->
+        <div class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 flex flex-col">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Fully Linked</span>
+                    <div class="mt-1 flex items-end gap-2">
+                        <span class="font-mono text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ s_linked }}</span>
+                        <span class="font-mono text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">{{ pct_linked }}%</span>
+                    </div>
+                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">of {{ linkable }} non-cancelled orders</p>
+                </div>
+                <div class="flex items-stretch gap-0 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="px-4 py-2 text-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                        <span class="block text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Total</span>
+                        <span class="block font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ s_total }}</span>
+                    </a>
+                    <a href="{{ url_for('pub_league_orders_admin.orders_list', status='cancelled') }}" class="px-4 py-2 text-center border-l border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                        <span class="block text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Cancelled</span>
+                        <span class="block font-mono text-2xl font-bold text-red-600 dark:text-red-400">{{ s_cancelled }}</span>
+                    </a>
+                </div>
+            </div>
+            <!-- Lifecycle breakdown (each segment links to its filtered view) -->
+            <div class="mt-5 pt-4 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700">
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='fully_linked') }}" class="flex items-center gap-2 px-1 py-2 sm:pl-0 sm:pr-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
+                    <span class="w-2.5 h-2.5 rounded-sm bg-green-500 dark:bg-green-400 shrink-0" aria-hidden="true"></span>
+                    <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 flex-1 truncate">Linked</span>
+                    <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ s_linked }}</span>
+                </a>
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='partially_linked') }}" class="flex items-center gap-2 px-1 py-2 sm:px-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
+                    <span class="w-2.5 h-2.5 rounded-sm bg-orange-400 dark:bg-orange-500 shrink-0" aria-hidden="true"></span>
+                    <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 flex-1 truncate">Partial</span>
+                    <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ s_partial }}</span>
+                </a>
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='pending') }}" class="flex items-center gap-2 px-1 py-2 sm:px-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
+                    <span class="w-2.5 h-2.5 rounded-sm bg-amber-400 dark:bg-amber-500 shrink-0" aria-hidden="true"></span>
+                    <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 flex-1 truncate">Pending</span>
+                    <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ s_pending }}</span>
+                </a>
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='not_started') }}" class="flex items-center gap-2 px-1 py-2 sm:pl-0 sm:pr-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
+                    <span class="w-2.5 h-2.5 rounded-sm bg-gray-400 dark:bg-gray-500 shrink-0" aria-hidden="true"></span>
+                    <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 flex-1 truncate">Not Started</span>
+                    <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ s_not_started }}</span>
+                </a>
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='cancelled') }}" class="flex items-center gap-2 px-1 py-2 sm:px-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
+                    <span class="w-2.5 h-2.5 rounded-sm bg-red-400 dark:bg-red-500 shrink-0" aria-hidden="true"></span>
+                    <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 flex-1 truncate">Cancelled</span>
+                    <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ s_cancelled }}</span>
+                </a>
+                <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="flex items-center gap-2 px-1 py-2 sm:px-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
+                    <span class="w-2.5 h-2.5 rounded-sm bg-ecs-green shrink-0" aria-hidden="true"></span>
+                    <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 flex-1 truncate">All</span>
+                    <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ s_total }}</span>
+                </a>
+            </div>
+        </div>
     </div>
 
     <!-- Filters + Orders -->
@@ -183,7 +268,10 @@
                         {% endif %}
                     </td>
                     <td class="px-3 py-3">
-                        <span class="font-mono font-medium {{ 'text-green-600 dark:text-green-400' if order.linked_passes == order.total_passes else 'text-gray-900 dark:text-white' }}">{{ order.linked_passes }}/{{ order.total_passes }}</span>
+                        {% set complete = order.total_passes > 0 and order.linked_passes == order.total_passes %}
+                        <span class="inline-flex items-center gap-1.5 font-mono text-xs font-semibold tabular-nums {{ 'text-green-600 dark:text-green-400' if complete else 'text-gray-900 dark:text-white' }}">
+                            {% if complete %}<i class="ti ti-circle-check-filled text-[14px]" aria-hidden="true"></i>{% endif %}{{ order.linked_passes }}/{{ order.total_passes }}
+                        </span>
                     </td>
                     <td class="px-3 py-3 hidden lg:table-cell">
                         {% if order.season_name %}

@@ -34,6 +34,55 @@ from app.duplicate_prevention import (
 logger = logging.getLogger(__name__)
 
 
+def waitlist_confirmation_id(user):
+    """Deterministic display ID for a waitlist signup, e.g. ``WL-2026-04817``.
+
+    Derived from the year the user joined the waitlist plus their zero-padded
+    user id, so the same person always sees the same reference (no extra column
+    needed). Used on the confirmation page and in the confirmation email.
+    """
+    joined = getattr(user, 'waitlist_joined_at', None) or getattr(user, 'created_at', None)
+    year = joined.year if joined else datetime.utcnow().year
+    return f"WL-{year}-{user.id:05d}"
+
+
+def compute_waitlist_position(db_session, user):
+    """Return (position, total) for a user in the global waitlist, ordered by
+    join time (earliest = #1). Ties broken by user id for stability. Returns
+    (None, None) if the user isn't on the waitlist or the role doesn't exist."""
+    from sqlalchemy import or_, and_
+    if not getattr(user, 'waitlist_joined_at', None):
+        return None, None
+    waitlist_role = db_session.query(Role).filter_by(name='pl-waitlist').first()
+    if not waitlist_role:
+        return None, None
+    base = db_session.query(User).filter(
+        User.roles.contains(waitlist_role),
+        User.waitlist_joined_at.isnot(None),
+    )
+    total = base.count()
+    ahead = base.filter(
+        or_(
+            User.waitlist_joined_at < user.waitlist_joined_at,
+            and_(
+                User.waitlist_joined_at == user.waitlist_joined_at,
+                User.id < user.id,
+            ),
+        )
+    ).count()
+    return ahead + 1, total
+
+
+def _enqueue_waitlist_confirmation_email(user_id):
+    """Fire-and-forget the confirmation email. Never let a Celery/broker hiccup
+    break the registration flow — the user is already on the waitlist."""
+    try:
+        from app.tasks.tasks_waitlist import send_waitlist_confirmation_email
+        send_waitlist_confirmation_email.delay(user_id)
+    except Exception as e:
+        logger.error(f"Could not enqueue waitlist confirmation email for user {user_id}: {e}")
+
+
 @auth.route('/waitlist_register', methods=['GET', 'POST'])
 @transactional
 def waitlist_register():
@@ -156,6 +205,9 @@ def waitlist_status():
     # Get Discord server info
     discord_server_url = current_app.config.get('DISCORD_SERVER_URL', 'https://discord.gg/weareecs')
 
+    # Position in line (global, ordered by join time). None when not computable.
+    waitlist_position, waitlist_total = compute_waitlist_position(db_session, user)
+
     return render_template('waitlist_status_flowbite.html',
         title='Waitlist Status',
         user=user,
@@ -164,7 +216,10 @@ def waitlist_status():
         approval_status=user.approval_status,
         approval_league=user.approval_league,
         is_returning_player=is_returning_player,
-        discord_server_url=discord_server_url
+        discord_server_url=discord_server_url,
+        waitlist_position=waitlist_position,
+        waitlist_total=waitlist_total,
+        confirmation_id=waitlist_confirmation_id(user)
     )
 
 
@@ -401,6 +456,9 @@ def _handle_existing_user_waitlist(db_session, existing_user, discord_id, discor
     login_user(existing_user, remember=True)
     update_last_login(existing_user)
 
+    # Send confirmation email (background; includes their reference ID)
+    _enqueue_waitlist_confirmation_email(existing_user.id)
+
     # Clear session data
     _clear_waitlist_session()
 
@@ -510,6 +568,9 @@ def _handle_new_user_waitlist(db_session, discord_email, discord_id, discord_use
     # Log the user in
     login_user(new_user, remember=True)
     update_last_login(new_user)
+
+    # Send confirmation email (background; includes their reference ID)
+    _enqueue_waitlist_confirmation_email(new_user.id)
 
     # Clear session data
     _clear_waitlist_session()
@@ -726,6 +787,11 @@ def waitlist_confirmation():
                 discord_error = f"Error checking Discord membership: {str(e)}"
                 logger.error(f"Discord membership check error for user {safe_current_user.id}: {discord_error}")
 
+    confirmation_id = None
+    if safe_current_user.is_authenticated:
+        confirmation_id = waitlist_confirmation_id(safe_current_user)
+
     return render_template('waitlist_confirmation_flowbite.html',
                            discord_membership_status=discord_membership_status,
-                           discord_error=discord_error)
+                           discord_error=discord_error,
+                           confirmation_id=confirmation_id)

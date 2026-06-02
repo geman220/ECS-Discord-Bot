@@ -22,152 +22,252 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state as kit_empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state as kit_empty_state %}
 {% set _tpl_count = templates|length if templates else 0 %}
 {% set _default_count = (templates|selectattr('is_default')|list|length) if templates else 0 %}
-{% set _category_count = (templates|map(attribute='category')|select|unique|list|length) if templates else 0 %}
+{% set _categories = (templates|map(attribute='category')|select|unique|list) if templates else [] %}
+{% set _category_count = _categories|length %}
+{% set _uncat_count = (templates|rejectattr('category')|list|length) if templates else 0 %}
 <div class="space-y-6">
 
-  {{ page_header('Prompt Templates', subtitle='Manage reusable AI prompt templates for quick configuration') }}
+  {% call page_header('Prompt Templates', subtitle='AI PROMPTS · TEMPLATE LIBRARY') %}
+    <a href="{{ url_for('ai_prompts.list_prompts') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
+              bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
+              text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i> <span class="hidden sm:inline">Back to Prompts</span>
+    </a>
+    <button type="button" id="createTemplateBtn"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-plus" aria-hidden="true"></i> Create Template
+    </button>
+  {% endcall %}
 
-  <!-- Header actions -->
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-    <p class="text-sm text-gray-500 dark:text-gray-400">Save and reuse your favorite prompt configurations.</p>
-    <div class="flex items-center gap-2">
-      <a href="{{ url_for('ai_prompts.list_prompts') }}"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
-                bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
-                text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-                focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Prompts
-      </a>
-      <button type="button" id="createTemplateBtn"
-              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
-                     bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-        <i class="ti ti-plus" aria-hidden="true"></i> Create Template
-      </button>
+  <!-- KPI / status band (bullet-style, mono figures grounded in real data) -->
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-gray-200 dark:divide-gray-700">
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center gap-1.5 text-ecs-green">
+          <i class="ti ti-template text-[13px]" aria-hidden="true"></i>
+          <span class="text-[11px] font-bold uppercase tracking-wide">Templates</span>
+        </div>
+        <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-none">{{ _tpl_count }}</div>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">reusable prompt configs</p>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center gap-1.5 text-ecs-gold-600 dark:text-ecs-gold-400">
+          <i class="ti ti-star-filled text-[13px]" aria-hidden="true"></i>
+          <span class="text-[11px] font-bold uppercase tracking-wide">Defaults</span>
+        </div>
+        <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-ecs-gold-600 dark:text-ecs-gold-400 leading-none">{{ _default_count }}</div>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">auto-applied by category</p>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+          <i class="ti ti-category text-[13px]" aria-hidden="true"></i>
+          <span class="text-[11px] font-bold uppercase tracking-wide">Categories</span>
+        </div>
+        <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 leading-none">{{ _category_count }}</div>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">distinct config groups</p>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+          <i class="ti ti-folder-question text-[13px]" aria-hidden="true"></i>
+          <span class="text-[11px] font-bold uppercase tracking-wide">Uncategorized</span>
+        </div>
+        <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-none">{{ _uncat_count }}</div>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">need a category</p>
+      </div>
     </div>
   </div>
 
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-    {{ stat_card('ti-template', 'Templates', _tpl_count, tone='primary') }}
-    {{ stat_card('ti-star-filled', 'Defaults', _default_count, tone='gold') }}
-    {{ stat_card('ti-category', 'Categories', _category_count, tone='info') }}
+  {% if templates %}
+  <!-- Command toolbar -->
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 sm:px-4 py-3
+              flex flex-col sm:flex-row sm:items-center gap-3">
+    <div class="flex items-center gap-2 shrink-0">
+      <i class="ti ti-stack-2 text-ecs-green" aria-hidden="true"></i>
+      <span class="text-sm font-bold text-gray-900 dark:text-white">Library</span>
+      <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-ecs-green/15 text-ecs-green">{{ _tpl_count }}</span>
+    </div>
+    <div class="relative flex-1 min-w-0">
+      <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
+      <input type="text" id="templateFilter" autocomplete="off"
+             placeholder="Filter by name, category, or description…"
+             class="w-full pl-9 pr-3 min-h-[44px] sm:min-h-0 sm:h-9 rounded-lg text-sm
+                    bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600
+                    text-gray-900 dark:text-white placeholder-gray-400
+                    focus:outline-none focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+    </div>
+    <div class="hidden sm:flex items-center gap-1.5 shrink-0 text-[11px] font-mono uppercase tracking-wide text-gray-400 dark:text-gray-500">
+      <i class="ti ti-arrows-sort text-[12px]" aria-hidden="true"></i> grouped by category
+    </div>
   </div>
 
-  <!-- Templates Grid -->
-  {% if templates %}
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-    {% for template in templates %}
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
-      <!-- Template Header -->
-      <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
-        <div class="flex items-start justify-between gap-2">
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="w-10 h-10 rounded-lg bg-ecs-green/10 flex items-center justify-center shrink-0">
-              <i class="ti ti-brain text-ecs-green text-xl" aria-hidden="true"></i>
+  <!-- Category-grouped template library -->
+  {% set _groups = _categories + ([none] if _uncat_count else []) %}
+  <div class="space-y-7" id="templateLibrary">
+    {% for cat in _groups %}
+    {% set _cat_templates = templates|selectattr('category', 'equalto', cat)|list %}
+    <section data-template-group="{{ cat or 'uncategorized' }}">
+      <!-- Category divider (mono eyebrow + h-px rule, concept date-group pattern) -->
+      <div class="flex items-center gap-3 mb-3">
+        <span class="font-mono text-xs font-bold uppercase tracking-wider text-ecs-green shrink-0">
+          {{ (cat or 'uncategorized')|replace('_', ' ') }}
+        </span>
+        <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 shrink-0">
+          {{ _cat_templates|length }}
+        </span>
+        <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+        {% for template in _cat_templates %}
+        {% set _is_map = template.template_data is mapping %}
+        {% set _keys = template.template_data.keys()|list if _is_map else [] %}
+        {% set _key_count = _keys|length if _is_map else (template.template_data|length if template.template_data is string else 0) %}
+        <article data-template-card
+                 data-search="{{ (template.name ~ ' ' ~ (template.category or '') ~ ' ' ~ (template.description or ''))|lower }}"
+                 class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col
+                        hover:border-ecs-green/50 hover:shadow-sm transition-all">
+          <!-- Header bar -->
+          <div class="flex items-center gap-3 px-4 h-14 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+            <div class="w-9 h-9 rounded-lg bg-ecs-green/10 flex items-center justify-center shrink-0">
+              <i class="ti ti-brain text-ecs-green text-lg" aria-hidden="true"></i>
             </div>
-            <div class="min-w-0">
-              <h3 class="font-semibold text-gray-900 dark:text-white truncate">{{ template.name }}</h3>
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                {{ template.category }}
+            <div class="min-w-0 flex-1">
+              <h3 class="font-bold text-gray-900 dark:text-white truncate leading-tight">{{ template.name }}</h3>
+              <p class="text-[11px] font-mono uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">
+                <span class="text-gray-400 dark:text-gray-500">#</span><span>{{ '%03d'|format(template.id) }}</span>
+                · {{ template.category or 'uncategorized' }}
+              </p>
+            </div>
+            {% if template.is_default %}
+            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide
+                         bg-ecs-gold/15 text-ecs-gold-600 dark:text-ecs-gold-400">
+              <i class="ti ti-star-filled text-[11px]" aria-hidden="true"></i> Default
+            </span>
+            {% endif %}
+          </div>
+
+          <!-- Body -->
+          <div class="p-4 flex flex-col flex-1">
+            <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 min-h-[2.5rem]">
+              {{ template.description or 'No description available' }}
+            </p>
+
+            <!-- Config preview: real key→value pairs from JSON template_data -->
+            {% if _keys %}
+            <dl class="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+              {% for k in _keys[:3] %}
+              {% set _v = template.template_data[k] %}
+              <div class="flex items-center gap-2 px-2.5 py-1.5">
+                <dt class="font-mono text-[11px] text-gray-500 dark:text-gray-400 truncate shrink-0 max-w-[45%]">{{ k }}</dt>
+                <dd class="font-mono text-[11px] text-gray-800 dark:text-gray-200 truncate ml-auto text-right min-w-0">
+                  {% if _v is mapping or _v is iterable and _v is not string %}{ … }{% else %}{{ _v }}{% endif %}
+                </dd>
+              </div>
+              {% endfor %}
+              {% if _keys|length > 3 %}
+              <div class="px-2.5 py-1 text-center font-mono text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                +{{ _keys|length - 3 }} more {{ 'field' if _keys|length - 3 == 1 else 'fields' }}
+              </div>
+              {% endif %}
+            </dl>
+            {% elif template.template_data %}
+            <div class="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 px-2.5 py-2">
+              <p class="font-mono text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2 break-all">{{ template.template_data }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Mono meta footer with divider -->
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span class="inline-flex items-center gap-1">
+                <i class="ti ti-adjustments" aria-hidden="true"></i>
+                <span class="font-mono">{{ _key_count }}</span> {{ 'fields' if _is_map else 'chars' }}
+              </span>
+              <span class="inline-flex items-center gap-1">
+                <i class="ti ti-calendar" aria-hidden="true"></i>
+                <span class="font-mono">{{ template.created_at.strftime('%b %d, %Y') if template.created_at else 'N/A' }}</span>
               </span>
             </div>
+
+            <!-- Command toolbar -->
+            <div class="mt-4 flex items-center gap-2">
+              <button type="button"
+                      class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                             bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                             focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                      data-action="use-template" data-template-id="{{ template.id }}">
+                <i class="ti ti-plus" aria-hidden="true"></i> New Prompt
+              </button>
+              <button type="button"
+                      class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg
+                             text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300
+                             border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700
+                             focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      data-action="view-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-template-desc="{{ template.description }}" data-template-data="{{ template.template_data }}"
+                      aria-label="View template details">
+                <i class="ti ti-eye" aria-hidden="true"></i>
+              </button>
+              <button type="button"
+                      class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg
+                             text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400
+                             border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700
+                             focus:outline-none focus:ring-2 focus:ring-red-500"
+                      data-action="delete-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}"
+                      aria-label="Delete template">
+                <i class="ti ti-trash" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            <!-- Apply-to-active row -->
+            <div class="mt-2 flex items-center gap-2">
+              <select class="flex-1 text-xs bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-ecs-green focus:border-ecs-green p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[44px] sm:min-h-0"
+                      data-apply-select="{{ template.id }}" aria-label="Apply template to prompt type">
+                <option value="">Apply to active...</option>
+                <option value="match_thread_context">Match Thread Context</option>
+                <option value="pre_match_hype">Pre-Match Hype</option>
+                <option value="half_time_message">Half Time Message</option>
+                <option value="full_time_message">Full Time Message</option>
+                <option value="match_commentary">Match Commentary</option>
+                <option value="goal">Goal Event</option>
+                <option value="sounders_goal">Sounders Goal</option>
+                <option value="opponent_goal">Opponent Goal</option>
+                <option value="card">Card Event</option>
+                <option value="sounders_red_card">Sounders Red Card</option>
+                <option value="opponent_red_card">Opponent Red Card</option>
+                <option value="substitution">Substitution</option>
+                <option value="rivalry">Rivalry Match</option>
+              </select>
+              <button type="button"
+                      class="inline-flex items-center justify-center gap-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-xs font-semibold
+                             text-blue-700 bg-blue-50 border border-blue-300 hover:bg-blue-100
+                             dark:text-blue-300 dark:bg-blue-900/30 dark:border-blue-700 dark:hover:bg-blue-900/50 transition-colors
+                             focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      data-action="apply-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}">
+                <i class="ti ti-plug" aria-hidden="true"></i> Apply
+              </button>
+            </div>
           </div>
-          {% if template.is_default %}
-          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-gold/20 text-ecs-gold-600 dark:text-ecs-gold-400">
-            <i class="ti ti-star-filled" aria-hidden="true"></i> Default
-          </span>
-          {% endif %}
-        </div>
+        </article>
+        {% endfor %}
       </div>
-
-      <!-- Template Body -->
-      <div class="p-4 flex flex-col flex-1">
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-          {{ template.description or 'No description available' }}
-        </p>
-
-        <!-- Template Stats -->
-        <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-4">
-          {% if template.template_data %}
-          <span class="flex items-center gap-1">
-            <i class="ti ti-code" aria-hidden="true"></i>
-            <span class="font-mono">{{ template.template_data|length if template.template_data is string else 'Custom' }}</span> chars
-          </span>
-          {% endif %}
-          <span class="flex items-center gap-1">
-            <i class="ti ti-calendar" aria-hidden="true"></i>
-            <span class="font-mono">{{ template.created_at.strftime('%b %d, %Y') if template.created_at else 'N/A' }}</span>
-          </span>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex items-center gap-2 mb-2 mt-auto">
-          <button type="button"
-                  class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
-                         bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                  data-action="use-template" data-template-id="{{ template.id }}">
-            <i class="ti ti-plus" aria-hidden="true"></i> New Prompt
-          </button>
-          <button type="button"
-                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg
-                         text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300
-                         border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700
-                         focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                  data-action="view-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-template-desc="{{ template.description }}" data-template-data="{{ template.template_data }}"
-                  aria-label="View template details">
-            <i class="ti ti-eye" aria-hidden="true"></i>
-          </button>
-          <button type="button"
-                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg
-                         text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400
-                         border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700
-                         focus:outline-none focus:ring-2 focus:ring-red-500"
-                  data-action="delete-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}"
-                  aria-label="Delete template">
-            <i class="ti ti-trash" aria-hidden="true"></i>
-          </button>
-        </div>
-        <!-- Apply to Prompt Type -->
-        <div class="flex items-center gap-2">
-          <select class="flex-1 text-xs bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-ecs-green focus:border-ecs-green p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  data-apply-select="{{ template.id }}" aria-label="Apply template to prompt type">
-            <option value="">Apply to active...</option>
-            <option value="match_thread_context">Match Thread Context</option>
-            <option value="pre_match_hype">Pre-Match Hype</option>
-            <option value="half_time_message">Half Time Message</option>
-            <option value="full_time_message">Full Time Message</option>
-            <option value="match_commentary">Match Commentary</option>
-            <option value="goal">Goal Event</option>
-            <option value="sounders_goal">Sounders Goal</option>
-            <option value="opponent_goal">Opponent Goal</option>
-            <option value="card">Card Event</option>
-            <option value="sounders_red_card">Sounders Red Card</option>
-            <option value="opponent_red_card">Opponent Red Card</option>
-            <option value="substitution">Substitution</option>
-            <option value="rivalry">Rivalry Match</option>
-          </select>
-          <button type="button"
-                  class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg text-xs font-semibold
-                         text-blue-700 bg-blue-50 border border-blue-300 hover:bg-blue-100
-                         dark:text-blue-300 dark:bg-blue-900/30 dark:border-blue-700 dark:hover:bg-blue-900/50 transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  data-action="apply-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}">
-            <i class="ti ti-plug" aria-hidden="true"></i> Apply
-          </button>
-        </div>
-      </div>
-    </div>
+    </section>
     {% endfor %}
+
+    <!-- No-results state (shown by filter JS) -->
+    <div id="templateFilterEmpty" class="hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      {{ kit_empty_state('ti-search-off', 'No matches', 'No templates match your filter. Try a different term.') }}
+    </div>
   </div>
   {% else %}
-  {% call section_card('Templates', icon='ti-template') %}
-    {{ kit_empty_state('ti-template', 'No Templates Available', 'Create your first prompt template to save time when configuring AI prompts.') }}
-    <div class="px-6 pb-8 -mt-4 flex justify-center">
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    {{ kit_empty_state('ti-template', 'No Templates Yet', 'Create your first prompt template to save time when configuring AI prompts.') }}
+    <div class="px-6 pb-10 -mt-4 flex justify-center">
       <button type="button" id="createFirstTemplateBtn"
               class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
                      bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
@@ -175,41 +275,8 @@
         <i class="ti ti-plus" aria-hidden="true"></i> Create First Template
       </button>
     </div>
-  {% endcall %}
+  </section>
   {% endif %}
-
-  <!-- Quick Tips Card -->
-  {% call section_card('Template Tips', icon='ti-bulb') %}
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 p-4 sm:p-5">
-      <div class="flex items-start gap-4">
-        <div class="p-3 bg-ecs-green/10 rounded-lg flex-shrink-0">
-          <i class="ti ti-bulb text-xl text-ecs-green" aria-hidden="true"></i>
-        </div>
-        <div>
-          <h4 class="font-medium text-gray-900 dark:text-white">Reusable Configurations</h4>
-          <p class="text-sm text-gray-500 dark:text-gray-400">Templates save your favorite prompt settings for quick reuse across different matches.</p>
-        </div>
-      </div>
-      <div class="flex items-start gap-4">
-        <div class="p-3 bg-blue-500/10 rounded-lg flex-shrink-0">
-          <i class="ti ti-trophy text-xl text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
-        </div>
-        <div>
-          <h4 class="font-medium text-gray-900 dark:text-white">Competition-Specific</h4>
-          <p class="text-sm text-gray-500 dark:text-gray-400">Create templates for different competitions like MLS, NWSL, or international matches.</p>
-        </div>
-      </div>
-      <div class="flex items-start gap-4">
-        <div class="p-3 bg-ecs-gold/10 rounded-lg flex-shrink-0">
-          <i class="ti ti-star text-xl text-ecs-gold-600 dark:text-ecs-gold-400" aria-hidden="true"></i>
-        </div>
-        <div>
-          <h4 class="font-medium text-gray-900 dark:text-white">Default Templates</h4>
-          <p class="text-sm text-gray-500 dark:text-gray-400">Mark templates as default to auto-apply them for specific prompt types.</p>
-        </div>
-      </div>
-    </div>
-  {% endcall %}
 </div>
 {% else %}
     <!-- Page Header -->
@@ -477,6 +544,28 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listeners for opening modals
     document.getElementById('createTemplateBtn')?.addEventListener('click', showCreateModal);
     document.getElementById('createFirstTemplateBtn')?.addEventListener('click', showCreateModal);
+
+    // Console-shell library filter (no-op when the input is absent, i.e. classic shell)
+    const templateFilter = document.getElementById('templateFilter');
+    if (templateFilter) {
+        const filterEmpty = document.getElementById('templateFilterEmpty');
+        const groups = Array.from(document.querySelectorAll('[data-template-group]'));
+        const applyFilter = function() {
+            const q = templateFilter.value.trim().toLowerCase();
+            let anyVisible = false;
+            groups.forEach(function(group) {
+                let groupVisible = false;
+                group.querySelectorAll('[data-template-card]').forEach(function(card) {
+                    const match = !q || (card.dataset.search || '').indexOf(q) !== -1;
+                    card.classList.toggle('hidden', !match);
+                    if (match) { groupVisible = true; anyVisible = true; }
+                });
+                group.classList.toggle('hidden', !groupVisible);
+            });
+            if (filterEmpty) filterEmpty.classList.toggle('hidden', anyVisible);
+        };
+        templateFilter.addEventListener('input', applyFilter);
+    }
 
     // Close buttons use data-modal-hide attribute from macro - add listeners for those
     document.querySelectorAll('[data-modal-hide="createTemplateModal"]').forEach(btn => {

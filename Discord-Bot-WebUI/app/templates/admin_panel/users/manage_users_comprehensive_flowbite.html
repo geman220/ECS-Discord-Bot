@@ -24,17 +24,102 @@
 {% endmacro %}
 
 <div class="space-y-6">
-  {{ page_header('Users', subtitle='Browse, search, and manage all users') }}
+  {# Page header carries the live roster context (real counts), with the ONE primary CTA docked at the end. #}
+  {% set _total = stats.total_users or 0 %}
+  {% set _approved_pct = ((stats.approved_users / _total) * 100) | round | int if _total else 0 %}
+  {% set _active_pct = ((stats.active_users / _total) * 100) | round | int if _total else 0 %}
+  {% set _pending_pct = ((stats.pending_approval / _total) * 100) | round | int if _total else 0 %}
+  {% call page_header('Users', subtitle='User Directory') %}
+    <button type="button" data-action="create-user" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-user-plus" aria-hidden="true"></i>Create New User
+    </button>
+  {% endcall %}
 
-  {# ---- KPI band ---- #}
+  {# ---- Pending-approval lead strip: the page's most actionable signal, surfaced first.
+       Only rendered when there is real work to do; links straight into the pending-filtered view
+       and reuses the verbatim bulk-approve hook. No fabricated values — all from stats + the filter. #}
+  {% if stats.pending_approval %}
+  <section aria-label="Pending approvals" class="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 overflow-hidden">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center px-4 sm:px-5 py-3.5">
+      <span class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400">
+        <i class="ti ti-user-question text-xl" aria-hidden="true"></i>
+      </span>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-bold text-amber-900 dark:text-amber-200">
+          <span class="font-mono">{{ stats.pending_approval }}</span> {{ 'account' if stats.pending_approval == 1 else 'accounts' }} awaiting approval
+        </p>
+        <p class="text-xs text-amber-700 dark:text-amber-300/80 mt-0.5 font-mono">{{ _pending_pct }}% of {{ _total }} total users · action required before they can play</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <a href="{{ url_for('admin_panel.users_comprehensive', approved='false') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-800 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-100 dark:hover:bg-amber-500/15 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+          <i class="ti ti-filter" aria-hidden="true"></i>Review
+        </a>
+        <button type="button" data-action="bulk-approve-users" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-amber-500/10">
+          <i class="ti ti-checks" aria-hidden="true"></i>Approve All
+        </button>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {# ---- KPI band: bespoke-but-tokened tiles with mono figures, derived ratio bars + footer captions.
+       Every figure/percentage is computed from the route's real stats dict — nothing invented. #}
   <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-    {{ stat_card('ti-users', 'Total Users', stats.total_users, tone='primary') }}
-    {{ stat_card('ti-user-check', 'Approved', stats.approved_users, tone='success') }}
-    {{ stat_card('ti-user-question', 'Pending', stats.pending_approval, tone='warning') }}
-    {{ stat_card('ti-user-bolt', 'Active', stats.active_users, tone='info') }}
-    {{ stat_card('ti-user-plus', 'This Month', stats.recent_registrations, tone='neutral') }}
-    <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="block focus:outline-none focus:ring-2 focus:ring-ecs-green rounded-xl">
-      {{ stat_card('ti-shield-check', 'Total Roles', stats.total_roles or Role.query.count(), sublabel='manage', tone='gold') }}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Users</span>
+        <i class="ti ti-users text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ stats.total_users }}</div>
+      <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono"><span class="font-mono">{{ stats.recent_registrations }}</span> joined in last 30 days</p>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Approved</span>
+        <i class="ti ti-user-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ stats.approved_users }}</div>
+      <div class="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden"><div class="h-full bg-green-500 dark:bg-green-400" style="width:{{ _approved_pct }}%"></div></div>
+      <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400 font-mono">{{ _approved_pct }}% of all users</p>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Pending</span>
+        <i class="ti ti-user-question text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ stats.pending_approval }}</div>
+      <div class="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden"><div class="h-full bg-amber-500 dark:bg-amber-400" style="width:{{ _pending_pct }}%"></div></div>
+      <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400 font-mono">awaiting approval</p>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Active</span>
+        <i class="ti ti-user-bolt text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ stats.active_users }}</div>
+      <div class="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden"><div class="h-full bg-blue-500 dark:bg-blue-400" style="width:{{ _active_pct }}%"></div></div>
+      <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400 font-mono">{{ _active_pct }}% currently active</p>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">This Month</span>
+        <i class="ti ti-user-plus text-lg text-gray-900 dark:text-white shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ stats.recent_registrations }}</div>
+      <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono">new registrations · 30d</p>
+    </div>
+
+    <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="group block rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 hover:border-ecs-gold-400 dark:hover:border-ecs-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Roles</span>
+        <i class="ti ti-shield-check text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ stats.total_roles }}</div>
+      <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 inline-flex items-center gap-1">manage roles<i class="ti ti-arrow-right group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i></p>
     </a>
   </div>
 
@@ -42,7 +127,9 @@
        Native <details> = accessible, JS-free; GET form + every field id/name preserved verbatim.
        Default-open only when no filter is set so a returning admin sees their active query as chips. #}
   {% set _active_filters = (search and search|trim) or role_filter or approved_filter or active_filter or league_filter %}
-  {% set league_name = (leagues|selectattr('id','equalto', league_filter)|map(attribute='name')|first) if league_filter else None %}
+  {% set _ns = namespace(league_name=None) %}
+  {% if league_filter %}{% for _lg in leagues if _lg.id|string == league_filter|string %}{% set _ns.league_name = _lg.name %}{% endfor %}{% endif %}
+  {% set league_name = _ns.league_name %}
   <details id="filterDisclosure" class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden" {% if not _active_filters %}open{% endif %}>
     <summary class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 cursor-pointer select-none list-none focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
       <span class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">
@@ -79,9 +166,9 @@
     </form>
   </details>
 
-  {# ---- Command toolbar: ONE action surface docked above the table ----
-       Left = collection-level actions (roles, sync, export, bulk approve, bulk-on-selection).
-       Right = primary "Create New User". All data-action / dropdown hooks preserved verbatim. #}
+  {# ---- Command toolbar: collection-level actions docked above the table.
+       Primary "Create New User" lives in the page header; here = bulk + utilities.
+       All data-action / dropdown hooks preserved verbatim. #}
   <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex flex-wrap items-center gap-2">
       {# Selection-aware bulk dropdown (reads as connected to the row checkboxes) #}
@@ -118,9 +205,10 @@
         </ul>
       </div>
     </div>
-    <button type="button" data-action="create-user" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-      <i class="ti ti-user-plus" aria-hidden="true"></i>Create New User
-    </button>
+    {# Right side: live result count so the table-as-hero reads as a scoped query result. #}
+    <span class="text-xs text-gray-500 dark:text-gray-400 font-mono shrink-0">
+      <span class="font-bold text-gray-900 dark:text-white">{{ pagination.total if pagination else users|length }}</span> {{ 'user' if (pagination.total if pagination else users|length) == 1 else 'users' }}{% if _active_filters %} match filters{% endif %}
+    </span>
   </div>
 
   {# ---- Users table (the hero) ---- #}
@@ -156,14 +244,15 @@
               <div class="min-w-0">
                 {% if user.player and user.player.name %}
                 <p class="font-semibold text-gray-900 dark:text-white truncate">{{ user.player.name }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.username }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.username }} <span class="text-gray-300 dark:text-gray-600">·</span> <span class="font-mono">#{{ user.id }}</span></p>
                 {% else %}
                 <p class="font-semibold text-gray-900 dark:text-white truncate">{{ user.username }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate font-mono">#{{ user.id }}</p>
                 {% endif %}
               </div>
             </div>
           </td>
-          <td class="px-3 py-3 hidden lg:table-cell text-gray-700 dark:text-gray-300">{{ user.email }}</td>
+          <td class="px-3 py-3 hidden lg:table-cell text-gray-700 dark:text-gray-300 font-mono text-xs">{{ user.email }}</td>
           <td class="px-3 py-3 hidden md:table-cell">
             <div class="flex flex-wrap gap-1">
               {% for role in user.roles %}{{ role_chip(role.name) }}{% endfor %}
@@ -295,7 +384,7 @@
       <ul class="inline-flex items-center -space-x-px">
         {% if pagination.has_prev %}
         <li>
-          <a href="{{ url_for('admin_panel.users_comprehensive', page=pagination.prev_num, search=search, role=role_filter, approved=approved_filter, active=active_filter, league=league_filter) }}" class="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
+          <a href="{{ url_for('admin_panel.users_comprehensive', page=pagination.prev_num, search=search, role=role_filter, approved=approved_filter, active=active_filter, league=league_filter) }}" class="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700" aria-label="Previous page">
             <i class="ti ti-chevron-left" aria-hidden="true"></i>
           </a>
         </li>
@@ -315,7 +404,7 @@
         {% endfor %}
         {% if pagination.has_next %}
         <li>
-          <a href="{{ url_for('admin_panel.users_comprehensive', page=pagination.next_num, search=search, role=role_filter, approved=approved_filter, active=active_filter, league=league_filter) }}" class="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
+          <a href="{{ url_for('admin_panel.users_comprehensive', page=pagination.next_num, search=search, role=role_filter, approved=approved_filter, active=active_filter, league=league_filter) }}" class="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700" aria-label="Next page">
             <i class="ti ti-chevron-right" aria-hidden="true"></i>
           </a>
         </li>

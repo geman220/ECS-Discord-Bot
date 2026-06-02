@@ -11,43 +11,69 @@
  * @param {Object} ED - EventDelegation instance
  */
 export function initPushHistoryHandlers(ED) {
+    const BASE = '/admin-panel/mobile-features/push-history';
+
+    function csrf() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
+
+    function escHtml(s) {
+        return String(s == null ? '' : s)
+            .replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+    }
+
     /**
      * View notification details
      */
-    ED.register('view-notification', (element, event) => {
+    ED.register('view-notification', async (element, event) => {
         event.preventDefault();
         const notificationId = element.dataset.notificationId;
+        const source = element.dataset.source || 'campaign';
 
-        window.Swal.fire({
-            title: `Notification Details`,
-            html: `
-                <div class="text-start">
-                    <div class="mb-3">
-                        <strong>Notification ID:</strong> ${notificationId}<br>
-                        <strong>Type:</strong> Push Notification<br>
-                        <strong>Status:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge>Sent</span><br>
-                        <strong>Created:</strong> 2024-01-30 18:00:00
-                    </div>
-                    <div class="mb-3">
-                        <strong>Content:</strong><br>
-                        <div class="c-card bg-light p-2">
-                            <strong>Title:</strong> Match Starting Soon!<br>
-                            <strong>Message:</strong> Your match against Arsenal FC starts in 30 minutes. Good luck team!
+        try {
+            const resp = await fetch(`${BASE}/details?source=${encodeURIComponent(source)}&id=${encodeURIComponent(notificationId)}`);
+            const data = await resp.json();
+            if (!data.success) {
+                window.Swal.fire('Error', data.message || 'Failed to load notification details', 'error');
+                return;
+            }
+            const n = data.notification;
+            const metricRows = (n.source === 'campaign')
+                ? `- Recipients: ${escHtml(n.recipients ?? 0)}<br>
+                   - Delivered: ${escHtml(n.delivered_count ?? 0)} (${escHtml(n.delivery_rate ?? '0%')})<br>
+                   - Failed: ${escHtml(n.failed_count ?? 0)}<br>
+                   - Clicked: ${escHtml(n.click_count ?? 0)}`
+                : `- Recipient: ${escHtml(n.recipient || 'N/A')}${n.recipient_email ? ' (' + escHtml(n.recipient_email) + ')' : ''}`;
+
+            window.Swal.fire({
+                title: 'Notification Details',
+                html: `
+                    <div class="text-start">
+                        <div class="mb-3">
+                            <strong>ID:</strong> ${escHtml(n.id)}<br>
+                            <strong>Type:</strong> ${escHtml(n.notification_type)}<br>
+                            ${n.status ? `<strong>Status:</strong> ${escHtml(n.status)}<br>` : ''}
+                            <strong>Created:</strong> ${escHtml(n.created_at || 'N/A')}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Content:</strong><br>
+                            <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                                <strong>Title:</strong> ${escHtml(n.title)}<br>
+                                <strong>Message:</strong> ${escHtml(n.content)}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Delivery Information:</strong><br>
+                            ${metricRows}
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <strong>Delivery Information:</strong><br>
-                        - Sent to: john.doe@example.com<br>
-                        - Device: iPhone 12 Pro (iOS)<br>
-                        - Sent at: 2024-01-30 18:00:15<br>
-                        - Delivered at: 2024-01-30 18:00:18<br>
-                        - Opened at: 2024-01-30 18:02:45
-                    </div>
-                </div>
-            `,
-            width: '600px',
-            confirmButtonText: 'Close'
-        });
+                `,
+                width: '600px',
+                confirmButtonText: 'Close'
+            });
+        } catch (err) {
+            window.Swal.fire('Error', 'Failed to load notification details', 'error');
+        }
     });
 
     /**
@@ -174,7 +200,7 @@ export function initPushHistoryHandlers(ED) {
             confirmButtonText: 'Export Data'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.Swal.fire('Export Started!', 'Push history export is being prepared for download.', 'success');
+                window.location.href = `${BASE}/export`;
             }
         });
     });
@@ -199,10 +225,23 @@ export function initPushHistoryHandlers(ED) {
                     allowOutsideClick: false,
                     didOpen: () => {
                         window.Swal.showLoading();
-                        setTimeout(() => {
-                            window.Swal.fire('Cleanup Complete!', '247 old notifications have been removed.', 'success')
-                                .then(() => location.reload());
-                        }, 2000);
+                        fetch(`${BASE}/cleanup-old`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRFToken': csrf()
+                            }
+                        })
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.success) {
+                                    window.Swal.fire('Cleanup Complete!', data.message || `${data.count} old notifications removed.`, 'success')
+                                        .then(() => location.reload());
+                                } else {
+                                    window.Swal.fire('Error', data.message || 'Failed to clean up notifications', 'error');
+                                }
+                            })
+                            .catch(() => window.Swal.fire('Error', 'Failed to clean up notifications', 'error'));
                     }
                 });
             }

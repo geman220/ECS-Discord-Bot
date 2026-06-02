@@ -1,6 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert %}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
 
 {% block admin_title %}Discord Role Sync{% endblock %}
 {% block panel_description %}Discord role synchronization management{% endblock %}
@@ -22,114 +22,212 @@
 
 {% block panel_content %}
 {% if shell == 'console' %}
-{{ page_header("Discord Role Sync", subtitle="Discord Management") }}
+{% call page_header("Discord Role Sync", subtitle="Discord Management") %}
+    <button id="refresh-tasks-btn" type="button"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            aria-label="Refresh tasks">
+        <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
+    </button>
+    <button id="header-mass-sync-btn" type="button"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            aria-label="Start mass sync">
+        <i class="ti ti-bolt" aria-hidden="true"></i> Start Mass Sync
+    </button>
+{% endcall %}
 
-<!-- Statistics Cards -->
+{% if error %}
+<div class="mb-6">{{ alert('danger', error, title='Could not load sync metrics.') }}</div>
+{% endif %}
+
+<!-- KPI band -->
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-    {{ stat_card("ti-refresh", "Players Needing Sync", players_needing_sync, sublabel="have Discord IDs", tone="info") }}
-    {{ stat_card("ti-alert-triangle", "Flagged for Update", players_needs_update, sublabel="marked stale", tone="warning") }}
+    {% call stat_card("ti-refresh", "Players Needing Sync", players_needing_sync, sublabel="with Discord IDs", tone="info") %}
+        Have a linked Discord account but roles are not yet marked as synced.
+    {% endcall %}
+    {% call stat_card("ti-alert-triangle", "Flagged for Update", players_needs_update, sublabel="marked stale", tone="warning") %}
+        Explicitly flagged where assignments changed since their last sync.
+    {% endcall %}
 </div>
 
-<!-- Mass Sync Section -->
-{% call section_card("Mass Role Synchronization", icon="ti-bolt") %}
-<div class="p-4 sm:p-5">
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Synchronize Discord roles for all players who need updates. This process runs in the background and may take several minutes to complete.</p>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div>
-            <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Sync All Players</h6>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Updates Discord roles for all players with Discord IDs.</p>
-            <button id="mass-sync-btn" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                <i class="ti ti-bolt" aria-hidden="true"></i>Start Mass Sync
-            </button>
+<!-- Two-column command + reference layout -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+    <!-- Primary command deck (feature card) -->
+    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+            <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <i class="ti ti-bolt text-ecs-green" aria-hidden="true"></i> Mass Role Synchronization
+            </h2>
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                <i class="ti ti-server-bolt text-[12px]" aria-hidden="true"></i> Background job
+            </span>
         </div>
-        <div>
-            <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Sync Flagged Players</h6>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Only sync players who are flagged as needing an update.</p>
-            <button id="sync-flagged-btn" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                <i class="ti ti-flag" aria-hidden="true"></i>Sync Flagged Only
-            </button>
-        </div>
-    </div>
 
-    <!-- Progress Section (hidden by default) -->
-    <div id="sync-progress" class="mt-6 hidden">
-        <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Sync Progress</h6>
-        <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700 mb-2">
-            <div id="progress-bar" class="bg-blue-600 h-4 rounded-full transition-all duration-300 w-0">
-                <span class="text-xs text-white font-medium font-mono flex items-center justify-center h-full">0%</span>
+        <div class="p-4 sm:p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">Push the correct Discord roles to every player who needs an update. Sync runs as a batched background task to respect rate limits&mdash;you can keep using the panel while it works.</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Primary action: sync all -->
+                <div class="rounded-xl border-2 border-ecs-green/30 bg-ecs-green/5 dark:bg-ecs-green/10 p-4 flex flex-col">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium uppercase tracking-wide text-ecs-green">Full sync</span>
+                        <span class="font-mono text-2xl font-bold leading-none text-ecs-green">{{ players_needing_sync }}</span>
+                    </div>
+                    <h3 class="mt-2 text-sm font-bold text-gray-900 dark:text-white">Sync All Players</h3>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 flex-1">Updates Discord roles for every player with a linked Discord ID.</p>
+                    <button id="mass-sync-btn" type="button"
+                            class="mt-4 inline-flex items-center justify-center gap-1.5 min-h-[44px] w-full px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-bolt" aria-hidden="true"></i>Start Mass Sync
+                    </button>
+                </div>
+
+                <!-- Secondary action: flagged only -->
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex flex-col">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">Targeted</span>
+                        <span class="font-mono text-2xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ players_needs_update }}</span>
+                    </div>
+                    <h3 class="mt-2 text-sm font-bold text-gray-900 dark:text-white">Sync Flagged Players</h3>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 flex-1">Only re-sync players explicitly flagged as needing an update.</p>
+                    <button id="sync-flagged-btn" type="button"
+                            class="mt-4 inline-flex items-center justify-center gap-1.5 min-h-[44px] w-full px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-flag" aria-hidden="true"></i>Sync Flagged Only
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live progress (hidden until a job starts) -->
+            <div id="sync-progress" class="mt-5 hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-1.5">
+                        <i class="ti ti-activity-heartbeat text-ecs-green" aria-hidden="true"></i> Sync Progress
+                    </h3>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700 mb-2 overflow-hidden">
+                    <div id="progress-bar" class="bg-blue-600 h-4 rounded-full transition-all duration-300 w-0">
+                        <span class="text-xs text-white font-medium font-mono flex items-center justify-center h-full">0%</span>
+                    </div>
+                </div>
+                <p id="sync-status" class="text-sm text-gray-500 dark:text-gray-400 font-mono">Starting sync...</p>
             </div>
         </div>
-        <p id="sync-status" class="text-sm text-gray-500 dark:text-gray-400">Starting sync...</p>
+    </section>
+
+    <!-- Reference panel -->
+    {% call section_card("What Gets Synced", icon="ti-list-details") %}
+    <div class="p-4 sm:p-5">
+        <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-200">
+            <li class="flex items-start gap-2">
+                <i class="ti ti-shield-half text-ecs-green mt-0.5 shrink-0" aria-hidden="true"></i>
+                <span>Team roles based on current season assignments</span>
+            </li>
+            <li class="flex items-start gap-2">
+                <i class="ti ti-trophy text-ecs-green mt-0.5 shrink-0" aria-hidden="true"></i>
+                <span>League roles &mdash; Pub League Classic, Premier, ECS FC</span>
+            </li>
+            <li class="flex items-start gap-2">
+                <i class="ti ti-star text-ecs-green mt-0.5 shrink-0" aria-hidden="true"></i>
+                <span>Captain roles for team captains</span>
+            </li>
+            <li class="flex items-start gap-2">
+                <i class="ti ti-user-shield text-ecs-green mt-0.5 shrink-0" aria-hidden="true"></i>
+                <span>Admin roles for designated administrators</span>
+            </li>
+        </ul>
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">How it works</p>
+            <ul class="space-y-2 text-xs text-gray-500 dark:text-gray-400">
+                <li class="flex items-start gap-2">
+                    <i class="ti ti-stack-2 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+                    <span>Processed in batches to avoid Discord rate limits</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="ti ti-circle-check text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+                    <span>Players marked synced after a successful update</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="ti ti-bug text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+                    <span>Errors are logged for troubleshooting</span>
+                </li>
+            </ul>
+        </div>
     </div>
+    {% endcall %}
 </div>
-{% endcall %}
 
-<div class="mt-6"></div>
-
-<!-- Task Status Section -->
-{% call section_card("Recent Sync Tasks", icon="ti-list-check") %}
-<div class="flex items-center justify-end px-4 sm:px-5 pt-3">
-    <button id="refresh-tasks-btn" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Refresh tasks">
-        <i class="ti ti-refresh" aria-hidden="true"></i>
-    </button>
-</div>
-<div class="p-4 sm:p-5 pt-2">
-    <div id="task-list">
-        <p class="text-sm text-gray-500 dark:text-gray-400 text-center">No recent tasks</p>
-    </div>
-</div>
-{% endcall %}
-
-<div class="mt-6"></div>
-
-<!-- Information -->
-{% call section_card("Role Sync Information", icon="ti-info-circle") %}
+<!-- Players Needing Sync -->
+{% call section_card("Players Needing Sync", icon="ti-users") %}
 <div class="p-4 sm:p-5">
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div>
-            <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">What gets synced?</h6>
-            <ul class="text-sm text-gray-500 dark:text-gray-400 space-y-1">
-                <li class="flex items-start">
-                    <i class="ti ti-check text-green-600 dark:text-green-400 mr-2 mt-0.5" aria-hidden="true"></i>
-                    Team roles based on current season assignments
-                </li>
-                <li class="flex items-start">
-                    <i class="ti ti-check text-green-600 dark:text-green-400 mr-2 mt-0.5" aria-hidden="true"></i>
-                    League roles (Pub League Classic, Premier, ECS FC)
-                </li>
-                <li class="flex items-start">
-                    <i class="ti ti-check text-green-600 dark:text-green-400 mr-2 mt-0.5" aria-hidden="true"></i>
-                    Captain roles for team captains
-                </li>
-                <li class="flex items-start">
-                    <i class="ti ti-check text-green-600 dark:text-green-400 mr-2 mt-0.5" aria-hidden="true"></i>
-                    Admin roles for designated administrators
-                </li>
-            </ul>
+    {% if players_needing_sync_list %}
+    <div class="mb-4">
+        <label for="sync-player-search" class="sr-only">Search players</label>
+        <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400" aria-hidden="true">
+                <i class="ti ti-search"></i>
+            </span>
+            <input type="text" id="sync-player-search"
+                   class="block w-full sm:max-w-sm pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                   placeholder="Search by name or Discord tag" autocomplete="off">
         </div>
-        <div>
-            <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">How it works</h6>
-            <ul class="text-sm text-gray-500 dark:text-gray-400 space-y-1">
-                <li class="flex items-start">
-                    <i class="ti ti-arrow-right text-blue-600 dark:text-blue-400 mr-2 mt-0.5" aria-hidden="true"></i>
-                    Tasks are processed in batches to avoid rate limits
-                </li>
-                <li class="flex items-start">
-                    <i class="ti ti-arrow-right text-blue-600 dark:text-blue-400 mr-2 mt-0.5" aria-hidden="true"></i>
-                    Players are marked as synced after successful update
-                </li>
-                <li class="flex items-start">
-                    <i class="ti ti-arrow-right text-blue-600 dark:text-blue-400 mr-2 mt-0.5" aria-hidden="true"></i>
-                    Errors are logged for troubleshooting
-                </li>
-                <li class="flex items-start">
-                    <i class="ti ti-arrow-right text-blue-600 dark:text-blue-400 mr-2 mt-0.5" aria-hidden="true"></i>
-                    Background processing allows continued use of the panel
-                </li>
-            </ul>
-        </div>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Showing {{ players_needing_sync_list|length }} of {{ players_needing_sync }} player{{ '' if players_needing_sync == 1 else 's' }} needing sync.
+            {% if players_needing_sync > players_needing_sync_list|length %}Use <span class="font-semibold">Start Mass Sync</span> above to process all of them.{% endif %}
+        </p>
     </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-700 dark:text-gray-200">
+            <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                    <th scope="col" class="py-2.5 pr-3 font-semibold">Player</th>
+                    <th scope="col" class="py-2.5 px-3 font-semibold">Discord Tag</th>
+                    <th scope="col" class="py-2.5 px-3 font-semibold">Status</th>
+                    <th scope="col" class="py-2.5 pl-3 font-semibold text-right">Action</th>
+                </tr>
+            </thead>
+            <tbody id="sync-player-tbody" class="divide-y divide-gray-100 dark:divide-gray-700/60">
+                {% for player in players_needing_sync_list %}
+                <tr class="sync-player-row" data-search="{{ (player.name ~ ' ' ~ (player.discord_username or '') ~ ' ' ~ (player.discord_id or ''))|lower }}">
+                    <td class="py-3 pr-3 font-medium text-gray-900 dark:text-white">{{ player.name }}</td>
+                    <td class="py-3 px-3">
+                        {% if player.discord_username %}
+                            <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ player.discord_username }}</span>
+                        {% else %}
+                            <span class="font-mono text-xs text-gray-400 dark:text-gray-500">{{ player.discord_id }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-3">
+                        {% if player.discord_needs_update %}
+                            <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                                <i class="ti ti-alert-triangle text-[11px]" aria-hidden="true"></i> Flagged for update
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300">
+                                <i class="ti ti-refresh text-[11px]" aria-hidden="true"></i> Needs sync
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 pl-3 text-right">
+                        <button type="button"
+                                class="sync-player-btn inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                data-player-id="{{ player.id }}" data-player-name="{{ player.name }}">
+                            <i class="ti ti-refresh" aria-hidden="true"></i> Sync
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div id="sync-player-empty-search" class="hidden py-6 text-center text-sm text-gray-500 dark:text-gray-400">No players match your search.</div>
+    </div>
+    {% else %}
+    {{ empty_state("ti-circle-check", "Everyone is in sync", "No players with a linked Discord account are waiting for a role update right now.") }}
+    {% endif %}
+</div>
+{% endcall %}
+
+<!-- Recent tasks -->
+{% call section_card("Recent Sync Tasks", icon="ti-list-check") %}
+<div id="task-list">
+    {{ empty_state("ti-history-off", "No recent tasks", "Sync jobs you launch will appear here while they run and after they finish.") }}
 </div>
 {% endcall %}
 {% else %}
@@ -390,6 +488,81 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('mass-sync-btn').addEventListener('click', startMassSync);
     document.getElementById('sync-flagged-btn').addEventListener('click', startMassSync);
     document.getElementById('refresh-tasks-btn').addEventListener('click', () => location.reload());
+    const headerMassSyncBtn = document.getElementById('header-mass-sync-btn');
+    if (headerMassSyncBtn) headerMassSyncBtn.addEventListener('click', startMassSync);
+
+    // Client-side search over the "Players Needing Sync" table.
+    const searchInput = document.getElementById('sync-player-search');
+    if (searchInput) {
+        const rows = Array.from(document.querySelectorAll('#sync-player-tbody .sync-player-row'));
+        const noMatch = document.getElementById('sync-player-empty-search');
+        searchInput.addEventListener('input', function() {
+            const q = this.value.trim().toLowerCase();
+            let visible = 0;
+            rows.forEach(row => {
+                const match = !q || (row.dataset.search || '').indexOf(q) !== -1;
+                row.classList.toggle('hidden', !match);
+                if (match) visible++;
+            });
+            if (noMatch) noMatch.classList.toggle('hidden', visible !== 0);
+        });
+    }
+
+    // Per-row sync action -> POST to the real update-player endpoint.
+    const playerUpdateUrlTemplate = '{{ url_for("admin_panel.discord_update_player_roles", player_id=0) }}';
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+    document.querySelectorAll('.sync-player-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const playerId = this.dataset.playerId;
+            const playerName = this.dataset.playerName || 'this player';
+            const url = playerUpdateUrlTemplate.replace(/0$/, playerId);
+            const original = this.innerHTML;
+            this.innerHTML = '<i class="ti ti-loader animate-spin" aria-hidden="true"></i> Syncing';
+            this.disabled = true;
+            fetch(url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const row = this.closest('tr');
+                        if (row) row.remove();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Synced ' + playerName,
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 2500,
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    } else {
+                        this.innerHTML = original;
+                        this.disabled = false;
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Sync failed',
+                            text: data.error || 'Could not sync this player.',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    }
+                })
+                .catch(() => {
+                    this.innerHTML = original;
+                    this.disabled = false;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error syncing player',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                });
+        });
+    });
 });
 </script>
 {% endblock %}

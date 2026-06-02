@@ -101,7 +101,7 @@
                                     <i class="ti ti-check mr-1"></i>Approve
                                 </button>
                                 <button type="button" class="view-details-btn inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors"
-                                        data-player-id="{{ player.id }}">
+                                        data-player-id="{{ player.id }}" data-detail-url="{{ url_for('players.player_profile', player_id=player.id) }}">
                                     <i class="ti ti-info-circle"></i>
                                 </button>
                             </div>
@@ -247,9 +247,6 @@
                     <button type="button" id="exportPoolData" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors">
                         <i class="ti ti-download mr-2"></i>Export Pool Data
                     </button>
-                    <button type="button" id="sendPoolReminder" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 border border-cyan-200 dark:border-cyan-800 rounded-lg transition-colors">
-                        <i class="ti ti-bell mr-2"></i>Send Pool Reminder
-                    </button>
                     <button type="button" id="viewPoolHistory" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 border border-yellow-200 dark:border-yellow-800 rounded-lg transition-colors">
                         <i class="ti ti-history mr-2"></i>View Full History
                     </button>
@@ -302,6 +299,16 @@
         <!-- Content will be loaded via AJAX -->
     </div>
 {% endcall %}
+
+<!-- Pool History Modal -->
+{% call modal_info('poolHistoryModal', 'Substitute Pool History', size='lg', footer=false) %}
+    <div id="poolHistoryContent">
+        <div class="text-center py-8">
+            <div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+            <p class="text-gray-500 dark:text-gray-400">Loading history...</p>
+        </div>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block scripts %}
@@ -320,10 +327,10 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(ctx.getContext('2d'), {
             type: 'line',
             data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                labels: {{ chart_labels | tojson }},
                 datasets: [{
                     label: 'Substitute Requests',
-                    data: [12, 19, 3, 5, 2, 3],
+                    data: {{ chart_data | tojson }},
                     backgroundColor: 'rgba(52, 152, 219, 0.1)',
                     borderColor: leagueColor,
                     borderWidth: 2,
@@ -427,6 +434,152 @@ document.addEventListener('DOMContentLoaded', function() {
     // Refresh button
     document.getElementById('refreshPool')?.addEventListener('click', function() {
         location.reload();
+    });
+
+    // Escape HTML to prevent XSS when injecting API data
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // View details - navigate to the player's full profile
+    document.querySelectorAll('.view-details-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const url = this.dataset.detailUrl;
+            if (url) window.location.href = url;
+        });
+    });
+
+    // Player search - query real player-search API and let admin add results to the pool
+    function runPlayerSearch() {
+        const input = document.getElementById('playerSearch');
+        const resultsEl = document.getElementById('searchResults');
+        const query = (input?.value || '').trim();
+        if (query.length < 2) {
+            resultsEl.classList.add('hidden');
+            resultsEl.innerHTML = '';
+            return;
+        }
+        resultsEl.classList.remove('hidden');
+        resultsEl.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 p-2">Searching...</p>';
+
+        const url = '/api/substitute-pools/player-search?q=' + encodeURIComponent(query) + '&league_type=' + encodeURIComponent(leagueType);
+        fetch(url, { headers: { 'X-CSRFToken': csrfToken } })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success || !data.players || !data.players.length) {
+                    resultsEl.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 p-2">No players found.</p>';
+                    return;
+                }
+                resultsEl.innerHTML = data.players.map(p => {
+                    const inPool = (p.current_pools || []).length > 0;
+                    const addBtn = inPool
+                        ? '<span class="px-2 py-1 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded">In pool</span>'
+                        : '<button type="button" class="search-add-btn px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg" data-player-id="' + p.id + '"><i class="ti ti-plus mr-1"></i>Add</button>';
+                    let meta = escapeHtml(p.email || 'No email');
+                    if (p.discord_id) meta += ' &middot; Discord: ' + escapeHtml(p.discord_id);
+                    return '<div class="flex items-center justify-between gap-2 p-2 border-b border-gray-100 dark:border-gray-700 last:border-0">' +
+                        '<div class="min-w-0"><p class="font-medium text-gray-900 dark:text-white truncate">' + escapeHtml(p.name) + '</p>' +
+                        '<p class="text-xs text-gray-500 dark:text-gray-400 truncate">' + meta + '</p></div>' +
+                        addBtn + '</div>';
+                }).join('');
+
+                resultsEl.querySelectorAll('.search-add-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const playerId = this.dataset.playerId;
+                        this.disabled = true;
+                        this.innerHTML = '<i class="ti ti-loader animate-spin"></i>';
+                        fetch('/admin/substitute-pools/' + encodeURIComponent(leagueType) + '/add-player', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                            body: JSON.stringify({ player_id: playerId })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                Swal.fire({ icon: 'error', title: 'Could not add player', text: data.message || 'Unknown error',
+                                    background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                                this.disabled = false;
+                                this.innerHTML = '<i class="ti ti-plus mr-1"></i>Add';
+                            }
+                        });
+                    });
+                });
+            })
+            .catch(() => {
+                resultsEl.innerHTML = '<p class="text-sm text-red-500 p-2">Search failed. Please try again.</p>';
+            });
+    }
+
+    document.getElementById('searchPlayers')?.addEventListener('click', runPlayerSearch);
+    document.getElementById('playerSearch')?.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); runPlayerSearch(); }
+    });
+
+    // Export active pool data as CSV (from rendered data on the page)
+    document.getElementById('exportPoolData')?.addEventListener('click', function() {
+        const rows = [['Name', 'Email', 'Requests', 'Matches', 'AcceptanceRate']];
+        document.querySelectorAll('.remove-player-btn').forEach(rb => {
+            const card = rb.closest('.rounded-lg');
+            if (!card) return;
+            const name = card.querySelector('h6')?.textContent.trim() || '';
+            const email = card.querySelectorAll('p')[0]?.textContent.trim() || '';
+            const bold = card.querySelectorAll('.font-bold');
+            const req = bold[0] ? bold[0].textContent.trim() : '';
+            const mat = bold[1] ? bold[1].textContent.trim() : '';
+            const rate = bold[2] ? bold[2].textContent.trim() : '';
+            rows.push([name, email, req, mat, rate]);
+        });
+        const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'substitute-pool-' + leagueType + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    });
+
+    // View full history - fetch real pool history and render in modal
+    document.getElementById('viewPoolHistory')?.addEventListener('click', function() {
+        const content = document.getElementById('poolHistoryContent');
+        content.innerHTML = '<div class="text-center py-8"><div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div><p class="text-gray-500 dark:text-gray-400">Loading history...</p></div>';
+        const modal = FlowbiteInstances.getInstance('Modal', 'poolHistoryModal');
+        if (modal) modal.show();
+
+        fetch('/admin/substitute-pools/' + encodeURIComponent(leagueType) + '/history', { headers: { 'X-CSRFToken': csrfToken } })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success || !data.history || !data.history.length) {
+                    content.innerHTML = '<div class="text-center py-8"><i class="ti ti-history text-3xl text-gray-300 dark:text-gray-600 mb-2"></i><p class="text-gray-500 dark:text-gray-400">No history available</p></div>';
+                    return;
+                }
+                content.innerHTML = '<div class="space-y-3">' + data.history.map(h => {
+                    let when = '';
+                    if (h.performed_at) {
+                        const d = new Date(h.performed_at);
+                        when = isNaN(d.getTime()) ? escapeHtml(h.performed_at) : d.toLocaleString();
+                    }
+                    const by = h.performer_name ? ' by ' + escapeHtml(h.performer_name) : '';
+                    const notes = h.notes ? '<p class="text-xs text-gray-500 dark:text-gray-400">' + escapeHtml(h.notes) + '</p>' : '';
+                    return '<div class="pb-3 border-b border-gray-100 dark:border-gray-700 last:border-0">' +
+                        '<p class="text-sm font-medium" style="color: ' + leagueColor + ';">' + escapeHtml(h.action) + '</p>' +
+                        '<p class="text-sm text-gray-900 dark:text-white">' + escapeHtml(h.player_name || 'Unknown Player') + '</p>' +
+                        notes +
+                        '<p class="text-xs text-gray-400 dark:text-gray-500">' + escapeHtml(when) + by + '</p></div>';
+                }).join('') + '</div>';
+            })
+            .catch(() => {
+                content.innerHTML = '<p class="text-sm text-red-500 p-2">Failed to load history.</p>';
+            });
     });
 });
 </script>

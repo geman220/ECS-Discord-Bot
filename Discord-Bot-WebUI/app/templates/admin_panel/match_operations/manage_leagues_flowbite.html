@@ -22,106 +22,203 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_row_card, empty_state, alert as kit_alert %}
+{% from 'macros/_modern_kit.html' import page_header, data_table, data_table_th, data_table_filter_bar, empty_state %}
+{% set total_leagues = stats.total_leagues or 0 %}
+{% set with_teams = stats.leagues_with_teams or 0 %}
+{% set with_matches = stats.leagues_with_matches or 0 %}
+{% set without_teams = total_leagues - with_teams %}
+{% set coverage_pct = ((with_teams / total_leagues) * 100) | round | int if total_leagues else 0 %}
 <div class="space-y-6">
 
-  {% call page_header('League Management', subtitle='Match Operations') %}
+  {% call page_header('League Management', subtitle='Match Operations · Configuration') %}
     <button type="button" data-action="create-league"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-plus" aria-hidden="true"></i>Create League
     </button>
   {% endcall %}
 
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-flag', 'Total Leagues', stats.total_leagues or 0, tone='info') }}
-    {{ stat_card('ti-flag-check', 'Active Leagues', stats.active_leagues or 0, tone='success') }}
-    {{ stat_card('ti-users', 'With Teams', stats.leagues_with_teams or 0, tone='gold') }}
-    {{ stat_card('ti-calendar', 'With Matches', stats.leagues_with_matches or 0, tone='primary') }}
+  <!-- KPI band — real, non-redundant figures (every league is active, so lead on coverage not status) -->
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+    <!-- Primary figure: total leagues -->
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Leagues</span>
+        <i class="ti ti-flag text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ total_leagues }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">configured</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        <i class="ti ti-circle-check text-green-600 dark:text-green-400 mr-1" aria-hidden="true"></i>All active
+      </div>
+    </div>
+
+    <!-- Roster coverage with progress treatment -->
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Roster coverage</span>
+        <i class="ti ti-users-group text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ with_teams }}</span>
+        <span class="font-mono text-sm text-gray-400 dark:text-gray-500 mb-1">/ {{ total_leagues }}</span>
+      </div>
+      <div class="mt-3 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="progressbar" aria-valuenow="{{ coverage_pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Leagues with teams">
+        <div class="h-full bg-ecs-gold-500 dark:bg-ecs-gold-400 rounded-full" style="width: {{ coverage_pct }}%"></div>
+      </div>
+      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ coverage_pct }}% have teams</p>
+    </div>
+
+    <!-- Scheduling coverage -->
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">With matches</span>
+        <i class="ti ti-calendar-event text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ with_matches }}</span>
+        <span class="font-mono text-sm text-gray-400 dark:text-gray-500 mb-1">/ {{ total_leagues }}</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        <i class="ti ti-calendar text-blue-600 dark:text-blue-400 mr-1" aria-hidden="true"></i>have scheduled play
+      </div>
+    </div>
+
+    <!-- Needs attention: leagues without teams -->
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Needs teams</span>
+        <i class="ti ti-alert-triangle text-lg {{ 'text-amber-600 dark:text-amber-400' if without_teams else 'text-gray-400 dark:text-gray-500' }} shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none {{ 'text-amber-600 dark:text-amber-400' if without_teams else 'text-gray-900 dark:text-white' }}">{{ without_teams }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">empty</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        {% if without_teams %}<i class="ti ti-arrow-up-right text-amber-600 dark:text-amber-400 mr-1" aria-hidden="true"></i>awaiting roster{% else %}<i class="ti ti-check text-green-600 dark:text-green-400 mr-1" aria-hidden="true"></i>all rostered{% endif %}
+      </div>
+    </div>
   </div>
 
   {% if leagues %}
-  {% call data_table('Leagues', icon='ti-flag', count=leagues|length, search_placeholder='Filter leagues…', search_id='leagueFilter', filters=True) %}
-    <!-- md+ table -->
-    <table class="hidden md:table w-full text-sm">
-      <thead>
-        <tr class="border-b border-gray-200 dark:border-gray-700">
-          {{ data_table_th('League Name', key='name') }}
-          {{ data_table_th('Season', key='season', hide='sm') }}
-          {{ data_table_th('Teams', key='teams', hide='sm') }}
-          {{ data_table_th('Matches', key='matches', hide='sm') }}
-          {{ data_table_th('Status', key='status', hide='sm') }}
-          {{ data_table_th('Actions', sortable=False, align='right') }}
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for league in leagues %}
-        <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-3 font-semibold text-gray-900 dark:text-white">{{ league.name }}</td>
-          <td class="px-3 py-3 text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ league.season.name if league.season else 'No Season' }}</td>
-          <td class="px-3 py-3 hidden md:table-cell">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">{{ league.team_count or 0 }}</span>
-          </td>
-          <td class="px-3 py-3 hidden md:table-cell">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-500/15 dark:text-cyan-300">{{ league.match_count or 0 }}</span>
-          </td>
-          <td class="px-3 py-3 hidden md:table-cell">
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
-              <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>{{ league.status or 'Active' }}
-            </span>
-          </td>
-          <td class="px-3 py-3">
-            <div class="flex items-center justify-end gap-2">
-              <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-league" data-league-id="{{ league.id }}" title="View" aria-label="View league {{ league.name }}">
-                <i class="ti ti-eye" aria-hidden="true"></i>
-              </button>
-              <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="edit-league" data-league-id="{{ league.id }}" title="Edit" aria-label="Edit league {{ league.name }}">
-                <i class="ti ti-edit" aria-hidden="true"></i>
-              </button>
-              <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="toggle-league" data-league-id="{{ league.id }}" title="Toggle Status" aria-label="Toggle status for league {{ league.name }}">
-                <i class="ti ti-toggle-left" aria-hidden="true"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <!-- mobile stacked cards -->
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+  {# Per-league card grid (ported from mock pl-leagues.html). filters=False so we can
+     render our own filter bar with both a free-text search AND a setup-status select. #}
+  {% call data_table('League Roster', icon='ti-flag', count=leagues|length, filters=False) %}
+    {% call data_table_filter_bar('Filter leagues…', 'leagueFilter') %}
+      <label for="setupFilter" class="sr-only">Filter by setup status</label>
+      <select id="setupFilter" class="input-ecs h-9 px-3 text-sm w-auto" aria-label="Filter by setup status">
+        <option value="">All setup states</option>
+        <option value="ready">Ready</option>
+        <option value="no-matches">No matches</option>
+        <option value="needs-teams">Needs teams</option>
+      </select>
+    {% endcall %}
+
+    <!-- Card grid -->
+    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
       {% for league in leagues %}
-      <div data-row class="px-4 py-3.5">
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ league.name }}</span>
-          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
-            <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>{{ league.status or 'Active' }}
+      {# Derive a single setup state from the data the route provides (team_count / match_count). #}
+      {% if (league.team_count or 0) and (league.match_count or 0) %}{% set setup = 'ready' %}
+      {% elif (league.team_count or 0) %}{% set setup = 'no-matches' %}
+      {% else %}{% set setup = 'needs-teams' %}{% endif %}
+      <article data-row data-setup="{{ setup }}"
+               class="rounded-xl border {{ 'border-amber-300 dark:border-amber-500/40' if setup == 'needs-teams' else 'border-gray-200 dark:border-gray-700' }} bg-gray-50 dark:bg-gray-900 flex flex-col">
+        <div class="px-4 pt-4 pb-3 flex items-start justify-between gap-2">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="shrink-0 w-9 h-9 rounded-lg {{ 'bg-amber-500/15 text-amber-600 dark:text-amber-400' if setup == 'needs-teams' else 'bg-ecs-green/15 text-ecs-green' }} flex items-center justify-center" aria-hidden="true">
+              <i class="ti ti-flag text-base"></i>
+            </span>
+            <div class="min-w-0">
+              <div class="font-semibold text-gray-900 dark:text-white truncate">{{ league.name }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">ID {{ league.id }}</div>
+            </div>
+          </div>
+          {% if setup == 'ready' %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+            <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Ready
           </span>
+          {% elif setup == 'no-matches' %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">
+            <i class="ti ti-calendar-off text-[12px]" aria-hidden="true"></i>No matches
+          </span>
+          {% else %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+            <i class="ti ti-alert-triangle text-[12px]" aria-hidden="true"></i>Needs teams
+          </span>
+          {% endif %}
         </div>
-        <div class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-          <span><i class="ti ti-calendar-event mr-1" aria-hidden="true"></i>{{ league.season.name if league.season else 'No Season' }}</span>
-          <span class="font-mono"><i class="ti ti-users mr-1" aria-hidden="true"></i>{{ league.team_count or 0 }} teams</span>
-          <span class="font-mono"><i class="ti ti-calendar mr-1" aria-hidden="true"></i>{{ league.match_count or 0 }} matches</span>
+
+        <div class="px-4 pb-3 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <i class="ti ti-calendar-event text-[13px] opacity-70" aria-hidden="true"></i>
+          {% if league.season %}<span>{{ league.season.name }}</span>{% else %}<span class="italic text-gray-400 dark:text-gray-500">No season</span>{% endif %}
         </div>
-        <div class="mt-3 flex items-center gap-2">
-          <button type="button" class="inline-flex items-center justify-center min-h-[44px] flex-1 gap-1.5 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-league" data-league-id="{{ league.id }}" aria-label="View league {{ league.name }}">
+
+        <div class="px-4 grid grid-cols-2 gap-2 text-sm">
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2">
+            <div class="text-xs text-gray-500 dark:text-gray-400">Teams</div>
+            <div class="font-mono font-semibold tabular-nums {{ 'text-gray-900 dark:text-white' if (league.team_count or 0) else 'text-gray-400 dark:text-gray-500' }}">{{ league.team_count or 0 }}</div>
+          </div>
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2">
+            <div class="text-xs text-gray-500 dark:text-gray-400">Matches</div>
+            <div class="font-mono font-semibold tabular-nums {{ 'text-gray-900 dark:text-white' if (league.match_count or 0) else 'text-gray-400 dark:text-gray-500' }}">{{ league.match_count or 0 }}</div>
+          </div>
+        </div>
+
+        <!-- Standings snapshot (Top of table) -->
+        <div class="px-4 pt-3 pb-1">
+          <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5 flex items-center gap-1.5">
+            <i class="ti ti-trophy {{ 'text-ecs-gold-500 dark:text-ecs-gold-400' if setup == 'ready' else 'text-gray-400 dark:text-gray-500' }}" aria-hidden="true"></i>Top of table
+          </div>
+          {% if setup == 'needs-teams' %}
+          <div class="rounded-lg border border-dashed border-amber-400/50 dark:border-amber-500/40 px-3 py-3 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>No teams assigned — add a roster to enable scheduling.
+          </div>
+          {% elif setup == 'no-matches' %}
+          <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 px-3 py-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+            <i class="ti ti-calendar-off" aria-hidden="true"></i>No matches scheduled yet — standings appear once play begins.
+          </div>
+          {% else %}
+          {# Per-league top-3 standings snapshot, computed in the manage_leagues route as
+             league.top_standings (list of {team_name, played, points}) from the real
+             Standings model. Empty only when no standings rows exist for this league/season. #}
+          {% if league.top_standings %}
+          <ol class="space-y-1">
+            {% for row in league.top_standings %}
+            <li class="flex items-center gap-2 text-xs">
+              <span class="shrink-0 w-5 h-5 rounded-md font-mono font-semibold flex items-center justify-center {{ 'bg-ecs-gold-500/20 text-ecs-gold-600 dark:text-ecs-gold-400' if loop.index == 1 else 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400' }}">{{ loop.index }}</span>
+              <span class="min-w-0 flex-1 truncate text-gray-900 dark:text-white font-medium">{{ row.team_name }}</span>
+              <span class="shrink-0 font-mono tabular-nums text-gray-400 dark:text-gray-500">{{ row.played }} GP</span>
+              <span class="shrink-0 font-mono tabular-nums font-semibold text-gray-900 dark:text-white">{{ row.points }} pts</span>
+            </li>
+            {% endfor %}
+          </ol>
+          {% else %}
+          <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 px-3 py-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+            <i class="ti ti-trophy-off" aria-hidden="true"></i>No standings recorded yet — view the league for full results.
+          </div>
+          {% endif %}
+          {% endif %}
+        </div>
+
+        <div class="mt-auto px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2">
+          <button type="button" class="h-9 flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-league" data-league-id="{{ league.id }}" aria-label="View league {{ league.name }}">
             <i class="ti ti-eye" aria-hidden="true"></i>View
           </button>
-          <button type="button" class="inline-flex items-center justify-center min-h-[44px] flex-1 gap-1.5 rounded-lg text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="edit-league" data-league-id="{{ league.id }}" aria-label="Edit league {{ league.name }}">
+          <button type="button" class="h-9 px-3 inline-flex items-center justify-center gap-1.5 rounded-lg text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="edit-league" data-league-id="{{ league.id }}" aria-label="Edit league {{ league.name }}">
             <i class="ti ti-edit" aria-hidden="true"></i>Edit
           </button>
-          <button type="button" class="inline-flex items-center justify-center min-h-[44px] flex-1 gap-1.5 rounded-lg text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="toggle-league" data-league-id="{{ league.id }}" aria-label="Toggle status for league {{ league.name }}">
-            <i class="ti ti-toggle-left" aria-hidden="true"></i>Toggle
+          <button type="button" class="w-9 h-9 inline-flex items-center justify-center rounded-lg text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="toggle-league" data-league-id="{{ league.id }}" title="Toggle status" aria-label="Toggle status for league {{ league.name }}">
+            <i class="ti ti-toggle-left" aria-hidden="true"></i>
           </button>
         </div>
-      </div>
+      </article>
       {% endfor %}
     </div>
   {% endcall %}
   {% else %}
   {{ empty_state('ti-flag-off', 'No Leagues Found', 'Create your first league to get started using the Create League button above.') }}
   {% endif %}
-
-  {{ kit_alert('info', 'Create new leagues, edit existing ones, and manage team assignments.', title='League Management:', dismissible=False) }}
 </div>
 {% else %}
 <!-- Statistics Cards -->
@@ -259,55 +356,188 @@
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
 
+    function leaguesCsrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? (meta.getAttribute('content') || '') : '';
+    }
+
+    function escapeHtml(str) {
+        return String(str == null ? '' : str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // Build <option> markup for the season selector from the real seasons list.
+    function seasonOptions(seasons, selectedId) {
+        let html = '<option value="">No season</option>';
+        (seasons || []).forEach(function(s) {
+            const sel = (selectedId != null && String(s.id) === String(selectedId)) ? ' selected' : '';
+            html += `<option value="${s.id}"${sel}>${escapeHtml(s.name)} (${escapeHtml(s.league_type)})</option>`;
+        });
+        return html;
+    }
+
+    function fetchSeasons() {
+        return fetch('{{ url_for("admin_panel.leagues_seasons_list") }}', {
+            headers: { 'Accept': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(d => (d && d.success) ? d.seasons : []);
+    }
+
+    function postForm(url, params) {
+        const body = new URLSearchParams();
+        body.append('csrf_token', leaguesCsrfToken());
+        Object.keys(params).forEach(k => { if (params[k] != null) body.append(k, params[k]); });
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': leaguesCsrfToken()
+            },
+            body: body.toString()
+        }).then(r => r.json().then(data => ({ ok: r.ok, data })));
+    }
+
+    function reportResult(promise) {
+        promise.then(({ ok, data }) => {
+            if (ok && data.success) {
+                Swal.fire({
+                    title: 'Success', text: data.message || 'Done.', icon: 'success',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => location.reload());
+            } else {
+                Swal.fire({
+                    title: 'Error', text: (data && data.message) || 'Request failed.', icon: 'error',
+                    background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        }).catch(() => {
+            Swal.fire({
+                title: 'Error', text: 'Request failed.', icon: 'error',
+                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+            });
+        });
+    }
+
     document.addEventListener('click', function(e) {
         const createBtn = e.target.closest('[data-action="create-league"]');
         if (createBtn) {
-            Swal.fire({
-                title: 'Create New League',
-                html: `
-                    <div class="text-left space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League Name</label>
-                            <input type="text" id="leagueName" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter league name">
+            fetchSeasons().then(function(seasons) {
+                Swal.fire({
+                    title: 'Create New League',
+                    html: `
+                        <div class="text-left space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League Name</label>
+                                <input type="text" id="leagueName" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter league name">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season</label>
+                                <select id="leagueSeason" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                    ${seasonOptions(seasons, null)}
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season</label>
-                            <select id="leagueSeason" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                                <option value="">Select a season</option>
-                            </select>
-                        </div>
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Create League',
-                confirmButtonColor: '#1a472a',
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Create League',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827',
+                    preConfirm: function() {
+                        const name = (document.getElementById('leagueName').value || '').trim();
+                        if (!name) { Swal.showValidationMessage('League name is required'); return false; }
+                        return { name: name, season_id: document.getElementById('leagueSeason').value };
+                    }
+                }).then(function(result) {
+                    if (!result.isConfirmed) return;
+                    reportResult(postForm('{{ url_for("admin_panel.create_league") }}', result.value));
+                });
             });
         }
 
         const viewBtn = e.target.closest('[data-action="view-league"]');
         if (viewBtn) {
             const leagueId = viewBtn.dataset.leagueId;
-            Swal.fire({
-                title: 'League Details',
-                text: `Viewing league #${leagueId}`,
-                icon: 'info',
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            });
+            fetch(`/admin-panel/match-operations/leagues/${leagueId}/details`, { headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(function(d) {
+                    if (!d || !d.success) {
+                        Swal.fire({ title: 'Error', text: (d && d.message) || 'Failed to load league.', icon: 'error',
+                            background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                        return;
+                    }
+                    const lg = d.league;
+                    Swal.fire({
+                        title: escapeHtml(lg.name),
+                        html: `<div class="text-left text-sm space-y-1">
+                                 <div><span class="text-gray-500">League ID:</span> ${escapeHtml(lg.id)}</div>
+                                 <div><span class="text-gray-500">Season ID:</span> ${lg.season_id != null ? escapeHtml(lg.season_id) : 'None'}</div>
+                               </div>`,
+                        icon: 'info',
+                        confirmButtonText: 'View Standings',
+                        showCancelButton: true,
+                        cancelButtonText: 'Close',
+                        confirmButtonColor: '#1a472a',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(function(r) {
+                        if (r.isConfirmed) window.location.href = '{{ url_for("admin_panel.league_standings") }}';
+                    });
+                })
+                .catch(() => Swal.fire({ title: 'Error', text: 'Failed to load league.', icon: 'error',
+                    background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }));
         }
 
         const editBtn = e.target.closest('[data-action="edit-league"]');
         if (editBtn) {
             const leagueId = editBtn.dataset.leagueId;
-            Swal.fire({
-                title: 'Edit League',
-                text: `Editing league #${leagueId}`,
-                icon: 'info',
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            });
+            Promise.all([
+                fetch(`/admin-panel/match-operations/leagues/${leagueId}/details`, { headers: { 'Accept': 'application/json' } }).then(r => r.json()),
+                fetchSeasons()
+            ]).then(function(results) {
+                const d = results[0];
+                const seasons = results[1];
+                if (!d || !d.success) {
+                    Swal.fire({ title: 'Error', text: (d && d.message) || 'Failed to load league.', icon: 'error',
+                        background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                    return;
+                }
+                const lg = d.league;
+                Swal.fire({
+                    title: 'Edit League',
+                    html: `
+                        <div class="text-left space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League Name</label>
+                                <input type="text" id="leagueName" value="${escapeHtml(lg.name)}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season</label>
+                                <select id="leagueSeason" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                    ${seasonOptions(seasons, lg.season_id)}
+                                </select>
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Save Changes',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827',
+                    preConfirm: function() {
+                        const name = (document.getElementById('leagueName').value || '').trim();
+                        if (!name) { Swal.showValidationMessage('League name is required'); return false; }
+                        return { name: name, season_id: document.getElementById('leagueSeason').value };
+                    }
+                }).then(function(result) {
+                    if (!result.isConfirmed) return;
+                    reportResult(postForm(`/admin-panel/match-operations/leagues/${leagueId}/update`, result.value));
+                });
+            }).catch(() => Swal.fire({ title: 'Error', text: 'Failed to load league.', icon: 'error',
+                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }));
         }
 
         const toggleBtn = e.target.closest('[data-action="toggle-league"]');
@@ -322,9 +552,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 confirmButtonColor: '#1a472a',
                 background: isDark ? '#1f2937' : '#ffffff',
                 color: isDark ? '#f3f4f6' : '#111827'
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
+                reportResult(postForm('{{ url_for("admin_panel.toggle_league_status") }}', { league_id: leagueId }));
             });
         }
     });
+
+    // Modern console: combined free-text + setup-status filter over league cards.
+    // Authoritative over the shared kit.js search (which only matches text); we run
+    // after it (microtask) and apply BOTH criteria so they compose correctly.
+    const searchInput = document.getElementById('leagueFilter');
+    const setupSelect = document.getElementById('setupFilter');
+    if (searchInput && setupSelect) {
+        const applyLeagueFilters = function() {
+            const q = (searchInput.value || '').trim().toLowerCase();
+            const setup = setupSelect.value;
+            document.querySelectorAll('[data-setup][data-row]').forEach(function(card) {
+                const matchesText = !q || (card.textContent || '').toLowerCase().includes(q);
+                const matchesSetup = !setup || card.getAttribute('data-setup') === setup;
+                card.classList.toggle('hidden', !(matchesText && matchesSetup));
+            });
+        };
+        searchInput.addEventListener('input', function() { setTimeout(applyLeagueFilters, 0); });
+        setupSelect.addEventListener('change', applyLeagueFilters);
+    }
 });
 </script>
 {% endblock %}

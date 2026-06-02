@@ -6,299 +6,394 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, section_card, alert %}
 <div class="p-4 sm:p-6">
-    <div class="max-w-4xl mx-auto">
-        {{ page_header("Complete Your Profile", subtitle="Onboarding") }}
+    <div class="max-w-5xl mx-auto">
 
-        <p class="text-sm text-gray-500 dark:text-gray-400 -mt-3 mb-5 sm:mb-6">Please complete your profile information below to help us get to know you better.</p>
+        <!-- Onboarding hero: lead with the ONE job -->
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-5 sm:mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-4 p-5 sm:p-6">
+                <div class="shrink-0 w-12 h-12 rounded-xl bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center">
+                    <i class="ti ti-user-plus text-2xl text-ecs-green" aria-hidden="true"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Player Onboarding</p>
+                    <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Complete Your Profile</h1>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-2xl">One pass through these sections and you are ready to be placed on a team. Everything but name &amp; email is editable later.</p>
+                </div>
+                <div class="shrink-0 grid grid-cols-2 gap-3 sm:gap-4">
+                    <div class="text-center sm:text-right">
+                        <div class="font-mono text-2xl sm:text-3xl font-bold leading-none text-ecs-green">07</div>
+                        <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-1">Sections</div>
+                    </div>
+                    <div class="text-center sm:text-right">
+                        <div class="font-mono text-2xl sm:text-3xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">02</div>
+                        <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-1">Required</div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         {% if needs_discord_join %}
-        <div class="mb-6">
-            {% call section_card("Join our Discord Server", icon="ti-brand-discord") %}
-            <div class="p-4 sm:p-5 text-center">
-                <i class="ti ti-brand-discord text-5xl text-[#5865F2] mb-3" aria-hidden="true"></i>
-                <p class="text-sm text-gray-600 dark:text-gray-300 mb-4 max-w-xl mx-auto">
-                    To fully participate in ECS FC, you need to join our Discord server. This is where match announcements, team discussions, and important notifications take place.
+        <!-- Discord join: prominent feature card with header bar -->
+        <section class="rounded-xl border border-[#5865F2]/30 bg-white dark:bg-gray-800 overflow-hidden mb-5 sm:mb-6">
+            <div class="px-4 sm:px-5 h-11 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 bg-[#5865F2]/5 dark:bg-[#5865F2]/10">
+                <i class="ti ti-brand-discord text-[#5865F2]" aria-hidden="true"></i>
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Join our Discord</h2>
+                <span class="ml-auto text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md bg-[#5865F2]/15 text-[#5865F2]">Action needed</span>
+            </div>
+            <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                <i class="ti ti-brand-discord text-4xl text-[#5865F2] shrink-0" aria-hidden="true"></i>
+                <p class="flex-1 text-sm text-gray-600 dark:text-gray-300">
+                    Match announcements, team discussions, and important notifications all happen in Discord. Join the server to fully participate in ECS FC.
                 </p>
                 <a href="{{ discord_invite_link }}" target="_blank" rel="noopener"
-                   class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 py-3 rounded-lg bg-[#5865F2] text-white font-medium hover:bg-[#4752c4] transition-colors focus:outline-none focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                    <i class="ti ti-brand-discord" aria-hidden="true"></i>Join Discord Server
+                   class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-[#5865F2] text-white font-semibold hover:bg-[#4752c4] transition-colors focus:outline-none focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-brand-discord" aria-hidden="true"></i>Join Server
                 </a>
             </div>
-            {% endcall %}
-        </div>
+        </section>
         {% endif %}
 
         <!-- Onboarding Form -->
-        <form method="post" action="{{ url_for('main.onboarding') }}" enctype="multipart/form-data" class="space-y-6" novalidate>
+        <form method="post" action="{{ url_for('main.onboarding') }}" enctype="multipart/form-data" novalidate>
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="form_action" value="create_profile" id="form_action">
             {% if player %}
             <input type="hidden" name="playerId" id="playerId" value="{{ player.id }}">
             {% endif %}
 
-            <!-- Personal Information Section -->
-            {% call section_card("Personal Information", icon="ti-user") %}
-            <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name <span class="text-red-500">*</span></label>
-                    {{ onboarding_form.name(class="input-ecs", placeholder="Your full name", required=True) }}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email <span class="text-red-500">*</span></label>
-                    {{ onboarding_form.email(class="input-ecs", placeholder="Your email", required=True) }}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
-                    {{ onboarding_form.phone(class="input-ecs", placeholder="Your phone number") }}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jersey Size</label>
-                    {{ onboarding_form.jersey_size(class="select-ecs") }}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preferred Jersey Number</label>
-                    {{ onboarding_form.jersey_number(class="input-ecs", placeholder="Jersey number") }}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preferred Pronouns</label>
-                    {{ onboarding_form.pronouns(class="select-ecs") }}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date of Birth</label>
-                    {{ onboarding_form.date_of_birth(class="input-ecs", type="date") }}
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional — only used so we can wish you a happy birthday.</p>
-                </div>
-            </div>
-            {% endcall %}
-
-            <!-- League Selection Section -->
-            {% call section_card("League Selection", icon="ti-trophy") %}
-            <div class="p-4 sm:p-5">
-                {{ alert('info', 'Please select the league that best matches your skill level and availability.', title='Which league are you interested in joining?', dismissible=False) }}
-                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <label class="relative cursor-pointer group">
-                        <input type="radio" name="preferred_league" value="pub_league_classic" required class="peer sr-only">
-                        <div class="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
-                            <i class="ti ti-check text-sm" aria-hidden="true"></i>
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
+                <!-- Section index rail (sticky on xl) -->
+                <aside class="hidden xl:block xl:col-span-1">
+                    <nav class="sticky top-20 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden" aria-label="Profile sections">
+                        <div class="px-4 h-11 flex items-center border-b border-gray-200 dark:border-gray-700">
+                            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Your Steps</h2>
                         </div>
-                        <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
-                            <i class="ti ti-award text-2xl text-ecs-gold-500 dark:text-ecs-gold-400 mb-2" aria-hidden="true"></i>
-                            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Pub League Classic</h6>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Our beginner-friendly classic division - it's all about having fun and improving your game.</p>
-                        </div>
-                    </label>
+                        <ol class="divide-y divide-gray-200 dark:divide-gray-700">
+                            {% set steps = [
+                                ('onb-personal', '01', 'ti-user', 'Personal Info', true),
+                                ('onb-league', '02', 'ti-trophy', 'League Selection', true),
+                                ('onb-playing', '03', 'ti-ball-football', 'Playing Preferences', false),
+                                ('onb-availability', '04', 'ti-calendar', 'Availability', false),
+                                ('onb-photo', '05', 'ti-camera', 'Profile Picture', false),
+                                ('onb-additional', '06', 'ti-notes', 'Additional Info', false),
+                                ('onb-notifications', '07', 'ti-bell', 'Notifications', false)
+                            ] %}
+                            {% for sid, num, icon, label, req in steps %}
+                            <li>
+                                <a href="#{{ sid }}" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                                    <span class="font-mono text-sm font-bold text-gray-400 dark:text-gray-500 w-6">{{ num }}</span>
+                                    <i class="ti {{ icon }} text-ecs-green" aria-hidden="true"></i>
+                                    <span class="flex-1 text-sm font-medium text-gray-900 dark:text-white truncate">{{ label }}</span>
+                                    {% if req %}<span class="text-[10px] font-bold uppercase tracking-wide text-ecs-gold-500 dark:text-ecs-gold-400">Req</span>{% endif %}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ol>
+                    </nav>
+                </aside>
 
-                    <label class="relative cursor-pointer group">
-                        <input type="radio" name="preferred_league" value="pub_league_premier" required class="peer sr-only">
-                        <div class="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
-                            <i class="ti ti-check text-sm" aria-hidden="true"></i>
-                        </div>
-                        <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
-                            <i class="ti ti-star text-2xl text-ecs-gold-500 dark:text-ecs-gold-400 mb-2" aria-hidden="true"></i>
-                            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Pub League Premier</h6>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Our Premier Division for low to intermediate recreational players. Bring your C game!</p>
-                        </div>
-                    </label>
+                <!-- Form sections -->
+                <div class="xl:col-span-2 space-y-5 sm:space-y-6">
 
-                    <label class="relative cursor-pointer group">
-                        <input type="radio" name="preferred_league" value="ecs_fc" required class="peer sr-only">
-                        <div class="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
-                            <i class="ti ti-check text-sm" aria-hidden="true"></i>
-                        </div>
-                        <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
-                            <i class="ti ti-ball-football text-2xl text-ecs-green mb-2" aria-hidden="true"></i>
-                            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">ECS FC</h6>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Our club team for dedicated players who want to represent ECS in organized competition.</p>
-                        </div>
-                    </label>
-                </div>
-            </div>
-            {% endcall %}
+                    {# ---- reusable section header bar (eyebrow number + icon + title + badge) ---- #}
+                    {% macro onb_head(num, icon, title, badge=None) %}
+                    <div class="px-4 sm:px-5 h-12 flex items-center gap-3 border-b border-gray-200 dark:border-gray-700">
+                        <span class="font-mono text-sm font-bold text-gray-400 dark:text-gray-500">{{ num }}</span>
+                        <i class="ti {{ icon }} text-ecs-green" aria-hidden="true"></i>
+                        <h3 class="flex-1 text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white truncate">{{ title }}</h3>
+                        {% if badge %}<span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md bg-ecs-gold-500/15 text-ecs-gold-600 dark:text-ecs-gold-400">{{ badge }}</span>{% endif %}
+                    </div>
+                    {% endmacro %}
 
-            <!-- Playing Preferences Section -->
-            {% call section_card("Playing Preferences", icon="ti-ball-football") %}
-            <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Favorite Position</label>
-                    {{ onboarding_form.favorite_position(class="select-ecs") }}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Other Positions You Enjoy</label>
-                    {{ onboarding_form.other_positions(class="select-ecs", multiple="multiple", size="4") }}
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Positions to Avoid</label>
-                    {{ onboarding_form.positions_not_to_play(class="select-ecs", multiple="multiple", size="4") }}
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Willingness to Play Goal</label>
-                    {{ onboarding_form.frequency_play_goal(class="select-ecs") }}
-                </div>
-            </div>
-            {% endcall %}
-
-            <!-- Availability Section -->
-            {% call section_card("Availability", icon="ti-calendar") %}
-            <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expected Availability (# of weeks)</label>
-                    {{ onboarding_form.expected_weeks_available(class="select-ecs") }}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Willing to Switch Teams if Needed?</label>
-                    {{ onboarding_form.team_swap(class="select-ecs") }}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unavailable Dates</label>
-                    {{ onboarding_form.unavailable_dates(class="input-ecs", placeholder="List any dates you're unavailable") }}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Interested in Refereeing?</label>
-                    {{ onboarding_form.willing_to_referee(class="select-ecs") }}
-                </div>
-            </div>
-            {% endcall %}
-
-            <!-- Profile Picture Section -->
-            {% call section_card("Profile Picture", icon="ti-camera") %}
-            <div class="p-4 sm:p-5">
-                <!-- Step 1: Select file -->
-                <div id="onboardingStep1">
-                    <div class="flex flex-col sm:flex-row gap-6 items-center">
-                        <div class="flex-shrink-0">
-                            <div class="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
-                                <img src="{{ player.profile_picture_url if player and player.profile_picture_url else url_for('static', filename='img/default_player.png') }}"
-                                     alt="Profile Picture" class="w-full h-full object-cover">
+                    <!-- 01 Personal Information -->
+                    <section id="onb-personal" class="scroll-mt-20 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                        {{ onb_head('01', 'ti-user', 'Personal Information', badge='Required') }}
+                        <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name <span class="text-red-500">*</span></label>
+                                {{ onboarding_form.name(class="input-ecs", placeholder="Your full name", required=True) }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email <span class="text-red-500">*</span></label>
+                                {{ onboarding_form.email(class="input-ecs", placeholder="Your email", required=True) }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                                {{ onboarding_form.phone(class="input-ecs", placeholder="Your phone number") }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jersey Size</label>
+                                {{ onboarding_form.jersey_size(class="select-ecs") }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preferred Jersey Number</label>
+                                {{ onboarding_form.jersey_number(class="input-ecs", placeholder="Jersey number") }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preferred Pronouns</label>
+                                {{ onboarding_form.pronouns(class="select-ecs") }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date of Birth</label>
+                                {{ onboarding_form.date_of_birth(class="input-ecs", type="date") }}
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional — only used so we can wish you a happy birthday.</p>
                             </div>
                         </div>
-                        <div class="flex-1">
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                                Upload a clear photo of yourself. A good profile picture helps teammates and coaches recognize you.
-                            </p>
-                            <input type="file" accept="image/*" id="onboardingFileInput" class="hidden">
-                            <input type="hidden" name="cropped_image_data" id="onboardingImageData">
-                            <canvas id="onboardingCanvas" class="hidden"></canvas>
-                            <button type="button" id="onboardingSelectBtn"
-                                    class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                                <i class="ti ti-upload" aria-hidden="true"></i>Select Image
-                            </button>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">PNG, JPG, or WEBP (max 5MB)</p>
-                        </div>
-                    </div>
-                </div>
+                    </section>
 
-                <!-- Step 2: Position image -->
-                <div id="onboardingStep2" class="hidden">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-3">Drag to position, use buttons to zoom</p>
-                    <div class="flex justify-center mb-4">
-                        <div id="onboardingCropArea" class="relative w-48 h-48 rounded-full overflow-hidden border-4 border-ecs-green bg-gray-900 cursor-move touch-none">
-                            <img id="onboardingDragImage" src="" class="absolute max-w-none pointer-events-none" alt="Drag to position">
-                        </div>
-                    </div>
-                    <div class="flex justify-center gap-2">
-                        <button type="button" id="onboardingZoomOut" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Zoom out">
-                            <i class="ti ti-minus text-lg text-gray-700 dark:text-gray-300" aria-hidden="true"></i>
-                        </button>
-                        <button type="button" id="onboardingZoomIn" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Zoom in">
-                            <i class="ti ti-plus text-lg text-gray-700 dark:text-gray-300" aria-hidden="true"></i>
-                        </button>
-                        <button type="button" id="onboardingReselect" class="px-3 py-2 min-h-[44px] text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                            Change
-                        </button>
-                    </div>
-                    <p class="text-xs text-green-600 dark:text-green-400 text-center mt-3"><i class="ti ti-check mr-1" aria-hidden="true"></i>Image ready</p>
-                </div>
-            </div>
-            {% endcall %}
+                    <!-- 02 League Selection: rich feature-card picker -->
+                    <section id="onb-league" class="scroll-mt-20 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                        {{ onb_head('02', 'ti-trophy', 'League Selection', badge='Required') }}
+                        <div class="p-4 sm:p-5">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Pick the league that best matches your skill level and availability. This guides where coaches place you.</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <label class="relative cursor-pointer group">
+                                    <input type="radio" name="preferred_league" value="pub_league_classic" required class="peer sr-only">
+                                    <div class="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
+                                        <i class="ti ti-check text-sm" aria-hidden="true"></i>
+                                    </div>
+                                    <div class="h-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <i class="ti ti-award text-2xl text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+                                            <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Beginner</span>
+                                        </div>
+                                        <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Pub League Classic</h6>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Our beginner-friendly classic division - it's all about having fun and improving your game.</p>
+                                    </div>
+                                </label>
 
-            <!-- Additional Information Section -->
-            {% call section_card("Additional Information", icon="ti-notes") %}
-            <div class="p-4 sm:p-5 space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Additional Information</label>
-                    {{ onboarding_form.additional_info(class="input-ecs", rows="3", placeholder="Any additional information we should know") }}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Player Notes</label>
-                    {{ onboarding_form.player_notes(class="input-ecs", rows="3", placeholder="Any notes about your playing style or preferences") }}
-                </div>
-            </div>
-            {% endcall %}
+                                <label class="relative cursor-pointer group">
+                                    <input type="radio" name="preferred_league" value="pub_league_premier" required class="peer sr-only">
+                                    <div class="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
+                                        <i class="ti ti-check text-sm" aria-hidden="true"></i>
+                                    </div>
+                                    <div class="h-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <i class="ti ti-star text-2xl text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+                                            <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Intermediate</span>
+                                        </div>
+                                        <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Pub League Premier</h6>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Our Premier Division for low to intermediate recreational players. Bring your C game!</p>
+                                    </div>
+                                </label>
 
-            <!-- Notification Preferences Section -->
-            {% call section_card("Notification Preferences", icon="ti-bell") %}
-            <div class="p-4 sm:p-5 space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <label class="flex items-center gap-3 cursor-pointer min-h-[44px]">
-                        {{ onboarding_form.email_notifications(class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green", id="emailNotifications") }}
-                        <span class="text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
-                    </label>
-                    <label class="flex items-center gap-3 cursor-pointer min-h-[44px]">
-                        {{ onboarding_form.sms_notifications(class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green", id="smsNotifications", **{"data-on-change": "onboarding-sms-toggle"}) }}
-                        <span class="text-sm text-gray-700 dark:text-gray-300">SMS Notifications</span>
-                    </label>
-                    <label class="flex items-center gap-3 cursor-pointer min-h-[44px]">
-                        {{ onboarding_form.discord_notifications(class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green", id="discordNotifications") }}
-                        <span class="text-sm text-gray-700 dark:text-gray-300">Discord Notifications</span>
-                    </label>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Profile Visibility</label>
-                    {{ onboarding_form.profile_visibility(class="select-ecs sm:w-1/2") }}
-                </div>
-
-                <!-- SMS Verification (hidden by default) -->
-                <div id="smsOptInSection" class="hidden p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <label class="flex items-start gap-3 cursor-pointer mb-4">
-                        <input type="checkbox" id="smsConsent" name="sms_consent"
-                               class="mt-0.5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green"
-                               data-on-change="onboarding-sms-consent">
-                        <span class="text-sm text-gray-600 dark:text-gray-300">
-                            I consent to receive text messages from ECS FC about team updates, schedule changes, and important announcements.
-                            Standard message and data rates may apply. You can opt out at any time.
-                        </span>
-                    </label>
-
-                    <div id="smsVerificationSection" class="hidden">
-                        <h6 class="font-medium text-gray-900 dark:text-white mb-2">Verify Your Phone Number</h6>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">We'll send a verification code to confirm your phone number.</p>
-
-                        <button type="button" id="sendVerificationBtn"
-                                class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                            <i class="ti ti-send" aria-hidden="true"></i>Send Verification Code
-                        </button>
-
-                        <div id="verificationCodeInput" class="hidden mt-4">
-                            <div class="flex gap-2">
-                                <input type="text" id="verificationCode" placeholder="Enter 6-digit code"
-                                       class="input-ecs w-40">
-                                <button type="button" id="verifyCodeBtn"
-                                        class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                                    <i class="ti ti-check" aria-hidden="true"></i>Verify
-                                </button>
+                                <label class="relative cursor-pointer group">
+                                    <input type="radio" name="preferred_league" value="ecs_fc" required class="peer sr-only">
+                                    <div class="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
+                                        <i class="ti ti-check text-sm" aria-hidden="true"></i>
+                                    </div>
+                                    <div class="h-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <i class="ti ti-ball-football text-2xl text-ecs-green" aria-hidden="true"></i>
+                                            <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-green/15 text-ecs-green">Competitive</span>
+                                        </div>
+                                        <h6 class="font-semibold text-gray-900 dark:text-white mb-1">ECS FC</h6>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Our club team for dedicated players who want to represent ECS in organized competition.</p>
+                                    </div>
+                                </label>
                             </div>
                         </div>
+                    </section>
 
-                        <input type="hidden" id="smsVerified" name="sms_verified" value="{{ 'true' if player and player.is_phone_verified else 'false' }}">
-                    </div>
+                    <!-- 03 Playing Preferences -->
+                    <section id="onb-playing" class="scroll-mt-20 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                        {{ onb_head('03', 'ti-ball-football', 'Playing Preferences') }}
+                        <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Favorite Position</label>
+                                {{ onboarding_form.favorite_position(class="select-ecs") }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Other Positions You Enjoy</label>
+                                {{ onboarding_form.other_positions(class="select-ecs", multiple="multiple", size="4") }}
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Positions to Avoid</label>
+                                {{ onboarding_form.positions_not_to_play(class="select-ecs", multiple="multiple", size="4") }}
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Willingness to Play Goal</label>
+                                {{ onboarding_form.frequency_play_goal(class="select-ecs") }}
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 04 Availability -->
+                    <section id="onb-availability" class="scroll-mt-20 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                        {{ onb_head('04', 'ti-calendar', 'Availability') }}
+                        <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expected Availability (# of weeks)</label>
+                                {{ onboarding_form.expected_weeks_available(class="select-ecs") }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Willing to Switch Teams if Needed?</label>
+                                {{ onboarding_form.team_swap(class="select-ecs") }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unavailable Dates</label>
+                                {{ onboarding_form.unavailable_dates(class="input-ecs", placeholder="List any dates you're unavailable") }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Interested in Refereeing?</label>
+                                {{ onboarding_form.willing_to_referee(class="select-ecs") }}
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 05 Profile Picture -->
+                    <section id="onb-photo" class="scroll-mt-20 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                        {{ onb_head('05', 'ti-camera', 'Profile Picture') }}
+                        <div class="p-4 sm:p-5">
+                            <!-- Step 1: Select file -->
+                            <div id="onboardingStep1">
+                                <div class="flex flex-col sm:flex-row gap-6 items-center">
+                                    <div class="flex-shrink-0">
+                                        <div class="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
+                                            <img src="{{ player.profile_picture_url if player and player.profile_picture_url else url_for('static', filename='img/default_player.png') }}"
+                                                 alt="Profile Picture" class="w-full h-full object-cover">
+                                        </div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                            Upload a clear photo of yourself. A good profile picture helps teammates and coaches recognize you.
+                                        </p>
+                                        <input type="file" accept="image/*" id="onboardingFileInput" class="hidden">
+                                        <input type="hidden" name="cropped_image_data" id="onboardingImageData">
+                                        <canvas id="onboardingCanvas" class="hidden"></canvas>
+                                        <button type="button" id="onboardingSelectBtn"
+                                                class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                            <i class="ti ti-upload" aria-hidden="true"></i>Select Image
+                                        </button>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">PNG, JPG, or WEBP (max 5MB)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 2: Position image -->
+                            <div id="onboardingStep2" class="hidden">
+                                <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-3">Drag to position, use buttons to zoom</p>
+                                <div class="flex justify-center mb-4">
+                                    <div id="onboardingCropArea" class="relative w-48 h-48 rounded-full overflow-hidden border-4 border-ecs-green bg-gray-900 cursor-move touch-none">
+                                        <img id="onboardingDragImage" src="" class="absolute max-w-none pointer-events-none" alt="Drag to position">
+                                    </div>
+                                </div>
+                                <div class="flex justify-center gap-2">
+                                    <button type="button" id="onboardingZoomOut" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Zoom out">
+                                        <i class="ti ti-minus text-lg text-gray-700 dark:text-gray-300" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" id="onboardingZoomIn" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Zoom in">
+                                        <i class="ti ti-plus text-lg text-gray-700 dark:text-gray-300" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" id="onboardingReselect" class="px-3 py-2 min-h-[44px] text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                        Change
+                                    </button>
+                                </div>
+                                <p class="text-xs text-green-600 dark:text-green-400 text-center mt-3"><i class="ti ti-check mr-1" aria-hidden="true"></i>Image ready</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 06 Additional Information -->
+                    <section id="onb-additional" class="scroll-mt-20 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                        {{ onb_head('06', 'ti-notes', 'Additional Information') }}
+                        <div class="p-4 sm:p-5 space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Additional Information</label>
+                                {{ onboarding_form.additional_info(class="input-ecs", rows="3", placeholder="Any additional information we should know") }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Player Notes</label>
+                                {{ onboarding_form.player_notes(class="input-ecs", rows="3", placeholder="Any notes about your playing style or preferences") }}
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 07 Notification Preferences -->
+                    <section id="onb-notifications" class="scroll-mt-20 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                        {{ onb_head('07', 'ti-bell', 'Notification Preferences') }}
+                        <div class="p-4 sm:p-5 space-y-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <label class="flex items-center gap-3 cursor-pointer min-h-[44px] px-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                    {{ onboarding_form.email_notifications(class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green", id="emailNotifications") }}
+                                    <i class="ti ti-mail text-gray-400" aria-hidden="true"></i>
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">Email</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer min-h-[44px] px-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                    {{ onboarding_form.sms_notifications(class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green", id="smsNotifications", **{"data-on-change": "onboarding-sms-toggle"}) }}
+                                    <i class="ti ti-message text-gray-400" aria-hidden="true"></i>
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">SMS</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer min-h-[44px] px-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                    {{ onboarding_form.discord_notifications(class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green", id="discordNotifications") }}
+                                    <i class="ti ti-brand-discord text-gray-400" aria-hidden="true"></i>
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">Discord</span>
+                                </label>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Profile Visibility</label>
+                                {{ onboarding_form.profile_visibility(class="select-ecs sm:w-1/2") }}
+                            </div>
+
+                            <!-- SMS Verification (hidden by default) -->
+                            <div id="smsOptInSection" class="hidden p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                                <label class="flex items-start gap-3 cursor-pointer mb-4">
+                                    <input type="checkbox" id="smsConsent" name="sms_consent"
+                                           class="mt-0.5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green"
+                                           data-on-change="onboarding-sms-consent">
+                                    <span class="text-sm text-gray-600 dark:text-gray-300">
+                                        I consent to receive text messages from ECS FC about team updates, schedule changes, and important announcements.
+                                        Standard message and data rates may apply. You can opt out at any time.
+                                    </span>
+                                </label>
+
+                                <div id="smsVerificationSection" class="hidden">
+                                    <h6 class="font-medium text-gray-900 dark:text-white mb-2">Verify Your Phone Number</h6>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">We'll send a verification code to confirm your phone number.</p>
+
+                                    <button type="button" id="sendVerificationBtn"
+                                            class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                        <i class="ti ti-send" aria-hidden="true"></i>Send Verification Code
+                                    </button>
+
+                                    <div id="verificationCodeInput" class="hidden mt-4">
+                                        <div class="flex gap-2">
+                                            <input type="text" id="verificationCode" placeholder="Enter 6-digit code"
+                                                   class="input-ecs w-40">
+                                            <button type="button" id="verifyCodeBtn"
+                                                    class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                                <i class="ti ti-check" aria-hidden="true"></i>Verify
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <input type="hidden" id="smsVerified" name="sms_verified" value="{{ 'true' if player and player.is_phone_verified else 'false' }}">
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                 </div>
             </div>
-            {% endcall %}
 
-            <!-- Form Actions -->
-            <div class="flex flex-col sm:flex-row gap-3">
-                <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-6 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                    <i class="ti ti-check" aria-hidden="true"></i>Save Profile
-                </button>
-                <a href="{{ url_for('main.index') }}"
-                   class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                    Cancel
-                </a>
+            <!-- Command toolbar: sticky primary CTA -->
+            <div class="sticky bottom-0 z-10 mt-5 sm:mt-6 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-700">
+                <div class="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3">
+                    <p class="hidden sm:flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 flex-1">
+                        <i class="ti ti-info-circle" aria-hidden="true"></i>You can update everything except name and email later from your profile.
+                    </p>
+                    <a href="{{ url_for('main.index') }}"
+                       class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        Cancel
+                    </a>
+                    <button type="submit" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-check" aria-hidden="true"></i>Save Profile
+                    </button>
+                </div>
             </div>
         </form>
     </div>

@@ -1209,6 +1209,46 @@ window.EventDelegation.register('add-guild', addGuild, { preventDefault: true })
 window.EventDelegation.register('save-bot-config', saveBotConfig, { preventDefault: true });
 window.EventDelegation.register('reset-bot-config', resetBotConfig, { preventDefault: true });
 
+// Live Activity Feed
+window.EventDelegation.register('filter-log-level', function(element) {
+    const level = (element.value || '').toUpperCase();
+    document.querySelectorAll('[data-log-row]').forEach(function(row) {
+        const rowLevel = (row.dataset.logLevel || '').toUpperCase();
+        row.classList.toggle('hidden', level !== '' && rowLevel !== level);
+    });
+});
+
+window.EventDelegation.register('pause-feed', function(element) {
+    const icon = element.querySelector('i');
+    const statusPill = document.querySelector('[data-feed-status]');
+    const paused = element.dataset.paused === 'true';
+    if (paused) {
+        element.dataset.paused = 'false';
+        element.setAttribute('aria-label', 'Pause feed');
+        if (icon) icon.className = 'ti ti-player-pause';
+        _setFeedPaused(false);
+    } else {
+        element.dataset.paused = 'true';
+        element.setAttribute('aria-label', 'Resume feed');
+        if (icon) icon.className = 'ti ti-player-play';
+        _setFeedPaused(true);
+    }
+    function _setFeedPaused(isPaused) {
+        if (!statusPill) return;
+        const dot = statusPill.querySelector('i');
+        const label = isPaused ? 'Paused' : 'Streaming';
+        statusPill.childNodes.forEach(function(n) {
+            if (n.nodeType === Node.TEXT_NODE && n.textContent.trim()) n.textContent = ' ' + label;
+        });
+        if (dot) dot.classList.toggle('animate-pulse', !isPaused);
+    }
+}, { preventDefault: true });
+
+window.EventDelegation.register('refresh-feed', function() {
+    // Logs are rendered server-side from recent_logs; reload to pull the latest batch.
+    window.location.reload();
+}, { preventDefault: true });
+
 // Custom Command Actions (inside SweetAlert dialogs)
 window.EventDelegation.register('edit-custom-command', function(element) {
     const cmdName = element.dataset.cmdName;

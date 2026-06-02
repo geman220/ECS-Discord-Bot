@@ -22,7 +22,7 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state, modal %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table_th, empty_state, modal %}
 
 {% call page_header('Push Notifications', subtitle='Communication') %}
 <a href="{{ url_for('admin_panel.communication_hub') }}"
@@ -32,180 +32,291 @@
           focus:outline-none focus:ring-2 focus:ring-ecs-green">
   <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Communication</span>
 </a>
+<button type="submit" form="pushNotificationForm"
+        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+               bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+  <i class="ti ti-send" aria-hidden="true"></i>Send
+</button>
 {% endcall %}
 
-<!-- Stat band -->
+<!-- KPI band -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  {{ stat_card('ti-users', 'Total Subscribers', total_subscribers or 0, tone='info') }}
-  {{ stat_card('ti-send', 'Sent Today', notifications_sent_today or 0, tone='success') }}
-  {{ stat_card('ti-chart-line', 'Delivery Rate', delivery_rate or '95%', tone='primary') }}
-  {{ stat_card('ti-click', 'Click Rate', click_rate or '12%', tone='gold') }}
+  {% call stat_card('ti-users', 'Total Subscribers', total_subscribers or 0, tone='info') %}
+    <span class="font-mono">{{ active_subscribers or 0 }}</span> active in last 30d
+  {% endcall %}
+  {% call stat_card('ti-send', 'Sent Today', notifications_sent_today or 0, tone='success') %}
+    push notifications dispatched
+  {% endcall %}
+  {% call stat_card('ti-chart-line', 'Delivery Rate', delivery_rate or '0%', tone='primary') %}
+    estimated successful delivery
+  {% endcall %}
+  {% call stat_card('ti-click', 'Click Rate', click_rate or '0%', tone='gold') %}
+    estimated engagement
+  {% endcall %}
 </div>
 
-<!-- Send Push Notification -->
-<div class="mb-6">
-{% call section_card('Send Push Notification', icon='ti-send') %}
-<div class="p-4 sm:p-5">
+<!-- Operations toolbar: quick actions backed by existing push-notification endpoints -->
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 mb-6">
+    <div class="flex flex-wrap items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mr-1">
+            <i class="ti ti-bolt text-ecs-green" aria-hidden="true"></i>Operations
+        </span>
+        <button type="button" id="opSendTest"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                       border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
+                       text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-flask" aria-hidden="true"></i>Send Test Notification
+        </button>
+        <a href="{{ url_for('admin_panel.push_notification_tokens') }}" target="_blank" rel="noopener"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                  border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
+                  text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-devices" aria-hidden="true"></i>Manage FCM Tokens
+        </a>
+        <button type="button" id="opCleanupTokens"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                       border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300
+                       text-sm font-medium hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <i class="ti ti-trash" aria-hidden="true"></i>Cleanup Invalid Tokens
+        </button>
+        <button type="button" id="opMatchReminder"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                       border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
+                       text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-ball-football" aria-hidden="true"></i>Send Match Reminder
+        </button>
+        <button type="button" id="opRsvpReminder"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                       border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
+                       text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-calendar-check" aria-hidden="true"></i>Send RSVP Reminder
+        </button>
+        <a href="#notificationHistory"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                  border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
+                  text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-list-details" aria-hidden="true"></i>View Notification Logs
+        </a>
+    </div>
+</section>
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+<!-- PRIMARY JOB: Compose & send -->
+<div class="xl:col-span-2 space-y-6">
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <i class="ti ti-send text-ecs-green" aria-hidden="true"></i> Compose Notification
+        </h2>
+        <span class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            <i class="ti ti-target text-ecs-green" aria-hidden="true"></i>Reach
+            <span id="recipient_count_header" class="font-mono text-sm font-bold text-ecs-green normal-case">0</span>
+        </span>
+    </div>
     <form method="POST" action="{{ url_for('admin_panel.send_push_notification') }}" id="pushNotificationForm">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div>
-                <label for="notification_title" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Notification Title</label>
-                <input type="text" id="notification_title" name="title" maxlength="50" required
-                       class="input-ecs" placeholder="League Update">
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Max 50 characters</p>
+
+        <!-- Message group -->
+        <div class="p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3"><i class="ti ti-message-2 mr-1" aria-hidden="true"></i>Message</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="notification_title" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Notification Title</label>
+                    <input type="text" id="notification_title" name="title" maxlength="50" required
+                           class="input-ecs" placeholder="League Update">
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Max 50 characters</p>
+                </div>
+                <div>
+                    <label for="notification_priority" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Priority</label>
+                    <select id="notification_priority" name="priority" required class="select-ecs">
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
             </div>
             <div>
-                <label for="notification_priority" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Priority</label>
-                <select id="notification_priority" name="priority" required class="select-ecs">
-                    <option value="normal">Normal</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
+                <label for="notification_body" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Message Body</label>
+                <textarea id="notification_body" name="body" rows="3" maxlength="200" required
+                          class="input-ecs" placeholder="Your message here..."></textarea>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Max 200 characters</p>
+            </div>
+        </div>
+
+        <!-- Audience group -->
+        <div class="p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3"><i class="ti ti-users-group mr-1" aria-hidden="true"></i>Audience</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="target_type" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Target Type</label>
+                    <select id="target_type" name="target_type" required class="select-ecs">
+                        <option value="all">All Subscribers</option>
+                        <option value="team">By Team</option>
+                        <option value="league">By League</option>
+                        <option value="role">By Role</option>
+                        <option value="pool">Substitute Pool</option>
+                        <option value="group">Notification Group</option>
+                        <option value="platform">By Platform</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="platform_filter" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Platform</label>
+                    <select id="platform_filter" name="platform_filter" class="select-ecs">
+                        <option value="all">All Platforms</option>
+                        <option value="ios">iOS Only</option>
+                        <option value="android">Android Only</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Dynamic Target Selectors -->
+            <div id="team_selector_container" class="hidden mb-4">
+                <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Select Teams</label>
+                <select id="team_selector" name="team_ids" multiple class="select-ecs min-h-[120px]">
+                    {% for team in teams|default([]) %}
+                    <option value="{{ team.id }}">{{ team.name }} ({{ team.league.name if team.league else 'No league' }})</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple teams</p>
+            </div>
+
+            <div id="league_selector_container" class="hidden mb-4">
+                <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Select Leagues</label>
+                <select id="league_selector" name="league_ids" multiple class="select-ecs min-h-[120px]">
+                    {% for league in leagues|default([]) %}
+                    <option value="{{ league.id }}">{{ league.name }}</option>
+                    {% endfor %}
                 </select>
             </div>
-        </div>
 
-        <div class="mb-4">
-            <label for="notification_body" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Message Body</label>
-            <textarea id="notification_body" name="body" rows="3" maxlength="200" required
-                      class="input-ecs" placeholder="Your message here..."></textarea>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Max 200 characters</p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div>
-                <label for="target_type" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Target Type</label>
-                <select id="target_type" name="target_type" required class="select-ecs">
-                    <option value="all">All Subscribers</option>
-                    <option value="team">By Team</option>
-                    <option value="league">By League</option>
-                    <option value="role">By Role</option>
-                    <option value="pool">Substitute Pool</option>
-                    <option value="group">Notification Group</option>
-                    <option value="platform">By Platform</option>
+            <div id="role_selector_container" class="hidden mb-4">
+                <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Select Roles</label>
+                <select id="role_selector" name="role_names" multiple class="select-ecs min-h-[120px]">
+                    {% for role in roles|default([]) %}
+                    <option value="{{ role.name }}">{{ role.name }}</option>
+                    {% endfor %}
                 </select>
             </div>
-            <div>
-                <label for="platform_filter" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Platform</label>
-                <select id="platform_filter" name="platform_filter" class="select-ecs">
-                    <option value="all">All Platforms</option>
-                    <option value="ios">iOS Only</option>
-                    <option value="android">Android Only</option>
+
+            <div id="pool_selector_container" class="hidden mb-4">
+                <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Select Substitute Pool</label>
+                <select id="pool_selector" name="pool_type" class="select-ecs">
+                    <option value="all">All Pools</option>
+                    <option value="pub_league">Pub League Sub Pool</option>
+                    <option value="ecs_fc">ECS FC Sub Pool</option>
                 </select>
             </div>
-        </div>
 
-        <!-- Dynamic Target Selectors -->
-        <div id="team_selector_container" class="hidden mb-4">
-            <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Select Teams</label>
-            <select id="team_selector" name="team_ids" multiple class="select-ecs min-h-[120px]">
-                {% for team in teams|default([]) %}
-                <option value="{{ team.id }}">{{ team.name }} ({{ team.league.name if team.league else 'No league' }})</option>
-                {% endfor %}
-            </select>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple teams</p>
-        </div>
-
-        <div id="league_selector_container" class="hidden mb-4">
-            <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Select Leagues</label>
-            <select id="league_selector" name="league_ids" multiple class="select-ecs min-h-[120px]">
-                {% for league in leagues|default([]) %}
-                <option value="{{ league.id }}">{{ league.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div id="role_selector_container" class="hidden mb-4">
-            <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Select Roles</label>
-            <select id="role_selector" name="role_names" multiple class="select-ecs min-h-[120px]">
-                {% for role in roles|default([]) %}
-                <option value="{{ role.name }}">{{ role.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div id="pool_selector_container" class="hidden mb-4">
-            <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Select Substitute Pool</label>
-            <select id="pool_selector" name="pool_type" class="select-ecs">
-                <option value="all">All Pools</option>
-                <option value="pub_league">Pub League Sub Pool</option>
-                <option value="ecs_fc">ECS FC Sub Pool</option>
-            </select>
-        </div>
-
-        <div id="notification_group_selector_container" class="hidden mb-4">
-            <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Select Notification Group</label>
-            <select id="notification_group_selector" name="notification_group_id" class="select-ecs">
-                <option value="">Select a group...</option>
-                {% for group in notification_groups|default([]) %}
-                <option value="{{ group.id }}">{{ group.name }} ({{ group.group_type }})</option>
-                {% endfor %}
-            </select>
-            <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="inline-flex items-center mt-2 text-sm text-ecs-green hover:text-ecs-green-700 dark:text-ecs-green">
-                <i class="ti ti-plus mr-1" aria-hidden="true"></i>Manage Groups
-            </a>
-        </div>
-
-        <!-- Recipient Count Preview -->
-        <div class="flex flex-wrap items-center gap-3 p-4 mb-4 rounded-xl border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300">
-            <i class="ti ti-users text-lg" aria-hidden="true"></i>
-            <span class="text-sm">Estimated recipients: <strong id="recipient_count" class="font-mono">0</strong></span>
-            <span class="text-xs">
-                iOS: <span id="recipient_count_ios" class="font-mono">0</span> |
-                Android: <span id="recipient_count_android" class="font-mono">0</span>
-            </span>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div>
-                <label for="notification_icon" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Icon</label>
-                <select id="notification_icon" name="icon" class="select-ecs">
-                    <option value="default">Default</option>
-                    <option value="announcement">Announcement</option>
-                    <option value="match">Match</option>
-                    <option value="alert">Alert</option>
-                    <option value="info">Info</option>
-                    <option value="celebration">Celebration</option>
+            <div id="notification_group_selector_container" class="hidden mb-4">
+                <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Select Notification Group</label>
+                <select id="notification_group_selector" name="notification_group_id" class="select-ecs">
+                    <option value="">Select a group...</option>
+                    {% for group in notification_groups|default([]) %}
+                    <option value="{{ group.id }}">{{ group.name }} ({{ group.group_type }})</option>
+                    {% endfor %}
                 </select>
+                <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="inline-flex items-center mt-2 text-sm text-ecs-green hover:text-ecs-green-700 dark:text-ecs-green">
+                    <i class="ti ti-plus mr-1" aria-hidden="true"></i>Manage Groups
+                </a>
             </div>
-            <div>
-                <label for="send_time" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Send Time</label>
-                <select id="send_time" name="send_time" required class="select-ecs">
-                    <option value="now">Send Now</option>
-                    <option value="scheduled">Schedule for Later</option>
-                </select>
+
+            <!-- Recipient Count Preview -->
+            <div class="rounded-xl border border-ecs-green/30 dark:border-ecs-green/40 bg-ecs-green/5 dark:bg-ecs-green/10 p-4">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <i class="ti ti-target text-ecs-green text-lg shrink-0" aria-hidden="true"></i>
+                        <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Estimated reach</span>
+                    </div>
+                    <span id="recipient_count" class="font-mono text-2xl font-bold text-ecs-green leading-none">0</span>
+                </div>
+                <div class="mt-3 pt-3 border-t border-ecs-green/20 grid grid-cols-2 gap-3 text-sm">
+                    <div class="flex items-center gap-1.5 text-gray-600 dark:text-gray-300">
+                        <i class="ti ti-brand-apple text-gray-400" aria-hidden="true"></i>iOS
+                        <span id="recipient_count_ios" class="font-mono font-semibold ml-auto">0</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 text-gray-600 dark:text-gray-300">
+                        <i class="ti ti-brand-android text-gray-400" aria-hidden="true"></i>Android
+                        <span id="recipient_count_android" class="font-mono font-semibold ml-auto">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Send warning callout -->
+            <div class="mt-4 flex items-start gap-2 rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+                <i class="ti ti-alert-triangle shrink-0 mt-0.5" aria-hidden="true"></i>
+                <span>This will send a push notification to <span id="warning_recipient_count" class="font-mono font-semibold">0</span> recipients. This action cannot be undone.</span>
             </div>
         </div>
 
-        <div id="schedule_time_container" class="hidden mb-4">
-            <label for="schedule_datetime" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Schedule Date &amp; Time</label>
-            <input type="datetime-local" id="schedule_datetime" name="schedule_datetime" class="input-ecs">
+        <!-- Delivery group -->
+        <div class="p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3"><i class="ti ti-settings-2 mr-1" aria-hidden="true"></i>Delivery</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="notification_icon" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Icon</label>
+                    <select id="notification_icon" name="icon" class="select-ecs">
+                        <option value="default">Default</option>
+                        <option value="announcement">Announcement</option>
+                        <option value="match">Match</option>
+                        <option value="alert">Alert</option>
+                        <option value="info">Info</option>
+                        <option value="celebration">Celebration</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="send_time" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Send Time</label>
+                    <select id="send_time" name="send_time" required class="select-ecs">
+                        <option value="now">Send Now</option>
+                        <option value="scheduled">Schedule for Later</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="schedule_time_container" class="hidden mb-4">
+                <label for="schedule_datetime" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Schedule Date &amp; Time</label>
+                <input type="datetime-local" id="schedule_datetime" name="schedule_datetime" class="input-ecs">
+            </div>
+
+            <div>
+                <label for="action_url" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Action URL (Optional)</label>
+                <input type="url" id="action_url" name="action_url" class="input-ecs" placeholder="https://example.com/action">
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">URL to open when notification is clicked</p>
+            </div>
         </div>
 
-        <div class="mb-4">
-            <label for="action_url" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Action URL (Optional)</label>
-            <input type="url" id="action_url" name="action_url" class="input-ecs" placeholder="https://example.com/action">
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">URL to open when notification is clicked</p>
-        </div>
-
-        <div class="flex flex-wrap items-center justify-between gap-4">
+        <!-- Command toolbar -->
+        <div class="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3 bg-gray-50 dark:bg-gray-700/40">
             <button type="button" onclick="history.back()"
-                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                            border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
-                           text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
+                           text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
                            focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-arrow-left" aria-hidden="true"></i>Back
             </button>
             <div class="flex flex-wrap gap-2">
+                <button type="reset" id="clearBtn"
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                               border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
+                               text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
+                               focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <i class="ti ti-eraser" aria-hidden="true"></i>Clear
+                </button>
                 <button type="button" id="previewBtn"
-                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                                border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300
                                text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors
                                focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <i class="ti ti-eye" aria-hidden="true"></i>Preview
                 </button>
                 <button type="submit"
-                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                                bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
                                focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-send" aria-hidden="true"></i>Send Notification
@@ -213,14 +324,15 @@
             </div>
         </div>
     </form>
-</div>
-{% endcall %}
-</div>
+</section>
 
 <!-- Notification History -->
-<div class="mb-6">
-{% call data_table('Notification History', icon='ti-history', count=(notification_history|length if notification_history else None), filters=False) %}
-    <div class="flex flex-wrap items-center gap-1 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+<section id="notificationHistory" data-modern-table class="scroll-mt-24 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <i class="ti ti-history text-ecs-green" aria-hidden="true"></i> Notification History
+            {% if notification_history %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ notification_history|length }}</span>{% endif %}
+        </h2>
         <div class="inline-flex items-center gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
             <button class="history-filter px-3 py-1.5 text-xs font-medium rounded-md bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm" data-filter="all">All</button>
             <button class="history-filter px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-600/50" data-filter="sent">Sent</button>
@@ -229,51 +341,39 @@
         </div>
     </div>
     {% if notification_history %}
+    <div class="md:overflow-x-auto">
     <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
         <thead>
             <tr class="border-b border-gray-200 dark:border-gray-700">
                 {{ data_table_th('Notification', sortable=False) }}
-                {{ data_table_th('Target', sortable=False, hide='sm') }}
-                {{ data_table_th('Sent', sortable=False, hide='sm') }}
-                {{ data_table_th('Delivered', sortable=False, hide='sm') }}
-                {{ data_table_th('Clicked', sortable=False, hide='sm') }}
+                {{ data_table_th('Channel', sortable=False, hide='sm') }}
+                {{ data_table_th('Created', sortable=False, hide='sm') }}
                 {{ data_table_th('Status', sortable=False, hide='sm') }}
                 {{ data_table_th('Actions', sortable=False, align='right') }}
             </tr>
         </thead>
         <tbody>
             {% for notification in notification_history %}
-            <tr class="notification-row border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-status="{{ notification.status or 'sent' }}">
+            {% set status = notification.status or 'sent' %}
+            <tr class="notification-row border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-status="{{ status }}">
                 <td class="px-3 py-3.5">
-                    <div class="font-medium text-gray-900 dark:text-white">{{ notification.title }}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ notification.body[:40] }}...</div>
-                    {% if notification.priority == 'urgent' %}
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 mt-1 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-alert-octagon text-[11px]" aria-hidden="true"></i>Urgent</span>
-                    {% elif notification.priority == 'high' %}
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 mt-1 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-alert-triangle text-[11px]" aria-hidden="true"></i>High Priority</span>
-                    {% endif %}
+                    <div class="flex items-start gap-3">
+                        <span class="shrink-0 w-9 h-9 rounded-lg bg-ecs-green/10 text-ecs-green flex items-center justify-center mt-0.5">
+                            <i class="ti {{ notification.icon_class() }}" aria-hidden="true"></i>
+                        </span>
+                        <div class="min-w-0">
+                            <div class="font-medium text-gray-900 dark:text-white truncate">{{ notification.content }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">#{{ notification.id }}</div>
+                        </div>
+                    </div>
                 </td>
                 <td class="px-3 py-3.5 hidden md:table-cell">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ notification.target_audience|title }}</span>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">{{ notification.target_count or 0 }} recipients</div>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-device-mobile text-[11px]" aria-hidden="true"></i>{{ notification.notification_type|title }}</span>
                 </td>
                 <td class="px-3 py-3.5 text-xs font-mono hidden md:table-cell">
-                    {{ notification.sent_at.strftime('%Y-%m-%d %H:%M') if notification.sent_at else 'Not sent' }}
+                    {{ notification.created_at.strftime('%Y-%m-%d %H:%M') if notification.created_at else '—' }}
                 </td>
                 <td class="px-3 py-3.5 hidden md:table-cell">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">{{ notification.delivered_count or 0 }}</span>
-                    {% if notification.target_count and notification.target_count > 0 %}
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">{{ ((notification.delivered_count or 0) / notification.target_count * 100)|round(1) }}%</div>
-                    {% endif %}
-                </td>
-                <td class="px-3 py-3.5 hidden md:table-cell">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ notification.clicked_count or 0 }}</span>
-                    {% if notification.delivered_count and notification.delivered_count > 0 %}
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">{{ ((notification.clicked_count or 0) / notification.delivered_count * 100)|round(1) }}%</div>
-                    {% endif %}
-                </td>
-                <td class="px-3 py-3.5 hidden md:table-cell">
-                    {% set status = notification.status or 'sent' %}
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {% if status == 'sent' %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400{% elif status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400{% elif status == 'scheduled' %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
                         <i class="ti {% if status == 'sent' %}ti-circle-check{% elif status == 'failed' %}ti-alert-octagon{% elif status == 'scheduled' %}ti-clock{% else %}ti-circle{% endif %} text-[11px]" aria-hidden="true"></i>{{ status|title }}
                     </span>
@@ -281,12 +381,12 @@
                 <td class="px-3 py-3.5 text-right">
                     <div class="flex items-center justify-end gap-1">
                         <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                                onclick="viewNotificationDetails('{{ notification.id }}', '{{ notification.title|e }}')" title="View" aria-label="View notification details">
+                                onclick="viewNotificationDetails('{{ notification.id }}', '{{ notification.content|e }}')" title="View" aria-label="View notification details">
                             <i class="ti ti-eye" aria-hidden="true"></i>
                         </button>
                         {% if notification.status == 'failed' %}
                         <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 hover:bg-green-100 rounded dark:text-green-400 dark:hover:bg-green-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                                onclick="resendNotification('{{ notification.id }}', '{{ notification.title|e }}')" title="Resend" aria-label="Resend notification">
+                                onclick="resendNotification('{{ notification.id }}', '{{ notification.content|e }}')" title="Resend" aria-label="Resend notification">
                             <i class="ti ti-refresh" aria-hidden="true"></i>
                         </button>
                         {% endif %}
@@ -306,27 +406,30 @@
         {% set status = notification.status or 'sent' %}
         <div class="notification-row px-4 py-3.5" data-status="{{ status }}">
             <div class="flex items-start justify-between gap-2">
-                <div class="min-w-0">
-                    <div class="font-medium text-gray-900 dark:text-white truncate">{{ notification.title }}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ notification.body[:40] }}...</div>
+                <div class="flex items-start gap-3 min-w-0">
+                    <span class="shrink-0 w-9 h-9 rounded-lg bg-ecs-green/10 text-ecs-green flex items-center justify-center">
+                        <i class="ti {{ notification.icon_class() }}" aria-hidden="true"></i>
+                    </span>
+                    <div class="min-w-0">
+                        <div class="font-medium text-gray-900 dark:text-white truncate">{{ notification.content }}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">#{{ notification.id }} · {{ notification.notification_type|title }}</div>
+                    </div>
                 </div>
                 <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {% if status == 'sent' %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400{% elif status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400{% elif status == 'scheduled' %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
                     <i class="ti {% if status == 'sent' %}ti-circle-check{% elif status == 'failed' %}ti-alert-octagon{% elif status == 'scheduled' %}ti-clock{% else %}ti-circle{% endif %} text-[11px]" aria-hidden="true"></i>{{ status|title }}
                 </span>
             </div>
             <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400 font-mono">
-                <span>{{ notification.target_audience|title }} · {{ notification.target_count or 0 }} recipients</span>
-                <span><i class="ti ti-check mr-0.5" aria-hidden="true"></i>{{ notification.delivered_count or 0 }} delivered</span>
-                <span><i class="ti ti-click mr-0.5" aria-hidden="true"></i>{{ notification.clicked_count or 0 }} clicked</span>
+                <span><i class="ti ti-clock mr-0.5" aria-hidden="true"></i>{{ notification.created_at.strftime('%Y-%m-%d %H:%M') if notification.created_at else '—' }}</span>
             </div>
             <div class="mt-2 flex items-center gap-1">
                 <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                        onclick="viewNotificationDetails('{{ notification.id }}', '{{ notification.title|e }}')" title="View" aria-label="View notification details">
+                        onclick="viewNotificationDetails('{{ notification.id }}', '{{ notification.content|e }}')" title="View" aria-label="View notification details">
                     <i class="ti ti-eye" aria-hidden="true"></i>
                 </button>
                 {% if notification.status == 'failed' %}
                 <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 hover:bg-green-100 rounded dark:text-green-400 dark:hover:bg-green-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                        onclick="resendNotification('{{ notification.id }}', '{{ notification.title|e }}')" title="Resend" aria-label="Resend notification">
+                        onclick="resendNotification('{{ notification.id }}', '{{ notification.content|e }}')" title="Resend" aria-label="Resend notification">
                     <i class="ti ti-refresh" aria-hidden="true"></i>
                 </button>
                 {% endif %}
@@ -338,86 +441,111 @@
         </div>
         {% endfor %}
     </div>
+    </div>
     {% else %}
     {{ empty_state('ti-bell-x', 'No notifications sent', 'Your notification history will appear here once you send your first notification.') }}
     {% endif %}
-{% endcall %}
+</section>
 </div>
 
-<!-- Settings & Analytics -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- Notification Settings -->
-    {% call section_card('Notification Settings', icon='ti-settings') %}
-    <div class="divide-y divide-gray-200 dark:divide-gray-700">
-        <div class="p-4 flex items-center justify-between gap-3">
-            <div class="flex items-center min-w-0">
-                <i class="ti ti-bell mr-3 text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
-                <div class="min-w-0">
-                    <span class="font-medium text-gray-900 dark:text-white">Push Notifications</span>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Global push notification system</p>
+<!-- RIGHT RAIL: audience + system feature cards -->
+<div class="space-y-6">
+    <!-- Phone device preview (lock screen) -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+            <i class="ti ti-device-mobile text-ecs-green" aria-hidden="true"></i>
+            <h2 class="font-semibold text-gray-900 dark:text-white">Preview</h2>
+            <span class="ml-auto text-xs text-gray-500 dark:text-gray-400 font-mono">Lock screen</span>
+        </div>
+        <div class="p-5 flex justify-center">
+            <div class="w-full max-w-[260px] rounded-[2rem] border-4 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 shadow-xl">
+                <div class="flex justify-center mb-3"><div class="h-1.5 w-16 rounded-full bg-gray-200 dark:bg-gray-700"></div></div>
+                <div class="text-center text-gray-700 dark:text-gray-200 mb-4">
+                    <div class="font-mono text-3xl font-bold leading-none">9:41</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Lock screen</div>
+                </div>
+                <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-800/80 p-3 shadow">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-ecs-green text-white text-xs font-bold">E</span>
+                        <span class="text-xs font-semibold flex-1 truncate text-gray-900 dark:text-white">ECS FC</span>
+                        <span class="text-[10px] text-gray-400 dark:text-gray-500 font-mono">now</span>
+                    </div>
+                    <div class="text-sm font-semibold leading-snug text-gray-900 dark:text-white" id="preview-title">Notification Title</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5" id="preview-body">Your message will appear here as you type.</div>
                 </div>
             </div>
-            <div class="flex items-center gap-2 shrink-0">
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {% if push_notifications_enabled %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400{% else %}bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400{% endif %}">
-                    <i class="ti {% if push_notifications_enabled %}ti-circle-check{% else %}ti-circle-x{% endif %} text-[11px]" aria-hidden="true"></i>{% if push_notifications_enabled %}Enabled{% else %}Disabled{% endif %}
-                </span>
-                <a href="{{ url_for('admin_panel.feature_toggles') }}#notifications" class="p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded" aria-label="Notification feature settings">
+        </div>
+    </section>
+
+    <!-- Subscriber audience -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+            <i class="ti ti-chart-pie text-ecs-green" aria-hidden="true"></i>
+            <h2 class="font-semibold text-gray-900 dark:text-white">Subscriber Audience</h2>
+        </div>
+        <div class="p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active Subscribers</span>
+            <div class="mt-1.5 flex items-end gap-2">
+                <span class="font-mono text-4xl font-bold leading-none text-ecs-green">{{ active_subscribers or 0 }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">of {{ total_subscribers or 0 }} total</span>
+            </div>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div class="px-4 py-3 flex items-center justify-between gap-3">
+                <span class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-user-plus text-blue-500" aria-hidden="true"></i>New This Week</span>
+                <span class="font-mono text-sm font-semibold text-blue-600 dark:text-blue-400">{{ new_subscribers_week or 0 }}</span>
+            </div>
+            <div class="px-4 py-3 flex items-center justify-between gap-3">
+                <span class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-user-minus text-amber-500" aria-hidden="true"></i>Unsubscribed</span>
+                <span class="font-mono text-sm font-semibold text-amber-600 dark:text-amber-400">{{ unsubscribed_count or 0 }}</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- System status feature card -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white"><i class="ti ti-settings text-ecs-green" aria-hidden="true"></i>System Status</h2>
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {% if push_notifications_enabled %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400{% else %}bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400{% endif %}">
+                <i class="ti {% if push_notifications_enabled %}ti-circle-check{% else %}ti-circle-x{% endif %} text-[11px]" aria-hidden="true"></i>{% if push_notifications_enabled %}Live{% else %}Off{% endif %}
+            </span>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div class="p-4 flex items-center justify-between gap-3">
+                <div class="flex items-center min-w-0">
+                    <i class="ti ti-bell mr-3 text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
+                    <div class="min-w-0">
+                        <span class="font-medium text-gray-900 dark:text-white">Push Notifications</span>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Global delivery system</p>
+                    </div>
+                </div>
+                <a href="{{ url_for('admin_panel.feature_toggles') }}#notifications" class="p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded shrink-0" aria-label="Notification feature settings">
                     <i class="ti ti-settings" aria-hidden="true"></i>
                 </a>
             </div>
-        </div>
-        <div class="p-4 flex items-center justify-between gap-3">
-            <div class="flex items-center min-w-0">
-                <i class="ti ti-shield-check mr-3 text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
-                <div class="min-w-0">
-                    <span class="font-medium text-gray-900 dark:text-white">Rate Limiting</span>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Prevent notification spam</p>
+            <div class="p-4 flex items-center justify-between gap-3">
+                <div class="flex items-center min-w-0">
+                    <i class="ti ti-shield-check mr-3 text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
+                    <div class="min-w-0">
+                        <span class="font-medium text-gray-900 dark:text-white">Rate Limiting</span>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Prevent notification spam</p>
+                    </div>
                 </div>
+                <span class="text-xs text-gray-500 dark:text-gray-400 font-mono shrink-0">100/hour</span>
             </div>
-            <div class="flex items-center gap-2 shrink-0">
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check text-[11px]" aria-hidden="true"></i>Active</span>
-                <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">100/hour</span>
-            </div>
-        </div>
-        <div class="p-4 flex items-center justify-between gap-3">
-            <div class="flex items-center min-w-0">
-                <i class="ti ti-clock mr-3 text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
-                <div class="min-w-0">
-                    <span class="font-medium text-gray-900 dark:text-white">Quiet Hours</span>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Respect user sleep times</p>
+            <div class="p-4 flex items-center justify-between gap-3">
+                <div class="flex items-center min-w-0">
+                    <i class="ti ti-clock mr-3 text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
+                    <div class="min-w-0">
+                        <span class="font-medium text-gray-900 dark:text-white">Quiet Hours</span>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Respect user sleep times</p>
+                    </div>
                 </div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400 shrink-0">22:00–08:00</span>
             </div>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">22:00 - 08:00</span>
         </div>
-    </div>
-    {% endcall %}
-
-    <!-- Subscription Analytics -->
-    {% call section_card('Subscription Analytics', icon='ti-chart-pie') %}
-    <div class="divide-y divide-gray-200 dark:divide-gray-700">
-        <div class="p-4 flex items-center justify-between gap-3">
-            <div class="flex items-center min-w-0">
-                <i class="ti ti-users mr-3 text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
-                <span class="text-gray-900 dark:text-white">Active Subscribers</span>
-            </div>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">{{ active_subscribers or 0 }}</span>
-        </div>
-        <div class="p-4 flex items-center justify-between gap-3">
-            <div class="flex items-center min-w-0">
-                <i class="ti ti-user-plus mr-3 text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
-                <span class="text-gray-900 dark:text-white">New This Week</span>
-            </div>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ new_subscribers_week or 0 }}</span>
-        </div>
-        <div class="p-4 flex items-center justify-between gap-3">
-            <div class="flex items-center min-w-0">
-                <i class="ti ti-user-minus mr-3 text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
-                <span class="text-gray-900 dark:text-white">Unsubscribed</span>
-            </div>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">{{ unsubscribed_count or 0 }}</span>
-        </div>
-    </div>
-    {% endcall %}
+    </section>
+</div>
 </div>
 
 <!-- Preview Modal -->
@@ -917,12 +1045,18 @@ async function updateRecipientCount() {
 
         const data = await response.json();
         if (data.success && data.preview) {
-            document.getElementById('recipient_count').textContent = data.preview.total_tokens || 0;
+            const total = data.preview.total_tokens || 0;
+            document.getElementById('recipient_count').textContent = total;
             document.getElementById('recipient_count_ios').textContent = data.preview.breakdown?.ios || 0;
             document.getElementById('recipient_count_android').textContent = data.preview.breakdown?.android || 0;
+            const header = document.getElementById('recipient_count_header');
+            if (header) header.textContent = total;
         }
     } catch (error) {
-        document.getElementById('recipient_count').textContent = targetType === 'all' ? totalSubscribers : '?';
+        const fallback = targetType === 'all' ? totalSubscribers : '?';
+        document.getElementById('recipient_count').textContent = fallback;
+        const header = document.getElementById('recipient_count_header');
+        if (header) header.textContent = fallback;
     }
 }
 
@@ -987,12 +1121,49 @@ document.getElementById('previewBtn')?.addEventListener('click', function() {
 
 // View notification details
 function viewNotificationDetails(id, title) {
+    const escapeHtml = (s) => String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
     Swal.fire({
         title: `Details for "${title}"`,
-        text: 'Loading notification details...',
-        icon: 'info',
+        html: '<div class="text-center py-4"><div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-ecs-green"></div></div>',
+        showConfirmButton: false,
+        allowOutsideClick: true,
         background: isDark ? '#1f2937' : '#ffffff',
-        color: isDark ? '#f3f4f6' : '#111827'
+        color: isDark ? '#f3f4f6' : '#111827',
+        didOpen: () => {
+            fetch(`/admin-panel/push-notifications/${id}/details`, {
+                headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success || !data.notification) {
+                    Swal.update({ html: `<p class="text-red-600 dark:text-red-400">${escapeHtml(data.message || 'Unable to load notification details.')}</p>`, showConfirmButton: true });
+                    return;
+                }
+                const n = data.notification;
+                const created = n.created_at ? new Date(n.created_at).toLocaleString() : 'N/A';
+                Swal.update({
+                    html: `
+                        <div class="text-left text-sm space-y-2">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div><span class="text-gray-500 dark:text-gray-400">ID:</span> <span class="font-mono">${escapeHtml(n.id)}</span></div>
+                                <div><span class="text-gray-500 dark:text-gray-400">Type:</span> ${escapeHtml(n.notification_type)}</div>
+                                <div><span class="text-gray-500 dark:text-gray-400">Recipient:</span> ${escapeHtml(n.user_name)}</div>
+                                <div><span class="text-gray-500 dark:text-gray-400">Status:</span> ${n.read ? 'Read' : 'Unread'}</div>
+                            </div>
+                            <div><span class="text-gray-500 dark:text-gray-400">Created:</span> ${escapeHtml(created)}</div>
+                            <div class="mt-2 p-3 rounded bg-gray-50 dark:bg-gray-700/50">
+                                <p class="text-gray-500 dark:text-gray-400 mb-1">Content</p>
+                                <p class="whitespace-pre-wrap">${escapeHtml(n.content)}</p>
+                            </div>
+                        </div>`,
+                    showConfirmButton: true
+                });
+            })
+            .catch(() => Swal.update({ html: '<p class="text-red-600 dark:text-red-400">Unable to load notification details.</p>', showConfirmButton: true }));
+        }
     });
 }
 
@@ -1043,6 +1214,133 @@ document.addEventListener('DOMContentLoaded', function() {
 // Update count on selector changes
 ['team_selector', 'league_selector', 'role_selector', 'pool_selector', 'notification_group_selector', 'platform_filter'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', updateRecipientCount);
+});
+
+// Live phone lock-screen preview: mirror composer inputs as you type (console shell only)
+function syncDevicePreview() {
+    const titleEl = document.getElementById('preview-title');
+    const bodyEl = document.getElementById('preview-body');
+    if (!titleEl && !bodyEl) return;
+    const title = document.getElementById('notification_title')?.value;
+    const body = document.getElementById('notification_body')?.value;
+    if (titleEl) titleEl.textContent = title || 'Notification Title';
+    if (bodyEl) bodyEl.textContent = body || 'Your message will appear here as you type.';
+}
+document.getElementById('notification_title')?.addEventListener('input', syncDevicePreview);
+document.getElementById('notification_body')?.addEventListener('input', syncDevicePreview);
+syncDevicePreview();
+
+// Keep the send-warning recipient count in sync with the estimated reach
+(function() {
+    const reach = document.getElementById('recipient_count');
+    const warn = document.getElementById('warning_recipient_count');
+    if (!reach || !warn) return;
+    const sync = () => { warn.textContent = reach.textContent; };
+    new MutationObserver(sync).observe(reach, { childList: true, characterData: true, subtree: true });
+    sync();
+})();
+
+// Clear button: reset the composer and the live preview
+document.getElementById('clearBtn')?.addEventListener('click', function() {
+    setTimeout(syncDevicePreview, 0);
+});
+
+// Operations toolbar: Send Test Notification
+document.getElementById('opSendTest')?.addEventListener('click', function() {
+    const btn = this;
+    btn.disabled = true;
+    fetch('/admin-panel/communication/push-notifications/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        Swal.fire({
+            icon: data.success ? 'success' : 'error',
+            title: data.success ? 'Test Sent' : 'Test Failed',
+            text: data.message || (data.success ? 'Test notification sent to your devices.' : 'Unable to send test notification.'),
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+    })
+    .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Unable to send test notification.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }))
+    .finally(() => { btn.disabled = false; });
+});
+
+// Operations toolbar: Cleanup Invalid Tokens
+document.getElementById('opCleanupTokens')?.addEventListener('click', function() {
+    Swal.fire({
+        title: 'Cleanup Invalid Tokens?',
+        text: 'Deactivate FCM tokens that have not been refreshed in over 90 days.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#1a472a',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, clean up',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+        fetch('/admin-panel/communication/push-notifications/cleanup-tokens', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' }
+        })
+        .then(r => r.json())
+        .then(data => Swal.fire({
+            icon: data.success ? 'success' : 'error',
+            title: data.success ? 'Cleanup Complete' : 'Cleanup Failed',
+            text: data.message || 'Token cleanup finished.',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }))
+        .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Unable to clean up tokens.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }));
+    });
+});
+
+// Operations toolbar: trigger an automated-reminder Celery task and report the result
+function triggerReminderTask(url, confirmTitle, confirmText) {
+    Swal.fire({
+        title: confirmTitle,
+        text: confirmText,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#1a472a',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, send',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' }
+        })
+        .then(r => r.json())
+        .then(data => Swal.fire({
+            icon: data.success ? 'success' : 'error',
+            title: data.success ? 'Reminders Queued' : 'Failed',
+            text: data.message || (data.success ? 'Reminders have been queued.' : 'Unable to queue reminders.'),
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }))
+        .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Unable to queue reminders.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }));
+    });
+}
+
+document.getElementById('opMatchReminder')?.addEventListener('click', function() {
+    triggerReminderTask(
+        '/admin-panel/communication/push-notifications/trigger-match-reminders',
+        'Send Match Reminders?',
+        'Queue reminders for every player who has a match tomorrow (already-reminded players are skipped).'
+    );
+});
+
+document.getElementById('opRsvpReminder')?.addEventListener('click', function() {
+    triggerReminderTask(
+        '/admin-panel/communication/push-notifications/trigger-rsvp-reminders',
+        'Send RSVP Reminders?',
+        'Queue RSVP reminders for players who have not responded for matches in the next 3-5 days.'
+    );
 });
 </script>
 {% endblock %}

@@ -69,7 +69,7 @@ function filterTable(input) {
   const scope = input.closest('[data-modern-table]');
   if (!scope) return;
   const q = input.value.trim().toLowerCase();
-  scope.querySelectorAll('tbody > tr, [data-row-card]').forEach((row) => {
+  scope.querySelectorAll('tbody > tr, [data-row-card], [data-row]').forEach((row) => {
     const match = !q || (row.textContent || '').toLowerCase().includes(q);
     row.classList.toggle('hidden', !match);
   });

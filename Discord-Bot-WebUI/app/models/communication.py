@@ -66,6 +66,10 @@ class ScheduledMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id', ondelete='CASCADE'), nullable=True)  # Nullable for ECS FC; CASCADE so match deletion can't orphan this row
     scheduled_send_time = db.Column(db.DateTime, nullable=False)
+    # Manual queue ordering for the admin Message Queue page (move-up/move-down).
+    # NULL = not manually ordered; falls back to scheduled_send_time. See
+    # sql_scheduled_message_queue_order.sql.
+    queue_order = db.Column(db.Integer, nullable=True)
     status = db.Column(db.String(20), default='PENDING')
     home_channel_id = db.Column(db.String(20), nullable=True)
     home_message_id = db.Column(db.String(20), nullable=True)

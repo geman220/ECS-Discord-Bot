@@ -6,223 +6,314 @@
 {% if shell == 'console' %}
 {% import "macros/_modern_kit.html" as kit %}
 <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8 space-y-6">
-    {{ kit.page_header("Auto Schedule Configuration", subtitle=league.name) }}
 
-    <a href="{{ url_for('publeague.season.manage_seasons') }}"
-       class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
-        <i class="ti ti-arrow-left" aria-hidden="true"></i>
-        Back to Seasons
-    </a>
+    {# ===== Command header: back link + title + primary CTA (deferred submit via form attr) ===== #}
+    <div class="space-y-3">
+        <a href="{{ url_for('publeague.season.manage_seasons') }}"
+           class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i>
+            Back to Seasons
+        </a>
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            <div class="min-w-0">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1 truncate">{{ league.name }} · Schedule Generator</p>
+                <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Auto Schedule Configuration</h1>
+            </div>
+            {% if team_count >= 2 %}
+            <div class="flex items-center gap-2 shrink-0">
+                <button type="submit" form="auto-schedule-form"
+                        class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    <i class="ti ti-wand" aria-hidden="true"></i>
+                    Generate Schedule
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 
     {% if team_count < 2 %}
     {{ kit.empty_state("ti-alert-triangle", "Not enough teams",
         "This league only has " ~ team_count ~ " teams. You need at least 2 teams to generate a schedule.",
         action={'label': 'Back to Seasons', 'url': url_for('publeague.season.manage_seasons'), 'icon': 'ti-arrow-left'}) }}
     {% else %}
+
+    {# ===== KPI band — projected season shape, derived purely from real team_count ===== #}
+    {% set opponents = team_count - 1 %}
+    {% set per_team = opponents * 2 %}
+    {% set total_matches = (team_count * per_team) // 2 %}
+    <section aria-labelledby="kpiHead">
+        <h2 id="kpiHead" class="sr-only">Projected season shape</h2>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Teams</span>
+                    <i class="ti ti-shield-half text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ team_count }}</div>
+                <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">in this league</div>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Per team</span>
+                    <i class="ti ti-ball-football text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ per_team }}</div>
+                <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ opponents }} opponents · twice each</div>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total matches</span>
+                    <i class="ti ti-calendar-event text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ total_matches }}</div>
+                <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">across the season</div>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Weeks</span>
+                    <i class="ti ti-calendar-stats text-lg text-gray-900 dark:text-white shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ config.weeks_count if config else 7 }}</div>
+                <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ per_team // 2 }} match-days / team</div>
+            </div>
+        </div>
+    </section>
+
     {{ kit.alert("info",
         "Each team plays every other team twice during the regular season; teams play 2 matches per day (back-to-back time slots); the schedule is randomized but balanced, and you can preview and modify it before committing.",
         title="Schedule generation rules:", dismissible=False) }}
 
-    <form method="POST" class="space-y-6">
+    <form method="POST" id="auto-schedule-form" class="space-y-6">
         {{ csrf_token() }}
 
-        <!-- Time Configuration Card -->
-        {% call kit.section_card("Time Configuration", icon="ti-clock") %}
-            <div class="p-4 sm:p-6 space-y-6">
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                        <label for="premier_start_time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Premier Start Time <span class="text-red-500">*</span>
-                        </label>
-                        <input type="time" id="premier_start_time" name="premier_start_time"
-                               value="{{ config.premier_start_time.strftime('%H:%M') if config and config.premier_start_time else '08:20' }}"
-                               required
-                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">First time slot for Premier teams</p>
-                    </div>
-                    <div>
-                        <label for="classic_start_time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Classic Start Time <span class="text-red-500">*</span>
-                        </label>
-                        <input type="time" id="classic_start_time" name="classic_start_time"
-                               value="{{ config.classic_start_time.strftime('%H:%M') if config and config.classic_start_time else '13:10' }}"
-                               required
-                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">First time slot for Classic teams</p>
-                    </div>
-                    <div>
-                        <label for="match_duration" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Match Duration (minutes) <span class="text-red-500">*</span>
-                        </label>
-                        <input type="number" id="match_duration" name="match_duration"
-                               value="{{ config.match_duration_minutes if config else 70 }}"
-                               min="30" max="120" required
-                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Duration including setup time</p>
-                    </div>
-                </div>
+        {# ===== Two-column layout: time/cadence on the left, weeks+fields on the right ===== #}
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="flex items-start gap-3">
-                        <input type="checkbox" id="enable_time_rotation" name="enable_time_rotation"
-                               {{ 'checked' if config and config.enable_time_rotation else '' }}
-                               class="mt-1 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+            {# ---- Time & cadence (primary configuration object) ---- #}
+            <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-sm font-bold uppercase tracking-wide flex items-center gap-2 text-gray-900 dark:text-white">
+                        <i class="ti ti-clock text-ecs-green" aria-hidden="true"></i> Time &amp; Cadence
+                    </h2>
+                    <span class="text-[11px] font-mono text-gray-500 dark:text-gray-400">2 slots / day</span>
+                </div>
+                <div class="p-4 sm:p-5 space-y-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
-                            <label for="enable_time_rotation" class="font-medium text-gray-700 dark:text-gray-300">
-                                Enable Time Slot Rotation
+                            <label for="premier_start_time" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+                                Premier Start <span class="text-red-500">*</span>
                             </label>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">
-                                Premier teams will be balanced between morning (8:20) and mid-morning time slots
-                            </p>
+                            <input type="time" id="premier_start_time" name="premier_start_time"
+                                   value="{{ config.premier_start_time.strftime('%H:%M') if config and config.premier_start_time else '08:20' }}"
+                                   required
+                                   class="w-full font-mono rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">First slot for Premier teams</p>
+                        </div>
+                        <div>
+                            <label for="classic_start_time" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+                                Classic Start <span class="text-red-500">*</span>
+                            </label>
+                            <input type="time" id="classic_start_time" name="classic_start_time"
+                                   value="{{ config.classic_start_time.strftime('%H:%M') if config and config.classic_start_time else '13:10' }}"
+                                   required
+                                   class="w-full font-mono rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">First slot for Classic teams</p>
+                        </div>
+                        <div>
+                            <label for="match_duration" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+                                Match Length <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <input type="number" id="match_duration" name="match_duration"
+                                       value="{{ config.match_duration_minutes if config else 70 }}"
+                                       min="30" max="120" required
+                                       class="w-full font-mono rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white pr-12 focus:border-ecs-green focus:ring-ecs-green">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">min</span>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Includes setup time</p>
                         </div>
                     </div>
-                    <div>
-                        <label for="break_duration" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Break Between Matches (minutes)
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <label for="enable_time_rotation" class="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <input type="checkbox" id="enable_time_rotation" name="enable_time_rotation"
+                                   {{ 'checked' if config and config.enable_time_rotation else '' }}
+                                   class="mt-0.5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                            <span class="min-w-0">
+                                <span class="block text-sm font-semibold text-gray-900 dark:text-white">Time slot rotation</span>
+                                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    Balance Premier teams between morning (8:20) and mid-morning slots
+                                </span>
+                            </span>
                         </label>
-                        <input type="number" id="break_duration" name="break_duration"
-                               value="{{ config.break_duration_minutes if config else 10 }}"
-                               min="0" max="30"
-                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Rest time between back-to-back matches</p>
-                    </div>
-                </div>
-            </div>
-        {% endcall %}
-
-        <!-- Weeks and Fields Configuration -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Number of Weeks -->
-            {% call kit.section_card("Number of Weeks", icon="ti-calendar-stats") %}
-            <div class="p-4 sm:p-6">
-                <label for="weeks_count" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Number of Weeks <span class="text-red-500">*</span>
-                </label>
-                <input type="number" id="weeks_count" name="weeks_count"
-                       value="{{ config.weeks_count if config else 7 }}"
-                       min="1" max="20" required
-                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Number of weeks in the regular season</p>
-            </div>
-            {% endcall %}
-
-            <!-- Field Configuration -->
-            {% call kit.section_card("Field Configuration", icon="ti-map-pin") %}
-                <div class="p-4 space-y-3">
-                    <div id="field-configurations" class="space-y-2">
-                        {% set fields = config.fields.split(',') if config and config.fields else ['North', 'South'] %}
-                        {% for field in fields %}
-                        <div class="field-config-item flex gap-2" data-field-index="{{ loop.index0 }}">
-                            <input type="text" name="field_name_{{ loop.index0 }}"
-                                   value="{{ field.strip() }}"
-                                   placeholder="Field name" required
-                                   class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
-                            <input type="number" name="field_capacity_{{ loop.index0 }}"
-                                   value="20" min="1" max="50"
-                                   placeholder="Capacity"
-                                   class="w-20 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
-                            <button type="button" class="js-remove-field p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg {{ 'opacity-50 cursor-not-allowed' if loop.index0 < 2 else '' }}"
-                                    data-action="remove-field" {{ 'disabled' if loop.index0 < 2 else '' }} aria-label="Remove field">
-                                <i class="ti ti-x" aria-hidden="true"></i>
-                            </button>
+                        <div>
+                            <label for="break_duration" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+                                Break Between Matches
+                            </label>
+                            <div class="relative">
+                                <input type="number" id="break_duration" name="break_duration"
+                                       value="{{ config.break_duration_minutes if config else 10 }}"
+                                       min="0" max="30"
+                                       class="w-full font-mono rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white pr-12 focus:border-ecs-green focus:ring-ecs-green">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">min</span>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Rest between back-to-back matches</p>
                         </div>
-                        {% endfor %}
                     </div>
-                    <button type="button" class="js-add-field inline-flex items-center gap-1 min-h-[44px] text-sm font-medium text-ecs-green hover:text-ecs-green/80 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded"
-                            data-action="add-config-field">
-                        <i class="ti ti-plus" aria-hidden="true"></i> Add Field
-                    </button>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">At least 2 fields required for back-to-back scheduling</p>
                 </div>
-            {% endcall %}
+            </section>
+
+            {# ---- Weeks + Fields stacked in the right column ---- #}
+            <div class="space-y-6">
+                <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                    <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                        <i class="ti ti-calendar-stats text-ecs-green" aria-hidden="true"></i>
+                        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Season Length</h2>
+                    </div>
+                    <div class="p-4 sm:p-5">
+                        <label for="weeks_count" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+                            Number of Weeks <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="weeks_count" name="weeks_count"
+                               value="{{ config.weeks_count if config else 7 }}"
+                               min="1" max="20" required
+                               class="w-full font-mono text-lg rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Regular season length</p>
+                    </div>
+                </section>
+
+                <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                        <h2 class="text-sm font-bold uppercase tracking-wide flex items-center gap-2 text-gray-900 dark:text-white">
+                            <i class="ti ti-map-pin text-ecs-green" aria-hidden="true"></i> Fields
+                        </h2>
+                        {% set field_names = config.fields.split(',') if config and config.fields else ['North', 'South'] %}
+                        <span class="text-[11px] font-mono text-gray-500 dark:text-gray-400">{{ field_names | length }} configured</span>
+                    </div>
+                    <div class="p-4 space-y-3">
+                        <div class="hidden sm:flex items-center gap-2 px-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                            <span class="flex-1">Field name</span>
+                            <span class="w-16 text-center">Cap.</span>
+                            <span class="w-11"></span>
+                        </div>
+                        <div id="field-configurations" class="space-y-2">
+                            {% for field in field_names %}
+                            {% set field_cap = config.get_field_capacity(field.strip()) if config else 20 %}
+                            <div class="field-config-item flex gap-2" data-field-index="{{ loop.index0 }}">
+                                <input type="text" name="field_name_{{ loop.index0 }}"
+                                       value="{{ field.strip() }}"
+                                       placeholder="Field name" required
+                                       class="flex-1 min-w-0 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                                <input type="number" name="field_capacity_{{ loop.index0 }}"
+                                       value="{{ field_cap }}" min="1" max="50"
+                                       placeholder="Cap"
+                                       class="w-16 font-mono rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                                <button type="button" class="js-remove-field p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg {{ 'opacity-50 cursor-not-allowed' if loop.index0 < 2 else '' }}"
+                                        data-action="remove-field" {{ 'disabled' if loop.index0 < 2 else '' }} aria-label="Remove field">
+                                    <i class="ti ti-x" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="js-add-field inline-flex items-center gap-1 min-h-[44px] text-sm font-medium text-ecs-green hover:text-ecs-green/80 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded"
+                                data-action="add-config-field">
+                            <i class="ti ti-plus" aria-hidden="true"></i> Add Field
+                        </button>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">At least 2 fields required for back-to-back scheduling</p>
+                    </div>
+                </section>
+            </div>
         </div>
 
-        <!-- Season Schedule Configuration -->
-        {% call kit.section_card("Season Schedule Configuration", icon="ti-calendar") %}
-            <div class="p-4 sm:p-6 space-y-6">
-                <p class="text-gray-500 dark:text-gray-400">Configure your season layout with regular matches, practice sessions, and special weeks.</p>
+        {# ===== Season layout builder (full width) ===== #}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i>
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Season Layout</h2>
+            </div>
+            <div class="p-4 sm:p-5 space-y-6">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Configure your season layout with regular matches, practice sessions, and special weeks.</p>
 
-                <!-- Quick Setup Templates -->
+                {# ---- Quick setup templates as a command toolbar ---- #}
                 <div>
-                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Setup Templates</h3>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2.5">Quick Setup Templates</p>
                     <div class="flex flex-wrap gap-2">
-                        <button type="button" class="js-template px-4 py-2 min-h-[44px] border border-ecs-green text-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        <button type="button" class="js-template inline-flex items-center gap-1.5 px-4 py-2 min-h-[44px] border border-ecs-green text-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ecs-green"
                                 data-action="apply-template" data-template="premier-standard">
-                            Premier Standard (8 weeks)
+                            <i class="ti ti-template" aria-hidden="true"></i> Premier Standard <span class="font-mono text-xs opacity-70">8 wk</span>
                         </button>
-                        <button type="button" class="js-template px-4 py-2 min-h-[44px] border border-ecs-green text-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        <button type="button" class="js-template inline-flex items-center gap-1.5 px-4 py-2 min-h-[44px] border border-ecs-green text-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ecs-green"
                                 data-action="apply-template" data-template="classic-practice">
-                            Classic w/ Practice (7 weeks)
+                            <i class="ti ti-template" aria-hidden="true"></i> Classic w/ Practice <span class="font-mono text-xs opacity-70">7 wk</span>
                         </button>
-                        <button type="button" class="js-template px-4 py-2 min-h-[44px] border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-500 hover:text-white transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        <button type="button" class="js-template inline-flex items-center gap-1.5 px-4 py-2 min-h-[44px] border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-500 hover:text-white transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 data-action="apply-template" data-template="custom">
-                            Custom Schedule
+                            <i class="ti ti-adjustments" aria-hidden="true"></i> Custom Schedule
                         </button>
                     </div>
                 </div>
 
-                <!-- Practice Week Configuration for Classic -->
-                <div class="hidden" id="practice-config">
-                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Classic Practice Configuration</h3>
+                {# ---- Practice week configuration for Classic (toggled by JS) ---- #}
+                <div class="hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-4" id="practice-config">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2.5">Classic Practice Configuration</p>
                     <label class="inline-flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" id="enable-practice-weeks" name="enable_practice_weeks"
                                class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
-                        <span class="text-gray-700 dark:text-gray-300">Enable Practice Sessions for Classic</span>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Enable Practice Sessions for Classic</span>
                     </label>
                     <div class="hidden mt-3" id="practice-weeks-selection">
-                        <label class="block text-sm text-gray-700 dark:text-gray-300 mb-2">Practice Session Weeks:</label>
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Practice Session Weeks</label>
                         <div id="practice-week-checkboxes" class="flex flex-wrap gap-2">
                             <!-- Generated dynamically -->
                         </div>
-                        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                            Practice sessions will be scheduled at 1:10 PM on the selected weeks
+                        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 font-mono">
+                            Scheduled at 1:10 PM on the selected weeks
                         </p>
                     </div>
                 </div>
 
-                <!-- Visual Week Builder -->
+                {# ---- Visual week builder ---- #}
                 <div>
-                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                        Season Layout <span class="text-gray-400 font-normal">(Drag to reorder weeks)</span>
-                    </h3>
+                    <div class="flex items-center justify-between gap-2 mb-2.5">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Season Layout</p>
+                        <span class="text-xs text-gray-400 dark:text-gray-500 inline-flex items-center gap-1"><i class="ti ti-arrows-move" aria-hidden="true"></i> Drag to reorder</span>
+                    </div>
                     <div id="week-configurations" class="space-y-2">
                         <!-- Week configurations added dynamically -->
                     </div>
-                    <div class="flex flex-wrap gap-2 mt-4">
-                        <button type="button" class="js-add-week-config inline-flex items-center gap-1 px-3 py-2 min-h-[44px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button type="button" class="js-add-week-config inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ecs-green"
                                 data-action="add-week-config">
                             <i class="ti ti-plus" aria-hidden="true"></i> Add Week
                         </button>
-                        <button type="button" class="js-generate-weeks inline-flex items-center gap-1 px-3 py-2 min-h-[44px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        <button type="button" class="js-generate-weeks inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 data-action="generate-default-weeks">
                             <i class="ti ti-wand" aria-hidden="true"></i> Auto-Generate
                         </button>
-                        <button type="button" class="js-clear-weeks inline-flex items-center gap-1 px-3 py-2 min-h-[44px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                        <button type="button" class="js-clear-weeks inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-yellow-500"
                                 data-action="clear-weeks">
                             <i class="ti ti-trash" aria-hidden="true"></i> Clear All
                         </button>
                     </div>
                 </div>
             </div>
-        {% endcall %}
+        </section>
 
-        <!-- Preview Info -->
-        {{ kit.alert("info",
-            "With " ~ team_count ~ " teams, each team will play " ~ ((team_count - 1) * 2) ~ " matches total (" ~ (team_count - 1) ~ " different opponents, twice each).",
-            title="Preview:", dismissible=False) }}
-
-        <!-- Actions -->
-        <div class="flex flex-wrap gap-3">
+        {# ===== Sticky action bar ===== #}
+        <div class="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
             <button type="submit"
-                    class="inline-flex items-center gap-2 px-6 py-2 min-h-[44px] rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-                <i class="ti ti-settings" aria-hidden="true"></i>
+                    class="inline-flex items-center gap-2 px-6 py-2 min-h-[44px] rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                <i class="ti ti-wand" aria-hidden="true"></i>
                 Generate Schedule
             </button>
             <a href="{{ url_for('publeague.season.manage_seasons') }}"
                class="inline-flex items-center gap-2 px-6 py-2 min-h-[44px] rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-arrow-left" aria-hidden="true"></i>
-                Back to Seasons
+                Cancel
             </a>
+            <span class="ml-auto text-xs text-gray-500 dark:text-gray-400 font-mono">
+                {{ total_matches }} matches · {{ config.weeks_count if config else 7 }} weeks · {{ team_count }} teams
+            </span>
         </div>
     </form>
     {% endif %}
@@ -496,5 +587,4 @@
 
 {% block custom_js %}
 {{ super() }}
-<script src="{{ url_for('static', filename='custom_js/auto-schedule-config.js') }}"></script>
 {% endblock %}

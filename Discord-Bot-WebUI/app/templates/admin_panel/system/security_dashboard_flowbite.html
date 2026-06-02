@@ -22,10 +22,24 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+{# --- Derive overall posture from REAL provided data only (no fabrication) --- #}
+{% set _core_on = stats.security_features.rate_limiting and stats.security_features.csrf_protection
+                   and stats.security_features.attack_detection and stats.security_features.auto_ban %}
+{% set _redis_ok = stats.redis_status == 'connected' %}
+{% if stats.total_blacklisted_ips > 0 or not _core_on or stats.redis_status == 'disconnected' %}
+  {% set _posture = {'word': 'Elevated', 'tone_tx': 'text-amber-700 dark:text-amber-300', 'tone_bg': 'bg-amber-50 dark:bg-amber-500/10', 'tone_br': 'border-amber-300 dark:border-amber-500/40', 'icon': 'ti-shield-half', 'dot': 'bg-amber-500'} %}
+{% else %}
+  {% set _posture = {'word': 'Secure', 'tone_tx': 'text-green-700 dark:text-green-300', 'tone_bg': 'bg-green-50 dark:bg-green-500/10', 'tone_br': 'border-green-300 dark:border-green-500/40', 'icon': 'ti-shield-check', 'dot': 'bg-green-500'} %}
+{% endif %}
 <div class="space-y-6">
 
-  {% call page_header('Security Dashboard', subtitle='System') %}
+  {% call page_header('Security Dashboard', subtitle='System / Threat Monitoring') %}
+    <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-medium
+                 text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700">
+      <i class="ti ti-clock" aria-hidden="true"></i>
+      Updated <span id="lastUpdated" class="font-mono">{{ current_time }}</span>
+    </span>
     <button type="button" id="refreshBtn"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                    border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
@@ -33,46 +47,110 @@
                    focus:outline-none focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-refresh" aria-hidden="true"></i><span>Refresh</span>
     </button>
-    <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-medium
-                 text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700">
-      <i class="ti ti-clock" aria-hidden="true"></i>
-      Last updated: <span id="lastUpdated" class="font-mono">{{ current_time }}</span>
-    </span>
+    {% if 'Global Admin' in user_roles %}
+    <button type="button" data-action="show-ban-ip-modal"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-ban" aria-hidden="true"></i><span>Ban IP</span>
+    </button>
+    {% endif %}
   {% endcall %}
 
-  <!-- Security Features Status -->
-  <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {% set _feat = [
-      {'on': stats.security_features.rate_limiting, 'icon': 'ti-shield-lock', 'label': 'Rate Limiting',
-       'on_word': 'Enabled', 'off_word': 'Disabled', 'off_tone': 'warning'},
-      {'on': stats.security_features.csrf_protection, 'icon': 'ti-shield-check', 'label': 'CSRF Protection',
-       'on_word': 'Active', 'off_word': 'Inactive', 'off_tone': 'warning'},
-      {'on': stats.security_features.attack_detection, 'icon': 'ti-eye', 'label': 'Attack Detection',
-       'on_word': 'Monitoring', 'off_word': 'Offline', 'off_tone': 'danger'},
-      {'on': stats.security_features.auto_ban, 'icon': 'ti-robot', 'label': 'Auto-Ban System',
-       'on_word': 'Active (score ' ~ stats.auto_ban_config.attack_threshold ~ ')', 'off_word': 'Disabled', 'off_tone': 'warning'}
-    ] %}
-    {% for f in _feat %}
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
-      <div class="flex items-center gap-3">
-        <span class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-lg
+  <!-- PRIMARY OBJECT: overall security posture (feature card w/ header bar) -->
+  <section class="rounded-xl border {{ _posture.tone_br }} {{ _posture.tone_bg }} overflow-hidden">
+    <div class="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+      <div class="lg:col-span-5 flex items-center gap-4">
+        <span class="shrink-0 inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/70 dark:bg-gray-800/60 {{ _posture.tone_tx }}">
+          <i class="ti {{ _posture.icon }} text-3xl" aria-hidden="true"></i>
+        </span>
+        <div class="min-w-0">
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Current Posture</p>
+          <div class="flex items-center gap-2">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="absolute inline-flex h-full w-full rounded-full {{ _posture.dot }} opacity-60 animate-ping"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 {{ _posture.dot }}"></span>
+            </span>
+            <h2 class="text-2xl font-extrabold tracking-tight {{ _posture.tone_tx }}">{{ _posture.word }}</h2>
+          </div>
+          <p class="mt-0.5 text-sm text-gray-600 dark:text-gray-300">
+            {% if stats.total_blacklisted_ips > 0 %}<span class="font-mono font-bold">{{ stats.total_blacklisted_ips }}</span> active ban{{ 's' if stats.total_blacklisted_ips != 1 }} in force{% else %}No active bans{% endif %}{% if not _core_on %} &middot; defenses degraded{% endif %}
+          </p>
+        </div>
+      </div>
+      <!-- Inline posture readout strip -->
+      <div class="lg:col-span-7 grid grid-cols-3 divide-x divide-gray-300/60 dark:divide-gray-600/60 rounded-xl bg-white/60 dark:bg-gray-800/50 border border-white/60 dark:border-gray-700/60">
+        <div class="px-4 py-3 text-center">
+          <p class="font-mono text-2xl font-bold leading-none text-gray-900 dark:text-white">{{ stats.total_monitored_ips }}</p>
+          <p class="mt-1 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Watching</p>
+        </div>
+        <div class="px-4 py-3 text-center">
+          <p class="font-mono text-2xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ stats.total_attack_attempts }}</p>
+          <p class="mt-1 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Threat Pts</p>
+        </div>
+        <div class="px-4 py-3 text-center">
+          <p class="inline-flex items-center gap-1 font-semibold text-sm leading-tight
+                    {% if _redis_ok %}text-green-700 dark:text-green-400{% elif stats.redis_status == 'disconnected' %}text-red-700 dark:text-red-400{% else %}text-gray-500 dark:text-gray-400{% endif %}">
+            <i class="ti {% if _redis_ok %}ti-database{% elif stats.redis_status == 'disconnected' %}ti-database-off{% else %}ti-database-search{% endif %} text-base" aria-hidden="true"></i>
+            {{ stats.redis_status|capitalize }}
+          </p>
+          <p class="mt-1 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Redis Store</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Defense layers: feature status grid (uses ALL real security_features flags) -->
+  {% set _feat = [
+    {'on': stats.security_features.rate_limiting, 'icon': 'ti-shield-lock', 'label': 'Rate Limiting',
+     'on_word': 'Enabled', 'off_word': 'Disabled', 'off_tone': 'warning'},
+    {'on': stats.security_features.csrf_protection, 'icon': 'ti-shield-check', 'label': 'CSRF Protection',
+     'on_word': 'Active', 'off_word': 'Inactive', 'off_tone': 'warning'},
+    {'on': stats.security_features.attack_detection, 'icon': 'ti-eye', 'label': 'Attack Detection',
+     'on_word': 'Monitoring', 'off_word': 'Offline', 'off_tone': 'danger'},
+    {'on': stats.security_features.auto_ban, 'icon': 'ti-robot', 'label': 'Auto-Ban System',
+     'on_word': 'Active (score ' ~ stats.auto_ban_config.attack_threshold ~ ')', 'off_word': 'Disabled', 'off_tone': 'warning'},
+    {'on': stats.security_features.security_headers, 'icon': 'ti-list-check', 'label': 'Security Headers',
+     'on_word': 'Enforced', 'off_word': 'Off', 'off_tone': 'warning'},
+    {'on': stats.security_features.session_security, 'icon': 'ti-cookie', 'label': 'Secure Sessions',
+     'on_word': 'Secure cookies', 'off_word': 'Insecure', 'off_tone': 'warning'}
+  ] %}
+  {% set _layers_on = _feat | selectattr('on') | list | length %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-shield-half text-ecs-green" aria-hidden="true"></i> Defense Layers
+      </h2>
+      <span class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+        <span aria-hidden="true">Active</span>
+        <span class="font-mono font-bold px-1.5 py-0.5 rounded
+                     {% if _layers_on == _feat|length %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400{% else %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400{% endif %}">{{ _layers_on }}/{{ _feat|length }}</span>
+      </span>
+    </div>
+    <div class="p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {% for f in _feat %}
+      <div class="flex items-center gap-3 rounded-lg border p-3
+                  {% if f.on %}border-green-200 bg-green-50/40 dark:border-green-500/30 dark:bg-green-500/5
+                  {% elif f.off_tone == 'danger' %}border-red-200 bg-red-50/40 dark:border-red-500/30 dark:bg-red-500/5
+                  {% else %}border-amber-200 bg-amber-50/40 dark:border-amber-500/30 dark:bg-amber-500/5{% endif %}">
+        <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg
                      {% if f.on %}bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400{% elif f.off_tone == 'danger' %}bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400{% else %}bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400{% endif %}">
-          <i class="ti {{ f.icon }} text-xl" aria-hidden="true"></i>
+          <i class="ti {{ f.icon }} text-lg" aria-hidden="true"></i>
         </span>
         <div class="min-w-0">
           <h3 class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ f.label }}</h3>
-          <span class="mt-1 inline-flex items-center gap-1 text-xs font-semibold
+          <span class="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold
                        {% if f.on %}text-green-700 dark:text-green-400{% elif f.off_tone == 'danger' %}text-red-700 dark:text-red-400{% else %}text-amber-700 dark:text-amber-400{% endif %}">
             <i class="ti {% if f.on %}ti-circle-check{% elif f.off_tone == 'danger' %}ti-alert-octagon{% else %}ti-alert-triangle{% endif %} text-[13px]" aria-hidden="true"></i>
             {{ f.on_word if f.on else f.off_word }}
           </span>
         </div>
       </div>
+      {% endfor %}
     </div>
-    {% endfor %}
-  </div>
+  </section>
 
-  <!-- Statistics KPI band -->
+  <!-- Statistics KPI band (mono figures + divider footers) -->
   <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
       <div class="flex items-center justify-between">
@@ -80,6 +158,7 @@
         <i class="ti ti-eye text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
       </div>
       <div class="mt-3"><span id="monitoredIps" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ stats.total_monitored_ips }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Active public IPs (1hr window)</div>
     </div>
     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
       <div class="flex items-center justify-between">
@@ -87,6 +166,7 @@
         <i class="ti ti-ban text-lg text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
       </div>
       <div class="mt-3"><span id="blacklistedIps" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-red-600 dark:text-red-400">{{ stats.total_blacklisted_ips }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Currently denied access</div>
     </div>
     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
       <div class="flex items-center justify-between">
@@ -94,6 +174,7 @@
         <i class="ti ti-alert-triangle text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
       </div>
       <div class="mt-3"><span id="attackAttempts" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ stats.total_attack_attempts }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Auto-ban at <span class="font-mono font-semibold text-gray-700 dark:text-gray-200">{{ stats.auto_ban_config.attack_threshold }}</span></div>
     </div>
     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
       <div class="flex items-center justify-between">
@@ -101,6 +182,7 @@
         <i class="ti ti-users text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
       </div>
       <div class="mt-3"><span id="uniqueAttackers" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ stats.unique_attackers }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Distinct flagged sources</div>
     </div>
   </div>
 
@@ -108,42 +190,45 @@
   <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
     <!-- Auto-Ban Configuration -->
     <div class="lg:col-span-2">
-      {% call section_card('Auto-Ban Configuration', icon='ti-robot') %}
-      <div class="p-4 sm:p-5 grid grid-cols-2 gap-4">
-        <div>
-          <span class="inline-flex items-center gap-1 text-xs font-semibold {% if stats.auto_ban_config.enabled %}text-green-700 dark:text-green-400{% else %}text-red-700 dark:text-red-400{% endif %}">
-            <i class="ti {% if stats.auto_ban_config.enabled %}ti-circle-check{% else %}ti-alert-octagon{% endif %} text-[13px]" aria-hidden="true"></i>
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden h-full">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <i class="ti ti-robot text-ecs-green" aria-hidden="true"></i> Auto-Ban Policy
+          </h2>
+          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold
+                       {% if stats.auto_ban_config.enabled %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400{% else %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400{% endif %}">
+            <i class="ti {% if stats.auto_ban_config.enabled %}ti-circle-check{% else %}ti-alert-octagon{% endif %} text-[12px]" aria-hidden="true"></i>
             {{ 'ON' if stats.auto_ban_config.enabled else 'OFF' }}
           </span>
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Auto-Ban System</p>
         </div>
-        <div class="text-right">
-          <p class="font-mono text-lg font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.attack_threshold }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Score Threshold</p>
-        </div>
-        <div>
-          <p class="font-mono text-lg font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.rate_threshold }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Rate Limit (req/hr)</p>
-        </div>
-        <div class="text-right">
-          <p class="font-mono text-lg font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.duration_hours }}h</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Initial Ban Duration</p>
-        </div>
-        <div class="col-span-2 flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
-          <div>
-            <span class="inline-flex items-center gap-1 text-xs font-semibold {% if stats.auto_ban_config.escalation_enabled %}text-amber-700 dark:text-amber-400{% else %}text-gray-600 dark:text-gray-300{% endif %}">
-              <i class="ti {% if stats.auto_ban_config.escalation_enabled %}ti-trending-up{% else %}ti-equal{% endif %} text-[13px]" aria-hidden="true"></i>
-              {{ 'ESCALATION' if stats.auto_ban_config.escalation_enabled else 'FIXED' }}
-            </span>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Ban escalation</p>
+        <dl class="divide-y divide-gray-100 dark:divide-gray-700/60">
+          <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-sm text-gray-600 dark:text-gray-300">Score threshold</dt>
+            <dd class="font-mono text-base font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.attack_threshold }}</dd>
           </div>
-          <div class="text-right">
-            <p class="font-mono text-lg font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.max_duration_hours }}h</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Max Ban Duration</p>
+          <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-sm text-gray-600 dark:text-gray-300">Rate limit <span class="text-xs text-gray-400">req/hr</span></dt>
+            <dd class="font-mono text-base font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.rate_threshold }}</dd>
           </div>
-        </div>
-      </div>
-      {% endcall %}
+          <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-sm text-gray-600 dark:text-gray-300">Initial ban</dt>
+            <dd class="font-mono text-base font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.duration_hours }}h</dd>
+          </div>
+          <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-sm text-gray-600 dark:text-gray-300">Escalation</dt>
+            <dd>
+              <span class="inline-flex items-center gap-1 text-xs font-bold {% if stats.auto_ban_config.escalation_enabled %}text-amber-700 dark:text-amber-400{% else %}text-gray-500 dark:text-gray-400{% endif %}">
+                <i class="ti {% if stats.auto_ban_config.escalation_enabled %}ti-trending-up{% else %}ti-equal{% endif %} text-[13px]" aria-hidden="true"></i>
+                {{ 'ESCALATING' if stats.auto_ban_config.escalation_enabled else 'FIXED' }}
+              </span>
+            </dd>
+          </div>
+          <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-sm text-gray-600 dark:text-gray-300">Max ban</dt>
+            <dd class="font-mono text-base font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.max_duration_hours }}h</dd>
+          </div>
+        </dl>
+      </section>
     </div>
 
     <!-- Banned IPs List -->
@@ -180,25 +265,34 @@
               <tr>
                 <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide">IP Address</th>
                 <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide hidden md:table-cell">Reason</th>
-                <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide hidden md:table-cell">Banned By</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide hidden lg:table-cell">Banned By</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide hidden lg:table-cell">Banned</th>
                 <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide hidden md:table-cell">Expires</th>
-                <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide">Actions</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {% for ban in blacklisted_ips %}
               <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                <td class="px-4 py-2"><code class="text-xs font-mono text-gray-900 dark:text-white">{{ ban.ip }}</code></td>
+                <td class="px-4 py-2">
+                  <span class="inline-flex items-center gap-1.5">
+                    <i class="ti ti-ban text-red-500 text-[13px] shrink-0" aria-hidden="true"></i>
+                    <code class="text-xs font-mono font-semibold text-gray-900 dark:text-white">{{ ban.ip }}</code>
+                  </span>
+                </td>
                 <td class="px-4 py-2 text-xs hidden md:table-cell">{{ ban.reason[:30] }}{% if ban.reason|length > 30 %}...{% endif %}</td>
-                <td class="px-4 py-2 text-xs hidden md:table-cell">{{ ban.banned_by }}</td>
+                <td class="px-4 py-2 text-xs hidden lg:table-cell">{{ ban.banned_by }}</td>
+                <td class="px-4 py-2 hidden lg:table-cell">
+                  <span class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ ban.banned_at.strftime('%m/%d %H:%M') if ban.banned_at else '—' }}</span>
+                </td>
                 <td class="px-4 py-2 hidden md:table-cell">
                   {% if ban.is_permanent %}
-                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900">Permanent</span>
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900"><i class="ti ti-infinity text-[12px]" aria-hidden="true"></i>Permanent</span>
                   {% else %}
                   <span class="text-xs font-mono">{{ ban.expires_at.strftime('%m/%d %H:%M') if ban.expires_at else 'N/A' }}</span>
                   {% endif %}
                 </td>
-                <td class="px-4 py-2">
+                <td class="px-4 py-2 text-right">
                   {% if 'Global Admin' in user_roles %}
                   <button type="button" data-action="unban-ip" data-ip="{{ ban.ip }}" title="Unban" aria-label="Unban {{ ban.ip }}"
                           class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg text-green-600 hover:bg-green-100 dark:hover:bg-green-500/20 focus:outline-none focus:ring-2 focus:ring-ecs-green">
@@ -246,30 +340,44 @@
 
   <!-- Monitored IPs -->
   {% if stats.monitored_ips %}
-  {% call data_table('Top Monitored IPs', icon='ti-eye', count=stats.monitored_ips|length, search_id='monitoredFilter', filters=false) %}
+  {% set _threshold = stats.auto_ban_config.attack_threshold or 1 %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-eye text-ecs-green" aria-hidden="true"></i> Top Monitored IPs
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ stats.monitored_ips|length }}</span>
+      </h2>
+      <span class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">Ranked by request volume (last hour)</span>
+    </div>
+  <div class="md:overflow-x-auto">
   <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
     <thead class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-700/50">
       <tr>
+        <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide w-10 text-right">#</th>
         <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide">IP Address</th>
-        <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide hidden md:table-cell">Requests (1hr)</th>
-        <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide hidden md:table-cell">Threat Score</th>
+        <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide text-right hidden md:table-cell">Requests (1hr)</th>
+        <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide hidden lg:table-cell">Threat Score</th>
         <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide hidden md:table-cell">Status</th>
         {% if 'Global Admin' in user_roles %}
-        <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide">Actions</th>
+        <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide text-right">Actions</th>
         {% endif %}
       </tr>
     </thead>
     <tbody>
       {% for ip in stats.monitored_ips %}
       <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-        <td class="px-4 py-3"><code class="text-xs font-mono text-gray-900 dark:text-white">{{ ip.ip }}</code></td>
-        <td class="px-4 py-3 font-mono hidden md:table-cell">{{ ip.requests_last_hour }}</td>
-        <td class="px-4 py-3 hidden md:table-cell">
-          {% if ip.attack_attempts > 0 %}
-          <span class="font-mono font-bold text-red-600 dark:text-red-400">{{ ip.attack_attempts }}</span>
-          {% else %}
-          <span class="font-mono text-gray-400">0</span>
-          {% endif %}
+        <td class="px-4 py-3 text-right"><span class="font-mono text-xs text-gray-400 dark:text-gray-500">{{ '%02d' % loop.index }}</span></td>
+        <td class="px-4 py-3"><code class="text-xs font-mono font-semibold text-gray-900 dark:text-white">{{ ip.ip }}</code></td>
+        <td class="px-4 py-3 font-mono text-right hidden md:table-cell text-gray-700 dark:text-gray-200">{{ ip.requests_last_hour }}</td>
+        <td class="px-4 py-3 hidden lg:table-cell">
+          {% set _pct = (ip.attack_attempts / _threshold * 100) if ip.attack_attempts else 0 %}
+          {% if _pct > 100 %}{% set _pct = 100 %}{% endif %}
+          <div class="flex items-center gap-2 min-w-[120px]">
+            <span class="font-mono font-bold text-xs w-6 text-right {% if ip.attack_attempts >= _threshold %}text-red-600 dark:text-red-400{% elif ip.attack_attempts > 0 %}text-amber-600 dark:text-amber-400{% else %}text-gray-400{% endif %}">{{ ip.attack_attempts }}</span>
+            <div class="flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+              <div class="h-full rounded-full {% if ip.attack_attempts >= _threshold %}bg-red-500{% elif ip.attack_attempts > 0 %}bg-amber-500{% else %}bg-transparent{% endif %}" style="width: {{ _pct }}%"></div>
+            </div>
+          </div>
         </td>
         <td class="px-4 py-3 hidden md:table-cell">
           {% if ip.is_blacklisted %}
@@ -284,7 +392,7 @@
         </td>
         {% if 'Global Admin' in user_roles %}
         <td class="px-4 py-3">
-          <div class="flex gap-1">
+          <div class="flex gap-1 justify-end">
             <button type="button" data-action="ban-monitored-ip" data-ip="{{ ip.ip }}" title="Ban IP" aria-label="Ban {{ ip.ip }}"
                     class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg text-red-600 hover:bg-red-100 dark:hover:bg-red-500/20 focus:outline-none focus:ring-2 focus:ring-red-500">
               <i class="ti ti-ban text-sm" aria-hidden="true"></i>
@@ -300,7 +408,8 @@
       {% endfor %}
     </tbody>
   </table>
-  {% endcall %}
+  </div>
+  </section>
   {% endif %}
 
   <!-- Security Event Log -->

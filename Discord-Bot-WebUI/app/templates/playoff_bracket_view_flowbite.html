@@ -10,15 +10,19 @@
 {# ---- Tournament-state figures computed from real playoff_matches ---- #}
 {% set _matches = playoff_matches or [] %}
 {% set _total = _matches | length %}
-{% set _reported = _matches | selectattr('reported') | list | length %}
+{% set _reported_list = _matches | selectattr('reported') | list %}
+{% set _reported = _reported_list | length %}
 {% set _remaining = _total - _reported %}
+{% set _pct = ((_reported / _total) * 100) | round | int if _total else 0 %}
 {% set _team_ids = [] %}
 {% for m in _matches %}
   {% if m.home_team_id and m.home_team_id not in _team_ids %}{% set _ = _team_ids.append(m.home_team_id) %}{% endif %}
   {% if m.away_team_id and m.away_team_id not in _team_ids %}{% set _ = _team_ids.append(m.away_team_id) %}{% endif %}
 {% endfor %}
+{# Group the real matches by playoff_round for date-group-style dividers. #}
+{% set _rounds = _matches | groupby('playoff_round') %}
 <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
-    {% call page_header(league.name ~ ' Playoffs', subtitle=season.name ~ ' · Interactive bracket & match reporting') %}
+    {% call page_header(league.name ~ ' Playoffs', subtitle=season.name ~ ' · ' ~ _total ~ ' matches · report scores from the field') %}
         <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green/10 text-ecs-green text-xs font-semibold">
             <i class="ti ti-trophy" aria-hidden="true"></i> Playoffs
         </span>
@@ -26,24 +30,205 @@
 
     {# ---- At-a-glance tournament state (real counts) ---- #}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
-        {{ stat_card('ti-list-numbers', 'Matches', _total, sublabel='in bracket', tone='neutral') }}
-        {{ stat_card('ti-circle-check', 'Reported', _reported, sublabel='scores in', tone='success') }}
-        {{ stat_card('ti-clock-play', 'Remaining', _remaining, sublabel='to report', tone=('warning' if _remaining else 'neutral')) }}
+        {% call stat_card('ti-circle-check', 'Reported', _reported, sublabel='of ' ~ _total ~ ' scores in', tone='success') %}
+            <div class="flex items-center gap-2">
+                <div class="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                    <div class="h-full rounded-full bg-green-500 dark:bg-green-400" style="width: {{ _pct }}%"></div>
+                </div>
+                <span class="font-mono text-[11px] font-bold text-green-600 dark:text-green-400 shrink-0">{{ _pct }}%</span>
+            </div>
+        {% endcall %}
+        {{ stat_card('ti-clock-play', 'Remaining', _remaining, sublabel='still to report', tone=('warning' if _remaining else 'neutral')) }}
         {{ stat_card('ti-users-group', 'Teams', _team_ids | length, sublabel='competing', tone='info') }}
+        {{ stat_card('ti-stack-2', 'Rounds', _rounds | length, sublabel='in bracket', tone='neutral') }}
     </div>
 
+    {# ============================================================
+       PRIMARY JOB: the playoff match queue — a real, dense list of the
+       actual matches grouped by round, leading with what still needs a
+       score. Each row reuses the bracket's verbatim report hook
+       (data-action="playoff-match-report" + data-match-id) so the
+       existing JS opens the same reportMatchModal-<id>.
+       ============================================================ #}
+    {% if _total > 0 %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-5 sm:mb-6">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <i class="ti ti-ballpen text-ecs-green" aria-hidden="true"></i> Match Queue
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ _total }}</span>
+            </h2>
+            {% if _remaining %}
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                <i class="ti ti-clock-play text-[13px]" aria-hidden="true"></i>
+                <span class="font-mono">{{ _remaining }}</span> open
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-green-600 dark:text-green-400">
+                <i class="ti ti-circle-check text-[13px]" aria-hidden="true"></i> All in
+            </span>
+            {% endif %}
+        </div>
+
+        {# ---- md+ : real table with mono scores ---- #}
+        <div class="hidden md:block md:overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                        <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Matchup</th>
+                        <th scope="col" class="px-3 py-2.5 text-center font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Score</th>
+                        <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Kickoff</th>
+                        <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Location</th>
+                        <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+                        <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Action</th>
+                    </tr>
+                </thead>
+                {% for _round, _round_matches in _rounds %}
+                <tbody>
+                    {# date-group-style divider: mono ecs-green round label on a tinted band #}
+                    <tr class="bg-gray-50 dark:bg-gray-700/40">
+                        <td colspan="6" class="px-4 py-1.5">
+                            <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-ecs-green">
+                                <i class="ti ti-flag-3 text-[13px]" aria-hidden="true"></i>
+                                {% if _round %}Round <span class="font-mono">{{ _round }}</span>{% else %}Unseeded{% endif %}
+                                <span class="font-normal text-gray-400 dark:text-gray-500 normal-case">· <span class="font-mono">{{ _round_matches | list | length }}</span> matches</span>
+                            </span>
+                        </td>
+                    </tr>
+                    {% for match in _round_matches %}
+                    <tr class="border-b border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="font-mono text-[10px] font-bold px-1 py-0.5 rounded bg-ecs-green/10 text-ecs-green shrink-0">H</span>
+                                <span class="truncate">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
+                                <span class="text-gray-400 dark:text-gray-500 font-normal text-xs px-0.5 shrink-0">vs</span>
+                                <span class="font-mono text-[10px] font-bold px-1 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-200 shrink-0">A</span>
+                                <span class="truncate">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
+                            </div>
+                        </td>
+                        <td class="px-3 py-3 text-center whitespace-nowrap">
+                            {% if match.reported %}
+                            <span class="font-mono text-base font-bold text-gray-900 dark:text-white">{{ match.home_team_score }}<span class="text-gray-300 dark:text-gray-600 mx-1">–</span>{{ match.away_team_score }}</span>
+                            {% else %}
+                            <span class="font-mono text-base text-gray-300 dark:text-gray-600">–</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-3 hidden lg:table-cell whitespace-nowrap text-gray-500 dark:text-gray-400">
+                            {% if match.date %}<span class="font-mono text-xs">{{ match.date.strftime('%a %b %d') }}{% if match.time %} · {{ match.time.strftime('%-I:%M %p') }}{% endif %}</span>{% else %}<span class="text-gray-400 dark:text-gray-500">—</span>{% endif %}
+                        </td>
+                        <td class="px-3 py-3 hidden lg:table-cell text-gray-500 dark:text-gray-400 max-w-[180px]">
+                            <span class="truncate block">{{ match.location or '—' }}</span>
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap">
+                            {% if match.reported %}
+                            <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-600 dark:text-green-400">
+                                <i class="ti ti-circle-check-filled text-[13px]" aria-hidden="true"></i> Reported
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                <i class="ti ti-clock text-[13px]" aria-hidden="true"></i> Awaiting
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            {% if match.home_team and match.away_team %}
+                            <button type="button"
+                                    data-action="playoff-match-report"
+                                    data-match-id="{{ match.id }}"
+                                    class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold transition-colors
+                                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                                           {% if match.reported %}border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700{% else %}bg-ecs-green hover:bg-ecs-green-700 text-white{% endif %}">
+                                <i class="ti {{ 'ti-edit' if match.reported else 'ti-clipboard-check' }}" aria-hidden="true"></i>
+                                {{ 'Edit' if match.reported else 'Report' }}
+                            </button>
+                            {% else %}
+                            <span class="text-xs text-gray-400 dark:text-gray-500 italic">Teams TBD</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% endfor %}
+            </table>
+        </div>
+
+        {# ---- mobile : dense stacked rows ---- #}
+        <div class="md:hidden divide-y divide-gray-100 dark:divide-gray-700/60">
+            {% for _round, _round_matches in _rounds %}
+            <div class="flex items-center gap-2 px-4 py-1.5 bg-gray-50 dark:bg-gray-700/40">
+                <span class="text-xs font-bold uppercase tracking-wide text-ecs-green inline-flex items-center gap-1.5">
+                    <i class="ti ti-flag-3 text-[13px]" aria-hidden="true"></i>
+                    {% if _round %}Round <span class="font-mono">{{ _round }}</span>{% else %}Unseeded{% endif %}
+                </span>
+                <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+                <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500">{{ _round_matches | list | length }}</span>
+            </div>
+            {% for match in _round_matches %}
+            <div class="px-4 py-3.5">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white">
+                            <span class="font-mono text-[10px] font-bold px-1 py-0.5 rounded bg-ecs-green/10 text-ecs-green shrink-0">H</span>
+                            <span class="truncate">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white mt-1">
+                            <span class="font-mono text-[10px] font-bold px-1 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-200 shrink-0">A</span>
+                            <span class="truncate">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        {% if match.reported %}
+                        <div class="font-mono text-lg font-bold text-gray-900 dark:text-white leading-none">{{ match.home_team_score }}<span class="text-gray-300 dark:text-gray-600 mx-0.5">–</span>{{ match.away_team_score }}</div>
+                        <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-green-600 dark:text-green-400 mt-1">
+                            <i class="ti ti-circle-check-filled text-[12px]" aria-hidden="true"></i> Reported
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                            <i class="ti ti-clock text-[12px]" aria-hidden="true"></i> Awaiting
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-2 mt-2.5">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate min-w-0">
+                        {% if match.date %}{{ match.date.strftime('%a %b %d') }}{% if match.time %} · {{ match.time.strftime('%-I:%M %p') }}{% endif %}{% endif %}
+                        {% if match.location %} · {{ match.location }}{% endif %}
+                    </p>
+                    {% if match.home_team and match.away_team %}
+                    <button type="button"
+                            data-action="playoff-match-report"
+                            data-match-id="{{ match.id }}"
+                            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-xs font-semibold shrink-0 transition-colors
+                                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                                   {% if match.reported %}border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200{% else %}bg-ecs-green text-white{% endif %}">
+                        <i class="ti {{ 'ti-edit' if match.reported else 'ti-clipboard-check' }}" aria-hidden="true"></i>
+                        {{ 'Edit' if match.reported else 'Report' }}
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            {% endfor %}
+        </div>
+    </section>
+    {% else %}
     <div class="mb-5 sm:mb-6">
-        {% call section_card('Playoff Bracket', icon='ti-tournament') %}
+        {% call section_card('Match Queue', icon='ti-ballpen') %}
+            {{ empty_state('ti-trophy-off', 'No playoff matches yet',
+                'Once group-stage results are in, the bracket and placement finals will appear here automatically.') }}
+        {% endcall %}
+    </div>
+    {% endif %}
+
+    {# ---- Visual bracket (secondary view, JS-driven) ---- #}
+    {% if _total > 0 %}
+    <div class="mb-5 sm:mb-6">
+        {% call section_card('Bracket View', icon='ti-tournament') %}
             <div class="p-4 sm:p-6">
-                {% if _total > 0 %}
-                    {{ render_playoff_bracket(league.id, season.id) }}
-                {% else %}
-                    {{ empty_state('ti-trophy-off', 'No playoff matches yet',
-                        'Once group-stage results are in, the bracket and placement finals will appear here automatically.') }}
-                {% endif %}
+                {{ render_playoff_bracket(league.id, season.id) }}
             </div>
         {% endcall %}
     </div>
+    {% endif %}
 
     {# ---- Help, demoted to progressive disclosure (collapsed by default) ---- #}
     <details class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">

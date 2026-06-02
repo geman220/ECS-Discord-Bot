@@ -22,161 +22,239 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state as kit_empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state as kit_empty_state %}
 
-{% call page_header("Draft History", subtitle="Draft Management") %}
+{% call page_header("Draft Ledger", subtitle="Draft Management") %}
+  <a href="{{ url_for('admin_panel.draft_overview') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-arrow-back-up" aria-hidden="true"></i>Draft Management
+  </a>
   <a href="{{ url_for('draft_predictions.admin_dashboard') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green/90 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
     <i class="ti ti-chart-bar" aria-hidden="true"></i>Draft Predictions
   </a>
 {% endcall %}
 
 <div class="space-y-5 sm:space-y-6">
-  {# KPI band #}
+  {# ---- KPI band: big mono figures w/ eyebrow + divider footers ---- #}
   {% if stats %}
-  <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-    {{ stat_card("ti-list-numbers", "Total All-Time Picks", stats.total_picks, tone='info') }}
-    {{ stat_card("ti-calendar", "Current Season Picks", stats.current_season_picks, tone='primary') }}
-    {{ stat_card("ti-filter", "Showing (Filtered)", stats.filtered_picks, tone='neutral') }}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">All-Time Picks</span>
+        <i class="ti ti-list-numbers text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ stats.total_picks }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">across all seasons</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Current Season</span>
+        <i class="ti ti-calendar text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ stats.current_season_picks }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono truncate">{{ current_season.name if current_season else 'no current season' }}</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Showing</span>
+        <i class="ti ti-filter text-lg text-gray-900 dark:text-white shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ stats.filtered_picks }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">picks in view</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Seasons</span>
+        <i class="ti ti-stack-2 text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ stats.seasons_count }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">on record</div>
+    </div>
   </div>
   {% endif %}
 
-  {# Filters #}
-  {% call section_card("Filters", icon="ti-filter") %}
-  <form method="get" class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end p-4 sm:p-5">
-    <div>
-      <label for="season" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Season</label>
-      <select name="season" id="season"
-              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
-              onchange="this.form.submit()">
-        <option value="">All Seasons</option>
-        {% for season in seasons %}
-        <option value="{{ season.id }}" {{ 'selected' if current_season_filter == season.id }}>
-          {{ season.name }} {% if season.is_current %}(Current){% endif %}
-        </option>
-        {% endfor %}
-      </select>
-    </div>
-    <div>
-      <label for="league" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">League</label>
-      <select name="league" id="league"
-              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
-              onchange="this.form.submit()">
-        <option value="">All Leagues</option>
-        {% for league in leagues %}
-        <option value="{{ league.id }}" {{ 'selected' if current_league_filter|string == league.id|string }}>
-          {{ league.name }}
-        </option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="sm:text-right">
-      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
+  {# ---- Command toolbar: scope filters inline w/ live count chip ---- #}
+  <form method="get" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+      <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 shrink-0 inline-flex items-center gap-1.5">
+        <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>Scope
+      </span>
+      <div class="flex flex-col sm:flex-row gap-3 flex-1 min-w-0">
+        <div class="flex-1 min-w-0">
+          <label for="season" class="sr-only">Season</label>
+          <select name="season" id="season"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 h-10 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                  onchange="this.form.submit()">
+            <option value="">All Seasons</option>
+            {% for season in seasons %}
+            <option value="{{ season.id }}" {{ 'selected' if current_season_filter == season.id }}>
+              {{ season.name }} {% if season.is_current %}(Current){% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex-1 min-w-0">
+          <label for="league" class="sr-only">League</label>
+          <select name="league" id="league"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 h-10 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                  onchange="this.form.submit()">
+            <option value="">All Leagues</option>
+            {% for league in leagues %}
+            <option value="{{ league.id }}" {{ 'selected' if current_league_filter|string == league.id|string }}>
+              {{ league.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <span class="shrink-0 inline-flex items-center gap-1.5 px-3 h-10 rounded-lg text-sm font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
         <i class="ti ti-list-numbers" aria-hidden="true"></i>
-        <span class="font-mono">{{ total_picks }}</span> picks showing
+        <span class="font-mono font-bold">{{ total_picks }}</span> in view
       </span>
     </div>
   </form>
-  {% endcall %}
 
-  {# Draft History #}
+  {# ---- Master/detail: timeline rail (chronological board list) + board snapshots ---- #}
   {% if draft_history %}
-    {% for season_name, leagues_data in draft_history.items() %}
-      {% call section_card(season_name, icon="ti-calendar") %}
-      <div class="p-4 sm:p-5 space-y-6">
-        {% for league_name, picks in leagues_data.items() %}
-        <div class="last:mb-0">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-            <h4 class="text-sm font-bold text-gray-900 dark:text-white inline-flex items-center gap-1.5">
-              <i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>{{ league_name }}
-            </h4>
-            <button type="button"
-                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                    data-action="normalize-positions" data-season-id="{{ picks[0].season_id }}" data-league-id="{{ picks[0].league_id }}">
-              <i class="ti ti-sort-ascending-numbers" aria-hidden="true"></i>Normalize
-            </button>
-          </div>
+  <div class="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-4">
 
-          {# Desktop table #}
-          <div class="hidden md:block overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-            <table class="w-full text-sm text-left">
-              <thead class="bg-gray-50 dark:bg-gray-700/50">
-                <tr>
-                  {{ data_table_th("Pick #", sortable=false) }}
-                  {{ data_table_th("Player", sortable=false) }}
-                  {{ data_table_th("Team", sortable=false) }}
-                  {{ data_table_th("Drafted By", sortable=false) }}
-                  {{ data_table_th("Notes", sortable=false) }}
-                  {{ data_table_th("Actions", sortable=false, align="right") }}
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                {% for pick in picks %}
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" id="pick-row-{{ pick.id }}">
-                  <td class="px-3 py-2.5">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ pick.draft_position }}</span>
-                  </td>
-                  <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">{{ pick.player.name if pick.player else 'Unknown' }}</td>
-                  <td class="px-3 py-2.5 text-gray-700 dark:text-gray-300">{{ pick.team.name if pick.team else 'Unknown' }}</td>
-                  <td class="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{{ pick.drafter.username if pick.drafter else 'System' }}</td>
-                  <td class="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{{ pick.notes|truncate(30) if pick.notes else '-' }}</td>
-                  <td class="px-3 py-2.5">
-                    <div class="flex items-center justify-end gap-1">
-                      <button type="button"
-                              class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                              data-action="edit-pick" data-pick-id="{{ pick.id }}" data-position="{{ pick.draft_position }}" title="Edit" aria-label="Edit pick">
-                        <i class="ti ti-edit" aria-hidden="true"></i>
-                      </button>
-                      <button type="button"
-                              class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                              data-action="delete-pick" data-pick-id="{{ pick.id }}" title="Delete" aria-label="Delete pick">
-                        <i class="ti ti-trash" aria-hidden="true"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-
-          {# Mobile stacked cards #}
-          <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700">
-            {% for pick in picks %}
-            <div class="px-4 py-3" id="pick-row-{{ pick.id }}-m">
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 min-w-0">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400 shrink-0">{{ pick.draft_position }}</span>
-                  <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ pick.player.name if pick.player else 'Unknown' }}</span>
-                </div>
-                <div class="flex items-center gap-1 shrink-0">
-                  <button type="button"
-                          class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                          data-action="edit-pick" data-pick-id="{{ pick.id }}" data-position="{{ pick.draft_position }}" title="Edit" aria-label="Edit pick">
-                    <i class="ti ti-edit" aria-hidden="true"></i>
-                  </button>
-                  <button type="button"
-                          class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                          data-action="delete-pick" data-pick-id="{{ pick.id }}" title="Delete" aria-label="Delete pick">
-                    <i class="ti ti-trash" aria-hidden="true"></i>
-                  </button>
-                </div>
-              </div>
-              <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-                <p><span class="font-medium text-gray-700 dark:text-gray-300">Team:</span> {{ pick.team.name if pick.team else 'Unknown' }}</p>
-                <p><span class="font-medium text-gray-700 dark:text-gray-300">Drafted by:</span> {{ pick.drafter.username if pick.drafter else 'System' }}</p>
-                {% if pick.notes %}<p><span class="font-medium text-gray-700 dark:text-gray-300">Notes:</span> {{ pick.notes|truncate(30) }}</p>{% endif %}
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-        {% endfor %}
+    {# ---- Timeline rail: every season·league board as a clickable filter ---- #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden self-start">
+      <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <i class="ti ti-timeline-event text-ecs-green" aria-hidden="true"></i>
+        <h2 class="font-semibold text-gray-900 dark:text-white">Draft Timeline</h2>
       </div>
-      {% endcall %}
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for season_name, leagues_data in draft_history.items() %}
+          {% for league_name, picks in leagues_data.items() %}
+          {% set board_season_id = picks[0].season_id %}
+          {% set board_league_id = picks[0].league_id %}
+          {% set is_active = (current_season_filter == board_season_id) and (current_league_filter|string == board_league_id|string) %}
+          {% set is_current_season = current_season and (current_season.id == board_season_id) %}
+          <li>
+            <a href="{{ url_for('admin_panel.draft_history', season=board_season_id, league=board_league_id) }}"
+               {% if is_active %}aria-current="true"{% endif %}
+               class="w-full text-left px-4 py-3 flex flex-col gap-1 border-l-2 {{ 'bg-ecs-green/10 border-ecs-green' if is_active else 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50' }} transition-colors">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ picks[0].season.name }} · {{ picks[0].league.name }}</span>
+                {% if is_current_season %}
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20 shrink-0"><i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i>Current</span>
+                {% endif %}
+              </div>
+              <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ picks[0].drafted_at.strftime('%b %d, %Y') if picks[0].drafted_at else 'No date' }} · {{ picks|length }} pick{{ 's' if picks|length != 1 }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
+    </div>
+
+    {# ---- Board snapshots: one selectable single-board view per season·league ---- #}
+    <div class="space-y-4 min-w-0">
+    {% for season_name, leagues_data in draft_history.items() %}
+      {% for league_name, picks in leagues_data.items() %}
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        {# season+league header bar: calendar-event + season, trophy + league, pick-count chip #}
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 flex flex-col sm:flex-row sm:items-center gap-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <i class="ti ti-calendar-event text-ecs-green shrink-0" aria-hidden="true"></i>
+            <h2 class="font-bold text-gray-900 dark:text-white truncate">{{ picks[0].season.name }}</h2>
+            <span class="text-gray-400 dark:text-gray-500">·</span>
+            <i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+            <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white truncate">{{ picks[0].league.name }}</h3>
+            <span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20 shrink-0">{{ picks|length }} pick{{ 's' if picks|length != 1 }}</span>
+          </div>
+          <button type="button"
+                  class="sm:ml-auto shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  data-action="normalize-positions" data-season-id="{{ picks[0].season_id }}" data-league-id="{{ picks[0].league_id }}">
+            <i class="ti ti-sort-ascending-numbers" aria-hidden="true"></i>Normalize positions
+          </button>
+        </div>
+
+        {# Desktop dense table — mono pick numerals, real timestamp #}
+        <div class="hidden md:block overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                <th scope="col" class="px-4 py-2.5 font-semibold w-16">Pick</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Player</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Drafted to</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">By</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold hidden lg:table-cell">When</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold hidden lg:table-cell">Notes</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+              {% for pick in picks %}
+              <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" id="pick-row-{{ pick.id }}">
+                <td class="px-4 py-2.5">
+                  <span class="inline-flex items-center justify-center min-w-[2.25rem] px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">{{ '%02d' % pick.draft_position }}</span>
+                </td>
+                <td class="px-4 py-2.5 font-semibold text-gray-900 dark:text-white">{{ pick.player.name if pick.player else 'Unknown' }}</td>
+                <td class="px-4 py-2.5 text-gray-700 dark:text-gray-300">{{ pick.team.name if pick.team else 'Unknown' }}</td>
+                <td class="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400">{{ pick.drafter.username if pick.drafter else 'System' }}</td>
+                <td class="px-4 py-2.5 text-xs font-mono text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ pick.drafted_at.strftime('%b %d, %Y') if pick.drafted_at else '—' }}</td>
+                <td class="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ pick.notes|truncate(30) if pick.notes else '—' }}</td>
+                <td class="px-4 py-2.5">
+                  <div class="flex items-center justify-end gap-1">
+                    <button type="button"
+                            class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                            data-action="edit-pick" data-pick-id="{{ pick.id }}" data-position="{{ pick.draft_position }}" title="Edit" aria-label="Edit pick">
+                      <i class="ti ti-edit" aria-hidden="true"></i>
+                    </button>
+                    <button type="button"
+                            class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                            data-action="delete-pick" data-pick-id="{{ pick.id }}" title="Delete" aria-label="Delete pick">
+                      <i class="ti ti-trash" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {# Mobile dense rows #}
+        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+          {% for pick in picks %}
+          <div class="flex items-center gap-3 px-3 py-3" id="pick-row-{{ pick.id }}-m">
+            <span class="inline-flex items-center justify-center w-9 h-9 rounded-md text-xs font-mono font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20 shrink-0">{{ '%02d' % pick.draft_position }}</span>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ pick.player.name if pick.player else 'Unknown' }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                <i class="ti ti-arrow-right text-[10px]" aria-hidden="true"></i> {{ pick.team.name if pick.team else 'Unknown' }}
+                <span class="font-mono">· {{ pick.drafter.username if pick.drafter else 'System' }}</span>
+              </p>
+              {% if pick.notes %}<p class="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ pick.notes|truncate(40) }}</p>{% endif %}
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button type="button"
+                      class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      data-action="edit-pick" data-pick-id="{{ pick.id }}" data-position="{{ pick.draft_position }}" title="Edit" aria-label="Edit pick">
+                <i class="ti ti-edit" aria-hidden="true"></i>
+              </button>
+              <button type="button"
+                      class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      data-action="delete-pick" data-pick-id="{{ pick.id }}" title="Delete" aria-label="Delete pick">
+                <i class="ti ti-trash" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        {# footer count line #}
+        <div class="px-4 py-2.5 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">Showing picks 1&ndash;{{ picks|length }} of {{ picks|length }}</div>
+      </section>
+      {% endfor %}
     {% endfor %}
+    </div>
+  </div>
   {% else %}
-    {{ kit_empty_state("ti-list-search", "No Draft History Found", "Select a season or league to view draft picks.") }}
+    {{ kit_empty_state("ti-list-search", "No Draft History Found", "Adjust the season or league scope above to view draft picks.") }}
   {% endif %}
 </div>
 

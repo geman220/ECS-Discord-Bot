@@ -21,7 +21,9 @@
         </a>
     </div>
 
-    <div class="max-w-3xl mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Form column -->
+        <div class="lg:col-span-2 space-y-6">
         <!-- Create Poll Card -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
@@ -49,7 +51,10 @@
                         <input type="text" id="title" name="title" required maxlength="255"
                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
                                placeholder="e.g., Fun Week Attendance">
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">A short, descriptive title for your poll</p>
+                        <div class="mt-1 flex items-center justify-between">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">A short, descriptive title for your poll</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400"><span id="title-count" class="font-mono">0</span>/255</p>
+                        </div>
                     </div>
 
                     <div class="mb-6">
@@ -93,22 +98,65 @@
                 </form>
             </div>
         </div>
-
-        <!-- Info Card -->
-        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mt-6">
-            <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2">
-                <i class="ti ti-info-circle"></i>How League Polls Work
-            </h6>
-            <ul class="text-sm text-blue-700 dark:text-blue-400 space-y-2 list-disc list-inside">
-                <li>The poll will be sent to all teams in the current Pub League season</li>
-                <li>Only teams with Discord channels configured will receive the poll</li>
-                <li>Polls are sent with rate limiting (0.5-1.2s between teams) to respect Discord's API limits</li>
-                <li>Players can respond with Yes, No, or Maybe using Discord reactions</li>
-                <li>You can view detailed results including team breakdowns</li>
-                <li>Polls are clearly marked as "LEAGUE POLL" to distinguish from regular RSVPs</li>
-                <li>You can close polls to prevent further responses when needed</li>
-            </ul>
         </div>
+        <!-- End form column -->
+
+        <!-- Side column -->
+        <div class="space-y-6">
+            <!-- Delivery target card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                    <i class="ti ti-target text-green-600 dark:text-green-400"></i>
+                    <h6 class="font-semibold text-gray-900 dark:text-white">Delivery</h6>
+                </div>
+                <div class="p-4 space-y-3">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500 dark:text-gray-400">Season</span>
+                        <span class="font-semibold text-gray-900 dark:text-white">{{ current_season.name if current_season else 'None' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500 dark:text-gray-400">Teams targeted</span>
+                        <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ team_count }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500 dark:text-gray-400">With Discord channel</span>
+                        {# team_count is already filtered to teams with a discord_channel_id #}
+                        {% if team_count > 0 %}
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            <i class="ti ti-circle-filled text-[7px]"></i> {{ team_count }} ready
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                            <i class="ti ti-circle-filled text-[7px]"></i> 0 ready
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if team_count > 0 %}
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500 dark:text-gray-400">Est. send time</span>
+                        <span class="font-mono text-gray-900 dark:text-white">~{{ (team_count * 0.8)|round|int }}s</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+                <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2">
+                    <i class="ti ti-info-circle"></i>How League Polls Work
+                </h6>
+                <ul class="text-sm text-blue-700 dark:text-blue-400 space-y-2 list-disc list-inside">
+                    <li>The poll will be sent to all teams in the current Pub League season</li>
+                    <li>Only teams with Discord channels configured will receive the poll</li>
+                    <li>Polls are sent with rate limiting (0.5-1.2s between teams) to respect Discord's API limits</li>
+                    <li>Players can respond with Yes, No, or Maybe using Discord reactions</li>
+                    <li>You can view detailed results including team breakdowns</li>
+                    <li>Polls are clearly marked as "LEAGUE POLL" to distinguish from regular RSVPs</li>
+                    <li>You can close polls to prevent further responses when needed</li>
+                </ul>
+            </div>
+        </div>
+        <!-- End side column -->
     </div>
 </div>
 {% endblock %}
@@ -121,10 +169,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const questionInput = document.getElementById('question');
     const previewTitle = document.getElementById('preview-title');
     const previewQuestion = document.getElementById('preview-question');
+    const titleCount = document.getElementById('title-count');
 
     // Update preview in real-time
     titleInput.addEventListener('input', function() {
         previewTitle.textContent = this.value || 'Poll Title';
+        if (titleCount) titleCount.textContent = this.value.length;
     });
 
     questionInput.addEventListener('input', function() {

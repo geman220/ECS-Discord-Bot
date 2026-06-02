@@ -16,195 +16,338 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, alert as kit_alert %}
-<div class="space-y-6">
+{% from 'macros/_modern_kit.html' import page_header %}
+<div class="space-y-5 sm:space-y-6 max-w-[1500px]">
 
-  {{ page_header('Match & League Operations', subtitle='Comprehensive tools for managing league operations') }}
+  {# ---- Title + primary CTA (one primary job: schedule the next match) ---- #}
+  {% call page_header('Operations Cockpit', subtitle='Match & League Operations') %}
+    <a href="{{ url_for('admin_panel.live_matches') }}"
+       class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-broadcast text-base text-green-600 dark:text-green-400" aria-hidden="true"></i>
+      <span class="hidden sm:inline">Live</span>
+      {% if stats.live_matches %}<span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">{{ stats.live_matches }}</span>{% endif %}
+    </a>
+    <a href="{{ url_for('admin_panel.schedule_matches') }}"
+       class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-calendar-plus text-base" aria-hidden="true"></i> Schedule Match
+    </a>
+  {% endcall %}
 
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-trophy', 'Total Matches', stats.total_matches or 0, tone='primary') }}
-    {{ stat_card('ti-flag', 'Active Leagues', stats.active_leagues or 0, tone='success') }}
-    {{ stat_card('ti-calendar', 'Upcoming Matches', stats.upcoming_matches or 0, tone='warning') }}
-    {{ stat_card('ti-users', 'Active Teams', stats.teams_count or 0, tone='info') }}
+  {# ---- Context strip: real season scope ---- #}
+  <p class="-mt-2 text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+    <span class="font-semibold text-gray-900 dark:text-white">
+      {{ stats.active_seasons or 1 }} active season{{ '' if (stats.active_seasons or 1) == 1 else 's' }}
+    </span>
+    <span class="text-gray-300 dark:text-gray-600">|</span>
+    <span class="font-mono">{{ stats.active_leagues or 0 }}</span> leagues
+    <span class="text-gray-300 dark:text-gray-600">|</span>
+    <span class="font-mono">{{ stats.teams_count or 0 }}</span> teams
+    <span class="text-gray-300 dark:text-gray-600">|</span>
+    <span class="font-mono">{{ stats.total_matches or 0 }}</span> matches scheduled
+  </p>
+
+  {# ---- KPI band with divider footers (bespoke-but-tokened, all real data) ---- #}
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+
+    {# Total matches — footer breaks out played vs upcoming #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Matches</span>
+        <i class="ti ti-trophy text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ stats.total_matches or 0 }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">this season</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+        <span><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ stats.past_matches or 0 }}</span> played</span>
+        <span><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ stats.upcoming_matches or 0 }}</span> upcoming</span>
+      </div>
+    </div>
+
+    {# Upcoming — footer shows last-7-day activity #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Upcoming</span>
+        <i class="ti ti-calendar text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ stats.upcoming_matches or 0 }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">to play</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        <i class="ti ti-activity text-[12px] align-middle" aria-hidden="true"></i>
+        <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ stats.recent_matches or 0 }}</span> in last 7 days
+      </div>
+    </div>
+
+    {# Completion rate — derived in the route from played/completed #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Completion</span>
+        <i class="ti ti-circle-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ stats.completion_rate or '0%' }}</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        of <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ stats.past_matches or 0 }}</span> played matches recorded
+      </div>
+    </div>
+
+    {# Live now #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Live Today</span>
+        <i class="ti ti-broadcast text-lg {{ 'text-red-600 dark:text-red-400' if stats.live_matches else 'text-gray-400 dark:text-gray-500' }} shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none {{ 'text-red-600 dark:text-red-400' if stats.live_matches else 'text-gray-900 dark:text-white' }}">{{ stats.live_matches or 0 }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">matches</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs">
+        {% if stats.live_matches %}
+        <a href="{{ url_for('admin_panel.live_matches') }}" class="inline-flex items-center gap-1 font-semibold text-red-600 dark:text-red-400 hover:underline">
+          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" aria-hidden="true"></span> Monitor now <i class="ti ti-arrow-right text-[12px]" aria-hidden="true"></i>
+        </a>
+        {% else %}
+        <span class="text-gray-500 dark:text-gray-400">No matches scheduled today</span>
+        {% endif %}
+      </div>
+    </div>
   </div>
 
-  <!-- Match Scheduling & Management -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-    {% call section_card('Match Scheduling', icon='ti-calendar-plus') %}
+  {# ---- Fixture Board: this week's fixtures grouped by day (all real Match data) ---- #}
+  {% set status_meta = {
+    'verified':       {'label': 'Verified',      'dot': 'bg-green-500',  'badge': 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400'},
+    'pending_verify': {'label': 'Pending verify','dot': 'bg-amber-500',  'badge': 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400'},
+    'needs_report':   {'label': 'Needs report',  'dot': 'bg-red-500',    'badge': 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400'},
+    'upcoming':       {'label': 'Upcoming',      'dot': 'bg-blue-500',   'badge': 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400'}
+  } %}
+  <section data-fixture-board class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    {# Header: title + week + real list links #}
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+          <i class="ti ti-layout-grid text-ecs-green" aria-hidden="true"></i> Fixture Board
+        </h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">This week &middot; {{ week_label }}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="{{ url_for('admin_panel.match_verification') }}"
+           class="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <i class="ti ti-shield-check text-sm" aria-hidden="true"></i> Verification
+        </a>
+        <a href="{{ url_for('admin_panel.view_matches') }}"
+           class="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <i class="ti ti-list text-sm" aria-hidden="true"></i> All matches
+        </a>
+      </div>
+    </div>
+
+    {# Filters: status tablist + league select (client-side filtering of real rows) #}
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/30">
+      <div role="tablist" class="flex flex-wrap items-center gap-1.5">
+        {% set tabs = [('all','All'), ('needs_report','Needs report'), ('pending_verify','Pending verify'), ('upcoming','Upcoming'), ('verified','Verified')] %}
+        {% for value, label in tabs %}
+        <button type="button" role="tab" data-fb-status="{{ value }}"
+                aria-selected="{{ 'true' if value == 'all' else 'false' }}"
+                class="fb-tab h-8 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green
+                       {{ 'bg-ecs-green text-white' if value == 'all' else 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+          {{ label }}
+          <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded {{ 'bg-white/20' if value == 'all' else 'bg-gray-100 dark:bg-gray-700' }}">{{ status_counts.get(value, 0) }}</span>
+        </button>
+        {% endfor %}
+      </div>
+      {% if leagues %}
+      <div class="flex items-center gap-2">
+        <label for="fb-league" class="text-xs font-medium text-gray-500 dark:text-gray-400">League</label>
+        <select id="fb-league" data-fb-league
+                class="h-8 text-xs rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-ecs-green focus:border-ecs-green">
+          <option value="">All leagues</option>
+          {% for lg in leagues %}<option value="{{ lg.name }}">{{ lg.name }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endif %}
+    </div>
+
+    {# Body: date-grouped fixtures #}
+    {% if fixtures_by_day %}
     <div class="divide-y divide-gray-200 dark:divide-gray-700">
-      <a href="{{ url_for('admin_panel.schedule_matches') }}"
-         class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="shrink-0 w-9 h-9 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center">
-            <i class="ti ti-plus text-ecs-green" aria-hidden="true"></i>
-          </span>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Schedule New Match</span>
-        </span>
-        <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-      </a>
-
-      <a href="{{ url_for('admin_panel.view_matches') }}"
-         class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="shrink-0 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-            <i class="ti ti-list text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-          </span>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">View All Matches</span>
-        </span>
-        <span class="flex items-center gap-2 shrink-0">
-          <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">{{ stats.total_matches or 0 }}</span>
-          <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-        </span>
-      </a>
-
-      <a href="{{ url_for('admin_panel.upcoming_matches') }}"
-         class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="shrink-0 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-            <i class="ti ti-calendar-event text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-          </span>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Upcoming Matches</span>
-        </span>
-        <span class="flex items-center gap-2 shrink-0">
-          <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">{{ stats.upcoming_matches or 0 }}</span>
-          <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-        </span>
+      {% for day in fixtures_by_day %}
+      <div data-fb-day class="px-4 sm:px-5 py-3">
+        <div class="flex items-center gap-2 mb-2">
+          <h3 class="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">{{ day.label }}</h3>
+          {% if day.is_today %}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">TODAY</span>{% endif %}
+          <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">{{ day.count }}</span>
+        </div>
+        <div class="space-y-1.5">
+          {% for row in day.rows %}
+          {% set meta = status_meta.get(row.status) %}
+          <div data-fb-row data-status="{{ row.status }}" data-league="{{ row.league_name or '' }}"
+               class="flex items-center gap-3 rounded-lg border border-gray-100 dark:border-gray-700/60 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+            <span class="shrink-0 w-1.5 h-1.5 rounded-full {{ meta.dot }}" aria-hidden="true"></span>
+            <span class="shrink-0 w-16 font-mono text-xs text-gray-500 dark:text-gray-400">{{ row.time or '--' }}</span>
+            <div class="flex-1 min-w-0">
+              {% if row.special_week_display %}
+              <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate">{{ row.special_week_display }}</span>
+              {% else %}
+              <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate">{{ row.home_team }} <span class="text-gray-400 font-normal">vs</span> {{ row.away_team }}</span>
+              {% endif %}
+              <span class="block text-xs text-gray-500 dark:text-gray-400 truncate">
+                {% if row.league_name %}{{ row.league_name }}{% endif %}{% if row.league_name and row.location %} &middot; {% endif %}{% if row.location %}{{ row.location }}{% endif %}
+              </span>
+            </div>
+            {% if row.home_score is not none and row.away_score is not none %}
+            <span class="shrink-0 font-mono text-sm font-bold text-gray-900 dark:text-white tabular-nums">{{ row.home_score }}&ndash;{{ row.away_score }}</span>
+            {% endif %}
+            <span class="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full {{ meta.badge }}">{{ meta.label }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div data-fb-empty class="hidden px-4 sm:px-5 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+      No fixtures match the selected filters.
+    </div>
+    {% else %}
+    <div class="px-4 sm:px-5 py-10 text-center">
+      <i class="ti ti-calendar-off text-3xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
+      <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No fixtures scheduled this week ({{ week_label }}).</p>
+      <a href="{{ url_for('admin_panel.schedule_matches') }}" class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green hover:underline">
+        <i class="ti ti-calendar-plus" aria-hidden="true"></i> Schedule a match
       </a>
     </div>
-    {% endcall %}
+    {% endif %}
+  </section>
 
-    {% call section_card('Match Management', icon='ti-shield-check') %}
-    <div class="divide-y divide-gray-200 dark:divide-gray-700">
-      <a href="{{ url_for('admin_panel.match_verification') }}"
-         class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="shrink-0 w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <i class="ti ti-shield-check text-green-600 dark:text-green-400" aria-hidden="true"></i>
-          </span>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Match Verification</span>
-        </span>
-        <span class="flex items-center gap-2 shrink-0">
-          <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">{{ stats.pending_verification or 0 }}</span>
-          <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-        </span>
-      </a>
+  <script>
+  (function () {
+    var board = document.querySelector('[data-fixture-board]');
+    if (!board) return;
+    var statusFilter = 'all';
+    var leagueFilter = '';
+    var tabs = board.querySelectorAll('.fb-tab');
+    var leagueSel = board.querySelector('[data-fb-league]');
+    var emptyEl = board.querySelector('[data-fb-empty]');
 
-      <a href="{{ url_for('admin_panel.substitute_management') }}"
-         class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="shrink-0 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-            <i class="ti ti-users text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-          </span>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Substitute Management</span>
-        </span>
-        <span class="flex items-center gap-2 shrink-0">
-          <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ stats.sub_requests or 0 }}</span>
-          <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-        </span>
-      </a>
+    function apply() {
+      var anyVisible = false;
+      board.querySelectorAll('[data-fb-day]').forEach(function (day) {
+        var dayVisible = false;
+        day.querySelectorAll('[data-fb-row]').forEach(function (row) {
+          var okStatus = (statusFilter === 'all') || (row.getAttribute('data-status') === statusFilter);
+          var okLeague = (leagueFilter === '') || (row.getAttribute('data-league') === leagueFilter);
+          var show = okStatus && okLeague;
+          row.classList.toggle('hidden', !show);
+          if (show) { dayVisible = true; anyVisible = true; }
+        });
+        day.classList.toggle('hidden', !dayVisible);
+      });
+      if (emptyEl) emptyEl.classList.toggle('hidden', anyVisible);
+    }
 
-      <a href="{{ url_for('admin_panel.live_matches') }}"
-         class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="shrink-0 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-            <i class="ti ti-broadcast text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-          </span>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Live Matches</span>
-        </span>
-        <span class="flex items-center gap-2 shrink-0">
-          <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">{{ stats.live_matches or 0 }}</span>
-          <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-        </span>
-      </a>
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        statusFilter = tab.getAttribute('data-fb-status');
+        tabs.forEach(function (t) {
+          var active = (t === tab);
+          t.setAttribute('aria-selected', active ? 'true' : 'false');
+          t.classList.toggle('bg-ecs-green', active);
+          t.classList.toggle('text-white', active);
+          t.classList.toggle('bg-white', !active);
+          t.classList.toggle('dark:bg-gray-800', !active);
+          t.classList.toggle('border', !active);
+          t.classList.toggle('border-gray-200', !active);
+          t.classList.toggle('dark:border-gray-700', !active);
+          t.classList.toggle('text-gray-600', !active);
+          t.classList.toggle('dark:text-gray-300', !active);
+        });
+        apply();
+      });
+    });
+    if (leagueSel) {
+      leagueSel.addEventListener('change', function () {
+        leagueFilter = leagueSel.value;
+        apply();
+      });
+    }
+  })();
+  </script>
 
-      <a href="{{ url_for('admin_panel.match_check_in_index') }}"
-         class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="shrink-0 w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-            <i class="ti ti-qrcode text-emerald-600 dark:text-emerald-400" aria-hidden="true"></i>
+  {# ---- Two-column operational launcher: feature cards w/ header bars ---- #}
+  {% set ops = [
+    {
+      'title': 'Matches', 'icon': 'ti-ballpark', 'tone': 'text-ecs-green',
+      'links': [
+        {'icon': 'ti-list',           'label': 'View All Matches',   'desc': 'Browse and edit every scheduled fixture', 'url': url_for('admin_panel.view_matches'),     'count': stats.total_matches or 0,    'badge': 'neutral'},
+        {'icon': 'ti-calendar-event', 'label': 'Upcoming Matches',   'desc': 'Fixtures yet to be played',               'url': url_for('admin_panel.upcoming_matches'), 'count': stats.upcoming_matches or 0, 'badge': 'warning'},
+        {'icon': 'ti-shield-check',   'label': 'Match Verification', 'desc': 'Review and confirm reported scores',      'url': url_for('admin_panel.match_verification'), 'count': none, 'badge': none},
+        {'icon': 'ti-qrcode',         'label': 'Match Check-In',     'desc': 'On-site attendance and QR check-in',      'url': url_for('admin_panel.match_check_in_index'), 'count': none, 'badge': none}
+      ]
+    },
+    {
+      'title': 'Substitutes & Live', 'icon': 'ti-arrows-shuffle', 'tone': 'text-blue-600 dark:text-blue-400',
+      'links': [
+        {'icon': 'ti-users',     'label': 'Substitute Management', 'desc': 'Pools, requests and assignments', 'url': url_for('admin_panel.substitute_management'), 'count': none, 'badge': none},
+        {'icon': 'ti-broadcast', 'label': 'Live Matches',          'desc': 'Real-time match tracking and control', 'url': url_for('admin_panel.live_matches'), 'count': stats.live_matches or 0, 'badge': 'success'}
+      ]
+    },
+    {
+      'title': 'Leagues', 'icon': 'ti-flag', 'tone': 'text-amber-600 dark:text-amber-400',
+      'links': [
+        {'icon': 'ti-settings',     'label': 'League Settings',     'desc': 'Divisions, rules and configuration', 'url': url_for('admin_panel.manage_leagues'), 'count': stats.active_leagues or 0, 'badge': 'neutral'},
+        {'icon': 'ti-list-numbers', 'label': 'Standings & Tables',  'desc': 'Points, form and league position',   'url': url_for('admin_panel.league_standings'), 'count': none, 'badge': none},
+        {'icon': 'ti-calendar-time','label': 'Season Management',   'desc': 'Active and archived seasons',         'url': url_for('admin_panel.league_management_seasons'), 'count': stats.active_seasons or 1, 'badge': 'info'}
+      ]
+    },
+    {
+      'title': 'Teams', 'icon': 'ti-shield', 'tone': 'text-blue-600 dark:text-blue-400',
+      'links': [
+        {'icon': 'ti-shield', 'label': 'Team Settings', 'desc': 'Team profiles and configuration', 'url': url_for('admin_panel.league_management_teams'), 'count': stats.teams_count or 0, 'badge': 'primary'},
+        {'icon': 'ti-list',   'label': 'Team Rosters',  'desc': 'Player assignments per team',      'url': url_for('admin_panel.team_rosters'), 'count': none, 'badge': none}
+      ]
+    }
+  ] %}
+  {% set badge_tones = {
+    'primary': 'bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20',
+    'success': 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400',
+    'warning': 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400',
+    'info':    'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400',
+    'neutral': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+  } %}
+
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+    {% for card_data in ops %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+          <i class="ti {{ card_data.icon }} {{ card_data.tone }}" aria-hidden="true"></i> {{ card_data.title }}
+        </h2>
+        <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">{{ card_data.links | length }}</span>
+      </div>
+      <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for link in card_data.links %}
+        <a href="{{ link.url }}"
+           class="flex items-center gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green group">
+          <span class="shrink-0 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 group-hover:bg-ecs-green/10 dark:group-hover:bg-ecs-green/20 flex items-center justify-center transition-colors">
+            <i class="ti {{ link.icon }} text-gray-500 dark:text-gray-400 group-hover:text-ecs-green transition-colors" aria-hidden="true"></i>
           </span>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Check-In</span>
-        </span>
-        <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-      </a>
-    </div>
-    {% endcall %}
+          <span class="flex-1 min-w-0">
+            <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate">{{ link.label }}</span>
+            <span class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ link.desc }}</span>
+          </span>
+          {% if link.count is not none %}
+          <span class="shrink-0 font-mono text-xs font-bold px-2 py-0.5 rounded-full {{ badge_tones.get(link.badge, badge_tones['neutral']) }}">{{ link.count }}</span>
+          {% endif %}
+          <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
   </div>
-
-  <!-- League Management & Team Management -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-    {% call section_card('League Management', icon='ti-flag') %}
-    <div class="divide-y divide-gray-200 dark:divide-gray-700">
-      <a href="{{ url_for('admin_panel.manage_leagues') }}"
-         class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="shrink-0 w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-            <i class="ti ti-settings text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
-          </span>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">League Settings</span>
-        </span>
-        <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-      </a>
-
-      <a href="{{ url_for('admin_panel.league_standings') }}"
-         class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="shrink-0 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-            <i class="ti ti-list-numbers text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-          </span>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Standings &amp; Tables</span>
-        </span>
-        <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-      </a>
-
-      <a href="{{ url_for('admin_panel.league_management_seasons') }}"
-         class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="shrink-0 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-            <i class="ti ti-calendar-time text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-          </span>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Season Management</span>
-        </span>
-        <span class="flex items-center gap-2 shrink-0">
-          <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ stats.active_seasons or 1 }}</span>
-          <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-        </span>
-      </a>
-    </div>
-    {% endcall %}
-
-    {% call section_card('Team Management', icon='ti-shield') %}
-    <div class="divide-y divide-gray-200 dark:divide-gray-700">
-      <a href="{{ url_for('admin_panel.league_management_teams') }}"
-         class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="shrink-0 w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-            <i class="ti ti-shield text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
-          </span>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Team Settings</span>
-        </span>
-        <span class="flex items-center gap-2 shrink-0">
-          <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">{{ stats.teams_count or 0 }}</span>
-          <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-        </span>
-      </a>
-
-      <a href="{{ url_for('admin_panel.team_rosters') }}"
-         class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="shrink-0 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-            <i class="ti ti-list text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-          </span>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Team Rosters</span>
-        </span>
-        <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-      </a>
-    </div>
-    {% endcall %}
-  </div>
-
-  {{ kit_alert('info', 'This section provides comprehensive tools for managing all aspects of league operations, from scheduling matches to managing team rosters and tracking results.', title='Match & League Operations', dismissible=false) }}
 </div>
 {% else %}
 <!-- Operations Overview Stats -->

@@ -1,19 +1,68 @@
 {% extends "base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge %}
-{% from 'macros/_modern_kit.html' import page_header, section_card, data_table, data_table_th, data_table_row_card, alert %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_row_card, alert %}
 
 {% block title %}Responsive Tables Demo{% endblock %}
 
 {% block content %}
 {% if shell == 'console' %}
 <div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-5 sm:space-y-6">
-    {{ page_header("Responsive Tables Demo", subtitle="Pattern library") }}
+    {% call page_header("Responsive Tables", subtitle="Design system · Pattern library") %}
+        <a href="#dt-breakpoints"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                  border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
+                  text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-ruler-2" aria-hidden="true"></i> Breakpoints
+        </a>
+        <a href="#dt-anatomy"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                  bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-code" aria-hidden="true"></i> View anatomy
+        </a>
+    {% endcall %}
 
-    {# Instructions #}
-    {{ alert('info', 'Wrap your table in an overflow-x-auto wrapper, use Tailwind responsive utilities (hidden sm:table-cell) for column visibility, and provide mobile stacked-card rows for narrow screens.', title='How to use responsive tables', dismissible=False) }}
+    {# ───────────────────────── HERO: the spec sheet ─────────────────────────
+       The page's ONE primary job is to teach the responsive-table contract, so
+       lead with a feature card stating the rule, plus a KPI band of the actual
+       thresholds. All numbers below come from this app's real Tailwind config
+       (sm 640 / md 768 / lg 1024) — nothing fabricated. #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <i class="ti ti-layout-distribute-horizontal text-ecs-green" aria-hidden="true"></i> The responsive contract
+            </h2>
+            <span class="text-[11px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">live</span>
+        </div>
+        <div class="p-4 sm:p-5">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">The rule</p>
+            <p class="text-sm text-gray-700 dark:text-gray-300 max-w-2xl">
+                Real <span class="font-mono text-xs px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-900 text-ecs-green">&lt;table&gt;</span>
+                on <span class="font-mono text-ecs-green">md+</span> for scannable rows; stacked cards below it; and
+                <span class="font-mono text-xs px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-900 text-ecs-green">hidden&nbsp;md:table-cell</span>
+                to drop low-priority columns. No horizontal scrollers, no extra JavaScript. The specimens on the right are live —
+                resize the window to watch them flip.
+            </p>
+            {# KPI BAND — the contract's thresholds as mono figures #}
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-4">
+                {{ stat_card('ti-device-mobile', 'Mobile base', '< 768', sublabel='stacked cards', tone='primary') }}
+                {{ stat_card('ti-device-tablet', 'md breakpoint', '768', sublabel='table appears', tone='info') }}
+                {{ stat_card('ti-columns-3', 'Primary cols', 'always', sublabel='name + actions', tone='success') }}
+                {{ stat_card('ti-eye-off', 'Low-priority', 'hidden', sublabel='md:table-cell', tone='neutral') }}
+            </div>
+        </div>
+    </section>
 
-    {# Basic Example #}
-    {% call data_table('Basic Example', icon='ti-table', count='3', search_placeholder='Filter people…', search_id='demoBasicFilter') %}
+    {# ───────────────── Two-column workbench: specimens + reference ─────────────────
+       Left (2/3): the two live table specimens. Right (1/3): the breakpoint
+       reference table + visibility legend, sticky on xl. #}
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6 items-start">
+      <div class="xl:col-span-2 space-y-5 sm:space-y-6 min-w-0">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide -mb-1">Live specimens</p>
+
+    {# Specimen A — illustrative roster rows (sample data, framed as a pattern specimen) #}
+    {% call data_table('Specimen A · roster', icon='ti-table', count='3', search_placeholder='Filter people…', search_id='demoBasicFilter') %}
         <table class="hidden md:table w-full text-sm text-left">
             <thead class="border-b border-gray-200 dark:border-gray-700">
                 <tr>
@@ -104,8 +153,8 @@
         </div>
     {% endcall %}
 
-    {# Table with Status Colors #}
-    {% call data_table('Table with Status Colors', icon='ti-calendar-event', count='3', search_placeholder='Filter matches…', search_id='demoStatusFilter') %}
+    {# Specimen B — illustrative match rows with status pills #}
+    {% call data_table('Specimen B · matches', icon='ti-calendar-event', count='3', search_placeholder='Filter matches…', search_id='demoStatusFilter') %}
         <table class="hidden md:table w-full text-sm text-left">
             <thead class="border-b border-gray-200 dark:border-gray-700">
                 <tr>
@@ -173,12 +222,98 @@
             {% endcall %}
         </div>
     {% endcall %}
+      </div>{# /left column #}
 
-    {# Implementation Guide #}
-    {% call section_card('Implementation Guide', icon='ti-code') %}
-        <div class="p-4 sm:p-5 space-y-5">
-            <div>
-                <h4 class="font-semibold text-gray-900 dark:text-white mb-3 text-sm">Tailwind responsive table pattern</h4>
+      {# ── Right rail: breakpoint reference + visibility legend ── #}
+      <aside class="space-y-5 sm:space-y-6 xl:sticky xl:top-20 min-w-0">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide -mb-1">Reference</p>
+
+    {# Breakpoint reference — real Tailwind breakpoints (this app's default config) #}
+    <section id="dt-breakpoints" class="scroll-mt-20 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <i class="ti ti-ruler-2 text-ecs-green" aria-hidden="true"></i> Breakpoints
+            </h2>
+            <span class="text-[11px] font-mono text-gray-500 dark:text-gray-400 hidden sm:inline">tailwind defaults</span>
+        </div>
+        {# Dense mono rows — readable even in the narrow rail; prefix + width are
+           the figures, behavior is the human note. Each row's left rule is the
+           ecs-green date-group treatment from the dashboard. #}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+            <li class="flex items-baseline gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <span class="font-mono text-sm font-bold text-ecs-green w-10 shrink-0">base</span>
+                <span class="font-mono text-xs text-gray-500 dark:text-gray-400 w-14 shrink-0 text-right">0</span>
+                <span class="text-xs text-gray-700 dark:text-gray-300 min-w-0">Stacked cards · <span class="font-mono text-ecs-green">md:hidden</span></span>
+            </li>
+            <li class="flex items-baseline gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <span class="font-mono text-sm font-bold text-ecs-green w-10 shrink-0">sm</span>
+                <span class="font-mono text-xs text-gray-500 dark:text-gray-400 w-14 shrink-0 text-right">640</span>
+                <span class="text-xs text-gray-700 dark:text-gray-300 min-w-0">First grid step · still cards</span>
+            </li>
+            <li class="flex items-baseline gap-3 px-4 py-3 bg-ecs-green/5 hover:bg-ecs-green/10 transition-colors">
+                <span class="font-mono text-sm font-bold text-ecs-green w-10 shrink-0">md</span>
+                <span class="font-mono text-xs text-gray-500 dark:text-gray-400 w-14 shrink-0 text-right">768</span>
+                <span class="text-xs text-gray-700 dark:text-gray-300 min-w-0">Real <span class="font-mono text-ecs-green">&lt;table&gt;</span> appears</span>
+            </li>
+            <li class="flex items-baseline gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <span class="font-mono text-sm font-bold text-ecs-green w-10 shrink-0">lg</span>
+                <span class="font-mono text-xs text-gray-500 dark:text-gray-400 w-14 shrink-0 text-right">1024</span>
+                <span class="text-xs text-gray-700 dark:text-gray-300 min-w-0">Restore lowest-priority cols</span>
+            </li>
+        </ul>
+        <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-[11px] font-mono text-gray-500 dark:text-gray-400">
+            <span>min-width · px</span>
+            <span class="inline-flex items-center gap-1"><i class="ti ti-point-filled text-ecs-green" aria-hidden="true"></i> table flips here</span>
+        </div>
+    </section>
+
+    {# Visibility legend — which columns survive at each tier (drawn from the
+       specimens above; conventions per the responsive-admin-tables preference). #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+            <i class="ti ti-eye text-ecs-green" aria-hidden="true"></i>
+            <h2 class="font-semibold text-gray-900 dark:text-white">Column priority</h2>
+        </div>
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+            <li class="flex items-center gap-3 px-4 py-3">
+                <i class="ti ti-pin-filled text-ecs-green shrink-0" aria-hidden="true"></i>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white">Always visible</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Name · Status · Actions</p>
+                </div>
+                <span class="font-mono text-[11px] text-gray-400 shrink-0">base+</span>
+            </li>
+            <li class="flex items-center gap-3 px-4 py-3">
+                <i class="ti ti-eye-off text-amber-500 shrink-0" aria-hidden="true"></i>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white">Secondary</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Email · Date</p>
+                </div>
+                <span class="font-mono text-[11px] text-gray-400 shrink-0">md+</span>
+            </li>
+            <li class="flex items-center gap-3 px-4 py-3">
+                <i class="ti ti-eye-closed text-gray-400 shrink-0" aria-hidden="true"></i>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white">Low priority</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Phone · Jersey · Location</p>
+                </div>
+                <span class="font-mono text-[11px] text-gray-400 shrink-0">md+</span>
+            </li>
+        </ul>
+      </section>
+      </aside>{# /right rail #}
+    </div>{# /two-column workbench #}
+
+    {# Anatomy + Implementation #}
+    <section id="dt-anatomy" class="scroll-mt-20 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+            <i class="ti ti-code text-ecs-green" aria-hidden="true"></i>
+            <h2 class="font-semibold text-gray-900 dark:text-white">Anatomy</h2>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-3 divide-y xl:divide-y-0 xl:divide-x divide-gray-200 dark:divide-gray-700">
+            {# Code column #}
+            <div class="xl:col-span-2 p-4 sm:p-5">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">md+ table markup</p>
                 <pre class="p-4 bg-gray-100 dark:bg-gray-900 rounded-lg overflow-x-auto text-xs"><code class="font-mono text-gray-800 dark:text-gray-300">&lt;div class="overflow-x-auto"&gt;
   &lt;table class="w-full text-sm text-left"&gt;
     &lt;thead class="text-xs uppercase bg-gray-50"&gt;
@@ -198,9 +333,34 @@
   &lt;/table&gt;
 &lt;/div&gt;</code></pre>
             </div>
-            {{ alert('success', 'Horizontal scrolling on small screens when needed; hide less important columns on mobile with hidden sm:table-cell; native Tailwind classes with no extra JavaScript; works with dark mode out of the box; maintains accessibility with proper table semantics.', title='Benefits of this approach', dismissible=False) }}
+            {# Checklist column #}
+            <div class="p-4 sm:p-5">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Why it works</p>
+                <ul class="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                    <li class="flex items-start gap-2.5">
+                        <i class="ti ti-circle-check text-green-600 dark:text-green-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+                        <span>Horizontal scroll only as a fallback on small screens</span>
+                    </li>
+                    <li class="flex items-start gap-2.5">
+                        <i class="ti ti-circle-check text-green-600 dark:text-green-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+                        <span>Drop low-priority columns with <span class="font-mono text-xs">hidden md:table-cell</span></span>
+                    </li>
+                    <li class="flex items-start gap-2.5">
+                        <i class="ti ti-circle-check text-green-600 dark:text-green-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+                        <span>Native Tailwind classes, no extra JavaScript</span>
+                    </li>
+                    <li class="flex items-start gap-2.5">
+                        <i class="ti ti-circle-check text-green-600 dark:text-green-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+                        <span>Dark mode out of the box via <span class="font-mono text-xs">dark:</span> pairs</span>
+                    </li>
+                    <li class="flex items-start gap-2.5">
+                        <i class="ti ti-circle-check text-green-600 dark:text-green-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+                        <span>Proper <span class="font-mono text-xs">&lt;table&gt;</span> semantics keep it accessible</span>
+                    </li>
+                </ul>
+            </div>
         </div>
-    {% endcall %}
+    </section>
 </div>
 {% else %}
 <div class="p-4 space-y-6">

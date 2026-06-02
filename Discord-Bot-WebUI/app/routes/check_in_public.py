@@ -28,6 +28,28 @@ logger = logging.getLogger(__name__)
 
 check_in_public_bp = Blueprint('check_in_public', __name__)
 
+# Safe default the download buttons fall back to when no store URL is configured
+# in AdminConfig — the public ECS website (never a fake store link), so the
+# button always goes somewhere real.
+_DEFAULT_STORE_URL = 'https://weareecs.com'
+
+
+def _store_urls():
+    """Return (ios_url, android_url) from AdminConfig, defaulting to the ECS site.
+
+    Keys: ios_app_store_url / android_play_store_url. Crash-safe — any lookup
+    failure (DB down, missing model) yields the safe default so the public
+    landing always renders working buttons.
+    """
+    ios = android = _DEFAULT_STORE_URL
+    try:
+        from app.models.admin_config import AdminConfig
+        ios = AdminConfig.get_setting('ios_app_store_url', _DEFAULT_STORE_URL) or _DEFAULT_STORE_URL
+        android = AdminConfig.get_setting('android_play_store_url', _DEFAULT_STORE_URL) or _DEFAULT_STORE_URL
+    except Exception as e:
+        logger.warning(f"Falling back to default store URLs (config lookup failed): {e}")
+    return ios, android
+
 
 def _build_profile_picture_url(player, host_url: str):
     if not player or not player.profile_picture_url:
@@ -124,17 +146,31 @@ def check_in_landing(token: str):
         # if this module is loaded before the model is in place.
         from app.models.match_check_in import MatchCheckInToken
         with managed_session() as session_db:
+            # Resolve only non-revoked AND non-expired tokens. Expired venue
+            # codes return None here → the 404 page, whose copy now truthfully
+            # states "Codes expire after the match window closes".
             ct = session_db.query(MatchCheckInToken).filter_by(
                 token=token, revoked_at=None
             ).first()
+            if ct is not None and ct.is_expired:
+                ct = None
+            ios_url, android_url = _store_urls()
+            # find_active_by_token already treats revoked OR expired tokens as
+            # missing, so an expired venue code lands here truthfully.
             if not ct:
-                return render_template('public/check_in_landing_404.html'), 404
+                return render_template(
+                    'public/check_in_landing_404.html',
+                    ios_app_store_url=ios_url,
+                    android_play_store_url=android_url,
+                ), 404
 
             match_label, kickoff_local = _describe_match(session_db, ct.league_type, ct.match_id)
             return render_template(
                 'public/check_in_landing.html',
                 match_label=match_label,
                 kickoff_local=kickoff_local,
+                ios_app_store_url=ios_url,
+                android_play_store_url=android_url,
             )
 
     except Exception as e:

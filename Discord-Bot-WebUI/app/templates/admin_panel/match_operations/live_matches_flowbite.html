@@ -1,6 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert, empty_state %}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state as kit_empty_state, alert as kit_alert %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state as kit_empty_state, alert as kit_alert, data_table, data_table_th, data_table_row_card %}
 
 {% block admin_title %}Live Matches{% endblock %}
 {% block panel_description %}Monitor today's matches in real-time{% endblock %}
@@ -42,12 +42,20 @@
     {% endif %}
 {% endcall %}
 
-<!-- KPI band -->
+<!-- KPI band: today's match pipeline at a glance -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
-    {{ stat_card("ti-calendar", "Total Today", stats.total_today or 0, sublabel="scheduled", tone="primary") }}
-    {{ stat_card("ti-broadcast", "In Progress", stats.in_progress or 0, sublabel="being played", tone="success") }}
-    {{ stat_card("ti-clock", "Upcoming Today", stats.upcoming_today or 0, sublabel="later today", tone="warning") }}
-    {{ stat_card("ti-check", "Completed Today", stats.completed_today or 0, sublabel="finished", tone="info") }}
+    {% call stat_card("ti-calendar", "Total Today", stats.total_today or 0, sublabel="scheduled", tone="primary") %}
+        across all leagues
+    {% endcall %}
+    {% call stat_card("ti-broadcast", "In Progress", stats.in_progress or 0, sublabel="being played", tone="success") %}
+        {% if in_progress %}board auto-refreshing{% else %}none on the pitch{% endif %}
+    {% endcall %}
+    {% call stat_card("ti-clock", "Upcoming Today", stats.upcoming_today or 0, sublabel="later today", tone="warning") %}
+        {% if upcoming_today and upcoming_today[0].time %}next kickoff {{ upcoming_today[0].time.strftime('%H:%M') }}{% else %}nothing queued{% endif %}
+    {% endcall %}
+    {% call stat_card("ti-check", "Completed Today", stats.completed_today or 0, sublabel="finished", tone="info") %}
+        {% if stats.total_today %}{{ stats.completed_today or 0 }} of {{ stats.total_today }} done{% else %}no fixtures{% endif %}
+    {% endcall %}
 </div>
 
 <!-- PRIMARY: matches happening right now — the reason this page exists -->
@@ -71,9 +79,12 @@
             </span>
         </div>
         <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
-            <span class="text-sm font-semibold text-gray-900 dark:text-white text-right truncate" title="{{ match.home_team.name if match.home_team else 'TBD' }}">
-                {{ match.home_team.name if match.home_team else 'TBD' }}
-            </span>
+            <div class="min-w-0 text-right">
+                <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate" title="{{ match.home_team.name if match.home_team else 'TBD' }}">
+                    {{ match.home_team.name if match.home_team else 'TBD' }}
+                </span>
+                <span class="inline-flex items-center justify-center mt-1 px-1.5 h-4 rounded text-[10px] font-bold font-mono bg-green-200/70 dark:bg-green-500/20 text-green-800 dark:text-green-300" title="Home">H</span>
+            </div>
             {% if match.home_team_score is not none and match.away_team_score is not none %}
             <span class="shrink-0 font-mono text-2xl font-extrabold text-green-700 dark:text-green-400 tabular-nums">
                 {{ match.home_team_score }}<span class="text-gray-400 dark:text-gray-500 mx-1">-</span>{{ match.away_team_score }}
@@ -81,16 +92,21 @@
             {% else %}
             <span class="shrink-0 font-mono text-lg font-bold text-gray-400 dark:text-gray-500">vs</span>
             {% endif %}
-            <span class="text-sm font-semibold text-gray-900 dark:text-white text-left truncate" title="{{ match.away_team.name if match.away_team else 'TBD' }}">
-                {{ match.away_team.name if match.away_team else 'TBD' }}
-            </span>
+            <div class="min-w-0 text-left">
+                <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate" title="{{ match.away_team.name if match.away_team else 'TBD' }}">
+                    {{ match.away_team.name if match.away_team else 'TBD' }}
+                </span>
+                <span class="inline-flex items-center justify-center mt-1 px-1.5 h-4 rounded text-[10px] font-bold font-mono bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300" title="Away">A</span>
+            </div>
         </div>
-        {% if match.location %}
-        <div class="mt-3 pt-3 border-t border-green-200 dark:border-green-500/30 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-            <i class="ti ti-map-pin" aria-hidden="true"></i>
-            <span class="truncate">{{ match.location }}</span>
+        <div class="mt-3 pt-3 border-t border-green-200 dark:border-green-500/30 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+            {% if match.home_team and match.home_team.league %}
+            <span class="inline-flex items-center gap-1 truncate"><i class="ti ti-trophy" aria-hidden="true"></i>{{ match.home_team.league.name }}</span>
+            {% endif %}
+            {% if match.location %}
+            <span class="inline-flex items-center gap-1 truncate"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ match.location }}</span>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
     {% endfor %}
 </div>
@@ -99,73 +115,100 @@
 {% endif %}
 {% endcall %}
 
-<!-- SECONDARY: what's coming and what's done -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
-    <!-- Upcoming Today -->
-    {% call section_card("Upcoming Today", icon="ti-clock") %}
-    {% if upcoming_today %}
-    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-        {% for match in upcoming_today %}
-        <li class="flex items-center gap-3 px-4 py-3">
-            <span class="shrink-0 w-14 text-center font-mono text-sm font-semibold text-gray-700 dark:text-gray-300">
-                {% if match.time %}{{ match.time.strftime('%H:%M') }}{% else %}TBD{% endif %}
-            </span>
-            <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                    {{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}
-                </p>
-                {% if match.location %}
-                <p class="text-xs text-gray-500 dark:text-gray-400 truncate flex items-center gap-1">
-                    <i class="ti ti-map-pin" aria-hidden="true"></i>{{ match.location }}
-                </p>
-                {% endif %}
-            </div>
-            <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">
-                Scheduled
-            </span>
-        </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    {{ kit_empty_state("ti-clock", "No upcoming matches today", "Nothing else is scheduled for the rest of today.") }}
-    {% endif %}
-    {% endcall %}
+<!-- SECONDARY: the full day on one board — upcoming + completed in a single dense table -->
+<div class="mt-4 sm:mt-6">
+{% call data_table("Today's Schedule", icon="ti-calendar", count=stats.total_today or 0, filters=False) %}
+{% if upcoming_today or completed_today %}
+    <!-- md+ table -->
+    <table class="hidden md:table w-full text-sm" data-modern-rows>
+        <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
+            <tr>
+                {{ data_table_th("Time", key="time", sortable=False) }}
+                {{ data_table_th("Matchup", key="matchup", sortable=False) }}
+                {{ data_table_th("League", key="league", sortable=False, hide="sm") }}
+                {{ data_table_th("Venue", key="venue", sortable=False, hide="md") }}
+                {{ data_table_th("Result", key="result", sortable=False, align="center") }}
+                {{ data_table_th("Status", key="status", sortable=False, align="right") }}
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for match in upcoming_today %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors" data-row data-search="{{ ((match.home_team.name if match.home_team else 'TBD') ~ ' ' ~ (match.away_team.name if match.away_team else 'TBD') ~ ' ' ~ (match.location or ''))|lower }}">
+                <td class="px-3 py-3 font-mono text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    {% if match.time %}{{ match.time.strftime('%H:%M') }}{% else %}TBD{% endif %}
+                </td>
+                <td class="px-3 py-3">
+                    <span class="font-semibold text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
+                    <span class="text-gray-400 dark:text-gray-500 mx-1.5 font-mono">vs</span>
+                    <span class="font-semibold text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
+                </td>
+                <td class="px-3 py-3 hidden md:table-cell text-xs text-gray-500 dark:text-gray-400">
+                    {{ match.home_team.league.name if match.home_team and match.home_team.league else '—' }}
+                </td>
+                <td class="px-3 py-3 hidden lg:table-cell text-xs text-gray-500 dark:text-gray-400">
+                    {{ match.location or '—' }}
+                </td>
+                <td class="px-3 py-3 text-center font-mono text-sm text-gray-400 dark:text-gray-500">—</td>
+                <td class="px-3 py-3 text-right">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">
+                        <i class="ti ti-clock text-[11px]" aria-hidden="true"></i>Scheduled
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+            {% for match in completed_today %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors" data-row data-search="{{ ((match.home_team.name if match.home_team else 'TBD') ~ ' ' ~ (match.away_team.name if match.away_team else 'TBD') ~ ' ' ~ (match.location or ''))|lower }}">
+                <td class="px-3 py-3 font-mono text-sm font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    {% if match.time %}{{ match.time.strftime('%H:%M') }}{% else %}TBD{% endif %}
+                </td>
+                <td class="px-3 py-3">
+                    <span class="font-semibold text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
+                    <span class="text-gray-400 dark:text-gray-500 mx-1.5 font-mono">vs</span>
+                    <span class="font-semibold text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
+                </td>
+                <td class="px-3 py-3 hidden md:table-cell text-xs text-gray-500 dark:text-gray-400">
+                    {{ match.home_team.league.name if match.home_team and match.home_team.league else '—' }}
+                </td>
+                <td class="px-3 py-3 hidden lg:table-cell text-xs text-gray-500 dark:text-gray-400">
+                    {{ match.location or '—' }}
+                </td>
+                <td class="px-3 py-3 text-center">
+                    {% if match.home_team_score is not none and match.away_team_score is not none %}
+                    <span class="font-mono text-sm font-bold text-gray-900 dark:text-white tabular-nums">{{ match.home_team_score }}<span class="text-gray-400 dark:text-gray-500 mx-1">-</span>{{ match.away_team_score }}</span>
+                    {% else %}
+                    <span class="font-mono text-sm text-gray-400 dark:text-gray-500">—</span>
+                    {% endif %}
+                </td>
+                <td class="px-3 py-3 text-right">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300">
+                        <i class="ti ti-check text-[11px]" aria-hidden="true"></i>Final
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
-    <!-- Completed Today -->
-    {% call section_card("Completed Today", icon="ti-check") %}
-    {% if completed_today %}
-    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-        {% for match in completed_today %}
-        <li class="flex items-center gap-3 px-4 py-3">
-            <span class="shrink-0 w-14 text-center font-mono text-sm font-semibold text-gray-500 dark:text-gray-400">
-                {% if match.time %}{{ match.time.strftime('%H:%M') }}{% else %}TBD{% endif %}
-            </span>
-            <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                    {{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}
-                </p>
-                {% if match.location %}
-                <p class="text-xs text-gray-500 dark:text-gray-400 truncate flex items-center gap-1">
-                    <i class="ti ti-map-pin" aria-hidden="true"></i>{{ match.location }}
-                </p>
-                {% endif %}
-            </div>
-            {% if match.home_team_score is not none and match.away_team_score is not none %}
-            <span class="shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-sm font-mono font-bold bg-ecs-green text-white">
-                {{ match.home_team_score }} - {{ match.away_team_score }}
-            </span>
-            {% else %}
-            <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300">
-                Finished
-            </span>
-            {% endif %}
-        </li>
+    <!-- mobile stacked cards -->
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700" data-modern-rows>
+        {% for match in upcoming_today %}
+        {% call data_table_row_card((match.home_team.name if match.home_team else 'TBD') ~ ' vs ' ~ (match.away_team.name if match.away_team else 'TBD'), badge='<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">Scheduled</span>'|safe) %}
+            <p class="flex items-center gap-1 font-mono"><i class="ti ti-clock" aria-hidden="true"></i>{% if match.time %}{{ match.time.strftime('%H:%M') }}{% else %}TBD{% endif %}{% if match.home_team and match.home_team.league %} &middot; {{ match.home_team.league.name }}{% endif %}</p>
+            {% if match.location %}<p class="flex items-center gap-1"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ match.location }}</p>{% endif %}
+        {% endcall %}
         {% endfor %}
-    </ul>
-    {% else %}
-    {{ kit_empty_state("ti-check", "No completed matches today", "No matches have finished yet today.") }}
-    {% endif %}
-    {% endcall %}
+        {% for match in completed_today %}
+        {% set _badge = ('<span class="inline-flex items-center px-2 py-0.5 rounded-full text-sm font-mono font-bold bg-ecs-green text-white">' ~ match.home_team_score ~ ' - ' ~ match.away_team_score ~ '</span>') if (match.home_team_score is not none and match.away_team_score is not none) else '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300">Final</span>' %}
+        {% call data_table_row_card((match.home_team.name if match.home_team else 'TBD') ~ ' vs ' ~ (match.away_team.name if match.away_team else 'TBD'), badge=_badge|safe) %}
+            <p class="flex items-center gap-1 font-mono"><i class="ti ti-clock" aria-hidden="true"></i>{% if match.time %}{{ match.time.strftime('%H:%M') }}{% else %}TBD{% endif %}{% if match.home_team and match.home_team.league %} &middot; {{ match.home_team.league.name }}{% endif %}</p>
+            {% if match.location %}<p class="flex items-center gap-1"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ match.location }}</p>{% endif %}
+        {% endcall %}
+        {% endfor %}
+    </div>
+{% else %}
+    {{ kit_empty_state("ti-calendar-off", "Nothing else on the board", "No upcoming or completed matches for the rest of today.") }}
+{% endif %}
+{% endcall %}
 </div>
 
 <!-- Info Alert -->

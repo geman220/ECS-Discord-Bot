@@ -22,125 +22,237 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_filter_bar, empty_state %}
 
-{{ page_header("Match Results", subtitle="Match Operations") }}
+{# Derive verification counts from REAL fields (home_team_verified / away_team_verified / fully_verified). #}
+{% set fully_verified_count = completed_matches | selectattr('fully_verified') | list | length %}
+{% set awaiting_verify_count = stats.completed_matches - fully_verified_count %}
+
+{# League-filter options derived from REAL leagues present in the pending queue
+   (Match has no direct league relationship; reach it via home_team.league). #}
+{% set ns_leagues = namespace(names=[]) %}
+{% for match in pending_results %}
+  {% set lname = match.home_team.league.name if match.home_team and match.home_team.league else None %}
+  {% if lname and lname not in ns_leagues.names %}{% set ns_leagues.names = ns_leagues.names + [lname] %}{% endif %}
+{% endfor %}
+
+{% call page_header("Match Results", subtitle="Match Operations") %}
+  <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
+    <i class="ti ti-clipboard-list text-ecs-green" aria-hidden="true"></i>
+    <span class="font-mono font-bold text-gray-900 dark:text-white">{{ stats.pending_results }}</span> in queue
+  </span>
+{% endcall %}
 
 <div class="space-y-5 sm:space-y-6">
-  {# KPI band #}
+  {# ===== KPI band — pending is the primary job, completed/verification trail it ===== #}
   <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-    {{ stat_card("ti-check", "Completed", stats.completed_matches, sublabel="matches", tone="info") }}
-    {{ stat_card("ti-clock", "Pending", stats.pending_results, sublabel="results", tone="warning") }}
-    {{ stat_card("ti-history", "Recent", stats.recent_results|length, sublabel="results", tone="primary") }}
+    {% call stat_card("ti-clipboard-x", "Awaiting score", stats.pending_results, sublabel="matches", tone="warning") %}
+      {% if stats.pending_results %}Played, not yet reported{% else %}Queue is clear{% endif %}
+    {% endcall %}
+    {% call stat_card("ti-clipboard-check", "Results in", stats.completed_matches, sublabel="matches", tone="info") %}
+      Showing {{ completed_matches[:50] | length }} most recent
+    {% endcall %}
+    {% call stat_card("ti-shield-check", "Fully verified", fully_verified_count, sublabel="of " ~ stats.completed_matches, tone="primary") %}
+      {% if awaiting_verify_count %}<span class="font-mono font-bold text-amber-600 dark:text-amber-400">{{ awaiting_verify_count }}</span> awaiting both coaches{% else %}All reported scores verified{% endif %}
+    {% endcall %}
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
-    {# Matches Awaiting Results #}
-    {% if pending_results %}
-    {% call data_table("Matches Awaiting Results", icon="ti-clock", count=pending_results|length, search_placeholder="Filter matches…", search_id="pendingFilter", filters=true) %}
-      <table class="hidden md:table w-full text-sm">
-        <thead>
-          <tr class="border-b border-gray-200 dark:border-gray-700">
-            {{ data_table_th("Date", key="date") }}
-            {{ data_table_th("Home Team", key="home") }}
-            {{ data_table_th("Away Team", key="away") }}
-            {{ data_table_th("Actions", sortable=false, align="right") }}
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-          {% for match in pending_results %}
-          <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <td class="px-3 py-2.5 font-mono text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ match.date.strftime('%Y-%m-%d') if match.date else 'TBD' }}</td>
-            <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</td>
-            <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</td>
-            <td class="px-3 py-2.5 text-right">
-              <button type="button"
-                      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                      data-action="enter-result" data-match-id="{{ match.id }}">
-                <i class="ti ti-edit text-sm" aria-hidden="true"></i>Enter Result
-              </button>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {# Mobile cards #}
-      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+  {# ===== PRIMARY JOB: clear the score-entry queue ===== #}
+  {% if pending_results %}
+  {# Built explicitly (not via data_table) so the toolbar can host a league
+     <select> beside the search box, and so the section gets a footer. #}
+  <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-clipboard-x text-ecs-green" aria-hidden="true"></i> Awaiting score entry
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ pending_results|length }}</span>
+      </h2>
+      <span class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">Oldest first</span>
+    </div>
+    {# Toolbar: league filter + search (league select only when leagues are known) #}
+    {% call data_table_filter_bar("Filter by team or date…", "pendingFilter") %}
+      {% if ns_leagues.names %}
+      <label class="sr-only" for="pendingLeagueFilter">Filter by league</label>
+      <select id="pendingLeagueFilter" class="input-ecs h-9 px-3 text-sm w-auto" aria-label="Filter by league">
+        <option value="">All leagues</option>
+        {% for lname in ns_leagues.names %}
+        <option value="{{ lname }}">{{ lname }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+    {% endcall %}
+    <div class="md:overflow-x-auto">
+    <table class="hidden md:table w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          {{ data_table_th("Kickoff", key="date") }}
+          {{ data_table_th("Fixture", key="fixture") }}
+          {{ data_table_th("Location", key="location", hide="md") }}
+          {{ data_table_th("Action", sortable=false, align="right") }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for match in pending_results %}
-        <div data-row class="px-4 py-3.5">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-              {{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}
-            </span>
-          </div>
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ match.date.strftime('%Y-%m-%d') if match.date else 'TBD' }}</p>
-          <button type="button"
-                  class="mt-2 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                  data-action="enter-result" data-match-id="{{ match.id }}">
-            <i class="ti ti-edit text-sm" aria-hidden="true"></i>Enter Result
-          </button>
-        </div>
-        {% endfor %}
-      </div>
-    {% endcall %}
-    {% else %}
-    {% call section_card("Matches Awaiting Results", icon="ti-clock") %}
-      {{ empty_state("ti-circle-check", "All caught up", "No matches awaiting results.") }}
-    {% endcall %}
-    {% endif %}
-
-    {# Recent Results #}
-    {% if completed_matches %}
-    {% call data_table("Recent Results", icon="ti-history", count=completed_matches[:10]|length, search_placeholder="Filter results…", search_id="recentFilter", filters=true) %}
-      <table class="hidden md:table w-full text-sm">
-        <thead>
-          <tr class="border-b border-gray-200 dark:border-gray-700">
-            {{ data_table_th("Date", key="date") }}
-            {{ data_table_th("Teams", key="teams") }}
-            {{ data_table_th("Score", key="score", align="right") }}
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-          {% for match in completed_matches[:10] %}
-          <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <td class="px-3 py-2.5 font-mono text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}</td>
-            <td class="px-3 py-2.5">
+        {% set match_league = match.home_team.league.name if match.home_team and match.home_team.league else '' %}
+        <tr data-row data-league="{{ match_league }}" data-search="{{ match.home_team.name if match.home_team else '' }} {{ match.away_team.name if match.away_team else '' }} {{ match.date.strftime('%Y-%m-%d') if match.date else '' }}"
+            class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3 whitespace-nowrap align-top">
+            <div class="font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ match.date.strftime('%a %b %d') if match.date else 'TBD' }}</div>
+            <div class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ match.time.strftime('%-I:%M %p') if match.time else '—' }}</div>
+          </td>
+          <td class="px-3 py-3 align-top">
+            <div class="flex items-center gap-2">
+              <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded font-mono text-[10px] font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20" title="Home">H</span>
               <span class="font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
-              <span class="text-gray-400 mx-1">vs</span>
+            </div>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded font-mono text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" title="Away">A</span>
               <span class="font-medium text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
-            </td>
-            <td class="px-3 py-2.5 text-right">
-              <span class="inline-flex items-center gap-1 font-mono text-xs font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
-                {{ match.home_team_score }}&ndash;{{ match.away_team_score }}
-              </span>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {# Mobile cards #}
-      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-        {% for match in completed_matches[:10] %}
-        <div data-row class="px-4 py-3.5">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-              {{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}
-            </span>
-            <span class="shrink-0 inline-flex items-center font-mono text-xs font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
-              {{ match.home_team_score }}&ndash;{{ match.away_team_score }}
-            </span>
-          </div>
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}</p>
-        </div>
+            </div>
+            {% if match_league %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ match_league }}</p>{% endif %}
+          </td>
+          <td class="px-3 py-3 align-top hidden lg:table-cell text-gray-500 dark:text-gray-400 truncate max-w-[180px]">{{ match.location or '—' }}</td>
+          <td class="px-3 py-3 text-right align-top">
+            <button type="button"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                    data-action="enter-result" data-match-id="{{ match.id }}">
+              <i class="ti ti-clipboard-check text-sm" aria-hidden="true"></i>Enter score
+            </button>
+          </td>
+        </tr>
         {% endfor %}
+      </tbody>
+    </table>
+    {# Mobile cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for match in pending_results %}
+      {% set match_league = match.home_team.league.name if match.home_team and match.home_team.league else '' %}
+      <div data-row data-league="{{ match_league }}" data-search="{{ match.home_team.name if match.home_team else '' }} {{ match.away_team.name if match.away_team else '' }} {{ match.date.strftime('%Y-%m-%d') if match.date else '' }}" class="px-4 py-3.5">
+        <p class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ match.date.strftime('%a %b %d') if match.date else 'TBD' }}{% if match.time %} · {{ match.time.strftime('%-I:%M %p') }}{% endif %}</p>
+        <div class="mt-1.5 space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded font-mono text-[10px] font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">H</span>
+            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded font-mono text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">A</span>
+            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
+          </div>
+        </div>
+        {% if match_league or match.location %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{{ match_league }}{% if match_league and match.location %} · {% endif %}{{ match.location or '' }}</p>{% endif %}
+        <button type="button"
+                class="mt-3 w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                data-action="enter-result" data-match-id="{{ match.id }}">
+          <i class="ti ti-clipboard-check text-sm" aria-hidden="true"></i>Enter score
+        </button>
       </div>
-    {% endcall %}
-    {% else %}
-    {% call section_card("Recent Results", icon="ti-history") %}
-      {{ empty_state("ti-trophy", "No results yet", "No completed matches found.") }}
-    {% endcall %}
-    {% endif %}
-  </div>
+      {% endfor %}
+    </div>
+    </div>
+    {# Footer: live count + jump to full upcoming list #}
+    <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+      <span class="text-xs text-gray-500 dark:text-gray-400">Showing <span class="font-mono" data-pending-visible>{{ pending_results|length }}</span> of <span class="font-mono">{{ pending_results|length }}</span> awaiting score entry</span>
+      <a href="{{ url_for('admin_panel.upcoming_matches') }}"
+         class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+        View all upcoming <i class="ti ti-arrow-right text-sm" aria-hidden="true"></i>
+      </a>
+    </div>
+  </section>
+  {% else %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-clipboard-x text-ecs-green" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Awaiting score entry</h2>
+    </div>
+    {{ empty_state("ti-circle-check", "Queue is clear", "Every played match has a score recorded. Nice work.") }}
+  </section>
+  {% endif %}
+
+  {# ===== SECONDARY: recent reported results + verification trail ===== #}
+  {% if completed_matches %}
+  {# TODO backend: route caps completed_matches at 50 and reports no grand total of
+     all recorded results, so we can only state how many are shown. To match the
+     mock's "Showing 50 most recent of N recorded results", pass a real total
+     (e.g. Match.query.filter(scores not null).count()) into the template. #}
+  {% set recent_footer %}<span class="text-xs text-gray-500 dark:text-gray-400">Showing <span class="font-mono">{{ completed_matches[:50]|length }}</span> most recent recorded results</span>{% endset %}
+  {% call data_table("Recent results", icon="ti-history", count=completed_matches[:50]|length, search_placeholder="Filter by team or date…", search_id="recentFilter", filters=true, footer=recent_footer) %}
+    <table class="hidden md:table w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          {{ data_table_th("Date", key="date") }}
+          {{ data_table_th("Fixture", key="fixture") }}
+          {{ data_table_th("Score", key="score", align="center") }}
+          {{ data_table_th("Verification", key="verify", align="right") }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for match in completed_matches[:50] %}
+        <tr data-row data-search="{{ match.home_team.name if match.home_team else '' }} {{ match.away_team.name if match.away_team else '' }} {{ match.date.strftime('%Y-%m-%d') if match.date else '' }}"
+            class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-2.5 font-mono text-gray-700 dark:text-gray-300 whitespace-nowrap align-middle">{{ match.date.strftime('%b %d') if match.date else 'N/A' }}</td>
+          <td class="px-3 py-2.5 align-middle">
+            <span class="font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
+            <span class="text-gray-400 font-normal mx-1">vs</span>
+            <span class="font-medium text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
+          </td>
+          <td class="px-3 py-2.5 text-center align-middle whitespace-nowrap">
+            <span class="font-mono text-base font-bold text-gray-900 dark:text-white tabular-nums">{{ match.home_team_score }}</span>
+            <span class="font-mono text-sm text-gray-400 mx-1">&ndash;</span>
+            <span class="font-mono text-base font-bold text-gray-900 dark:text-white tabular-nums">{{ match.away_team_score }}</span>
+          </td>
+          <td class="px-3 py-2.5 text-right align-middle">
+            {% if match.fully_verified %}
+            <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+              <i class="ti ti-shield-check text-[12px]" aria-hidden="true"></i>Verified
+            </span>
+            {% elif match.home_team_verified or match.away_team_verified %}
+            <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                  title="{{ 'Home confirmed, away pending' if match.home_team_verified else 'Away confirmed, home pending' }}">
+              <i class="ti ti-shield-half text-[12px]" aria-hidden="true"></i>One side
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-shield text-[12px]" aria-hidden="true"></i>Unverified
+            </span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {# Mobile cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for match in completed_matches[:50] %}
+      <div data-row data-search="{{ match.home_team.name if match.home_team else '' }} {{ match.away_team.name if match.away_team else '' }} {{ match.date.strftime('%Y-%m-%d') if match.date else '' }}" class="px-4 py-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+            {{ match.home_team.name if match.home_team else 'TBD' }} <span class="text-gray-400 font-normal">vs</span> {{ match.away_team.name if match.away_team else 'TBD' }}
+          </span>
+          <span class="shrink-0 font-mono text-sm font-bold text-gray-900 dark:text-white tabular-nums">{{ match.home_team_score }}&ndash;{{ match.away_team_score }}</span>
+        </div>
+        <div class="mt-1 flex items-center justify-between gap-2">
+          <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ match.date.strftime('%b %d') if match.date else 'N/A' }}</span>
+          {% if match.fully_verified %}
+          <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-shield-check text-[12px]" aria-hidden="true"></i>Verified</span>
+          {% elif match.home_team_verified or match.away_team_verified %}
+          <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-shield-half text-[12px]" aria-hidden="true"></i>One side</span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shield text-[12px]" aria-hidden="true"></i>Unverified</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% else %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-history text-ecs-green" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Recent results</h2>
+    </div>
+    {{ empty_state("ti-trophy", "No results yet", "Completed matches with recorded scores will appear here.") }}
+  </section>
+  {% endif %}
 </div>
 
 {# Enter Result Modal — same hooks as Classic so the shared script wires it #}
@@ -316,7 +428,57 @@ document.addEventListener('DOMContentLoaded', function() {
             showResultModal();
         }
     });
+
+    // Console-shell client-side filter for the pending/recent tables. No-ops in
+    // Classic where these inputs and data-search rows are absent.
+    // Combines a text search with an optional per-section league <select>.
+    function wireFilter(inputId, leagueSelectId) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        const section = input.closest('[data-modern-table]');
+        if (!section) return;
+        const leagueSelect = leagueSelectId ? document.getElementById(leagueSelectId) : null;
+        const visibleCounter = section.querySelector('[data-pending-visible]');
+
+        function apply() {
+            const q = input.value.trim().toLowerCase();
+            const league = leagueSelect ? leagueSelect.value : '';
+            section.querySelectorAll('[data-row]').forEach(function(row) {
+                const hay = (row.getAttribute('data-search') || '').toLowerCase();
+                const rowLeague = row.getAttribute('data-league') || '';
+                const matchesText = q === '' || hay.indexOf(q) !== -1;
+                const matchesLeague = league === '' || rowLeague === league;
+                row.classList.toggle('hidden', !(matchesText && matchesLeague));
+            });
+            // Count logical matches once (use the md table rows; mobile cards mirror them).
+            if (visibleCounter) {
+                const rows = section.querySelectorAll('table [data-row]');
+                let visible = 0;
+                rows.forEach(function(r) { if (!r.classList.contains('hidden')) visible++; });
+                visibleCounter.textContent = visible;
+            }
+        }
+        input.addEventListener('input', apply);
+        if (leagueSelect) leagueSelect.addEventListener('change', apply);
+    }
+    wireFilter('pendingFilter', 'pendingLeagueFilter');
+    wireFilter('recentFilter');
+
+    // Wire the Enter Result modal form to the REAL match-report endpoint
+    // (teams.report_match). The form previously had no submit handler and posted
+    // empty to a GET-only route; submitResult() was dead code showing a fake toast.
+    const resultForm = document.getElementById('enterResultForm');
+    if (resultForm) {
+        resultForm.addEventListener('submit', submitResult);
+    }
 });
+
+function getResultCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && meta.getAttribute('content')) return meta.getAttribute('content');
+    const input = document.querySelector('#enterResultForm input[name="csrf_token"]');
+    return input ? input.value : '';
+}
 
 function showResultModal() {
     const modal = FlowbiteInstances.getInstance('Modal', 'enterResultModal');
@@ -332,6 +494,21 @@ function submitResult(event) {
     event.preventDefault();
     const isDark = document.documentElement.classList.contains('dark');
 
+    const matchId = document.getElementById('result_match_id').value;
+    const homeScore = document.getElementById('home_score').value;
+    const awayScore = document.getElementById('away_score').value;
+
+    if (!matchId || homeScore === '' || awayScore === '') {
+        Swal.fire({
+            title: 'Missing information',
+            text: 'Enter both the home and away scores before submitting.',
+            icon: 'warning',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+        return;
+    }
+
     Swal.fire({
         title: 'Submit Result?',
         text: 'This will record the match result.',
@@ -342,16 +519,50 @@ function submitResult(event) {
         background: isDark ? '#1f2937' : '#ffffff',
         color: isDark ? '#f3f4f6' : '#111827'
     }).then((result) => {
-        if (result.isConfirmed) {
+        if (!result.isConfirmed) return;
+
+        fetch(`/teams/report_match/${matchId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getResultCsrfToken()
+            },
+            body: JSON.stringify({
+                home_team_score: parseInt(homeScore, 10),
+                away_team_score: parseInt(awayScore, 10)
+            })
+        })
+        .then(response => response.json().then(data => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+            hideResultModal();
+            if (ok && data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Result Submitted',
+                    text: data.message || 'The match result has been recorded.',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => location.reload());
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: (data && data.message) || 'Failed to record the match result.',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        })
+        .catch(() => {
             hideResultModal();
             Swal.fire({
-                icon: 'success',
-                title: 'Result Submitted',
-                text: 'The match result has been recorded.',
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to record the match result.',
                 background: isDark ? '#1f2937' : '#ffffff',
                 color: isDark ? '#f3f4f6' : '#111827'
-            }).then(() => location.reload());
-        }
+            });
+        });
     });
 }
 </script>

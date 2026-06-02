@@ -79,34 +79,106 @@
                 </a>
             </li>
             <li>
-                <div class="flex items-center">
+                <div class="flex items-center min-w-0">
                     <i class="ti ti-chevron-right text-gray-400 mx-2" aria-hidden="true"></i>
-                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ topic.title }}</span>
+                    <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ topic.title }}</span>
                 </div>
             </li>
         </ol>
     </nav>
 
-    {{ page_header(topic.title, subtitle="Help Topic") }}
+    {#
+      PRIMARY OBJECT: the documentation article.
+      A feature card whose header bar carries the eyebrow + title + command
+      toolbar, followed by a metadata band (audience pills, doc ID, dates),
+      then the reading column. Only real HelpTopic fields are used.
+    #}
+    <article class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <!-- Header bar -->
+        <header class="flex flex-col gap-4 px-4 sm:px-6 pt-5 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div class="min-w-0">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                        <i class="ti ti-book-2 text-ecs-green text-sm" aria-hidden="true"></i>
+                        Help Topic
+                    </p>
+                    <h1 class="mt-1.5 text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">{{ topic.title }}</h1>
+                </div>
+                <!-- Command toolbar -->
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="{{ url_for('help.index') }}"
+                       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border
+                              border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
+                              hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors
+                              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                        <i class="ti ti-arrow-left text-sm" aria-hidden="true"></i>
+                        <span class="hidden sm:inline">All Topics</span>
+                    </a>
+                </div>
+            </div>
 
-    {% call section_card(topic.title, icon="ti-book-2") %}
-    <div class="p-4 sm:p-5">
-        <div class="help-content prose dark:prose-invert max-w-none">
-            {{ content|safe }}
+            <!-- Metadata band: real fields only -->
+            <dl class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+                <div class="flex items-center gap-1.5">
+                    <dt class="text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Topic ID</dt>
+                    <dd class="font-mono font-bold text-gray-900 dark:text-white">#{{ '%03d'|format(topic.id) }}</dd>
+                </div>
+                {% if topic.updated_at %}
+                <div class="flex items-center gap-1.5">
+                    <dt class="text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Updated</dt>
+                    <dd class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ topic.updated_at.strftime('%b %d, %Y') }}</dd>
+                </div>
+                {% endif %}
+                {% if topic.created_at %}
+                <div class="flex items-center gap-1.5">
+                    <dt class="text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Published</dt>
+                    <dd class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ topic.created_at.strftime('%b %d, %Y') }}</dd>
+                </div>
+                {% endif %}
+            </dl>
+
+            <!-- Audience: real allowed_roles relationship -->
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium flex items-center gap-1.5">
+                    <i class="ti ti-users text-sm" aria-hidden="true"></i> Audience
+                </span>
+                {% if topic.allowed_roles %}
+                    {% for role in topic.allowed_roles %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold
+                                 bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15 dark:text-ecs-green">
+                        <i class="ti ti-shield-half text-[11px]" aria-hidden="true"></i>{{ role.name }}
+                    </span>
+                    {% endfor %}
+                {% else %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold
+                                 bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">
+                        <i class="ti ti-world text-[11px]" aria-hidden="true"></i>Everyone
+                    </span>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- Reading column -->
+        <div class="px-4 sm:px-6 py-5 sm:py-6">
+            <div class="help-content prose dark:prose-invert max-w-3xl">
+                {{ content|safe }}
+            </div>
         </div>
-    </div>
-    {% endcall %}
 
-    <div>
-        <a href="{{ url_for('help.index') }}"
-           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border
-                  border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
-                  hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-            <i class="ti ti-arrow-left" aria-hidden="true"></i>
-            Back to Help Topics
-        </a>
-    </div>
+        <!-- Footer rule + return action -->
+        <footer class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                {% if topic.updated_at %}Last revised {{ topic.updated_at.strftime('%b %d, %Y') }}{% else %}ECS Help Library{% endif %}
+            </p>
+            <a href="{{ url_for('help.index') }}"
+               class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                      bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                      focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti ti-arrow-left text-sm" aria-hidden="true"></i>
+                Back to Help Topics
+            </a>
+        </footer>
+    </article>
 </div>
 {% else %}
 <div class="space-y-6">

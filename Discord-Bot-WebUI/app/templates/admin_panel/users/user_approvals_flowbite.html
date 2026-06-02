@@ -22,41 +22,153 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
-<div class="space-y-6">
+{% from 'macros/_modern_kit.html' import page_header, data_table_th, empty_state %}
+{% set total_apps = stats.pending_count + stats.total_approved + stats.total_denied %}
+{% set total_processed = stats.total_approved + stats.total_denied %}
+{% set approval_rate = (stats.total_approved * 100 // total_processed) if total_processed else 0 %}
+{% set _now = now if now is defined else None %}
+{# Pending list is ordered created_at DESC -> [0] newest, [-1] oldest #}
+{% set oldest_pending = pending_users[-1] if pending_users else None %}
+<div class="space-y-5 sm:space-y-6">
 
-  {{ page_header('User Approvals', subtitle='Review and approve new user applications') }}
+  {% call page_header('User Approvals', subtitle='Users · Intake review') %}
+    <a href="{{ url_for('admin_panel.users_comprehensive') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600
+              text-gray-700 dark:text-gray-200 text-sm font-semibold bg-white dark:bg-gray-800
+              hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-users" aria-hidden="true"></i><span class="hidden sm:inline">All Users</span>
+    </a>
+    <button type="button" data-action="refresh"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600
+                   text-gray-700 dark:text-gray-200 text-sm font-semibold bg-white dark:bg-gray-800
+                   hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
+    </button>
+  {% endcall %}
 
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-clock', 'Pending Approval', stats.pending_count, tone='warning') }}
-    {{ stat_card('ti-check', 'Total Approved', stats.total_approved, tone='success') }}
-    {{ stat_card('ti-x', 'Total Denied', stats.total_denied, tone='danger') }}
-    {{ stat_card('ti-users', 'Total Applications', stats.pending_count + stats.total_approved + stats.total_denied, tone='info') }}
-  </div>
+  <!-- ===== KPI band: bullet-style tiles with progress + target captions (real data) ===== -->
+  <section aria-labelledby="kpiHead">
+    <h2 id="kpiHead" class="sr-only">Approval metrics</h2>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
 
-  <!-- Pending Approvals -->
-  {% call data_table('Pending Approvals', icon='ti-user-check', count=stats.pending_count, search_placeholder='Filter pending users…', search_id='pendingFilter', filters=pending_users|length > 0) %}
-    {% if pending_users %}
-    <div class="flex items-center justify-end px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-      <button type="button" data-action="refresh"
-              class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-ecs-green text-ecs-green text-sm font-semibold
-                     hover:bg-ecs-green/10 dark:hover:bg-ecs-green/20 transition-colors
-                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-refresh" aria-hidden="true"></i>Refresh
-      </button>
+      <!-- Pending (the operational number) -->
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Pending Approval</span>
+          <i class="ti ti-clock text-lg {% if stats.pending_count %}text-amber-600 dark:text-amber-400{% else %}text-green-600 dark:text-green-400{% endif %} shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none {% if stats.pending_count %}text-amber-600 dark:text-amber-400{% else %}text-green-600 dark:text-green-400{% endif %}">{{ stats.pending_count }}</div>
+        <div class="mt-3 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <div class="h-full {% if stats.pending_count %}bg-amber-500{% else %}bg-green-500{% endif %}" style="width: {{ (stats.pending_count * 100 // total_apps) if total_apps else 0 }}%"></div>
+        </div>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">{% if stats.pending_count %}awaiting a decision{% else %}inbox zero{% endif %}</p>
+      </div>
+
+      <!-- Approval rate (derived from processed) -->
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Approval Rate</span>
+          <i class="ti ti-chart-pie text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{% if total_processed %}{{ approval_rate }}%{% else %}—{% endif %}</div>
+        <div class="mt-3 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <div class="h-full bg-ecs-green" style="width: {{ approval_rate }}%"></div>
+        </div>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">of <span class="text-gray-700 dark:text-gray-300">{{ total_processed }}</span> processed</p>
+      </div>
+
+      <!-- Approved -->
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Approved</span>
+          <i class="ti ti-circle-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ stats.total_approved }}</div>
+        <div class="mt-3 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <div class="h-full bg-green-500" style="width: {{ (stats.total_approved * 100 // total_apps) if total_apps else 0 }}%"></div>
+        </div>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">approved lifetime</p>
+      </div>
+
+      <!-- Denied -->
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Denied</span>
+          <i class="ti ti-circle-x text-lg text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-red-600 dark:text-red-400">{{ stats.total_denied }}</div>
+        <div class="mt-3 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <div class="h-full bg-red-500" style="width: {{ (stats.total_denied * 100 // total_apps) if total_apps else 0 }}%"></div>
+        </div>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">declined lifetime</p>
+      </div>
+
     </div>
+  </section>
+
+  <!-- ===== PRIMARY OBJECT: the approval queue ===== -->
+  <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <!-- header bar -->
+    <div class="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-user-check text-ecs-green" aria-hidden="true"></i>
+        <span>{% if status_filter == 'approved' %}Approved Users{% elif status_filter == 'denied' %}Denied Users{% elif status_filter == 'all' %}All Users{% else %}Approval Queue{% endif %}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded {% if pending_users %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ pending_users|length }}</span>
+      </h2>
+      {% if oldest_pending and status_filter == 'pending' %}
+      <p class="text-xs text-gray-500 dark:text-gray-400">
+        <i class="ti ti-clock-hour-4 mr-1" aria-hidden="true"></i>Oldest waiting since
+        <span class="font-mono text-gray-700 dark:text-gray-300">{{ oldest_pending.created_at.strftime('%Y-%m-%d') if oldest_pending.created_at else '—' }}</span>
+      </p>
+      {% endif %}
+    </div>
+
+    <!-- status segmented control (server-side, real route filters) -->
+    <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center gap-1 overflow-x-auto" role="group" aria-label="Filter by status">
+        {% set seg_base = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800' %}
+        {% set seg_on = 'bg-ecs-green/10 text-ecs-green border border-ecs-green/30' %}
+        {% set seg_off = 'border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700' %}
+        <a href="{{ url_for('admin_panel.user_approvals', status='pending') }}" class="{{ seg_base }} {% if status_filter == 'pending' %}{{ seg_on }}{% else %}{{ seg_off }}{% endif %}">
+          <i class="ti ti-clock text-sm" aria-hidden="true"></i>Pending<span class="font-mono">{{ stats.pending_count }}</span>
+        </a>
+        <a href="{{ url_for('admin_panel.user_approvals', status='approved') }}" class="{{ seg_base }} {% if status_filter == 'approved' %}{{ seg_on }}{% else %}{{ seg_off }}{% endif %}">
+          <i class="ti ti-circle-check text-sm" aria-hidden="true"></i>Approved
+        </a>
+        <a href="{{ url_for('admin_panel.user_approvals', status='denied') }}" class="{{ seg_base }} {% if status_filter == 'denied' %}{{ seg_on }}{% else %}{{ seg_off }}{% endif %}">
+          <i class="ti ti-circle-x text-sm" aria-hidden="true"></i>Denied
+        </a>
+        <a href="{{ url_for('admin_panel.user_approvals', status='all') }}" class="{{ seg_base }} {% if status_filter == 'all' %}{{ seg_on }}{% else %}{{ seg_off }}{% endif %}">
+          <i class="ti ti-list text-sm" aria-hidden="true"></i>All
+        </a>
+      </div>
+      <span class="ml-auto text-xs font-mono text-gray-500 dark:text-gray-400 px-1">{{ pending_users|length }} shown</span>
+    </div>
+
+    {% if pending_users %}
+    <!-- client-side filter toolbar -->
+    <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div class="relative flex-1 min-w-[180px]">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+        <input type="search" id="pendingFilter" placeholder="Filter by username…"
+               class="input-ecs h-9 pl-9 pr-3 text-sm w-full" aria-label="Filter users">
+      </div>
+    </div>
+
     <!-- md+ table -->
+    <div class="md:overflow-x-auto">
     <table class="hidden md:table w-full text-sm">
       <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
         <tr>
-          {{ data_table_th('User', key='user') }}
-          {{ data_table_th('Email', key='email', hide='sm') }}
+          {{ data_table_th('Applicant', key='user') }}
+          {{ data_table_th('Email', key='email', sortable=False, hide='sm') }}
           {{ data_table_th('League Preference', key='league', sortable=False, hide='md') }}
-          {{ data_table_th('Discord ID', key='discord', sortable=False, hide='md') }}
+          {{ data_table_th('Discord', key='discord', sortable=False, hide='md') }}
           {{ data_table_th('Registered', key='registered', hide='md') }}
-          {{ data_table_th('Current Roles', key='roles', sortable=False, hide='md') }}
-          {{ data_table_th('Actions', sortable=False, align='right') }}
+          {{ data_table_th('Roles', key='roles', sortable=False, hide='md') }}
+          {{ data_table_th('Decision', sortable=False, align='right') }}
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -64,20 +176,20 @@
         <tr data-filter-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
           <td class="px-3 py-3">
             <div class="flex items-center">
-              <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-medium cursor-pointer" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">
+              <button type="button" class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-semibold overflow-hidden focus:outline-none focus:ring-2 focus:ring-ecs-green" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}" aria-label="View details for {{ user.username }}">
                 {% if user.player and user.player.profile_picture_url %}
                 <img src="{{ user.player.profile_picture_url }}" alt="{{ user.username }}" class="w-10 h-10 rounded-full object-cover">
                 {% else %}
                 {{ user.username[0].upper() }}
                 {% endif %}
-              </div>
+              </button>
               <div class="ml-3 min-w-0">
-                <p class="font-medium text-gray-900 dark:text-white cursor-pointer hover:text-ecs-green truncate" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</p>
+                <button type="button" class="block max-w-[14rem] truncate text-left font-semibold text-gray-900 dark:text-white hover:text-ecs-green focus:outline-none focus:underline" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</button>
                 <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.player.name if user.player else 'No player record' }}</p>
               </div>
             </div>
           </td>
-          <td class="px-3 py-3 hidden md:table-cell text-gray-600 dark:text-gray-300">{{ user.email }}</td>
+          <td class="px-3 py-3 hidden md:table-cell text-gray-600 dark:text-gray-300 max-w-[16rem] truncate">{{ user.email }}</td>
           <td class="px-3 py-3 hidden lg:table-cell">
             {% if user.preferred_league %}
               {% if user.preferred_league == 'pub_league_classic' %}
@@ -95,7 +207,7 @@
             {% else %}
             <span class="text-gray-400 dark:text-gray-500">Not selected</span>
             {% if not user.has_completed_onboarding %}
-            <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">Onboarding incomplete</p>
+            <p class="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 mt-1"><i class="ti ti-alert-triangle text-[11px]" aria-hidden="true"></i>Onboarding incomplete</p>
             {% endif %}
             {% endif %}
           </td>
@@ -103,21 +215,27 @@
             {% if user.player and user.player.discord_id %}
             <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-700 dark:text-gray-300">{{ user.player.discord_id }}</code>
             {% else %}
-            <span class="text-gray-400 dark:text-gray-500">No Discord ID</span>
+            <span class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500"><i class="ti ti-brand-discord text-sm" aria-hidden="true"></i>Not linked</span>
             {% endif %}
           </td>
-          <td class="px-3 py-3 hidden lg:table-cell font-mono text-xs text-gray-600 dark:text-gray-300">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown' }}</td>
+          <td class="px-3 py-3 hidden lg:table-cell font-mono text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown' }}</td>
           <td class="px-3 py-3 hidden lg:table-cell">
-            {% for role in user.roles %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 mr-1 mb-1">{{ role.name }}</span>
-            {% endfor %}
+            {% if user.roles %}
+            <div class="flex flex-wrap gap-1">
+              {% for role in user.roles %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ role.name }}</span>
+              {% endfor %}
+            </div>
+            {% else %}
+            <span class="text-gray-400 dark:text-gray-500 text-xs">None</span>
+            {% endif %}
           </td>
           <td class="px-3 py-3">
-            <div class="flex flex-col sm:flex-row gap-1 justify-end">
-              <button type="button" class="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-green-500" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
+            <div class="flex items-center gap-1.5 justify-end">
+              <button type="button" class="inline-flex items-center justify-center gap-1 h-9 px-3 text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
                 <i class="ti ti-check" aria-hidden="true"></i>Approve
               </button>
-              <button type="button" class="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-red-500" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
+              <button type="button" class="inline-flex items-center justify-center gap-1 h-9 px-3 text-xs font-semibold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
                 <i class="ti ti-x" aria-hidden="true"></i>Deny
               </button>
             </div>
@@ -126,30 +244,34 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     <!-- mobile cards -->
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
       {% for user in pending_users %}
       <div data-filter-row data-row-card class="px-4 py-3.5">
         <div class="flex items-start gap-3">
-          <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-medium cursor-pointer" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">
+          <button type="button" class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-semibold overflow-hidden focus:outline-none focus:ring-2 focus:ring-ecs-green" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}" aria-label="View details for {{ user.username }}">
             {% if user.player and user.player.profile_picture_url %}
             <img src="{{ user.player.profile_picture_url }}" alt="{{ user.username }}" class="w-10 h-10 rounded-full object-cover">
             {% else %}
             {{ user.username[0].upper() }}
             {% endif %}
-          </div>
+          </button>
           <div class="flex-1 min-w-0">
-            <p class="font-medium text-gray-900 dark:text-white cursor-pointer hover:text-ecs-green truncate" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</p>
+            <button type="button" class="block max-w-full truncate text-left font-semibold text-gray-900 dark:text-white hover:text-ecs-green focus:outline-none focus:underline" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</button>
             <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.player.name if user.player else 'No player record' }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
             <p class="text-xs text-gray-400 dark:text-gray-500 font-mono mt-0.5">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}{% if user.preferred_league %} · {{ user.preferred_league.replace('pub_league_', '').replace('_', ' ').title() }}{% endif %}</p>
+            {% if not user.preferred_league and not user.has_completed_onboarding %}
+            <p class="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 mt-0.5"><i class="ti ti-alert-triangle text-[11px]" aria-hidden="true"></i>Onboarding incomplete</p>
+            {% endif %}
           </div>
         </div>
         <div class="flex gap-2 mt-3">
-          <button type="button" class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
+          <button type="button" class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
             <i class="ti ti-check" aria-hidden="true"></i>Approve
           </button>
-          <button type="button" class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
+          <button type="button" class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm font-semibold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
             <i class="ti ti-x" aria-hidden="true"></i>Deny
           </button>
         </div>
@@ -157,141 +279,88 @@
       {% endfor %}
     </div>
     {% else %}
-    {{ empty_state('ti-users', 'No Pending Approvals', 'All users have been processed.') }}
+    {% if status_filter == 'pending' %}
+    {{ empty_state('ti-circle-check', 'Inbox Zero', 'No pending applications — every user has been processed.') }}
+    {% elif status_filter == 'approved' %}
+    {{ empty_state('ti-user-search', 'No approved users', 'No users match this view yet.') }}
+    {% elif status_filter == 'denied' %}
+    {{ empty_state('ti-user-search', 'No denied users', 'No users match this view yet.') }}
+    {% else %}
+    {{ empty_state('ti-user-search', 'No users found', 'No users match the current filter.') }}
     {% endif %}
-  {% endcall %}
+    {% endif %}
+  </section>
 
-  <!-- Recent Actions -->
-  {% if recent_actions %}
-  {% call section_card('Recent Actions', icon='ti-history') %}
-    <div class="md:overflow-x-auto">
-      <!-- md+ table -->
-      <table class="hidden md:table w-full text-sm">
-        <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-          <tr>
-            {{ data_table_th('User', sortable=False) }}
-            {{ data_table_th('Action', sortable=False) }}
-            {{ data_table_th('League', sortable=False) }}
-            {{ data_table_th('Processed By', sortable=False) }}
-            {{ data_table_th('Date', sortable=False) }}
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-          {% for user in recent_actions %}
-          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <td class="px-3 py-3 font-medium text-gray-900 dark:text-white">{{ user.username }}</td>
-            <td class="px-3 py-3">
-              {% if user.approval_status == 'approved' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check" aria-hidden="true"></i>Approved</span>
-              {% elif user.approval_status == 'denied' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-x" aria-hidden="true"></i>Denied</span>
-              {% endif %}
-            </td>
-            <td class="px-3 py-3">
-              {% if user.approval_league %}
-                {% if user.approval_league.startswith('sub-') %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">{{ user.approval_league[4:].title() }} Sub</span>
-                {% else %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ user.approval_league.title() }}</span>
-                {% endif %}
-              {% else %}
-              <span class="text-gray-400 dark:text-gray-500">N/A</span>
-              {% endif %}
-            </td>
-            <td class="px-3 py-3 text-gray-600 dark:text-gray-300">{{ user.approved_by_user.username if user.approved_by_user else 'Unknown' }}</td>
-            <td class="px-3 py-3 font-mono text-xs text-gray-600 dark:text-gray-300">{{ user.approved_at.strftime('%Y-%m-%d %H:%M') if user.approved_at else 'Unknown' }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <!-- mobile cards -->
-      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+  <!-- ===== Two-up: Recently processed (activity feed) + Audit log ===== -->
+  {% if recent_actions or audit_logs %}
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 items-start">
+
+    <!-- Recently processed: dense decision feed -->
+    {% if recent_actions %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-history text-ecs-green" aria-hidden="true"></i>Recently Processed
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ recent_actions|length }}</span>
+        </h2>
+      </div>
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700 text-sm" role="list">
         {% for user in recent_actions %}
-        {% call data_table_row_card(user.username) %}
-          <span>
-            {% if user.approval_status == 'approved' %}<span class="text-green-600 dark:text-green-400 font-medium">Approved</span>
-            {% elif user.approval_status == 'denied' %}<span class="text-red-600 dark:text-red-400 font-medium">Denied</span>{% endif %}
-            {% if user.approval_league %} · {{ user.approval_league[4:].title() ~ ' Sub' if user.approval_league.startswith('sub-') else user.approval_league.title() }}{% endif %}
+        <li class="flex items-start gap-3 px-4 py-2.5">
+          <span class="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 {% if user.approval_status == 'approved' %}bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400{% else %}bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400{% endif %}">
+            <i class="ti {% if user.approval_status == 'approved' %}ti-check{% else %}ti-x{% endif %} text-sm" aria-hidden="true"></i>
           </span>
-          <span class="block">By {{ user.approved_by_user.username if user.approved_by_user else 'Unknown' }}</span>
-          <span class="block font-mono">{{ user.approved_at.strftime('%Y-%m-%d %H:%M') if user.approved_at else 'Unknown' }}</span>
-        {% endcall %}
+          <div class="min-w-0 flex-1">
+            <p class="text-gray-900 dark:text-white truncate">
+              <span class="font-medium">{{ user.username }}</span>
+              {% if user.approval_status == 'approved' %}<span class="text-green-600 dark:text-green-400"> approved</span>{% else %}<span class="text-red-600 dark:text-red-400"> denied</span>{% endif %}
+              {% if user.approval_league %}
+                {% if user.approval_league.startswith('sub-') %}<span class="text-gray-500 dark:text-gray-400"> → {{ user.approval_league[4:].title() }} Sub</span>
+                {% else %}<span class="text-gray-500 dark:text-gray-400"> → {{ user.approval_league.title() }}</span>{% endif %}
+              {% endif %}
+            </p>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate">by {{ user.approved_by_user.username if user.approved_by_user else 'Unknown' }} · {{ user.approved_at.strftime('%Y-%m-%d %H:%M') if user.approved_at else 'Unknown' }}</p>
+          </div>
+        </li>
         {% endfor %}
-      </div>
-    </div>
-  {% endcall %}
-  {% endif %}
+      </ul>
+    </section>
+    {% endif %}
 
-  <!-- Audit Log -->
-  {% if audit_logs %}
-  {% call section_card('Audit Log', icon='ti-clipboard-list') %}
-    <div class="md:overflow-x-auto">
-      <!-- md+ table -->
-      <table class="hidden md:table w-full text-sm">
-        <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-          <tr>
-            {{ data_table_th('Admin', sortable=False) }}
-            {{ data_table_th('Action', sortable=False) }}
-            {{ data_table_th('User ID', sortable=False) }}
-            {{ data_table_th('Details', sortable=False) }}
-            {{ data_table_th('Date/Time', sortable=False) }}
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-          {% for log in audit_logs %}
-          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <td class="px-3 py-3">
-              <div class="flex items-center">
-                <div class="w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-medium text-xs">
-                  {{ log.user.username[0].upper() if log.user else '?' }}
-                </div>
-                <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ log.user.username if log.user else 'Unknown' }}</span>
-              </div>
-            </td>
-            <td class="px-3 py-3">
-              {% if log.action == 'approve_user' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check" aria-hidden="true"></i>Approved</span>
-              {% elif log.action == 'deny_user' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-x" aria-hidden="true"></i>Denied</span>
-              {% else %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ log.action.replace('_', ' ').title() }}</span>
-              {% endif %}
-            </td>
-            <td class="px-3 py-3">
-              <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-700 dark:text-gray-300">{{ log.resource_id }}</code>
-            </td>
-            <td class="px-3 py-3 text-xs">
-              {% if log.old_value %}
-              <span class="text-gray-400 dark:text-gray-500">{{ log.old_value }}</span>
-              <i class="ti ti-arrow-right mx-1 text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
-              {% endif %}
-              <span class="text-gray-600 dark:text-gray-300">{{ log.new_value or '-' }}</span>
-            </td>
-            <td class="px-3 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">
-              {{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else 'Unknown' }}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <!-- mobile cards -->
-      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-        {% for log in audit_logs %}
-        {% call data_table_row_card(log.user.username if log.user else 'Unknown') %}
-          <span>
-            {% if log.action == 'approve_user' %}<span class="text-green-600 dark:text-green-400 font-medium">Approved</span>
-            {% elif log.action == 'deny_user' %}<span class="text-red-600 dark:text-red-400 font-medium">Denied</span>
-            {% else %}{{ log.action.replace('_', ' ').title() }}{% endif %}
-            · User <span class="font-mono">{{ log.resource_id }}</span>
-          </span>
-          {% if log.old_value %}<span class="block">{{ log.old_value }} &rarr; {{ log.new_value or '-' }}</span>
-          {% else %}<span class="block">{{ log.new_value or '-' }}</span>{% endif %}
-          <span class="block font-mono">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else 'Unknown' }}</span>
-        {% endcall %}
-        {% endfor %}
+    <!-- Audit log: admin actions on approvals -->
+    {% if audit_logs %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-clipboard-list text-ecs-green" aria-hidden="true"></i>Audit Log
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ audit_logs|length }}</span>
+        </h2>
       </div>
-    </div>
-  {% endcall %}
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700 text-sm" role="list">
+        {% for log in audit_logs %}
+        <li class="flex items-start gap-3 px-4 py-2.5">
+          <span class="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 {% if log.action == 'approve_user' %}bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400{% elif log.action == 'deny_user' %}bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400{% else %}bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400{% endif %}">
+            <i class="ti {% if log.action == 'approve_user' %}ti-check{% elif log.action == 'deny_user' %}ti-x{% else %}ti-pencil{% endif %} text-sm" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-gray-900 dark:text-white truncate">
+              <span class="font-medium">{{ log.user.username if log.user else 'Unknown' }}</span>
+              {% if log.action == 'approve_user' %}<span class="text-green-600 dark:text-green-400"> approved</span>
+              {% elif log.action == 'deny_user' %}<span class="text-red-600 dark:text-red-400"> denied</span>
+              {% else %}<span class="text-gray-500 dark:text-gray-400"> {{ log.action.replace('_', ' ') }}</span>{% endif %}
+              <span class="text-gray-500 dark:text-gray-400"> user </span><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-gray-700 dark:text-gray-300">{{ log.resource_id }}</code>
+            </p>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate">
+              {% if log.old_value %}{{ log.old_value }} &rarr; {{ log.new_value or '-' }} · {% elif log.new_value %}{{ log.new_value }} · {% endif %}{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else 'Unknown' }}
+            </p>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+  </div>
   {% endif %}
 
   <!-- Approval Modal -->
@@ -684,14 +753,79 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('denialUserId').value = userId;
                 break;
             case 'show-player-details':
-                // Modal is shown by Flowbite via data-modal-toggle
-                // TODO: Load player details via API using userId
+                // Modal is shown by Flowbite via data-modal-toggle; load real data into it.
+                loadPlayerDetails(userId);
                 break;
         }
     });
 
     // Get CSRF token
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    // --- Player details modal: fetch real data from admin_panel.user_details_api ---
+    function esc(v) {
+        if (v === null || v === undefined || v === '') return '';
+        return String(v)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function detailRow(label, value) {
+        if (value === null || value === undefined || value === '') return '';
+        return '<div class="flex justify-between gap-4 py-2 border-b border-gray-100 dark:border-gray-700">'
+            + '<dt class="text-sm text-gray-500 dark:text-gray-400">' + esc(label) + '</dt>'
+            + '<dd class="text-sm font-medium text-gray-900 dark:text-white text-right break-all">' + esc(value) + '</dd>'
+            + '</div>';
+    }
+    function loadPlayerDetails(userId) {
+        const content = document.getElementById('playerDetailsContent');
+        const profileLink = document.getElementById('profileLink');
+        if (!content) return;
+        content.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div></div>';
+        if (profileLink) { profileLink.href = '#'; profileLink.classList.remove('hidden'); profileLink.classList.add('pointer-events-none', 'opacity-50'); }
+
+        fetch(`{{ url_for('admin_panel.user_details_api', user_id=0) }}`.replace('/0/', '/' + userId + '/'))
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) throw new Error(data.error || 'Failed to load user details');
+                const u = data.user;
+                const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.real_name || u.username;
+                let html = '<dl class="divide-y-0">';
+                html += detailRow('Name', fullName);
+                html += detailRow('Username', u.username);
+                html += detailRow('Email', u.email);
+                html += detailRow('Phone', u.phone || (u.player && u.player.phone));
+                html += detailRow('Discord', u.discord_username || (u.player && u.player.discord_id));
+                html += detailRow('Status', u.status);
+                html += detailRow('Approval Status', u.approval_status);
+                html += detailRow('Approval League', u.approval_league);
+                html += detailRow('Role', (u.all_roles && u.all_roles.length) ? u.all_roles.join(', ') : u.role);
+                if (u.created_at) html += detailRow('Registered', u.created_at.slice(0, 10));
+                if (u.player) {
+                    html += detailRow('Primary League', u.player.primary_league_name);
+                    html += detailRow('Jersey Size', u.player.jersey_size);
+                    html += detailRow('Pronouns', u.player.pronouns);
+                    html += detailRow('Favorite Position', u.player.favorite_position);
+                }
+                if (u.approval_notes) html += detailRow('Notes', u.approval_notes);
+                html += '</dl>';
+                content.innerHTML = html;
+
+                if (profileLink) {
+                    if (u.player && u.player.id) {
+                        profileLink.href = `{{ url_for('players.player_profile', player_id=0) }}`.replace('/0', '/' + u.player.id);
+                        profileLink.classList.remove('pointer-events-none', 'opacity-50');
+                    } else {
+                        // No player profile exists for this user; hide the link rather than point at '#'.
+                        profileLink.classList.add('hidden');
+                    }
+                }
+            })
+            .catch(err => {
+                content.innerHTML = '<div class="p-4 text-sm text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 rounded-lg">'
+                    + '<i class="ti ti-alert-triangle mr-1"></i>' + esc(err.message) + '</div>';
+                if (profileLink) profileLink.classList.add('hidden');
+            });
+    }
 
     // Form submissions
     document.getElementById('approvalForm')?.addEventListener('submit', function(e) {

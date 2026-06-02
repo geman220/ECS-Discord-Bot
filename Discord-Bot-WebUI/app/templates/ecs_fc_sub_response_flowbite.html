@@ -4,161 +4,267 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import section_card, empty_state, alert %}
-{% from 'macros/flowbite.html' import textarea %}
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4 py-8">
-    <div class="max-w-md w-full space-y-6">
-        <!-- Logo Header -->
-        <div class="text-center">
-            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="h-16 mx-auto mb-4">
-            <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">ECS FC Sub Request</h1>
+{% from 'macros/_modern_kit.html' import empty_state, alert %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 px-4 py-8 sm:py-12">
+    <div class="max-w-2xl mx-auto space-y-6">
+        <!-- Brand bar -->
+        <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="h-10 w-auto shrink-0">
+                <div class="min-w-0">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-ecs-green">ECS FC &middot; Substitute Request</p>
+                    <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">Match Day Response</h1>
+                </div>
+            </div>
+            <a href="https://discord.gg/weareecs" target="_blank" rel="noopener"
+               class="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <i class="ti ti-brand-discord text-[#5865F2]" aria-hidden="true"></i> Discord
+            </a>
         </div>
 
         {% if error %}
         <!-- Error State -->
-        {{ empty_state('ti-alert-triangle', error, 'This link may have expired or already been used.', action={'label': 'Go to Homepage', 'url': '/', 'icon': 'ti-home'}) }}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            {{ empty_state('ti-alert-triangle', error, 'This link may have expired or already been used.', action={'label': 'Go to Homepage', 'url': '/', 'icon': 'ti-home'}) }}
+        </section>
 
         {% elif already_responded %}
         <!-- Already Responded State -->
-        {% call section_card('Response Already Submitted', icon='ti-circle-check') %}
-        <div class="p-5 sm:p-6 text-center">
-            {% if previous_response %}
-            <div class="w-14 h-14 rounded-full bg-green-100 dark:bg-green-500/10 flex items-center justify-center mx-auto mb-4">
-                <i class="ti ti-check text-2xl text-green-600 dark:text-green-400" aria-hidden="true"></i>
+        {% set _avail = previous_response %}
+        <section class="rounded-xl border {{ 'border-green-300 dark:border-green-500/40' if _avail else 'border-gray-200 dark:border-gray-700' }} bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 {{ 'bg-green-50/60 dark:bg-green-500/10' if _avail else 'bg-gray-50 dark:bg-gray-700/50' }}">
+                <i class="ti ti-circle-check {{ 'text-green-600 dark:text-green-400' if _avail else 'text-gray-500 dark:text-gray-400' }}" aria-hidden="true"></i>
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Response Recorded</h2>
+                <span class="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide font-mono {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if _avail else 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' }}">
+                    <i class="ti {{ 'ti-check' if _avail else 'ti-x' }} text-[11px]" aria-hidden="true"></i>{{ 'AVAILABLE' if _avail else 'UNAVAILABLE' }}
+                </span>
             </div>
-            <p class="text-base text-gray-900 dark:text-white mb-2">You indicated you're <strong>available</strong>!</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">The coach has been notified of your availability.</p>
-
-            <div class="text-left">
-                {% call alert('warning', '', title='Important — Please Read', dismissible=False) %}{% endcall %}
-                <ul class="mt-2 text-sm text-amber-700 dark:text-amber-300 space-y-1 list-disc list-inside text-left">
-                    <li><strong>Do not show up</strong> unless you receive a confirmation message</li>
-                    <li>You'll be notified via email/text if you're selected</li>
-                    <li>Multiple subs may have responded - the coach will choose</li>
-                    <li>If you don't hear back, the spot has been filled</li>
-                </ul>
-            </div>
-            {% else %}
-            <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-4">
-                <i class="ti ti-check text-2xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-            </div>
-            <p class="text-base text-gray-900 dark:text-white mb-2">You indicated you're <strong>unavailable</strong>.</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Thank you for letting us know!</p>
-            {% endif %}
-
-            {% if response and response.request and response.request.match %}
-            <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 text-left">
-                <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white mb-2">Match Details</h3>
-                <div class="space-y-1 text-sm text-gray-500 dark:text-gray-400">
-                    <p><i class="ti ti-users mr-2 text-ecs-green" aria-hidden="true"></i>{{ response.request.match.team.name }} vs {{ response.request.match.opponent_name }}</p>
-                    <p><i class="ti ti-calendar mr-2 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>{{ response.request.match.match_date.strftime('%A, %B %d, %Y') if response.request.match.match_date else 'TBD' }}</p>
-                    <p><i class="ti ti-clock mr-2 text-amber-600 dark:text-amber-400" aria-hidden="true"></i>{{ response.request.match.match_time.strftime('%I:%M %p') if response.request.match.match_time else 'TBD' }}</p>
-                    <p><i class="ti ti-map-pin mr-2 text-red-600 dark:text-red-400" aria-hidden="true"></i>{{ response.request.match.location or 'TBD' }}</p>
+            <div class="p-4 sm:p-6">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 {{ 'bg-green-100 dark:bg-green-500/10' if _avail else 'bg-gray-100 dark:bg-gray-700' }}">
+                        <i class="ti {{ 'ti-thumb-up' if _avail else 'ti-thumb-down' }} text-2xl {{ 'text-green-600 dark:text-green-400' if _avail else 'text-gray-500 dark:text-gray-400' }}" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0">
+                        {% if _avail %}
+                        <p class="text-base font-semibold text-gray-900 dark:text-white">You said you're available.</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">The coach has been notified.</p>
+                        {% else %}
+                        <p class="text-base font-semibold text-gray-900 dark:text-white">You said you can't make it.</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Thanks for letting us know.</p>
+                        {% endif %}
+                    </div>
                 </div>
+
+                {% if _avail %}
+                <div class="mt-5">
+                    {% call alert('warning', '', title='Before you head out', dismissible=False) %}{% endcall %}
+                    <ul class="mt-2 text-sm text-amber-700 dark:text-amber-300 space-y-1.5 list-disc list-inside">
+                        <li><strong>Do not show up</strong> unless you receive a confirmation message</li>
+                        <li>You'll be notified via email/text if you're selected</li>
+                        <li>Multiple subs may have responded &mdash; the coach will choose</li>
+                        <li>If you don't hear back, the spot has been filled</li>
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if response and response.request and response.request.match %}
+                {% set _m = response.request.match %}
+                <div class="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
+                    <p class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Match</p>
+                    <p class="text-base font-bold text-gray-900 dark:text-white">
+                        <span class="text-ecs-green">{{ _m.team.name }}</span>
+                        <span class="font-normal text-gray-400 font-mono px-1">vs</span>{{ _m.opponent_name }}
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 px-3 py-2">
+                            <p class="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Date</p>
+                            <p class="text-sm font-semibold text-gray-900 dark:text-white font-mono">{{ _m.match_date.strftime('%a, %b %d') if _m.match_date else 'TBD' }}</p>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 px-3 py-2">
+                            <p class="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Kickoff</p>
+                            <p class="text-sm font-semibold text-gray-900 dark:text-white font-mono">{{ _m.match_time.strftime('%I:%M %p') if _m.match_time else 'TBD' }}</p>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 px-3 py-2">
+                            <p class="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Location</p>
+                            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ _m.location or 'TBD' }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
-        </div>
-        {% endcall %}
+        </section>
 
         {% elif token_valid %}
-        <!-- Valid Token - Response Form -->
-        {% call section_card(team.name ~ ' needs you!', icon='ti-hand-stop') %}
-        <!-- Player Greeting -->
-        <div class="px-4 sm:px-5 py-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-            <p class="text-sm text-gray-700 dark:text-gray-300">
-                Hi <strong>{{ player.name }}</strong>, you've been invited to sub for an upcoming match!
-            </p>
-        </div>
+        <!-- Valid Token - Decision Console -->
+        <form method="POST" action="{{ url_for('ecs_fc.submit_sub_response', token=token) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <!-- Match Details -->
-        <div class="p-4 sm:p-5">
-            <h3 class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Match Details</h3>
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-4 space-y-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-ecs-green/10 flex items-center justify-center shrink-0">
-                        <i class="ti ti-vs text-ecs-green" aria-hidden="true"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Match</p>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ team.name }} vs {{ match.opponent_name }}</p>
+            <!-- PRIMARY OBJECT: the match the decision is about -->
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <!-- Command header bar -->
+                <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <i class="ti ti-hand-stop text-ecs-green" aria-hidden="true"></i>
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white truncate">Sub Request</h2>
+                    <span class="ml-auto shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide font-mono {{ 'bg-ecs-green/12 text-ecs-green' if match.is_home_match else 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' }}">
+                        <i class="ti {{ 'ti-home' if match.is_home_match else 'ti-plane-departure' }} text-[11px]" aria-hidden="true"></i>{{ 'HOME' if match.is_home_match else 'AWAY' }}
+                    </span>
+                </div>
+
+                <!-- Matchup hero -->
+                <div class="p-4 sm:p-6">
+                    <p class="text-xs font-bold uppercase tracking-wider text-ecs-green">{{ team.name }} needs a sub</p>
+                    <p class="mt-1.5 text-sm text-gray-600 dark:text-gray-400">
+                        Hi <strong class="text-gray-900 dark:text-white">{{ player.name }}</strong>, you've been invited to fill in for this match.
+                    </p>
+
+                    <div class="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-4">
+                        <!-- The team needing the sub -->
+                        <div class="flex flex-col items-center text-center gap-2 min-w-0">
+                            <div class="w-14 h-14 rounded-2xl bg-ecs-green/12 text-ecs-green flex items-center justify-center shrink-0">
+                                <i class="ti ti-shield-filled text-3xl" aria-hidden="true"></i>
+                            </div>
+                            <div class="min-w-0 w-full">
+                                <div class="text-sm sm:text-base font-bold leading-tight text-gray-900 dark:text-white truncate">{{ team.name }}</div>
+                                <div class="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ 'Home' if match.is_home_match else 'Away' }}</div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="font-mono text-lg font-extrabold text-gray-300 dark:text-gray-600">vs</span>
+                        </div>
+                        <!-- The opponent (branding suppressed: shield glyph only) -->
+                        <div class="flex flex-col items-center text-center gap-2 min-w-0">
+                            <div class="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-700 text-gray-400 flex items-center justify-center shrink-0 border border-gray-200 dark:border-gray-600">
+                                <i class="ti ti-shield text-3xl" aria-hidden="true"></i>
+                            </div>
+                            <div class="min-w-0 w-full">
+                                <div class="text-sm sm:text-base font-bold leading-tight text-gray-900 dark:text-white truncate">{{ match.opponent_name }}</div>
+                                <div class="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ 'Away' if match.is_home_match else 'Home' }}</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center shrink-0">
-                        <i class="ti ti-calendar text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+
+                <!-- KPI band: date / time / location -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700 border-y border-gray-200 dark:border-gray-700">
+                    <div class="px-4 sm:px-5 py-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Date</span>
+                            <i class="ti ti-calendar text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+                        </div>
+                        <p class="mt-2 text-base font-extrabold text-gray-900 dark:text-white font-mono leading-tight tabular-nums">{{ match.match_date.strftime('%a, %b %d') if match.match_date else 'TBD' }}</p>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400 font-mono">{{ match.match_date.strftime('%Y') if match.match_date else '' }}</p>
                     </div>
-                    <div class="min-w-0">
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Date</p>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white font-mono">{{ match.match_date.strftime('%A, %B %d, %Y') if match.match_date else 'TBD' }}</p>
+                    <div class="px-4 sm:px-5 py-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Kickoff</span>
+                            <i class="ti ti-clock text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+                        </div>
+                        <p class="mt-2 text-base font-extrabold text-gray-900 dark:text-white font-mono leading-tight tabular-nums">{{ match.match_time.strftime('%I:%M %p') if match.match_time else 'TBD' }}</p>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">{{ match.field_name or ' ' }}</p>
+                    </div>
+                    <div class="px-4 sm:px-5 py-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Location</span>
+                            <i class="ti ti-map-pin text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
+                        </div>
+                        <p class="mt-2 text-sm font-bold text-gray-900 dark:text-white leading-tight">{{ match.location or 'TBD' }}</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-500/10 flex items-center justify-center shrink-0">
-                        <i class="ti ti-clock text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+
+                <!-- Kit colors (real data, shown only when set) -->
+                {% if match.home_shirt_color or match.away_shirt_color %}
+                <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-x-5 gap-y-2">
+                    <span class="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Kit</span>
+                    {% if match.home_shirt_color %}
+                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        <i class="ti ti-shirt-filled text-ecs-green" aria-hidden="true"></i>Home <span class="font-mono text-gray-500 dark:text-gray-400">{{ match.home_shirt_color }}</span>
+                    </span>
+                    {% endif %}
+                    {% if match.away_shirt_color %}
+                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        <i class="ti ti-shirt text-gray-400" aria-hidden="true"></i>Away <span class="font-mono text-gray-500 dark:text-gray-400">{{ match.away_shirt_color }}</span>
+                    </span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Coach note -->
+                {% if coach_note %}
+                <div class="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+                    {% call alert('warning', coach_note, title='Message from the coach', dismissible=False) %}{% endcall %}
+                </div>
+                {% endif %}
+
+                <!-- THE ONE JOB: the decision rail -->
+                <div class="p-4 sm:p-6 space-y-5">
+                    <div>
+                        <label for="notes" class="block text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Add a note (optional)</label>
+                        <textarea id="notes" name="notes" rows="2"
+                                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green placeholder:text-gray-400"
+                                  placeholder="e.g., I can only play second half..."></textarea>
                     </div>
-                    <div class="min-w-0">
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Time</p>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white font-mono">{{ match.match_time.strftime('%I:%M %p') if match.match_time else 'TBD' }}</p>
+
+                    <div>
+                        <p class="text-sm font-bold text-gray-900 dark:text-white mb-3">Can you play this match?</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button type="submit" name="response" value="accept"
+                                    class="inline-flex items-center justify-center gap-2 min-h-[56px] px-4 rounded-lg bg-green-600 hover:bg-green-700 text-white text-base font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                <i class="ti ti-check text-lg" aria-hidden="true"></i> I'm Available
+                            </button>
+                            <button type="submit" name="response" value="decline"
+                                    class="inline-flex items-center justify-center gap-2 min-h-[56px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-base font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                <i class="ti ti-x text-lg" aria-hidden="true"></i> Can't Make It
+                            </button>
+                        </div>
+                        {% if response and response.token_expires_at %}
+                        <p class="mt-3 text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                            <i class="ti ti-clock-hour-4" aria-hidden="true"></i>
+                            This link expires <span class="font-mono">{{ response.token_expires_at.strftime('%b %d, %I:%M %p') }} UTC</span>
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Heads-up rail: what 'available' actually means -->
+                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 px-4 py-3">
+                        <p class="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                            <i class="ti ti-info-circle" aria-hidden="true"></i>If you say yes
+                        </p>
+                        <p class="mt-1.5 text-xs text-gray-600 dark:text-gray-400">
+                            Multiple subs may respond &mdash; the coach picks. <strong class="text-gray-900 dark:text-white">Do not show up unless you get a confirmation message.</strong>
+                        </p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-500/10 flex items-center justify-center shrink-0">
-                        <i class="ti ti-map-pin text-red-600 dark:text-red-400" aria-hidden="true"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Location</p>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ match.location or 'TBD' }}</p>
-                    </div>
-                </div>
-            </div>
-
-            {% if coach_note %}
-            <!-- Coach's Note -->
-            <div class="mt-4">
-                {% call alert('warning', coach_note, title='Message from Coach', dismissible=False) %}{% endcall %}
-            </div>
-            {% endif %}
-
-            <!-- Response Form -->
-            <form method="POST" action="{{ url_for('ecs_fc.submit_sub_response', token=token) }}" class="mt-6">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                {{ textarea('notes', label='Add a note (optional)', rows=2, placeholder='e.g., I can only play second half...', class_='mb-4') }}
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button type="submit" name="response" value="accept"
-                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                        <i class="ti ti-check" aria-hidden="true"></i> I'm Available
-                    </button>
-                    <button type="submit" name="response" value="decline"
-                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                        <i class="ti ti-x" aria-hidden="true"></i> Can't Make It
-                    </button>
-                </div>
-            </form>
-        </div>
-        {% endcall %}
+            </section>
+        </form>
 
         {% else %}
         <!-- Generic Invalid State -->
-        {{ empty_state('ti-link-off', 'Invalid Link', 'This link is not valid. Please check your notification for the correct link.', action={'label': 'Go to Homepage', 'url': '/', 'icon': 'ti-home'}) }}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            {{ empty_state('ti-link-off', 'Invalid Link', 'This link is not valid. Please check your notification for the correct link.', action={'label': 'Go to Homepage', 'url': '/', 'icon': 'ti-home'}) }}
+        </section>
         {% endif %}
 
         <!-- Get the App Banner -->
-        {% call section_card('Get the ECS FC App', icon='ti-device-mobile') %}
-        <div class="p-4 sm:p-5">
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-                Respond to sub requests instantly with push notifications. Currently in beta testing.
-            </p>
-            <div class="mt-3">
-                {% call alert('info', 'Join our Discord server and post in #app-beta-access with your platform (iOS or Android) and your email address.', title='Request Beta Access', dismissible=False) %}{% endcall %}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="p-4 sm:p-5 flex items-start gap-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-ecs-green to-ecs-green/70 flex items-center justify-center shrink-0">
+                    <i class="ti ti-device-mobile text-2xl text-white" aria-hidden="true"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white">Get the ECS FC App</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                        Respond to sub requests instantly with push notifications. Currently in beta.
+                    </p>
+                    <div class="mt-3">
+                        {% call alert('info', 'Join our Discord and post in #app-beta-access with your platform (iOS or Android) and your email address.', title='Request beta access', dismissible=False) %}{% endcall %}
+                    </div>
+                    <a href="https://discord.gg/weareecs" target="_blank" rel="noopener"
+                       class="mt-3 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-[#5865F2] hover:bg-[#4752C4] text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-brand-discord" aria-hidden="true"></i> Join Discord
+                    </a>
+                </div>
             </div>
-            <a href="https://discord.gg/weareecs" target="_blank" rel="noopener"
-               class="mt-3 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-[#5865F2] hover:bg-[#4752C4] text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                <i class="ti ti-brand-discord" aria-hidden="true"></i> Join Discord
-            </a>
-        </div>
-        {% endcall %}
+        </section>
 
         <!-- Footer -->
         <div class="text-center">

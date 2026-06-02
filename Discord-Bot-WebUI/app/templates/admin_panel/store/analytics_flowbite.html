@@ -22,20 +22,34 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card as kit_stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card as kit_stat_card, section_card, empty_state %}
+{# ---- derive metrics from REAL provided data only ---- #}
 {% set total_orders = (analytics.status_stats.values() | sum) if analytics.status_stats else 0 %}
 {% set delivered = analytics.status_stats.get('DELIVERED', 0) %}
 {% set in_progress = analytics.status_stats.get('PENDING', 0) + analytics.status_stats.get('PROCESSING', 0) %}
+{% set cancelled = analytics.status_stats.get('CANCELLED', 0) %}
+{% set delivery_rate = ((delivered / total_orders) * 100) | round(1) if total_orders else 0 %}
+{% set items_sold = (analytics.popular_items | map(attribute='quantity') | sum) if analytics.popular_items else 0 %}
+{% set peak_day = (analytics.daily_orders | sort(attribute='count') | last) if analytics.daily_orders else none %}
+{% set active_days = analytics.daily_orders | length %}
+{% set avg_per_day = (total_orders / active_days) | round(1) if active_days else 0 %}
+{% set status_palette = {
+  'PENDING':    {'dot': 'bg-amber-500',  'word': 'Pending'},
+  'PROCESSING': {'dot': 'bg-blue-500',   'word': 'Processing'},
+  'ORDERED':    {'dot': 'bg-ecs-green',  'word': 'Ordered'},
+  'DELIVERED':  {'dot': 'bg-green-500',  'word': 'Delivered'},
+  'CANCELLED':  {'dot': 'bg-red-500',    'word': 'Cancelled'}
+} %}
 
 {% call page_header('Store Analytics', subtitle='Store Management') %}
-<form method="GET" class="flex flex-wrap items-end gap-2">
+<form method="GET" class="flex flex-wrap items-end gap-2" role="search" aria-label="Filter analytics by date range">
     <div class="flex flex-col gap-1">
-        <label for="m-start-date" class="text-xs font-medium text-gray-500 dark:text-gray-400">From</label>
-        <input type="date" id="m-start-date" name="start_date" value="{{ analytics.date_range.start }}" class="input-ecs h-9 text-sm">
+        <label for="m-start-date" class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">From</label>
+        <input type="date" id="m-start-date" name="start_date" value="{{ analytics.date_range.start }}" class="input-ecs h-9 text-sm font-mono">
     </div>
     <div class="flex flex-col gap-1">
-        <label for="m-end-date" class="text-xs font-medium text-gray-500 dark:text-gray-400">To</label>
-        <input type="date" id="m-end-date" name="end_date" value="{{ analytics.date_range.end }}" class="input-ecs h-9 text-sm">
+        <label for="m-end-date" class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">To</label>
+        <input type="date" id="m-end-date" name="end_date" value="{{ analytics.date_range.end }}" class="input-ecs h-9 text-sm font-mono">
     </div>
     <button type="submit"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
@@ -46,29 +60,101 @@
 </form>
 {% endcall %}
 
+{# ---- active range ribbon ---- #}
+<div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-5 text-xs text-gray-500 dark:text-gray-400">
+    <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700/60">
+        <i class="ti ti-calendar-stats text-ecs-green" aria-hidden="true"></i>
+        <span class="font-mono text-gray-700 dark:text-gray-200">{{ analytics.date_range.start }}</span>
+        <span class="text-gray-400">&rarr;</span>
+        <span class="font-mono text-gray-700 dark:text-gray-200">{{ analytics.date_range.end }}</span>
+    </span>
+    <span aria-hidden="true">&middot;</span>
+    <span><span class="font-mono font-semibold text-gray-700 dark:text-gray-200">{{ total_orders }}</span> orders in window</span>
+    {% if peak_day and peak_day.count %}
+    <span aria-hidden="true">&middot;</span>
+    <span>peak day <span class="font-mono text-gray-700 dark:text-gray-200">{{ peak_day.date }}</span> (<span class="font-mono">{{ peak_day.count }}</span>)</span>
+    {% endif %}
+</div>
+
 <!-- KPI band -->
 <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
-    {{ kit_stat_card('ti-shopping-cart', 'Total Orders', total_orders, sublabel='in period', tone='primary') }}
-    {{ kit_stat_card('ti-truck-delivery', 'Delivered', delivered, sublabel='completed', tone='success') }}
-    {{ kit_stat_card('ti-clock', 'In Progress', in_progress, sublabel='pending + processing', tone='warning') }}
-    {{ kit_stat_card('ti-users', 'Active Customers', analytics.top_customers | length, sublabel='in period', tone='info') }}
+    {% call kit_stat_card('ti-shopping-cart', 'Total Orders', total_orders, sublabel='orders', tone='primary') %}
+        {% if avg_per_day %}<span class="font-mono text-gray-700 dark:text-gray-200">{{ avg_per_day }}</span>/day &middot; <span class="font-mono text-gray-700 dark:text-gray-200">{{ items_sold }}</span> items moved{% else %}No orders in window{% endif %}
+    {% endcall %}
+    {% call kit_stat_card('ti-truck-delivery', 'Delivered', delivered, sublabel='completed', tone='success') %}
+        <span class="font-mono text-gray-700 dark:text-gray-200">{{ delivery_rate }}%</span> delivery rate
+    {% endcall %}
+    {% call kit_stat_card('ti-clock', 'In Progress', in_progress, sublabel='pending + processing', tone='warning') %}
+        {% if cancelled %}<span class="font-mono text-red-600 dark:text-red-400">{{ cancelled }}</span> cancelled{% else %}No cancellations{% endif %}
+    {% endcall %}
+    {% call kit_stat_card('ti-users', 'Active Customers', analytics.top_customers | length, sublabel='buyers', tone='info') %}
+        {% if peak_day and peak_day.count %}peak <span class="font-mono text-gray-700 dark:text-gray-200">{{ peak_day.count }}</span> on <span class="font-mono text-gray-700 dark:text-gray-200">{{ peak_day.date }}</span>{% else %}No daily peak{% endif %}
+    {% endcall %}
 </div>
 
 <!-- Charts Row -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-5 sm:mb-6">
-    <div class="lg:col-span-2">
-        {% call section_card('Orders Over Time', icon='ti-chart-line') %}
-        <div class="p-4 sm:p-5">
-            <canvas id="ordersChart" height="120"></canvas>
-        </div>
-        {% endcall %}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-5 sm:mb-6">
+    <div class="xl:col-span-2">
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden h-full flex flex-col">
+            <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-chart-line text-ecs-green" aria-hidden="true"></i> Orders Over Time
+                </h3>
+                <span class="text-[11px] font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ active_days }} active days</span>
+            </div>
+            {# micro-stat strip — all derived from real daily_orders #}
+            <div class="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700 border-b border-gray-200 dark:border-gray-700">
+                <div class="px-4 py-2.5">
+                    <p class="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Window</p>
+                    <p class="font-mono text-base font-bold text-gray-900 dark:text-white leading-none mt-1">{{ total_orders }}</p>
+                </div>
+                <div class="px-4 py-2.5">
+                    <p class="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Avg / Day</p>
+                    <p class="font-mono text-base font-bold text-gray-900 dark:text-white leading-none mt-1">{{ avg_per_day }}</p>
+                </div>
+                <div class="px-4 py-2.5">
+                    <p class="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Peak Day</p>
+                    <p class="font-mono text-base font-bold text-ecs-green leading-none mt-1">{{ peak_day.count if peak_day else 0 }}</p>
+                </div>
+            </div>
+            <div class="p-4 sm:p-5 flex-1">
+                {% if analytics.daily_orders %}
+                <canvas id="ordersChart" height="120"></canvas>
+                {% else %}
+                {{ empty_state('ti-chart-line', 'No order activity', 'No orders were placed in the selected period.') }}
+                {% endif %}
+            </div>
+        </section>
     </div>
     <div>
-        {% call section_card('Order Status Distribution', icon='ti-chart-pie') %}
-        <div class="p-4 sm:p-5">
-            <canvas id="statusChart" height="200"></canvas>
-        </div>
-        {% endcall %}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden h-full">
+            <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-chart-pie text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> Status Mix
+                </h3>
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ analytics.status_stats | length }}</span>
+            </div>
+            {% if analytics.status_stats %}
+            <div class="p-4 sm:p-5">
+                <canvas id="statusChart" height="180"></canvas>
+            </div>
+            {# real per-status breakdown — tokened dense rows from status_stats, not just the canvas legend #}
+            <ul class="border-t border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700" role="list">
+                {% for status, count in analytics.status_stats | dictsort(by='value', reverse=true) %}
+                {% set meta = status_palette.get(status, {'dot': 'bg-gray-400', 'word': status | capitalize}) %}
+                {% set pct = (count / total_orders * 100) | round(1) if total_orders else 0 %}
+                <li class="flex items-center gap-3 px-4 sm:px-5 py-2.5">
+                    <span class="shrink-0 w-2.5 h-2.5 rounded-full {{ meta.dot }}" aria-hidden="true"></span>
+                    <span class="flex-1 min-w-0 text-sm font-medium text-gray-900 dark:text-white truncate">{{ meta.word }}</span>
+                    <span class="font-mono text-xs text-gray-400 w-12 text-right">{{ pct }}%</span>
+                    <span class="font-mono text-sm font-semibold text-gray-700 dark:text-gray-200 w-10 text-right">{{ count }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            {{ empty_state('ti-chart-pie', 'No status data', 'No orders to break down for this period.') }}
+            {% endif %}
+        </section>
     </div>
 </div>
 
@@ -76,19 +162,25 @@
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-5 sm:mb-6">
     {% call section_card('Popular Items', icon='ti-star') %}
     {% if analytics.popular_items %}
-    <div class="p-4 sm:p-5 space-y-4">
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
         {% for item in analytics.popular_items %}
-        <div>
-            <div class="flex items-center justify-between mb-1.5">
-                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ item.name }}</p>
-                <p class="text-xs font-mono text-gray-500 dark:text-gray-400 shrink-0 ml-2">{{ item.orders }} orders · {{ item.quantity }} items</p>
+        {% set pct = (item.orders / analytics.popular_items[0].orders * 100) | int %}
+        <li class="px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <div class="flex items-center gap-3">
+                <span class="shrink-0 w-7 h-7 rounded-md bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center font-mono text-xs font-bold text-ecs-green" aria-hidden="true">{{ loop.index }}</span>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ item.name }}</p>
+                        <p class="text-xs font-mono text-gray-500 dark:text-gray-400 shrink-0"><span class="text-gray-700 dark:text-gray-200">{{ item.orders }}</span> ord &middot; <span class="text-gray-700 dark:text-gray-200">{{ item.quantity }}</span> qty</p>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700" role="progressbar" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100">
+                        <div class="bg-ecs-green h-1.5 rounded-full" style="width: {{ pct }}%"></div>
+                    </div>
+                </div>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700" role="progressbar" aria-valuenow="{{ (item.orders / analytics.popular_items[0].orders * 100)|int }}" aria-valuemin="0" aria-valuemax="100">
-                <div class="bg-ecs-green h-2 rounded-full" style="width: {{ (item.orders / analytics.popular_items[0].orders * 100)|int }}%"></div>
-            </div>
-        </div>
+        </li>
         {% endfor %}
-    </div>
+    </ul>
     {% else %}
     {{ empty_state('ti-package', 'No items yet', 'No orders in the selected period.') }}
     {% endif %}
@@ -96,19 +188,20 @@
 
     {% call section_card('Category Performance', icon='ti-category') %}
     {% if analytics.category_stats %}
-    <div class="p-4 sm:p-5 space-y-4">
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
         {% for category in analytics.category_stats %}
-        <div>
-            <div class="flex items-center justify-between mb-1.5">
+        {% set pct = (category.orders / analytics.category_stats[0].orders * 100) | int %}
+        <li class="px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <div class="flex items-center justify-between gap-2 mb-1.5">
                 <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ category.category }}</p>
-                <p class="text-xs font-mono text-gray-500 dark:text-gray-400 shrink-0 ml-2">{{ category.orders }} orders · {{ category.quantity }} items</p>
+                <p class="text-xs font-mono text-gray-500 dark:text-gray-400 shrink-0"><span class="text-gray-700 dark:text-gray-200">{{ category.orders }}</span> ord &middot; <span class="text-gray-700 dark:text-gray-200">{{ category.quantity }}</span> qty</p>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700" role="progressbar" aria-valuenow="{{ (category.orders / analytics.category_stats[0].orders * 100)|int }}" aria-valuemin="0" aria-valuemax="100">
-                <div class="bg-blue-500 h-2 rounded-full" style="width: {{ (category.orders / analytics.category_stats[0].orders * 100)|int }}%"></div>
+            <div class="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700" role="progressbar" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100">
+                <div class="bg-blue-500 h-1.5 rounded-full" style="width: {{ pct }}%"></div>
             </div>
-        </div>
+        </li>
         {% endfor %}
-    </div>
+    </ul>
     {% else %}
     {{ empty_state('ti-category', 'No category data', 'No category data available for the selected period.') }}
     {% endif %}
@@ -116,55 +209,77 @@
 </div>
 
 <!-- Top Customers -->
-{% if analytics.top_customers %}
-{% call data_table('Top Customers', icon='ti-trophy', count=(analytics.top_customers | length), filters=false) %}
-<table class="hidden md:table w-full text-sm text-left">
-    <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-        <tr>
-            {{ data_table_th('Rank', sortable=false) }}
-            {{ data_table_th('Customer', sortable=false) }}
-            {{ data_table_th('Orders', sortable=false, align='left') }}
-            {{ data_table_th('Total Items', sortable=false) }}
-            {{ data_table_th('Activity', sortable=false) }}
-        </tr>
-    </thead>
-    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> Top Customers
+            {% if analytics.top_customers %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ analytics.top_customers | length }}</span>{% endif %}
+        </h2>
+    </div>
+    {% if analytics.top_customers %}
+    <div class="md:overflow-x-auto">
+        <table class="hidden md:table w-full text-sm text-left">
+            <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                    <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 w-16">Rank</th>
+                    <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Customer</th>
+                    <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Orders</th>
+                    <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Items</th>
+                    <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 w-40">Share of Top</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for customer in analytics.top_customers %}
+                {% set pct = (customer.orders / analytics.top_customers[0].orders * 100) | int %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1.5">
+                            {% if loop.index == 1 %}<i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+                            {% elif loop.index == 2 %}<i class="ti ti-medal text-gray-400" aria-hidden="true"></i>
+                            {% elif loop.index == 3 %}<i class="ti ti-award text-amber-600 dark:text-amber-500" aria-hidden="true"></i>{% endif %}
+                            <span class="font-mono font-semibold text-gray-900 dark:text-white">#{{ loop.index }}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ customer.username }}</td>
+                    <td class="px-4 py-3 font-mono text-right text-gray-700 dark:text-gray-200">{{ customer.orders }}</td>
+                    <td class="px-4 py-3 font-mono text-right text-gray-600 dark:text-gray-300">{{ customer.items }}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700" role="progressbar" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100">
+                                <div class="h-1.5 rounded-full {{ 'bg-ecs-gold-500' if loop.index == 1 else 'bg-blue-500' if loop.index <= 3 else 'bg-ecs-green' }}" style="width: {{ pct }}%"></div>
+                            </div>
+                            <span class="font-mono text-xs text-gray-400 w-9 text-right">{{ pct }}%</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <ul class="md:hidden divide-y divide-gray-200 dark:divide-gray-700" role="list">
         {% for customer in analytics.top_customers %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <td class="px-3 py-3">
-                <div class="flex items-center gap-1">
-                    {% if loop.index == 1 %}<i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
-                    {% elif loop.index == 2 %}<i class="ti ti-medal text-gray-400" aria-hidden="true"></i>
-                    {% elif loop.index == 3 %}<i class="ti ti-award text-amber-600 dark:text-amber-500" aria-hidden="true"></i>{% endif %}
-                    <span class="font-mono font-semibold text-gray-900 dark:text-white">#{{ loop.index }}</span>
+        {% set pct = (customer.orders / analytics.top_customers[0].orders * 100) | int %}
+        <li class="px-4 py-3.5">
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                    {% if loop.index == 1 %}<i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400 mr-0.5" aria-hidden="true"></i>{% elif loop.index == 2 %}<i class="ti ti-medal text-gray-400 mr-0.5" aria-hidden="true"></i>{% elif loop.index == 3 %}<i class="ti ti-award text-amber-600 dark:text-amber-500 mr-0.5" aria-hidden="true"></i>{% endif %}
+                    <span class="font-mono">#{{ loop.index }}</span> {{ customer.username }}
+                </span>
+                <span class="font-mono text-xs text-gray-400 shrink-0">{{ pct }}%</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="flex-1 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                    <div class="h-1.5 rounded-full {{ 'bg-ecs-gold-500' if loop.index == 1 else 'bg-blue-500' if loop.index <= 3 else 'bg-ecs-green' }}" style="width: {{ pct }}%"></div>
                 </div>
-            </td>
-            <td class="px-3 py-3 font-medium text-gray-900 dark:text-white">{{ customer.username }}</td>
-            <td class="px-3 py-3 font-mono text-gray-600 dark:text-gray-300">{{ customer.orders }}</td>
-            <td class="px-3 py-3 font-mono text-gray-600 dark:text-gray-300">{{ customer.items }}</td>
-            <td class="px-3 py-3">
-                <div class="w-24 bg-gray-200 rounded-full h-2 dark:bg-gray-700" role="progressbar" aria-valuenow="{{ (customer.orders / analytics.top_customers[0].orders * 100)|int }}" aria-valuemin="0" aria-valuemax="100">
-                    <div class="h-2 rounded-full {{ 'bg-ecs-gold-500' if loop.index == 1 else 'bg-blue-500' if loop.index <= 3 else 'bg-ecs-green' }}" style="width: {{ (customer.orders / analytics.top_customers[0].orders * 100)|int }}%"></div>
-                </div>
-            </td>
-        </tr>
+                <span class="font-mono text-xs text-gray-500 dark:text-gray-400 shrink-0">{{ customer.orders }} ord &middot; {{ customer.items }} qty</span>
+            </div>
+        </li>
         {% endfor %}
-    </tbody>
-</table>
-<div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-    {% for customer in analytics.top_customers %}
-    {% call data_table_row_card(('#' ~ loop.index ~ '  ' ~ customer.username)) %}
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span class="font-mono">{{ customer.orders }} orders</span>
-            <span class="font-mono">{{ customer.items }} items</span>
-        </div>
-    {% endcall %}
-    {% endfor %}
-</div>
-{% endcall %}
-{% else %}
-{{ empty_state('ti-users', 'No Customer Data', 'No customer data available for the selected period.') }}
-{% endif %}
+    </ul>
+    {% else %}
+    {{ empty_state('ti-users', 'No Customer Data', 'No customer data available for the selected period.') }}
+    {% endif %}
+</section>
 {% else %}
 <!-- Page Header with Date Filter -->
 <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -403,7 +518,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Orders Over Time Chart
     const ordersData = {{ analytics.daily_orders | tojson }};
-    const ordersCtx = document.getElementById('ordersChart').getContext('2d');
+    const ordersCanvas = document.getElementById('ordersChart');
+    if (ordersCanvas) {
+    const ordersCtx = ordersCanvas.getContext('2d');
     new Chart(ordersCtx, {
         type: 'line',
         data: {
@@ -443,6 +560,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    }
 
     // Order Status Chart
     const statusData = {{ analytics.status_stats | tojson }};
@@ -456,7 +574,9 @@ document.addEventListener('DOMContentLoaded', function() {
         'CANCELLED': '#ef4444'
     };
 
-    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    const statusCanvas = document.getElementById('statusChart');
+    if (statusCanvas) {
+    const statusCtx = statusCanvas.getContext('2d');
     new Chart(statusCtx, {
         type: 'doughnut',
         data: {
@@ -483,6 +603,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cutout: '65%'
         }
     });
+    }
 });
 </script>
 {% endblock %}

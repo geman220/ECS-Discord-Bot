@@ -99,6 +99,28 @@ def league_management_teams():
 
         teams = query.order_by(Team.name).all()
 
+        # Build a per-team season-scoped W-L-D record from the Standings table.
+        # Each team's record is scoped to its own league's season (team.league.season_id),
+        # which works for both the filtered and unfiltered (all-seasons) views.
+        # Teams without a standings row are simply omitted; the template renders a
+        # neutral placeholder for them rather than fabricating a record.
+        from app.models import Standings
+
+        team_standings = {}
+        season_to_team_ids = {}
+        for team in teams:
+            team_season_id = team.league.season_id if team.league else None
+            if team_season_id:
+                season_to_team_ids.setdefault(team_season_id, []).append(team.id)
+
+        for season_key, team_ids in season_to_team_ids.items():
+            rows = Standings.query.filter(
+                Standings.season_id == season_key,
+                Standings.team_id.in_(team_ids)
+            ).all()
+            for row in rows:
+                team_standings[row.team_id] = row
+
         # Calculate stats
         stats = {
             'total_teams': len(teams),
@@ -118,6 +140,7 @@ def league_management_teams():
             teams=teams,
             seasons=seasons,
             stats=stats,
+            team_standings=team_standings,
             current_season_id=season_id,
             current_league_type=league_type,
             page_title='Team Management'
@@ -494,6 +517,70 @@ def league_management_set_current_season(season_id):
         'success': True,
         'message': f'{season.name} is now the current season',
         'restoration': restore_result
+    })
+
+
+@admin_panel_bp.route('/league-management/seasons/api/<int:season_id>/update', methods=['PUT'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def league_management_update_season(season_id):
+    """
+    Update a season's name, start date and end date.
+    """
+    from app.models import Season
+
+    season = Season.query.get_or_404(season_id)
+
+    data = request.get_json() or {}
+    new_name = (data.get('name') or '').strip()
+
+    if not new_name:
+        return jsonify({
+            'success': False,
+            'message': 'Season name is required'
+        }), 400
+
+    def _parse_date(value):
+        if value in (None, ''):
+            return None
+        return datetime.strptime(value, '%Y-%m-%d').date()
+
+    try:
+        start_date = _parse_date(data.get('start_date'))
+        end_date = _parse_date(data.get('end_date'))
+    except (ValueError, TypeError):
+        return jsonify({
+            'success': False,
+            'message': 'Dates must be in YYYY-MM-DD format'
+        }), 400
+
+    if start_date and end_date and end_date < start_date:
+        return jsonify({
+            'success': False,
+            'message': 'End date cannot be before start date'
+        }), 400
+
+    old_value = f'{season.name} ({season.start_date} - {season.end_date})'
+
+    season.name = new_name
+    season.start_date = start_date
+    season.end_date = end_date
+
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='update_season',
+        resource_type='season',
+        resource_id=str(season_id),
+        old_value=old_value,
+        new_value=f'{new_name} ({start_date} - {end_date})',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+
+    return jsonify({
+        'success': True,
+        'message': f'{new_name} updated successfully'
     })
 
 

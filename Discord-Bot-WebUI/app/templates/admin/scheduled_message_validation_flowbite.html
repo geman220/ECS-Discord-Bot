@@ -13,8 +13,72 @@
             <span>/</span>
             <span>System Validation</span>
         </div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">System Validation</h1>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">System Validation</h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">End-to-end validation of the scheduled message pipeline — database, Celery workers, and beat schedule.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="hidden sm:inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-refresh" aria-hidden="true"></i> Last checked
+                    <span class="font-mono text-gray-900 dark:text-white">{{ validation.timestamp.split(' ')[1] }}</span>
+                </span>
+                <button type="button" onclick="location.reload()" class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700" aria-label="Refresh validation status">
+                    <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
+                </button>
+                <a href="{{ url_for('admin.view_scheduled_messages') }}" class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+                    <i class="ti ti-calendar" aria-hidden="true"></i> View All Messages
+                </a>
+            </div>
+        </div>
     </div>
+
+    {# Derive overall system state from real validation data #}
+    {% set has_errors = validation.issues | selectattr('severity', 'equalto', 'error') | list | length > 0 %}
+    {% set has_warnings = validation.issues | selectattr('severity', 'equalto', 'warning') | list | length > 0 %}
+    {% set issue_count = validation.issues | length %}
+    {% if has_errors %}
+        {% set sys_state = 'down' %}
+    {% elif has_warnings or validation.database_status.overdue > 0 %}
+        {% set sys_state = 'degraded' %}
+    {% else %}
+        {% set sys_state = 'healthy' %}
+    {% endif %}
+
+    <!-- Overall status banner -->
+    {% if sys_state == 'healthy' %}
+    <div class="rounded-xl border border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div class="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400">
+            <i class="ti ti-circle-check text-xl" aria-hidden="true"></i>
+        </div>
+        <div class="flex-1">
+            <p class="font-semibold text-gray-900 dark:text-white">System healthy — all checks passed</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Workers are connected and the beat schedule is configured. No issues require attention.</p>
+        </div>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 self-start sm:self-auto">
+            <i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> Healthy
+        </span>
+    </div>
+    {% else %}
+    {% set is_down = sys_state == 'down' %}
+    <div class="rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center gap-3 {{ 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/20' if is_down else 'border-yellow-300 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20' }}">
+        <div class="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg {{ 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' if is_down else 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400' }}">
+            <i class="ti ti-alert-triangle text-xl" aria-hidden="true"></i>
+        </div>
+        <div class="flex-1">
+            <p class="font-semibold text-gray-900 dark:text-white">
+                {{ 'System down' if is_down else 'System degraded' }} — {{ issue_count }} issue{{ 's' if issue_count != 1 }} require{{ '' if issue_count != 1 else 's' }} attention
+            </p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                {{ validation.database_status.ready_to_send }} message{{ 's' if validation.database_status.ready_to_send != 1 }} ready to send{% if validation.database_status.overdue > 0 %} and {{ validation.database_status.overdue }} overdue{% endif %}.
+                {% if validation.celery_status.connected %}Workers are connected{% else %}Workers are disconnected{% endif %}{% if validation.beat_schedule.configured %} and the beat schedule is configured{% else %} and the beat schedule is missing{% endif %}.
+            </p>
+        </div>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold self-start sm:self-auto {{ 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' if is_down else 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400' }}">
+            <i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> {{ 'Down' if is_down else 'Degraded' }}
+        </span>
+    </div>
+    {% endif %}
 
     <!-- Status Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -32,12 +32,18 @@
 {% set active_sessions = sessions|selectattr('is_active')|list %}
 {% set total_updates = namespace(count=0) %}
 {% set total_errors = namespace(count=0) %}
+{% set live_failures = namespace(count=0) %}
+{% set live_errors = namespace(count=0) %}
 {% for session in sessions %}
     {% set total_updates.count = total_updates.count + (session.update_count or 0) %}
     {% set total_errors.count = total_errors.count + (session.error_count or 0) %}
 {% endfor %}
+{% for session in active_sessions %}
+    {% set live_failures.count = live_failures.count + (session.consecutive_failures or 0) %}
+    {% set live_errors.count = live_errors.count + (session.error_count or 0) %}
+{% endfor %}
 
-{% call page_header("Live Reporting Sessions", subtitle="MLS Management") %}
+{% call page_header("Live Reporting Sessions", subtitle="MLS Management · Live Reporting") %}
     <a href="{{ url_for('admin_panel.live_reporting_dashboard') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
               text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700
@@ -53,15 +59,105 @@
     </button>
 {% endcall %}
 
-{# KPI band #}
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-    {{ stat_card("ti-player-play", "Active Sessions", active_sessions|length, sublabel="now reporting", tone='success') }}
+{# ── PRIMARY OBJECT: Live monitor. Leads the page when sessions are live now.
+     Surfaces last_score / last_update / last_status / last_error / consecutive_failures /
+     thread_id — all real model fields the prior table omitted. Active sessions only ever
+     show a Stop control (View is inactive-only), so .stop-session-btn hooks are preserved. #}
+{% if active_sessions %}
+<section class="rounded-xl border border-green-300 dark:border-green-500/40 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 bg-green-50/60 dark:bg-green-500/5">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <span class="relative flex h-2.5 w-2.5" aria-hidden="true">
+                <span class="absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75 animate-ping"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+            </span>
+            Live Now
+            <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">{{ active_sessions|length }}</span>
+        </h2>
+        <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 hidden sm:inline">Reporting in real time</span>
+    </div>
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700">
+        {% for session in active_sessions %}
+        <article class="bg-white dark:bg-gray-800 p-4 sm:p-5">
+            {# header bar: match + competition + session id #}
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ session.competition or 'Unknown competition' }}</p>
+                    <p class="mt-0.5 font-mono text-sm font-semibold text-gray-900 dark:text-white truncate">Match {{ session.match_id or 'N/A' }}</p>
+                </div>
+                <span class="shrink-0 font-mono text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">#{{ session.id }}</span>
+            </div>
+
+            {# big score figure + status pill #}
+            <div class="mt-3 flex items-end justify-between gap-3 flex-wrap">
+                <div>
+                    <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ session.last_score or '—' }}</span>
+                    {% if session.last_status %}
+                    <span class="ml-2 inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400 align-middle">
+                        <i class="ti ti-ball-football text-sm" aria-hidden="true"></i>{{ session.last_status }}
+                    </span>
+                    {% endif %}
+                </div>
+                {% if session.consecutive_failures and session.consecutive_failures > 0 %}
+                <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+                    <i class="ti ti-alert-triangle-filled text-sm" aria-hidden="true"></i><span class="font-mono">{{ session.consecutive_failures }}</span> consec. fails
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                    <i class="ti ti-heartbeat text-sm" aria-hidden="true"></i>Healthy
+                </span>
+                {% endif %}
+            </div>
+
+            {# metric strip with divider footer #}
+            <dl class="mt-4 grid grid-cols-3 gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div>
+                    <dt class="text-xs text-gray-500 dark:text-gray-400">Updates</dt>
+                    <dd class="font-mono text-base font-semibold text-gray-900 dark:text-white">{{ session.update_count or 0 }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs text-gray-500 dark:text-gray-400">Errors</dt>
+                    <dd class="font-mono text-base font-semibold {% if session.error_count and session.error_count > 0 %}text-red-600 dark:text-red-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ session.error_count or 0 }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs text-gray-500 dark:text-gray-400">Last update</dt>
+                    <dd class="font-mono text-xs font-semibold text-gray-900 dark:text-white">{{ session.last_update.strftime('%H:%M') if session.last_update else '—' }}</dd>
+                </div>
+            </dl>
+
+            {% if session.last_error %}
+            <p class="mt-3 flex items-start gap-1.5 text-xs text-red-700 dark:text-red-400">
+                <i class="ti ti-alert-octagon shrink-0 mt-0.5" aria-hidden="true"></i>
+                <span class="min-w-0 truncate" title="{{ session.last_error }}">{{ session.last_error }}</span>
+            </p>
+            {% endif %}
+
+            <div class="mt-4 flex items-center justify-between gap-2">
+                <span class="font-mono text-xs text-gray-400 dark:text-gray-500 truncate" title="Discord thread {{ session.thread_id }}">
+                    <i class="ti ti-hash" aria-hidden="true"></i>{{ session.thread_id or '—' }}
+                </span>
+                <button type="button" class="stop-session-btn inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg transition-colors
+                                              text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-500/15 hover:bg-red-200 dark:hover:bg-red-500/25
+                                              focus:outline-none focus:ring-2 focus:ring-red-500" data-session-id="{{ session.id }}">
+                    <i class="ti ti-player-stop" aria-hidden="true"></i>Stop
+                </button>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{# KPI band — health-oriented metrics for the monitor #}
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    {{ stat_card("ti-player-play", "Active", active_sessions|length, sublabel="reporting now", tone='success') }}
     {{ stat_card("ti-chart-bar", "Total Updates", total_updates.count, sublabel="across sessions", tone='info') }}
     {{ stat_card("ti-alert-triangle", "Total Errors", total_errors.count, sublabel="across sessions", tone=('danger' if total_errors.count else 'neutral')) }}
+    {{ stat_card("ti-heartbeat", "Live Failures", live_failures.count, sublabel="consecutive, live", tone=('warning' if live_failures.count else 'success')) }}
 </div>
 
-{# Status filter tabs — links preserve status/days query params verbatim #}
-<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-4">
+{# Command toolbar: status segmented control + date range. Links preserve status/days verbatim. #}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
     <nav class="flex flex-wrap px-2" role="tablist">
         <a href="{{ url_for('admin_panel.mls_sessions', status='all', days=days) }}"
            class="inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors
@@ -83,24 +179,22 @@
             <i class="ti ti-player-stop" aria-hidden="true"></i>Inactive
         </a>
     </nav>
+    <div class="flex flex-wrap items-center gap-2 px-3 py-3 border-t border-gray-200 dark:border-gray-700">
+        <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Range</span>
+        {% set date_ranges = [('7', '7 days'), ('30', '30 days'), ('90', '90 days'), ('all', 'All time')] %}
+        {% for val, label in date_ranges %}
+        <a href="{{ url_for('admin_panel.mls_sessions', status=status_filter, days=val) }}"
+           class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-8 px-3 text-sm font-semibold rounded-lg transition-colors
+                  {% if days == val %}bg-ecs-green text-white
+                  {% else %}text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600{% endif %}">
+            {{ label }}
+        </a>
+        {% endfor %}
+    </div>
 </div>
 
-{# Date range filter — links preserve status_filter/days verbatim #}
-<div class="flex flex-wrap items-center gap-2 mb-6">
-    <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Show</span>
-    {% set date_ranges = [('7', '7 days'), ('30', '30 days'), ('90', '90 days'), ('all', 'All time')] %}
-    {% for val, label in date_ranges %}
-    <a href="{{ url_for('admin_panel.mls_sessions', status=status_filter, days=val) }}"
-       class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-8 px-3 text-sm font-semibold rounded-lg transition-colors
-              {% if days == val %}bg-ecs-green text-white
-              {% else %}text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600{% endif %}">
-        {{ label }}
-    </a>
-    {% endfor %}
-</div>
-
-{# Sessions table #}
-{% set table_title = 'Active Sessions' if status_filter == 'active' else ('Inactive Sessions' if status_filter == 'inactive' else 'All Sessions') %}
+{# Sessions table — full session log #}
+{% set table_title = 'Active Sessions' if status_filter == 'active' else ('Inactive Sessions' if status_filter == 'inactive' else 'Session Log') %}
 {% if sessions %}
 {% call data_table(table_title, icon="ti-table", count=(sessions|length ~ ' total'), search_placeholder="Filter sessions…", search_id="sessionFilter") %}
     {# md+ : real table — preserves cell order for view-session-btn JS (cells[1..7]) #}

@@ -5,9 +5,14 @@
 {% block main_content %}
 {% if shell == 'console' %}
 {% import "macros/_modern_kit.html" as kit %}
-{% from "macros/flowbite.html" import input, textarea %}
-<div class="max-w-3xl mx-auto p-4 sm:p-6">
-    {% call kit.page_header("Edit Store Item", subtitle="Store administration") %}
+{% set order_count = item.orders | length %}
+{% set colors_list = (item.available_colors | replace("'", '"') | fromjson) if item.available_colors else [] %}
+{% set sizes_list = (item.available_sizes | replace("'", '"') | fromjson) if item.available_sizes else [] %}
+
+<div class="max-w-6xl mx-auto p-4 sm:p-6">
+
+    {# ── Command header: identity + primary actions ────────────────────── #}
+    {% call kit.page_header(item.name, subtitle="Store · Item #" ~ item.id) %}
         <a href="{{ url_for('store.admin') }}"
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                   border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800
@@ -16,51 +21,163 @@
                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to Store Admin
         </a>
+        <button type="submit" form="edit-item-form"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                       bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-device-floppy" aria-hidden="true"></i>Update Item
+        </button>
     {% endcall %}
 
-    {% call kit.section_card("Item Details", icon="ti-edit") %}
-    <div class="p-4 sm:p-6">
-        <form method="POST" action="{{ url_for('store.edit_item', item_id=item.id) }}">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6 items-start">
+
+        {# ── LEFT RAIL: live item identity / metadata feature card ──────── #}
+        <aside class="xl:col-span-1 space-y-5 sm:space-y-6 xl:sticky xl:top-4">
+
+            {# Feature card: preview + status #}
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="aspect-[4/3] bg-gray-50 dark:bg-gray-900/40 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
+                    {% if item.image_url %}
+                    <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-full h-full object-contain" referrerpolicy="no-referrer">
+                    {% else %}
+                    <div class="flex flex-col items-center gap-2 text-gray-400 dark:text-gray-500">
+                        <i class="ti ti-photo-off text-3xl" aria-hidden="true"></i>
+                        <span class="text-xs">No image set</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="p-4 space-y-3">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ item.category or 'Uncategorized' }}</p>
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white truncate">{{ item.name }}</h2>
+                        </div>
+                        {% if item.is_active %}
+                        <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                            <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Active
+                        </span>
+                        {% else %}
+                        <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                            <i class="ti ti-circle-x text-[12px]" aria-hidden="true"></i>Inactive
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if item.description %}
+                    <p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">{{ item.description }}</p>
+                    {% endif %}
+                </div>
+            </section>
+
+            {# KPI band: real metadata #}
+            <div class="grid grid-cols-2 gap-3">
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Price</span>
+                        <i class="ti ti-currency-dollar text-base text-ecs-green" aria-hidden="true"></i>
+                    </div>
+                    <div class="mt-1 font-mono text-2xl font-bold text-gray-900 dark:text-white">
+                        {% if item.price is not none %}${{ '%.2f' | format(item.price) }}{% else %}—{% endif %}
+                    </div>
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">admin tracking only</p>
+                </div>
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Orders</span>
+                        <i class="ti ti-shopping-cart text-base text-ecs-green" aria-hidden="true"></i>
+                    </div>
+                    <div class="mt-1 font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ order_count }}</div>
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">placed all-time</p>
+                </div>
+            </div>
+
+            {# Metadata rows #}
+            {% call kit.section_card("Record", icon="ti-clipboard-text") %}
+            <dl class="divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <dt class="text-gray-500 dark:text-gray-400">Item ID</dt>
+                    <dd class="font-mono font-semibold text-gray-900 dark:text-white">#{{ item.id }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <dt class="text-gray-500 dark:text-gray-400">Created</dt>
+                    <dd class="font-mono text-gray-900 dark:text-white">{{ item.created_at.strftime('%b %d, %Y') if item.created_at else '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <dt class="text-gray-500 dark:text-gray-400">Updated</dt>
+                    <dd class="font-mono text-gray-900 dark:text-white">{{ item.updated_at.strftime('%b %d, %Y') if item.updated_at else '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <dt class="text-gray-500 dark:text-gray-400">Created by</dt>
+                    <dd class="font-semibold text-gray-900 dark:text-white truncate">{{ item.creator.username if item.creator else 'Unknown' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <dt class="text-gray-500 dark:text-gray-400">Variants</dt>
+                    <dd class="font-mono text-gray-900 dark:text-white">{{ colors_list | length }} color{{ '' if colors_list|length == 1 else 's' }} · {{ sizes_list | length }} size{{ '' if sizes_list|length == 1 else 's' }}</dd>
+                </div>
+            </dl>
+            {% endcall %}
+        </aside>
+
+        {# ── MAIN COLUMN: the edit form ──────────────────────────────────── #}
+        <div class="xl:col-span-2">
+        <form id="edit-item-form" method="POST" action="{{ url_for('store.edit_item', item_id=item.id) }}" class="space-y-5 sm:space-y-6">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                {{ input("name", label="Item Name", required=true, value=item.name, placeholder="e.g. Team Jersey, Training Bag", class_="sm:col-span-2") }}
-                <div>
-                    <label for="price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price (Admin Only)</label>
-                    <div class="flex">
-                        <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg dark:bg-gray-600 dark:text-gray-300 dark:border-gray-600">$</span>
-                        <input type="number" id="price" name="price" step="0.01" min="0" value="{{ item.price or '' }}" placeholder="15.00"
-                               class="rounded-none rounded-r-lg w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            {# Basics #}
+            {% call kit.section_card("Item Details", icon="ti-edit") %}
+            <div class="p-4 sm:p-5 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="sm:col-span-2">
+                        <label for="name" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Item Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="name" name="name" required value="{{ item.name }}" placeholder="e.g. Team Jersey, Training Bag"
+                               class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                    </div>
+                    <div>
+                        <label for="price" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Price <span class="text-gray-400 font-normal">(admin)</span></label>
+                        <div class="flex">
+                            <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg dark:bg-gray-600 dark:text-gray-300 dark:border-gray-600">$</span>
+                            <input type="number" id="price" name="price" step="0.01" min="0" value="{{ item.price or '' }}" placeholder="15.00"
+                                   class="rounded-none rounded-r-lg w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 font-mono text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="mb-4">
-                {{ textarea("description", label="Description", value=item.description or '', rows=3, placeholder="Describe the item, materials, features, etc.") }}
-            </div>
+                <div>
+                    <label for="description" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+                    <textarea id="description" name="description" rows="3" placeholder="Describe the item, materials, features, etc."
+                              class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">{{ item.description or '' }}</textarea>
+                </div>
 
-            <div class="mb-4">
-                {{ input("category", label="Category", value=item.category or '', placeholder="e.g. Apparel, Equipment, Accessories") }}
-            </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="category" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+                        <input type="text" id="category" name="category" value="{{ item.category or '' }}" placeholder="e.g. Apparel, Equipment, Accessories"
+                               class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                    </div>
+                    <div>
+                        <label for="image_url" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Image URL</label>
+                        <input type="url" id="image_url" name="image_url" value="{{ item.image_url or '' }}" placeholder="https://example.com/image.jpg"
+                               class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Provide a direct link to an image of the item</p>
+                    </div>
+                </div>
 
-            <div class="mb-4">
-                {{ input("image_url", label="Image URL", type="url", value=item.image_url or '', placeholder="https://example.com/image.jpg", help_text="Provide a direct link to an image of the item") }}
-            </div>
-
-            <div class="mb-6">
-                <div class="flex items-center">
-                    <input id="is_active" name="is_active" type="checkbox" {% if item.is_active %}checked{% endif %} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                    <label for="is_active" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Item is active and available for ordering</label>
+                <div class="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 px-3 py-3">
+                    <input id="is_active" name="is_active" type="checkbox" {% if item.is_active %}checked{% endif %} class="mt-0.5 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="is_active" class="text-sm font-medium text-gray-900 dark:text-gray-200">Item is active and available for ordering
+                        <span class="block text-xs font-normal text-gray-500 dark:text-gray-400 mt-0.5">Inactive items are hidden from the store front.</span>
+                    </label>
                 </div>
             </div>
+            {% endcall %}
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+            {# Variants #}
+            {% call kit.section_card("Variants", icon="ti-versions") %}
+            <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Available Colors</label>
+                    <label class="block mb-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Available Colors</label>
                     <div id="colors-container" class="space-y-2">
-                        {% if item.available_colors %}
-                        {% set colors = item.available_colors | replace("'", '"') | fromjson %}
-                        {% for color in colors %}
+                        {% if colors_list %}
+                        {% for color in colors_list %}
                         <div class="flex">
                             <input type="text" name="colors[]" value="{{ color }}" placeholder="e.g. Red, Blue, Green" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
                             <button type="button" class="remove-color px-3 py-2.5 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-r-lg hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:border-red-700 dark:hover:bg-red-800 {% if loop.first and loop.last %}hidden{% endif %}"><i class="ti ti-x"></i></button>
@@ -79,11 +196,10 @@
                 </div>
 
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Available Sizes</label>
+                    <label class="block mb-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Available Sizes</label>
                     <div id="sizes-container" class="space-y-2">
-                        {% if item.available_sizes %}
-                        {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
-                        {% for size in sizes %}
+                        {% if sizes_list %}
+                        {% for size in sizes_list %}
                         <div class="flex">
                             <input type="text" name="sizes[]" value="{{ size }}" placeholder="e.g. S, M, L, XL" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
                             <button type="button" class="remove-size px-3 py-2.5 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-r-lg hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:border-red-700 dark:hover:bg-red-800 {% if loop.first and loop.last %}hidden{% endif %}"><i class="ti ti-x"></i></button>
@@ -101,7 +217,9 @@
                     </button>
                 </div>
             </div>
+            {% endcall %}
 
+            {# Sticky action footer #}
             <div class="flex justify-end gap-3">
                 <a href="{{ url_for('store.admin') }}"
                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
@@ -119,8 +237,8 @@
                 </button>
             </div>
         </form>
+        </div>
     </div>
-    {% endcall %}
 </div>
 {% else %}
 <div class="p-4 space-y-6">

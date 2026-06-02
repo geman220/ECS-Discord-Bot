@@ -22,120 +22,192 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+{% set total_seasons = history|length if history else 0 %}
+{% set current_count = (history | selectattr('is_current') | list | length) if history else 0 %}
+{% set leagues_tracked = (history | sum(attribute='league_count')) if history else 0 %}
+{% set teams_tracked = (history | sum(attribute='team_count')) if history else 0 %}
+{% set type_count = (history | map(attribute='league_type') | unique | list | length) if history else 0 %}
 <div class="space-y-6">
 
-  {{ page_header('Season History', subtitle='View historical seasons and player team history') }}
+  {% call page_header('Season History', subtitle='League Management / Archive') %}
+    <a href="{{ url_for('admin_panel.league_management_seasons') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg
+              border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800
+              text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-calendar-stats" aria-hidden="true"></i><span class="hidden sm:inline">Manage Seasons</span><span class="sm:hidden">Seasons</span>
+    </a>
+  {% endcall %}
 
-  <!-- KPI band (real data) -->
+  <!-- KPI band (real data from get_season_history) -->
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-history', 'Total Seasons', history|length if history else 0, tone='primary') }}
-    {{ stat_card('ti-player-play', 'Current Seasons', (history | selectattr('is_current') | list | length) if history else 0, tone='success') }}
-    {{ stat_card('ti-trophy', 'Leagues Tracked', (history | sum(attribute='league_count')) if history else 0, tone='info') }}
-    {{ stat_card('ti-shield-half', 'Teams Tracked', (history | sum(attribute='team_count')) if history else 0, tone='neutral') }}
+    {% call stat_card('ti-history', 'Total Seasons', total_seasons, tone='primary') %}
+      <span class="font-mono">{{ type_count }}</span> league {{ 'type' if type_count == 1 else 'types' }}
+    {% endcall %}
+    {% call stat_card('ti-player-play', 'Active Now', current_count, tone='success') %}
+      <span class="font-mono">{{ total_seasons - current_count }}</span> archived
+    {% endcall %}
+    {% call stat_card('ti-trophy', 'Leagues Tracked', leagues_tracked, tone='info') %}
+      across all seasons
+    {% endcall %}
+    {% call stat_card('ti-shield-half', 'Teams Tracked', teams_tracked, tone='neutral') %}
+      across all seasons
+    {% endcall %}
   </div>
 
-  <!-- Season History table -->
-  {% if history %}
-  {% call data_table('Season History', icon='ti-history', count=history|length, search_placeholder='Filter seasons…', search_id='seasonFilter') %}
-    <table class="hidden md:table w-full text-sm" data-table-body>
-      <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-        <tr>
-          {{ data_table_th('Season', key='season', active=True, dir='asc') }}
-          {{ data_table_th('League Type', key='type') }}
-          {{ data_table_th('Leagues', key='leagues', align='right', hide='sm') }}
-          {{ data_table_th('Teams', key='teams', align='right', hide='sm') }}
-          {{ data_table_th('Created', key='created', hide='sm') }}
-          {{ data_table_th('Status', key='status', sortable=False) }}
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for season in history %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-row>
-          <td class="px-3 py-3">
-            <a href="{{ url_for('admin_panel.league_management_season_detail', season_id=season.id) }}"
-               class="font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">{{ season.name }}</a>
-          </td>
-          <td class="px-3 py-3">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ season.league_type }}</span>
-          </td>
-          <td class="px-3 py-3 text-right font-mono text-gray-900 dark:text-white hidden md:table-cell">{{ season.league_count }}</td>
-          <td class="px-3 py-3 text-right font-mono text-gray-900 dark:text-white hidden md:table-cell">{{ season.team_count }}</td>
-          <td class="px-3 py-3 hidden md:table-cell">
-            {% if season.created_at %}
-            <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ season.created_at[:10] }}</span>
-            {% else %}
-            <span class="text-gray-400 dark:text-gray-500">-</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-3">
-            {% if season.is_current %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-              <i class="ti ti-player-play" aria-hidden="true"></i>Current
-            </span>
-            {% else %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-              <i class="ti ti-archive" aria-hidden="true"></i>Archived
-            </span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <!-- Mobile stacked cards -->
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-      {% for season in history %}
-      {% call(slot) data_table_row_card(season.name, url=url_for('admin_panel.league_management_season_detail', season_id=season.id)) %}
-        <p><span class="font-medium text-gray-600 dark:text-gray-300">Type:</span> {{ season.league_type }}</p>
-        <p><span class="font-medium text-gray-600 dark:text-gray-300">Leagues:</span> <span class="font-mono">{{ season.league_count }}</span> ·
-           <span class="font-medium text-gray-600 dark:text-gray-300">Teams:</span> <span class="font-mono">{{ season.team_count }}</span></p>
-        {% if season.created_at %}<p><span class="font-medium text-gray-600 dark:text-gray-300">Created:</span> <span class="font-mono">{{ season.created_at[:10] }}</span></p>{% endif %}
-        <p>
-          {% if season.is_current %}
-          <span class="inline-flex items-center gap-1 text-green-700 dark:text-green-400"><i class="ti ti-player-play" aria-hidden="true"></i>Current</span>
-          {% else %}
-          <span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400"><i class="ti ti-archive" aria-hidden="true"></i>Archived</span>
-          {% endif %}
-        </p>
-      {% endcall %}
-      {% endfor %}
-    </div>
-  {% endcall %}
-  {% else %}
-  {% call section_card('Season History', icon='ti-history') %}
-    {{ empty_state('ti-history', 'No season history', 'No season history is available yet.') }}
-  {% endcall %}
-  {% endif %}
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 items-start">
 
-  <!-- Player History Lookup (JS hooks preserved verbatim) -->
-  {% call section_card('Player Team History Lookup', icon='ti-user-search') %}
-    <div class="p-4 sm:p-5">
-      <div class="max-w-md">
-        <label for="playerSearchInput" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search by Player Name</label>
-        <div class="flex">
-          <input type="text" id="playerSearchInput"
-                 class="input-ecs rounded-r-none h-11 flex-1"
-                 placeholder="Start typing player name..." autocomplete="off">
-          <button id="lookupBtn" type="button" disabled
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-r-lg
-                         bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
-                         disabled:opacity-50 disabled:cursor-not-allowed">
-            <i class="ti ti-search" aria-hidden="true"></i>Lookup
-          </button>
+    <!-- PRIMARY: Season archive ledger (xl: spans 2) -->
+    <div class="xl:col-span-2 space-y-6">
+      {% if history %}
+      <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <i class="ti ti-history text-ecs-green" aria-hidden="true"></i> Season Archive
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total_seasons }}</span>
+          </h2>
         </div>
-        <div id="playerSearchResults" class="mt-2"></div>
-        <input type="hidden" id="selectedPlayerId">
-        <p id="selectedPlayerInfo" class="mt-1 text-sm text-gray-500 dark:text-gray-400"></p>
-      </div>
+        <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <div class="relative flex-1 min-w-[180px]">
+            <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+            <input type="search" id="seasonFilter" placeholder="Filter seasons…"
+                   class="input-ecs h-9 pl-9 pr-3 text-sm" aria-label="Filter seasons">
+          </div>
+        </div>
 
-      <div id="playerHistoryResult" class="mt-6 hidden">
-        <h4 id="playerHistoryTitle" class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white mb-3">Team History</h4>
-        <div id="playerHistoryContent"></div>
-      </div>
+        <!-- md+ table with mono figures -->
+        <div class="md:overflow-x-auto">
+          <table class="hidden md:table w-full text-sm" data-table-body>
+            <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+              <tr>
+                <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Season</th>
+                <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Type</th>
+                <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Leagues</th>
+                <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Teams</th>
+                <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Created</th>
+                <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+              {% for season in history %}
+              <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-row>
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg
+                                 {% if season.is_current %}bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400{% else %}bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400{% endif %}">
+                      <i class="ti {% if season.is_current %}ti-player-play{% else %}ti-archive{% endif %} text-base" aria-hidden="true"></i>
+                    </span>
+                    <a href="{{ url_for('admin_panel.league_management_season_detail', season_id=season.id) }}"
+                       class="font-semibold text-ecs-green hover:underline truncate focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">{{ season.name }}</a>
+                  </div>
+                </td>
+                <td class="px-3 py-3 hidden lg:table-cell">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">{{ season.league_type }}</span>
+                </td>
+                <td class="px-3 py-3 text-right font-mono font-semibold text-gray-900 dark:text-white">{{ season.league_count }}</td>
+                <td class="px-3 py-3 text-right font-mono font-semibold text-gray-900 dark:text-white">{{ season.team_count }}</td>
+                <td class="px-3 py-3 hidden lg:table-cell">
+                  {% if season.created_at %}
+                  <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ season.created_at[:10] }}</span>
+                  {% else %}
+                  <span class="text-gray-400 dark:text-gray-500">—</span>
+                  {% endif %}
+                </td>
+                <td class="px-4 py-3 text-right">
+                  {% if season.is_current %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                    <i class="ti ti-player-play" aria-hidden="true"></i>Current
+                  </span>
+                  {% else %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                    <i class="ti ti-archive" aria-hidden="true"></i>Archived
+                  </span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <!-- Mobile dense rows -->
+          <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {% for season in history %}
+            <a href="{{ url_for('admin_panel.league_management_season_detail', season_id=season.id) }}" data-row
+               class="block px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+                      focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+              <div class="flex items-center justify-between gap-2">
+                <span class="flex items-center gap-2 min-w-0">
+                  <i class="ti {% if season.is_current %}ti-player-play text-green-600 dark:text-green-400{% else %}ti-archive text-gray-400{% endif %} shrink-0" aria-hidden="true"></i>
+                  <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ season.name }}</span>
+                </span>
+                {% if season.is_current %}
+                <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-player-play" aria-hidden="true"></i>Current</span>
+                {% else %}
+                <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-archive" aria-hidden="true"></i>Archived</span>
+                {% endif %}
+              </div>
+              <div class="mt-1.5 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-medium">{{ season.league_type }}</span>
+                <span><i class="ti ti-trophy mr-0.5" aria-hidden="true"></i><span class="font-mono">{{ season.league_count }}</span> leagues</span>
+                <span><i class="ti ti-shield-half mr-0.5" aria-hidden="true"></i><span class="font-mono">{{ season.team_count }}</span> teams</span>
+                {% if season.created_at %}<span class="font-mono">{{ season.created_at[:10] }}</span>{% endif %}
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="px-4 py-2.5 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+          Newest first · <span class="font-mono">{{ leagues_tracked }}</span> leagues · <span class="font-mono">{{ teams_tracked }}</span> teams tracked
+        </div>
+      </section>
+      {% else %}
+      {% call section_card('Season Archive', icon='ti-history') %}
+        {{ empty_state('ti-history', 'No season history', 'No seasons have been archived yet. Create and run a season to populate the archive.', action={'label': 'Manage Seasons', 'url': url_for('admin_panel.league_management_seasons'), 'icon': 'ti-calendar-stats'}) }}
+      {% endcall %}
+      {% endif %}
     </div>
-  {% endcall %}
+
+    <!-- SECONDARY: Player history lookup tool (JS hooks preserved verbatim) -->
+    <aside class="xl:sticky xl:top-4">
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+          <i class="ti ti-user-search text-ecs-green" aria-hidden="true"></i>
+          <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Player Team History</h2>
+        </div>
+        <div class="p-4 sm:p-5">
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Look up which team a player was on across every season.</p>
+          <div class="player-search-container">
+            <label for="playerSearchInput" class="block mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Search by Player Name</label>
+            <div class="flex">
+              <input type="text" id="playerSearchInput"
+                     class="input-ecs rounded-r-none h-11 flex-1"
+                     placeholder="Start typing player name..." autocomplete="off">
+              <button id="lookupBtn" type="button" disabled
+                      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-r-lg
+                             bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                             focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                             disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="ti ti-search" aria-hidden="true"></i><span class="hidden sm:inline">Lookup</span>
+              </button>
+            </div>
+            <div id="playerSearchResults" class="player-search-results mt-1"></div>
+            <input type="hidden" id="selectedPlayerId">
+            <p id="selectedPlayerInfo" class="mt-2 text-xs font-mono text-gray-500 dark:text-gray-400"></p>
+          </div>
+
+          <div id="playerHistoryResult" class="mt-5 hidden">
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+              <i class="ti ti-route text-ecs-green" aria-hidden="true"></i>
+              <h4 id="playerHistoryTitle" class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Team History</h4>
+            </div>
+            <div id="playerHistoryContent" class="text-sm text-gray-700 dark:text-gray-300"></div>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+  </div>
 
 </div>
 {% else %}

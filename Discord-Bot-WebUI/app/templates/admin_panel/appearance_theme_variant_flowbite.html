@@ -21,34 +21,122 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, section_card, alert, empty_state %}
-<div class="space-y-6">
-  {{ page_header('Theme Variant', subtitle='Appearance') }}
-
-  {{ alert('info', 'Choose which theme variant is applied across the application.', title='Theme variant.', dismissible=false) }}
-
-  {% call section_card('Available Variants', icon='ti-palette') %}
-    {% if available_variants %}
-    <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
-      {% for variant in available_variants %}
-      <li class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5">
-        <span class="flex items-center gap-2 min-w-0">
-          <i class="ti {% if variant == current_variant %}ti-circle-check-filled text-ecs-green{% else %}ti-circle text-gray-400 dark:text-gray-500{% endif %} shrink-0" aria-hidden="true"></i>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ variant }}</span>
-        </span>
-        {% if variant == current_variant %}
-        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-          <i class="ti ti-check text-[12px]" aria-hidden="true"></i>Active
-        </span>
-        {% endif %}
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-      {{ empty_state('ti-palette-off', 'No variants available', 'There are no theme variants configured for this application.') }}
-    {% endif %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+{% set variant_count = available_variants | length %}
+{% set default_variant = 'modern' %}
+<form id="theme-variant-form" class="space-y-6"
+      data-save-url="{{ url_for('admin_panel.save_theme_variant') }}"
+      data-current-variant="{{ current_variant }}"
+      data-default-variant="{{ default_variant }}">
+  {% call page_header('Theme Variant', subtitle='Appearance · Design System') %}
+    <button type="button" data-action="reset-theme-variant"
+            class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+            aria-label="Reset to default variant">
+      <i class="ti ti-refresh" aria-hidden="true"></i> Reset to default
+    </button>
+    <button type="submit"
+            class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green/90 disabled:opacity-60 disabled:cursor-not-allowed">
+      <i class="ti ti-device-floppy" aria-hidden="true"></i> Save changes
+    </button>
   {% endcall %}
-</div>
+
+  {# ---- Info callout -------------------------------------------------- #}
+  <div class="flex items-start gap-3 rounded-xl border border-blue-300 dark:border-blue-800 bg-blue-50 dark:bg-gray-800 px-4 py-3 text-sm text-blue-800 dark:text-blue-400" role="note">
+    <i class="ti ti-info-circle text-lg shrink-0" aria-hidden="true"></i>
+    <p><span class="font-semibold">Theme variant.</span> Choosing a variant changes the visual theme for <span class="font-semibold">all users</span> globally. Only one variant can be active at a time.</p>
+  </div>
+
+  {% if available_variants %}
+  {# ---- KPI band ------------------------------------------------------ #}
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    {# Active variant — the page's primary fact #}
+    <div class="rounded-xl border border-ecs-green/40 dark:border-ecs-green/30 bg-white dark:bg-gray-800 p-4 sm:p-5 sm:col-span-1">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Active variant</span>
+        <i class="ti ti-circle-check-filled text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2 flex-wrap">
+        <span class="font-mono text-2xl sm:text-3xl font-bold leading-none text-ecs-green break-all">{{ current_variant }}</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        Applied across the application
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Available</span>
+        <i class="ti ti-palette text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2 flex-wrap">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ '%02d' | format(variant_count) }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">variant{{ '' if variant_count == 1 else 's' }}</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        Registered design themes
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Scope</span>
+        <i class="ti ti-world text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2 flex-wrap">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">ALL</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">users</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        Global appearance setting
+      </div>
+    </div>
+  </div>
+
+  {# ---- Variant feature cards ---------------------------------------- #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-palette text-ecs-green" aria-hidden="true"></i> Available Variants
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ variant_count }}</span>
+      </h2>
+    </div>
+    <fieldset>
+      <legend class="sr-only">Select active theme variant</legend>
+      {% for variant in available_variants %}
+      {% set is_active = (variant == current_variant) %}
+      <label class="flex items-center gap-3 px-4 sm:px-5 py-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40 {% if not loop.last %}border-b border-gray-200 dark:border-gray-700{% endif %}">
+        <input type="radio" name="theme-variant" value="{{ variant }}" {% if is_active %}checked{% endif %}
+               class="peer sr-only" data-on-change="theme-variant-change"
+               aria-label="Activate {{ variant | replace('-', ' ') | title }} variant">
+        <span class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-gray-300 dark:bg-gray-600 peer-checked:bg-ecs-green peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green/50 transition-colors" aria-hidden="true">
+          <span class="inline-block h-4 w-4 rounded-full bg-white translate-x-1 peer-checked:translate-x-6 transition-transform"></span>
+        </span>
+        <span class="flex flex-col min-w-0 flex-1">
+          <span class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ variant | replace('-', ' ') | title }}</span>
+          <span class="text-xs font-mono text-gray-500 dark:text-gray-400 truncate">{{ variant }}</span>
+        </span>
+        <span class="hidden sm:inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400" data-variant-state>
+          <i class="ti {% if is_active %}ti-broadcast text-ecs-green{% else %}ti-circle-off{% endif %}" aria-hidden="true"></i>
+          <span>{% if is_active %}Currently serving the application{% else %}Standby — not in use{% endif %}</span>
+        </span>
+        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs {% if is_active %}font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400{% else %}font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}" data-variant-badge>
+          {% if is_active %}<i class="ti ti-check text-[12px]" aria-hidden="true"></i>Active{% else %}Inactive{% endif %}
+        </span>
+      </label>
+      {% endfor %}
+    </fieldset>
+
+    <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+      <i class="ti ti-alert-triangle text-amber-500 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+      Switching variants takes effect for every user immediately after saving.
+    </div>
+  </section>
+  {% else %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    {{ empty_state('ti-palette-off', 'No variants available', 'There are no theme variants configured for this application.') }}
+  </section>
+  {% endif %}
+</form>
 {% else %}
 <div class="p-4 space-y-6">
     <div class="flex items-center p-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 dark:border-blue-800" role="alert">
@@ -80,3 +168,106 @@
 </div>
 {% endif %}
 {% endblock %}
+
+{% if shell == 'console' %}
+{% block extra_js %}
+<script>
+(function () {
+  const form = document.getElementById('theme-variant-form');
+  if (!form) return;
+
+  const saveUrl = form.dataset.saveUrl;
+  const defaultVariant = form.dataset.defaultVariant;
+  const saveBtn = form.querySelector('button[type="submit"]');
+  const resetBtn = form.querySelector('[data-action="reset-theme-variant"]');
+
+  function csrf() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.content : '';
+  }
+
+  function selectedVariant() {
+    const checked = form.querySelector('input[name="theme-variant"]:checked');
+    return checked ? checked.value : null;
+  }
+
+  // Keep the per-row state text + badge in sync with the active selection,
+  // so the visual "Active/Inactive" matches what will be saved.
+  function syncRows() {
+    form.querySelectorAll('input[name="theme-variant"]').forEach(function (input) {
+      const label = input.closest('label');
+      const isActive = input.checked;
+      const stateWrap = label.querySelector('[data-variant-state]');
+      if (stateWrap) {
+        const icon = stateWrap.querySelector('i');
+        const txt = stateWrap.querySelector('span');
+        if (icon) icon.className = 'ti ' + (isActive ? 'ti-broadcast text-ecs-green' : 'ti-circle-off');
+        if (txt) txt.textContent = isActive ? 'Currently serving the application' : 'Standby — not in use';
+      }
+      const badge = label.querySelector('[data-variant-badge]');
+      if (badge) {
+        if (isActive) {
+          badge.className = 'shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400';
+          badge.innerHTML = '<i class="ti ti-check text-[12px]" aria-hidden="true"></i>Active';
+        } else {
+          badge.className = 'shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
+          badge.textContent = 'Inactive';
+        }
+      }
+    });
+  }
+
+  function save(variant) {
+    if (!variant) return;
+    saveBtn.disabled = true;
+    fetch(saveUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify({ variant: variant })
+    })
+      .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Request failed' }; }); })
+      .then(function (data) {
+        if (window.Swal) {
+          window.Swal.fire({
+            icon: data.success ? 'success' : 'error',
+            title: data.success ? 'Saved' : 'Error',
+            text: data.message || (data.success ? 'Theme variant updated.' : 'Failed to save theme variant.'),
+            timer: data.success ? 2500 : undefined,
+            showConfirmButton: !data.success
+          });
+        }
+        if (data.success) {
+          form.dataset.currentVariant = variant;
+        }
+      })
+      .catch(function () {
+        if (window.Swal) {
+          window.Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to save theme variant.' });
+        }
+      })
+      .finally(function () { saveBtn.disabled = false; });
+  }
+
+  form.addEventListener('change', function (e) {
+    if (e.target && e.target.name === 'theme-variant') syncRows();
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    save(selectedVariant());
+  });
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function () {
+      const input = form.querySelector('input[name="theme-variant"][value="' + defaultVariant + '"]');
+      if (input) {
+        input.checked = true;
+        syncRows();
+      }
+      save(defaultVariant);
+    });
+  }
+})();
+</script>
+{% endblock %}
+{% endif %}

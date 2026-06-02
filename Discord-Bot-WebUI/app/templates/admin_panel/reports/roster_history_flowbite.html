@@ -1,0 +1,48 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'admin_panel/reports/_preview.html' import preview_table, kpi_tiles, filter_chips %}
+
+{% block admin_title %}Roster History Export{% endblock %}
+{% block panel_description %}Each player's team-by-season timeline{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+    <a href="{{ url_for('admin_panel.reports_center') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400">Reports</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Roster History</span></div></li>
+{% endblock %}
+
+{% set label_cls = "block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300" %}
+{% set field_cls = "w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green p-2.5" %}
+{% set btn_primary = "inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green/90 focus:ring-4 focus:ring-ecs-green/30" %}
+{% set btn_secondary = "inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700" %}
+
+{% block panel_content %}
+{{ kpi_tiles(kpis) }}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+    <form method="get" class="space-y-5">
+        <div class="max-w-xs">
+            <label for="season_id" class="{{ label_cls }}">Season</label>
+            <select id="season_id" name="season_id" class="{{ field_cls }}">
+                <option value="">All seasons</option>
+                {% for s in seasons %}
+                <option value="{{ s.id }}" {{ 'selected' if args.season_id == s.id }}>{{ s.name }}{% if s.is_current %} (current){% endif %}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+            One row per player/season/team, sorted by player then season.
+        </p>
+        <div class="flex flex-wrap gap-3">
+            <button type="submit" formaction="{{ url_for('admin_panel.roster_history_report') }}" class="{{ btn_secondary }}">
+                <i class="ti ti-eye"></i> Preview
+            </button>
+            <button type="submit" formaction="{{ url_for('admin_panel.roster_history_export') }}" class="{{ btn_primary }}">
+                <i class="ti ti-file-spreadsheet"></i> Download Excel
+            </button>
+        </div>
+    </form>
+
+    {{ filter_chips(chips) }}
+    {{ preview_table(preview_rows, total_count) }}
+</div>
+{% endblock %}

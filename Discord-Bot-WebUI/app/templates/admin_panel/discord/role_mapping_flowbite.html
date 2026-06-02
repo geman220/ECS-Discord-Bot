@@ -24,39 +24,103 @@
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% import "macros/_modern_kit.html" as kit %}
 
-{{ kit.page_header("Discord Role Mapping", subtitle="Discord") }}
-
-{# --- Bot status + global actions --- #}
+{# Derived metrics from REAL provided data only (no fabricated values). #}
 {% set _online = (bot_status == 'online') %}
-{% call kit.section_card("Discord Bot Status", icon="ti-robot") %}
-<div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-    <div class="flex items-center gap-4 min-w-0">
-        <div class="flex items-center justify-center w-12 h-12 rounded-full shrink-0 {{ 'bg-green-100 dark:bg-green-500/10' if _online else 'bg-red-100 dark:bg-red-500/10' }}">
-            <i class="ti ti-robot text-2xl {{ 'text-green-600 dark:text-green-400' if _online else 'text-red-600 dark:text-red-400' }}" aria-hidden="true"></i>
-        </div>
-        <div class="min-w-0">
-            <div class="flex items-center gap-2 flex-wrap">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' if _online else 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400' }}">
-                    <i class="ti {{ 'ti-circle-check' if _online else 'ti-circle-x' }}" aria-hidden="true"></i>{{ bot_status|capitalize }}
+{% set _mapped = flask_roles|selectattr('discord_role_id')|list if flask_roles else [] %}
+{% set _total_roles = flask_roles|length if flask_roles else 0 %}
+{% set _mapped_count = _mapped|length %}
+{% set _unmapped_count = _total_roles - _mapped_count %}
+{% set _coverage = ((_mapped_count / _total_roles) * 100) | round | int if _total_roles else 0 %}
+{% set _discord_count = discord_roles|length if discord_roles else 0 %}
+
+{# --- Page header with the ONE primary job front and center --- #}
+{% call kit.page_header("Discord Role Mapping", subtitle="Discord · Access Control") %}
+    <button type="button" data-action="refresh-roles"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
+    </button>
+    <button type="button" data-action="create-discord-role"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-plus" aria-hidden="true"></i><span class="hidden sm:inline">Create Role</span>
+    </button>
+    <button type="button" data-action="sync-all-roles"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-cloud-upload" aria-hidden="true"></i>Sync All
+    </button>
+{% endcall %}
+
+{# --- Bot connection bar: feature card with header strip + live status pill --- #}
+<section aria-labelledby="botStatusHead" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-3 px-4 sm:px-5 py-3.5">
+        <span class="flex items-center justify-center w-11 h-11 rounded-xl shrink-0 {{ 'bg-green-100 dark:bg-green-500/10' if _online else 'bg-red-100 dark:bg-red-500/10' }}">
+            <i class="ti ti-brand-discord text-2xl {{ 'text-green-600 dark:text-green-400' if _online else 'text-red-600 dark:text-red-400' }}" aria-hidden="true"></i>
+        </span>
+        <div class="min-w-0 flex-1">
+            <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Bot Connection</p>
+            <h2 id="botStatusHead" class="flex items-center gap-2 flex-wrap font-semibold text-gray-900 dark:text-white">
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full {{ 'bg-green-500' if _online else 'bg-red-500' }}" aria-hidden="true"></span>
+                    {{ bot_status|capitalize }}
                 </span>
                 {% if guild_name %}
-                <span class="text-sm text-gray-500 dark:text-gray-400 truncate">Connected to: {{ guild_name }}</span>
+                <span class="text-sm font-normal text-gray-500 dark:text-gray-400 truncate">· {{ guild_name }}</span>
                 {% endif %}
-            </div>
+            </h2>
+        </div>
+        <div class="text-right shrink-0">
+            <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Discord Roles</p>
+            <p class="font-mono text-xl font-bold {{ 'text-gray-900 dark:text-white' if _online else 'text-gray-400 dark:text-gray-500' }}">{{ _discord_count }}</p>
         </div>
     </div>
-    <div class="flex flex-col sm:flex-row gap-2 shrink-0">
-        <button type="button" data-action="create-discord-role"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-plus" aria-hidden="true"></i>Create Discord Role
-        </button>
-        <button type="button" data-action="refresh-roles"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-refresh" aria-hidden="true"></i>Refresh Roles
-        </button>
+    {% if not _online %}
+    <div class="px-4 sm:px-5 py-2.5 border-t border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-500/5 flex items-center gap-2 text-xs text-red-700 dark:text-red-400">
+        <i class="ti ti-alert-triangle shrink-0" aria-hidden="true"></i>
+        <span>Bot is offline — Discord role list and sync actions are unavailable until it reconnects.</span>
     </div>
-</div>
-{% endcall %}
+    {% endif %}
+</section>
+
+{# --- KPI band: mapping coverage, all derived from real role data --- #}
+<section aria-labelledby="kpiHead" class="mt-5 sm:mt-6">
+    <h2 id="kpiHead" class="sr-only">Role mapping coverage</h2>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Flask Roles</span>
+                <i class="ti ti-shield-half text-ecs-green shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{{ _total_roles }}</div>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">app permission roles</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Mapped</span>
+                <i class="ti ti-link text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{{ _mapped_count }}</div>
+            <div class="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                <div class="h-full bg-green-500 dark:bg-green-400" style="width: {{ _coverage }}%"></div>
+            </div>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">{{ _coverage }}% coverage</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Unmapped</span>
+                <i class="ti ti-unlink {{ 'text-amber-600 dark:text-amber-400' if _unmapped_count else 'text-gray-400 dark:text-gray-500' }} shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold {{ 'text-amber-600 dark:text-amber-400' if _unmapped_count else 'text-gray-900 dark:text-white' }}">{{ _unmapped_count }}</div>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">{{ 'awaiting a Discord role' if _unmapped_count else 'all roles mapped' }}</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Discord Roles</span>
+                <i class="ti ti-brand-discord text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold {{ 'text-gray-900 dark:text-white' if _online else 'text-gray-400 dark:text-gray-500' }}">{{ _discord_count }}</div>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">{{ 'available on server' if _online else 'bot offline' }}</p>
+        </div>
+    </div>
+</section>
 
 {# --- Role mappings table --- #}
 <div class="mt-5 sm:mt-6">
@@ -116,9 +180,12 @@
                         <i class="ti ti-check" aria-hidden="true"></i>Mapped
                     </span>
                     {% if role.last_synced_at %}
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">
-                        Last sync: {{ role.last_synced_at.strftime('%Y-%m-%d %H:%M') if role.last_synced_at else 'Never' }}
+                    <div class="mt-1.5">
+                        <span class="block text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Last sync</span>
+                        <span class="block text-xs text-gray-600 dark:text-gray-300 font-mono">{{ role.last_synced_at.strftime('%Y-%m-%d %H:%M') }}</span>
                     </div>
+                    {% else %}
+                    <div class="mt-1.5 text-xs text-amber-600 dark:text-amber-400 font-mono">Never synced</div>
                     {% endif %}
                     {% else %}
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
@@ -213,29 +280,26 @@
 {% endcall %}
 </div>
 
-{# Sync All action bar (kept outside the table; data-action preserved verbatim) #}
-<div class="mt-3 flex justify-end">
-    <button type="button" data-action="sync-all-roles"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-cloud-upload" aria-hidden="true"></i>Sync All to Discord
-    </button>
-</div>
-
-{# --- Available Discord roles reference --- #}
+{# --- Available Discord roles reference (server inventory) --- #}
 <div class="mt-5 sm:mt-6">
-{% call kit.section_card("Available Discord Roles", icon="ti-brand-discord") %}
+{% call kit.data_table("Available Discord Roles", icon="ti-brand-discord", count=(_discord_count if _discord_count else None), filters=False) %}
 <div class="p-4 sm:p-5">
     {% if discord_roles %}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {% for dr in discord_roles %}
-        <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
-            <span class="w-4 h-4 rounded shrink-0" style="background-color: {{ dr.color }}"></span>
-            <div class="flex-grow min-w-0">
-                <div class="font-medium text-gray-900 dark:text-white truncate">{{ dr.name }}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ dr.member_count }} members</div>
+        <div class="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3">
+            <span class="w-2.5 h-9 rounded-full shrink-0" style="background-color: {{ dr.color }}"></span>
+            <div class="flex-1 min-w-0">
+                <div class="font-semibold text-gray-900 dark:text-white truncate">{{ dr.name }}</div>
+                <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-users text-[12px]" aria-hidden="true"></i>
+                    <span class="font-mono">{{ dr.member_count }}</span> members
+                </div>
             </div>
             {% if dr.managed %}
-            <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400" title="Managed by integration">Bot</span>
+            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400" title="Managed by integration">
+                <i class="ti ti-robot text-[12px]" aria-hidden="true"></i>Bot
+            </span>
             {% endif %}
         </div>
         {% endfor %}

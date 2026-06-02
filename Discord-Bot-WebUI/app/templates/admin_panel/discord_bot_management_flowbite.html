@@ -26,7 +26,18 @@
 
 {% if shell == 'console' %}
 {# ===================== MODERN (console) ===================== #}
-{{ page_header("Discord Bot", subtitle="Bot status, control and configuration") }}
+{% set is_online = stats.bot_status == 'online' %}
+{% call page_header("Discord Bot", subtitle="Operations console") %}
+    <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="check-bot-health">
+        <i class="ti ti-heart-rate-monitor" aria-hidden="true"></i><span class="hidden sm:inline">Health</span>
+    </button>
+    <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="sync-commands">
+        <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Sync</span>
+    </button>
+    <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors" data-action="restart-bot">
+        <i class="ti ti-refresh-alert" aria-hidden="true"></i>Restart Bot
+    </button>
+{% endcall %}
 
 {% if not bot_online %}
 <div class="mb-5 sm:mb-6">
@@ -34,18 +45,24 @@
 </div>
 {% endif %}
 
-{# KPI band #}
+{# KPI band — mono figures w/ divider footers #}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-2">
-    {% call stat_card('ti-brand-discord', 'Bot Status', stats.bot_status.title(), tone=('success' if stats.bot_status == 'online' else 'danger')) %}
+    {% call stat_card('ti-brand-discord', 'Bot Status', stats.bot_status.title(), tone=('success' if is_online else 'danger')) %}
         <span data-stat-id="bot-status" class="hidden">{{ stats.bot_status.title() }}</span>
         <span class="inline-flex items-center gap-1.5">
-            <span data-stat-dot class="w-2 h-2 rounded-full {{ 'bg-green-500' if stats.bot_status == 'online' else 'bg-red-500' }}"></span>
-            {{ 'Responding normally' if stats.bot_status == 'online' else 'Not responding' }}
+            <span data-stat-dot class="w-2 h-2 rounded-full {{ 'bg-green-500' if is_online else 'bg-red-500' }}"></span>
+            {{ 'Responding normally' if is_online else 'Not responding' }}
         </span>
     {% endcall %}
-    {{ stat_card('ti-server', 'Connected Guilds', stats.guilds_connected or 0, tone='info') }}
-    {{ stat_card('ti-command', 'Commands Today', stats.commands_today or 0, tone='neutral') }}
-    {{ stat_card('ti-clock', 'Uptime', stats.uptime or '0s', tone='gold') }}
+    {% call stat_card('ti-server', 'Connected Guilds', stats.guilds_connected or 0, tone='info') %}
+        <span class="font-mono">{{ guild_info.member_count or stats.member_count or 0 }} members served</span>
+    {% endcall %}
+    {% call stat_card('ti-command', 'Commands Today', stats.commands_today or 0, tone='neutral') %}
+        <span class="font-mono">{{ command_usage.commands_this_week or 0 }} this week</span>
+    {% endcall %}
+    {% call stat_card('ti-clock', 'Uptime', stats.uptime or '0s', tone='gold') %}
+        <span class="font-mono">latency {{ stats.latency or 0 }} ms</span>
+    {% endcall %}
 </div>
 {# hidden live-update hooks preserved for polling JS #}
 <div class="hidden">
@@ -57,106 +74,223 @@
     <span data-stat-id="last-updated" class="text-xs text-gray-500 dark:text-gray-400 font-mono">Live updates every 30s</span>
 </div>
 
-{# Control & Commands #}
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-5 sm:mb-6">
-    {% call section_card('Bot Control', icon='ti-settings') %}
-    <div class="p-4 sm:p-5">
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
-            <span data-stat-dot class="w-2 h-2 rounded-full {{ 'bg-green-500' if stats.bot_status == 'online' else 'bg-red-500' }}"></span>
-            Control bot operations and manage its status
-        </p>
-        <div class="space-y-2">
-            <button type="button" class="w-full flex items-center justify-between min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="restart-bot">
-                <span class="flex items-center gap-3 text-gray-900 dark:text-white"><i class="ti ti-refresh text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Restart Bot</span>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="w-full flex items-center justify-between min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="check-bot-health">
-                <span class="flex items-center gap-3 text-gray-900 dark:text-white"><i class="ti ti-heart text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Health Check</span>
-                <span data-stat-dot class="w-2 h-2 rounded-full {{ 'bg-green-500' if stats.bot_status == 'online' else 'bg-red-500' }}"></span>
-            </button>
-            <button type="button" class="w-full flex items-center justify-between min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="view-bot-logs">
-                <span class="flex items-center gap-3 text-gray-900 dark:text-white"><i class="ti ti-file-text text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>View Bot Logs</span>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="w-full flex items-center justify-between min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="sync-commands">
-                <span class="flex items-center gap-3 text-gray-900 dark:text-white"><i class="ti ti-refresh text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Sync Commands</span>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-            </button>
+{# ============ PRIMARY OBJECT: connection feature card + command toolbar ============ #}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-5 sm:mb-6">
+    {# Feature card: the bot connection (header bar + status pill) #}
+    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 {{ 'bg-green-50 dark:bg-green-500/10' if is_online else 'bg-red-50 dark:bg-red-500/10' }}">
+            <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-brand-discord text-ecs-green" aria-hidden="true"></i>Connection
+            </h3>
+            <span class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold {{ 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-300' if is_online else 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300' }}">
+                <span data-stat-dot class="w-2 h-2 rounded-full {{ 'bg-green-500' if is_online else 'bg-red-500' }}"></span>{{ stats.bot_status.title() }}
+            </span>
         </div>
-    </div>
-    {% endcall %}
+        <div class="p-4 sm:p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                {{ 'Bot is connected to the gateway and responding to commands normally.' if is_online else 'Bot is not responding. Check the bot process and network connectivity, then restart.' }}
+            </p>
+            {# diagnostic figures — real stats fields #}
+            <dl class="grid grid-cols-2 sm:grid-cols-4 gap-px bg-gray-200 dark:bg-gray-700 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                <div class="bg-white dark:bg-gray-800 p-3">
+                    <dt class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Latency</dt>
+                    <dd class="mt-1 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ stats.latency or 0 }}<span class="text-xs text-gray-400 font-normal"> ms</span></dd>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-3">
+                    <dt class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Gateway</dt>
+                    <dd class="mt-1 font-mono text-lg font-bold {{ 'text-green-600 dark:text-green-400' if stats.ready else 'text-gray-400 dark:text-gray-500' }}">{{ 'Ready' if stats.ready else 'Down' }}</dd>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-3">
+                    <dt class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Commands</dt>
+                    <dd class="mt-1 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ stats.total_commands or 0 }}</dd>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-3">
+                    <dt class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Avg Resp</dt>
+                    <dd class="mt-1 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ command_usage.avg_response_time or 'N/A' }}</dd>
+                </div>
+            </dl>
+            <div class="mt-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>Last restart</span>
+                <span class="font-mono text-gray-700 dark:text-gray-300">{% if stats.last_restart and stats.last_restart not in ('Unknown', 'Error') %}{% if stats.last_restart is string %}{{ stats.last_restart[:16] | replace('T', ' ') }}{% else %}{{ stats.last_restart }}{% endif %}{% else %}{{ stats.last_restart or 'Unknown' }}{% endif %}</span>
+            </div>
+        </div>
+    </section>
 
-    {% call section_card('Command Management', icon='ti-command') %}
-    <div class="p-4 sm:p-5">
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Manage bot commands and their permissions</p>
-        <div class="space-y-2">
-            <button type="button" class="w-full flex items-center justify-between min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="view-commands">
-                <span class="flex items-center gap-3 text-gray-900 dark:text-white"><i class="ti ti-list text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>View All Commands</span>
-                <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ stats.total_commands or 0 }}</span>
-            </button>
-            <button type="button" class="w-full flex items-center justify-between min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="command-permissions">
-                <span class="flex items-center gap-3 text-gray-900 dark:text-white"><i class="ti ti-shield text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Command Permissions</span>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="w-full flex items-center justify-between min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="command-usage">
-                <span class="flex items-center gap-3 text-gray-900 dark:text-white"><i class="ti ti-chart-bar text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Usage Statistics</span>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="w-full flex items-center justify-between min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="custom-commands">
-                <span class="flex items-center gap-3 text-gray-900 dark:text-white"><i class="ti ti-edit text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Custom Commands</span>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-            </button>
-        </div>
+    {# Command toolbar: bot ops actions #}
+    {% call section_card('Operations', icon='ti-terminal-2') %}
+    <div class="p-3 sm:p-4 space-y-2">
+        <button type="button" class="w-full flex items-center justify-between min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="restart-bot">
+            <span class="flex items-center gap-3 text-gray-900 dark:text-white"><i class="ti ti-refresh-alert text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Restart Bot</span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="w-full flex items-center justify-between min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="check-bot-health">
+            <span class="flex items-center gap-3 text-gray-900 dark:text-white"><i class="ti ti-heart text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Health Check</span>
+            <span data-stat-dot class="w-2 h-2 rounded-full {{ 'bg-green-500' if is_online else 'bg-red-500' }}"></span>
+        </button>
+        <button type="button" class="w-full flex items-center justify-between min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="view-bot-logs">
+            <span class="flex items-center gap-3 text-gray-900 dark:text-white"><i class="ti ti-file-text text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>View Bot Logs</span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="w-full flex items-center justify-between min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="sync-commands">
+            <span class="flex items-center gap-3 text-gray-900 dark:text-white"><i class="ti ti-refresh text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Sync Commands</span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+        </button>
     </div>
     {% endcall %}
 </div>
 
-{# Connected Guilds #}
+{# ============ COMMAND REGISTRY — real table from `commands` ============ #}
 <div class="mb-5 sm:mb-6">
-    {% call section_card('Connected Guilds', icon='ti-server') %}
-    <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4 sm:p-5">
-            <div class="flex items-center justify-between mb-4 gap-2">
-                <h4 class="font-semibold text-gray-900 dark:text-white truncate">{{ guild_info.name or 'ECS FC Discord' }}</h4>
-                <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' if stats.bot_status == 'online' else 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400' }}">
-                    <i class="ti {{ 'ti-circle-check' if stats.bot_status == 'online' else 'ti-alert-circle' }}" aria-hidden="true"></i>{{ stats.bot_status.title() }}
-                </span>
-            </div>
-            <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-4">
-                <div class="text-center">
-                    <div class="font-mono text-xl font-bold text-gray-900 dark:text-white">{{ guild_info.member_count or stats.member_count or 0 }}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Members</div>
-                </div>
-                <div class="text-center">
-                    <div class="font-mono text-xl font-bold text-gray-900 dark:text-white">{{ guild_info.channel_count or 0 }}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Channels</div>
-                </div>
-                <div class="text-center">
-                    <div class="font-mono text-xl font-bold text-gray-900 dark:text-white">{{ guild_info.role_count or 0 }}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Roles</div>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <button type="button" class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="manage-guild" data-guild="{{ guild_info.id or '' }}" data-guild-name="{{ guild_info.name or 'ECS FC Discord' }}">
-                    <i class="ti ti-settings" aria-hidden="true"></i>Manage
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-command text-ecs-green" aria-hidden="true"></i>Command Registry
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ commands | length or stats.total_commands or 0 }}</span>
+            </h3>
+            <div class="flex items-center gap-1.5">
+                <button type="button" class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="view-commands">
+                    <i class="ti ti-list" aria-hidden="true"></i><span class="hidden sm:inline">List</span>
                 </button>
-                <button type="button" class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="guild-stats" data-guild="{{ guild_info.id or '' }}" data-guild-name="{{ guild_info.name or 'ECS FC Discord' }}">
-                    <i class="ti ti-chart-dots" aria-hidden="true"></i>Stats
+                <button type="button" class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="command-permissions">
+                    <i class="ti ti-shield" aria-hidden="true"></i><span class="hidden sm:inline">Permissions</span>
+                </button>
+                <button type="button" class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="command-usage">
+                    <i class="ti ti-chart-bar" aria-hidden="true"></i><span class="hidden sm:inline">Usage</span>
+                </button>
+                <button type="button" class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="custom-commands">
+                    <i class="ti ti-edit" aria-hidden="true"></i><span class="hidden sm:inline">Custom</span>
                 </button>
             </div>
         </div>
+        {% if commands %}
+        {# md+ real table with mono command names #}
+        <table class="hidden md:table w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-200 dark:border-gray-700">
+                    <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Command</th>
+                    <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Description</th>
+                    <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Category</th>
+                    <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Access</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for cmd in commands %}
+                {% set perm = cmd.permission_level or 'Public' %}
+                {% set perm_cls = {
+                    'Public': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+                    'Moderator': 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400',
+                    'Admin': 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+                    'Restricted': 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400'
+                } %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">/{{ cmd.name }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-400">{{ cmd.description or 'No description' }}</td>
+                    <td class="px-4 py-3 hidden lg:table-cell">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ cmd.category or 'General' }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ perm_cls.get(perm, perm_cls['Public']) }}">{{ perm }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {# mobile stacked cards #}
+        <ul role="list" class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {% for cmd in commands %}
+            {% set perm = cmd.permission_level or 'Public' %}
+            {% set perm_cls = {
+                'Public': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+                'Moderator': 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400',
+                'Admin': 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+                'Restricted': 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400'
+            } %}
+            <li class="px-4 py-3">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white truncate">/{{ cmd.name }}</span>
+                    <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ perm_cls.get(perm, perm_cls['Public']) }}">{{ perm }}</span>
+                </div>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ cmd.description or 'No description' }}</p>
+                <p class="mt-0.5 text-[11px] font-mono text-gray-400 dark:text-gray-500">{{ cmd.category or 'General' }}</p>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        {{ empty_state('ti-command', 'No Commands Registered', 'Bot API not connected or no commands available. Sync commands once the bot is online.') }}
+        {% endif %}
+    </section>
+</div>
 
-        <div class="rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-4 sm:p-5 flex flex-col items-center justify-center text-center">
-            <div class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
-                <i class="ti ti-plus text-2xl text-gray-400" aria-hidden="true"></i>
+{# ============ Guild detail + role distribution ============ #}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-5 sm:mb-6">
+    {% call section_card('Primary Guild', icon='ti-server') %}
+    <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between mb-4 gap-2">
+            <h4 class="font-semibold text-gray-900 dark:text-white truncate">{{ guild_info.name or 'ECS FC Discord' }}</h4>
+            <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' if is_online else 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400' }}">
+                <i class="ti {{ 'ti-circle-check' if is_online else 'ti-alert-circle' }}" aria-hidden="true"></i>{{ stats.bot_status.title() }}
+            </span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-4">
+            <div class="text-center">
+                <div class="font-mono text-xl font-bold text-gray-900 dark:text-white">{{ guild_info.member_count or stats.member_count or 0 }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Members</div>
             </div>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Connect to additional Discord servers</p>
-            <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="add-guild">
-                <i class="ti ti-plus" aria-hidden="true"></i>Add Guild
+            <div class="text-center">
+                <div class="font-mono text-xl font-bold text-gray-900 dark:text-white">{{ guild_info.channel_count or 0 }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Channels</div>
+            </div>
+            <div class="text-center">
+                <div class="font-mono text-xl font-bold text-gray-900 dark:text-white">{{ guild_info.role_count or 0 }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Roles</div>
+            </div>
+        </div>
+        {% if guild_info.new_members_today %}
+        <p class="text-xs font-mono text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-1.5">
+            <i class="ti ti-user-plus text-green-600 dark:text-green-400" aria-hidden="true"></i>+{{ guild_info.new_members_today }} new today
+        </p>
+        {% endif %}
+        <div class="flex gap-2">
+            <button type="button" class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="manage-guild" data-guild="{{ guild_info.id or '' }}" data-guild-name="{{ guild_info.name or 'ECS FC Discord' }}">
+                <i class="ti ti-settings" aria-hidden="true"></i>Manage
+            </button>
+            <button type="button" class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="guild-stats" data-guild="{{ guild_info.id or '' }}" data-guild-name="{{ guild_info.name or 'ECS FC Discord' }}">
+                <i class="ti ti-chart-dots" aria-hidden="true"></i>Stats
+            </button>
+            <button type="button" class="shrink-0 inline-flex items-center justify-center min-h-[44px] w-11 rounded-lg text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="add-guild" aria-label="Add guild">
+                <i class="ti ti-plus" aria-hidden="true"></i>
             </button>
         </div>
     </div>
     {% endcall %}
+
+    {# Role distribution — dense rows from real guild_info.role_distribution #}
+    <div class="xl:col-span-2">
+    {% call section_card('Role Distribution', icon='ti-users-group') %}
+    <div class="p-4 sm:p-5">
+        {% if guild_info.role_distribution %}
+        {% set total_members = guild_info.member_count or stats.member_count or 0 %}
+        <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700 -my-2">
+            {% for role_name, role_count in guild_info.role_distribution.items() %}
+            <li class="flex items-center gap-3 py-2.5">
+                <span class="flex-1 min-w-0 text-sm font-medium text-gray-900 dark:text-white truncate">{{ role_name }}</span>
+                {% if total_members %}
+                <div class="hidden sm:block w-32 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                    <div class="h-full bg-ecs-green" style="width: {{ ((role_count / total_members) * 100) | round(0, 'floor') | int }}%"></div>
+                </div>
+                {% endif %}
+                <span class="shrink-0 font-mono text-sm font-bold text-gray-900 dark:text-white w-12 text-right">{{ role_count }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        {{ empty_state('ti-users-group', 'No Role Data', 'Role distribution is available once the bot reports guild statistics.') }}
+        {% endif %}
+    </div>
+    {% endcall %}
+    </div>
 </div>
 
 {# Configuration & Activity #}
@@ -209,17 +343,76 @@
     </div>
     {% endcall %}
 
-    {% call section_card('Recent Activity', icon='ti-activity') %}
-    <div class="p-4 sm:p-5">
+    {# Live Activity Feed — streaming log feed with level filter + pause/refresh controls #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden lg:col-span-2">
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2 flex-wrap">
+            <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-activity text-ecs-green" aria-hidden="true"></i>Live Activity Feed
+                {% if bot_online %}
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400 normal-case tracking-normal" data-feed-status>
+                    <i class="ti ti-circle-filled text-[7px] animate-pulse" aria-hidden="true"></i> Streaming
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 normal-case tracking-normal" data-feed-status>
+                    <i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> Offline
+                </span>
+                {% endif %}
+            </h3>
+            <div class="flex items-center gap-1.5">
+                <label for="logLevel" class="sr-only">Filter log level</label>
+                <select id="logLevel" data-on-change="filter-log-level" aria-label="Filter log level" class="min-h-[36px] px-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <option value="">All levels</option>
+                    <option value="INFO">Info</option>
+                    <option value="WARNING">Warning</option>
+                    <option value="ERROR">Error</option>
+                </select>
+                <button type="button" class="min-h-[36px] w-9 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="pause-feed" aria-label="Pause feed">
+                    <i class="ti ti-player-pause" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="min-h-[36px] w-9 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors" data-action="refresh-feed" aria-label="Refresh feed">
+                    <i class="ti ti-refresh" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
         {% if recent_logs %}
-        <ul role="list" class="space-y-4">
-            {% for log in recent_logs[-5:] %}
-            <li class="flex items-start gap-3">
-                <span class="w-2 h-2 rounded-full mt-2 shrink-0 {{ 'bg-red-500' if log.level == 'ERROR' else 'bg-amber-500' if log.level == 'WARNING' else 'bg-blue-500' if log.level == 'INFO' else 'bg-gray-400' }}"></span>
-                <div class="min-w-0">
-                    <h6 class="font-medium text-gray-900 dark:text-white truncate">{{ log.message | truncate(50) }}</h6>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ log.level }} - {{ log.message }}</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 font-mono">{% if log.timestamp is string %}{{ log.timestamp[:16] | replace('T', ' ') }}{% elif log.timestamp %}{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}{% else %}Unknown time{% endif %}</p>
+        <ul role="list" data-log-feed class="divide-y divide-gray-200 dark:divide-gray-700 max-h-80 overflow-y-auto">
+            {% for log in recent_logs | reverse %}
+            {% set lvl = log.level or 'INFO' %}
+            {% set lvl_cls = {
+                'ERROR': 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400',
+                'WARNING': 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+                'INFO': 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400'
+            } %}
+            <li class="flex items-start gap-3 px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-log-row data-log-level="{{ lvl }}">
+                <span class="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wide w-16 justify-center {{ lvl_cls.get(lvl, lvl_cls['INFO']) }}">{{ lvl }}</span>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm text-gray-900 dark:text-white break-words">{{ log.message }}</p>
+                    <p class="text-[11px] text-gray-400 dark:text-gray-500 font-mono mt-0.5">{% if log.timestamp is string %}{{ log.timestamp[:16] | replace('T', ' ') }}{% elif log.timestamp %}{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}{% else %}Unknown time{% endif %}</p>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        {{ empty_state('ti-activity', 'No Live Activity', 'Bot API not connected or no recent logs available. The feed streams once the bot is online.') }}
+        {% endif %}
+    </section>
+
+    {% call section_card('Recent Activity', icon='ti-activity') %}
+    <div>
+        {% if recent_logs %}
+        <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for log in recent_logs[-6:] | reverse %}
+            {% set lvl = log.level or 'INFO' %}
+            {% set lvl_cls = {
+                'ERROR': 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400',
+                'WARNING': 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+                'INFO': 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400'
+            } %}
+            <li class="flex items-start gap-3 px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <span class="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wide w-16 justify-center {{ lvl_cls.get(lvl, lvl_cls['INFO']) }}">{{ lvl }}</span>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm text-gray-900 dark:text-white break-words">{{ log.message }}</p>
+                    <p class="text-[11px] text-gray-400 dark:text-gray-500 font-mono mt-0.5">{% if log.timestamp is string %}{{ log.timestamp[:16] | replace('T', ' ') }}{% elif log.timestamp %}{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}{% else %}Unknown time{% endif %}</p>
                 </div>
             </li>
             {% endfor %}

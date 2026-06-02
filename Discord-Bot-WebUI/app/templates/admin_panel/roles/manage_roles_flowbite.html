@@ -24,7 +24,7 @@
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
 
-{% call page_header("Roles", subtitle="User Management") %}
+{% call page_header("Access Control", subtitle="User Management · Roles & Permissions") %}
   <a href="{{ url_for('admin_panel.users_comprehensive') }}"
      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
     <i class="ti ti-users" aria-hidden="true"></i>Manage Users
@@ -41,17 +41,119 @@
   </button>
 {% endcall %}
 
+{# Derive honest figures from real stats (no fabrication) #}
+{% set total_roles = stats.total_roles or 0 %}
+{% set avg_per_role = (stats.total_assignments / total_roles) if total_roles else 0 %}
+{# Real max user-count across roles → drives per-row usage bars (no fabrication) #}
+{% set ns = namespace(max_users=0, unassigned=0) %}
+{% for rd in roles_data %}
+  {% if (rd[1] or 0) > ns.max_users %}{% set ns.max_users = rd[1] or 0 %}{% endif %}
+  {% if (rd[1] or 0) == 0 %}{% set ns.unassigned = ns.unassigned + 1 %}{% endif %}
+{% endfor %}
+
 <div class="space-y-5 sm:space-y-6">
-  {# KPI band #}
+  {# KPI band — real stats with mono figures + divider footers #}
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-    {{ stat_card("ti-shield-check", "Total Roles", stats.total_roles, tone='primary') }}
-    {{ stat_card("ti-crown", "Admin Roles", stats.admin_roles, tone='danger') }}
-    {{ stat_card("ti-users", "Player Roles", stats.player_roles, tone='info') }}
-    {{ stat_card("ti-link", "Total Assignments", stats.total_assignments, tone='success') }}
+    {% call stat_card("ti-shield-check", "Total Roles", total_roles, tone='primary') %}
+      <span class="font-mono">{{ stats.admin_roles }}</span> admin ·
+      <span class="font-mono">{{ stats.coach_roles }}</span> coach ·
+      <span class="font-mono">{{ stats.player_roles }}</span> player
+    {% endcall %}
+    {% call stat_card("ti-link", "Assignments", stats.total_assignments, tone='success') %}
+      <span class="font-mono">{{ '%.1f'|format(avg_per_role) }}</span> avg per role ·
+      <span class="font-mono">{{ ns.unassigned }}</span> unassigned
+    {% endcall %}
+    {% call stat_card("ti-crown", "Admin Roles", stats.admin_roles, tone='danger') %}
+      elevated-privilege roles
+    {% endcall %}
+    {% call stat_card("ti-user", "Player Roles", stats.player_roles, tone='info') %}
+      <span class="font-mono">pl-*</span> league tiers
+    {% endcall %}
+  </div>
+
+  {# ===== Two-column: role-type composition (feature card) + recent activity ===== #}
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
+    {# Composition feature card — segmented distribution from real category counts #}
+    <section class="xl:col-span-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-chart-donut text-ecs-green" aria-hidden="true"></i>
+        <h2 class="font-semibold text-gray-900 dark:text-white">Role Composition</h2>
+      </div>
+      <div class="p-4 space-y-4">
+        {% set admin_n = stats.admin_roles or 0 %}
+        {% set coach_n = stats.coach_roles or 0 %}
+        {% set player_n = stats.player_roles or 0 %}
+        {% set cat_total = admin_n + coach_n + player_n %}
+        {# Segmented bar: relative size of the three named categories #}
+        <div class="flex w-full h-2.5 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+          {% if cat_total %}
+          <div class="h-full bg-red-500" style="width: {{ (admin_n / cat_total * 100)|round(1) }}%"></div>
+          <div class="h-full bg-ecs-green" style="width: {{ (coach_n / cat_total * 100)|round(1) }}%"></div>
+          <div class="h-full bg-blue-500" style="width: {{ (player_n / cat_total * 100)|round(1) }}%"></div>
+          {% endif %}
+        </div>
+        <ul class="space-y-2.5 text-sm" role="list">
+          <li class="flex items-center justify-between gap-2">
+            <span class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+              <i class="ti ti-crown text-red-500" aria-hidden="true"></i>Admin
+            </span>
+            <span class="font-mono font-bold text-gray-900 dark:text-white">{{ admin_n }}</span>
+          </li>
+          <li class="flex items-center justify-between gap-2">
+            <span class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+              <i class="ti ti-whistle text-ecs-green" aria-hidden="true"></i>Coach
+            </span>
+            <span class="font-mono font-bold text-gray-900 dark:text-white">{{ coach_n }}</span>
+          </li>
+          <li class="flex items-center justify-between gap-2">
+            <span class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+              <i class="ti ti-user text-blue-500" aria-hidden="true"></i>Player (pl-*)
+            </span>
+            <span class="font-mono font-bold text-gray-900 dark:text-white">{{ player_n }}</span>
+          </li>
+        </ul>
+        <div class="pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <span class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Categorized</span>
+          <span class="font-mono font-bold text-lg text-ecs-green">{{ cat_total }}<span class="text-xs text-gray-400 dark:text-gray-500"> / {{ total_roles }}</span></span>
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500">Categories detected by name pattern; a role may match more than one.</p>
+      </div>
+    </section>
+
+    {# Recent assignments — dense rows in the wider column #}
+    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-history text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>Recent Assignments
+        </h2>
+        <span class="text-xs text-gray-500 dark:text-gray-400">this month</span>
+      </div>
+      {% if recent_assignments %}
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+        {% for assignment in recent_assignments %}
+        <li class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <div class="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-bold text-sm">
+            {{ assignment[0][0].upper() if assignment[0] else '?' }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-gray-900 dark:text-white truncate">{{ assignment[0] }}</p>
+            <span class="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-shield text-[11px]" aria-hidden="true"></i>{{ assignment[1] }}
+            </span>
+          </div>
+          <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ assignment[2].strftime('%b %d') }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      {{ empty_state("ti-history-off", "No recent assignments", "No role assignments have been recorded this month.") }}
+      {% endif %}
+    </section>
   </div>
 
   {# Roles table #}
-  {% call data_table("All Roles", icon="ti-shield-check", count=roles_data|length, search_placeholder="Filter roles…", search_id="rolesFilter", filters=true) %}
+  {% set table_footer %}<span><span class="font-mono font-bold text-gray-700 dark:text-gray-300">{{ roles_data|length }}</span> roles · <span class="font-mono font-bold text-gray-700 dark:text-gray-300">{{ stats.total_assignments }}</span> total assignments · <span class="font-mono font-bold text-gray-700 dark:text-gray-300">{{ ns.unassigned }}</span> with no users</span><span class="hidden sm:inline text-gray-400 dark:text-gray-500">Usage bars are relative to the most-assigned role (<span class="font-mono">{{ ns.max_users }}</span>)</span>{% endset %}
+  {% call data_table("All Roles", icon="ti-shield-check", count=roles_data|length, search_placeholder="Filter roles…", search_id="rolesFilter", filters=true, footer=table_footer) %}
     {% if roles_data %}
     <table class="hidden md:table w-full text-sm">
       <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
@@ -88,8 +190,16 @@
             {% endif %}
           </td>
           <td class="px-3 py-3">
-            <a href="#" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 whitespace-nowrap" data-action="view-role-users" data-role-id="{{ role.id }}">
-              <span class="font-mono font-bold">{{ user_count }}</span> <span class="hidden sm:inline">users</span>
+            <a href="#" class="group inline-flex flex-col gap-1 w-28 align-top" data-action="view-role-users" data-role-id="{{ role.id }}" aria-label="View {{ user_count }} users in {{ role.name }}">
+              <span class="flex items-center justify-between gap-2 text-xs">
+                <span class="font-mono font-bold text-gray-900 dark:text-white group-hover:text-ecs-green">{{ user_count }}</span>
+                <span class="text-gray-400 dark:text-gray-500 group-hover:text-ecs-green">users</span>
+              </span>
+              <span class="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" aria-hidden="true">
+                {% if ns.max_users %}
+                <span class="block h-full rounded-full {{ 'bg-red-500' if 'admin' in role.name.lower() else 'bg-ecs-green' if 'coach' in role.name.lower() else 'bg-blue-500' if 'pl-' in role.name.lower() else 'bg-gray-400 dark:bg-gray-500' }}" style="width: {{ (user_count / ns.max_users * 100)|round(1) }}%"></span>
+                {% endif %}
+              </span>
             </a>
           </td>
           <td class="px-3 py-3 hidden md:table-cell">
@@ -225,33 +335,59 @@
     {% endif %}
   {% endcall %}
 
-  {# Recent assignments #}
-  {% if recent_assignments %}
-  {% call section_card("Recent Role Assignments", icon="ti-history") %}
-  <div class="md:overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
-        <tr>
-          <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">User</th>
-          <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Role</th>
-          <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Date</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for assignment in recent_assignments %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-4 py-2.5 font-medium text-gray-900 dark:text-white">{{ assignment[0] }}</td>
-          <td class="px-4 py-2.5">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ assignment[1] }}</span>
-          </td>
-          <td class="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ assignment[2].strftime('%Y-%m-%d') }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endcall %}
-  {% endif %}
+  {# ===== Permission Matrix — effective access by role (real role.permissions data) ===== #}
+  {# Derive the union of permission names across all roles; no fabrication. #}
+  {% set perm_ns = namespace(names=[]) %}
+  {% for role_data in roles_data %}
+    {% for perm in (role_data[0].permissions or []) %}
+      {% if perm.name not in perm_ns.names %}{% set perm_ns.names = perm_ns.names + [perm.name] %}{% endif %}
+    {% endfor %}
+  {% endfor %}
+  {% set permission_names = perm_ns.names|sort %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-table text-ecs-green" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Permission Matrix</h2>
+      <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">Effective access by role</span>
+    </div>
+    {% if permission_names and roles_data %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
+          <tr class="text-gray-500 dark:text-gray-400 text-xs uppercase">
+            <th class="text-left font-medium px-3 py-2.5 sticky left-0 bg-gray-50 dark:bg-gray-700/40 z-10">Permission</th>
+            {% for role_data in roles_data %}
+            <th class="text-center font-medium px-3 py-2.5 whitespace-nowrap">{{ role_data[0].name }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for perm_name in permission_names %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10 whitespace-nowrap">{{ perm_name }}</td>
+            {% for role_data in roles_data %}
+            {% set role_perm_names = role_data[0].permissions|map(attribute='name')|list %}
+            <td class="px-3 py-2.5 text-center">
+              {% if perm_name in role_perm_names %}
+              <i class="ti ti-check text-ecs-green" aria-label="Allowed"></i>
+              {% else %}
+              <i class="ti ti-minus text-gray-300 dark:text-gray-600" aria-label="Denied"></i>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+      <span class="inline-flex items-center gap-1.5"><i class="ti ti-check text-ecs-green" aria-hidden="true"></i> Allowed</span>
+      <span class="inline-flex items-center gap-1.5"><i class="ti ti-minus text-gray-300 dark:text-gray-600" aria-hidden="true"></i> Denied</span>
+    </div>
+    {% else %}
+    {{ empty_state("ti-table-off", "No permissions defined", "No granular permissions have been assigned to any role yet. Permissions appear here once roles are granted them.") }}
+    {% endif %}
+  </section>
 </div>
 {% else %}
 <!-- Stats Cards -->

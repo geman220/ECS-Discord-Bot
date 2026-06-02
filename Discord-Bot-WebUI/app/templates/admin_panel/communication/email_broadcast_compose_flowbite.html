@@ -43,43 +43,94 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, section_card %}
 <div data-page="email-broadcasts-compose"{% if is_edit %} data-campaign-id="{{ campaign.id }}"{% endif %} class="space-y-6">
 
-  {{ page_header(('Edit' if is_edit else 'Compose') ~ ' Email Broadcast', subtitle='Communication / Email Broadcasts') }}
+  {# ---- Command bar: eyebrow context + primary identity of this object ---- #}
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div class="min-w-0">
+      <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        Communication
+        <i class="ti ti-chevron-right text-[10px] mx-0.5 align-middle" aria-hidden="true"></i>
+        Email Broadcasts
+      </p>
+      <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2.5">
+        <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-ecs-green/10 text-ecs-green shrink-0">
+          <i class="ti ti-send" aria-hidden="true"></i>
+        </span>
+        {{ 'Edit Broadcast' if is_edit else 'Compose Broadcast' }}
+      </h1>
+    </div>
+    {% if is_edit %}
+    {% set st = campaign.status %}
+    {% set st_map = {
+      'draft':          {'i': 'ti-pencil',        'cls': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', 'word': 'Draft'},
+      'sending':        {'i': 'ti-loader',        'cls': 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400', 'word': 'Sending'},
+      'sent':           {'i': 'ti-circle-check',  'cls': 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400', 'word': 'Sent'},
+      'partially_sent': {'i': 'ti-alert-triangle','cls': 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400', 'word': 'Partial'},
+      'failed':         {'i': 'ti-alert-octagon', 'cls': 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400', 'word': 'Failed'},
+      'cancelled':      {'i': 'ti-ban',           'cls': 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400', 'word': 'Cancelled'}
+    } %}
+    {% set sb = st_map.get(st, st_map['draft']) %}
+    <div class="flex items-center gap-2 shrink-0">
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wide {{ sb.cls }}">
+        <i class="ti {{ sb.i }} text-sm" aria-hidden="true"></i> {{ sb.word }}
+      </span>
+      <span class="hidden sm:inline-flex items-center gap-1 text-xs font-mono text-gray-500 dark:text-gray-400">
+        <i class="ti ti-hash text-[11px]" aria-hidden="true"></i>{{ '%03d'|format(campaign.id) }}
+      </span>
+    </div>
+    {% endif %}
+  </div>
 
-  <form id="emailBroadcastForm" class="space-y-6">
+  <form id="emailBroadcastForm" class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
 
-    <!-- Section 1: Campaign Info -->
-    {% call section_card('Campaign Details', icon='ti-mail') %}
-    <div class="p-4 sm:p-5">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label for="campaignName" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Campaign Name <span class="text-red-500">*</span></label>
-          <input type="text" id="campaignName" name="name"
-                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
-                 placeholder="e.g. Spring Season Kickoff"
-                 value="{{ campaign.name if is_edit else '' }}" required>
-        </div>
-        <div>
-          <label for="campaignSubject" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Email Subject <span class="text-red-500">*</span></label>
-          <input type="text" id="campaignSubject" name="subject"
-                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
-                 placeholder="e.g. Important Update from ECS FC"
-                 value="{{ campaign.subject if is_edit else '' }}" required>
+    {# ============================================================== #}
+    {# LEFT: the build column (2/3)                                    #}
+    {# ============================================================== #}
+    <div class="xl:col-span-2 space-y-6">
+
+    <!-- Section 1: Campaign Info — feature card with header bar -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center gap-2.5 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">1</span>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-1.5">
+          <i class="ti ti-mail text-ecs-green" aria-hidden="true"></i> Campaign Details
+        </h2>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="campaignName" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Campaign Name <span class="text-red-500">*</span></label>
+            <input type="text" id="campaignName" name="name"
+                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                   placeholder="e.g. Spring Season Kickoff"
+                   value="{{ campaign.name if is_edit else '' }}" required>
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Internal label, not shown to recipients.</p>
+          </div>
+          <div>
+            <label for="campaignSubject" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Email Subject <span class="text-red-500">*</span></label>
+            <input type="text" id="campaignSubject" name="subject"
+                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                   placeholder="e.g. Important Update from ECS FC"
+                   value="{{ campaign.subject if is_edit else '' }}" required>
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">The line recipients see in their inbox.</p>
+          </div>
         </div>
       </div>
-    </div>
-    {% endcall %}
+    </section>
 
-    <!-- Section 2: Recipient Filters -->
-    {% call section_card('Recipients', icon='ti-users') %}
-    <div class="p-4 sm:p-5">
-      <div class="flex items-center justify-end mb-4">
-        <span id="recipientCount" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-mono font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-          {% if is_edit %}{{ campaign.total_recipients }} recipient{{ 's' if campaign.total_recipients != 1 else '' }}{% else %}0 recipients{% endif %}
+    <!-- Section 2: Recipient Filters — feature card -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center gap-2.5 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">2</span>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-1.5">
+          <i class="ti ti-users text-ecs-green" aria-hidden="true"></i> Audience
+        </h2>
+        <span class="ml-auto hidden sm:inline-flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+          <i class="ti ti-info-circle text-[11px]" aria-hidden="true"></i> count updates in launch panel
         </span>
       </div>
+      <div class="p-4 sm:p-5">
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div>
@@ -171,72 +222,91 @@
         </div>
       </div>
 
-      <div class="flex gap-2">
+      <div class="mt-4 flex items-center gap-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40 px-4 py-3">
+        <i class="ti ti-list-search text-lg text-gray-400 dark:text-gray-500 shrink-0" aria-hidden="true"></i>
+        <p class="flex-1 text-xs text-gray-500 dark:text-gray-400">Resolve who matches this audience before sending. The live count appears in the launch panel.</p>
         <button type="button" data-action="email-preview-recipients"
-                class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-eye" aria-hidden="true"></i> Preview Recipients
         </button>
       </div>
-    </div>
-    {% endcall %}
+      </div>
+    </section>
 
-    <!-- Section: Email Template -->
-    {% call section_card('Email Template', icon='ti-template') %}
-    <div class="p-4 sm:p-5">
-      <div class="flex items-center justify-end mb-4">
+    <!-- Section 3: Email Template — feature card -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center gap-2.5 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">3</span>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-1.5">
+          <i class="ti ti-template text-ecs-green" aria-hidden="true"></i> Wrapper Template
+        </h2>
         <a href="{{ url_for('admin_panel.email_templates_list') }}"
-           class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green transition-colors">
-          Manage templates <i class="ti ti-external-link" aria-hidden="true"></i>
+           class="ml-auto inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green transition-colors">
+          Manage <i class="ti ti-external-link" aria-hidden="true"></i>
         </a>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-        <div>
-          <label for="templateSelect" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Wrapper Template</label>
-          <select id="templateSelect" name="template_id"
-                  data-selected-template="{{ campaign.template_id if is_edit and campaign.template_id else '' }}"
-                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-            <option value="">No wrapper (raw HTML)</option>
-            <!-- Populated by JS from /api/email-templates/list -->
-          </select>
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Templates wrap your content in a styled HTML layout with header and footer.
-          </p>
-        </div>
-        <div>
-          <button type="button" data-action="email-preview-template"
-                  class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-eye" aria-hidden="true"></i> Preview with Template
-          </button>
+      <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+          <div>
+            <label for="templateSelect" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Layout</label>
+            <select id="templateSelect" name="template_id"
+                    data-selected-template="{{ campaign.template_id if is_edit and campaign.template_id else '' }}"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+              <option value="">No wrapper (raw HTML)</option>
+              <!-- Populated by JS from /api/email-templates/list -->
+            </select>
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">
+              Wraps your content in a styled header/footer layout.
+            </p>
+          </div>
+          <div>
+            <button type="button" data-action="email-preview-template"
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-eye" aria-hidden="true"></i> Preview with Template
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-    {% endcall %}
+    </section>
 
-    <!-- Section 3: Send Options -->
-    {% call section_card('Send Options', icon='ti-settings') %}
-    <div class="p-4 sm:p-5">
+    <!-- Section 4: Send Options — feature card -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center gap-2.5 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">4</span>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-1.5">
+          <i class="ti ti-settings text-ecs-green" aria-hidden="true"></i> Delivery Options
+        </h2>
+      </div>
+      <div class="p-4 sm:p-5">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <div>
-          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Send Mode</label>
+          <label class="block mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Send Mode</label>
           <div class="space-y-2">
-            <label class="flex items-center gap-2 cursor-pointer">
+            <label class="flex items-start gap-2 cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
               <input type="radio" name="send_mode" value="bcc_batch"
                      {{ 'checked' if not is_edit or campaign.send_mode == 'bcc_batch' }}
                      data-on-change="email-send-mode-toggle"
-                     class="w-4 h-4 text-ecs-green focus:ring-ecs-green">
-              <span class="text-sm text-gray-700 dark:text-gray-300">BCC Batch (faster, non-personalized)</span>
+                     class="mt-0.5 w-4 h-4 text-ecs-green focus:ring-ecs-green">
+              <span class="min-w-0">
+                <span class="block text-sm font-medium text-gray-900 dark:text-white">BCC Batch</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400">Faster, non-personalized</span>
+              </span>
             </label>
-            <label class="flex items-center gap-2 cursor-pointer">
+            <label class="flex items-start gap-2 cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
               <input type="radio" name="send_mode" value="individual"
                      {{ 'checked' if is_edit and campaign.send_mode == 'individual' }}
                      data-on-change="email-send-mode-toggle"
-                     class="w-4 h-4 text-ecs-green focus:ring-ecs-green">
-              <span class="text-sm text-gray-700 dark:text-gray-300">Individual (personalized with tokens)</span>
+                     class="mt-0.5 w-4 h-4 text-ecs-green focus:ring-ecs-green">
+              <span class="min-w-0">
+                <span class="block text-sm font-medium text-gray-900 dark:text-white">Individual</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400">Personalized with tokens</span>
+              </span>
             </label>
           </div>
         </div>
 
         <div>
+          <label class="block mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Preferences</label>
           <label class="flex items-center gap-2 cursor-pointer mb-2">
             <input type="checkbox" id="forceSend" name="force_send" value="1"
                    {{ 'checked' if is_edit and campaign.force_send }}
@@ -250,11 +320,11 @@
         </div>
 
         <div>
-          <label for="bccBatchSize" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">BCC Batch Size</label>
+          <label for="bccBatchSize" class="block mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">BCC Batch Size</label>
           <input type="number" id="bccBatchSize" name="bcc_batch_size"
                  value="{{ campaign.bcc_batch_size if is_edit else 100 }}" min="1" max="100"
                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Max 100 per batch (Gmail limit)</p>
+          <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Max 100 per batch (Gmail limit)</p>
         </div>
       </div>
 
@@ -265,47 +335,100 @@
           <span id="recipientWarningText">Warning: Large recipient count. Gmail allows ~500 sends/day.</span>
         </div>
       </div>
-    </div>
-    {% endcall %}
+      </div>
+    </section>
 
-    <!-- Section 4: Email Body -->
-    {% call section_card('Email Content', icon='ti-file-text') %}
-    <div class="p-4 sm:p-5">
-      <!-- Token help (shown only for individual mode) -->
-      <div id="tokenHelp" class="{{ '' if is_edit and campaign.send_mode == 'individual' else 'hidden' }} mb-4 p-3 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10">
-        <p class="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">Available Personalization Tokens:</p>
-        <div class="flex flex-wrap gap-2 text-xs">
-          <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{name}</code>
-          <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{first_name}</code>
-          <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{team}</code>
-          <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{league}</code>
-          <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{season}</code>
+    <!-- Section 5: Email Body — feature card -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center gap-2.5 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">5</span>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-1.5">
+          <i class="ti ti-file-text text-ecs-green" aria-hidden="true"></i> Message Content
+        </h2>
+      </div>
+      <div class="p-4 sm:p-5">
+        <!-- Token help (shown only for individual mode) -->
+        <div id="tokenHelp" class="{{ '' if is_edit and campaign.send_mode == 'individual' else 'hidden' }} mb-4 p-3 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10">
+          <p class="text-xs font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-300 mb-2">Personalization Tokens</p>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{name}</code>
+            <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{first_name}</code>
+            <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{team}</code>
+            <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{league}</code>
+            <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{season}</code>
+          </div>
+        </div>
+
+        <textarea id="emailBody" name="body_html">{{ campaign.body_html if is_edit else '' }}</textarea>
+      </div>
+    </section>
+
+    </div>{# /left build column #}
+
+    {# ============================================================== #}
+    {# RIGHT: sticky launch panel (1/3) — the command center          #}
+    {# ============================================================== #}
+    <aside class="xl:sticky xl:top-20 space-y-4">
+
+      <!-- Audience KPI tile -->
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Resolved Audience</span>
+          <i class="ti ti-users text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 flex items-end gap-2">
+          <span id="recipientCount" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{% if is_edit %}{{ campaign.total_recipients }} recipient{{ 's' if campaign.total_recipients != 1 else '' }}{% else %}0 recipients{% endif %}</span>
+        </div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <button type="button" data-action="email-preview-recipients"
+                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-refresh" aria-hidden="true"></i> Recalculate
+          </button>
         </div>
       </div>
 
-      <textarea id="emailBody" name="body_html">{{ campaign.body_html if is_edit else '' }}</textarea>
-    </div>
-    {% endcall %}
+      <!-- Launch panel -->
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+          <i class="ti ti-rocket text-ecs-green" aria-hidden="true"></i>
+          <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">{{ 'Send Changes' if is_edit else 'Launch' }}</h2>
+        </div>
+        <div class="p-4 sm:p-5 space-y-3">
+          <button type="button" data-action="email-send-campaign"{% if is_edit %} data-campaign-id="{{ campaign.id }}"{% endif %}
+                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-send" aria-hidden="true"></i> {{ 'Save & Send Now' if is_edit else 'Create &amp; Send Now' }}
+          </button>
+          <button type="button" data-action="email-save-draft"
+                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-device-floppy" aria-hidden="true"></i> {{ 'Update Draft' if is_edit else 'Save as Draft' }}
+          </button>
+          <button type="button" data-action="email-send-test"
+                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-test-pipe" aria-hidden="true"></i> Send Test to Me
+          </button>
+        </div>
+        <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <a href="{{ url_for('admin_panel.email_broadcast_detail', campaign_id=campaign.id) if is_edit else url_for('admin_panel.email_broadcasts_list') }}"
+             class="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i> Cancel
+          </a>
+          {% if is_edit %}
+          <span class="text-xs font-mono text-gray-400 dark:text-gray-500">edited {{ campaign.updated_at.strftime('%b %d, %H:%M') if campaign.updated_at }}</span>
+          {% endif %}
+        </div>
+      </div>
 
-    <!-- Section 5: Actions -->
-    <div class="flex flex-wrap items-center gap-3">
-      <button type="button" data-action="email-send-test"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        <i class="ti ti-test-pipe" aria-hidden="true"></i> Send Test to Me
-      </button>
-      <button type="button" data-action="email-save-draft"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-device-floppy" aria-hidden="true"></i> {{ 'Update Draft' if is_edit else 'Save as Draft' }}
-      </button>
-      <button type="button" data-action="email-send-campaign"{% if is_edit %} data-campaign-id="{{ campaign.id }}"{% endif %}
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-send" aria-hidden="true"></i> {{ 'Save & Send Now' if is_edit else 'Create &amp; Send Now' }}
-      </button>
-      <a href="{{ url_for('admin_panel.email_broadcast_detail', campaign_id=campaign.id) if is_edit else url_for('admin_panel.email_broadcasts_list') }}"
-         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        Cancel
-      </a>
-    </div>
+      <!-- Send checklist (icon + text, never color-only) -->
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4 sm:p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Before You Send</p>
+        <ul class="space-y-2.5 text-xs text-gray-600 dark:text-gray-300" role="list">
+          <li class="flex items-start gap-2"><i class="ti ti-eye text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i> Preview recipients to confirm the audience size.</li>
+          <li class="flex items-start gap-2"><i class="ti ti-test-pipe text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i> Send a test to yourself to verify rendering.</li>
+          <li class="flex items-start gap-2"><i class="ti ti-alert-triangle text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i> Gmail allows roughly 500 sends per day.</li>
+        </ul>
+      </div>
+
+    </aside>
 
   </form>
 

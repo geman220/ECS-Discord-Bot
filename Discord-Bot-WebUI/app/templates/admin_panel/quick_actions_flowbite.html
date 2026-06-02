@@ -16,145 +16,305 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, section_card %}
-{% from 'macros/flowbite.html' import select as fb_select, textarea as fb_textarea %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
 
-{% call page_header("Quick Actions", subtitle="System Administration") %}{% endcall %}
+{% call page_header("Quick Actions", subtitle="Operations Console") %}
+  <button type="button" data-action="generate-system-report"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-report" aria-hidden="true"></i><span class="hidden sm:inline">System Report</span>
+  </button>
+  <a href="{{ url_for('admin_panel.quick_actions') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
+  </a>
+{% endcall %}
+
+{# Real, route-provided backlog signals. The whole page is framed around clearing these. #}
+{% set _backlog = stats.pending_users + stats.failed_messages + stats.matches_without_times + stats.users_without_roles %}
+{# Count of action rows that currently have something to do (count > 0), across all categories. #}
+{% set _open_ops = [] %}
+{% for group in actions %}{% for a in group.actions %}{% if a.count and a.count > 0 %}{% set _ = _open_ops.append(a) %}{% endif %}{% endfor %}{% endfor %}
 
 <div class="space-y-5 sm:space-y-6">
 
-  {# System Operations #}
-  {% call section_card("System Operations", icon="ti-settings") %}
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-5">
-    <button type="button" data-action="quick-clear-cache"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-refresh text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">Clear All Cache</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Reset all cached data</span>
+  {# ============ KPI / STATUS BAND — live operational metrics with proportion bars ============ #}
+  <section aria-labelledby="qaKpiHead">
+    <h2 id="qaKpiHead" class="sr-only">Operational metrics</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      {# Each KPI carries a derived denominator from REAL route data so the bar is meaningful,
+         never fabricated: e.g. failed vs (failed+pending) messages. #}
+      {% set kpis = [
+        {'label': 'Pending Users', 'value': stats.pending_users, 'icon': 'ti-user-check', 'tone': 'warning', 'note': 'awaiting approval', 'denom': stats.pending_users + stats.inactive_users},
+        {'label': 'Failed Messages', 'value': stats.failed_messages, 'icon': 'ti-mail-x', 'tone': 'danger', 'note': stats.pending_messages ~ ' still queued', 'denom': stats.failed_messages + stats.pending_messages},
+        {'label': 'Matches No Time', 'value': stats.matches_without_times, 'icon': 'ti-clock-x', 'tone': 'warning', 'note': stats.upcoming_matches_7_days ~ ' in next 7 days', 'denom': stats.matches_without_times + stats.upcoming_matches_7_days},
+        {'label': 'Users No Role', 'value': stats.users_without_roles, 'icon': 'ti-user-question', 'tone': 'info', 'note': stats.inactive_users ~ ' inactive accounts', 'denom': stats.users_without_roles + stats.inactive_users},
+        {'label': 'Stale Notices', 'value': stats.old_notifications, 'icon': 'ti-bell-off', 'tone': 'neutral', 'note': stats.inactive_device_tokens ~ ' dead tokens', 'denom': stats.old_notifications + stats.inactive_device_tokens}
+      ] %}
+      {% set tone_text = {
+        'warning': 'text-amber-600 dark:text-amber-400',
+        'danger':  'text-red-600 dark:text-red-400',
+        'info':    'text-blue-600 dark:text-blue-400',
+        'neutral': 'text-gray-900 dark:text-white'
+      } %}
+      {% set tone_bar = {
+        'warning': 'bg-amber-500',
+        'danger':  'bg-red-500',
+        'info':    'bg-blue-500',
+        'neutral': 'bg-gray-400 dark:bg-gray-500'
+      } %}
+      {% for k in kpis %}
+      {% set active = k.value and k.value > 0 %}
+      {% set fig_cls = tone_text[k.tone] if active else 'text-gray-400 dark:text-gray-500' %}
+      {% set pct = (k.value * 100 // k.denom) if k.denom and k.denom > 0 else 0 %}
+      {# Bucket the real proportion into static Tailwind width classes (no inline style). #}
+      {% set bar_w = 'w-0' %}
+      {% if pct >= 88 %}{% set bar_w = 'w-full' %}
+      {% elif pct >= 70 %}{% set bar_w = 'w-3/4' %}
+      {% elif pct >= 55 %}{% set bar_w = 'w-2/3' %}
+      {% elif pct >= 45 %}{% set bar_w = 'w-1/2' %}
+      {% elif pct >= 30 %}{% set bar_w = 'w-1/3' %}
+      {% elif pct >= 20 %}{% set bar_w = 'w-1/4' %}
+      {% elif pct > 0 %}{% set bar_w = 'w-1/12' %}{% endif %}
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4{% if loop.last %} col-span-2 sm:col-span-1{% endif %}">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">{{ k.label }}</span>
+          <i class="ti {{ k.icon }} text-base shrink-0 {{ fig_cls }}" aria-hidden="true"></i>
+        </div>
+        <div class="mt-2 font-mono text-2xl sm:text-3xl font-bold leading-none {{ fig_cls }}">{{ k.value }}</div>
+        <div class="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="presentation">
+          <div class="h-full {{ bar_w }} {{ tone_bar[k.tone] if active else 'bg-gray-300 dark:bg-gray-600' }} rounded-full"></div>
+        </div>
+        <p class="mt-2 text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate">{{ k.note }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  {# ============ TWO-COLUMN: bulk operations (primary) + operations toolkit ============ #}
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
+
+    {# ---- PRIMARY JOB: targeted bulk operations as a real command table ---- #}
+    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-stack-2 text-ecs-green" aria-hidden="true"></i> Bulk Operations
+        </h2>
+        {% if _open_ops|length > 0 %}
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ _open_ops|length }} actionable</span>
+        {% else %}
+        <span class="inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i> all clear</span>
+        {% endif %}
+      </div>
+
+      {% if actions %}
+      {% set cat_icons = {
+        'User Management':   'ti-users',
+        'Communication':     'ti-message-2',
+        'Match Management':  'ti-calendar-event',
+        'System Maintenance':'ti-tool'
+      } %}
+      {# ---- md+ : real table with mono numerals + status pills + command buttons ---- #}
+      <div class="hidden md:block overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left border-b border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/30">
+              <th scope="col" class="px-4 sm:px-5 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Operation</th>
+              <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Affected</th>
+              <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+              <th scope="col" class="px-4 sm:px-5 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Run</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for group in actions %}
+            {# date-group-style divider row: mono category label spanning the table #}
+            <tr class="bg-gray-50/40 dark:bg-gray-900/20 border-t border-gray-200 dark:border-gray-700">
+              <td colspan="4" class="px-4 sm:px-5 pt-3 pb-1.5">
+                <span class="inline-flex items-center gap-2">
+                  <i class="ti {{ cat_icons.get(group.category, 'ti-bolt') }} text-xs text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                  <span class="text-[11px] font-bold uppercase tracking-wider font-mono text-ecs-green">{{ group.category }}</span>
+                </span>
+              </td>
+            </tr>
+            {% for a in group.actions %}
+            {% set has = a.count and a.count > 0 %}
+            <tr class="border-t border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+              <td class="px-4 sm:px-5 py-3">
+                <p class="font-semibold text-gray-900 dark:text-white">{{ a.name }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">{{ a.action }}</p>
+              </td>
+              <td class="px-3 py-3 text-right">
+                <span class="font-mono font-bold text-base {% if has %}text-amber-600 dark:text-amber-400{% else %}text-gray-400 dark:text-gray-500{% endif %}">{{ a.count }}</span>
+              </td>
+              <td class="px-3 py-3">
+                {% if has %}
+                <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-clock-pause text-sm" aria-hidden="true"></i> Pending</span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-check text-sm" aria-hidden="true"></i> Clear</span>
+                {% endif %}
+              </td>
+              <td class="px-4 sm:px-5 py-3 text-right">
+                <form action="{{ url_for('admin_panel.execute_quick_action') }}" method="post" class="inline-block">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="action" value="{{ a.action }}">
+                  <button type="submit"
+                          {% if not has %}disabled{% endif %}
+                          class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold transition-colors
+                                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                                 {% if has %}bg-ecs-green hover:bg-ecs-green-700 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed{% endif %}">
+                    <i class="ti ti-player-play" aria-hidden="true"></i><span>Run</span>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {# ---- mobile : stacked dense rows grouped by category ---- #}
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for group in actions %}
+        <div class="flex items-center gap-2 px-4 pt-4 pb-1.5">
+          <i class="ti {{ cat_icons.get(group.category, 'ti-bolt') }} text-xs text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+          <span class="text-[11px] font-bold uppercase tracking-wider font-mono text-ecs-green">{{ group.category }}</span>
+          <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+        </div>
+        {% for a in group.actions %}
+        {% set has = a.count and a.count > 0 %}
+        <div class="flex items-center gap-3 px-4 py-3">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ a.name }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5 truncate">
+              <span class="font-bold {% if has %}text-amber-600 dark:text-amber-400{% endif %}">{{ a.count }}</span> affected
+            </p>
+          </div>
+          <form action="{{ url_for('admin_panel.execute_quick_action') }}" method="post" class="shrink-0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="{{ a.action }}">
+            <button type="submit"
+                    {% if not has %}disabled{% endif %}
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-xs font-semibold transition-colors
+                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                           {% if has %}bg-ecs-green hover:bg-ecs-green-700 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed{% endif %}">
+              <i class="ti ti-player-play" aria-hidden="true"></i><span>Run</span>
+            </button>
+          </form>
+        </div>
+        {% endfor %}
+        {% endfor %}
+      </div>
+
+      <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-2.5 border-t border-gray-200 dark:border-gray-700 text-[11px] font-mono text-gray-500 dark:text-gray-400">
+        <span>{{ _backlog }} items across {{ actions|length }} categories</span>
+        <span class="hidden sm:inline">Runs execute immediately on submit</span>
+      </div>
+      {% else %}
+      {{ empty_state('ti-stack-2', 'No bulk operations available', 'Operational backlog data could not be loaded for this session.') }}
+      {% endif %}
+    </section>
+
+    {# ---- Operations toolkit: real EventDelegation quick-action hooks ---- #}
+    <div class="space-y-5 sm:space-y-6">
+      {% call section_card("System Operations", icon="ti-settings") %}
+      <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% set sys_ops = [
+          {'action': 'quick-clear-cache', 'icon': 'ti-refresh', 'tone': 'text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/10', 'name': 'Clear All Cache', 'desc': 'Reset all cached data'},
+          {'action': 'check-db-health', 'icon': 'ti-database', 'tone': 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/10', 'name': 'DB Health Check', 'desc': 'Check database status'},
+          {'action': 'initialize-settings', 'icon': 'ti-shield', 'tone': 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-500/10', 'name': 'Initialize Settings', 'desc': 'Reset admin settings'},
+          {'action': 'quick-restart-bot', 'icon': 'ti-brand-discord', 'tone': 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-500/10', 'name': 'Restart Bot', 'desc': 'Restart Discord bot'}
+        ] %}
+        {% for op in sys_ops %}
+        <button type="button" data-action="{{ op.action }}"
+                class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+          <span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 {{ op.tone }}"><i class="ti {{ op.icon }} text-base" aria-hidden="true"></i></span>
+          <span class="flex-1 min-w-0">
+            <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate">{{ op.name }}</span>
+            <span class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ op.desc }}</span>
+          </span>
+          <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+        </button>
+        {% endfor %}
+      </div>
+      {% endcall %}
+
+      {% call section_card("Maintenance", icon="ti-tool") %}
+      <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% set maint_ops = [
+          {'action': 'toggle-maintenance-mode', 'icon': 'ti-power', 'tone': 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-500/10', 'name': 'Maintenance Mode', 'desc': 'Toggle system maintenance mode'},
+          {'action': 'clear-system-logs', 'icon': 'ti-file-text', 'tone': 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/10', 'name': 'Clear Logs', 'desc': 'Clear system and error logs'},
+          {'action': 'generate-system-report', 'icon': 'ti-report', 'tone': 'text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/10', 'name': 'System Report', 'desc': 'Generate full system report'},
+          {'action': 'send-emergency-alert', 'icon': 'ti-announcement', 'tone': 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-500/10', 'name': 'Emergency Alert', 'desc': 'Send emergency system alert'},
+          {'action': 'export-system-data', 'icon': 'ti-file-export', 'tone': 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700', 'name': 'Export Data', 'desc': 'Export system data'}
+        ] %}
+        {% for op in maint_ops %}
+        <button type="button" data-action="{{ op.action }}"
+                class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+          <span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 {{ op.tone }}"><i class="ti {{ op.icon }} text-base" aria-hidden="true"></i></span>
+          <span class="flex-1 min-w-0">
+            <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate">{{ op.name }}</span>
+            <span class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ op.desc }}</span>
+          </span>
+          <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+        </button>
+        {% endfor %}
+      </div>
+      {% endcall %}
+    </div>
+  </div>
+
+  {# ============ User & Content quick-action command grid (real JS hooks) ============ #}
+  {% call section_card("User & Content Actions", icon="ti-bolt") %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-5">
+    {% set uc_ops = [
+      {'action': 'approve-all-pending', 'icon': 'ti-user-check', 'tone': 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-500/10', 'name': 'Approve All Pending', 'desc': 'Approve all pending user registrations'},
+      {'action': 'process-waitlist', 'icon': 'ti-user-plus', 'tone': 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/10', 'name': 'Process Waitlist', 'desc': 'Process all users from waitlist'},
+      {'action': 'send-bulk-notifications', 'icon': 'ti-mail', 'tone': 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-500/10', 'name': 'Send Notifications', 'desc': 'Send bulk notifications to users'},
+      {'action': 'sync-templates', 'icon': 'ti-template', 'tone': 'text-ecs-green bg-ecs-green/10', 'name': 'Sync Templates', 'desc': 'Synchronize message templates'},
+      {'action': 'quick-test-notifications', 'icon': 'ti-bell', 'tone': 'text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/10', 'name': 'Test Notifications', 'desc': 'Send test push notification'}
+    ] %}
+    {% for op in uc_ops %}
+    <button type="button" data-action="{{ op.action }}"
+            class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 {{ op.tone }}"><i class="ti {{ op.icon }} text-lg" aria-hidden="true"></i></span>
+      <span class="flex-1 min-w-0">
+        <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate">{{ op.name }}</span>
+        <span class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ op.desc }}</span>
+      </span>
     </button>
-    <button type="button" data-action="check-db-health"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-database text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">DB Health Check</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Check database status</span>
-    </button>
-    <button type="button" data-action="initialize-settings"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 flex items-center justify-center"><i class="ti ti-shield text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">Initialize Settings</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Reset admin settings</span>
-    </button>
-    <button type="button" data-action="quick-restart-bot"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center"><i class="ti ti-brand-discord text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">Restart Bot</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Restart Discord bot</span>
-    </button>
+    {% endfor %}
   </div>
   {% endcall %}
 
-  {# User Management #}
-  {% call section_card("User Management", icon="ti-users") %}
-  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-5">
-    <button type="button" data-action="approve-all-pending"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 flex items-center justify-center"><i class="ti ti-user-check text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">Approve All Pending</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Approve all pending user registrations</span>
-    </button>
-    <button type="button" data-action="process-waitlist"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-user-plus text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">Process Waitlist</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Process all users from waitlist</span>
-    </button>
-    <button type="button" data-action="send-bulk-notifications"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-mail text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">Send Notifications</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Send bulk notifications to users</span>
-    </button>
-  </div>
-  {% endcall %}
-
-  {# Content Management #}
-  {% call section_card("Content Management", icon="ti-file-text") %}
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-5">
-    <button type="button" data-action="sync-templates"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center"><i class="ti ti-template text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">Sync Templates</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Synchronize message templates</span>
-    </button>
-    <button type="button" data-action="quick-test-notifications"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-bell text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">Test Notifications</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Send test push notification</span>
-    </button>
-    <button type="button" data-action="send-emergency-alert"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center"><i class="ti ti-announcement text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">Emergency Alert</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Send emergency system alert</span>
-    </button>
-    <button type="button" data-action="export-system-data"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center"><i class="ti ti-file-export text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">Export Data</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Export system data</span>
-    </button>
-  </div>
-  {% endcall %}
-
-  {# Maintenance & Troubleshooting #}
-  {% call section_card("Maintenance & Troubleshooting", icon="ti-tool") %}
-  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-5">
-    <button type="button" data-action="toggle-maintenance-mode"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center"><i class="ti ti-power text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">Maintenance Mode</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Toggle system maintenance mode</span>
-    </button>
-    <button type="button" data-action="clear-system-logs"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-file-text text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">Clear Logs</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Clear system and error logs</span>
-    </button>
-    <button type="button" data-action="generate-system-report"
-            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <span class="w-11 h-11 rounded-full bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-report text-xl" aria-hidden="true"></i></span>
-      <span class="text-sm font-semibold text-gray-900 dark:text-white">System Report</span>
-      <span class="text-xs text-gray-500 dark:text-gray-400">Generate full system report</span>
-    </button>
-  </div>
-  {% endcall %}
-
-  {# Custom Actions #}
+  {# ============ Custom Actions form (JS hooks + field ids preserved verbatim) ============ #}
   {% call section_card("Custom Actions", icon="ti-code") %}
   <div class="p-4 sm:p-5">
     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Execute custom administrative commands and scripts.</p>
     <form id="customActionForm">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-        {{ fb_select("actionType", label="Action Type", options=[
-            ("database", "Database Query"),
-            ("cache", "Cache Operation"),
-            ("user", "User Management"),
-            ("system", "System Command"),
-            ("notification", "Send Notification")
-        ], placeholder="Select action type...") }}
+        <div>
+          <label for="actionType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Action Type</label>
+          <select id="actionType"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="">Select action type...</option>
+            <option value="database">Database Query</option>
+            <option value="cache">Cache Operation</option>
+            <option value="user">User Management</option>
+            <option value="system">System Command</option>
+            <option value="notification">Send Notification</option>
+          </select>
+        </div>
         <div>
           <label for="actionTarget" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target</label>
           <input type="text" id="actionTarget"
-                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm font-mono text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
                  placeholder="Target (optional)">
         </div>
       </div>
       <div class="mb-4">
         <label for="actionCommand" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Command/Parameters</label>
         <textarea id="actionCommand" rows="3"
-                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm font-mono text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
                   placeholder="Enter command or parameters..."></textarea>
       </div>
       <div class="flex items-center mb-4">

@@ -6,84 +6,171 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, section_card %}
-<div class="space-y-6">
-    {% call page_header("Help Topics", subtitle="Browse available help documentation") %}
+{% from 'macros/_modern_kit.html' import page_header %}
+{# Derived from the real `topics` list (no fabricated values). #}
+{% set ns = namespace(restricted=0) %}
+{% for topic in topics %}{% if topic.allowed_roles %}{% set ns.restricted = ns.restricted + 1 %}{% endif %}{% endfor %}
+{% set total_count = topics | length %}
+{% set public_count = total_count - ns.restricted %}
+<div class="space-y-5 sm:space-y-6">
+    {% call page_header("Help Center", subtitle="Knowledge base") %}
+        <button type="button" data-action="ai-assistant-toggle"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                       bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-sparkles" aria-hidden="true"></i>Ask AI
+        </button>
         {% if can_access_admin %}
         <a href="{{ url_for('help.admin_help_topics') }}"
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                   border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
                   text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-            <i class="ti ti-settings" aria-hidden="true"></i>Admin Dashboard
+            <i class="ti ti-settings" aria-hidden="true"></i>Manage
         </a>
         {% endif %}
     {% endcall %}
 
-    {% call section_card("Topics", icon="ti-book") %}
-    <div class="p-4 sm:p-5 space-y-6">
-        <!-- Search Input -->
-        <div class="relative">
-            <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
-            <input type="text"
-                   class="js-search-topics input-ecs h-10 pl-9 pr-3 text-sm w-full"
-                   placeholder="Search help topics..."
-                   data-action="search-topics"
-                   aria-label="Search help topics...">
-        </div>
-
-        <!-- Topics List -->
-        <ul class="js-help-topics-list divide-y divide-gray-200 dark:divide-gray-700" data-topics-list>
-            {% for topic in topics %}
-            <li class="group">
-                <a href="{{ url_for('help.view_topic', topic_id=topic.id) }}"
-                   class="flex items-center justify-between gap-3 min-h-[44px] py-3 px-2 -mx-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                   data-action="view-topic"
-                   data-topic-id="{{ topic.id }}">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <span class="shrink-0 p-2 bg-ecs-green/10 rounded-lg">
-                            <i class="ti ti-book text-ecs-green text-lg" aria-hidden="true"></i>
-                        </span>
-                        <span class="text-gray-900 dark:text-white font-medium truncate">{{ topic.title }}</span>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400 group-hover:text-ecs-green transition-colors shrink-0" aria-hidden="true"></i>
-                </a>
-            </li>
-            {% else %}
-            <li class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16">
-                <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
-                    <i class="ti ti-book-off text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
-                </div>
-                <h3 class="text-base font-semibold text-gray-900 dark:text-white">No help topics found</h3>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">Can't find what you're looking for?</p>
-                <button type="button" data-action="ai-assistant-toggle"
-                        class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
-                               bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                    <i class="ti ti-sparkles" aria-hidden="true"></i>Ask the AI Assistant
-                </button>
-            </li>
-            {% endfor %}
-        </ul>
-
-        <!-- Ask AI CTA -->
-        <div class="p-4 bg-ecs-green/5 border border-ecs-green/20 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div class="flex items-center gap-3 min-w-0">
-                <i class="ti ti-sparkles text-2xl text-ecs-green shrink-0" aria-hidden="true"></i>
-                <div class="min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">Need more help?</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Ask the AI assistant any question about using the portal</p>
-                </div>
+    <!-- KPI band — figures derived from the real topics list -->
+    <div class="grid grid-cols-3 gap-3 sm:gap-4">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Topics</span>
+                <i class="ti ti-books text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
             </div>
-            <button type="button" data-action="ai-assistant-toggle"
-                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
-                           bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors flex-shrink-0
-                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                <i class="ti ti-sparkles" aria-hidden="true"></i>Ask AI
-            </button>
+            <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ total_count }}</div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">available to you</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Public</span>
+                <i class="ti ti-world text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ public_count }}</div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">open to everyone</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Role-gated</span>
+                <i class="ti ti-lock text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ ns.restricted }}</div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">restricted by role</div>
         </div>
     </div>
-    {% endcall %}
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6 items-start">
+        <!-- Primary object: the topic browser (feature card with command toolbar) -->
+        <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                    <i class="ti ti-book text-ecs-green" aria-hidden="true"></i>Browse Topics
+                    {% if total_count %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total_count }}</span>{% endif %}
+                </h2>
+            </div>
+
+            <!-- Command toolbar: search is the page's primary action -->
+            <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+                <div class="relative">
+                    <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+                    <input type="text"
+                           class="js-search-topics input-ecs h-10 pl-9 pr-3 text-sm w-full"
+                           placeholder="Search help topics..."
+                           data-action="search-topics"
+                           aria-label="Search help topics...">
+                </div>
+            </div>
+
+            <!-- Dense topic rows -->
+            <ul class="js-help-topics-list divide-y divide-gray-200 dark:divide-gray-700" data-topics-list role="list">
+                {% for topic in topics %}
+                <li class="group">
+                    <a href="{{ url_for('help.view_topic', topic_id=topic.id) }}"
+                       class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green"
+                       data-action="view-topic"
+                       data-topic-id="{{ topic.id }}">
+                        <span class="shrink-0 w-10 h-10 inline-flex items-center justify-center rounded-lg bg-ecs-green/10">
+                            <i class="ti ti-file-text text-ecs-green text-lg" aria-hidden="true"></i>
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ topic.title }}</p>
+                            <div class="mt-1 flex items-center flex-wrap gap-x-2 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                                <span class="font-mono text-gray-400 dark:text-gray-500">#{{ '%03d' % topic.id }}</span>
+                                {% if topic.allowed_roles %}
+                                <span class="inline-flex items-center gap-1 text-ecs-gold-600 dark:text-ecs-gold-400">
+                                    <i class="ti ti-lock text-[11px]" aria-hidden="true"></i>{{ topic.allowed_roles | length }} role{{ 's' if topic.allowed_roles | length != 1 }}
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                                    <i class="ti ti-world text-[11px]" aria-hidden="true"></i>Public
+                                </span>
+                                {% endif %}
+                                {% if topic.updated_at %}
+                                <span class="hidden sm:inline text-gray-300 dark:text-gray-600">&middot;</span>
+                                <span class="hidden sm:inline-flex items-center gap-1 font-mono">
+                                    <i class="ti ti-clock text-[11px]" aria-hidden="true"></i>{{ topic.updated_at.strftime('%Y-%m-%d') }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <i class="ti ti-chevron-right text-gray-400 group-hover:text-ecs-green transition-colors shrink-0" aria-hidden="true"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16">
+                    <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                        <i class="ti ti-book-off text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-white">No help topics found</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">Can't find what you're looking for? Ask the assistant anything about using the portal.</p>
+                    <button type="button" data-action="ai-assistant-toggle"
+                            class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-sparkles" aria-hidden="true"></i>Ask the AI Assistant
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <!-- Secondary: AI assistant feature card -->
+        <aside class="rounded-xl border border-ecs-green/30 dark:border-ecs-green/40 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 bg-ecs-green/5">
+                <i class="ti ti-sparkles text-ecs-green" aria-hidden="true"></i>
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">AI Assistant</h2>
+            </div>
+            <div class="p-4 sm:p-5 space-y-4">
+                <div class="flex items-start gap-3">
+                    <span class="shrink-0 w-11 h-11 inline-flex items-center justify-center rounded-xl bg-ecs-green/10">
+                        <i class="ti ti-message-chatbot text-2xl text-ecs-green" aria-hidden="true"></i>
+                    </span>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">Ask anything about the portal</p>
+                        <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Can't find the right topic? The assistant answers questions in plain language, any time.</p>
+                    </div>
+                </div>
+                <button type="button" data-action="ai-assistant-toggle"
+                        class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                               bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-sparkles" aria-hidden="true"></i>Start a conversation
+                </button>
+                {% if can_access_admin %}
+                <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Admin</p>
+                    <a href="{{ url_for('help.admin_help_topics') }}"
+                       class="flex items-center justify-between gap-2 min-h-[44px] px-3 -mx-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        <span class="inline-flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                            <i class="ti ti-settings text-gray-400" aria-hidden="true"></i>Manage help topics
+                        </span>
+                        <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </aside>
+    </div>
 </div>
 {% else %}
 <div class="space-y-6">

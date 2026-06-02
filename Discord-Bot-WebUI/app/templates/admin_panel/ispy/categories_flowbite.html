@@ -22,11 +22,13 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_filter_bar, data_table_row_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+{% set total_approved = namespace(v=0) %}
+{% for c in categories %}{% set total_approved.v = total_approved.v + category_stats[c.id].approved_shots %}{% endfor %}
 <div class="space-y-6">
 
-  {{ page_header('I-Spy Categories', subtitle='Create and manage scavenger hunt categories') }}
-  <div class="flex justify-end -mt-2">
+  {# ---- Command header: one primary job (manage the category catalog) + one CTA ---- #}
+  {% call page_header('I-Spy Categories', subtitle='Scavenger hunt category catalog') %}
     <button type="button"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
                    bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
@@ -34,66 +36,140 @@
             data-modal-target="createCategoryModal" data-modal-toggle="createCategoryModal">
       <i class="ti ti-plus" aria-hidden="true"></i>Create Category
     </button>
-  </div>
+  {% endcall %}
 
-  <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-category', 'Total Categories', stats.total_categories, tone='primary') }}
-    {{ stat_card('ti-check', 'Active', stats.active_categories, tone='success') }}
-    {{ stat_card('ti-camera', 'Total Shots', stats.total_shots, tone='info') }}
-    {{ stat_card('ti-chart-bar', 'Avg Shots/Category', stats.avg_shots_per_category, tone='neutral') }}
+  {# ---- KPI band: bespoke token cards w/ mono figures + divider footers ---- #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Categories</span>
+        <i class="ti ti-category text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ stats.total_categories }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        <span class="font-mono font-semibold text-green-600 dark:text-green-400">{{ stats.active_categories }}</span> active ·
+        <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ stats.total_categories - stats.active_categories }}</span> hidden
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Shots</span>
+        <i class="ti ti-camera text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ stats.total_shots }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        across all categories
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Approved</span>
+        <i class="ti ti-circle-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ total_approved.v }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        {% if stats.total_shots %}<span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ ((total_approved.v / stats.total_shots) * 100)|round|int }}%</span> of all shots{% else %}no shots yet{% endif %}
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Avg / Category</span>
+        <i class="ti ti-chart-bar text-lg text-gray-900 dark:text-white shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ stats.avg_shots_per_category }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        shots per category
+      </div>
+    </div>
   </div>
 
   {% if categories %}
-  {% call data_table('All Categories', icon='ti-category', count=categories|length, filters=False) %}
-    {% call data_table_filter_bar('Search categories…', search_id='searchCategories') %}
-      <select id="filterStatus" aria-label="Filter by status"
-              class="input-ecs h-9 px-3 text-sm">
-        <option value="">All Status</option>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-      </select>
-    {% endcall %}
+  {# ---- Primary object: the category catalog as a dense, real table ---- #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    {# command toolbar: title + count chip + search/filter #}
+    <div class="flex flex-col gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700
+                lg:flex-row lg:items-center lg:justify-between">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-category text-ecs-green" aria-hidden="true"></i>
+        Category Catalog
+        <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">{{ categories|length }}</span>
+      </h2>
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <div class="relative">
+          <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true"></i>
+          <input type="text" id="searchCategories" placeholder="Search categories…" aria-label="Search categories"
+                 class="w-full sm:w-64 h-10 sm:h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700
+                        pl-9 pr-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400
+                        focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        </div>
+        <select id="filterStatus" aria-label="Filter by status"
+                class="h-10 sm:h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 text-sm
+                       text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
 
-    {# md+ table #}
+    {# md+ table — mono numerals, derived approval bar, surfaced targets + created date #}
     <table class="hidden md:table w-full text-sm text-left">
       <thead>
         <tr class="border-b border-gray-200 dark:border-gray-700">
-          {{ data_table_th('Category', key='category') }}
-          {{ data_table_th('Key', key='key', hide='sm') }}
-          {{ data_table_th('Shots', key='shots', align='right', hide='sm') }}
-          {{ data_table_th('Approved', key='approved', align='right', hide='sm') }}
-          {{ data_table_th('Status', key='status') }}
-          {{ data_table_th('Actions', sortable=False, align='right') }}
+          <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Category</th>
+          <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right hidden lg:table-cell">Shots</th>
+          <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Approval</th>
+          <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right hidden xl:table-cell">Targets</th>
+          <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden xl:table-cell">Created</th>
+          <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+          <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Actions</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for category in categories %}
+        {% set cs = category_stats[category.id] %}
+        {% set appr = ((cs.approved_shots / cs.total_shots) * 100)|round|int if cs.total_shots else 0 %}
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-status="{{ 'active' if category.is_active else 'inactive' }}">
-          <td class="px-3 py-3">
+          <td class="px-4 py-3">
             <span class="font-semibold text-gray-900 dark:text-white">{{ category.display_name }}</span>
-            <span class="block text-xs text-gray-400 dark:text-gray-500 font-mono">{{ category.key }}</span>
+            <code class="mt-0.5 inline-block px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-[11px] font-mono text-gray-600 dark:text-gray-400">{{ category.key }}</code>
           </td>
-          <td class="px-3 py-3 hidden md:table-cell">
-            <code class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs font-mono text-gray-700 dark:text-gray-300">{{ category.key }}</code>
+          <td class="px-4 py-3 text-right hidden lg:table-cell">
+            <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ cs.total_shots }}</span>
           </td>
-          <td class="px-3 py-3 text-right hidden md:table-cell">
-            <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ category_stats[category.id].total_shots }}</span>
+          <td class="px-4 py-3 hidden lg:table-cell">
+            {% if cs.total_shots %}
+            <div class="flex items-center gap-2">
+              <div class="w-20 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" role="img" aria-label="{{ appr }}% approved">
+                <div class="h-full rounded-full bg-green-500 dark:bg-green-400" style="width: {{ appr }}%"></div>
+              </div>
+              <span class="font-mono text-xs font-semibold text-gray-600 dark:text-gray-400 tabular-nums">{{ appr }}%</span>
+            </div>
+            {% else %}
+            <span class="text-xs text-gray-400 dark:text-gray-500">—</span>
+            {% endif %}
           </td>
-          <td class="px-3 py-3 text-right hidden md:table-cell">
-            <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ category_stats[category.id].approved_shots }}</span>
+          <td class="px-4 py-3 text-right hidden xl:table-cell">
+            <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ cs.usage_count }}</span>
           </td>
-          <td class="px-3 py-3">
+          <td class="px-4 py-3 hidden xl:table-cell">
+            <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ category.created_at.strftime('%b %d, %Y') if category.created_at else '—' }}</span>
+          </td>
+          <td class="px-4 py-3">
             {% if category.is_active %}
             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
               <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Active
             </span>
             {% else %}
             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-              <i class="ti ti-circle text-[12px]" aria-hidden="true"></i>Inactive
+              <i class="ti ti-eye-off text-[12px]" aria-hidden="true"></i>Hidden
             </span>
             {% endif %}
           </td>
-          <td class="px-3 py-3">
+          <td class="px-4 py-3">
             <div class="flex items-center justify-end gap-1">
               <button type="button"
                       class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center rounded-lg
@@ -118,14 +194,16 @@
       </tbody>
     </table>
 
-    {# mobile stacked cards #}
+    {# mobile stacked cards — dense rows w/ mono figures + approval bar #}
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
       {% for category in categories %}
+      {% set cs = category_stats[category.id] %}
+      {% set appr = ((cs.approved_shots / cs.total_shots) * 100)|round|int if cs.total_shots else 0 %}
       <div class="px-4 py-3.5" data-status="{{ 'active' if category.is_active else 'inactive' }}">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ category.display_name }}</p>
-            <code class="mt-0.5 inline-block px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs font-mono text-gray-700 dark:text-gray-300">{{ category.key }}</code>
+            <code class="mt-0.5 inline-block px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-[11px] font-mono text-gray-600 dark:text-gray-400">{{ category.key }}</code>
           </div>
           {% if category.is_active %}
           <span class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
@@ -133,15 +211,26 @@
           </span>
           {% else %}
           <span class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-            <i class="ti ti-circle text-[12px]" aria-hidden="true"></i>Inactive
+            <i class="ti ti-eye-off text-[12px]" aria-hidden="true"></i>Hidden
           </span>
           {% endif %}
         </div>
-        <div class="mt-2 flex items-center justify-between gap-2">
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            Shots <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ category_stats[category.id].total_shots }}</span>
-            · Approved <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ category_stats[category.id].approved_shots }}</span>
-          </p>
+        <div class="mt-2.5 grid grid-cols-3 gap-2 text-center">
+          <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 py-1.5">
+            <p class="font-mono text-base font-bold text-gray-900 dark:text-white leading-none">{{ cs.total_shots }}</p>
+            <p class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-1">Shots</p>
+          </div>
+          <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 py-1.5">
+            <p class="font-mono text-base font-bold text-green-600 dark:text-green-400 leading-none">{{ appr }}%</p>
+            <p class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-1">Approved</p>
+          </div>
+          <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 py-1.5">
+            <p class="font-mono text-base font-bold text-gray-900 dark:text-white leading-none">{{ cs.usage_count }}</p>
+            <p class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-1">Targets</p>
+          </div>
+        </div>
+        <div class="mt-2.5 flex items-center justify-between gap-2">
+          <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500">{{ category.created_at.strftime('%b %d, %Y') if category.created_at else '' }}</span>
           <div class="flex items-center gap-1">
             <button type="button"
                     class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg
@@ -164,7 +253,7 @@
       </div>
       {% endfor %}
     </div>
-  {% endcall %}
+  </section>
   {% else %}
   {{ empty_state('ti-category-2', 'No Categories Yet', 'Create your first I-Spy category to get started!') }}
   {% endif %}

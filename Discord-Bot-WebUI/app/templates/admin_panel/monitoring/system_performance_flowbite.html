@@ -22,153 +22,574 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
 
-{{ page_header("System Performance", subtitle="System Monitoring") }}
+{% set m = performance_metrics %}
+{% set load_list = m.load_average if m.load_average else [] %}
+{% set load1 = (load_list[0] if load_list|length > 0 else 0) %}
+{% set cpu_tone = 'danger' if m.cpu_usage >= 90 else ('warning' if m.cpu_usage >= 75 else 'primary') %}
+{% set mem_tone = 'danger' if m.memory_usage >= 90 else ('warning' if m.memory_usage >= 75 else 'info') %}
+{% set disk_tone = 'danger' if m.disk_usage >= 90 else ('warning' if m.disk_usage >= 80 else 'success') %}
 
-{# --- KPI band --- #}
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  {{ stat_card("ti-clock", "Avg Response Time", performance_metrics.response_time_avg ~ "ms", tone='primary') }}
-  {{ stat_card("ti-activity", "Requests / Min", performance_metrics.requests_per_minute, tone='success') }}
-  {{ stat_card("ti-alert-circle", "Error Rate", performance_metrics.error_rate_percent ~ "%", tone='info') }}
-  {{ stat_card("ti-users", "Active Sessions", performance_metrics.active_sessions, tone='warning') }}
-</div>
+{# Worst-case posture across the three host resources drives the hero status pill. #}
+{% set tone_rank = {'primary': 0, 'success': 0, 'info': 0, 'warning': 1, 'danger': 2} %}
+{% set host_rank = [tone_rank[cpu_tone], tone_rank[mem_tone], tone_rank[disk_tone]] | max %}
+{% set host_status = {0: {'word':'Healthy','cls':'text-green-600 dark:text-green-400','dot':'ti-circle-filled'},
+                      1: {'word':'Elevated','cls':'text-amber-600 dark:text-amber-400','dot':'ti-alert-triangle-filled'},
+                      2: {'word':'Critical','cls':'text-red-600 dark:text-red-400','dot':'ti-alert-octagon'}}[host_rank] %}
 
-{# --- Charts row --- #}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-  <div class="lg:col-span-2">
-    {% call section_card("Response Time Trends", icon="ti-chart-line") %}
+{% call page_header("System Performance", subtitle="System Monitoring / Infrastructure") %}
+  <a href="{{ url_for('admin_panel.system_monitoring') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+            border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
+            text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+            focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-arrow-left text-base" aria-hidden="true"></i><span class="hidden sm:inline">Monitoring</span>
+  </a>
+  <a href="{{ url_for('admin_panel.system_performance') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+            bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+            focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-refresh text-base" aria-hidden="true"></i><span>Refresh</span>
+  </a>
+{% endcall %}
+
+{# ===== Primary object: the host. Feature card leads with overall posture + live gauges. ===== #}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+  <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-server-cog text-ecs-green" aria-hidden="true"></i> Host Resources
+      </h2>
+      <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide {{ host_status.cls }}">
+        <i class="ti {{ host_status.dot }} text-[10px]" aria-hidden="true"></i> {{ host_status.word }}
+      </span>
+    </div>
     <div class="p-4 sm:p-5">
-      <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Average response time over time</p>
-      <div class="h-72"><canvas id="responseTimeChart"></canvas></div>
-    </div>
-    {% endcall %}
-  </div>
-
-  {% call section_card("Request Distribution", icon="ti-chart-pie") %}
-  <div class="p-4 sm:p-5">
-    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Requests by endpoint type</p>
-    <div class="h-72"><canvas id="requestDistributionChart"></canvas></div>
-  </div>
-  {% endcall %}
-</div>
-
-{# --- Resource utilization + top endpoints --- #}
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-  {% call section_card("Resource Utilization", icon="ti-server-cog") %}
-  <div class="p-4 sm:p-5">
-    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Server resource usage</p>
-    <div class="grid grid-cols-2 gap-6 mb-4">
-      <div class="text-center">
-        <h6 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">CPU Usage</h6>
-        <div class="relative w-24 h-24 mx-auto">
-          <svg class="w-24 h-24 -rotate-90">
-            <circle cx="48" cy="48" r="40" stroke-width="8" class="fill-none stroke-gray-200 dark:stroke-gray-700"></circle>
-            <circle cx="48" cy="48" r="40" stroke-width="8" pathLength="100"
-                    stroke-dasharray="100" stroke-dashoffset="{{ 100 - performance_metrics.cpu_usage }}"
-                    class="fill-none stroke-ecs-green transition-all duration-500"></circle>
-          </svg>
-          <span class="absolute inset-0 flex items-center justify-center font-mono text-lg font-bold text-gray-900 dark:text-white">{{ performance_metrics.cpu_usage }}%</span>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {# CPU gauge #}
+        <div class="text-center">
+          <h6 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">CPU</h6>
+          <div class="relative w-28 h-28 mx-auto">
+            <svg class="w-28 h-28 -rotate-90" viewBox="0 0 112 112">
+              <circle cx="56" cy="56" r="48" stroke-width="9" class="fill-none stroke-gray-200 dark:stroke-gray-700"></circle>
+              <circle cx="56" cy="56" r="48" stroke-width="9" pathLength="100" stroke-linecap="round"
+                      stroke-dasharray="100" stroke-dashoffset="{{ 100 - m.cpu_usage }}"
+                      class="fill-none {{ {'danger':'stroke-red-500','warning':'stroke-amber-500','primary':'stroke-ecs-green'}[cpu_tone] }} transition-all duration-500"></circle>
+            </svg>
+            <span class="absolute inset-0 flex items-center justify-center font-mono text-xl font-bold text-gray-900 dark:text-white">{{ m.cpu_usage }}%</span>
+          </div>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">load avg <span class="font-mono text-gray-700 dark:text-gray-300">{{ load1 }}</span></p>
         </div>
-      </div>
-      <div class="text-center">
-        <h6 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Memory Usage</h6>
-        <div class="relative w-24 h-24 mx-auto">
-          <svg class="w-24 h-24 -rotate-90">
-            <circle cx="48" cy="48" r="40" stroke-width="8" class="fill-none stroke-gray-200 dark:stroke-gray-700"></circle>
-            <circle cx="48" cy="48" r="40" stroke-width="8" pathLength="100"
-                    stroke-dasharray="100" stroke-dashoffset="{{ 100 - performance_metrics.memory_usage }}"
-                    class="fill-none stroke-blue-500 transition-all duration-500"></circle>
-          </svg>
-          <span class="absolute inset-0 flex items-center justify-center font-mono text-lg font-bold text-gray-900 dark:text-white">{{ performance_metrics.memory_usage }}%</span>
+        {# Memory gauge #}
+        <div class="text-center">
+          <h6 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Memory</h6>
+          <div class="relative w-28 h-28 mx-auto">
+            <svg class="w-28 h-28 -rotate-90" viewBox="0 0 112 112">
+              <circle cx="56" cy="56" r="48" stroke-width="9" class="fill-none stroke-gray-200 dark:stroke-gray-700"></circle>
+              <circle cx="56" cy="56" r="48" stroke-width="9" pathLength="100" stroke-linecap="round"
+                      stroke-dasharray="100" stroke-dashoffset="{{ 100 - m.memory_usage }}"
+                      class="fill-none {{ {'danger':'stroke-red-500','warning':'stroke-amber-500','info':'stroke-blue-500'}[mem_tone] }} transition-all duration-500"></circle>
+            </svg>
+            <span class="absolute inset-0 flex items-center justify-center font-mono text-xl font-bold text-gray-900 dark:text-white">{{ m.memory_usage }}%</span>
+          </div>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ m.memory_used_gb }} / {{ m.memory_total_gb }} GB</p>
         </div>
-      </div>
-    </div>
-
-    <div class="space-y-4">
-      <div>
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-sm text-gray-700 dark:text-gray-300">Database Connections</span>
-          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-ecs-green/10 text-ecs-green">
-            {{ performance_metrics.db_connections_active }}/{{ performance_metrics.db_connections_max }}
-          </span>
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-          <div class="bg-ecs-green h-2 rounded-full" style="width: {{ (performance_metrics.db_connections_active / performance_metrics.db_connections_max * 100) if performance_metrics.db_connections_max else 0 }}%"></div>
+        {# Disk gauge #}
+        <div class="text-center">
+          <h6 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Disk</h6>
+          <div class="relative w-28 h-28 mx-auto">
+            <svg class="w-28 h-28 -rotate-90" viewBox="0 0 112 112">
+              <circle cx="56" cy="56" r="48" stroke-width="9" class="fill-none stroke-gray-200 dark:stroke-gray-700"></circle>
+              <circle cx="56" cy="56" r="48" stroke-width="9" pathLength="100" stroke-linecap="round"
+                      stroke-dasharray="100" stroke-dashoffset="{{ 100 - m.disk_usage }}"
+                      class="fill-none {{ {'danger':'stroke-red-500','warning':'stroke-amber-500','success':'stroke-green-500'}[disk_tone] }} transition-all duration-500"></circle>
+            </svg>
+            <span class="absolute inset-0 flex items-center justify-center font-mono text-xl font-bold text-gray-900 dark:text-white">{{ m.disk_usage }}%</span>
+          </div>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ m.disk_used_gb }} / {{ m.disk_total_gb }} GB</p>
         </div>
       </div>
 
-      <div>
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-sm text-gray-700 dark:text-gray-300">Cache Hit Rate</span>
-          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-            {{ performance_metrics.cache_hit_rate }}%
-          </span>
+      {# host I/O + load strip — mono figures, divider footer #}
+      <div class="mt-6 pt-5 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div>
+          <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Net In</p>
+          <p class="mt-1 font-mono text-lg font-bold text-gray-900 dark:text-white flex items-center gap-1">
+            <i class="ti ti-arrow-down-left text-blue-500 text-base" aria-hidden="true"></i>{{ m.network_in }}
+          </p>
         </div>
-        <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-          <div class="bg-green-500 h-2 rounded-full" style="width: {{ performance_metrics.cache_hit_rate }}%"></div>
+        <div>
+          <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Net Out</p>
+          <p class="mt-1 font-mono text-lg font-bold text-gray-900 dark:text-white flex items-center gap-1">
+            <i class="ti ti-arrow-up-right text-ecs-green text-base" aria-hidden="true"></i>{{ m.network_out }}
+          </p>
+        </div>
+        <div>
+          <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Load Avg (1·5·15m)</p>
+          <p class="mt-1 font-mono text-lg font-bold text-gray-900 dark:text-white">
+            {% if load_list %}{{ load_list | join(' · ') }}{% else %}—{% endif %}
+          </p>
         </div>
       </div>
     </div>
-  </div>
-  {% endcall %}
+  </section>
 
-  {% if performance_metrics.top_endpoints %}
-  {% call data_table("Top Endpoints", icon="ti-route", count=performance_metrics.top_endpoints|length, filters=False) %}
-    <table class="hidden md:table w-full text-sm text-left">
-      <thead class="border-b border-gray-200 dark:border-gray-700">
-        <tr>
-          {{ data_table_th("Endpoint", key="endpoint", sortable=False) }}
-          {{ data_table_th("Requests", key="requests", sortable=False) }}
-          {{ data_table_th("Avg Time", key="avgtime", sortable=False) }}
+  {# ===== Resource utilization as a real table — tabular data deserves a table. ===== #}
+  {% set rows = [
+    {'name':'CPU',    'icon':'ti-cpu',      'pct':m.cpu_usage,    'used':None,            'total':None,           'unit':'',   'tone':cpu_tone},
+    {'name':'Memory', 'icon':'ti-stack-2',  'pct':m.memory_usage, 'used':m.memory_used_gb,'total':m.memory_total_gb,'unit':'GB', 'tone':mem_tone},
+    {'name':'Disk',   'icon':'ti-database', 'pct':m.disk_usage,   'used':m.disk_used_gb,  'total':m.disk_total_gb,  'unit':'GB', 'tone':disk_tone}
+  ] %}
+  {% set bar_tone = {'danger':'bg-red-500','warning':'bg-amber-500','primary':'bg-ecs-green','info':'bg-blue-500','success':'bg-green-500'} %}
+  {% set fig_tone = {'danger':'text-red-600 dark:text-red-400','warning':'text-amber-600 dark:text-amber-400','primary':'text-ecs-green','info':'text-blue-600 dark:text-blue-400','success':'text-green-600 dark:text-green-400'} %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-gauge text-ecs-green" aria-hidden="true"></i>
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Utilization</h2>
+    </div>
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          <th scope="col" class="text-left px-4 sm:px-5 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Resource</th>
+          <th scope="col" class="text-right px-4 sm:px-5 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Usage</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for endpoint in performance_metrics.top_endpoints %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-2.5">
-            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-700 dark:text-gray-300">{{ endpoint.path }}</code>
+        {% for row in rows %}
+        <tr>
+          <td class="px-4 sm:px-5 py-3">
+            <span class="flex items-center gap-2 text-gray-900 dark:text-white font-medium">
+              <i class="ti {{ row.icon }} {{ fig_tone[row.tone] }}" aria-hidden="true"></i>{{ row.name }}
+            </span>
+            {% if row.used is not none %}
+            <span class="block mt-1 text-xs font-mono text-gray-500 dark:text-gray-400">{{ row.used }} / {{ row.total }} {{ row.unit }}</span>
+            {% endif %}
           </td>
-          <td class="px-3 py-2.5">
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ endpoint.requests }}</span>
+          <td class="px-4 sm:px-5 py-3 text-right align-middle">
+            <span class="font-mono text-lg font-bold {{ fig_tone[row.tone] }}">{{ row.pct }}%</span>
+            <span class="block mt-1.5 w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700 overflow-hidden">
+              <span class="block {{ bar_tone[row.tone] }} h-1.5 rounded-full" style="width: {{ row.pct }}%"></span>
+            </span>
           </td>
-          <td class="px-3 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400">{{ endpoint.avg_time }}ms</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-      {% for endpoint in performance_metrics.top_endpoints %}
-      <div class="px-4 py-3.5">
-        <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-700 dark:text-gray-300 break-all">{{ endpoint.path }}</code>
-        <div class="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-          <span class="inline-flex items-center gap-1"><i class="ti ti-activity" aria-hidden="true"></i><span class="font-mono">{{ endpoint.requests }}</span> req</span>
-          <span class="inline-flex items-center gap-1"><i class="ti ti-clock" aria-hidden="true"></i><span class="font-mono">{{ endpoint.avg_time }}ms</span></span>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  {% endcall %}
-  {% else %}
-  {% call section_card("Top Endpoints", icon="ti-route") %}
-    {{ empty_state("ti-route-off", "No endpoint data", "There is no endpoint traffic to display yet.") }}
-  {% endcall %}
-  {% endif %}
+  </section>
 </div>
 
-{# --- Historical performance --- #}
-{% call section_card("Historical Performance Data", icon="ti-chart-histogram") %}
-<div class="p-4 sm:p-5">
-  <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Performance metrics over time</p>
-  <div class="flex flex-wrap gap-2 mb-4">
-    <button type="button" class="min-h-[44px] sm:min-h-0 sm:h-9 px-3 inline-flex items-center text-sm font-semibold text-white bg-ecs-green rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="load-historical" data-period="1h">1 Hour</button>
-    <button type="button" class="min-h-[44px] sm:min-h-0 sm:h-9 px-3 inline-flex items-center text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="load-historical" data-period="6h">6 Hours</button>
-    <button type="button" class="min-h-[44px] sm:min-h-0 sm:h-9 px-3 inline-flex items-center text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="load-historical" data-period="24h">24 Hours</button>
-    <button type="button" class="min-h-[44px] sm:min-h-0 sm:h-9 px-3 inline-flex items-center text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="load-historical" data-period="7d">7 Days</button>
+{# ===== KPI band: live subsystem counts (all real data) ===== #}
+{% set workers = m.celery.workers if m.celery else 0 %}
+{% set worker_cls = 'text-green-600 dark:text-green-400' if workers > 0 else 'text-red-600 dark:text-red-400' %}
+{% set p = m.db_pool %}
+{% set has_pool = p and (p.size is number) %}
+{% set pool_co = (p.checked_out if (p and p.checked_out is number) else 0) %}
+{% set pool_sz = (p.size if (p and p.size is number) else 0) %}
+{% set pool_pct = (pool_co / pool_sz * 100) if pool_sz else 0 %}
+<div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+  {# Celery workers #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Celery Workers</span>
+      <i class="ti ti-stack-pop text-lg {{ worker_cls }} shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-1">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none {{ worker_cls }}">{{ workers }}</span>
+    </div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+      <span class="font-mono text-gray-700 dark:text-gray-300">{{ m.celery.active_tasks if m.celery else 0 }}</span> active
+      · <span class="font-mono text-gray-700 dark:text-gray-300">{{ m.celery.reserved_tasks if m.celery else 0 }}</span> queued
+    </div>
   </div>
-  <div class="h-96"><canvas id="historicalChart"></canvas></div>
+
+  {# Active tasks #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active Tasks</span>
+      <i class="ti ti-player-play text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-1">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ m.celery.active_tasks if m.celery else 0 }}</span>
+    </div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+      <span class="font-mono text-amber-600 dark:text-amber-400">{{ m.celery.reserved_tasks if m.celery else 0 }}</span> reserved in queue
+    </div>
+  </div>
+
+  {# DB pool checked out #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">DB Pool</span>
+      <i class="ti ti-plug-connected text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-1">
+      {% if has_pool %}
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ pool_co }}</span>
+      <span class="font-mono text-lg font-bold text-gray-400 dark:text-gray-500 mb-0.5">/ {{ pool_sz }}</span>
+      {% else %}
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-400 dark:text-gray-500">—</span>
+      {% endif %}
+    </div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+      {% if has_pool %}connections checked out{% else %}pool stats unavailable{% endif %}
+    </div>
+  </div>
+
+  {# Redis clients #}
+  {% set r = m.redis %}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Redis Clients</span>
+      <i class="ti ti-brand-redis text-lg {{ 'text-green-600 dark:text-green-400' if r else 'text-gray-400 dark:text-gray-500' }} shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-1">
+      {% if r %}
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ r.connected_clients }}</span>
+      {% else %}
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-400 dark:text-gray-500">—</span>
+      {% endif %}
+    </div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+      {% if r %}<span class="font-mono text-gray-700 dark:text-gray-300">{{ r.used_memory_human }}</span> in use{% else %}unreachable{% endif %}
+    </div>
+  </div>
 </div>
-{% endcall %}
+
+{# ===== Subsystem feature cards: Redis + Celery + DB pool ===== #}
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
+  {# Redis #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-brand-redis text-ecs-green" aria-hidden="true"></i> Redis Cache
+      </h3>
+      {% if r %}
+      <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-green-600 dark:text-green-400">
+        <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i> Online
+      </span>
+      {% else %}
+      <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <i class="ti ti-circle text-[8px]" aria-hidden="true"></i> Unreachable
+      </span>
+      {% endif %}
+    </div>
+    {% if r %}
+    <dl class="divide-y divide-gray-200 dark:divide-gray-700">
+      <div class="flex items-center justify-between px-4 sm:px-5 py-3">
+        <dt class="text-sm text-gray-700 dark:text-gray-300">Memory Used</dt>
+        <dd class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ r.used_memory_human }}</dd>
+      </div>
+      <div class="flex items-center justify-between px-4 sm:px-5 py-3">
+        <dt class="text-sm text-gray-700 dark:text-gray-300">Connected Clients</dt>
+        <dd class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ r.connected_clients }}</dd>
+      </div>
+      <div class="flex items-center justify-between px-4 sm:px-5 py-3">
+        <dt class="text-sm text-gray-700 dark:text-gray-300">Uptime</dt>
+        <dd class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ r.uptime_days }} days</dd>
+      </div>
+    </dl>
+    {% else %}
+    {{ empty_state("ti-database-off", "Redis unreachable", "No connection to the Redis instance could be established.") }}
+    {% endif %}
+  </section>
+
+  {# Celery / Task Queue #}
+  {% set c = m.celery %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-stack-pop text-ecs-green" aria-hidden="true"></i> Task Queue
+      </h3>
+      {% if c and c.workers > 0 %}
+      <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-green-600 dark:text-green-400">
+        <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i> {{ c.workers }} worker{{ 's' if c.workers != 1 else '' }}
+      </span>
+      {% else %}
+      <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-red-600 dark:text-red-400">
+        <i class="ti ti-alert-triangle-filled text-[10px]" aria-hidden="true"></i> No workers
+      </span>
+      {% endif %}
+    </div>
+    <div class="p-4 sm:p-5 grid grid-cols-3 gap-3">
+      <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 p-3 text-center">
+        <p class="font-mono text-2xl font-bold text-ecs-green">{{ c.active_tasks if c else 0 }}</p>
+        <p class="mt-1 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Active</p>
+      </div>
+      <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 p-3 text-center">
+        <p class="font-mono text-2xl font-bold text-amber-600 dark:text-amber-400">{{ c.reserved_tasks if c else 0 }}</p>
+        <p class="mt-1 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Queued</p>
+      </div>
+      <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 p-3 text-center">
+        <p class="font-mono text-2xl font-bold text-blue-600 dark:text-blue-400">{{ c.workers if c else 0 }}</p>
+        <p class="mt-1 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Workers</p>
+      </div>
+    </div>
+  </section>
+
+  {# Database connection pool (real db.engine.pool, may be empty) #}
+  <section class="md:col-span-2 xl:col-span-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-plug-connected text-ecs-green" aria-hidden="true"></i> Database Pool
+      </h3>
+      {% if has_pool %}
+      <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-green-600 dark:text-green-400">
+        <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i> Active
+      </span>
+      {% endif %}
+    </div>
+    {% if has_pool %}
+    <div class="p-4 sm:p-5">
+      <div class="flex items-end justify-between mb-2">
+        <span class="text-sm text-gray-700 dark:text-gray-300">Checked out</span>
+        <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ p.checked_out }} / {{ p.size }}</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700 mb-5 overflow-hidden">
+        <div class="bg-ecs-green h-2 rounded-full" style="width: {{ pool_pct }}%"></div>
+      </div>
+      <dl class="grid grid-cols-2 gap-y-4 gap-x-3">
+        <div>
+          <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Pool Size</dt>
+          <dd class="mt-0.5 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ p.size }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Checked In</dt>
+          <dd class="mt-0.5 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ p.checked_in }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Checked Out</dt>
+          <dd class="mt-0.5 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ p.checked_out }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Overflow</dt>
+          <dd class="mt-0.5 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ p.overflow }}</dd>
+        </div>
+      </dl>
+    </div>
+    {% else %}
+    {{ empty_state("ti-plug-connected-x", "Pool stats unavailable", "Connection pool metrics could not be read from the database engine.") }}
+    {% endif %}
+  </section>
+</div>
+
+{# ===== Request analytics (real data from APIRequestLog via the route). =====
+   Every figure below is route-supplied; when the log table is empty the route
+   returns zeros and the sections honestly read 0 rather than fabricating data. #}
+{% set has_requests = (m.total_requests_24h or 0) > 0 %}
+{% if has_requests %}
+{% set rt_delta = m.response_time_delta_1h or 0 %}
+{% set err_tone = 'danger' if (m.error_rate_percent or 0) >= 1 else 'info' %}
+
+{# --- Request KPI band --- #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Avg Response Time</span>
+      <i class="ti ti-clock text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-1">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ m.response_time_avg }}</span>
+      <span class="font-mono text-lg font-bold text-gray-400 dark:text-gray-500 mb-0.5">ms</span>
+    </div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+      {% if rt_delta < 0 %}<i class="ti ti-trending-down text-green-600 dark:text-green-400" aria-hidden="true"></i><span class="font-mono font-semibold text-green-600 dark:text-green-400">{{ rt_delta }}ms</span>
+      {% elif rt_delta > 0 %}<i class="ti ti-trending-up text-red-600 dark:text-red-400" aria-hidden="true"></i><span class="font-mono font-semibold text-red-600 dark:text-red-400">+{{ rt_delta }}ms</span>
+      {% else %}<i class="ti ti-minus text-gray-400" aria-hidden="true"></i><span class="font-mono font-semibold">0ms</span>{% endif %} vs 1h ago
+    </div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Requests / Min</span>
+      <i class="ti ti-activity text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ m.requests_per_minute }}</div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+      peak <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ m.requests_per_minute_peak }}</span>/min · 24h
+    </div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Error Rate</span>
+      <i class="ti ti-alert-circle text-lg {{ 'text-red-600 dark:text-red-400' if err_tone == 'danger' else 'text-blue-600 dark:text-blue-400' }} shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-1">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none {{ 'text-red-600 dark:text-red-400' if err_tone == 'danger' else 'text-blue-600 dark:text-blue-400' }}">{{ m.error_rate_percent }}</span>
+      <span class="font-mono text-lg font-bold text-gray-400 dark:text-gray-500 mb-0.5">%</span>
+    </div>
+    <div class="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden"><div class="h-full {{ 'bg-red-500' if err_tone == 'danger' else 'bg-blue-500' }}" style="width: {{ [m.error_rate_percent * 10, 100] | min }}%"></div></div>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ m.error_count_24h }} errors · 24h</p>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Active Sessions</span>
+      <i class="ti ti-users text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ m.active_sessions }}</div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">authenticated · last 15 min</div>
+  </div>
+</div>
+
+{# --- Response Time Trends (Chart.js) + P50/P95/Peak strip, and Request Distribution doughnut --- #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+  <section class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-chart-line text-ecs-green" aria-hidden="true"></i> Response Time Trends
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/15 text-ecs-green">{{ m.response_time_avg }}ms avg</span>
+      </h2>
+    </div>
+    <div class="p-4 sm:p-5">
+      <div class="h-52"><canvas id="responseTimeChart"></canvas></div>
+    </div>
+    <div class="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700 text-center">
+      <div class="px-3 py-3"><p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">P50</p><p class="mt-0.5 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ m.response_time_p50 }}<span class="text-xs text-gray-400">ms</span></p></div>
+      <div class="px-3 py-3"><p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">P95</p><p class="mt-0.5 font-mono text-lg font-bold text-amber-600 dark:text-amber-400">{{ m.response_time_p95 }}<span class="text-xs text-gray-400">ms</span></p></div>
+      <div class="px-3 py-3"><p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Peak</p><p class="mt-0.5 font-mono text-lg font-bold text-red-600 dark:text-red-400">{{ m.response_time_peak }}<span class="text-xs text-gray-400">ms</span></p></div>
+    </div>
+  </section>
+
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-chart-pie text-ecs-green" aria-hidden="true"></i>
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Request Distribution</h2>
+    </div>
+    <div class="p-4 sm:p-5">
+      <div class="h-44"><canvas id="requestDistributionChart"></canvas></div>
+      {% set dist_total = (m.request_distribution.data | sum) or 1 %}
+      {% set dist_colors = ['bg-ecs-green', 'bg-green-500', 'bg-blue-500', 'bg-amber-500'] %}
+      <ul class="mt-4 space-y-2 text-sm" role="list">
+        {% for label in m.request_distribution.labels %}
+        <li class="flex items-center justify-between">
+          <span class="inline-flex items-center gap-2 text-gray-700 dark:text-gray-300"><span class="w-2.5 h-2.5 rounded-sm {{ dist_colors[loop.index0] }}"></span> {{ label }}</span>
+          <span class="font-mono font-semibold tabular-nums text-gray-900 dark:text-white">{{ ((m.request_distribution.data[loop.index0] / dist_total) * 100) | round(0, 'floor') | int }}%</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+</div>
+
+{# --- Top Endpoints table (real path/requests/avg_time) --- #}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+  <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+    <i class="ti ti-route text-ecs-green" aria-hidden="true"></i>
+    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Top Endpoints</h2>
+    <span class="text-xs text-gray-500 dark:text-gray-400 ml-auto">last 24h</span>
+  </div>
+  {% if m.top_endpoints %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
+        <tr class="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          <th scope="col" class="px-4 py-2.5 font-semibold">Endpoint</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold text-right hidden md:table-cell">Requests</th>
+          <th scope="col" class="px-4 py-2.5 font-semibold text-right">Avg Time</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for ep in m.top_endpoints %}
+        {% set t_tone = 'text-red-600 dark:text-red-400' if ep.avg_time >= 150 else ('text-amber-600 dark:text-amber-400' if ep.avg_time >= 80 else 'text-green-600 dark:text-green-400') %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-4 py-3">
+            <code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded break-all">{{ ep.path }}</code>
+            <span class="block md:hidden text-xs text-gray-500 dark:text-gray-400 font-mono mt-1">{{ '{:,}'.format(ep.requests) }} requests</span>
+          </td>
+          <td class="px-3 py-3 text-right hidden md:table-cell"><span class="font-mono tabular-nums text-gray-900 dark:text-white">{{ '{:,}'.format(ep.requests) }}</span></td>
+          <td class="px-4 py-3 text-right"><span class="font-mono font-semibold tabular-nums {{ t_tone }}">{{ ep.avg_time }}ms</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  {{ empty_state("ti-route-off", "No endpoint data", "No requests have been logged in the last 24 hours.") }}
+  {% endif %}
+</section>
+
+{# --- Historical dual-axis timeline (Chart.js) + 24h summary strip --- #}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+  <div class="flex flex-wrap items-center gap-2 px-4 sm:px-5 py-2 sm:h-12 border-b border-gray-200 dark:border-gray-700">
+    <i class="ti ti-timeline text-ecs-green" aria-hidden="true"></i>
+    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Historical Performance Data</h2>
+    {# Period toggle — fetches /monitoring/system/performance/historical and redraws the chart (real APIRequestLog data). #}
+    <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden ml-auto" role="group" aria-label="Time period">
+      {% for p in [('1h','1H'), ('6h','6H'), ('24h','24H'), ('7d','7D')] %}
+      <button type="button" data-console-period="{{ p[0] }}"
+              class="px-2.5 py-1 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green
+                     {% if p[0] == '24h' %}bg-ecs-green text-white{% else %}bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %}
+                     {% if not loop.last %}border-r border-gray-200 dark:border-gray-700{% endif %}"
+              aria-pressed="{{ 'true' if p[0] == '24h' else 'false' }}">{{ p[1] }}</button>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="p-4 sm:p-5">
+    <div class="flex flex-wrap items-center gap-4 mb-3 text-xs text-gray-600 dark:text-gray-300">
+      <span class="inline-flex items-center gap-1.5"><span class="w-3 h-0.5 bg-ecs-green"></span> Response Time (ms)</span>
+      <span class="inline-flex items-center gap-1.5"><span class="w-3 h-0.5 bg-green-500"></span> Requests / min</span>
+    </div>
+    <div class="h-72"><canvas id="historicalChart"></canvas></div>
+  </div>
+  <div class="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700 text-center">
+    <div class="px-3 py-3"><p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Avg RT (24h)</p><p class="mt-0.5 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ m.response_time_avg }}<span class="text-xs text-gray-400">ms</span></p></div>
+    <div class="px-3 py-3"><p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Peak Req/min</p><p class="mt-0.5 font-mono text-lg font-bold text-green-600 dark:text-green-400">{{ m.requests_per_minute_peak }}</p></div>
+    <div class="px-3 py-3 border-t sm:border-t-0 border-gray-200 dark:border-gray-700"><p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Errors (24h)</p><p class="mt-0.5 font-mono text-lg font-bold {{ 'text-amber-600 dark:text-amber-400' if m.error_count_24h else 'text-gray-900 dark:text-white' }}">{{ m.error_count_24h }}</p></div>
+    <div class="px-3 py-3 border-t sm:border-t-0 border-gray-200 dark:border-gray-700"><p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Total (24h)</p><p class="mt-0.5 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ '{:,}'.format(m.total_requests_24h) }}</p></div>
+  </div>
+</section>
+
+{# Console-only period toggle wiring: fetches the historical AJAX route and redraws
+   the shared historicalChart. Distinct from the Classic .btn-group handler so the
+   untouched Classic branch keeps using its global EventDelegation stub. #}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var btns = document.querySelectorAll('[data-console-period]');
+    if (!btns.length) return;
+    var endpoint = "{{ url_for('admin_panel.system_performance_historical') }}";
+
+    function getChart() {
+      var el = document.getElementById('historicalChart');
+      return (el && window.Chart && typeof window.Chart.getChart === 'function') ? window.Chart.getChart(el) : null;
+    }
+
+    function setActive(active) {
+      btns.forEach(function (b) {
+        var on = b === active;
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        if (on) {
+          b.classList.add('bg-ecs-green', 'text-white');
+          b.classList.remove('bg-white', 'dark:bg-gray-800', 'text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-50', 'dark:hover:bg-gray-700');
+        } else {
+          b.classList.remove('bg-ecs-green', 'text-white');
+          b.classList.add('bg-white', 'dark:bg-gray-800', 'text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-50', 'dark:hover:bg-gray-700');
+        }
+      });
+    }
+
+    function load(period, btn) {
+      var chart = getChart();
+      if (!chart) { return; }
+      setActive(btn);
+      fetch(endpoint + '?period=' + encodeURIComponent(period), { headers: { 'Accept': 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data || !data.success) return;
+          chart.data.labels = data.labels || [];
+          if (chart.data.datasets[0]) chart.data.datasets[0].data = data.response_time || [];
+          if (chart.data.datasets[1]) chart.data.datasets[1].data = data.requests || [];
+          chart.update();
+        })
+        .catch(function () { /* honest no-op: chart keeps prior data */ });
+    }
+
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () { load(btn.getAttribute('data-console-period'), btn); });
+    });
+  });
+</script>
+{% else %}
+{{ empty_state("ti-chart-dots-off", "No request analytics yet", "No API requests have been logged in the last 24 hours. Request KPIs, response-time percentiles, top endpoints and the distribution chart will populate once traffic is recorded in api_request_logs.") }}
+{% endif %}
 
 {% else %}
 <!-- Performance Overview -->

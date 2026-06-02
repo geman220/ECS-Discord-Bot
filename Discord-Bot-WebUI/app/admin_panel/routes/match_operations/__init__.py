@@ -15,6 +15,7 @@ This package splits the monolithic match_operations.py into focused modules:
 - verification.py - Match verification
 - substitute_pools.py - Substitute pool management
 - check_in.py - Match check-in tokens + attendance management
+- reports.py - Match report CSV exports + per-week chart data
 """
 
 
@@ -38,4 +39,5 @@ def register_match_operations_routes():
         verification,
         substitute_pools,
         check_in,
+        reports,
     )

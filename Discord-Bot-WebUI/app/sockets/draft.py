@@ -149,6 +149,21 @@ def handle_draft_player_enhanced(data):
                 player_name = player.name
                 team_name = team.name
 
+                # On-the-clock enforcement (ADDITIVE: no-op when no active DraftSession exists,
+                # so free-form drafts behave exactly as before).
+                try:
+                    from app import draft_clock
+                    ds = draft_clock.get_session(session, season_id, league_id)
+                    if (ds and ds.status == 'active' and ds.lock_to_clock
+                            and ds.current_team_id and ds.current_team_id != team_id):
+                        on_clock = session.query(Team).filter(Team.id == ds.current_team_id).first()
+                        on_clock_name = on_clock.name if on_clock else 'another team'
+                        print(f"🚫 Out-of-turn pick blocked: {team_name} (on the clock: {on_clock_name})")
+                        emit('draft_error', {'message': f"It's {on_clock_name}'s pick — they're on the clock"})
+                        return
+                except Exception as _clock_err:
+                    logger.warning(f"Draft on-the-clock check skipped: {_clock_err}")
+
                 # Comprehensive check for existing assignment
                 existing_player_team = session.query(player_teams).filter(
                     player_teams.c.player_id == player_id,
@@ -300,6 +315,20 @@ def handle_draft_player_enhanced(data):
             emit('player_drafted_enhanced', response_data, room=f'draft_{league_name}')
             print(f"✅ Successfully drafted {player_name} to {team_name} - broadcasted to room draft_{league_name}")
             logger.info(f"✅ Successfully drafted {player_name} to {team_name}")
+
+            # Advance the on-the-clock draft (ADDITIVE: no-op when no active DraftSession).
+            try:
+                from app import draft_clock
+                with managed_session() as clock_session:
+                    ds = draft_clock.get_session(clock_session, season_id, league_id)
+                    if ds and ds.status == 'active':
+                        clock_state = draft_clock.advance(clock_session, ds)
+                        # commit happens on managed_session exit; emit after
+                clock_state = locals().get('clock_state')
+                if clock_state:
+                    emit('draft_clock_update', clock_state, room=f'draft_{league_name}')
+            except Exception as _adv_err:
+                logger.warning(f"Draft clock advance skipped: {_adv_err}")
 
             # CRITICAL: Invalidate draft cache so page refresh shows correct data
             try:

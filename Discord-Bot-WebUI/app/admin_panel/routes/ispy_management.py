@@ -572,6 +572,42 @@ def _get_ispy_analytics():
     approved_shots = ISpyShot.query.filter_by(status='approved').count()
     total_players = db.session.query(func.count(func.distinct(ISpyUserStats.discord_id))).scalar() or 0
 
+    # Overall average points per approved shot (real, from total_points on approved shots)
+    avg_points_per_shot = db.session.query(func.avg(ISpyShot.total_points)).filter(
+        ISpyShot.status == 'approved'
+    ).scalar() or 0
+    avg_points_per_shot = round(float(avg_points_per_shot), 1)
+
+    overall_approval_rate = round((approved_shots / total_shots * 100), 1) if total_shots > 0 else 0
+
+    # Prior-season approval-rate trend: compare this season's approval rate to the
+    # previous season's. The prior season is the most recent one (by start_date)
+    # that began before the active season. Delta is None when there is no prior
+    # season or no shots to compute a rate, so the template can hide the trend.
+    approval_rate_delta = None
+    if active_season is not None:
+        prior_season = (
+            ISpySeason.query
+            .filter(ISpySeason.start_date < active_season.start_date)
+            .order_by(ISpySeason.start_date.desc())
+            .first()
+        )
+        if prior_season is not None:
+            prior_total = ISpyShot.query.filter_by(season_id=prior_season.id).count()
+            if prior_total > 0:
+                prior_approved = ISpyShot.query.filter_by(
+                    season_id=prior_season.id, status='approved'
+                ).count()
+                prior_rate = round((prior_approved / prior_total * 100), 1)
+
+                current_total = ISpyShot.query.filter_by(season_id=active_season.id).count()
+                if current_total > 0:
+                    current_approved = ISpyShot.query.filter_by(
+                        season_id=active_season.id, status='approved'
+                    ).count()
+                    current_rate = round((current_approved / current_total * 100), 1)
+                    approval_rate_delta = round(current_rate - prior_rate, 1)
+
     # Category performance
     category_performance = []
     categories = ISpyCategory.query.filter_by(is_active=True).all()
@@ -611,7 +647,9 @@ def _get_ispy_analytics():
             'total_shots': total_shots,
             'approved_shots': approved_shots,
             'total_players': total_players,
-            'approval_rate': round((approved_shots / total_shots * 100), 1) if total_shots > 0 else 0
+            'approval_rate': overall_approval_rate,
+            'avg_points_per_shot': avg_points_per_shot,
+            'approval_rate_delta': approval_rate_delta
         },
         'trends': trends,
         'category_performance': category_performance,

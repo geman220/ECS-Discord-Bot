@@ -202,3 +202,60 @@ class APIRequestLog(db.Model):
         deleted = cls.query.filter(cls.timestamp < cutoff).delete()
         db.session.commit()
         return deleted
+
+
+class TaskExecution(db.Model):
+    """
+    Per-execution record for Celery background tasks.
+
+    Rows are recorded best-effort by the ``celery_task`` decorator
+    (app/decorators.py). One row per task run, capturing start/finish,
+    final status, duration, the worker that ran it, and a short
+    result/error string for the history table + detail modal.
+    """
+    __tablename__ = 'task_executions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.String(155), nullable=True, index=True)  # Celery task id (uuid)
+    name = db.Column(db.String(255), nullable=False, index=True)    # full task name
+    status = db.Column(db.String(20), nullable=False, default='completed', index=True)  # completed|failed
+    started_at = db.Column(db.DateTime, nullable=True, index=True)
+    finished_at = db.Column(db.DateTime, nullable=True)
+    duration_ms = db.Column(db.Float, nullable=True)
+    result = db.Column(db.Text, nullable=True)   # short success summary
+    error = db.Column(db.Text, nullable=True)    # exception/traceback summary on failure
+    worker = db.Column(db.String(255), nullable=True)
+    # JSON-encoded (truncated) positional args / keyword args captured at run time.
+    # Used to re-enqueue a failed task from the Task History "Retry" action.
+    args = db.Column(db.Text, nullable=True)
+    kwargs = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    def __repr__(self):
+        return f'<TaskExecution {self.name} {self.status}>'
+
+    @classmethod
+    def record(cls, name, status, started_at=None, finished_at=None,
+               duration_ms=None, task_id=None, result=None, error=None, worker=None,
+               args=None, kwargs=None):
+        """
+        Persist one task execution. Best-effort; the caller owns the transaction.
+
+        String fields are truncated defensively to fit their columns. ``args`` and
+        ``kwargs`` should already be JSON strings (or None).
+        """
+        entry = cls(
+            task_id=(task_id[:155] if task_id else None),
+            name=name[:255] if name else 'unknown',
+            status=(status or 'completed')[:20],
+            started_at=started_at,
+            finished_at=finished_at,
+            duration_ms=duration_ms,
+            result=(str(result)[:2000] if result is not None else None),
+            error=(str(error)[:2000] if error is not None else None),
+            worker=(worker[:255] if worker else None),
+            args=(str(args)[:4000] if args is not None else None),
+            kwargs=(str(kwargs)[:4000] if kwargs is not None else None),
+        )
+        db.session.add(entry)
+        return entry

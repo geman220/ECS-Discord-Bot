@@ -1,0 +1,85 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'admin_panel/reports/_preview.html' import preview_table, kpi_tiles, filter_chips %}
+
+{% block admin_title %}Player Stats Export{% endblock %}
+{% block panel_description %}Goals, assists, and cards — career totals or season-by-season{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+    <a href="{{ url_for('admin_panel.reports_center') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400">Reports</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Player Stats</span></div></li>
+{% endblock %}
+
+{% set label_cls = "block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300" %}
+{% set field_cls = "w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green p-2.5" %}
+{% set btn_primary = "inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green/90 focus:ring-4 focus:ring-ecs-green/30" %}
+{% set btn_secondary = "inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700" %}
+
+{% block panel_content %}
+{{ kpi_tiles(kpis) }}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+    <form method="get" class="space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+                <label for="mode" class="{{ label_cls }}">Breakdown</label>
+                <select id="mode" name="mode" class="{{ field_cls }}">
+                    <option value="both" {{ 'selected' if args.mode == 'both' }}>Both (Career + By Season)</option>
+                    <option value="career" {{ 'selected' if args.mode == 'career' }}>Career totals only</option>
+                    <option value="season" {{ 'selected' if args.mode == 'season' }}>Season-by-season only</option>
+                </select>
+            </div>
+            <div>
+                <label for="season_from" class="{{ label_cls }}">Season from</label>
+                <select id="season_from" name="season_from" class="{{ field_cls }}">
+                    <option value="">Earliest</option>
+                    {% for s in seasons %}
+                    <option value="{{ s.id }}" {{ 'selected' if args.season_from == s.id }}>{{ s.name }}{% if s.is_current %} (current){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="season_to" class="{{ label_cls }}">Season to</label>
+                <select id="season_to" name="season_to" class="{{ field_cls }}">
+                    <option value="">Latest</option>
+                    {% for s in seasons %}
+                    <option value="{{ s.id }}" {{ 'selected' if args.season_to == s.id }}>{{ s.name }}{% if s.is_current %} (current){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="league" class="{{ label_cls }}">League</label>
+                <select id="league" name="league" class="{{ field_cls }}">
+                    <option value="">All leagues</option>
+                    {% for l in leagues %}<option value="{{ l }}" {{ 'selected' if args.league_name == l }}>{{ l }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="min_goals" class="{{ label_cls }}">Min goals</label>
+                <input type="number" min="0" id="min_goals" name="min_goals" value="{{ args.min_goals or '' }}" placeholder="0" class="{{ field_cls }}">
+            </div>
+            <div class="flex items-end">
+                <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <input type="checkbox" name="current_only" value="1" {{ 'checked' if args.current_only }} class="w-4 h-4 rounded text-ecs-green focus:ring-ecs-green border-gray-300">
+                    Current players only
+                </label>
+            </div>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+            Leave the season range as Earliest→Latest for all-time. Career totals aggregate across the selected scope;
+            a player on both Premier and Classic in one season appears as two rows in the season breakdown.
+        </p>
+        <div class="flex flex-wrap gap-3">
+            <button type="submit" formaction="{{ url_for('admin_panel.player_stats_report') }}" class="{{ btn_secondary }}">
+                <i class="ti ti-eye"></i> Preview
+            </button>
+            <button type="submit" formaction="{{ url_for('admin_panel.player_stats_export') }}" class="{{ btn_primary }}">
+                <i class="ti ti-file-spreadsheet"></i> Download Excel
+            </button>
+        </div>
+    </form>
+
+    {{ filter_chips(chips) }}
+    {{ preview_table(preview_rows, total_count, preview_label) }}
+</div>
+{% endblock %}

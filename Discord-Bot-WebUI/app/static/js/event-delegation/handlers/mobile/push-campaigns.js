@@ -11,6 +11,34 @@
  * @param {Object} ED - EventDelegation instance
  */
 export function initPushCampaignsHandlers(ED) {
+    const BASE = '/admin-panel/mobile-features/push-campaigns';
+
+    function csrf() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
+
+    function postForm(url, formOrParams) {
+        let body;
+        if (formOrParams instanceof FormData) {
+            body = new URLSearchParams(formOrParams).toString();
+        } else {
+            body = new URLSearchParams(formOrParams).toString();
+        }
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrf()
+            },
+            body
+        }).then(r => r.json());
+    }
+
+    function escHtml(s) {
+        return String(s == null ? '' : s)
+            .replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+    }
+
     /**
      * Preview campaign
      */
@@ -69,15 +97,69 @@ export function initPushCampaignsHandlers(ED) {
      */
     ED.register('save-draft', (element, event) => {
         event.preventDefault();
+        const form = document.getElementById('campaignForm');
+        if (!form) return;
+
         window.Swal.fire({
             title: 'Save Draft?',
             text: 'This will save the campaign as a draft for later editing',
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Save Draft'
+            confirmButtonText: 'Save Draft',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: () => !window.Swal.isLoading(),
+            preConfirm: () => {
+                return postForm(`${BASE}/save-draft`, new FormData(form))
+                    .then(data => {
+                        if (!data.success) {
+                            window.Swal.showValidationMessage(data.message || 'Failed to save draft');
+                        }
+                        return data;
+                    })
+                    .catch(() => window.Swal.showValidationMessage('Failed to save draft'));
+            }
         }).then((result) => {
-            if (result.isConfirmed) {
-                window.Swal.fire('Draft Saved!', 'Campaign has been saved as a draft.', 'success');
+            if (result.isConfirmed && result.value && result.value.success) {
+                window.Swal.fire('Draft Saved!', result.value.message || 'Campaign has been saved as a draft.', 'success');
+            }
+        });
+    });
+
+    /**
+     * Send campaign now (real submit of the compose form).
+     * NOTE: action name is `send-mobile-campaign` (not `send-campaign`) to avoid
+     * colliding with the legacy admin/push-campaigns.js per-row `send-campaign`
+     * handler, which expects a data-campaign-id and would otherwise win the
+     * single global EventDelegation registration (last-registered wins).
+     */
+    ED.register('send-mobile-campaign', (element, event) => {
+        event.preventDefault();
+        const form = document.getElementById('campaignForm');
+        if (!form) return;
+        if (form.reportValidity && !form.reportValidity()) return;
+
+        window.Swal.fire({
+            title: 'Send Campaign?',
+            text: 'This will immediately send push notifications to the selected audience.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Send Now',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: () => !window.Swal.isLoading(),
+            preConfirm: () => {
+                return postForm(`${BASE}/send`, new FormData(form))
+                    .then(data => {
+                        if (!data.success) {
+                            window.Swal.showValidationMessage(data.message || 'Failed to send campaign');
+                        }
+                        return data;
+                    })
+                    .catch(() => window.Swal.showValidationMessage('Failed to send campaign'));
+            }
+        }).then((result) => {
+            if (result.isConfirmed && result.value && result.value.success) {
+                window.Swal.fire('Campaign Sent!', result.value.message || 'Your push campaign has been sent.', 'success')
+                    .then(() => location.reload());
             }
         });
     });
@@ -136,39 +218,54 @@ export function initPushCampaignsHandlers(ED) {
     /**
      * View campaign details
      */
-    ED.register('view-campaign-details', (element, event) => {
+    ED.register('view-campaign-details', async (element, event) => {
         event.preventDefault();
         const campaignId = element.dataset.campaignId;
 
-        window.Swal.fire({
-            title: `Campaign Details`,
-            html: `
-                <div class="text-start">
-                    <div class="mb-3">
-                        <strong>Campaign ID:</strong> ${campaignId}<br>
-                        <strong>Type:</strong> Match Reminder<br>
-                        <strong>Created:</strong> 2024-01-15 09:00:00<br>
-                        <strong>Sent:</strong> 2024-01-15 10:30:00
-                    </div>
-                    <div class="mb-3">
-                        <strong>Notification Content:</strong><br>
-                        <div class="c-card bg-light p-2">
-                            <strong>Title:</strong> Match Starting Soon!<br>
-                            <strong>Message:</strong> Your match against Arsenal FC starts in 30 minutes. Good luck team!
+        try {
+            const resp = await fetch(`${BASE}/${campaignId}/details`);
+            const data = await resp.json();
+            if (!data.success) {
+                window.Swal.fire('Error', data.message || 'Failed to load campaign details', 'error');
+                return;
+            }
+            const c = data.campaign;
+            const a = c.analytics || {};
+            window.Swal.fire({
+                title: 'Campaign Details',
+                html: `
+                    <div class="text-start">
+                        <div class="mb-3">
+                            <strong>Campaign ID:</strong> ${escHtml(c.id)}<br>
+                            <strong>Name:</strong> ${escHtml(c.name)}<br>
+                            <strong>Status:</strong> ${escHtml(c.status)}<br>
+                            <strong>Target:</strong> ${escHtml(c.target_summary || c.target_type)}<br>
+                            <strong>Created:</strong> ${escHtml(c.created_at || 'N/A')}<br>
+                            <strong>Sent:</strong> ${escHtml(c.actual_send_time || 'Not sent')}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Notification Content:</strong><br>
+                            <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                                <strong>Title:</strong> ${escHtml(c.title)}<br>
+                                <strong>Message:</strong> ${escHtml(c.body)}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Performance Metrics:</strong><br>
+                            - Targeted: ${escHtml(a.target_count ?? 0)}<br>
+                            - Sent: ${escHtml(a.sent_count ?? 0)}<br>
+                            - Delivered: ${escHtml(a.delivered_count ?? 0)} (${escHtml(a.delivery_rate ?? 0)}%)<br>
+                            - Failed: ${escHtml(a.failed_count ?? 0)}<br>
+                            - Clicked: ${escHtml(a.click_count ?? 0)} (${escHtml(a.click_rate ?? 0)}%)
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <strong>Performance Metrics:</strong><br>
-                        - Recipients: 150 users<br>
-                        - Delivered: 95% (142 users)<br>
-                        - Opened: 78% (117 users)<br>
-                        - Clicked: 45% (68 users)
-                    </div>
-                </div>
-            `,
-            width: '600px',
-            confirmButtonText: 'Close'
-        });
+                `,
+                width: '600px',
+                confirmButtonText: 'Close'
+            });
+        } catch (err) {
+            window.Swal.fire('Error', 'Failed to load campaign details', 'error');
+        }
     });
 
     /**
@@ -180,25 +277,33 @@ export function initPushCampaignsHandlers(ED) {
 
         window.Swal.fire({
             title: 'Duplicate Campaign?',
-            text: 'This will create a copy of this campaign that you can edit',
+            text: 'This will load a copy of this campaign into the form for editing',
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Duplicate Campaign'
-        }).then((result) => {
-            if (result.isConfirmed) {
+        }).then(async (result) => {
+            if (!result.isConfirmed) return;
+            try {
+                const resp = await fetch(`${BASE}/${campaignId}/details`);
+                const data = await resp.json();
+                if (!data.success) {
+                    window.Swal.fire('Error', data.message || 'Failed to load campaign', 'error');
+                    return;
+                }
+                const c = data.campaign;
                 const nameInput = document.querySelector('input[name="campaign_name"]');
                 const titleInput = document.querySelector('input[name="notification_title"]');
                 const messageInput = document.querySelector('textarea[name="notification_message"]');
-                const typeSelect = document.querySelector('select[name="campaign_type"]');
-                const audienceSelect = document.querySelector('select[name="target_audience"]');
+                const counter = document.getElementById('messageCounter');
 
-                if (nameInput) nameInput.value = 'Copy of Week 5 Match Reminders';
-                if (titleInput) titleInput.value = 'Match Starting Soon!';
-                if (messageInput) messageInput.value = 'Your match against Arsenal FC starts in 30 minutes. Good luck team!';
-                if (typeSelect) typeSelect.value = 'match_reminder';
-                if (audienceSelect) audienceSelect.value = 'active';
+                if (nameInput) nameInput.value = `Copy of ${c.name || ''}`;
+                if (titleInput) titleInput.value = c.title || '';
+                if (messageInput) messageInput.value = c.body || '';
+                if (counter && c.body) counter.textContent = c.body.length;
 
                 window.Swal.fire('Campaign Duplicated!', 'Campaign has been loaded into the form for editing.', 'success');
+            } catch (err) {
+                window.Swal.fire('Error', 'Failed to load campaign', 'error');
             }
         });
     });
@@ -218,7 +323,7 @@ export function initPushCampaignsHandlers(ED) {
             confirmButtonText: 'Download Report'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.Swal.fire('Report Generating...', 'Your campaign report is being prepared for download.', 'success');
+                window.location.href = `${BASE}/${campaignId}/report`;
             }
         });
     });

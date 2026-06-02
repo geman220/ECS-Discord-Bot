@@ -30,12 +30,15 @@ async function promptForLeagueAndNavigate(page, title) {
     let leagues = window.PLAYOFF_CONFIG?.leagues || [];
 
     if (leagues.length === 0) {
-        // Fetch leagues from API
+        // Fetch real leagues from the admin-panel leagues endpoint.
+        // Returns {success: true, leagues: [{id, name, team_count}]}.
         try {
-            const response = await fetch('/api/leagues');
+            const response = await fetch('/admin-panel/api/push/leagues');
             if (response.ok) {
                 const data = await response.json();
-                leagues = data.leagues || [];
+                if (data.success && Array.isArray(data.leagues)) {
+                    leagues = data.leagues;
+                }
             }
         } catch (error) {
             console.error('[promptForLeagueAndNavigate] Error fetching leagues:', error);
@@ -43,11 +46,13 @@ async function promptForLeagueAndNavigate(page, title) {
     }
 
     if (leagues.length === 0) {
-        // Default to known leagues if API fails
-        leagues = [
-            { id: 1, name: 'Pub League Premier' },
-            { id: 2, name: 'Pub League Classic' }
-        ];
+        // No real leagues available - surface the error rather than fabricating IDs.
+        await window.Swal.fire({
+            title: 'No Leagues Available',
+            text: 'Could not load any leagues. Please ensure a current season with leagues exists, then try again.',
+            icon: 'error'
+        });
+        return;
     }
 
     const leagueOptions = leagues.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
@@ -87,69 +92,8 @@ async function promptForLeagueAndNavigate(page, title) {
 }
 
 // ============================================================================
-// PLAYOFF CREATION & MANAGEMENT
+// PLAYOFF NAVIGATION & MANAGEMENT
 // ============================================================================
-
-/**
- * Create Playoff
- * Opens dialog to create a new playoff tournament
- */
-window.EventDelegation.register('create-playoff', function(element, e) {
-    e.preventDefault();
-
-    if (typeof window.Swal === 'undefined') {
-        console.error('[create-playoff] SweetAlert2 not available');
-        return;
-    }
-
-    window.Swal.fire({
-        title: 'Create New Playoff',
-        html: `
-            <div class="mb-3">
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tournament Name</label>
-                <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="tournamentName" placeholder="Enter tournament name" data-form-control>
-            </div>
-            <div class="mb-3">
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Format</label>
-                <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="tournamentFormat" data-form-select>
-                    <option value="">Select format...</option>
-                    <option value="single-elim">Single Elimination</option>
-                    <option value="double-elim">Double Elimination</option>
-                    <option value="round-robin">Round Robin</option>
-                    <option value="swiss">Swiss System</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Number of Teams</label>
-                <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="teamCount" data-form-select>
-                    <option value="">Select team count...</option>
-                    <option value="4">4 Teams</option>
-                    <option value="8">8 Teams</option>
-                    <option value="16">16 Teams</option>
-                    <option value="32">32 Teams</option>
-                </select>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Create Tournament',
-        preConfirm: () => {
-            const name = document.getElementById('tournamentName').value;
-            const format = document.getElementById('tournamentFormat').value;
-            const teamCount = document.getElementById('teamCount').value;
-
-            if (!name || !format || !teamCount) {
-                window.Swal.showValidationMessage('All fields are required');
-                return false;
-            }
-
-            return { name, format, teamCount };
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.Swal.fire('Created!', 'Tournament has been created successfully.', 'success');
-        }
-    });
-});
 
 /**
  * View Active Playoffs
@@ -254,53 +198,6 @@ window.EventDelegation.register('view-bracket', function(element, e) {
     } else {
         promptForLeagueAndNavigate('bracket', 'View Bracket');
     }
-});
-
-// ============================================================================
-// TEMPLATES
-// ============================================================================
-
-/**
- * Use Template
- * Uses a playoff template to create a tournament
- */
-window.EventDelegation.register('use-template', function(element, e) {
-    e.preventDefault();
-
-    const templateType = element.dataset.template;
-
-    if (!templateType) {
-        console.error('[use-template] Missing template type');
-        return;
-    }
-
-    if (typeof window.Swal === 'undefined') {
-        console.error('[use-template] SweetAlert2 not available');
-        return;
-    }
-
-    let templateName = '';
-    switch(templateType) {
-        case 'single-elim': templateName = 'Single Elimination'; break;
-        case 'double-elim': templateName = 'Double Elimination'; break;
-        case 'round-robin': templateName = 'Round Robin'; break;
-        case 'swiss': templateName = 'Swiss System'; break;
-        case 'group-stage': templateName = 'Group Stage'; break;
-        case 'custom': templateName = 'Custom Format'; break;
-        default: templateName = templateType;
-    }
-
-    window.Swal.fire({
-        title: `Use ${templateName} Template?`,
-        text: 'This will create a new tournament using this format.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Use Template'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.Swal.fire('Template Applied!', `${templateName} tournament template is ready for configuration.`, 'success');
-        }
-    });
 });
 
 // Handlers loaded

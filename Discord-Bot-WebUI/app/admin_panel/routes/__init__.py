@@ -66,6 +66,9 @@ def register_all_routes(admin_panel_bp):
     # Phase 3: Reports & Feedback
     from . import reports_feedback
 
+    # Reports hub & data exports (player stats, attendance, movement, retention, etc.)
+    from . import reports
+
     # Phase 4: Draft Management
     from . import draft_management
 

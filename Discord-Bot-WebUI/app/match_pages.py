@@ -400,6 +400,43 @@ def view_match(match_id):
                     match.away_team.name: away_players
                 }
 
+        # --- Player self-RSVP widget context ---------------------------------
+        # Look up the CURRENT viewer's OWN availability row for this match, but
+        # only when they are actually a player on one of the teams in play. This
+        # powers the "Your RSVP" control in the console shell. Fully defensive:
+        # any failure leaves current_user_rsvp = None and the widget hides.
+        current_user_rsvp = None
+        viewer_player_id = None
+        viewer_team_id = None
+        try:
+            viewer = safe_current_user.player if hasattr(safe_current_user, 'player') else None
+            if viewer is not None:
+                if is_ecs_fc_match:
+                    team_player_ids = {p.id for p in team.players} if team else set()
+                    if viewer.id in team_player_ids:
+                        viewer_player_id = viewer.id
+                        viewer_team_id = team.id
+                        current_user_rsvp = session.query(EcsFcAvailability).filter_by(
+                            ecs_fc_match_id=actual_match_id,
+                            player_id=viewer.id
+                        ).first()
+                else:
+                    home_ids = {p.id for p in match.home_team.players} if match and match.home_team else set()
+                    away_ids = {p.id for p in match.away_team.players} if match and match.away_team else set()
+                    if viewer.id in home_ids or viewer.id in away_ids:
+                        viewer_player_id = viewer.id
+                        viewer_team_id = (match.home_team_id if viewer.id in home_ids
+                                          else match.away_team_id)
+                        current_user_rsvp = session.query(Availability).filter_by(
+                            match_id=actual_match_id,
+                            player_id=viewer.id
+                        ).first()
+        except Exception as e:
+            logger.warning(f"Could not resolve current_user_rsvp for match {match_id}: {e}")
+            current_user_rsvp = None
+            viewer_player_id = None
+            viewer_team_id = None
+
         return render_template(
             'view_match_flowbite.html',
             match=match if not is_ecs_fc_match else None,
@@ -410,7 +447,10 @@ def view_match(match_id):
             away_rsvp_data=away_rsvp_data,
             player_choices=player_choices,
             sort_by=sort_by,
-                is_ecs_fc_match=is_ecs_fc_match
+                is_ecs_fc_match=is_ecs_fc_match,
+                current_user_rsvp=current_user_rsvp,
+                viewer_player_id=viewer_player_id,
+                viewer_team_id=viewer_team_id
             )
     except Exception as e:
         print(f"EXCEPTION IN VIEW_MATCH FOR {match_id}: {str(e)}")

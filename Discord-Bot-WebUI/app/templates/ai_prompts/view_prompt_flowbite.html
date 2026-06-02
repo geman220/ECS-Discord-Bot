@@ -28,91 +28,173 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+{% from 'macros/_modern_kit.html' import section_card, empty_state %}
+{# Static literal width-step classes so Tailwind's content scan emits them (no inline style, no arbitrary dynamic value). #}
+{% set bar_w = {0:'w-[0%]', 1:'w-[10%]', 2:'w-[20%]', 3:'w-[30%]', 4:'w-[40%]', 5:'w-[50%]', 6:'w-[60%]', 7:'w-[70%]', 8:'w-[80%]', 9:'w-[90%]', 10:'w-full'} %}
 <div class="max-w-7xl mx-auto">
-  {{ page_header(prompt.name, subtitle='AI Prompt Configuration') }}
 
-  {# --- KPI strip --- #}
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
-    {% if prompt.is_active %}
-      {{ stat_card('ti-circle-check', 'Status', 'Active', tone='success') }}
-    {% else %}
-      {{ stat_card('ti-circle-off', 'Status', 'Inactive', tone='neutral') }}
-    {% endif %}
-    {{ stat_card('ti-tag', 'Type', prompt_type_labels.get(prompt.prompt_type, prompt.prompt_type), tone='info') }}
-    {{ stat_card('ti-temperature', 'Temperature', prompt.temperature, tone='primary') }}
-    {{ stat_card('ti-letter-t', 'Max Tokens', prompt.max_tokens, tone='primary') }}
+  {# ===== Command toolbar: identity + primary CTA + actions ===== #}
+  <div class="flex flex-col gap-4 mb-5 sm:mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+        <a href="{{ url_for('ai_prompts.list_prompts') }}" class="inline-flex items-center gap-1 hover:text-ecs-green transition-colors">
+          <i class="ti ti-arrow-left" aria-hidden="true"></i> AI Prompts
+        </a>
+        <span class="text-gray-300 dark:text-gray-600">/</span>
+        <span class="font-mono">#{{ prompt.id }}</span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <form method="POST" action="{{ url_for('ai_prompts.duplicate_prompt', prompt_id=prompt.id) }}" class="contents">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-copy" aria-hidden="true"></i> <span class="hidden sm:inline">Duplicate</span>
+          </button>
+        </form>
+        {% if prompt.is_active %}
+        <form method="POST" action="{{ url_for('ai_prompts.toggle_prompt', prompt_id=prompt.id) }}" class="contents">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-amber-600 bg-white border border-amber-500 hover:bg-amber-50 dark:bg-gray-800 dark:text-amber-400 dark:border-amber-500/60 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <i class="ti ti-player-pause" aria-hidden="true"></i> <span class="hidden sm:inline">Deactivate</span>
+          </button>
+        </form>
+        {% else %}
+        <form method="POST" action="{{ url_for('ai_prompts.toggle_prompt', prompt_id=prompt.id) }}" class="contents">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-green-600 bg-white border border-green-500 hover:bg-green-50 dark:bg-gray-800 dark:text-green-400 dark:border-green-500/60 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500">
+            <i class="ti ti-player-play" aria-hidden="true"></i> <span class="hidden sm:inline">Activate</span>
+          </button>
+        </form>
+        {% endif %}
+        <form method="POST" action="{{ url_for('ai_prompts.delete_prompt', prompt_id=prompt.id) }}" class="contents">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="button"
+                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg text-red-600 bg-white border border-gray-300 hover:bg-red-50 hover:border-red-300 dark:bg-gray-800 dark:text-red-400 dark:border-gray-600 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                  data-action="confirm-delete-prompt" aria-label="Delete prompt">
+            <i class="ti ti-trash" aria-hidden="true"></i>
+          </button>
+        </form>
+        <a href="{{ url_for('ai_prompts.edit_prompt', prompt_id=prompt.id) }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+          <i class="ti ti-edit" aria-hidden="true"></i> Edit
+        </a>
+      </div>
+    </div>
+
+    {# ===== Hero feature card: the prompt object ===== #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="h-1 w-full {{ 'bg-ecs-green' if prompt.is_active else 'bg-gray-300 dark:bg-gray-600' }}"></div>
+      <div class="p-4 sm:p-5">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div class="flex items-start gap-3 min-w-0">
+            <div class="w-11 h-11 rounded-xl bg-ecs-green/10 text-ecs-green flex items-center justify-center shrink-0">
+              <i class="ti ti-robot text-2xl" aria-hidden="true"></i>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">AI Prompt Configuration</p>
+              <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white break-words">{{ prompt.name }}</h1>
+              {% if prompt.description %}
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ prompt.description }}</p>
+              {% endif %}
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            {% if prompt.is_active %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Active
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+              <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Inactive
+            </span>
+            {% endif %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
+              <i class="ti ti-tag" aria-hidden="true"></i> {{ prompt_type_labels.get(prompt.prompt_type, prompt.prompt_type) }}
+            </span>
+            {% if prompt.rivalry_intensity and prompt.rivalry_intensity > 7 %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400">
+              <i class="ti ti-flame" aria-hidden="true"></i> High Rivalry
+            </span>
+            {% endif %}
+          </div>
+        </div>
+
+        {# ===== KPI band: runtime parameters as big mono figures w/ divider footers ===== #}
+        <div class="grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700 mt-5 pt-5 border-t border-gray-200 dark:border-gray-700 -mx-4 sm:-mx-5 px-4 sm:px-5">
+          <div class="px-0 sm:px-4 first:pl-0 py-3 sm:py-0">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Temperature</p>
+            <p class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-ecs-green leading-none">{{ prompt.temperature }}</p>
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">0 = precise · 2 = creative</p>
+          </div>
+          <div class="px-0 sm:px-4 py-3 sm:py-0">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Max Tokens</p>
+            <p class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-none">{{ prompt.max_tokens }}</p>
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">response length cap</p>
+          </div>
+          <div class="px-0 sm:px-4 py-3 sm:py-0">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Rivalry</p>
+            <p class="mt-1 font-mono text-2xl sm:text-3xl font-bold leading-none {{ 'text-red-600 dark:text-red-400' if prompt.rivalry_intensity > 7 else 'text-amber-600 dark:text-amber-400' if prompt.rivalry_intensity > 4 else 'text-gray-900 dark:text-white' }}">{{ prompt.rivalry_intensity }}<span class="text-base text-gray-400 dark:text-gray-500">/10</span></p>
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">intensity scale</p>
+          </div>
+          <div class="px-0 sm:px-4 py-3 sm:py-0">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Version</p>
+            <p class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-none">v{{ prompt.version }}</p>
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">{{ prompt.competition_filter or 'all competitions' }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
-    {# --- Main column (2/3) --- #}
+    {# --- Main column (2/3): the prompt bodies (primary content) --- #}
     <div class="lg:col-span-2 space-y-5 sm:space-y-6">
-      {% call section_card('Prompt Configuration', icon='ti-adjustments') %}
-      <div class="p-4 sm:p-5">
-        {% if prompt.rivalry_intensity and prompt.rivalry_intensity > 7 %}
-        <div class="mb-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400">
-          <i class="ti ti-flame" aria-hidden="true"></i> High Rivalry
+
+      {# System prompt — code panel with header bar + char count #}
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-11 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+          <h3 class="text-xs font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-settings-bolt text-ecs-green" aria-hidden="true"></i> System Prompt
+          </h3>
+          <span class="text-xs font-mono text-gray-400 dark:text-gray-500">{{ prompt.system_prompt|length }} chars</span>
         </div>
-        {% endif %}
-        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Name</dt>
-            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ prompt.name }}</dd>
+        <p class="px-4 sm:px-5 pt-3 text-xs text-gray-500 dark:text-gray-400">Defines the AI's role and behavior.</p>
+        <div class="p-4 sm:p-5 pt-3">
+          <div class="bg-gray-900 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700 p-4 overflow-x-auto">
+            <pre class="text-sm text-gray-100 whitespace-pre-wrap font-mono leading-relaxed">{{ prompt.system_prompt }}</pre>
           </div>
-          <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Type</dt>
-            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ prompt_type_labels.get(prompt.prompt_type, prompt.prompt_type) }}</dd>
+        </div>
+      </section>
+
+      {# User prompt template — code panel + variable chips #}
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-11 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+          <h3 class="text-xs font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-template text-ecs-green" aria-hidden="true"></i> User Prompt Template
+          </h3>
+          <span class="text-xs font-mono text-gray-400 dark:text-gray-500">{{ (prompt.user_prompt_template or '')|length }} chars</span>
+        </div>
+        <p class="px-4 sm:px-5 pt-3 text-xs text-gray-500 dark:text-gray-400">Rendered with live match data for each event.</p>
+        <div class="p-4 sm:p-5 pt-3">
+          {% if prompt.user_prompt_template %}
+          <div class="bg-gray-900 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4 overflow-x-auto">
+            <pre class="text-sm text-gray-100 whitespace-pre-wrap font-mono leading-relaxed">{{ prompt.user_prompt_template }}</pre>
           </div>
-          {% if prompt.description %}
-          <div class="sm:col-span-2">
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Description</dt>
-            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ prompt.description }}</dd>
-          </div>
+          {% else %}
+          <p class="text-sm text-gray-500 dark:text-gray-400 italic mb-4">No user template set; the system prompt is used directly.</p>
           {% endif %}
-          <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Competition Filter</dt>
-            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ prompt.competition_filter or 'All' }}</dd>
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Available Variables</p>
+          <div class="flex flex-wrap gap-1.5">
+            {% for var in ['home_team', 'away_team', 'venue', 'competition', 'opponent', 'match_date', 'is_home_game'] %}
+            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-ecs-green">{{ '{' ~ var ~ '}' }}</code>
+            {% endfor %}
           </div>
-          <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Temperature</dt>
-            <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ prompt.temperature }}</dd>
-          </div>
-          <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Max Tokens</dt>
-            <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ prompt.max_tokens }}</dd>
-          </div>
-        </dl>
-      </div>
-      {% endcall %}
-
-      {% call section_card('System Prompt', icon='ti-robot') %}
-      <div class="p-4 sm:p-5">
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Defines the AI's role and behavior.</p>
-        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-          <pre class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-mono">{{ prompt.system_prompt }}</pre>
         </div>
-      </div>
-      {% endcall %}
+      </section>
 
-      {% call section_card('User Prompt Template', icon='ti-template') %}
-      <div class="p-4 sm:p-5">
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Template used for each match event.</p>
-        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4">
-          <pre class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-mono">{{ prompt.user_prompt_template }}</pre>
-        </div>
-        <div class="text-sm text-gray-500 dark:text-gray-400">
-          <span class="font-medium text-gray-700 dark:text-gray-300">Available Variables:</span>
-          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green ml-1">{home_team}</code>,
-          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green">{away_team}</code>,
-          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green">{venue}</code>,
-          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green">{competition}</code>,
-          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green">{opponent}</code>,
-          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green">{match_date}</code>,
-          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green">{is_home_game}</code>
-        </div>
-      </div>
-      {% endcall %}
-
+      {# Rivalry configuration #}
       {% if prompt.rivalry_teams or prompt.rivalry_intensity > 1 %}
       {% call section_card('Rivalry Configuration', icon='ti-swords') %}
       <div class="p-4 sm:p-5 space-y-4">
@@ -120,7 +202,7 @@
           <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Rivalry Intensity</dt>
           <dd class="flex items-center gap-3">
             <div class="flex-1 h-2 bg-gray-200 rounded-full dark:bg-gray-700">
-              <div class="h-2 rounded-full {{ 'bg-red-500' if prompt.rivalry_intensity > 7 else 'bg-amber-500' if prompt.rivalry_intensity > 4 else 'bg-green-500' }} w-[{{ prompt.rivalry_intensity * 10 }}%]"></div>
+              <div class="h-2 rounded-full {{ 'bg-red-500' if prompt.rivalry_intensity > 7 else 'bg-amber-500' if prompt.rivalry_intensity > 4 else 'bg-green-500' }} {{ bar_w.get(prompt.rivalry_intensity, 'w-[50%]') }}"></div>
             </div>
             <span class="text-sm font-mono text-gray-900 dark:text-white font-medium">{{ prompt.rivalry_intensity }}/10</span>
           </dd>
@@ -129,8 +211,8 @@
         <div>
           <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Rivalry Teams</dt>
           <dd>
-            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-              <pre class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-mono">{{ prompt.rivalry_teams | tojson(indent=2) }}</pre>
+            <div class="bg-gray-900 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700 p-4 overflow-x-auto">
+              <pre class="text-sm text-gray-100 whitespace-pre-wrap font-mono">{{ prompt.rivalry_teams | tojson(indent=2) }}</pre>
             </div>
           </dd>
         </div>
@@ -139,8 +221,8 @@
         <div>
           <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Forbidden Topics</dt>
           <dd>
-            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-              <pre class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-mono">{{ prompt.forbidden_topics | tojson(indent=2) }}</pre>
+            <div class="bg-gray-900 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700 p-4 overflow-x-auto">
+              <pre class="text-sm text-gray-100 whitespace-pre-wrap font-mono">{{ prompt.forbidden_topics | tojson(indent=2) }}</pre>
             </div>
           </dd>
         </div>
@@ -148,61 +230,94 @@
       </div>
       {% endcall %}
       {% endif %}
+
+      {# Targeting & constraints — where/when this prompt fires + response rules #}
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center gap-2 px-4 sm:px-5 h-11 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+          <h3 class="text-xs font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-target text-ecs-green" aria-hidden="true"></i> Targeting &amp; Constraints
+          </h3>
+        </div>
+        <dl class="divide-y divide-gray-100 dark:divide-gray-700/60">
+          <div class="px-4 sm:px-5 py-3">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Competition Filter</dt>
+            <dd>
+              {% if prompt.competition_filter %}
+              <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-900 dark:text-white">{{ prompt.competition_filter }}</code>
+              {% else %}
+              <span class="text-sm text-gray-500 dark:text-gray-400">All competitions</span>
+              {% endif %}
+            </dd>
+          </div>
+          <div class="px-4 sm:px-5 py-3">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Team Filter</dt>
+            <dd class="flex flex-wrap gap-1.5">
+              {% if prompt.team_filter %}
+                {% for team in prompt.team_filter %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green">
+                  <i class="ti ti-shield-half" aria-hidden="true"></i> {{ team }}
+                </span>
+                {% endfor %}
+              {% else %}
+              <span class="text-sm text-gray-500 dark:text-gray-400">Any team</span>
+              {% endif %}
+            </dd>
+          </div>
+          <div class="px-4 sm:px-5 py-3">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Event Types</dt>
+            <dd class="flex flex-wrap gap-1.5">
+              {% if prompt.event_types %}
+                {% for ev in prompt.event_types %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
+                  <i class="ti ti-bolt" aria-hidden="true"></i> {{ ev }}
+                </span>
+                {% endfor %}
+              {% else %}
+              <span class="text-sm text-gray-500 dark:text-gray-400">All event types</span>
+              {% endif %}
+            </dd>
+          </div>
+          <div class="px-4 sm:px-5 py-3">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Required Elements</dt>
+            <dd class="flex flex-wrap gap-1.5">
+              {% if prompt.required_elements %}
+                {% for el in prompt.required_elements %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                  <i class="ti ti-check" aria-hidden="true"></i> {{ el }}
+                </span>
+                {% endfor %}
+              {% else %}
+              <span class="text-sm text-gray-500 dark:text-gray-400">None enforced</span>
+              {% endif %}
+            </dd>
+          </div>
+        </dl>
+      </section>
     </div>
 
-    {# --- Sidebar (1/3) --- #}
+    {# --- Sidebar (1/3): inspection panels --- #}
     <div class="space-y-5 sm:space-y-6">
-      {% call section_card('Actions', icon='ti-bolt') %}
-      <div class="p-4 sm:p-5 space-y-2">
-        <a href="{{ url_for('ai_prompts.edit_prompt', prompt_id=prompt.id) }}"
-           class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-          <i class="ti ti-edit" aria-hidden="true"></i> Edit Prompt
-        </a>
 
-        <form method="POST" action="{{ url_for('ai_prompts.duplicate_prompt', prompt_id=prompt.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit"
-                  class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-ecs-green bg-white border border-ecs-green hover:bg-ecs-green hover:text-white dark:bg-gray-700 dark:hover:bg-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-copy" aria-hidden="true"></i> Duplicate
-          </button>
-        </form>
-
-        {% if prompt.is_active %}
-        <form method="POST" action="{{ url_for('ai_prompts.toggle_prompt', prompt_id=prompt.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit"
-                  class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-amber-600 bg-white border border-amber-500 hover:bg-amber-50 dark:bg-gray-700 dark:text-amber-400 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
-            <i class="ti ti-power" aria-hidden="true"></i> Deactivate
-          </button>
-        </form>
-        {% else %}
-        <form method="POST" action="{{ url_for('ai_prompts.toggle_prompt', prompt_id=prompt.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit"
-                  class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-green-600 bg-white border border-green-500 hover:bg-green-50 dark:bg-gray-700 dark:text-green-400 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500">
-            <i class="ti ti-power" aria-hidden="true"></i> Activate
-          </button>
-        </form>
-        {% endif %}
-
-        <hr class="my-3 border-gray-200 dark:border-gray-700">
-
-        <form method="POST" action="{{ url_for('ai_prompts.delete_prompt', prompt_id=prompt.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="button"
-                  class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-red-600 bg-white border border-red-500 hover:bg-red-50 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-                  data-action="confirm-delete-prompt">
-            <i class="ti ti-trash" aria-hidden="true"></i> Delete
-          </button>
-        </form>
-
-        <a href="{{ url_for('ai_prompts.list_prompts') }}"
-           class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-          <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to List
-        </a>
+      {# Test sandbox — primary side action #}
+      {% call section_card('Test Sandbox', icon='ti-flask') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Run this prompt against a sample Sounders match and inspect the AI output.</p>
+        <button type="button"
+                class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                data-action="test-prompt"
+                data-prompt-id="{{ prompt.id }}">
+          <i class="ti ti-player-play" aria-hidden="true"></i> Run Test
+        </button>
+        <div id="test-output" class="hidden mt-4">
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">AI Output</p>
+          <div class="bg-gray-900 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700 p-4 overflow-x-auto">
+            <pre id="test-result" class="text-sm text-gray-100 whitespace-pre-wrap font-mono leading-relaxed"></pre>
+          </div>
+        </div>
       </div>
       {% endcall %}
 
+      {# Tone template #}
       {% call section_card('Tone Template', icon='ti-brain') %}
       <div class="p-4 sm:p-5">
         {% if prompt.active_template %}
@@ -222,31 +337,7 @@
       </div>
       {% endcall %}
 
-      {% call section_card('Metadata', icon='ti-info-circle') %}
-      <div class="p-4 sm:p-5">
-        <dl class="space-y-3">
-          <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Version</dt>
-            <dd class="mt-1">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">v{{ prompt.version }}</span>
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Created</dt>
-            <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ prompt.created_at.strftime('%Y-%m-%d %H:%M:%S') if prompt.created_at else 'Unknown' }}</dd>
-          </div>
-          <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Updated</dt>
-            <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ prompt.updated_at.strftime('%Y-%m-%d %H:%M:%S') if prompt.updated_at else 'Unknown' }}</dd>
-          </div>
-          <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Created By</dt>
-            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ prompt.created_by or 'Unknown' }}</dd>
-          </div>
-        </dl>
-      </div>
-      {% endcall %}
-
+      {# Personality traits #}
       {% if prompt.personality_traits %}
       {% call section_card('Personality Traits', icon='ti-mood-smile') %}
       <div class="p-4 sm:p-5 space-y-4">
@@ -257,7 +348,7 @@
             <span class="text-sm font-mono text-gray-500 dark:text-gray-400">{{ value }}/10</span>
           </div>
           <div class="w-full h-2 bg-gray-200 rounded-full dark:bg-gray-700">
-            <div class="h-2 rounded-full {{ 'bg-red-500' if value > 7 else 'bg-amber-500' if value > 4 else 'bg-green-500' }} w-[{{ value * 10 }}%]"></div>
+            <div class="h-2 rounded-full {{ 'bg-red-500' if value > 7 else 'bg-amber-500' if value > 4 else 'bg-green-500' }} {{ bar_w.get(value, 'w-[50%]') }}"></div>
           </div>
         </div>
         {% endfor %}
@@ -265,20 +356,30 @@
       {% endcall %}
       {% endif %}
 
-      {% call section_card('Test Preview', icon='ti-flask') %}
-      <div class="p-4 sm:p-5">
-        <button type="button"
-                class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-cyan-600 bg-white border border-cyan-500 hover:bg-cyan-50 dark:bg-gray-700 dark:text-cyan-400 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                data-action="test-prompt"
-                data-prompt-id="{{ prompt.id }}">
-          <i class="ti ti-flask" aria-hidden="true"></i> Test Prompt
-        </button>
-        <div id="test-output" class="hidden mt-4">
-          <div class="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <pre id="test-result" class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-mono"></pre>
-          </div>
+      {# Metadata — dense key/value rows with divider rules #}
+      {% call section_card('Metadata', icon='ti-info-circle') %}
+      <dl class="divide-y divide-gray-100 dark:divide-gray-700/60">
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+          <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Version</dt>
+          <dd><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">v{{ prompt.version }}</span></dd>
         </div>
-      </div>
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+          <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Competition</dt>
+          <dd class="text-sm text-gray-900 dark:text-white truncate">{{ prompt.competition_filter or 'All' }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+          <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Created</dt>
+          <dd class="text-sm font-mono text-gray-900 dark:text-white">{{ prompt.created_at.strftime('%Y-%m-%d %H:%M') if prompt.created_at else 'Unknown' }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+          <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Updated</dt>
+          <dd class="text-sm font-mono text-gray-900 dark:text-white">{{ prompt.updated_at.strftime('%Y-%m-%d %H:%M') if prompt.updated_at else 'Unknown' }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+          <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Created By</dt>
+          <dd class="text-sm text-gray-900 dark:text-white truncate">{{ prompt.created_by or 'Unknown' }}</dd>
+        </div>
+      </dl>
       {% endcall %}
     </div>
   </div>

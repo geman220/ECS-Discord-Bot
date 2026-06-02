@@ -27,10 +27,57 @@
 
 {% block panel_content %}
 {% if shell == 'console' %}
-{# ===================== Modern console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, section_card, data_table, data_table_th, empty_state %}
+{# ===================== Modern console (shell == 'console') =====================
+   INTENT: Operations cockpit for the draft cache. Primary job = see which active-
+   season leagues have warm vs cold draft caches and warm them on demand. Secondary
+   = Redis subsystem health (circuit breaker, connection pool, active drafts).
 
-{% call page_header("Draft Cache Statistics", subtitle="System / Redis / Draft Cache") %}
+   REAL DATA (DraftCacheService.get_cache_stats / warm_cache_for_league):
+     cache_stats.redis_available (bool)
+     cache_stats.active_drafts (list[str])
+     cache_stats.circuit_breaker {state, failures}
+     cache_stats.draft_cache_keys {players, analytics, teams, availability} (int counts)
+     cache_stats.connection_pool.pool_stats {max_connections, in_use_connections,
+                 available_connections, created_connections, utilization_percent}
+     league_cache_status[name] = {success, active_draft_enabled,
+                 cache_status: {players_available, players_drafted, analytics, teams}
+                              each {exists, ttl, cache_key}, ttl_settings}
+   No total_keys / hit_rate / memory_usage_percent / warmed / last_warmed exist —
+   those were fabricated by a prior pass and are gone. TTL element ids (player-ttl,
+   analytics-ttl, team-ttl, availability-ttl) and js-warm-cache/data-league and
+   #draft-cache-stats-refresh-btn are the real JS hooks and are preserved verbatim.
+================================================================================ #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
+
+{# Precompute real roll-ups from the per-league cache_status maps. #}
+{% set ns = namespace(warm=0, cold=0, present=0, slots=0) %}
+{% for lg in leagues %}
+  {% set st = league_cache_status.get(lg, {}).get('cache_status', {}) %}
+  {% set ns.present = ns.present + (st.values() | selectattr('exists') | list | length) %}
+  {% set ns.slots = ns.slots + (st | length) %}
+  {% if (st.values() | selectattr('exists') | list | length) == (st | length) and (st | length) > 0 %}
+    {% set ns.warm = ns.warm + 1 %}
+  {% else %}
+    {% set ns.cold = ns.cold + 1 %}
+  {% endif %}
+{% endfor %}
+{% set cb = cache_stats.get('circuit_breaker', {}) %}
+{% set cb_state = cb.get('state', 'UNKNOWN') %}
+{% set pool = cache_stats.get('connection_pool', {}).get('pool_stats', {}) %}
+{% set keys = cache_stats.get('draft_cache_keys', {}) %}
+
+{% call page_header("Draft Cache", subtitle="System / Redis / Draft Cache") %}
+  {% if cache_stats.get('redis_available') %}
+  <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold
+               bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+    <i class="ti ti-circle-check" aria-hidden="true"></i>Redis Online
+  </span>
+  {% else %}
+  <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold
+               bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400">
+    <i class="ti ti-plug-connected-x" aria-hidden="true"></i>Redis Offline
+  </span>
+  {% endif %}
   <button id="draft-cache-stats-refresh-btn" type="button"
           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                  bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
@@ -39,120 +86,264 @@
   </button>
 {% endcall %}
 
-{# ---- KPI band: 2-up mobile -> 4-up lg. id hooks preserved verbatim on the mono figures. ---- #}
+{# ---- KPI band: real roll-ups only. Warm leagues / cold leagues / live cache keys / active drafts ---- #}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
   <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
     <div class="flex items-center justify-between">
-      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Cache Keys</span>
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Warm Leagues</span>
+      <i class="ti ti-flame text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-1.5 flex-wrap">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ ns.warm }}</span>
+      <span class="font-mono text-sm text-gray-400 dark:text-gray-500 mb-0.5">/ {{ leagues|length }}</span>
+    </div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">all cache slots present</div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Cold Leagues</span>
+      <i class="ti ti-snowflake text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ ns.cold }}</span></div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">missing one or more slots</div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Live Cache Keys</span>
       <i class="ti ti-database text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
     </div>
-    <div class="mt-3"><span id="total-keys" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ cache_stats.total_keys|default(0) }}</span></div>
+    <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ (keys.get('players', 0) + keys.get('analytics', 0) + keys.get('teams', 0) + keys.get('availability', 0)) if keys else 0 }}</span></div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">across all draft:* patterns</div>
   </div>
   <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
     <div class="flex items-center justify-between">
-      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Cache Hit Rate</span>
-      <i class="ti ti-circle-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Active Drafts</span>
+      <i class="ti ti-bolt text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
     </div>
-    <div class="mt-3"><span id="hit-rate" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ cache_stats.hit_rate|default(0) }}%</span></div>
-  </div>
-  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
-    <div class="flex items-center justify-between">
-      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Player Data Keys</span>
-      <i class="ti ti-users text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
-    </div>
-    <div class="mt-3"><span id="player-keys" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ cache_stats.player_keys|default(0) }}</span></div>
-  </div>
-  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
-    <div class="flex items-center justify-between">
-      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Team Data Keys</span>
-      <i class="ti ti-shield-half text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
-    </div>
-    <div class="mt-3"><span id="team-keys" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ cache_stats.team_keys|default(0) }}</span></div>
+    <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ cache_stats.get('active_drafts', [])|length }}</span></div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">extended-TTL sessions</div>
   </div>
 </div>
 
-{# ---- League cache status ---- #}
-<div class="mb-5 sm:mb-6">
-{% if leagues %}
-  {% call data_table("League Cache Status", icon="ti-trophy", count=leagues|length, filters=false) %}
-    <table class="hidden md:table w-full text-sm">
-      <thead class="border-b border-gray-200 dark:border-gray-700">
-        <tr>
-          {{ data_table_th("League", key="league", sortable=false) }}
-          {{ data_table_th("Cache Status", key="status", sortable=false) }}
-          {{ data_table_th("Last Warmed", key="warmed", sortable=false, hide="sm") }}
-          {{ data_table_th("Actions", key="actions", sortable=false, align="right") }}
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6 mb-5 sm:mb-6">
+  {# ---- PRIMARY OBJECT: per-league warmth, the real cache_status grid ---- #}
+  <div class="xl:col-span-2 min-w-0">
+  {% if leagues %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-trophy text-ecs-green" aria-hidden="true"></i>League Cache Warmth
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ leagues|length }}</span>
+        </h2>
+        <span class="hidden sm:inline-flex items-center gap-1 text-xs font-mono text-gray-500 dark:text-gray-400">
+          <i class="ti ti-key text-xs" aria-hidden="true"></i>{{ ns.present }}/{{ ns.slots }} slots
+        </span>
+      </div>
+
+      {# md+ : real table. Columns are the 4 real cache slots from warm_cache_for_league. #}
+      <div class="md:overflow-x-auto">
+      <table class="hidden md:table w-full text-sm">
+        <thead class="border-b border-gray-200 dark:border-gray-700">
+          <tr>
+            <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">League</th>
+            <th scope="col" class="px-3 py-2.5 text-center font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Players<br><span class="font-normal normal-case opacity-70">avail / drafted</span></th>
+            <th scope="col" class="px-3 py-2.5 text-center font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Analytics</th>
+            <th scope="col" class="px-3 py-2.5 text-center font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Teams</th>
+            <th scope="col" class="px-3 py-2.5 text-center font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Min TTL</th>
+            <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for league in leagues %}
+          {% set lcs = league_cache_status.get(league, {}) %}
+          {% set st = lcs.get('cache_status', {}) %}
+          {% set present = st.values() | selectattr('exists') | list | length %}
+          {% set total = st | length %}
+          {% set ttls = st.values() | selectattr('exists') | map(attribute='ttl') | select('gt', 0) | list %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-3 py-3 align-middle">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="inline-flex w-2 h-2 rounded-full shrink-0 {{ 'bg-green-500' if present == total and total > 0 else ('bg-amber-500' if present > 0 else 'bg-gray-400 dark:bg-gray-600') }}" aria-hidden="true"></span>
+                <span class="font-medium text-gray-900 dark:text-white truncate">{{ league }}</span>
+                {% if lcs.get('active_draft_enabled') and league in cache_stats.get('active_drafts', []) %}
+                <span class="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-ecs-gold-500/15 text-ecs-gold-600 dark:text-ecs-gold-400">
+                  <i class="ti ti-bolt text-[10px]" aria-hidden="true"></i>Live
+                </span>
+                {% endif %}
+              </div>
+            </td>
+            {# players: two pills (available / drafted) #}
+            <td class="px-3 py-3 text-center whitespace-nowrap">
+              {% set pa = st.get('players_available', {}) %}
+              {% set pd = st.get('players_drafted', {}) %}
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if pa.get('exists') else 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}" title="players available">
+                <i class="ti {{ 'ti-check' if pa.get('exists') else 'ti-minus' }} text-xs" aria-hidden="true"></i>
+              </span>
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded ml-1 {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if pd.get('exists') else 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}" title="players drafted">
+                <i class="ti {{ 'ti-check' if pd.get('exists') else 'ti-minus' }} text-xs" aria-hidden="true"></i>
+              </span>
+            </td>
+            <td class="px-3 py-3 text-center">
+              {% set an = st.get('analytics', {}) %}
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if an.get('exists') else 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}">
+                <i class="ti {{ 'ti-check' if an.get('exists') else 'ti-minus' }} text-xs" aria-hidden="true"></i>
+              </span>
+            </td>
+            <td class="px-3 py-3 text-center">
+              {% set tm = st.get('teams', {}) %}
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if tm.get('exists') else 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}">
+                <i class="ti {{ 'ti-check' if tm.get('exists') else 'ti-minus' }} text-xs" aria-hidden="true"></i>
+              </span>
+            </td>
+            <td class="px-3 py-3 text-center hidden lg:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">
+              {{ (ttls | min ~ 's') if ttls else '—' }}
+            </td>
+            <td class="px-3 py-3 text-right">
+              <button type="button" data-league="{{ league }}"
+                      class="js-warm-cache inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                             border border-ecs-green text-ecs-green hover:bg-ecs-green hover:text-white text-xs font-semibold transition-colors
+                             focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti ti-flame" aria-hidden="true"></i>Warm
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+
+      {# mobile : dense cards #}
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
         {% for league in leagues %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-3">
-            <div class="flex items-center gap-2">
-              <i class="ti ti-trophy text-gray-400" aria-hidden="true"></i>
-              <span class="font-medium text-gray-900 dark:text-white">{{ league }}</span>
-            </div>
-          </td>
-          <td class="px-3 py-3">
-            {% if league_cache_status.get(league, {}).get('warmed', false) %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-              <i class="ti ti-circle-check" aria-hidden="true"></i>Warmed
+        {% set lcs = league_cache_status.get(league, {}) %}
+        {% set st = lcs.get('cache_status', {}) %}
+        {% set present = st.values() | selectattr('exists') | list | length %}
+        {% set total = st | length %}
+        <div class="px-4 py-3.5">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate flex items-center gap-2">
+              <span class="inline-flex w-2 h-2 rounded-full shrink-0 {{ 'bg-green-500' if present == total and total > 0 else ('bg-amber-500' if present > 0 else 'bg-gray-400 dark:bg-gray-600') }}" aria-hidden="true"></span>{{ league }}
+            </span>
+            {% if present == total and total > 0 %}
+            <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+              <i class="ti ti-flame" aria-hidden="true"></i>Warm
             </span>
             {% else %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
-              <i class="ti ti-alert-triangle" aria-hidden="true"></i>Cold
+            <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
+              <i class="ti ti-snowflake" aria-hidden="true"></i>Cold
             </span>
             {% endif %}
-          </td>
-          <td class="px-3 py-3 hidden md:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">{{ league_cache_status.get(league, {}).get('last_warmed', 'Never') }}</td>
-          <td class="px-3 py-3 text-right">
-            <button type="button" data-league="{{ league }}"
-                    class="js-warm-cache inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
-                           border border-ecs-green text-ecs-green hover:bg-ecs-green hover:text-white text-xs font-semibold transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-              <i class="ti ti-flame" aria-hidden="true"></i>Warm Cache
-            </button>
-          </td>
-        </tr>
+          </div>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ present }}/{{ total }} cache slots present{% if league in cache_stats.get('active_drafts', []) %} · live draft{% endif %}</p>
+          <button type="button" data-league="{{ league }}"
+                  class="js-warm-cache mt-3 w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-lg
+                         border border-ecs-green text-ecs-green hover:bg-ecs-green hover:text-white text-sm font-semibold transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-flame" aria-hidden="true"></i>Warm Cache
+          </button>
+        </div>
         {% endfor %}
-      </tbody>
-    </table>
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-      {% for league in leagues %}
-      <div class="px-4 py-3.5">
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate flex items-center gap-2">
-            <i class="ti ti-trophy text-gray-400" aria-hidden="true"></i>{{ league }}
+      </div>
+    </section>
+  {% else %}
+    {{ empty_state("ti-trophy-off", "No Active Leagues Found", "No leagues in the current season — there is nothing to warm a draft cache for yet.") }}
+  {% endif %}
+  </div>
+
+  {# ---- SIDEBAR: Redis subsystem health (all real) ---- #}
+  <div class="min-w-0 space-y-5 sm:space-y-6">
+    {% call section_card("Redis Health", icon="ti-heartbeat") %}
+      <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <i class="ti ti-shield-bolt text-gray-400" aria-hidden="true"></i>Circuit Breaker
           </span>
-          {% if league_cache_status.get(league, {}).get('warmed', false) %}
-          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-            <i class="ti ti-circle-check" aria-hidden="true"></i>Warmed
+          {% if cb_state == 'CLOSED' %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+            <i class="ti ti-circle-check" aria-hidden="true"></i>Closed
+          </span>
+          {% elif cb_state == 'HALF_OPEN' %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>Half-Open
           </span>
           {% else %}
-          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
-            <i class="ti ti-alert-triangle" aria-hidden="true"></i>Cold
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400">
+            <i class="ti ti-alert-octagon" aria-hidden="true"></i>{{ cb_state|title }}
           </span>
           {% endif %}
         </div>
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">Last warmed: {{ league_cache_status.get(league, {}).get('last_warmed', 'Never') }}</p>
-        <button type="button" data-league="{{ league }}"
-                class="js-warm-cache mt-3 w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-lg
-                       border border-ecs-green text-ecs-green hover:bg-ecs-green hover:text-white text-sm font-semibold transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-          <i class="ti ti-flame" aria-hidden="true"></i>Warm Cache
-        </button>
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <i class="ti ti-alert-hexagon text-gray-400" aria-hidden="true"></i>Recent Failures
+          </span>
+          <span class="font-mono text-sm font-bold {{ 'text-red-600 dark:text-red-400' if cb.get('failures', 0) > 0 else 'text-gray-500 dark:text-gray-400' }}">{{ cb.get('failures', 0) }}</span>
+        </div>
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <i class="ti ti-plug-connected text-gray-400" aria-hidden="true"></i>Connection
+          </span>
+          {% if cache_stats.get('redis_available') and not cache_stats.get('connection_error') %}
+          <span class="text-xs font-semibold text-green-600 dark:text-green-400">Available</span>
+          {% else %}
+          <span class="text-xs font-semibold text-red-600 dark:text-red-400">Unavailable</span>
+          {% endif %}
+        </div>
       </div>
-      {% endfor %}
-    </div>
-  {% endcall %}
-{% else %}
-  {{ empty_state("ti-trophy-off", "No Active Leagues Found", "No active leagues found to warm cache for.") }}
-{% endif %}
+    {% endcall %}
+
+    {% if pool %}
+    {% call section_card("Connection Pool", icon="ti-server-2") %}
+      <div class="p-4 sm:p-5">
+        <div class="flex items-end justify-between gap-2 mb-3">
+          <div>
+            <span class="font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ pool.get('in_use_connections', 0) }}</span>
+            <span class="font-mono text-sm text-gray-400 dark:text-gray-500">/ {{ pool.get('max_connections', 0) }}</span>
+          </div>
+          <span class="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">{{ pool.get('utilization_percent', 0) }}%</span>
+        </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden mb-3">
+          <div class="bg-blue-600 dark:bg-blue-500 h-2 rounded-full" style="width: {{ pool.get('utilization_percent', 0) }}%"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="flex items-center justify-between gap-2 rounded-lg bg-gray-50 dark:bg-gray-700/40 px-2.5 py-1.5">
+            <span class="text-gray-500 dark:text-gray-400">Available</span>
+            <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ pool.get('available_connections', 0) }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-2 rounded-lg bg-gray-50 dark:bg-gray-700/40 px-2.5 py-1.5">
+            <span class="text-gray-500 dark:text-gray-400">Created</span>
+            <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ pool.get('created_connections', 0) }}</span>
+          </div>
+        </div>
+      </div>
+    {% endcall %}
+    {% endif %}
+
+    {% call section_card("Live Key Counts", icon="ti-key") %}
+      <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5">
+          <span class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2"><i class="ti ti-users text-gray-400" aria-hidden="true"></i>Players</span>
+          <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ keys.get('players', 0) if keys else 0 }}</span>
+        </div>
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5">
+          <span class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2"><i class="ti ti-chart-bar text-gray-400" aria-hidden="true"></i>Analytics</span>
+          <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ keys.get('analytics', 0) if keys else 0 }}</span>
+        </div>
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5">
+          <span class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2"><i class="ti ti-shield-half text-gray-400" aria-hidden="true"></i>Teams</span>
+          <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ keys.get('teams', 0) if keys else 0 }}</span>
+        </div>
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5">
+          <span class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2"><i class="ti ti-calendar-check text-gray-400" aria-hidden="true"></i>Availability</span>
+          <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ keys.get('availability', 0) if keys else 0 }}</span>
+        </div>
+      </div>
+    {% endcall %}
+  </div>
 </div>
 
-{# ---- TTL settings + performance ---- #}
-<div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 mb-5 sm:mb-6">
-  {% call section_card("TTL Settings", icon="ti-clock") %}
+{# ---- TTL policy (live from API) + related tools ---- #}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+  {% call section_card("TTL Policy", icon="ti-clock") %}
     <div class="divide-y divide-gray-200 dark:divide-gray-700">
       <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
         <span class="text-sm font-medium text-gray-900 dark:text-white">Player Data TTL</span>
@@ -173,50 +364,32 @@
     </div>
   {% endcall %}
 
-  {% call section_card("Cache Performance", icon="ti-chart-line") %}
-    <div class="divide-y divide-gray-200 dark:divide-gray-700">
-      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-4">
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-          <i class="ti ti-circle-check text-green-600 dark:text-green-400" aria-hidden="true"></i>Hit Rate
-        </span>
-        <span class="text-2xl font-mono font-bold text-green-600 dark:text-green-400" id="hit-rate-percent">{{ cache_stats.hit_rate|default(0) }}%</span>
-      </div>
-      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-4">
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-          <i class="ti ti-database text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Memory Usage
-        </span>
-        <span class="text-2xl font-mono font-bold text-blue-600 dark:text-blue-400" id="memory-percent">{{ cache_stats.memory_usage_percent|default(0) }}%</span>
-      </div>
+  {% call section_card("Related Tools", icon="ti-link") %}
+    <div class="grid grid-cols-1 sm:grid-cols-1 gap-2 p-4 sm:p-5">
+      <a href="{{ url_for('admin_panel.redis_management') }}"
+         class="flex items-center gap-2 min-h-[44px] px-4 py-3 text-sm font-semibold rounded-lg
+                border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white
+                hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+                focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-database text-ecs-green" aria-hidden="true"></i>Redis Management<i class="ti ti-chevron-right ml-auto text-gray-400" aria-hidden="true"></i>
+      </a>
+      <a href="{{ url_for('admin_panel.cache_management') }}"
+         class="flex items-center gap-2 min-h-[44px] px-4 py-3 text-sm font-semibold rounded-lg
+                border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white
+                hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+                focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-database text-ecs-green" aria-hidden="true"></i>Cache Management<i class="ti ti-chevron-right ml-auto text-gray-400" aria-hidden="true"></i>
+      </a>
+      <a href="{{ url_for('admin_panel.system_monitoring') }}"
+         class="flex items-center gap-2 min-h-[44px] px-4 py-3 text-sm font-semibold rounded-lg
+                border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white
+                hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+                focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-activity text-ecs-green" aria-hidden="true"></i>System Monitoring<i class="ti ti-chevron-right ml-auto text-gray-400" aria-hidden="true"></i>
+      </a>
     </div>
   {% endcall %}
 </div>
-
-{# ---- Related tools ---- #}
-{% call section_card("Related Tools", icon="ti-link") %}
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-5">
-    <a href="{{ url_for('admin_panel.redis_management') }}"
-       class="flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 text-sm font-semibold rounded-lg
-              border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white
-              hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <i class="ti ti-database text-ecs-green" aria-hidden="true"></i>Redis Management
-    </a>
-    <a href="{{ url_for('admin_panel.cache_management') }}"
-       class="flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 text-sm font-semibold rounded-lg
-              border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white
-              hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <i class="ti ti-database text-ecs-green" aria-hidden="true"></i>Cache Management
-    </a>
-    <a href="{{ url_for('admin_panel.system_monitoring') }}"
-       class="flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 text-sm font-semibold rounded-lg
-              border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white
-              hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <i class="ti ti-activity text-ecs-green" aria-hidden="true"></i>System Monitoring
-    </a>
-  </div>
-{% endcall %}
 {% else %}
 <!-- Header -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">

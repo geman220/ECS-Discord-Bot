@@ -22,212 +22,281 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, data_table, data_table_th, empty_state, modal as kit_modal %}
+{# Real derived figures (route-provided only): synced = roles wired to a Discord role with sync on #}
+{% set synced_roles = roles | selectattr('discord_role_id') | selectattr('sync_enabled') | list %}
 <div class="space-y-6">
 
-  {{ page_header('Roles & Permissions', subtitle='Manage system roles and user permissions') }}
+  {% call page_header('Roles & Permissions', subtitle='Access control · role assignment') %}
+    <a href="{{ url_for('admin_panel.feature_toggles') }}#roles"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-settings" aria-hidden="true"></i><span class="hidden sm:inline">Role Settings</span>
+    </a>
+    <a href="#assignRolesPanel"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-user-plus" aria-hidden="true"></i>Assign Roles
+    </a>
+  {% endcall %}
 
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-shield', 'Total Roles', roles|length, tone='primary') }}
-    {{ stat_card('ti-key', 'Total Permissions', permissions|length, tone='success') }}
-    {{ stat_card('ti-user-cog', 'Users with Roles', users_with_roles, tone='info') }}
-    {{ stat_card('ti-crown', 'Admin Roles', admin_roles, tone='gold') }}
+  <!-- KPI band (real data, mono figures, divider footers) -->
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">System Roles</span>
+        <i class="ti ti-shield text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ roles|length }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        <span class="font-mono text-gray-900 dark:text-white">{{ admin_roles }}</span> admin{{ 's' if admin_roles != 1 else '' }} in inventory
+      </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Users w/ Roles</span>
+        <i class="ti ti-user-cog text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ users_with_roles }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        of <span class="font-mono text-gray-900 dark:text-white">{{ users|length }}</span> total accounts
+      </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Discord-Synced</span>
+        <i class="ti ti-brand-discord text-lg text-indigo-600 dark:text-indigo-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-indigo-600 dark:text-indigo-400">{{ synced_roles|length }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        roles mirrored to Discord
+      </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Admin Roles</span>
+        <i class="ti ti-crown text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ admin_roles }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        elevated-privilege roles
+      </div>
+    </div>
   </div>
 
-  <!-- System Roles -->
-  {% if roles %}
-    {% call data_table('System Roles', icon='ti-shield', count=roles|length, search_placeholder='Filter roles…', search_id='roleFilter') %}
-      {# md+ table #}
-      <table class="hidden md:table w-full text-sm text-left">
-        <thead>
-          <tr class="border-b border-gray-200 dark:border-gray-700">
-            {{ data_table_th('Role Name', key='name', active=true, dir='asc') }}
-            {{ data_table_th('Description', key='description', sortable=false, hide='sm') }}
-            {{ data_table_th('Users', key='users', align='left') }}
-            {{ data_table_th('Permissions', key='permissions', align='left', hide='sm') }}
-            {{ data_table_th('Type', key='type') }}
-            {{ data_table_th('Actions', sortable=false, align='right') }}
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-          {% for role in roles %}
-          <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <td class="px-3 py-3" data-cell="name">
-              <div class="flex items-center gap-2">
-                <i class="ti ti-shield {% if 'Admin' in role.name %}text-red-500 dark:text-red-400{% elif 'Coach' in role.name %}text-ecs-gold-500 dark:text-ecs-gold-400{% elif 'pl-' in role.name %}text-ecs-green{% else %}text-gray-400 dark:text-gray-500{% endif %}" aria-hidden="true"></i>
-                <span class="font-semibold text-gray-900 dark:text-white">{{ role.name }}</span>
-              </div>
-            </td>
-            <td class="px-3 py-3 text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ role.description or 'No description' }}</td>
-            <td class="px-3 py-3">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                <span class="font-mono mr-1">{{ role.users|length }}</span> users
-              </span>
-            </td>
-            <td class="px-3 py-3 hidden lg:table-cell">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                <span class="font-mono mr-1">{{ role.permissions|length }}</span> permissions
-              </span>
-            </td>
-            <td class="px-3 py-3" data-cell="type">
-              {% if 'Admin' in role.name %}
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Admin</span>
-              {% elif 'Coach' in role.name %}
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">Staff</span>
-              {% elif 'pl-' in role.name %}
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">League</span>
-              {% else %}
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Other</span>
-              {% endif %}
-            </td>
-            <td class="px-3 py-3">
-              <div class="flex items-center justify-end gap-1">
-                <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-role" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}" aria-label="View {{ role.name }}" title="View">
-                  <i class="ti ti-eye" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="manage-permissions" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}" aria-label="Manage permissions for {{ role.name }}" title="Permissions">
-                  <i class="ti ti-key" aria-hidden="true"></i>
-                </button>
-                <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-ecs-green hover:bg-ecs-green/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-users" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}" aria-label="View users with {{ role.name }}" title="Users">
-                  <i class="ti ti-users" aria-hidden="true"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <!-- Two-column: role inventory table (primary, spans 2) + assign panel rail -->
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 items-start">
 
-      {# mobile stacked cards #}
-      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-        {% for role in roles %}
-        <div data-row class="px-4 py-3.5">
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 min-w-0">
-              <i class="ti ti-shield {% if 'Admin' in role.name %}text-red-500 dark:text-red-400{% elif 'Coach' in role.name %}text-ecs-gold-500 dark:text-ecs-gold-400{% elif 'pl-' in role.name %}text-ecs-green{% else %}text-gray-400 dark:text-gray-500{% endif %}" aria-hidden="true"></i>
-              <span class="text-sm font-semibold text-gray-900 dark:text-white truncate" data-cell="name">{{ role.name }}</span>
-            </div>
-            <span data-cell="type" class="shrink-0">
-              {% if 'Admin' in role.name %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Admin</span>
-              {% elif 'Coach' in role.name %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">Staff</span>
-              {% elif 'pl-' in role.name %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">League</span>
-              {% else %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Other</span>
-              {% endif %}
-            </span>
-          </div>
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ role.description or 'No description' }}</p>
-          <div class="mt-2 flex flex-wrap items-center gap-1.5">
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><span class="font-mono mr-1">{{ role.users|length }}</span> users</span>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><span class="font-mono mr-1">{{ role.permissions|length }}</span> permissions</span>
-          </div>
-          <div class="mt-3 flex items-center gap-1">
-            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-role" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}" aria-label="View {{ role.name }}" title="View">
-              <i class="ti ti-eye" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="manage-permissions" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}" aria-label="Manage permissions for {{ role.name }}" title="Permissions">
-              <i class="ti ti-key" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-ecs-green hover:bg-ecs-green/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-users" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}" aria-label="View users with {{ role.name }}" title="Users">
-              <i class="ti ti-users" aria-hidden="true"></i>
-            </button>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    {% endcall %}
-
-    <div class="flex flex-wrap justify-end gap-2">
-      <button type="button" data-action="go-back" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        <i class="ti ti-arrow-left" aria-hidden="true"></i>Back
-      </button>
-      <a href="{{ url_for('admin_panel.feature_toggles') }}#roles" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-        <i class="ti ti-settings" aria-hidden="true"></i>Role Settings
-      </a>
-    </div>
-  {% else %}
-    {{ empty_state('ti-shield-x', 'No Roles Found', 'No roles are configured in the system.') }}
-  {% endif %}
-
-  <!-- Quick Actions -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-    <!-- Assign User Roles -->
-    {% call section_card('Assign User Roles', icon='ti-user-plus') %}
-    <form method="POST" action="{{ url_for('admin_panel.assign_user_roles') }}" class="space-y-4 p-4 sm:p-5">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div>
-        <label for="user_select" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select User</label>
-        <select id="user_select" name="user_id" required class="input-ecs w-full">
-          <option value="">Choose a user...</option>
-          {% for user in users %}
-          <option value="{{ user.id }}">{{ user.name or user.username }} ({{ user.email }})</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div>
-        <label for="roles_select" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Assign Roles</label>
-        <select id="roles_select" name="role_ids" multiple size="5" class="input-ecs w-full">
-          {% for role in roles %}
-          <option value="{{ role.id }}">{{ role.name }}</option>
-          {% endfor %}
-        </select>
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple roles</p>
-      </div>
-      <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-        <i class="ti ti-check" aria-hidden="true"></i>Assign Roles
-      </button>
-    </form>
-    {% endcall %}
-
-    <!-- Search Users by Role -->
-    {% call section_card('Search Users by Role', icon='ti-search') %}
-    <div class="p-4 sm:p-5">
-      <form method="POST" action="{{ url_for('admin_panel.search_users_by_role') }}" class="space-y-4">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div>
-          <label for="search_role" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Role</label>
-          <select id="search_role" name="role_id" required class="input-ecs w-full">
-            <option value="">Choose a role...</option>
+    <!-- ===== Role inventory (primary object, real table) ===== -->
+    <div class="xl:col-span-2 space-y-4">
+    {% if roles %}
+      {% call data_table('Role Inventory', icon='ti-shield', count=roles|length, search_placeholder='Filter roles…', search_id='roleFilter') %}
+        {# md+ table #}
+        <table class="hidden md:table w-full text-sm text-left">
+          <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+              {{ data_table_th('Role', key='name', active=true, dir='asc') }}
+              {{ data_table_th('Type', key='type') }}
+              {{ data_table_th('Discord', key='discord', sortable=false, hide='md') }}
+              {{ data_table_th('Users', key='users', align='right') }}
+              {{ data_table_th('Perms', key='permissions', align='right', hide='sm') }}
+              {{ data_table_th('Actions', sortable=false, align='right') }}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
             {% for role in roles %}
-            <option value="{{ role.id }}">{{ role.name }} ({{ role.users|length }} users)</option>
+            <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <td class="px-3 py-3 align-top" data-cell="name">
+                <div class="flex items-start gap-2.5">
+                  <i class="ti ti-shield mt-0.5 {% if 'Admin' in role.name %}text-red-500 dark:text-red-400{% elif 'Coach' in role.name %}text-ecs-gold-500 dark:text-ecs-gold-400{% elif 'pl-' in role.name %}text-ecs-green{% else %}text-gray-400 dark:text-gray-500{% endif %}" aria-hidden="true"></i>
+                  <div class="min-w-0">
+                    <span class="font-semibold text-gray-900 dark:text-white">{{ role.name }}</span>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[28ch]">{{ role.description or 'No description' }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-3 py-3 align-top" data-cell="type">
+                {% if 'Admin' in role.name %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-crown text-[11px]" aria-hidden="true"></i>Admin</span>
+                {% elif 'Coach' in role.name %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><i class="ti ti-whistle text-[11px]" aria-hidden="true"></i>Staff</span>
+                {% elif 'pl-' in role.name %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20"><i class="ti ti-ball-football text-[11px]" aria-hidden="true"></i>League</span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Other</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-3 align-top hidden lg:table-cell" data-cell="discord">
+                {% if role.discord_role_id and role.sync_enabled %}
+                <span class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400" title="Synced to Discord role {{ role.discord_role_name or role.discord_role_id }}"><i class="ti ti-brand-discord text-sm" aria-hidden="true"></i>Synced</span>
+                {% elif role.discord_role_id %}
+                <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400" title="Linked but sync disabled"><i class="ti ti-plug-connected-x text-sm" aria-hidden="true"></i>Paused</span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500"><i class="ti ti-minus text-sm" aria-hidden="true"></i>None</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-3 align-top text-right" data-cell="users">
+                <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ role.users|length }}</span>
+              </td>
+              <td class="px-3 py-3 align-top text-right hidden md:table-cell" data-cell="permissions">
+                <span class="font-mono text-sm text-gray-600 dark:text-gray-300">{{ role.permissions|length }}</span>
+              </td>
+              <td class="px-3 py-3 align-top">
+                <div class="flex items-center justify-end gap-1">
+                  <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-role" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}" aria-label="View {{ role.name }}" title="View details">
+                    <i class="ti ti-eye" aria-hidden="true"></i>
+                  </button>
+                  <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="manage-permissions" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}" aria-label="Manage permissions for {{ role.name }}" title="Permissions">
+                    <i class="ti ti-key" aria-hidden="true"></i>
+                  </button>
+                  <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-ecs-green hover:bg-ecs-green/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-users" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}" aria-label="View users with {{ role.name }}" title="View users">
+                    <i class="ti ti-users" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
             {% endfor %}
-          </select>
-        </div>
-        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-          <i class="ti ti-search" aria-hidden="true"></i>Find Users
-        </button>
-      </form>
+          </tbody>
+        </table>
 
-      {% if search_results %}
-      <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Users with role "{{ search_role_name }}":</h6>
-        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-          {% for user in search_results %}
-          <li class="py-3 flex items-center justify-between gap-3">
-            <div class="min-w-0">
-              <p class="font-medium text-gray-900 dark:text-white truncate">{{ user.name or user.username }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
+        {# mobile stacked cards #}
+        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+          {% for role in roles %}
+          <div data-row class="px-4 py-3.5">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="ti ti-shield {% if 'Admin' in role.name %}text-red-500 dark:text-red-400{% elif 'Coach' in role.name %}text-ecs-gold-500 dark:text-ecs-gold-400{% elif 'pl-' in role.name %}text-ecs-green{% else %}text-gray-400 dark:text-gray-500{% endif %}" aria-hidden="true"></i>
+                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate" data-cell="name">{{ role.name }}</span>
+              </div>
+              <span data-cell="type" class="shrink-0">
+                {% if 'Admin' in role.name %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Admin</span>
+                {% elif 'Coach' in role.name %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">Staff</span>
+                {% elif 'pl-' in role.name %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">League</span>
+                {% else %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Other</span>
+                {% endif %}
+              </span>
             </div>
-            <div class="flex flex-wrap gap-1 justify-end">
-              {% for role in user.roles %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ role.name }}</span>
-              {% endfor %}
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ role.description or 'No description' }}</p>
+            <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+              <span><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ role.users|length }}</span> users</span>
+              <span><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ role.permissions|length }}</span> perms</span>
+              {% if role.discord_role_id and role.sync_enabled %}
+              <span class="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400"><i class="ti ti-brand-discord" aria-hidden="true"></i>Synced</span>
+              {% elif role.discord_role_id %}
+              <span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400"><i class="ti ti-plug-connected-x" aria-hidden="true"></i>Paused</span>
+              {% endif %}
             </div>
-          </li>
+            <div class="mt-3 flex items-center gap-1">
+              <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-role" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}" aria-label="View {{ role.name }}" title="View details">
+                <i class="ti ti-eye" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="manage-permissions" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}" aria-label="Manage permissions for {{ role.name }}" title="Permissions">
+                <i class="ti ti-key" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-ecs-green hover:bg-ecs-green/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-users" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}" aria-label="View users with {{ role.name }}" title="View users">
+                <i class="ti ti-users" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
           {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
+        </div>
+      {% endcall %}
+    {% else %}
+      {{ empty_state('ti-shield-x', 'No Roles Found', 'No roles are configured in the system.') }}
+    {% endif %}
     </div>
-    {% endcall %}
+
+    <!-- ===== Assign / Search rail ===== -->
+    <div class="space-y-4 sm:space-y-6">
+
+      <!-- Assign User Roles (primary feature card) -->
+      <section id="assignRolesPanel" class="rounded-xl border border-ecs-green/30 dark:border-ecs-green/40 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 bg-ecs-green/5 dark:bg-ecs-green/10">
+          <i class="ti ti-user-plus text-ecs-green" aria-hidden="true"></i>
+          <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Assign User Roles</h2>
+        </div>
+        <form method="POST" action="{{ url_for('admin_panel.assign_user_roles') }}" class="space-y-4 p-4 sm:p-5">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div>
+            <label for="user_select" class="block mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Select User</label>
+            <select id="user_select" name="user_id" required class="input-ecs w-full">
+              <option value="">Choose a user...</option>
+              {% for user in users %}
+              <option value="{{ user.id }}">{{ user.name or user.username }} ({{ user.email }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="roles_select" class="block mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Assign Roles</label>
+            <select id="roles_select" name="role_ids" multiple size="5" class="input-ecs w-full">
+              {% for role in roles %}
+              <option value="{{ role.id }}">{{ role.name }}</option>
+              {% endfor %}
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-info-circle mr-0.5" aria-hidden="true"></i>Hold Ctrl/Cmd to select multiple roles</p>
+          </div>
+          <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-check" aria-hidden="true"></i>Assign Roles
+          </button>
+        </form>
+      </section>
+
+      <!-- Search Users by Role -->
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+          <i class="ti ti-search text-ecs-green" aria-hidden="true"></i>
+          <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Search Users by Role</h2>
+        </div>
+        <div class="p-4 sm:p-5">
+          <form method="POST" action="{{ url_for('admin_panel.search_users_by_role') }}" class="flex flex-col sm:flex-row sm:items-end gap-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="flex-1">
+              <label for="search_role" class="block mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Select Role</label>
+              <select id="search_role" name="role_id" required class="input-ecs w-full">
+                <option value="">Choose a role...</option>
+                {% for role in roles %}
+                <option value="{{ role.id }}">{{ role.name }} ({{ role.users|length }} users)</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              <i class="ti ti-search" aria-hidden="true"></i>Find
+            </button>
+          </form>
+
+          {% if search_results %}
+          <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Users in "{{ search_role_name }}"</h3>
+              <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ search_results|length }}</span>
+            </div>
+            <ul class="-mx-1 divide-y divide-gray-200 dark:divide-gray-700" role="list">
+              {% for user in search_results %}
+              <li class="px-1 py-2.5 flex items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ user.name or user.username }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
+                </div>
+                <div class="flex flex-wrap gap-1 justify-end max-w-[45%]">
+                  {% for role in user.roles %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ role.name }}</span>
+                  {% endfor %}
+                </div>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% else %}
+          <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">Pick a role to list every user that holds it.</p>
+          {% endif %}
+        </div>
+      </section>
+    </div>
   </div>
 
   <!-- Role Details Modal (kit modal, Flowbite-native) -->
-  {% from 'macros/_modern_kit.html' import modal as kit_modal %}
   {% call kit_modal('roleDetailsModal', 'Role Details', icon='ti-shield', size='lg') %}
     <div id="roleDetailsContent" class="p-5">
       <!-- Content loaded via JS -->

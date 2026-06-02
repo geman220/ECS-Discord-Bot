@@ -107,7 +107,7 @@ def list_prompts():
             
             # Get templates for the template library section
             templates = session.query(AIPromptTemplate).all()
-            
+
             # Check if this is an API request
             if request.headers.get('Accept') == 'application/json':
                 return jsonify({
@@ -115,9 +115,25 @@ def list_prompts():
                     'prompts': [p.to_dict() for p in prompts],
                     'count': len(prompts)
                 })
-            
+
+            # Resolve the prompt shown in the inline edit/preview pane (split-pane UX).
+            # Honor ?selected=<id> when it points at a real, listed prompt; otherwise
+            # default to the first prompt so the editor pane is never empty when data exists.
+            selected_prompt = None
+            if prompts:
+                selected_id = request.args.get('selected', type=int)
+                if selected_id is not None:
+                    selected_prompt = next((p for p in prompts if p.id == selected_id), None)
+                if selected_prompt is None:
+                    selected_prompt = prompts[0]
+
             # Otherwise render template
-            return render_template('ai_prompts/list_prompts_flowbite.html', prompts=prompts, templates=templates)
+            return render_template(
+                'ai_prompts/list_prompts_flowbite.html',
+                prompts=prompts,
+                templates=templates,
+                selected_prompt=selected_prompt
+            )
             
     except Exception as e:
         logger.error(f"Error listing AI prompts: {e}", exc_info=True)

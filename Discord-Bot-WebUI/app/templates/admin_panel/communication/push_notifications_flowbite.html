@@ -16,156 +16,143 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card %}
-{% from 'macros/flowbite.html' import input, select, textarea %}
-<div class="space-y-6">
+{# Intent: operate the mobile push delivery system — see fleet/health at a glance, #}
+{# fire a broadcast (primary job), and run device/maintenance commands. All live    #}
+{# figures (#total-devices, #firebase-status-*, #notification-activity-table) are    #}
+{# populated at runtime by extra_js; markup keeps those id/data-action hooks verbatim. #}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+<div class="space-y-5 sm:space-y-6">
 
-  {{ page_header('Push Notifications', subtitle='Manage push notifications for mobile apps') }}
-
-  <!-- Header actions (data hooks preserved verbatim) -->
-  <div class="flex flex-wrap items-center gap-2">
+  {% call page_header('Push Notifications', subtitle='Communication / Mobile Delivery') %}
     <button type="button" data-action="refresh-notification-status"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
-                   bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200
-                   text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-      <i class="ti ti-refresh" aria-hidden="true"></i>Refresh Status
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                   border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
+                   text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
     </button>
     <button type="button" data-modal-target="broadcastModal" data-modal-toggle="broadcastModal"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                    bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
                    focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-send" aria-hidden="true"></i>Send Broadcast
     </button>
-  </div>
-
-  <!-- KPI band (populated by extra_js; ids preserved verbatim) -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Devices</span>
-        <i class="ti ti-device-mobile text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
-      </div>
-      <div class="mt-3 flex items-end gap-2 flex-wrap">
-        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400" id="total-devices">-</span>
-      </div>
-      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Registered FCM tokens</div>
-    </div>
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">iOS Devices</span>
-        <i class="ti ti-brand-apple text-lg text-gray-600 dark:text-gray-300 shrink-0" aria-hidden="true"></i>
-      </div>
-      <div class="mt-3 flex items-end gap-2 flex-wrap">
-        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white" id="ios-devices">-</span>
-      </div>
-      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Active iOS tokens</div>
-    </div>
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Android Devices</span>
-        <i class="ti ti-brand-android text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
-      </div>
-      <div class="mt-3 flex items-end gap-2 flex-wrap">
-        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400" id="android-devices">-</span>
-      </div>
-      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Active Android tokens</div>
-    </div>
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Notifications Sent</span>
-        <i class="ti ti-bell text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
-      </div>
-      <div class="mt-3 flex items-end gap-2 flex-wrap">
-        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400" id="notifications-sent">-</span>
-      </div>
-      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Last 24 hours</div>
-    </div>
-  </div>
-
-  <!-- Firebase System Status -->
-  {% call section_card('Firebase System Status', icon='ti-flame') %}
-    <div class="p-4 sm:p-5">
-      <div class="flex items-center justify-between mb-4">
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Connection Status</span>
-        <span id="firebase-status-indicator" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-          <i class="ti ti-loader-2 animate-spin mr-1" aria-hidden="true"></i>Checking...
-        </span>
-      </div>
-      <div id="firebase-status-content">
-        <div class="text-center py-4">
-          <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-ecs-green"></div>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Checking Firebase configuration...</p>
-        </div>
-      </div>
-    </div>
   {% endcall %}
 
-  <!-- Quick Actions -->
-  {% call section_card('Quick Actions', icon='ti-bolt') %}
-    <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+  {# ── Primary object: the delivery system (Firebase + fleet KPI band) ─────────── #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-3 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-flame text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>Firebase Cloud Messaging
+      </h2>
+      <span id="firebase-status-indicator" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+        <i class="ti ti-loader-2 animate-spin mr-1" aria-hidden="true"></i>Checking...
+      </span>
+    </div>
+    <div id="firebase-status-content" class="px-4 sm:px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div class="text-center py-2">
+        <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-ecs-green"></div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Checking Firebase configuration...</p>
+      </div>
+    </div>
+
+    {# Fleet KPI band — divider footers, mono figures; ids preserved for extra_js #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-gray-200 dark:divide-gray-700">
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Devices</span>
+          <i class="ti ti-device-mobile text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400" id="total-devices">-</span></div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Registered FCM tokens</div>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">iOS Devices</span>
+          <i class="ti ti-brand-apple text-lg text-gray-600 dark:text-gray-300 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white" id="ios-devices">-</span></div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Active iOS tokens</div>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Android Devices</span>
+          <i class="ti ti-brand-android text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400" id="android-devices">-</span></div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Active Android tokens</div>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Sent (24h)</span>
+          <i class="ti ti-bell text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400" id="notifications-sent">-</span></div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Notifications delivered</div>
+      </div>
+    </div>
+  </section>
+
+  {# ── Command toolbar: device & dispatch operations (data-action hooks verbatim) ─ #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-bolt text-ecs-green" aria-hidden="true"></i>
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Operations</h2>
+    </div>
+    <div class="p-3 sm:p-4 flex flex-wrap gap-2">
       <button type="button" data-action="send-test-notification"
-              class="inline-flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg text-sm font-semibold
-                     bg-white dark:bg-gray-700 border border-blue-300 dark:border-blue-500/50 text-blue-700 dark:text-blue-300
-                     hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors
+              class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium
+                     bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200
+                     hover:bg-gray-50 dark:hover:bg-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-colors
                      focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        <i class="ti ti-test-pipe" aria-hidden="true"></i>Send Test Notification
-      </button>
-      <button type="button" data-action="send-match-reminder"
-              class="inline-flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg text-sm font-semibold
-                     bg-white dark:bg-gray-700 border border-green-300 dark:border-green-500/50 text-green-700 dark:text-green-300
-                     hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors
-                     focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        <i class="ti ti-calendar-event" aria-hidden="true"></i>Send Match Reminder
-      </button>
-      <button type="button" data-action="send-rsvp-reminder-notification"
-              class="inline-flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg text-sm font-semibold
-                     bg-white dark:bg-gray-700 border border-amber-300 dark:border-amber-500/50 text-amber-700 dark:text-amber-300
-                     hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors
-                     focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        <i class="ti ti-clipboard-check" aria-hidden="true"></i>Send RSVP Reminder
+        <i class="ti ti-test-pipe text-base text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Send Test
       </button>
       <button type="button" data-action="view-notification-logs"
-              class="inline-flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg text-sm font-semibold
-                     bg-white dark:bg-gray-700 border border-cyan-300 dark:border-cyan-500/50 text-cyan-700 dark:text-cyan-300
-                     hover:bg-cyan-50 dark:hover:bg-cyan-900/20 transition-colors
+              class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium
+                     bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200
+                     hover:bg-gray-50 dark:hover:bg-gray-600 hover:border-cyan-400 dark:hover:border-cyan-500 transition-colors
                      focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        <i class="ti ti-file-text" aria-hidden="true"></i>View Notification Logs
+        <i class="ti ti-file-text text-base text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i>View Logs
       </button>
       <button type="button" data-action="manage-push-tokens"
-              class="inline-flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg text-sm font-semibold
+              class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium
                      bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200
-                     hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
+                     hover:bg-gray-50 dark:hover:bg-gray-600 hover:border-ecs-green transition-colors
                      focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        <i class="ti ti-settings" aria-hidden="true"></i>Manage FCM Tokens
+        <i class="ti ti-settings text-base text-gray-600 dark:text-gray-300" aria-hidden="true"></i>Manage Tokens
       </button>
       <button type="button" data-action="cleanup-invalid-tokens"
-              class="inline-flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg text-sm font-semibold
+              class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium
                      bg-white dark:bg-gray-700 border border-red-300 dark:border-red-500/50 text-red-700 dark:text-red-300
                      hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors
                      focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        <i class="ti ti-trash" aria-hidden="true"></i>Cleanup Invalid Tokens
+        <i class="ti ti-trash text-base" aria-hidden="true"></i>Cleanup Invalid
       </button>
     </div>
-  {% endcall %}
+  </section>
 
-  <!-- Recent Activity -->
-  {% call section_card('Recent Notification Activity', icon='ti-history') %}
+  {# ── Recent dispatch ledger — dense table (md+) / stacked cards (mobile) ──────── #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-history text-ecs-green" aria-hidden="true"></i>
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Recent Dispatch</h2>
+      <span class="ml-auto text-xs text-gray-500 dark:text-gray-400 font-mono">last 10</span>
+    </div>
     <div class="md:overflow-x-auto">
       <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" id="notification-activity-table">
         <thead class="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
           <tr>
-            <th scope="col" class="px-4 py-3 font-semibold tracking-wide">Time</th>
-            <th scope="col" class="px-4 py-3 font-semibold tracking-wide">Type</th>
-            <th scope="col" class="px-4 py-3 font-semibold tracking-wide">Title</th>
-            <th scope="col" class="px-4 py-3 font-semibold tracking-wide">Recipients</th>
-            <th scope="col" class="px-4 py-3 font-semibold tracking-wide">Success Rate</th>
-            <th scope="col" class="px-4 py-3 font-semibold tracking-wide">Status</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide">Time</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide">Type</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide">Title</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide hidden md:table-cell">Recipients</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide hidden md:table-cell">Success Rate</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide">Status</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td colspan="6" class="px-4 py-8 text-center">
+            <td colspan="6" class="px-4 py-10 text-center">
               <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-ecs-green mb-2"></div>
               <p class="text-gray-500 dark:text-gray-400">Loading recent activity...</p>
             </td>
@@ -173,7 +160,7 @@
         </tbody>
       </table>
     </div>
-  {% endcall %}
+  </section>
 
 </div>
 
@@ -406,9 +393,21 @@
 {% endblock %}
 
 {% block extra_js %}
+{# Real recent notification activity (from route's notification_history when provided). #}
+<script type="application/json" id="recent-activity-data">
+[
+{% for n in (notification_history or []) %}
+  {"time": "{{ n.created_at.strftime('%b %d, %I:%M %p') if n.created_at else '' }}", "type": "Push", "title": {{ (n.content[:60] if n.content else 'Notification')|tojson }}, "recipient": {{ (n.user.username if n.user else 'Unknown')|tojson }}, "read": {{ 'true' if n.read else 'false' }}}{{ ',' if not loop.last }}
+{% endfor %}
+]
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
+    function getCsrf() {
+        const m = document.querySelector('meta[name="csrf-token"]');
+        return m ? m.getAttribute('content') : '';
+    }
 
     // Modal toggle functionality
     function showModal(modalId) {
@@ -468,108 +467,180 @@ document.addEventListener('DOMContentLoaded', function() {
                 showModal('testNotificationModal');
                 break;
             case 'confirm-send-test':
+                hideModal('testNotificationModal');
                 Swal.fire({
                     title: 'Sending Test...',
-                    text: 'Sending test notification to your device',
-                    icon: 'info',
-                    timer: 2000,
-                    showConfirmButton: false,
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading(),
                     background: isDark ? '#1f2937' : '#ffffff',
                     color: isDark ? '#f3f4f6' : '#111827'
                 });
-                hideModal('testNotificationModal');
-                break;
-            case 'send-match-reminder':
-            case 'send-rsvp-reminder-notification':
-            case 'view-notification-logs':
-            case 'manage-push-tokens':
-            case 'cleanup-invalid-tokens':
-                Swal.fire({
-                    title: 'Feature',
-                    text: 'This action would trigger: ' + action,
-                    icon: 'info',
+                fetch('/admin-panel/communication/push-notifications/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() }
+                })
+                .then(r => r.json())
+                .then(data => Swal.fire({
+                    icon: data.success ? 'success' : 'error',
+                    title: data.success ? 'Test Sent' : 'Test Failed',
+                    text: data.message || (data.success ? 'Test notification sent to your devices.' : 'Unable to send test notification.'),
                     confirmButtonColor: '#1a472a',
                     background: isDark ? '#1f2937' : '#ffffff',
                     color: isDark ? '#f3f4f6' : '#111827'
-                });
+                }))
+                .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Unable to send test notification.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }));
                 break;
-            case 'send-broadcast':
-                const title = document.getElementById('broadcast-title').value;
-                const message = document.getElementById('broadcast-message').value;
-                const targetGroup = document.getElementById('broadcast-target').value;
-
-                if (title && message && targetGroup) {
-                    Swal.fire({
-                        title: 'Confirm Broadcast',
-                        text: `Send notification to ${targetGroup}?`,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Send',
+            case 'view-notification-logs':
+                window.location.href = '/admin-panel/communication/push-notifications/dashboard';
+                break;
+            case 'manage-push-tokens':
+                window.location.href = '/admin-panel/communication/push-notifications/settings';
+                break;
+            case 'cleanup-invalid-tokens':
+                Swal.fire({
+                    title: 'Cleanup Invalid Tokens?',
+                    text: 'Deactivate FCM tokens that have not been refreshed in over 90 days.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, clean up',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+                    fetch('/admin-panel/communication/push-notifications/cleanup-tokens', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() }
+                    })
+                    .then(r => r.json())
+                    .then(data => Swal.fire({
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Cleanup Complete' : 'Cleanup Failed',
+                        text: data.message || 'Token cleanup finished.',
                         confirmButtonColor: '#1a472a',
                         background: isDark ? '#1f2937' : '#ffffff',
                         color: isDark ? '#f3f4f6' : '#111827'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            hideModal('broadcastModal');
-                            Swal.fire({
-                                title: 'Sent!',
-                                text: 'Broadcast notification has been sent.',
-                                icon: 'success',
-                                confirmButtonColor: '#1a472a',
-                                background: isDark ? '#1f2937' : '#ffffff',
-                                color: isDark ? '#f3f4f6' : '#111827'
-                            });
-                        }
-                    });
-                }
+                    }))
+                    .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Unable to clean up tokens.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }));
+                });
+                break;
+            case 'send-broadcast':
+                sendBroadcast();
                 break;
         }
     });
 
-    // Simulate loading stats
-    setTimeout(function() {
-        document.getElementById('total-devices').textContent = '156';
-        document.getElementById('ios-devices').textContent = '89';
-        document.getElementById('android-devices').textContent = '67';
-        document.getElementById('notifications-sent').textContent = '42';
+    function sendBroadcast() {
+        const title = document.getElementById('broadcast-title').value;
+        const message = document.getElementById('broadcast-message').value;
+        const targetGroup = document.getElementById('broadcast-target').value;
+        if (!title || !message || !targetGroup) {
+            Swal.fire({ icon: 'error', title: 'Missing Fields', text: 'Title, message, and recipients are required.', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            return;
+        }
+        Swal.fire({
+            title: 'Confirm Broadcast',
+            text: `Send notification to ${targetGroup}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Send',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            hideModal('broadcastModal');
+            fetch('/admin-panel/communication/push-notifications/broadcast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+                body: JSON.stringify({ title: title, message: message, target: targetGroup })
+            })
+            .then(r => r.json())
+            .then(data => Swal.fire({
+                icon: data.success ? 'success' : 'error',
+                title: data.success ? 'Sent!' : 'Failed',
+                text: data.message || (data.success ? 'Broadcast notification has been sent.' : 'Unable to send broadcast.'),
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }))
+            .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Unable to send broadcast.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }));
+        });
+    }
 
-        // Update Firebase status
-        document.getElementById('firebase-status-indicator').innerHTML = '<span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>Connected';
-        document.getElementById('firebase-status-indicator').className = 'inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+    // Wire the broadcast modal's submit button (modal_form renders a submit control)
+    const broadcastForm = document.getElementById('broadcastForm');
+    if (broadcastForm) {
+        broadcastForm.addEventListener('submit', function(e) { e.preventDefault(); sendBroadcast(); });
+    }
 
-        document.getElementById('firebase-status-content').innerHTML = `
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Project ID</p>
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">ecs-soccer-app</p>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Last Check</p>
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">Just now</p>
-                </div>
-            </div>
-        `;
+    // Load real Firebase status + device fleet stats
+    function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
 
-        // Load activity table
-        document.querySelector('#notification-activity-table tbody').innerHTML = `
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                <td class="px-4 py-3 text-xs text-gray-500">2 min ago</td>
-                <td class="px-4 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Broadcast</span></td>
-                <td class="px-4 py-3 text-gray-900 dark:text-white">Match Reminder</td>
-                <td class="px-4 py-3">All Users (156)</td>
-                <td class="px-4 py-3"><span class="text-green-600 dark:text-green-400">98%</span></td>
-                <td class="px-4 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Sent</span></td>
-            </tr>
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                <td class="px-4 py-3 text-xs text-gray-500">1 hour ago</td>
-                <td class="px-4 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">RSVP</span></td>
-                <td class="px-4 py-3 text-gray-900 dark:text-white">RSVP Reminder</td>
-                <td class="px-4 py-3">Team Captains (24)</td>
-                <td class="px-4 py-3"><span class="text-green-600 dark:text-green-400">100%</span></td>
-                <td class="px-4 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Sent</span></td>
-            </tr>
-        `;
-    }, 1500);
+    fetch('/admin-panel/communication/push-notifications/status', { headers: { 'X-CSRFToken': getCsrf() } })
+        .then(r => r.json())
+        .then(data => {
+            const indicator = document.getElementById('firebase-status-indicator');
+            const content = document.getElementById('firebase-status-content');
+            const stats = data.stats || {};
+            document.getElementById('total-devices').textContent = stats.total_devices != null ? stats.total_devices : '0';
+            document.getElementById('ios-devices').textContent = stats.ios_devices != null ? stats.ios_devices : '0';
+            document.getElementById('android-devices').textContent = stats.android_devices != null ? stats.android_devices : '0';
+            document.getElementById('notifications-sent').textContent = stats.notifications_sent_24h != null ? stats.notifications_sent_24h : '0';
+
+            if (data.firebase_configured) {
+                indicator.innerHTML = '<span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>Connected';
+                indicator.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+                content.innerHTML = `
+                    <div class="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
+                        <i class="ti ti-circle-check"></i>
+                        <span>Firebase Cloud Messaging is initialized and ready to deliver notifications.</span>
+                    </div>`;
+            } else {
+                indicator.innerHTML = '<span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>Not Configured';
+                indicator.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+                content.innerHTML = `
+                    <div class="flex items-center gap-2 text-sm text-red-700 dark:text-red-400">
+                        <i class="ti ti-alert-triangle"></i>
+                        <span>Firebase Cloud Messaging is not initialized. Push delivery is unavailable until configured.</span>
+                    </div>`;
+            }
+        })
+        .catch(() => {
+            const indicator = document.getElementById('firebase-status-indicator');
+            const content = document.getElementById('firebase-status-content');
+            if (indicator) {
+                indicator.innerHTML = '<span class="inline-block w-2 h-2 bg-gray-400 rounded-full mr-1"></span>Unavailable';
+                indicator.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+            }
+            if (content) content.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-2">Unable to load Firebase status.</p>';
+        });
+
+    // Recent dispatch ledger: rendered server-side from real notification_history
+    // (see #recent-activity-data). No fabricated rows.
+    const activityBody = document.querySelector('#notification-activity-table tbody');
+    const activityData = document.getElementById('recent-activity-data');
+    if (activityBody) {
+        let rows = [];
+        if (activityData) {
+            try { rows = JSON.parse(activityData.textContent || '[]'); } catch (e) { rows = []; }
+        }
+        if (!rows.length) {
+            activityBody.innerHTML = `<tr><td colspan="6" class="px-4 py-10 text-center text-gray-500 dark:text-gray-400">No recent push notifications. <a href="/admin-panel/communication/push-notifications/dashboard" class="text-ecs-green hover:underline">Open full dashboard</a>.</td></tr>`;
+        } else {
+            activityBody.innerHTML = rows.map(n => `
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                    <td class="px-4 py-3 text-xs text-gray-500 font-mono">${escapeHtml(n.time)}</td>
+                    <td class="px-4 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">${escapeHtml(n.type)}</span></td>
+                    <td class="px-4 py-3 text-gray-900 dark:text-white">${escapeHtml(n.title)}</td>
+                    <td class="px-4 py-3 hidden md:table-cell text-gray-500 dark:text-gray-400">${escapeHtml(n.recipient)}</td>
+                    <td class="px-4 py-3 hidden md:table-cell text-gray-400">—</td>
+                    <td class="px-4 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${n.read ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}">${n.read ? 'Read' : 'Sent'}</span></td>
+                </tr>`).join('');
+        }
+    }
 });
 </script>
 {% endblock %}

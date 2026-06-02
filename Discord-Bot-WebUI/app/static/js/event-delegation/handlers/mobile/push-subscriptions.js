@@ -11,6 +11,24 @@
  * @param {Object} ED - EventDelegation instance
  */
 export function initPushSubscriptionsHandlers(ED) {
+    const BASE = '/admin-panel/mobile-features/device-token';
+
+    function csrf() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
+
+    function postForm(url, params) {
+        const body = new URLSearchParams(params).toString();
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrf()
+            },
+            body
+        }).then(r => r.json());
+    }
+
     /**
      * Copy device token to clipboard
      */
@@ -50,33 +68,29 @@ export function initPushSubscriptionsHandlers(ED) {
     ED.register('view-token', (element, event) => {
         event.preventDefault();
         const tokenId = element.dataset.tokenId;
+        const d = element.dataset;
+
+        // Real values are rendered on the button via data-* in the template.
+        const esc = (s) => String(s == null ? '' : s)
+            .replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+
+        const rows = [
+            ['Token ID', tokenId],
+            ['User', d.user],
+            ['Platform', d.platform],
+            ['Status', d.status],
+            ['App Version', d.appVersion],
+            ['Created', d.created],
+            ['Last Used', d.lastUsed],
+        ].filter(([, v]) => v !== undefined && v !== null && v !== '')
+         .map(([k, v]) => `<strong>${k}:</strong> ${esc(v)}<br>`).join('');
 
         window.Swal.fire({
             title: 'Device Token Details',
             html: `
                 <div class="text-start">
-                    <div class="mb-3">
-                        <strong>Token ID:</strong> ${tokenId}<br>
-                        <strong>Platform:</strong> iOS<br>
-                        <strong>Status:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge>Active</span><br>
-                        <strong>Created:</strong> ${new Date().toISOString().split('T')[0]}
-                    </div>
-                    <div class="mb-3">
-                        <strong>Device Information:</strong><br>
-                        <ul class="ms-4">
-                            <li>Device Model: iPhone 12 Pro</li>
-                            <li>OS Version: iOS 17.2</li>
-                            <li>App Version: 1.2.0</li>
-                        </ul>
-                    </div>
-                    <div class="mb-3">
-                        <strong>Notification History:</strong><br>
-                        <ul class="ms-4">
-                            <li>Total Sent: 45 notifications</li>
-                            <li>Successfully Delivered: 43 (95.6%)</li>
-                            <li>Opened: 32 (71.1%)</li>
-                        </ul>
-                    </div>
+                    <div class="mb-3">${rows}</div>
+                    ${d.token ? `<div class="mb-3"><strong>FCM Token:</strong><br><code class="text-xs break-all">${esc(d.token)}</code></div>` : ''}
                 </div>
             `,
             width: '600px',
@@ -113,20 +127,28 @@ export function initPushSubscriptionsHandlers(ED) {
             showCancelButton: true,
             confirmButtonText: 'Send Test',
             width: '400px',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: () => !window.Swal.isLoading(),
             preConfirm: () => {
                 const message = document.getElementById('testMessage')?.value;
                 if (!message?.trim()) {
                     window.Swal.showValidationMessage('Please enter a test message');
                     return false;
                 }
-                return {
-                    message: message,
-                    highPriority: document.getElementById('testHighPriority')?.checked
-                };
+                return postForm(`${BASE}/test`, { token_id: tokenId })
+                    .then(data => {
+                        if (!data.success) {
+                            window.Swal.showValidationMessage(data.message || 'Failed to send test notification');
+                        }
+                        return data;
+                    })
+                    .catch(() => {
+                        window.Swal.showValidationMessage('Failed to send test notification');
+                    });
             }
         }).then((result) => {
-            if (result.isConfirmed) {
-                window.Swal.fire('Test Sent!', 'Test notification has been sent to the device.', 'success');
+            if (result.isConfirmed && result.value && result.value.success) {
+                window.Swal.fire('Test Sent!', result.value.message || 'Test notification has been sent to the device.', 'success');
             }
         });
     });
@@ -146,8 +168,16 @@ export function initPushSubscriptionsHandlers(ED) {
             confirmButtonText: 'Activate'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.Swal.fire('Token Activated!', 'Push notifications enabled for this device.', 'success')
-                    .then(() => location.reload());
+                postForm(`${BASE}/activate`, { token_id: tokenId })
+                    .then(data => {
+                        if (data.success) {
+                            window.Swal.fire('Token Activated!', 'Push notifications enabled for this device.', 'success')
+                                .then(() => location.reload());
+                        } else {
+                            window.Swal.fire('Error', data.message || 'Failed to activate token', 'error');
+                        }
+                    })
+                    .catch(() => window.Swal.fire('Error', 'Failed to activate token', 'error'));
             }
         });
     });
@@ -158,8 +188,8 @@ export function initPushSubscriptionsHandlers(ED) {
     ED.register('deactivate-token', (element, event) => {
         event.preventDefault();
         const tokenId = element.dataset.tokenId;
-        const deactivateUrl = element.dataset.deactivateUrl || '/admin/mobile/push/deactivate';
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const deactivateUrl = element.dataset.deactivateUrl || `${BASE}/deactivate`;
+        const csrfToken = csrf();
 
         window.Swal.fire({
             title: 'Deactivate Token?',
@@ -210,8 +240,16 @@ export function initPushSubscriptionsHandlers(ED) {
             confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.Swal.fire('Token Deleted!', 'Device token has been permanently removed.', 'success')
-                    .then(() => location.reload());
+                postForm(`${BASE}/delete`, { token_id: tokenId })
+                    .then(data => {
+                        if (data.success) {
+                            window.Swal.fire('Token Deleted!', 'Device token has been permanently removed.', 'success')
+                                .then(() => location.reload());
+                        } else {
+                            window.Swal.fire('Error', data.message || 'Failed to delete token', 'error');
+                        }
+                    })
+                    .catch(() => window.Swal.fire('Error', 'Failed to delete token', 'error'));
             }
         });
     });
@@ -236,8 +274,16 @@ export function initPushSubscriptionsHandlers(ED) {
             confirmButtonText: 'Activate All'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.Swal.fire('Tokens Activated!', `${selectedTokens.length} device tokens have been activated.`, 'success')
-                    .then(() => location.reload());
+                postForm(`${BASE}/bulk-activate`, { token_ids: selectedTokens.join(',') })
+                    .then(data => {
+                        if (data.success) {
+                            window.Swal.fire('Tokens Activated!', data.message || `${data.count} device tokens have been activated.`, 'success')
+                                .then(() => location.reload());
+                        } else {
+                            window.Swal.fire('Error', data.message || 'Failed to activate tokens', 'error');
+                        }
+                    })
+                    .catch(() => window.Swal.fire('Error', 'Failed to activate tokens', 'error'));
             }
         });
     });
@@ -263,8 +309,16 @@ export function initPushSubscriptionsHandlers(ED) {
             confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.Swal.fire('Tokens Deactivated!', `${selectedTokens.length} device tokens have been deactivated.`, 'success')
-                    .then(() => location.reload());
+                postForm(`${BASE}/bulk-deactivate`, { token_ids: selectedTokens.join(',') })
+                    .then(data => {
+                        if (data.success) {
+                            window.Swal.fire('Tokens Deactivated!', data.message || `${data.count} device tokens have been deactivated.`, 'success')
+                                .then(() => location.reload());
+                        } else {
+                            window.Swal.fire('Error', data.message || 'Failed to deactivate tokens', 'error');
+                        }
+                    })
+                    .catch(() => window.Swal.fire('Error', 'Failed to deactivate tokens', 'error'));
             }
         });
     });
@@ -289,10 +343,16 @@ export function initPushSubscriptionsHandlers(ED) {
                     allowOutsideClick: false,
                     didOpen: () => {
                         window.Swal.showLoading();
-                        setTimeout(() => {
-                            window.Swal.fire('Cleanup Complete!', 'Inactive tokens have been removed.', 'success')
-                                .then(() => location.reload());
-                        }, 2000);
+                        postForm(`${BASE}/cleanup-inactive`, {})
+                            .then(data => {
+                                if (data.success) {
+                                    window.Swal.fire('Cleanup Complete!', data.message || `${data.count} inactive tokens removed.`, 'success')
+                                        .then(() => location.reload());
+                                } else {
+                                    window.Swal.fire('Error', data.message || 'Failed to clean up tokens', 'error');
+                                }
+                            })
+                            .catch(() => window.Swal.fire('Error', 'Failed to clean up tokens', 'error'));
                     }
                 });
             }
@@ -314,7 +374,11 @@ export function initPushSubscriptionsHandlers(ED) {
             confirmButtonText: 'Export Data'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.Swal.fire('Export Started!', 'Subscription data export is being prepared for download.', 'success');
+                let url = `${BASE}/export`;
+                if (selectedTokens.length > 0) {
+                    url += `?token_ids=${encodeURIComponent(selectedTokens.join(','))}`;
+                }
+                window.location.href = url;
             }
         });
     });

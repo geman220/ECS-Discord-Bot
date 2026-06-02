@@ -28,82 +28,225 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/_modern_kit.html' import data_table, data_table_th %}
 {% set channel_meta = {
-  'discord_dm':      {'i': 'ti-brand-discord', 'label': 'DM',       'cls': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300'},
-  'discord_channel': {'i': 'ti-brand-discord', 'label': 'Channel',  'cls': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300'},
-  'sms':             {'i': 'ti-message',       'label': 'SMS',      'cls': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'},
-  'email':           {'i': 'ti-mail',          'label': 'Email',    'cls': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'},
-  'announcement':    {'i': 'ti-speakerphone',  'label': 'Announce', 'cls': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}
+  'discord_dm':      {'i': 'ti-brand-discord', 'label': 'DM',       'cls': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300', 'dot': 'bg-indigo-500'},
+  'discord_channel': {'i': 'ti-brand-discord', 'label': 'Channel',  'cls': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300', 'dot': 'bg-cyan-500'},
+  'sms':             {'i': 'ti-message',       'label': 'SMS',      'cls': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300', 'dot': 'bg-green-500'},
+  'email':           {'i': 'ti-mail',          'label': 'Email',    'cls': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300', 'dot': 'bg-yellow-500'},
+  'announcement':    {'i': 'ti-speakerphone',  'label': 'Announce', 'cls': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300', 'dot': 'bg-red-500'}
 } %}
-<div class="max-w-7xl mx-auto space-y-6">
-  {% call page_header(category.name, subtitle='Message Templates') %}
-    <button type="button" onclick="history.back()"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
-                   bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
-                   text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Back</span>
-    </button>
-    <button type="button" data-modal-target="createTemplateModal" data-modal-toggle="createTemplateModal"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
-                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-      <i class="ti ti-plus" aria-hidden="true"></i><span>Add Template</span>
-    </button>
-  {% endcall %}
+{# Derive real metrics from the provided templates list only (no fabrication). #}
+{% set active_count = templates|selectattr('is_active')|list|length %}
+{% set inactive_count = templates|length - active_count %}
+{% set channel_order = ['discord_dm', 'discord_channel', 'sms', 'email', 'announcement'] %}
+{# Reusable: extract distinct {token} variable names from raw content using pure-Jinja
+   string ops (no fabrication — derived live from the real message_content). #}
+{% macro template_vars(content) %}
+{%- set found = [] -%}
+{%- if content -%}
+  {%- for chunk in content.split('{') -%}
+    {%- if '}' in chunk -%}
+      {%- set name = chunk.split('}')[0] -%}
+      {%- if name and ' ' not in name and '\n' not in name and '\t' not in name and name not in found -%}
+        {%- set _ = found.append(name) -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+{{ found|join(',') }}
+{%- endmacro %}
+{# Count templates that reference at least one {variable} token. #}
+{% set ns = namespace(with_vars=0) %}
+{% for t in templates %}
+  {% if template_vars(t.message_content)|trim %}{% set ns.with_vars = ns.with_vars + 1 %}{% endif %}
+{% endfor %}
+<div class="max-w-7xl mx-auto space-y-5 sm:space-y-6">
 
-  {# KPI strip #}
-  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-    {{ stat_card('ti-files', 'Templates', templates|length, sublabel='in category') }}
-    {{ stat_card('ti-circle-check', 'Active', templates|selectattr('is_active')|list|length, sublabel='live', tone='success') }}
-    {{ stat_card('ti-clock', 'Last Updated', (category.updated_at.strftime('%Y-%m-%d') if category.updated_at else 'Never'), sublabel=(category.updated_at.strftime('%H:%M') if category.updated_at else ''), tone='neutral') }}
-  </div>
-
-  {% if category.description %}
-  {% call section_card('Description', icon='ti-info-circle') %}
-    <div class="px-4 sm:px-5 py-4 text-sm text-gray-600 dark:text-gray-300">{{ category.description }}</div>
-  {% endcall %}
-  {% endif %}
+  {# ===== Feature card: the category is the primary object ===== #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/40 flex items-center justify-between gap-3">
+      <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-ecs-green">
+        <i class="ti ti-folder-filled" aria-hidden="true"></i>Message Category
+      </span>
+      <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500">#{{ '%03d' % category.id }}</span>
+    </div>
+    <div class="px-4 sm:px-5 py-4 sm:py-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div class="min-w-0">
+        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ category.name }}</h1>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-300 max-w-2xl">{{ category.description or 'No description provided.' }}</p>
+        <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <span class="inline-flex items-center gap-1.5">
+            <i class="ti ti-calendar-plus" aria-hidden="true"></i>Created
+            <span class="font-mono text-gray-700 dark:text-gray-300">{{ category.created_at.strftime('%Y-%m-%d') if category.created_at else '—' }}</span>
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <i class="ti ti-clock-edit" aria-hidden="true"></i>Updated
+            <span class="font-mono text-gray-700 dark:text-gray-300">{{ category.updated_at.strftime('%Y-%m-%d %H:%M') if category.updated_at else 'Never' }}</span>
+          </span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button type="button" onclick="history.back()"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                       bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
+                       text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Back</span>
+        </button>
+        <button type="button" data-modal-target="createTemplateModal" data-modal-toggle="createTemplateModal"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                       bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+          <i class="ti ti-plus" aria-hidden="true"></i><span>Add Template</span>
+        </button>
+      </div>
+    </div>
+    {# KPI band — mono figures w/ divider footers, grounded in real counts #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700">
+      <div class="px-4 sm:px-5 py-4">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Templates</span>
+          <i class="ti ti-files text-ecs-green shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ templates|length }}</div>
+        <div class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">in this category</div>
+      </div>
+      <div class="px-4 sm:px-5 py-4">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active</span>
+          <i class="ti ti-circle-check text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ active_count }}</div>
+        <div class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">live for send</div>
+      </div>
+      <div class="px-4 sm:px-5 py-4">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Inactive</span>
+          <i class="ti ti-circle-pause text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none {{ 'text-amber-600 dark:text-amber-400' if inactive_count else 'text-gray-400 dark:text-gray-500' }}">{{ inactive_count }}</div>
+        <div class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">paused / draft</div>
+      </div>
+      <div class="px-4 sm:px-5 py-4">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">With Variables</span>
+          <i class="ti ti-variable text-cyan-600 dark:text-cyan-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none {{ 'text-cyan-600 dark:text-cyan-400' if ns.with_vars else 'text-gray-400 dark:text-gray-500' }}">{{ ns.with_vars }}</div>
+        <div class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">use {placeholders}</div>
+      </div>
+    </div>
+  </section>
 
   {% if templates %}
-  {% call data_table('Message Templates', icon='ti-file-text', count=templates|length, search_placeholder='Filter templates…', search_id='tplFilter', filters=True) %}
+  {# ===== Channel distribution — derived from real channel_type values ===== #}
+  {% set channels_present = [] %}
+  {% for c in channel_order %}
+    {% set n = templates|selectattr('channel_type', 'equalto', c)|list|length %}
+    {% if n > 0 %}{% set _ = channels_present.append((c, n)) %}{% endif %}
+  {% endfor %}
+  {% set unset_count = templates|rejectattr('channel_type')|list|length %}
+  {% if channels_present or unset_count %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+      <i class="ti ti-chart-donut-3 text-ecs-green" aria-hidden="true"></i>
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Channel Mix</h2>
+    </div>
+    {# per-channel count chips — proportion conveyed by the mono figure, no inline styles #}
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y sm:divide-y-0 divide-gray-100 dark:divide-gray-700/70">
+      {% for c, n in channels_present %}
+      <div class="px-4 py-3 flex items-center gap-2.5">
+        <span class="w-2.5 h-2.5 rounded-full {{ channel_meta[c].dot }} shrink-0" aria-hidden="true"></span>
+        <div class="min-w-0">
+          <div class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ channel_meta[c].label }}</div>
+          <div class="font-mono text-lg font-bold leading-none text-gray-900 dark:text-white">{{ n }}</div>
+        </div>
+      </div>
+      {% endfor %}
+      {% if unset_count %}
+      <div class="px-4 py-3 flex items-center gap-2.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-gray-400 dark:bg-gray-500 shrink-0" aria-hidden="true"></span>
+        <div class="min-w-0">
+          <div class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">Unset</div>
+          <div class="font-mono text-lg font-bold leading-none text-gray-900 dark:text-white">{{ unset_count }}</div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# ===== Master / detail: template table (left) + sticky Live Preview (right) ===== #}
+  <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] gap-5 items-start">
+  <div class="min-w-0">
+  {% call data_table('Templates', icon='ti-file-text', count=templates|length, search_placeholder='Filter by name or key…', search_id='tplFilter', filters=True) %}
+    {# Channel filter chips — derived from the real channel_type set; toggles row visibility client-side. #}
+    <div class="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-gray-200 dark:border-gray-700">
+      <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mr-1">Channel</span>
+      <button type="button" data-channel-filter="all"
+              class="h-7 px-2.5 inline-flex items-center gap-1 rounded-md text-xs font-semibold bg-ecs-green/15 text-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green"
+              aria-pressed="true">All</button>
+      {% for c in channel_order %}
+        {% if templates|selectattr('channel_type', 'equalto', c)|list|length > 0 %}
+        <button type="button" data-channel-filter="{{ c }}"
+                class="h-7 px-2.5 inline-flex items-center gap-1 rounded-md text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                aria-pressed="false"><i class="ti {{ channel_meta[c].i }}" aria-hidden="true"></i>{{ channel_meta[c].label }}</button>
+        {% endif %}
+      {% endfor %}
+      {% if templates|rejectattr('channel_type')|list|length > 0 %}
+        <button type="button" data-channel-filter="unset"
+                class="h-7 px-2.5 inline-flex items-center gap-1 rounded-md text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                aria-pressed="false"><i class="ti ti-question-mark" aria-hidden="true"></i>Unset</button>
+      {% endif %}
+    </div>
     {# md+ table #}
     <table class="hidden md:table w-full text-sm text-left">
       <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
         <tr>
-          {{ data_table_th('Template Name', key='name') }}
+          {{ data_table_th('Template', key='name') }}
+          {{ data_table_th('Key', key='key', hide='md') }}
           {{ data_table_th('Channel', key='channel', hide='sm') }}
-          {{ data_table_th('Content Preview', key='content', sortable=False, hide='md') }}
           {{ data_table_th('Status', key='status') }}
-          {{ data_table_th('Last Updated', key='updated', hide='sm') }}
+          {{ data_table_th('Updated', key='updated', hide='sm', align='right') }}
           {{ data_table_th('Actions', sortable=False, align='right') }}
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for template in templates %}
         {% set ch = channel_meta.get(template.channel_type, {'i': 'ti-question-mark', 'label': 'Unset', 'cls': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}) %}
-        <tr data-row class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+        {% set tpl_vars = template_vars(template.message_content)|trim %}
+        <tr data-row data-channel="{{ template.channel_type or 'unset' }}" class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
           <td class="px-3 py-3 align-top">
-            <div class="flex items-start gap-2">
-              <i class="ti ti-file-text mt-0.5 text-ecs-green shrink-0" aria-hidden="true"></i>
+            <div class="flex items-start gap-2.5">
+              <span class="mt-0.5 w-8 h-8 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/15 text-ecs-green flex items-center justify-center shrink-0">
+                <i class="ti {{ ch.i }}" aria-hidden="true"></i>
+              </span>
               <div class="min-w-0">
                 <div class="font-semibold text-gray-900 dark:text-white">{{ template.name }}</div>
                 {% if template.description %}
-                <div class="text-xs text-gray-500 dark:text-gray-400">{{ template.description }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{{ template.description }}</div>
+                {% elif template.usage_context %}
+                <div class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1"><i class="ti ti-route mr-0.5" aria-hidden="true"></i>{{ template.usage_context }}</div>
                 {% endif %}
+                {% if tpl_vars %}
+                <div class="mt-1.5 flex flex-wrap items-center gap-1">
+                  {% for v in tpl_vars.split(',') %}
+                  <code class="font-mono text-[11px] bg-cyan-50 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300 px-1.5 py-0.5 rounded">{{ '{' ~ v ~ '}' }}</code>
+                  {% endfor %}
+                </div>
+                {% endif %}
+                <div class="mt-1 max-w-md truncate text-[11px] font-mono text-gray-400 dark:text-gray-500 lg:hidden">{{ template.message_content[:60] }}{% if template.message_content|length > 60 %}…{% endif %}</div>
               </div>
             </div>
+          </td>
+          <td class="px-3 py-3 align-top hidden lg:table-cell">
+            <code class="font-mono text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/60 px-1.5 py-0.5 rounded">{{ template.key }}</code>
           </td>
           <td class="px-3 py-3 align-top hidden md:table-cell">
             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ ch.cls }}">
               <i class="ti {{ ch.i }} mr-1" aria-hidden="true"></i>{{ ch.label }}
             </span>
-          </td>
-          <td class="px-3 py-3 align-top hidden lg:table-cell">
-            <div class="max-w-xs truncate text-gray-600 dark:text-gray-400">
-              {{ template.message_content[:80] }}{% if template.message_content|length > 80 %}…{% endif %}
-            </div>
           </td>
           <td class="px-3 py-3 align-top">
             {% if template.is_active %}
@@ -116,13 +259,17 @@
             </span>
             {% endif %}
           </td>
-          <td class="px-3 py-3 align-top hidden md:table-cell text-xs font-mono text-gray-500 dark:text-gray-400">
-            {{ template.updated_at.strftime('%Y-%m-%d %H:%M') if template.updated_at else 'Never' }}
+          <td class="px-3 py-3 align-top hidden md:table-cell text-right text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap">
+            {{ template.updated_at.strftime('%Y-%m-%d') if template.updated_at else 'Never' }}<br>
+            <span class="text-gray-400 dark:text-gray-500">{{ template.updated_at.strftime('%H:%M') if template.updated_at else '' }}</span>
           </td>
           <td class="px-3 py-3 align-top">
             <div class="flex items-center justify-end gap-1">
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-cyan-600 hover:bg-cyan-50 rounded dark:hover:bg-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Preview" aria-label="Preview template" data-action="view-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-template-content="{{ template.message_content }}">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-cyan-600 hover:bg-cyan-50 rounded dark:hover:bg-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Preview" aria-label="Preview template" data-action="preview-pane" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-template-key="{{ template.key }}" data-template-channel="{{ ch.label }}" data-template-channel-icon="{{ ch.i }}" data-template-vars="{{ tpl_vars }}" data-template-content="{{ template.message_content }}">
                 <i class="ti ti-eye" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded dark:text-gray-300 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Copy content" aria-label="Copy template content" data-action="copy-template" data-template-content="{{ template.message_content }}">
+                <i class="ti ti-copy" aria-hidden="true"></i>
               </button>
               <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 hover:bg-amber-50 rounded dark:hover:bg-amber-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Edit" aria-label="Edit template" data-action="edit-template" data-template-id="{{ template.id }}">
                 <i class="ti ti-edit" aria-hidden="true"></i>
@@ -143,15 +290,24 @@
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
       {% for template in templates %}
       {% set ch = channel_meta.get(template.channel_type, {'i': 'ti-question-mark', 'label': 'Unset', 'cls': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}) %}
-      <div data-row class="px-4 py-3.5">
+      {% set tpl_vars = template_vars(template.message_content)|trim %}
+      <div data-row data-channel="{{ template.channel_type or 'unset' }}" class="px-4 py-3.5">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
-              <i class="ti ti-file-text text-ecs-green shrink-0" aria-hidden="true"></i>
+              <i class="ti {{ ch.i }} text-ecs-green shrink-0" aria-hidden="true"></i>
               <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ template.name }}</span>
             </div>
             {% if template.description %}
             <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ template.description }}</div>
+            {% endif %}
+            <code class="mt-1 inline-block font-mono text-[11px] text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/60 px-1.5 py-0.5 rounded">{{ template.key }}</code>
+            {% if tpl_vars %}
+            <div class="mt-1.5 flex flex-wrap items-center gap-1">
+              {% for v in tpl_vars.split(',') %}
+              <code class="font-mono text-[11px] bg-cyan-50 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300 px-1.5 py-0.5 rounded">{{ '{' ~ v ~ '}' }}</code>
+              {% endfor %}
+            </div>
             {% endif %}
           </div>
           {% if template.is_active %}
@@ -174,6 +330,9 @@
           <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-cyan-600 hover:bg-cyan-50 rounded dark:hover:bg-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Preview" aria-label="Preview template" data-action="view-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-template-content="{{ template.message_content }}">
             <i class="ti ti-eye" aria-hidden="true"></i>
           </button>
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded dark:text-gray-300 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Copy content" aria-label="Copy template content" data-action="copy-template" data-template-content="{{ template.message_content }}">
+            <i class="ti ti-copy" aria-hidden="true"></i>
+          </button>
           <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-amber-600 hover:bg-amber-50 rounded dark:hover:bg-amber-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Edit" aria-label="Edit template" data-action="edit-template" data-template-id="{{ template.id }}">
             <i class="ti ti-edit" aria-hidden="true"></i>
           </button>
@@ -188,13 +347,74 @@
       {% endfor %}
     </div>
   {% endcall %}
+  </div>{# /left column #}
+
+  {# ===== Sticky Live Preview pane (lg+) — populated by JS from the row's data-* (real content). ===== #}
+  <aside id="livePreview" class="hidden lg:block rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden lg:sticky lg:top-4">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+      <i class="ti ti-eye text-ecs-green" aria-hidden="true"></i>
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Live Preview</h2>
+      <span id="lpChannel" class="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hidden"></span>
+    </div>
+
+    {# Empty prompt (shown until a template is selected) #}
+    <div id="lpEmpty" class="px-4 py-10 text-center">
+      <div class="w-12 h-12 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+        <i class="ti ti-click text-xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+      </div>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Select a template's <i class="ti ti-eye align-text-bottom" aria-hidden="true"></i> preview to see the rendered message, raw template, and variables here.</p>
+    </div>
+
+    {# Detail body (hidden until selection) #}
+    <div id="lpBody" class="hidden p-4 space-y-4">
+      <div>
+        <p id="lpName" class="text-sm font-semibold text-gray-900 dark:text-white truncate"></p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Key <code id="lpKey" class="font-mono bg-gray-100 dark:bg-gray-700/60 px-1.5 py-0.5 rounded"></code></p>
+      </div>
+
+      <div>
+        <div class="flex items-center gap-1.5 mb-2">
+          <i class="ti ti-message-circle text-sm text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+          <span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Rendered Message</span>
+          <span id="lpChars" class="ml-auto font-mono text-xs text-gray-400 dark:text-gray-500"></span>
+        </div>
+        <div id="lpRendered" class="rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 p-3.5 font-mono text-xs leading-relaxed whitespace-pre-wrap text-gray-800 dark:text-gray-200"></div>
+      </div>
+
+      <div>
+        <div class="flex items-center gap-1.5 mb-2">
+          <i class="ti ti-code text-sm text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+          <span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Raw Template</span>
+        </div>
+        <div id="lpRaw" class="rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 p-3.5 font-mono text-xs leading-relaxed whitespace-pre-wrap text-gray-500 dark:text-gray-400"></div>
+      </div>
+
+      <div id="lpVarsWrap" class="hidden">
+        <div class="flex items-center gap-1.5 mb-2">
+          <i class="ti ti-variable text-sm text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+          <span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Variables</span>
+        </div>
+        <div id="lpVars" class="flex flex-wrap items-center gap-1"></div>
+      </div>
+
+      <div class="flex items-center gap-2 pt-1">
+        <button type="button" id="lpEdit" class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold flex-1 justify-center focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="edit-template" data-template-id="">
+          <i class="ti ti-edit" aria-hidden="true"></i>Edit Template
+        </button>
+        <button type="button" id="lpCopy" class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="copy-template" data-template-content="">
+          <i class="ti ti-copy" aria-hidden="true"></i>Copy
+        </button>
+      </div>
+    </div>
+  </aside>
+  </div>{# /master-detail grid #}
   {% else %}
-  {% call section_card('Message Templates', icon='ti-file-text') %}
+  {% call data_table('Templates', icon='ti-file-text', count=0, filters=False) %}
   <div class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16">
     <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
       <i class="ti ti-file-x text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
     </div>
-    <h3 class="text-base font-semibold text-gray-900 dark:text-white">No templates found in this category</h3>
+    <h3 class="text-base font-semibold text-gray-900 dark:text-white">No templates in this category</h3>
     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">Create your first message template to get started.</p>
     <button type="button" data-modal-target="createTemplateModal" data-modal-toggle="createTemplateModal"
             class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
@@ -582,6 +802,96 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // ---- Channel filter chips: toggle row visibility by data-channel ----
+    const chips = Array.from(document.querySelectorAll('[data-channel-filter]'));
+    if (chips.length) {
+        const activeCls = ['bg-ecs-green/15', 'text-ecs-green'];
+        const idleCls = ['border', 'border-gray-300', 'dark:border-gray-600', 'text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-50', 'dark:hover:bg-gray-700'];
+        function applyFilter(value) {
+            chips.forEach(c => {
+                const on = c.dataset.channelFilter === value;
+                c.setAttribute('aria-pressed', on ? 'true' : 'false');
+                if (on) { c.classList.add(...activeCls); c.classList.remove(...idleCls); }
+                else { c.classList.remove(...activeCls); c.classList.add(...idleCls); }
+            });
+            document.querySelectorAll('[data-row][data-channel]').forEach(row => {
+                row.style.display = (value === 'all' || row.dataset.channel === value) ? '' : 'none';
+            });
+        }
+        chips.forEach(c => c.addEventListener('click', () => applyFilter(c.dataset.channelFilter)));
+    }
+
+    // ---- Live Preview pane (lg+) ----
+    function escapeHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s == null ? '' : s;
+        return d.innerHTML;
+    }
+    function highlightVars(content) {
+        // Wrap {token} occurrences in a colored span (escaped first to prevent XSS).
+        return escapeHtml(content).replace(/\{([^}\s]+)\}/g, '<span class="text-cyan-600 dark:text-cyan-400">{$1}</span>');
+    }
+    function showPreview(btn) {
+        const empty = document.getElementById('lpEmpty');
+        const body = document.getElementById('lpBody');
+        if (!body) return;
+        const content = btn.dataset.templateContent || '';
+        document.getElementById('lpName').textContent = btn.dataset.templateName || '';
+        document.getElementById('lpKey').textContent = btn.dataset.templateKey || '';
+        document.getElementById('lpRendered').innerHTML = highlightVars(content);
+        document.getElementById('lpRaw').textContent = content;
+        document.getElementById('lpChars').textContent = content.length + ' chars';
+
+        const chBadge = document.getElementById('lpChannel');
+        const chLabel = btn.dataset.templateChannel;
+        const chIcon = btn.dataset.templateChannelIcon;
+        if (chLabel) {
+            chBadge.innerHTML = '<i class="ti ' + escapeHtml(chIcon || 'ti-message') + '"></i>' + escapeHtml(chLabel);
+            chBadge.classList.remove('hidden');
+        } else {
+            chBadge.classList.add('hidden');
+        }
+
+        const varsWrap = document.getElementById('lpVarsWrap');
+        const varsBox = document.getElementById('lpVars');
+        const vars = (btn.dataset.templateVars || '').split(',').map(v => v.trim()).filter(Boolean);
+        if (vars.length) {
+            varsBox.innerHTML = vars.map(v =>
+                '<code class="font-mono text-[11px] bg-cyan-50 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300 px-1.5 py-0.5 rounded">{' + escapeHtml(v) + '}</code>'
+            ).join('');
+            varsWrap.classList.remove('hidden');
+        } else {
+            varsWrap.classList.add('hidden');
+        }
+
+        document.getElementById('lpEdit').dataset.templateId = btn.dataset.templateId || '';
+        document.getElementById('lpCopy').dataset.templateContent = content;
+
+        if (empty) empty.classList.add('hidden');
+        body.classList.remove('hidden');
+    }
+
+    function copyToClipboard(text, sourceBtn) {
+        const done = () => {
+            if (sourceBtn) {
+                const icon = sourceBtn.querySelector('i');
+                if (icon) {
+                    const prev = icon.className;
+                    icon.className = 'ti ti-check';
+                    setTimeout(() => { icon.className = prev; }, 1200);
+                }
+            }
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done).catch(() => {});
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = text; document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); done(); } catch (err) {}
+            document.body.removeChild(ta);
+        }
+    }
+
     // Template actions
     document.addEventListener('click', function(e) {
         const btn = e.target.closest('[data-action]');
@@ -592,7 +902,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const templateName = btn.dataset.templateName;
         const templateContent = btn.dataset.templateContent;
 
-        if (action === 'view-template') {
+        if (action === 'preview-pane') {
+            showPreview(btn);
+            return;
+        } else if (action === 'copy-template') {
+            copyToClipboard(templateContent || '', btn);
+            return;
+        } else if (action === 'view-template') {
             document.getElementById('view_template_title').textContent = templateName;
             document.getElementById('view_template_content').textContent = templateContent;
             // Show modal using Flowbite pattern

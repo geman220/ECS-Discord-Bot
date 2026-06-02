@@ -28,6 +28,13 @@
 {% set email_count = pending_alerts|selectattr('match_type', 'equalto', 'email_domain_name')|list|length %}
 
 {% call page_header("Duplicate Registrations", subtitle="Review and resolve potential duplicate player registrations") %}
+  <a href="{{ url_for('admin_panel.users_comprehensive') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+            border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-semibold
+            text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+            focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-arrow-left" aria-hidden="true"></i> All Users
+  </a>
   <a href="{{ url_for('duplicate_management.duplicate_registration_stats') }}"
      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
             border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-semibold
@@ -44,63 +51,209 @@
   {{ stat_card("ti-mail", "Email Domain", email_count, sublabel="by email + name", tone='info') }}
 </div>
 
-{% call section_card("Pending Duplicate Alerts", icon="ti-alert-triangle") %}
-{% if pending_alerts %}
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 sm:p-5">
-  {% for alert in pending_alerts %}
-  {% set conf = alert.confidence_score %}
-  {% set conf_tone = 'text-red-600 dark:text-red-400' if conf >= 0.8 else 'text-amber-600 dark:text-amber-400' if conf >= 0.6 else 'text-gray-600 dark:text-gray-400' %}
-  {% set type_badge = 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400' if alert.match_type == 'phone' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400' if alert.match_type == 'name' else 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400' %}
-  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 p-4">
-    <div class="flex items-start justify-between gap-3 mb-4">
-      <div class="min-w-0">
-        <h4 class="font-semibold text-gray-900 dark:text-white">Alert <span class="font-mono">#{{ alert.id }}</span></h4>
-        <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">{{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
-      </div>
-      <div class="text-right shrink-0">
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ type_badge }}">
-          <i class="ti ti-flag mr-1" aria-hidden="true"></i>{{ alert.match_type.replace('_', ' ').title() }}
-        </span>
-        <p class="text-sm font-semibold font-mono mt-1 {{ conf_tone }}">{{ (conf * 100)|round|int }}% match</p>
+{# Master-detail merge workspace. Left pane = pending-alert queue; selecting an alert
+   reloads the page with ?selected=<id> and the right pane renders a side-by-side compare
+   of the new registration vs the existing player. The Merge action posts straight to the
+   EXISTING merge engine (duplicate_management.execute_profile_merge) with the same
+   field_{field}=existing|new|combine contract the merge_profiles page uses — no new merge
+   algorithm is introduced. Allow / Block post to the EXISTING resolve handler. #}
+<div class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 items-start">
+
+  {# LEFT: pending alert queue #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+      <i class="ti ti-alert-triangle text-amber-500" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Pending Alerts</h2>
+      <span class="ml-auto inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400 font-mono">{{ pending_alerts|length }}</span>
+    </div>
+
+    {% if pending_alerts %}
+    <div class="p-3 border-b border-gray-200 dark:border-gray-700">
+      <label for="dupSearch" class="sr-only">Filter alerts</label>
+      <div class="relative">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
+        <input id="dupSearch" type="search" placeholder="Filter by name or phone…"
+               class="w-full h-9 pl-9 pr-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white placeholder:text-gray-400">
       </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-      <div class="rounded-lg border border-blue-200 dark:border-blue-500/30 bg-white dark:bg-gray-800 p-3">
-        <h5 class="text-xs font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400 mb-2">
-          <i class="ti ti-user-plus mr-1" aria-hidden="true"></i>New Registration
-        </h5>
-        <p class="font-medium text-gray-900 dark:text-white truncate">{{ alert.new_name or 'N/A' }}</p>
-        <p class="text-sm text-gray-600 dark:text-gray-300 truncate">{{ alert.new_discord_email }}</p>
-        {% if alert.new_phone %}
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono"><i class="ti ti-phone mr-1" aria-hidden="true"></i>{{ alert.new_phone }}</p>
-        {% endif %}
-      </div>
-      <div class="rounded-lg border border-green-200 dark:border-green-500/30 bg-white dark:bg-gray-800 p-3">
-        <h5 class="text-xs font-bold uppercase tracking-wide text-green-600 dark:text-green-400 mb-2">
-          <i class="ti ti-user-check mr-1" aria-hidden="true"></i>Existing Player
-        </h5>
-        <p class="font-medium text-gray-900 dark:text-white truncate">{{ alert.existing_player.name }}</p>
-        <p class="text-sm text-gray-600 dark:text-gray-300 truncate">{{ alert.existing_player.user.email if alert.existing_player.user else 'No email' }}</p>
-        {% if alert.existing_player.phone %}
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono"><i class="ti ti-phone mr-1" aria-hidden="true"></i>{{ alert.existing_player.phone }}</p>
-        {% endif %}
-      </div>
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700 max-h-[560px] overflow-y-auto" id="dupQueue">
+      {% for alert in pending_alerts %}
+      {% set conf = alert.confidence_score or 0 %}
+      {% set is_sel = selected_alert and selected_alert.id == alert.id %}
+      {% set conf_tone = 'text-red-600 dark:text-red-400' if conf >= 0.8 else 'text-amber-600 dark:text-amber-400' if conf >= 0.6 else 'text-gray-600 dark:text-gray-400' %}
+      {% set type_badge = 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400' if alert.match_type == 'phone' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400' if alert.match_type == 'name' else 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400' %}
+      {% set type_icon = 'ti-phone' if alert.match_type == 'phone' else 'ti-user' if alert.match_type == 'name' else 'ti-mail' %}
+      <li data-dup-row data-dup-text="{{ ((alert.new_name or '') ~ ' ' ~ (alert.existing_player.name if alert.existing_player else '') ~ ' ' ~ (alert.new_phone or ''))|lower }}">
+        <a href="{{ url_for('admin_panel.duplicate_registrations', selected=alert.id) }}"
+           class="block w-full text-left px-4 py-3 transition-colors {{ 'bg-gray-50 dark:bg-gray-700/40 border-l-2 border-ecs-green' if is_sel else 'hover:bg-gray-50 dark:hover:bg-gray-700/30 border-l-2 border-transparent' }}">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-semibold text-sm text-gray-900 dark:text-white truncate">{{ alert.new_name or 'Unknown' }}</span>
+            <span class="font-mono text-xs text-gray-400 shrink-0">#{{ alert.id }}</span>
+          </div>
+          <div class="mt-1 flex items-center gap-2 flex-wrap">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold {{ type_badge }}"><i class="ti {{ type_icon }} text-[10px]" aria-hidden="true"></i> {{ alert.match_type.replace('_', ' ').title() }}</span>
+            <span class="font-mono text-xs font-semibold {{ conf_tone }}">{{ (conf * 100)|round|int }}% match</span>
+          </div>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="p-6">
+      {{ empty_state("ti-circle-check", "No Pending Alerts", "All duplicate registration alerts have been resolved.") }}
     </div>
-
-    <a href="{{ url_for('duplicate_management.duplicate_registration_detail', alert_id=alert.id) }}"
-       class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
-              bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-      <i class="ti ti-eye" aria-hidden="true"></i>Review &amp; Resolve
-    </a>
+    {% endif %}
   </div>
-  {% endfor %}
+
+  {# RIGHT: compare & resolve detail pane #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+    {% if selected_alert %}
+    {% set conf = selected_alert.confidence_score or 0 %}
+    {% set conf_tone = 'text-red-600 dark:text-red-400' if conf >= 0.8 else 'text-amber-600 dark:text-amber-400' if conf >= 0.6 else 'text-gray-600 dark:text-gray-400' %}
+    {% set type_badge = 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400' if selected_alert.match_type == 'phone' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400' if selected_alert.match_type == 'name' else 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400' %}
+    {% set type_icon = 'ti-phone' if selected_alert.match_type == 'phone' else 'ti-user' if selected_alert.match_type == 'name' else 'ti-mail' %}
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 flex-wrap">
+      <i class="ti ti-arrows-join text-ecs-green" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Compare &amp; Resolve</h2>
+      <span class="font-mono text-xs text-gray-400">Alert #{{ selected_alert.id }}</span>
+      {% if selected_alert.created_at %}
+      <span class="font-mono text-xs text-gray-400 hidden sm:inline">· created {{ selected_alert.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+      {% endif %}
+      <div class="ml-auto flex items-center gap-2">
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold {{ type_badge }}"><i class="ti {{ type_icon }} text-[10px]" aria-hidden="true"></i> {{ selected_alert.match_type.replace('_', ' ').title() }} Match</span>
+        <span class="font-mono text-sm font-bold {{ conf_tone }}">{{ (conf * 100)|round|int }}%</span>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('duplicate_management.execute_profile_merge', alert_id=selected_alert.id) }}" id="dupMergeForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="p-4 sm:p-5">
+        {# side-by-side identity columns #}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50/50 dark:bg-blue-900/10 p-4">
+            <div class="flex items-center gap-2 mb-3">
+              <i class="ti ti-user-plus text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+              <h3 class="text-xs font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">New Registration</h3>
+            </div>
+            <dl class="space-y-2 text-sm">
+              <div><dt class="text-xs text-gray-500 dark:text-gray-400">Name</dt><dd class="font-medium text-gray-900 dark:text-white">{{ selected_alert.new_name or 'N/A' }}</dd></div>
+              <div><dt class="text-xs text-gray-500 dark:text-gray-400">Discord Email</dt><dd class="break-all text-gray-700 dark:text-gray-200">{{ selected_alert.new_discord_email or 'N/A' }}</dd></div>
+              {% if selected_alert.new_discord_username %}
+              <div><dt class="text-xs text-gray-500 dark:text-gray-400">Discord Username</dt><dd class="text-gray-700 dark:text-gray-200">{{ selected_alert.new_discord_username }}</dd></div>
+              {% endif %}
+              <div><dt class="text-xs text-gray-500 dark:text-gray-400">Phone</dt><dd class="font-mono text-gray-700 dark:text-gray-200">{{ selected_alert.new_phone or 'N/A' }}</dd></div>
+              {% if selected_alert.created_at %}
+              <div><dt class="text-xs text-gray-500 dark:text-gray-400">Submitted</dt><dd class="font-mono text-gray-700 dark:text-gray-200">{{ selected_alert.created_at.strftime('%Y-%m-%d %H:%M') }}</dd></div>
+              {% endif %}
+            </dl>
+          </div>
+          <div class="rounded-xl border border-green-200 dark:border-green-500/30 bg-green-50/50 dark:bg-green-900/10 p-4">
+            <div class="flex items-center gap-2 mb-3">
+              <i class="ti ti-user-check text-green-600 dark:text-green-400" aria-hidden="true"></i>
+              <h3 class="text-xs font-bold uppercase tracking-wide text-green-600 dark:text-green-400">Existing Player</h3>
+            </div>
+            <dl class="space-y-2 text-sm">
+              {% set ep = selected_alert.existing_player %}
+              <div><dt class="text-xs text-gray-500 dark:text-gray-400">Name</dt><dd class="font-medium text-gray-900 dark:text-white">{{ ep.name if ep else 'N/A' }}</dd></div>
+              <div><dt class="text-xs text-gray-500 dark:text-gray-400">Account Email</dt><dd class="break-all text-gray-700 dark:text-gray-200">{{ ep.user.email if ep and ep.user else 'No email' }}</dd></div>
+              <div><dt class="text-xs text-gray-500 dark:text-gray-400">Phone</dt><dd class="font-mono text-gray-700 dark:text-gray-200">{{ ep.phone if ep and ep.phone else 'N/A' }}</dd></div>
+              <div><dt class="text-xs text-gray-500 dark:text-gray-400">Player ID</dt><dd class="font-mono text-gray-700 dark:text-gray-200">#{{ ep.id if ep else 'N/A' }}</dd></div>
+            </dl>
+          </div>
+        </div>
+
+        {# field-level merge selection — posts field_{field}=existing|new|combine to the real merge engine #}
+        <div class="mt-5 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+            <i class="ti ti-columns text-gray-400" aria-hidden="true"></i>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Field Resolution</h3>
+            <span class="text-xs text-gray-500 dark:text-gray-400 ml-auto hidden sm:inline">Choose the value to keep on the merged profile</span>
+          </div>
+          {% if compare_fields %}
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-gray-500 dark:text-gray-400 text-xs uppercase">
+                  <th class="text-left px-4 py-2 font-semibold">Field</th>
+                  <th class="text-left px-4 py-2 font-semibold">Keep Existing</th>
+                  <th class="text-left px-4 py-2 font-semibold">Use New</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in compare_fields %}
+                <tr class="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                  <td class="px-4 py-2.5 font-medium text-gray-900 dark:text-white">{{ row.label }}</td>
+                  <td class="px-4 py-2.5">
+                    <label class="flex items-center gap-2 cursor-pointer break-all text-gray-700 dark:text-gray-200">
+                      <input type="radio" name="field_{{ row.field }}" value="existing" class="accent-ecs-green"
+                             {% if row.existing not in (None, '') %}checked{% endif %}>
+                      {% if row.existing not in (None, '') %}{{ row.existing }}{% else %}<span class="text-gray-400 italic">No existing value</span>{% endif %}
+                    </label>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <label class="flex items-center gap-2 cursor-pointer break-all text-gray-700 dark:text-gray-200">
+                      <input type="radio" name="field_{{ row.field }}" value="new" class="accent-ecs-green"
+                             {% if (row.existing in (None, '')) and (row.new not in (None, '')) %}checked{% endif %}>
+                      {% if row.new not in (None, '') %}{{ row.new }}{% else %}<span class="text-gray-400 italic">No new value</span>{% endif %}
+                    </label>
+                  </td>
+                </tr>
+                {% if row.combinable %}
+                <tr class="border-t border-gray-100 dark:border-gray-700/50">
+                  <td></td>
+                  <td colspan="2" class="px-4 py-2">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs text-amber-700 dark:text-amber-400">
+                      <input type="radio" name="field_{{ row.field }}" value="combine" class="accent-amber-500">
+                      <i class="ti ti-arrows-join" aria-hidden="true"></i> Combine both values
+                    </label>
+                  </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="px-4 py-6 text-sm text-gray-500 dark:text-gray-400 text-center">
+            No comparable profile fields were captured for this alert. Use Allow or Block to resolve it.
+          </div>
+          {% endif %}
+        </div>
+
+        {# resolution actions wired to the existing handlers #}
+        <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2">
+          <button type="submit" formmethod="POST"
+                  formaction="{{ url_for('duplicate_management.resolve_duplicate_registration', alert_id=selected_alert.id) }}"
+                  name="action" value="allow"
+                  class="min-h-[44px] sm:min-h-0 sm:h-9 px-3 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 text-blue-600 dark:text-blue-400">
+            <i class="ti ti-check" aria-hidden="true"></i> Allow (Keep Both)
+          </button>
+          <button type="submit" formmethod="POST"
+                  formaction="{{ url_for('duplicate_management.resolve_duplicate_registration', alert_id=selected_alert.id) }}"
+                  name="action" value="block"
+                  class="min-h-[44px] sm:min-h-0 sm:h-9 px-3 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 text-amber-600 dark:text-amber-400">
+            <i class="ti ti-ban" aria-hidden="true"></i> Block Registration
+          </button>
+          <button type="submit"
+                  class="min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-700
+                         focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-arrows-join" aria-hidden="true"></i> Merge Profiles
+          </button>
+        </div>
+      </div>
+    </form>
+    {% else %}
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+      <i class="ti ti-arrows-join text-gray-400" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Compare &amp; Resolve</h2>
+    </div>
+    <div class="p-6">
+      {{ empty_state("ti-arrows-join", "Nothing to Resolve", "Select a pending alert to compare the two candidate accounts side by side.") }}
+    </div>
+    {% endif %}
+  </div>
 </div>
-{% else %}
-{{ empty_state("ti-circle-check", "No Pending Alerts", "All duplicate registration alerts have been resolved.") }}
-{% endif %}
-{% endcall %}
 
 {% if resolved_alerts %}
 <div class="mt-5 sm:mt-6">
@@ -171,6 +324,30 @@
 {% endcall %}
 </div>
 {% endif %}
+
+{# Page-scoped queue filter: hides non-matching pending-alert rows as the admin types. #}
+<script>
+(function () {
+  function initDupQueueFilter() {
+    var search = document.getElementById('dupSearch');
+    var queue = document.getElementById('dupQueue');
+    if (!search || !queue) return;
+    search.addEventListener('input', function () {
+      var term = (search.value || '').trim().toLowerCase();
+      var rows = queue.querySelectorAll('[data-dup-row]');
+      rows.forEach(function (row) {
+        var hay = row.getAttribute('data-dup-text') || '';
+        row.style.display = (!term || hay.indexOf(term) !== -1) ? '' : 'none';
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDupQueueFilter);
+  } else {
+    initDupQueueFilter();
+  }
+})();
+</script>
 
 {% else %}
 <!-- Header Actions -->

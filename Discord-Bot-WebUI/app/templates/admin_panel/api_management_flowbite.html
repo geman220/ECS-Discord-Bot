@@ -16,77 +16,177 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, alert %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, alert %}
 {% from 'macros/flowbite.html' import input, select %}
-{% set _int_sev = {'healthy': 'success', 'warning': 'warning'} %}
+{# severity map: status -> presentation tokens (icon + text, never color-only) #}
+{% set _sev = {
+  'healthy': {'tone': 'text-green-600 dark:text-green-400', 'dot': 'bg-green-500', 'i': 'ti-circle-check',
+              'pill': 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300', 'word': 'Healthy'},
+  'warning': {'tone': 'text-amber-600 dark:text-amber-400', 'dot': 'bg-amber-500', 'i': 'ti-alert-triangle',
+              'pill': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300', 'word': 'Warning'},
+  'error':   {'tone': 'text-red-600 dark:text-red-400', 'dot': 'bg-red-500', 'i': 'ti-circle-x',
+              'pill': 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300', 'word': 'Error'}
+} %}
 <div class="space-y-6">
 
-  {{ page_header('API Management', subtitle='Integrations, security and configuration') }}
-
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-api', 'Active Integrations', stats.active_integrations or 0, tone='success') }}
-    {{ stat_card('ti-chart-line', 'API Calls Today', stats.api_calls_today or 0, tone='info') }}
-    {{ stat_card('ti-alert-triangle', 'Failed Requests', stats.failed_requests or 0, tone='warning') }}
-    {{ stat_card('ti-clock', 'Avg Response Time', stats.response_time_avg or '0ms', tone='primary') }}
-  </div>
-
-  <!-- External Integrations -->
-  {% call section_card('External Integrations', icon='ti-plug') %}
-    <div class="p-4 sm:p-5">
-      {% if integrations %}
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {% for integration in integrations %}
-        {% set _slug = integration.name.lower().replace(' ', '-') %}
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4">
-          <div class="flex items-center justify-between gap-2 mb-3">
-            <h4 class="font-semibold text-gray-900 dark:text-white truncate">{{ integration.name }}</h4>
-            {% set _v = _int_sev.get(integration.status, 'danger') %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium
-              {% if _v == 'success' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
-              {% elif _v == 'warning' %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300
-              {% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% endif %}">
-              <i class="ti ti-{{ 'circle-check' if integration.status == 'healthy' else 'alert-triangle' if integration.status == 'warning' else 'circle-x' }}" aria-hidden="true"></i>
-              {{ integration.status.title() }}
-            </span>
-          </div>
-          <div class="grid grid-cols-2 gap-3 mb-4 text-center">
-            <div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Last Check</div>
-              <div class="font-mono text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{{ integration.last_check.strftime('%H:%M') if integration.last_check else 'Never' }}</div>
-            </div>
-            <div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</div>
-              <div class="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{{ integration.status.title() }}</div>
-            </div>
-          </div>
-          <div class="flex gap-2">
-            <button type="button" data-action="test-integration" data-integration="{{ _slug }}"
-                    class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
-                           bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50
-                           text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <i class="ti ti-refresh" aria-hidden="true"></i>Test
-            </button>
-            <button type="button" data-action="configure-integration" data-integration="{{ _slug }}"
-                    class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
-                           bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
-                           text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-              <i class="ti ti-settings" aria-hidden="true"></i>Config
-            </button>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      {% from 'macros/_modern_kit.html' import empty_state %}
-      {{ empty_state('ti-plug-off', 'No integrations', 'No external integrations are currently configured.') }}
-      {% endif %}
-    </div>
+  {% call page_header('Service Health', subtitle='API integrations · security · configuration') %}
+    <button type="button" data-action="manage-api-keys"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-key" aria-hidden="true"></i>Manage API Keys
+    </button>
   {% endcall %}
 
-  <!-- API Management Grid -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- API Keys & Security -->
+  <!-- KPI band (real stats from route) -->
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+    {# Operational integrations -> uptime is the headline metric #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Operational</span>
+        <i class="ti ti-heartbeat text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-1.5 flex-wrap">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ stats.active_integrations or 0 }}</span>
+        <span class="font-mono text-base text-gray-400 dark:text-gray-500 mb-0.5">/ {{ stats.total_integrations or 0 }}</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+        <span>Uptime</span><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ stats.uptime_percentage or 0 }}%</span>
+      </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">API Calls Today</span>
+        <i class="ti ti-chart-line text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ stats.api_calls_today or 0 }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">estimated from activity</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Failed Services</span>
+        <i class="ti ti-alert-triangle text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none {{ 'text-amber-600 dark:text-amber-400' if (stats.failed_requests or 0) > 0 else 'text-gray-900 dark:text-white' }}">{{ stats.failed_requests or 0 }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">checks not healthy</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Avg Response</span>
+        <i class="ti ti-clock text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3"><span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ stats.response_time_avg or '0ms' }}</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+        <span>Rate limit</span>
+        <span class="inline-flex items-center gap-1 font-semibold {{ _sev.get(stats.rate_limit_status, _sev['error']).tone }}">
+          <i class="ti {{ _sev.get(stats.rate_limit_status, _sev['error']).i }} text-[12px]" aria-hidden="true"></i>{{ (stats.rate_limit_status or 'critical')|title }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRIMARY OBJECT: live integration health monitor (real table, real message + response_time) -->
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-plug text-ecs-green" aria-hidden="true"></i> External Integrations
+        {% if integrations %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ integrations|length }}</span>{% endif %}
+      </h2>
+    </div>
+
+    {% if integrations %}
+    <!-- toolbar: search services + status filter + test all (client-side over rendered rows) -->
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div class="relative flex-1 min-w-0">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
+        <input type="text" id="integrationSearch" aria-label="Search integrations" placeholder="Search services..."
+               class="w-full min-h-[44px] sm:min-h-0 sm:h-9 pl-9 pr-3 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600
+                      text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:border-ecs-green" />
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="integrationStatusFilter" class="sr-only">Filter by status</label>
+        <select id="integrationStatusFilter"
+                class="min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600
+                       text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+          <option value="">All statuses</option>
+          <option value="healthy">Healthy</option>
+          <option value="warning">Warning</option>
+          <option value="error">Error</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- md+ : dense monitor table -->
+    <table class="hidden md:table w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          <th scope="col" class="px-5 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Service</th>
+          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+          <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Response</th>
+          <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Last Check</th>
+          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Detail</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for integration in integrations %}
+        {% set s = _sev.get(integration.status, _sev['error']) %}
+        <tr class="integration-row hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            data-service-name="{{ integration.name|lower }}" data-service-status="{{ integration.status }}">
+          <td class="px-5 py-3 whitespace-nowrap">
+            <span class="flex items-center gap-2.5">
+              <span class="inline-block w-2 h-2 rounded-full {{ s.dot }} shrink-0" aria-hidden="true"></span>
+              <span class="font-semibold text-gray-900 dark:text-white">{{ integration.name }}</span>
+            </span>
+          </td>
+          <td class="px-3 py-3 whitespace-nowrap">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {{ s.pill }}">
+              <i class="ti {{ s.i }}" aria-hidden="true"></i>{{ s.word }}
+            </span>
+          </td>
+          <td class="px-3 py-3 text-right whitespace-nowrap">
+            <span class="font-mono text-sm font-semibold {{ s.tone if integration.response_time == 'Error' else 'text-gray-900 dark:text-white' }}">{{ integration.response_time }}</span>
+          </td>
+          <td class="px-3 py-3 text-right whitespace-nowrap hidden lg:table-cell">
+            <span class="font-mono text-sm text-gray-500 dark:text-gray-400">{{ integration.last_check.strftime('%H:%M:%S') if integration.last_check else '—' }}</span>
+          </td>
+          <td class="px-3 py-3 hidden lg:table-cell">
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ integration.message }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- mobile : stacked health cards -->
+    <ul class="md:hidden divide-y divide-gray-200 dark:divide-gray-700" role="list">
+      {% for integration in integrations %}
+      {% set s = _sev.get(integration.status, _sev['error']) %}
+      <li class="integration-row px-4 py-3.5"
+          data-service-name="{{ integration.name|lower }}" data-service-status="{{ integration.status }}">
+        <div class="flex items-center justify-between gap-2">
+          <span class="flex items-center gap-2.5 min-w-0">
+            <span class="inline-block w-2 h-2 rounded-full {{ s.dot }} shrink-0" aria-hidden="true"></span>
+            <span class="font-semibold text-gray-900 dark:text-white truncate">{{ integration.name }}</span>
+          </span>
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium shrink-0 {{ s.pill }}">
+            <i class="ti {{ s.i }}" aria-hidden="true"></i>{{ s.word }}
+          </span>
+        </div>
+        <div class="mt-2 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+          <span>Response <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ integration.response_time }}</span></span>
+          <span>Checked <span class="font-mono text-gray-700 dark:text-gray-300">{{ integration.last_check.strftime('%H:%M:%S') if integration.last_check else '—' }}</span></span>
+        </div>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ integration.message }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    {{ empty_state('ti-plug-off', 'No integrations', 'No external integrations are currently configured.') }}
+    {% endif %}
+  </section>
+
+  <!-- API Keys & Security -->
+  <div>
     {% call section_card('API Keys & Security', icon='ti-key') %}
       <div class="p-4 sm:p-5">
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Manage API keys, tokens, and security settings</p>
@@ -100,75 +200,12 @@
             </span>
             <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
           </button>
-          <button type="button" data-action="rate-limiting"
-                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
-                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-shield text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-gray-900 dark:text-white font-medium">Rate Limiting</span>
-            </span>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ stats.rate_limit_status.title() }}</span>
-          </button>
           <button type="button" data-action="access-logs"
                   class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
                          hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
             <span class="flex items-center gap-3">
               <i class="ti ti-file-text text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
               <span class="text-gray-900 dark:text-white font-medium">Access Logs</span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-          </button>
-          <button type="button" data-action="security-settings"
-                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
-                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-lock text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-gray-900 dark:text-white font-medium">Security Settings</span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-          </button>
-        </div>
-      </div>
-    {% endcall %}
-
-    <!-- API Analytics -->
-    {% call section_card('API Analytics', icon='ti-chart-dots') %}
-      <div class="p-4 sm:p-5">
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Monitor API usage, performance, and analytics</p>
-        <div class="space-y-2">
-          <button type="button" data-action="usage-stats"
-                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
-                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-chart-bar text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-gray-900 dark:text-white font-medium">Usage Statistics</span>
-            </span>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ stats.api_calls_today or 0 }}</span>
-          </button>
-          <button type="button" data-action="performance-metrics"
-                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
-                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-activity text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-gray-900 dark:text-white font-medium">Performance Metrics</span>
-            </span>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ stats.response_time_avg }}</span>
-          </button>
-          <button type="button" data-action="error-reports"
-                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
-                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-alert-circle text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-gray-900 dark:text-white font-medium">Error Reports</span>
-            </span>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">{{ stats.failed_requests or 0 }}</span>
-          </button>
-          <button type="button" data-action="generate-api-report"
-                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
-                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-file-report text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-gray-900 dark:text-white font-medium">Generate Report</span>
             </span>
             <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
           </button>
@@ -180,7 +217,7 @@
   <!-- Global API Configuration -->
   {% call section_card('Global API Configuration', icon='ti-settings') %}
     <div class="p-4 sm:p-5">
-      <form id="apiConfigForm">
+      <form id="api-config-form">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
           {{ select('apiVersion', label='API Version',
               options=[('v1', 'Version 1.0'), ('v1.1', 'Version 1.1'), ('v2', 'Version 2.0 (Beta)')],
@@ -221,54 +258,8 @@
                          focus:outline-none focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-refresh" aria-hidden="true"></i>Reset Defaults
           </button>
-          <button type="button" data-action="test-api-config"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
-                         bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 text-sm font-semibold transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <i class="ti ti-test-pipe" aria-hidden="true"></i>Test Configuration
-          </button>
         </div>
       </form>
-    </div>
-  {% endcall %}
-
-  <!-- Documentation & Tools -->
-  {% call section_card('API Documentation & Tools', icon='ti-book') %}
-    <div class="p-4 sm:p-5">
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4 text-center">
-          <i class="ti ti-book text-3xl text-blue-500 dark:text-blue-400" aria-hidden="true"></i>
-          <h4 class="font-semibold text-gray-900 dark:text-white mt-2 mb-3">API Docs</h4>
-          <button type="button" data-action="view-api-docs"
-                  class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg w-full
-                         bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 text-sm font-semibold transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-blue-500">View Docs</button>
-        </div>
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4 text-center">
-          <i class="ti ti-test-pipe text-3xl text-green-500 dark:text-green-400" aria-hidden="true"></i>
-          <h4 class="font-semibold text-gray-900 dark:text-white mt-2 mb-3">API Tester</h4>
-          <button type="button" data-action="open-api-tester"
-                  class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg w-full
-                         bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 text-sm font-semibold transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-green-500">Test APIs</button>
-        </div>
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4 text-center">
-          <i class="ti ti-code text-3xl text-blue-500 dark:text-blue-400" aria-hidden="true"></i>
-          <h4 class="font-semibold text-gray-900 dark:text-white mt-2 mb-3">Code Samples</h4>
-          <button type="button" data-action="view-code-samples"
-                  class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg w-full
-                         bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 text-sm font-semibold transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-blue-500">View Samples</button>
-        </div>
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4 text-center">
-          <i class="ti ti-download text-3xl text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
-          <h4 class="font-semibold text-gray-900 dark:text-white mt-2 mb-3">SDK Downloads</h4>
-          <button type="button" data-action="download-sdk"
-                  class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg w-full
-                         bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 text-sm font-semibold transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-amber-500">Download</button>
-        </div>
-      </div>
     </div>
   {% endcall %}
 
@@ -577,60 +568,128 @@
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
 
+    // Integration table toolbar: client-side search + status filter (console shell only).
+    const searchInput = document.getElementById('integrationSearch');
+    const statusFilter = document.getElementById('integrationStatusFilter');
+    function applyIntegrationFilters() {
+        const term = (searchInput && searchInput.value || '').trim().toLowerCase();
+        const status = (statusFilter && statusFilter.value) || '';
+        document.querySelectorAll('.integration-row').forEach(function(row) {
+            const name = row.dataset.serviceName || '';
+            const rowStatus = row.dataset.serviceStatus || '';
+            const matchesTerm = !term || name.indexOf(term) !== -1;
+            const matchesStatus = !status || rowStatus === status;
+            row.classList.toggle('hidden', !(matchesTerm && matchesStatus));
+        });
+    }
+    if (searchInput) searchInput.addEventListener('input', applyIntegrationFilters);
+    if (statusFilter) statusFilter.addEventListener('change', applyIntegrationFilters);
+
+    // --- API key manager: real data from /admin-panel/api-management/api-keys ---
+    const apiKeysUrl = '{{ url_for("admin_panel.manage_api_keys") }}';
+    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+    function escHtml(v) {
+        if (v === null || v === undefined) return '';
+        return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function renderKeysTable(keys) {
+        if (!keys || !keys.length) {
+            return '<p class="text-sm text-gray-500 dark:text-gray-400 py-4">No API keys have been generated yet.</p>';
+        }
+        let rows = keys.map(function (k) {
+            const created = k.created_at ? escHtml(k.created_at.slice(0, 10)) : '';
+            return '<tr class="border-b border-gray-100 dark:border-gray-700">'
+                + '<td class="px-2 py-2 text-left font-medium text-gray-900 dark:text-white">' + escHtml(k.name) + '</td>'
+                + '<td class="px-2 py-2 text-left font-mono text-xs text-gray-500 dark:text-gray-400">' + escHtml(k.key) + '</td>'
+                + '<td class="px-2 py-2 text-left text-xs text-gray-500 dark:text-gray-400">' + created + '</td>'
+                + '<td class="px-2 py-2 text-right"><button type="button" class="text-xs font-semibold text-red-600 hover:underline" data-revoke-key="' + escHtml(k.name) + '">Revoke</button></td>'
+                + '</tr>';
+        }).join('');
+        return '<table class="w-full text-sm"><thead><tr class="text-left text-xs uppercase text-gray-400">'
+            + '<th class="px-2 py-1">Name</th><th class="px-2 py-1">Key</th><th class="px-2 py-1">Created</th><th class="px-2 py-1"></th>'
+            + '</tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+    function apiKeysRequest(payload) {
+        return fetch(apiKeysUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify(payload)
+        }).then(r => r.json());
+    }
+    function openApiKeyManager() {
+        if (typeof Swal === 'undefined') return;
+        fetch(apiKeysUrl, { headers: { 'Accept': 'application/json' } })
+            .then(r => r.json())
+            .then(data => {
+                const keys = (data && data.api_keys) || [];
+                Swal.fire({
+                    title: 'API Keys',
+                    width: 640,
+                    html: '<div class="text-left">'
+                        + '<div id="apiKeysTableWrap">' + renderKeysTable(keys) + '</div>'
+                        + '<div class="mt-4 flex gap-2">'
+                        + '<input id="newApiKeyName" type="text" placeholder="New key name" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">'
+                        + '<button type="button" id="genApiKeyBtn" class="px-3 py-2 rounded-lg bg-ecs-green text-white text-sm font-semibold">Generate</button>'
+                        + '</div></div>',
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827',
+                    didOpen: function (popup) {
+                        const wrap = popup.querySelector('#apiKeysTableWrap');
+                        const refresh = function () {
+                            fetch(apiKeysUrl, { headers: { 'Accept': 'application/json' } })
+                                .then(r => r.json())
+                                .then(d => { wrap.innerHTML = renderKeysTable((d && d.api_keys) || []); });
+                        };
+                        popup.querySelector('#genApiKeyBtn').addEventListener('click', function () {
+                            const nameInput = popup.querySelector('#newApiKeyName');
+                            const name = (nameInput.value || '').trim();
+                            if (!name) { nameInput.focus(); return; }
+                            apiKeysRequest({ action: 'generate', key_name: name }).then(res => {
+                                if (res.success) {
+                                    nameInput.value = '';
+                                    refresh();
+                                    Swal.fire({ icon: 'success', title: 'Key generated', text: res.api_key || res.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(refresh);
+                                } else {
+                                    Swal.showValidationMessage(res.message || 'Failed to generate key');
+                                }
+                            });
+                        });
+                        wrap.addEventListener('click', function (ev) {
+                            const btn = ev.target.closest('[data-revoke-key]');
+                            if (!btn) return;
+                            const name = btn.dataset.revokeKey;
+                            apiKeysRequest({ action: 'revoke', key_name: name }).then(res => {
+                                if (res.success) { refresh(); }
+                            });
+                        });
+                    }
+                });
+            })
+            .catch(() => {
+                Swal.fire({ icon: 'error', title: 'Unable to load API keys', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            });
+    }
+
     document.addEventListener('click', function(e) {
         const btn = e.target.closest('[data-action]');
         if (!btn) return;
 
         const action = btn.dataset.action;
 
-        if (action === 'save-api-config') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Configuration Saved',
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 2000,
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            });
-        } else if (action === 'test-api-config') {
-            Swal.fire({
-                title: 'Testing Configuration...',
-                text: 'Please wait while we test your API configuration.',
-                icon: 'info',
-                showConfirmButton: false,
-                timer: 2000,
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            }).then(() => {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Test Passed',
-                    text: 'API configuration is valid.',
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827'
-                });
-            });
-        } else if (action === 'test-integration') {
-            const integration = btn.dataset.integration;
-            Swal.fire({
-                title: 'Testing Integration...',
-                text: `Testing ${integration} connection.`,
-                icon: 'info',
-                showConfirmButton: false,
-                timer: 1500,
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            }).then(() => {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Connection OK',
-                    text: `${integration} is responding normally.`,
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827'
-                });
-            });
+        // NOTE: save-api-config is intentionally NOT handled here. The real fetch
+        // (POST /admin-panel/api/config/save) lives in api-handlers.js, which reports
+        // genuine success/failure. A duplicate inline handler here previously showed an
+        // unconditional fake success toast and has been removed.
+        if (action === 'manage-api-keys') {
+            e.preventDefault();
+            openApiKeyManager();
+        } else if (action === 'access-logs') {
+            e.preventDefault();
+            // Real audit-log viewer, filtered to API-related actions.
+            window.location.href = '{{ url_for("admin_panel.audit_logs", resource_type="api_management") }}';
         }
     });
 });

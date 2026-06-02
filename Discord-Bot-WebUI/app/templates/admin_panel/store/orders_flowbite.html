@@ -22,13 +22,56 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state as kit_empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state as kit_empty_state %}
+
+{# --- Status pill tone map: one place, reused by table + mobile + legend (icon+text, not color alone) --- #}
+{% set status_pill = {
+  'PENDING':    'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
+  'PROCESSING': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-500/15 dark:text-cyan-300',
+  'ORDERED':    'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300',
+  'DELIVERED':  'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300',
+  'CANCELLED':  'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+} %}
+{% set status_icon = {
+  'PENDING': 'ti-clock', 'PROCESSING': 'ti-loader', 'ORDERED': 'ti-truck-delivery',
+  'DELIVERED': 'ti-circle-check', 'CANCELLED': 'ti-ban'
+} %}
+
+{# --- Real KPIs derived from the loaded result set (no fabricated values) --- #}
+{% set ns = namespace(pending=0, processing=0, ordered=0, delivered=0, cancelled=0, units=0, value=0, priced=0) %}
+{% for o in orders.items %}
+  {% if o.status == 'PENDING' %}{% set ns.pending = ns.pending + 1 %}
+  {% elif o.status == 'PROCESSING' %}{% set ns.processing = ns.processing + 1 %}
+  {% elif o.status == 'ORDERED' %}{% set ns.ordered = ns.ordered + 1 %}
+  {% elif o.status == 'DELIVERED' %}{% set ns.delivered = ns.delivered + 1 %}
+  {% elif o.status == 'CANCELLED' %}{% set ns.cancelled = ns.cancelled + 1 %}
+  {% endif %}
+  {% set ns.units = ns.units + (o.quantity or 0) %}
+  {% if o.item and o.item.price is not none %}
+    {% set ns.value = ns.value + (o.item.price * (o.quantity or 0)) %}
+    {% set ns.priced = ns.priced + 1 %}
+  {% endif %}
+{% endfor %}
+{% set open_now = ns.pending + ns.processing + ns.ordered %}
+{% set shown = orders.items|length %}
+{# Status segments for the distribution bar — buckets with real counts on this page #}
+{% set seg_meta = [
+  ('PENDING', ns.pending, 'bg-amber-400 dark:bg-amber-500'),
+  ('PROCESSING', ns.processing, 'bg-cyan-400 dark:bg-cyan-500'),
+  ('ORDERED', ns.ordered, 'bg-blue-400 dark:bg-blue-500'),
+  ('DELIVERED', ns.delivered, 'bg-green-400 dark:bg-green-500'),
+  ('CANCELLED', ns.cancelled, 'bg-gray-300 dark:bg-gray-600')
+] %}
 
 {% call page_header("Store Orders", subtitle="Store Management") %}
+  <a href="{{ url_for('admin_panel.store_management') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-arrow-left" aria-hidden="true"></i>Store
+  </a>
   {# Export dropdown — JS hooks (data-dropdown-toggle, id) preserved verbatim for extra_js wiring #}
   <div class="relative">
     <button type="button"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
             id="exportDropdownBtn" data-dropdown-toggle="exportDropdown">
       <i class="ti ti-download" aria-hidden="true"></i>Export
       <i class="ti ti-chevron-down" aria-hidden="true"></i>
@@ -52,177 +95,289 @@
 
 <div class="space-y-5 sm:space-y-6">
 
-  {# Filters #}
-  {% call section_card("Filters", icon="ti-filter") %}
-  <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 p-4 sm:p-5">
-    <div>
-      <label for="orderStatus" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-      <select name="status" id="orderStatus"
-              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <option value="all" {% if current_filters.status == 'all' %}selected{% endif %}>All Status</option>
-        {% for status in order_statuses %}
-        <option value="{{ status }}" {% if current_filters.status == status %}selected{% endif %}>{{ status }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div>
-      <label for="dateFrom" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">From Date</label>
-      <input type="date" name="date_from" id="dateFrom" value="{{ current_filters.date_from }}"
-             class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-    </div>
-    <div>
-      <label for="dateTo" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">To Date</label>
-      <input type="date" name="date_to" id="dateTo" value="{{ current_filters.date_to }}"
-             class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-    </div>
-    <div>
-      <label for="orderBy" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Sort By</label>
-      <select name="order_by" id="orderBy"
-              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <option value="order_date_desc" {% if current_filters.order_by == 'order_date_desc' %}selected{% endif %}>Newest First</option>
-        <option value="order_date_asc" {% if current_filters.order_by == 'order_date_asc' %}selected{% endif %}>Oldest First</option>
-        <option value="status" {% if current_filters.order_by == 'status' %}selected{% endif %}>Status</option>
-        <option value="item_name" {% if current_filters.order_by == 'item_name' %}selected{% endif %}>Item Name</option>
-        <option value="orderer" {% if current_filters.order_by == 'orderer' %}selected{% endif %}>Customer</option>
-      </select>
-    </div>
-    <div class="sm:col-span-2 lg:col-span-2">
-      <label for="orderSearch" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Search</label>
-      <input type="text" name="search" id="orderSearch" value="{{ current_filters.search }}" placeholder="Search orders..."
-             class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-    </div>
-    <div class="flex items-end gap-2">
-      <button type="submit"
-              class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-search" aria-hidden="true"></i>Filter
-      </button>
-      <a href="{{ url_for('admin_panel.store_orders') }}"
-         class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-         aria-label="Clear filters" title="Clear filters">
-        <i class="ti ti-x" aria-hidden="true"></i>
-      </a>
-    </div>
-  </form>
-  {% endcall %}
-
-  {# Orders table #}
-  {% set table_footer %}
-    {% if orders.pages > 1 %}
-    <nav aria-label="Orders pagination" class="w-full flex justify-center">
-      <ul class="inline-flex items-center -space-x-px text-sm">
-        {% if orders.has_prev %}
-        <li>
-          <a href="{{ url_for('admin_panel.store_orders', page=orders.prev_num, **current_filters) }}"
-             class="flex items-center justify-center px-3 h-8 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Previous</a>
-        </li>
-        {% endif %}
-        {% for page_num in orders.iter_pages() %}
-          {% if page_num %}
-            {% if page_num != orders.page %}
-            <li><a href="{{ url_for('admin_panel.store_orders', page=page_num, **current_filters) }}" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">{{ page_num }}</a></li>
-            {% else %}
-            <li><span class="flex items-center justify-center px-3 h-8 text-white bg-ecs-green border border-ecs-green dark:bg-ecs-green dark:border-ecs-green">{{ page_num }}</span></li>
-            {% endif %}
-          {% else %}
-          <li><span class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">...</span></li>
-          {% endif %}
-        {% endfor %}
-        {% if orders.has_next %}
-        <li>
-          <a href="{{ url_for('admin_panel.store_orders', page=orders.next_num, **current_filters) }}"
-             class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a>
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
+  {# ===================== KPI band — real figures ===================== #}
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
+    {% call stat_card("ti-shopping-cart", "Total Orders", orders.total, sublabel="all time", tone="primary") %}
+      Page <span class="font-mono">{{ orders.page }}</span> of <span class="font-mono">{{ orders.pages }}</span>
+    {% endcall %}
+    {% call stat_card("ti-clock-hour-4", "Open (this page)", open_now, sublabel="awaiting fulfillment", tone="warning") %}
+      <span class="font-mono">{{ ns.pending }}</span> pending · <span class="font-mono">{{ ns.processing }}</span> processing · <span class="font-mono">{{ ns.ordered }}</span> ordered
+    {% endcall %}
+    {% call stat_card("ti-circle-check", "Delivered (this page)", ns.delivered, sublabel="completed", tone="success") %}
+      <span class="font-mono">{{ ns.cancelled }}</span> cancelled on this page
+    {% endcall %}
+    {% if ns.priced %}
+    {% call stat_card("ti-receipt-2", "Tracked Value", "$" ~ "%.0f"|format(ns.value), sublabel="this page", tone="info") %}
+      <span class="font-mono">{{ ns.units }}</span> units · <span class="font-mono">{{ ns.priced }}</span> of <span class="font-mono">{{ shown }}</span> priced
+    {% endcall %}
+    {% else %}
+    {% call stat_card("ti-stack-2", "Units (this page)", ns.units, sublabel="total quantity", tone="info") %}
+      Across <span class="font-mono">{{ shown }}</span> shown {{ 'order' if shown == 1 else 'orders' }}
+    {% endcall %}
     {% endif %}
-  {% endset %}
+  </div>
 
+  {# ===================== Status distribution bar — real counts on this page ===================== #}
+  {% if shown %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between gap-2 mb-3">
+      <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status mix · this page</span>
+      <span class="text-xs font-mono text-gray-400 dark:text-gray-500">{{ shown }} {{ 'order' if shown == 1 else 'orders' }}</span>
+    </div>
+    <div class="flex h-2.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+      {% for label, cnt, bar in seg_meta %}
+        {% if cnt %}
+        <div class="{{ bar }} h-full" style="width: {{ (cnt / shown * 100)|round(2) }}%"
+             title="{{ label }}: {{ cnt }}" aria-label="{{ label }}: {{ cnt }}"></div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+      {% for label, cnt, bar in seg_meta %}
+      {% if cnt %}
+      <span class="inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+        <span class="w-2.5 h-2.5 rounded-sm {{ bar }}" aria-hidden="true"></span>
+        <i class="ti {{ status_icon.get(label, 'ti-circle') }} text-[11px] text-gray-400" aria-hidden="true"></i>
+        {{ label|capitalize }}
+        <span class="font-mono font-bold text-gray-900 dark:text-white">{{ cnt }}</span>
+      </span>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# ===================== Command toolbar: filters (GET) — field names verbatim ===================== #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-filter text-ecs-green" aria-hidden="true"></i>Filter &amp; Sort
+      </h2>
+      {% set active_count = (1 if current_filters.status != 'all' else 0) + (1 if current_filters.date_from else 0) + (1 if current_filters.date_to else 0) + (1 if current_filters.search else 0) %}
+      {% if active_count %}
+      <span class="inline-flex items-center gap-1 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-ecs-green/10 text-ecs-green">
+        <i class="ti ti-point-filled text-[10px]" aria-hidden="true"></i>{{ active_count }} active
+      </span>
+      {% endif %}
+    </div>
+    <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 p-4 sm:p-5">
+      <div>
+        <label for="orderStatus" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</label>
+        <select name="status" id="orderStatus"
+                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="all" {% if current_filters.status == 'all' %}selected{% endif %}>All Status</option>
+          {% for status in order_statuses %}
+          <option value="{{ status }}" {% if current_filters.status == status %}selected{% endif %}>{{ status }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="dateFrom" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">From Date</label>
+        <input type="date" name="date_from" id="dateFrom" value="{{ current_filters.date_from }}"
+               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+      </div>
+      <div>
+        <label for="dateTo" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">To Date</label>
+        <input type="date" name="date_to" id="dateTo" value="{{ current_filters.date_to }}"
+               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+      </div>
+      <div>
+        <label for="orderBy" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Sort By</label>
+        <select name="order_by" id="orderBy"
+                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="order_date_desc" {% if current_filters.order_by == 'order_date_desc' %}selected{% endif %}>Newest First</option>
+          <option value="order_date_asc" {% if current_filters.order_by == 'order_date_asc' %}selected{% endif %}>Oldest First</option>
+          <option value="status" {% if current_filters.order_by == 'status' %}selected{% endif %}>Status</option>
+          <option value="item_name" {% if current_filters.order_by == 'item_name' %}selected{% endif %}>Item Name</option>
+          <option value="orderer" {% if current_filters.order_by == 'orderer' %}selected{% endif %}>Customer</option>
+        </select>
+      </div>
+      <div class="sm:col-span-2 lg:col-span-2">
+        <label for="orderSearch" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Search</label>
+        <div class="relative">
+          <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+          <input type="text" name="search" id="orderSearch" value="{{ current_filters.search }}" placeholder="Item, customer, color, size…"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        </div>
+      </div>
+      <div class="flex items-end gap-2">
+        <button type="submit"
+                class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-search" aria-hidden="true"></i>Filter
+        </button>
+        <a href="{{ url_for('admin_panel.store_orders') }}"
+           class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+           aria-label="Clear filters" title="Clear filters">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </a>
+      </div>
+    </form>
+  </section>
+
+  {# ===================== Orders ledger — feature table w/ date-group dividers ===================== #}
   {% if orders.items %}
-  {% call data_table("Orders", icon="ti-shopping-cart", count=orders.total, search_placeholder="Filter orders…", search_id="orderFilter", footer=table_footer, filters=false) %}
-    <table class="hidden md:table w-full text-sm text-left">
-      <thead class="bg-gray-50 dark:bg-gray-900/40">
-        <tr>
-          {{ data_table_th("Order ID", key="id") }}
-          {{ data_table_th("Item", key="item", hide='sm') }}
-          {{ data_table_th("Customer", key="customer", hide='sm') }}
-          {{ data_table_th("Details", key="details", sortable=false, hide='md') }}
-          {{ data_table_th("Status", key="status", hide='sm') }}
-          {{ data_table_th("Order Date", key="order_date", hide='md') }}
-          {{ data_table_th("Actions", key="actions", sortable=false, align='right') }}
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for order in orders.items %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-3 align-middle"><span class="font-mono font-bold text-gray-900 dark:text-white">#{{ order.id }}</span></td>
-          <td class="px-3 py-3 align-middle hidden md:table-cell">
-            <div class="flex items-center">
-              {% if order.item and order.item.image_url %}
-              <img src="{{ order.item.image_url }}" alt="{{ order.item.name }}" class="w-10 h-10 rounded object-cover mr-3">
-              {% else %}
-              <div class="flex items-center justify-center w-10 h-10 rounded bg-gray-100 dark:bg-gray-700 mr-3">
-                <i class="ti ti-package text-gray-400" aria-hidden="true"></i>
+  <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-shopping-cart text-ecs-green" aria-hidden="true"></i>Order Ledger
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ orders.total }}</span>
+      </h2>
+      <span class="hidden sm:inline text-xs font-mono text-gray-500 dark:text-gray-400">
+        showing {{ orders.items|length }} · pg {{ orders.page }}/{{ orders.pages }}
+      </span>
+    </div>
+
+    {# md+ real table; date-group divider rows on order date change #}
+    <div class="md:overflow-x-auto">
+      <table class="hidden md:table w-full text-sm text-left">
+        <thead class="bg-gray-50 dark:bg-gray-900/40 text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          <tr>
+            <th scope="col" class="px-4 py-2.5 font-semibold">Order</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold">Item</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold hidden lg:table-cell">Customer</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold hidden xl:table-cell">Options</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold text-right">Qty</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold hidden xl:table-cell">Fulfillment</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold">Status</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+          {% set day = namespace(prev='') %}
+          {% for order in orders.items %}
+          {% set this_day = order.order_date.strftime('%Y-%m-%d') if order.order_date else 'Unknown' %}
+          {% if this_day != day.prev %}
+          {% set day.prev = this_day %}
+          <tr aria-hidden="true">
+            <td colspan="8" class="px-4 pt-4 pb-1.5">
+              <div class="flex items-center gap-3">
+                <span class="font-mono text-xs font-bold uppercase tracking-wider text-ecs-green shrink-0">
+                  {{ order.order_date.strftime('%a · %b %-d, %Y') if order.order_date else 'Unknown date' }}
+                </span>
+                <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
               </div>
-              {% endif %}
-              <div>
-                <p class="font-medium text-gray-900 dark:text-white">{{ order.item.name if order.item else 'Unknown Item' }}</p>
-                <p class="text-xs font-mono text-gray-500 dark:text-gray-400">Qty: {{ order.quantity }}</p>
-              </div>
-            </div>
-          </td>
-          <td class="px-3 py-3 align-middle font-medium text-gray-900 dark:text-white hidden md:table-cell">{{ order.orderer.username if order.orderer else 'Unknown User' }}</td>
-          <td class="px-3 py-3 align-middle hidden lg:table-cell">
-            {% if order.selected_color %}
-            <span class="inline-flex items-center px-2 py-0.5 mr-1 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_color }}</span>
-            {% endif %}
-            {% if order.selected_size %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_size }}</span>
-            {% endif %}
-            {% if not order.selected_color and not order.selected_size %}
-            <span class="text-gray-400 dark:text-gray-500">No options</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-3 align-middle hidden md:table-cell">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if order.status == 'PENDING' else 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300' if order.status == 'PROCESSING' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if order.status == 'ORDERED' else 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if order.status == 'DELIVERED' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
-              {{ order.status }}
-            </span>
-          </td>
-          <td class="px-3 py-3 align-middle text-xs font-mono text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ order.order_date.strftime('%Y-%m-%d %H:%M') if order.order_date else 'Unknown' }}</td>
-          <td class="px-3 py-3 align-middle text-right">
-            <div class="flex items-center justify-end gap-1">
-              <button type="button" class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-cyan-600 hover:bg-cyan-100 dark:text-cyan-400 dark:hover:bg-cyan-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-order-details" data-order-id="{{ order.id }}" title="View Details" aria-label="View order details">
-                <i class="ti ti-eye" aria-hidden="true"></i>
-              </button>
-              <div class="relative">
-                <button type="button" class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" id="statusBtn{{ order.id }}" data-dropdown-toggle="statusDropdown{{ order.id }}" title="Update Status" aria-label="Update order status">
-                  <i class="ti ti-edit" aria-hidden="true"></i>
-                </button>
-                <div id="statusDropdown{{ order.id }}" class="hidden absolute right-0 z-30 w-40 bg-white rounded-lg shadow-lg border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
-                  <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
-                    {% for status in order_statuses %}
-                    {% if status != order.status %}
-                    <li>
-                      <a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="update-order-status" data-order-id="{{ order.id }}" data-new-status="{{ status }}">
-                        {{ status }}
-                      </a>
-                    </li>
+            </td>
+          </tr>
+          {% endif %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-4 py-3 align-middle whitespace-nowrap">
+              <span class="font-mono font-bold text-gray-900 dark:text-white">#{{ order.id }}</span>
+              <span class="block text-xs font-mono text-gray-400 dark:text-gray-500">{{ order.order_date.strftime('%H:%M') if order.order_date else '--:--' }}</span>
+            </td>
+            <td class="px-4 py-3 align-middle">
+              <div class="flex items-center gap-3">
+                {% if order.item and order.item.image_url %}
+                <img src="{{ order.item.image_url }}" alt="{{ order.item.name }}" class="w-10 h-10 rounded object-cover shrink-0">
+                {% else %}
+                <div class="flex items-center justify-center w-10 h-10 rounded bg-gray-100 dark:bg-gray-700 shrink-0">
+                  <i class="ti ti-package text-gray-400" aria-hidden="true"></i>
+                </div>
+                {% endif %}
+                <div class="min-w-0">
+                  <p class="font-medium text-gray-900 dark:text-white truncate flex items-center gap-1.5">
+                    {{ order.item.name if order.item else 'Unknown Item' }}
+                    {% if order.notes %}
+                    <i class="ti ti-message-circle-2 text-[13px] text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" title="{{ order.notes }}" aria-label="Has order notes"></i>
                     {% endif %}
-                    {% endfor %}
-                  </ul>
+                  </p>
+                  {% if order.item and order.item.category %}
+                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ order.item.category }}</p>
+                  {% endif %}
                 </div>
               </div>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            </td>
+            <td class="px-4 py-3 align-middle font-medium text-gray-900 dark:text-white hidden lg:table-cell">
+              <span class="inline-flex items-center gap-1.5">
+                <i class="ti ti-user text-gray-400 text-sm" aria-hidden="true"></i>{{ order.orderer.username if order.orderer else 'Unknown User' }}
+              </span>
+            </td>
+            <td class="px-4 py-3 align-middle hidden xl:table-cell">
+              {% if order.selected_color %}
+              <span class="inline-flex items-center px-2 py-0.5 mr-1 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_color }}</span>
+              {% endif %}
+              {% if order.selected_size %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_size }}</span>
+              {% endif %}
+              {% if not order.selected_color and not order.selected_size %}
+              <span class="text-xs text-gray-400 dark:text-gray-500">—</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 align-middle text-right">
+              <span class="font-mono font-bold text-gray-900 dark:text-white">{{ order.quantity }}</span>
+              {% if order.item and order.item.price is not none %}
+              <span class="block text-xs font-mono text-gray-400 dark:text-gray-500">${{ "%.2f"|format(order.item.price * (order.quantity or 0)) }}</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 align-middle hidden xl:table-cell whitespace-nowrap">
+              {% if order.delivered_date %}
+              <span class="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                <i class="ti ti-package-export text-[12px]" aria-hidden="true"></i>
+                <span class="font-mono">{{ order.delivered_date.strftime('%b %-d') }}</span>
+              </span>
+              {% elif order.processed_date %}
+              <span class="inline-flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400">
+                <i class="ti ti-progress text-[12px]" aria-hidden="true"></i>
+                <span class="font-mono">{{ order.processed_date.strftime('%b %-d') }}</span>
+              </span>
+              {% else %}
+              <span class="text-xs text-gray-400 dark:text-gray-500">—</span>
+              {% endif %}
+              {% if order.processor %}
+              <span class="block text-[11px] text-gray-400 dark:text-gray-500 truncate">by {{ order.processor.username }}</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 align-middle">
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {{ status_pill.get(order.status, status_pill['CANCELLED']) }}">
+                <i class="ti {{ status_icon.get(order.status, 'ti-circle') }} text-[11px]" aria-hidden="true"></i>{{ order.status }}
+              </span>
+            </td>
+            <td class="px-4 py-3 align-middle text-right">
+              <div class="flex items-center justify-end gap-1">
+                <button type="button" class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-cyan-600 hover:bg-cyan-100 dark:text-cyan-400 dark:hover:bg-cyan-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-order-details" data-order-id="{{ order.id }}" title="View Details" aria-label="View order details">
+                  <i class="ti ti-eye" aria-hidden="true"></i>
+                </button>
+                <div class="relative">
+                  <button type="button" class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" id="statusBtn{{ order.id }}" data-dropdown-toggle="statusDropdown{{ order.id }}" title="Update Status" aria-label="Update order status">
+                    <i class="ti ti-edit" aria-hidden="true"></i>
+                  </button>
+                  <div id="statusDropdown{{ order.id }}" class="hidden absolute right-0 z-30 w-44 bg-white rounded-lg shadow-lg border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+                    <p class="px-4 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Set status</p>
+                    <ul class="pb-2 text-sm text-gray-700 dark:text-gray-200">
+                      {% for status in order_statuses %}
+                      {% if status != order.status %}
+                      <li>
+                        <a href="#" class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="update-order-status" data-order-id="{{ order.id }}" data-new-status="{{ status }}">
+                          <i class="ti {{ status_icon.get(status, 'ti-circle') }} text-sm text-gray-400" aria-hidden="true"></i>{{ status }}
+                        </a>
+                      </li>
+                      {% endif %}
+                      {% endfor %}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
-    {# Mobile stacked cards #}
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+    {# Mobile dense rows with date-group dividers #}
+    <div class="md:hidden">
+      {% set mday = namespace(prev='') %}
       {% for order in orders.items %}
-      <div class="px-4 py-3.5">
+      {% set this_day = order.order_date.strftime('%Y-%m-%d') if order.order_date else 'Unknown' %}
+      {% if this_day != mday.prev %}
+      {% set mday.prev = this_day %}
+      <div class="flex items-center gap-3 px-4 pt-4 pb-1.5">
+        <span class="font-mono text-xs font-bold uppercase tracking-wider text-ecs-green shrink-0">
+          {{ order.order_date.strftime('%a · %b %-d') if order.order_date else 'Unknown' }}
+        </span>
+        <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+      </div>
+      {% endif %}
+      <div class="px-4 py-3.5 border-t border-gray-100 dark:border-gray-700/60">
         <div class="flex items-start justify-between gap-2">
           <div class="flex items-center gap-3 min-w-0">
             {% if order.item and order.item.image_url %}
@@ -233,19 +388,27 @@
             </div>
             {% endif %}
             <div class="min-w-0">
-              <p class="font-mono text-sm font-bold text-gray-900 dark:text-white">#{{ order.id }}</p>
-              <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ order.item.name if order.item else 'Unknown Item' }}</p>
+              <p class="font-mono text-sm font-bold text-gray-900 dark:text-white">#{{ order.id }} <span class="font-sans font-normal text-xs text-gray-400">{{ order.order_date.strftime('%H:%M') if order.order_date else '' }}</span></p>
+              <p class="text-sm font-medium text-gray-900 dark:text-white truncate flex items-center gap-1.5">
+                {{ order.item.name if order.item else 'Unknown Item' }}
+                {% if order.notes %}<i class="ti ti-message-circle-2 text-[13px] text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-label="Has order notes"></i>{% endif %}
+              </p>
             </div>
           </div>
-          <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if order.status == 'PENDING' else 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300' if order.status == 'PROCESSING' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if order.status == 'ORDERED' else 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if order.status == 'DELIVERED' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
-            {{ order.status }}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {{ status_pill.get(order.status, status_pill['CANCELLED']) }}">
+            <i class="ti {{ status_icon.get(order.status, 'ti-circle') }} text-[11px]" aria-hidden="true"></i>{{ order.status }}
           </span>
         </div>
         <div class="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
           <p><span class="font-medium text-gray-700 dark:text-gray-300">Customer:</span> {{ order.orderer.username if order.orderer else 'Unknown User' }}</p>
           <p><span class="font-medium text-gray-700 dark:text-gray-300">Qty:</span> <span class="font-mono">{{ order.quantity }}</span>
+            {% if order.item and order.item.price is not none %}· <span class="font-mono">${{ "%.2f"|format(order.item.price * (order.quantity or 0)) }}</span>{% endif %}
             {% if order.selected_color %}· {{ order.selected_color }}{% endif %}{% if order.selected_size %}· {{ order.selected_size }}{% endif %}</p>
-          <p class="font-mono">{{ order.order_date.strftime('%Y-%m-%d %H:%M') if order.order_date else 'Unknown' }}</p>
+          {% if order.delivered_date %}
+          <p><span class="font-medium text-green-600 dark:text-green-400">Delivered:</span> <span class="font-mono">{{ order.delivered_date.strftime('%b %-d, %Y') }}</span>{% if order.processor %} by {{ order.processor.username }}{% endif %}</p>
+          {% elif order.processed_date %}
+          <p><span class="font-medium text-cyan-600 dark:text-cyan-400">Processed:</span> <span class="font-mono">{{ order.processed_date.strftime('%b %-d, %Y') }}</span>{% if order.processor %} by {{ order.processor.username }}{% endif %}</p>
+          {% endif %}
         </div>
         <div class="mt-3 flex items-center gap-2">
           <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-cyan-600 bg-cyan-50 hover:bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/40 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-order-details" data-order-id="{{ order.id }}">
@@ -255,13 +418,13 @@
             <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green" id="statusBtnM{{ order.id }}" data-dropdown-toggle="statusDropdownM{{ order.id }}" aria-label="Update order status">
               <i class="ti ti-edit" aria-hidden="true"></i>Status
             </button>
-            <div id="statusDropdownM{{ order.id }}" class="hidden absolute left-0 z-30 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+            <div id="statusDropdownM{{ order.id }}" class="hidden absolute left-0 z-30 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
               <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                 {% for status in order_statuses %}
                 {% if status != order.status %}
                 <li>
-                  <a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="update-order-status" data-order-id="{{ order.id }}" data-new-status="{{ status }}">
-                    {{ status }}
+                  <a href="#" class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="update-order-status" data-order-id="{{ order.id }}" data-new-status="{{ status }}">
+                    <i class="ti {{ status_icon.get(status, 'ti-circle') }} text-sm text-gray-400" aria-hidden="true"></i>{{ status }}
                   </a>
                 </li>
                 {% endif %}
@@ -273,9 +436,43 @@
       </div>
       {% endfor %}
     </div>
-  {% endcall %}
+
+    {# Footer: pagination #}
+    {% if orders.pages > 1 %}
+    <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+      <span class="font-mono">Page {{ orders.page }} of {{ orders.pages }}</span>
+      <nav aria-label="Orders pagination">
+        <ul class="inline-flex items-center -space-x-px text-sm">
+          {% if orders.has_prev %}
+          <li>
+            <a href="{{ url_for('admin_panel.store_orders', page=orders.prev_num, **current_filters) }}"
+               class="flex items-center justify-center px-3 h-8 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Previous</a>
+          </li>
+          {% endif %}
+          {% for page_num in orders.iter_pages() %}
+            {% if page_num %}
+              {% if page_num != orders.page %}
+              <li><a href="{{ url_for('admin_panel.store_orders', page=page_num, **current_filters) }}" class="flex items-center justify-center px-3 h-8 leading-tight font-mono text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">{{ page_num }}</a></li>
+              {% else %}
+              <li><span class="flex items-center justify-center px-3 h-8 font-mono text-white bg-ecs-green border border-ecs-green dark:bg-ecs-green dark:border-ecs-green">{{ page_num }}</span></li>
+              {% endif %}
+            {% else %}
+            <li><span class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">...</span></li>
+            {% endif %}
+          {% endfor %}
+          {% if orders.has_next %}
+          <li>
+            <a href="{{ url_for('admin_panel.store_orders', page=orders.next_num, **current_filters) }}"
+               class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+  </section>
   {% else %}
-  {{ kit_empty_state("ti-shopping-cart", "No Orders Found", "No orders match your current filters.") }}
+  {{ kit_empty_state("ti-shopping-cart", "No Orders Found", "No orders match your current filters.", action={'label': 'Clear filters', 'url': url_for('admin_panel.store_orders'), 'icon': 'ti-x'}) }}
   {% endif %}
 
 </div>

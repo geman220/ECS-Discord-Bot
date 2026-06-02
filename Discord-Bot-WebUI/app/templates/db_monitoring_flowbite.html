@@ -6,123 +6,187 @@
 {% block main_content %}
 {% if shell == 'console' %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-  {% call page_header("Database Monitoring", subtitle="System health") %}
-    <button type="button" id="refreshBtn"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <i class="ti ti-refresh" aria-hidden="true"></i><span>Refresh</span>
-    </button>
-    <a href="{{ url_for('monitoring.monitor_dashboard') }}"
-       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Task Monitor</span>
-    </a>
-  {% endcall %}
+
+  {# ============ COMMAND TOOLBAR ============ #}
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5 sm:mb-6">
+    <div class="min-w-0">
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Connection Pool · Live</p>
+      <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2.5">
+        Database Monitoring
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-ecs-green/10 text-ecs-green text-[11px] font-semibold uppercase tracking-wide">
+          <i class="ti ti-point-filled animate-pulse" aria-hidden="true"></i>Polling
+        </span>
+      </h1>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <button type="button" id="refreshBtn" data-action="refresh-dashboard"
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-refresh" aria-hidden="true"></i><span>Refresh</span>
+      </button>
+      <a href="{{ url_for('monitoring.monitor_dashboard') }}"
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Task Monitor</span>
+      </a>
+    </div>
+  </div>
 
   <div id="alertContainer" class="mb-6" aria-live="polite"></div>
 
-  {# KPI band — value ids + progress ids preserved verbatim for db-monitoring.js #}
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    {% call stat_card("ti-database", "Pool Size", "", sublabel=None, tone="info") %}
-      <div class="flex items-center justify-between gap-2 -mt-2">
-        <span class="font-mono text-3xl font-bold leading-none text-blue-600 dark:text-blue-400" id="poolSize">-</span>
-        <span class="inline-flex items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-300">
-          <i class="ti ti-maximize" aria-hidden="true"></i>Max <span id="maxPoolSize" class="font-mono">-</span>
-        </span>
-      </div>
-      <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-        <div id="poolSizeProgress" class="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all w-0"></div>
-      </div>
-    {% endcall %}
+  {# ============ PRIMARY OBJECT + KPI BAND ============
+     value ids + progress ids preserved verbatim for db-monitoring.js #}
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
 
-    {% call stat_card("ti-activity", "Active Connections", "", sublabel=None, tone="info") %}
-      <div class="flex items-center justify-between gap-2 -mt-2">
-        <span class="font-mono text-3xl font-bold leading-none text-cyan-600 dark:text-cyan-400" id="activeConnections">-</span>
-        <span class="inline-flex items-center gap-1 text-xs font-medium text-cyan-700 dark:text-cyan-300">
-          <i class="ti ti-exchange" aria-hidden="true"></i>Checkouts <span id="totalCheckouts" class="font-mono">-</span>
+    {# Feature card: pool utilization — the page's one primary signal #}
+    <div class="xl:col-span-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+      <div class="flex items-center justify-between gap-2 px-4 h-11 border-b border-gray-200 dark:border-gray-700">
+        <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+          <i class="ti ti-database text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Pool Utilization
         </span>
+        <span class="text-[11px] font-mono text-gray-400 dark:text-gray-500">in use / max</span>
       </div>
-      <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-        <div id="activeConnectionsProgress" class="bg-cyan-600 dark:bg-cyan-500 h-2 rounded-full transition-all w-0"></div>
+      <div class="p-4 sm:p-5 flex-1 flex flex-col justify-center">
+        <div class="flex items-baseline gap-1.5">
+          <span class="font-mono text-5xl font-bold leading-none text-blue-600 dark:text-blue-400" id="poolSize">-</span>
+          <span class="font-mono text-2xl font-semibold text-gray-400 dark:text-gray-500">/ <span id="maxPoolSize">-</span></span>
+        </div>
+        <div class="mt-4 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+          <div id="poolSizeProgress" class="bg-blue-600 dark:bg-blue-500 h-2.5 rounded-full transition-all w-0"></div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <span class="block text-gray-500 dark:text-gray-400 uppercase tracking-wide text-[10px]">Idle in pool</span>
+            <span class="font-mono text-lg font-bold text-gray-700 dark:text-gray-300" id="idleConnections">-</span>
+          </div>
+          <div>
+            <span class="block text-gray-500 dark:text-gray-400 uppercase tracking-wide text-[10px]">Lifetime checkouts</span>
+            <span class="font-mono text-lg font-bold text-gray-700 dark:text-gray-300" id="totalCheckouts">-</span>
+          </div>
+        </div>
       </div>
-    {% endcall %}
+    </div>
 
-    {% call stat_card("ti-droplet", "Leaked Connections", "", sublabel=None, tone="warning") %}
-      <div class="flex items-center justify-between gap-2 -mt-2">
-        <span class="font-mono text-3xl font-bold leading-none text-amber-600 dark:text-amber-400" id="leakedConnections">-</span>
-        <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-300">
-          <i class="ti ti-coffee" aria-hidden="true"></i>Idle <span id="idleConnections" class="font-mono">-</span>
-        </span>
-      </div>
-      <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-        <div id="leakedConnectionsProgress" class="bg-amber-500 dark:bg-amber-500 h-2 rounded-full transition-all w-0"></div>
-      </div>
-    {% endcall %}
+    {# Right rail: stacked KPI tiles (token cards, mono figures, divider footers).
+       Each tile binds a distinct real stat id + its own progress id (db-monitoring.js
+       updateStats / updateProgress) — no duplicated ids, no placeholder figures. #}
+    <div class="xl:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
 
-    {% call stat_card("ti-alert-triangle", "Idle Transactions", "", sublabel=None, tone="danger") %}
-      <div class="flex items-center justify-between gap-2 -mt-2">
-        <span class="font-mono text-3xl font-bold leading-none text-red-600 dark:text-red-400" id="idleTransactions">-</span>
-        <span class="inline-flex items-center gap-1 text-xs font-medium text-red-700 dark:text-red-300">
-          <i class="ti ti-clock" aria-hidden="true"></i>Oldest <span id="oldestConnectionAge" class="font-mono">-</span>
-        </span>
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Active Conns</span>
+          <i class="ti ti-activity text-lg text-cyan-600 dark:text-cyan-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 flex items-end gap-1.5">
+          <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-cyan-600 dark:text-cyan-400" id="activeConnections">-</span>
+        </div>
+        <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+          <div id="activeConnectionsProgress" class="bg-cyan-600 dark:bg-cyan-500 h-2 rounded-full transition-all w-0"></div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+          <i class="ti ti-plug" aria-hidden="true"></i>Working connections
+        </div>
       </div>
-      <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-        <div id="idleTransactionsProgress" class="bg-red-600 dark:bg-red-500 h-2 rounded-full transition-all w-0"></div>
+
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Leaked</span>
+          <i class="ti ti-droplet text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 flex items-end gap-1.5">
+          <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400" id="leakedConnections">-</span>
+        </div>
+        <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+          <div id="leakedConnectionsProgress" class="bg-amber-500 dark:bg-amber-500 h-2 rounded-full transition-all w-0"></div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+          <i class="ti ti-coffee" aria-hidden="true"></i>Orphaned resources
+        </div>
       </div>
-    {% endcall %}
+
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Idle Tx</span>
+          <i class="ti ti-alert-triangle text-lg text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 flex items-end gap-1.5">
+          <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-red-600 dark:text-red-400" id="idleTransactions">-</span>
+        </div>
+        <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+          <div id="idleTransactionsProgress" class="bg-red-600 dark:bg-red-500 h-2 rounded-full transition-all w-0"></div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+          <i class="ti ti-clock" aria-hidden="true"></i>Oldest <span id="oldestConnectionAge" class="font-mono font-semibold text-gray-700 dark:text-gray-300">-</span>
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  {# Admin actions — id hooks (forceCleanup, refreshDashboardBtn) preserved verbatim #}
-  <div class="mb-6">
-    {% call section_card("Admin Actions", icon="ti-tool") %}
-      <div class="flex flex-wrap gap-3 p-4 sm:p-5">
-        <button type="button" id="forceCleanup"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-          <i class="ti ti-clear-all" aria-hidden="true"></i>Force Connection Cleanup
-        </button>
-        <button type="button" id="refreshDashboardBtn"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-          <i class="ti ti-refresh" aria-hidden="true"></i>Refresh Statistics
-        </button>
-      </div>
-    {% endcall %}
-  </div>
-
-  {# Active Connections — tbody#activeConnectionsTable populated by db-monitoring.js #}
-  <div class="mb-6">
-    {% call data_table("Active Connections", icon="ti-plug-connected", filters=False) %}
+  {# Active Connections — command-toolbar header + real table.
+     thead matches db-monitoring.js's 10-cell row output (PID, Age, State,
+     Source, Tx Age, Query Start, Tx Start, Query, Stack, Actions); loading
+     colspan kept at 10 to span them. id/data-action hooks preserved. #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+    <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-plug-connected text-ecs-green" aria-hidden="true"></i>Active Connections
+      </h2>
+      <button type="button" id="refreshDashboardBtn" data-action="refresh-dashboard"
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh Stats</span>
+      </button>
+    </div>
+    <div class="overflow-x-auto">
       <table class="w-full text-sm">
-        <thead class="bg-gray-50 dark:bg-gray-700/50">
-          <tr>
-            {{ data_table_th("PID", sortable=False) }}
-            {{ data_table_th("Age", sortable=False) }}
-            {{ data_table_th("State", sortable=False) }}
-            {{ data_table_th("Source", sortable=False, hide="md") }}
-            {{ data_table_th("Tx Age", sortable=False, hide="sm") }}
-            {{ data_table_th("Query", sortable=False, hide="md") }}
-            {{ data_table_th("Actions", sortable=False, align="right") }}
+        <thead>
+          <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+            <th class="px-4 py-2.5 font-medium font-mono">PID</th>
+            <th class="px-4 py-2.5 font-medium">Age</th>
+            <th class="px-4 py-2.5 font-medium">State</th>
+            <th class="px-4 py-2.5 font-medium hidden md:table-cell">Source</th>
+            <th class="px-4 py-2.5 font-medium hidden lg:table-cell">Tx Age</th>
+            <th class="px-4 py-2.5 font-medium hidden xl:table-cell">Query Start</th>
+            <th class="px-4 py-2.5 font-medium hidden xl:table-cell">Tx Start</th>
+            <th class="px-4 py-2.5 font-medium">Query</th>
+            <th class="px-4 py-2.5 font-medium">Stack</th>
+            <th class="px-4 py-2.5 font-medium text-right">Actions</th>
           </tr>
         </thead>
         <tbody id="activeConnectionsTable" class="divide-y divide-gray-200 dark:divide-gray-700">
           <tr>
-            <td colspan="7" class="px-4 py-10 text-center">
+            <td colspan="10" class="px-4 py-10 text-center">
               <div class="animate-spin rounded-full h-8 w-8 border-4 border-ecs-green border-t-transparent mx-auto mb-2"></div>
               <p class="text-gray-500 dark:text-gray-400">Loading connections...</p>
             </td>
           </tr>
         </tbody>
       </table>
-    {% endcall %}
+    </div>
   </div>
 
-  {# Leaked Connections — tbody#leakedConnectionsTable populated by db-monitoring.js #}
-  <div>
-    {% call data_table("Leaked Connections", icon="ti-plug-connected-x", filters=False) %}
+  {# Leaked Connections — danger-toned card (amber rail + tinted header) with the
+     destructive Force Cleanup command. thead matches db-monitoring.js's 4-cell
+     leaked row output. id hooks (forceCleanup, leakedConnectionsTable) kept. #}
+  <div class="rounded-xl border border-amber-300 dark:border-amber-700/60 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/15">
+      <div class="min-w-0">
+        <h2 class="font-semibold flex items-center gap-2 text-amber-900 dark:text-amber-200">
+          <i class="ti ti-plug-connected-x text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>Leaked Connections
+        </h2>
+        <p class="text-[11px] text-amber-700/80 dark:text-amber-300/70 mt-0.5 hidden sm:block">Orphaned checkouts never returned to the pool — reclaim to free capacity.</p>
+      </div>
+      <button type="button" id="forceCleanup" data-action="force-cleanup"
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 shrink-0">
+        <i class="ti ti-clear-all" aria-hidden="true"></i><span class="hidden sm:inline">Force Cleanup</span>
+      </button>
+    </div>
+    <div class="overflow-x-auto">
       <table class="w-full text-sm">
-        <thead class="bg-gray-50 dark:bg-gray-700/50">
-          <tr>
-            {{ data_table_th("PID", sortable=False) }}
-            {{ data_table_th("Transaction Name", sortable=False) }}
-            {{ data_table_th("Leaked Duration", sortable=False) }}
-            {{ data_table_th("Actions", sortable=False, align="right") }}
+        <thead>
+          <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+            <th class="px-4 py-2.5 font-medium font-mono">PID</th>
+            <th class="px-4 py-2.5 font-medium">Transaction Name</th>
+            <th class="px-4 py-2.5 font-medium">Leaked Duration</th>
+            <th class="px-4 py-2.5 font-medium text-right">Actions</th>
           </tr>
         </thead>
         <tbody id="leakedConnectionsTable" class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -134,7 +198,7 @@
           </tr>
         </tbody>
       </table>
-    {% endcall %}
+    </div>
   </div>
 </div>
 {% else %}
@@ -339,7 +403,7 @@
 
 {% block custom_js %}
 {{ super() }}
-<script src="{{ url_for('static', filename='custom_js/db-monitoring.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='custom_js/db-monitoring.js') }}"></script>
 <script>
 // Initialize DB Monitoring with template data
 DBMonitoring.init({

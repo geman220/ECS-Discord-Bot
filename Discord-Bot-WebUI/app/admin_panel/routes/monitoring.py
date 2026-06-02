@@ -132,19 +132,67 @@ def task_monitoring_page():
         # Get zombie tasks
         zombie_tasks = task_monitor.detect_zombie_tasks()
         
-        # Get active tasks from Celery
+        # Get active tasks from Celery, enriched with live status/started/duration/progress.
+        # Celery's inspect().active() payload includes `time_start` (worker monotonic
+        # epoch seconds) which lets us derive a wall-clock start + a running duration.
+        # A task running longer than the zombie threshold is flagged "Zombie".
+        ZOMBIE_THRESHOLD_S = 4 * 3600  # 4 hours, matches the "stuck > 4h" convention
         try:
-            active_tasks_celery = celery.control.inspect().active()
+            inspector = celery.control.inspect()
+            active_tasks_celery = inspector.active()
+            now_ts = datetime.utcnow().timestamp()
             active_tasks = []
             if active_tasks_celery:
                 for worker, tasks in active_tasks_celery.items():
                     for task in tasks:
+                        time_start = task.get('time_start')
+                        started_at = None
+                        duration_s = None
+                        if time_start:
+                            try:
+                                duration_s = max(0, now_ts - float(time_start))
+                                started_at = datetime.utcfromtimestamp(float(time_start))
+                            except (TypeError, ValueError, OSError):
+                                started_at, duration_s = None, None
+
+                        is_zombie = bool(duration_s and duration_s >= ZOMBIE_THRESHOLD_S)
+                        status = 'Zombie' if is_zombie else 'Running'
+
+                        # Human duration string (Hh Mm Ss / Mm Ss / Ss).
+                        duration_str = None
+                        if duration_s is not None:
+                            d = int(duration_s)
+                            h, rem = divmod(d, 3600)
+                            m, s = divmod(rem, 60)
+                            if h:
+                                duration_str = f"{h}h {m:02d}m"
+                            elif m:
+                                duration_str = f"{m}m {s:02d}s"
+                            else:
+                                duration_str = f"{s}s"
+
+                        # Progress: only if the task self-reports it via custom state meta.
+                        progress = None
+                        try:
+                            meta = task.get('result') if isinstance(task.get('result'), dict) else None
+                            if meta and isinstance(meta.get('progress'), (int, float)):
+                                progress = int(meta['progress'])
+                        except Exception:
+                            progress = None
+
                         active_tasks.append({
                             'task_id': task.get('id', 'unknown'),
                             'name': task.get('name', 'unknown'),
                             'worker': worker,
                             'args': str(task.get('args', [])),
-                            'kwargs': str(task.get('kwargs', {}))
+                            'kwargs': str(task.get('kwargs', {})),
+                            'status': status,
+                            'is_zombie': is_zombie,
+                            'started_at': started_at,
+                            'started_str': started_at.strftime('%H:%M:%S') if started_at else None,
+                            'duration_seconds': duration_s,
+                            'duration_str': duration_str,
+                            'progress': progress,
                         })
         except Exception as e:
             logger.error(f"Error getting active tasks: {e}")
@@ -198,8 +246,29 @@ def task_monitoring_page():
             'peak_concurrent': task_stats_raw['running']
         }
         
+        # --- Recent Completed: last ~10 completed executions from TaskExecution ---
+        # Defensive: a missing table (migration not yet run) degrades to an empty list.
         recent_completed = []
-        
+        try:
+            from app.models.api_logs import TaskExecution
+            recent_rows = (db.session.query(TaskExecution)
+                           .filter(TaskExecution.status == 'completed')
+                           .order_by(TaskExecution.finished_at.desc().nullslast())
+                           .limit(10).all())
+            for r in recent_rows:
+                short_name = r.name.rsplit('.', 1)[-1] if r.name and '.' in r.name else (r.name or 'unknown')
+                recent_completed.append({
+                    'task_id': r.task_id or '',
+                    'name': r.name or 'unknown',
+                    'short_name': short_name,
+                    'finished_at': r.finished_at,
+                    'finished_str': r.finished_at.strftime('%H:%M:%S') if r.finished_at else None,
+                    'duration_s': round(r.duration_ms / 1000.0, 1) if r.duration_ms else None,
+                })
+        except Exception as e:
+            logger.warning(f"Recent completed query failed (table may not exist yet): {e}")
+            recent_completed = []
+
         return render_template('admin_panel/monitoring/task_monitor_flowbite.html',
                              active_tasks=active_tasks,
                              queued_tasks_list=queued_tasks_list,
@@ -246,14 +315,14 @@ def task_history():
     """Task history page."""
     try:
         from app.utils.task_monitor import task_monitor
-        
+
         # Get task statistics with different time windows
         stats_24h = task_monitor.get_task_stats(time_window=86400)  # 24 hours
         stats_7d = task_monitor.get_task_stats(time_window=604800)  # 7 days
-        
+
         # Get zombie tasks for historical reference
         zombie_tasks = task_monitor.detect_zombie_tasks()
-        
+
         history_data = {
             'total_tasks_24h': stats_24h['total'],
             'completed_24h': stats_24h['completed'],
@@ -264,10 +333,75 @@ def task_history():
             'current_zombies': len(zombie_tasks),
             'task_breakdown': stats_24h['by_name']
         }
-        
+
+        # --- Per-execution history from the persisted TaskExecution table ---
+        # Filters (status / task_type / date range) + pagination. Defensive: a
+        # missing table (migration not yet run) or empty data degrades to no rows.
+        executions = []
+        exec_total = 0
+        page = request.args.get('page', 1, type=int)
+        per_page = 25
+        f_status = (request.args.get('status') or '').strip()
+        f_type = (request.args.get('task_type') or '').strip()
+        f_from = (request.args.get('date_from') or '').strip()
+        f_to = (request.args.get('date_to') or '').strip()
+        try:
+            from app.models.api_logs import TaskExecution
+            q = db.session.query(TaskExecution)
+            if f_status:
+                q = q.filter(TaskExecution.status == f_status)
+            if f_type:
+                # task_type maps loosely onto the task name (substring match).
+                q = q.filter(TaskExecution.name.ilike(f'%{f_type}%'))
+            if f_from:
+                try:
+                    q = q.filter(TaskExecution.started_at >= datetime.strptime(f_from, '%Y-%m-%d'))
+                except ValueError:
+                    pass
+            if f_to:
+                try:
+                    # inclusive end-of-day
+                    q = q.filter(TaskExecution.started_at < datetime.strptime(f_to, '%Y-%m-%d') + timedelta(days=1))
+                except ValueError:
+                    pass
+
+            exec_total = q.count()
+            rows = q.order_by(TaskExecution.started_at.desc().nullslast()).limit(per_page).offset((page - 1) * per_page).all()
+            for r in rows:
+                short_name = r.name.rsplit('.', 1)[-1] if r.name and '.' in r.name else (r.name or 'unknown')
+                executions.append({
+                    'id': r.id,
+                    'task_id': r.task_id or '',
+                    'name': r.name or 'unknown',
+                    'short_name': short_name,
+                    'status': r.status or 'completed',
+                    'started_at': r.started_at,
+                    'finished_at': r.finished_at,
+                    'duration_ms': r.duration_ms,
+                    'duration_s': round(r.duration_ms / 1000.0, 1) if r.duration_ms else None,
+                    'result': r.result,
+                    'error': r.error,
+                    'worker': r.worker,
+                    'args': getattr(r, 'args', None),
+                    'kwargs': getattr(r, 'kwargs', None),
+                })
+        except Exception as e:
+            logger.warning(f"TaskExecution history query failed (table may not exist yet): {e}")
+            executions = []
+            exec_total = 0
+
+        exec_pages = (exec_total + per_page - 1) // per_page if exec_total else 0
+
         return render_template('admin_panel/monitoring/task_history_flowbite.html',
                              history_data=history_data,
-                             zombie_tasks=zombie_tasks)
+                             zombie_tasks=zombie_tasks,
+                             executions=executions,
+                             exec_total=exec_total,
+                             exec_page=page,
+                             exec_per_page=per_page,
+                             exec_pages=exec_pages,
+                             exec_filters={'status': f_status, 'task_type': f_type,
+                                           'date_from': f_from, 'date_to': f_to})
     except Exception as e:
         logger.error(f"Error loading task history: {e}")
         flash('Task history unavailable. Verify task monitoring service and database connection.', 'error')
@@ -367,37 +501,38 @@ def get_task_details():
         if not task_id:
             return jsonify({'success': False, 'html': '<p>Task ID is required</p>'})
         
+        from markupsafe import escape
         from app.utils.task_monitor import get_task_info
-        
-        # Get actual task details
+
+        # Live task details from Celery's result backend + our Redis monitor.
         task_info = get_task_info(task_id)
-        
-        details_html = f"""
-        <div class="task-details">
-            <div class="row">
-                <div class="col-md-6">
-                    <strong>Task ID:</strong> {task_id}<br>
-                    <strong>Task Name:</strong> {task_info.get('task_name', 'Unknown')}<br>
-                    <strong>Status:</strong> {task_info.get('state', 'Unknown')}<br>
-                    <strong>Started:</strong> {task_info.get('date_started', 'Unknown')}<br>
-                </div>
-                <div class="col-md-6">
-                    <strong>Duration:</strong> {task_info.get('duration', 'Unknown')}<br>
-                    <strong>Result:</strong> {str(task_info.get('result', 'No result'))[:100]}<br>
-                    <strong>Completed:</strong> {task_info.get('date_done', 'N/A')}<br>
-                    <strong>State:</strong> {task_info.get('state', 'Unknown')}<br>
-                </div>
-            </div>
-            <div class="row mt-3">
-                <div class="col-12">
-                    <strong>Description:</strong><br>
-                    <div class="task-description p-2 bg-light rounded">
-                        Task details will be implemented soon.
-                    </div>
-                </div>
-            </div>
-        </div>
-        """
+
+        def _e(v):
+            return escape(str(v)) if v is not None else '—'
+
+        rows = [
+            ('Task ID', task_id),
+            ('Task Name', task_info.get('task_name') or 'Unknown'),
+            ('State', task_info.get('state') or 'Unknown'),
+            ('Started', task_info.get('date_started') or '—'),
+            ('Duration', task_info.get('duration') or '—'),
+            ('Completed', task_info.get('date_done') or '—'),
+        ]
+        rows_html = ''.join(
+            f'<div class="flex flex-col"><dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{_e(label)}</dt>'
+            f'<dd class="font-mono text-sm mt-0.5 break-all text-gray-900 dark:text-white">{_e(value)}</dd></div>'
+            for label, value in rows
+        )
+        result_val = task_info.get('result')
+        result_html = (
+            f'<div class="mt-4"><dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Result</dt>'
+            f'<dd class="font-mono text-xs mt-0.5 break-all bg-gray-50 dark:bg-gray-700/40 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300">{_e(str(result_val)[:2000])}</dd></div>'
+            if result_val is not None else ''
+        )
+        details_html = (
+            '<dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">'
+            f'{rows_html}</dl>{result_html}'
+        )
         return jsonify({'success': True, 'html': details_html})
     except Exception as e:
         logger.error(f"Error getting task details: {e}")
@@ -499,6 +634,142 @@ def cancel_task():
         return redirect(url_for('admin_panel.task_monitor'))
 
 
+@admin_panel_bp.route('/monitoring/tasks/retry', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def retry_task():
+    """
+    Re-enqueue a previously-failed task execution by its TaskExecution id.
+
+    Looks up the failed row, decodes its stored (JSON) args/kwargs, and submits a
+    fresh task via Celery's send_task using the recorded task name. Crash-safe:
+    a missing row, missing table, or broker error returns a JSON error, never 500.
+    """
+    try:
+        import json
+        exec_id = request.form.get('execution_id') or request.form.get('id')
+        if not exec_id:
+            return jsonify({'success': False, 'message': 'execution_id is required'}), 400
+
+        try:
+            exec_id = int(exec_id)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'message': 'Invalid execution_id'}), 400
+
+        from app.models.api_logs import TaskExecution
+        row = db.session.query(TaskExecution).get(exec_id)
+        if not row:
+            return jsonify({'success': False, 'message': 'Task execution not found'}), 404
+
+        task_name = row.name
+        if not task_name or task_name == 'unknown':
+            return jsonify({'success': False, 'message': 'Task name unavailable; cannot retry'}), 400
+
+        # Decode stored args/kwargs (JSON). Tolerate nulls / malformed data.
+        retry_args = []
+        retry_kwargs = {}
+        try:
+            if row.args:
+                decoded = json.loads(row.args)
+                if isinstance(decoded, list):
+                    retry_args = decoded
+        except Exception:
+            retry_args = []
+        try:
+            if row.kwargs:
+                decoded = json.loads(row.kwargs)
+                if isinstance(decoded, dict):
+                    retry_kwargs = decoded
+        except Exception:
+            retry_kwargs = {}
+
+        from app.core import celery
+        try:
+            async_result = celery.send_task(task_name, args=retry_args, kwargs=retry_kwargs)
+            new_task_id = getattr(async_result, 'id', None)
+        except Exception as send_err:
+            logger.error(f"Failed to re-enqueue task {task_name}: {send_err}")
+            return jsonify({'success': False, 'message': f'Failed to re-enqueue task: {str(send_err)}'}), 502
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='retry_task',
+            resource_type='monitoring',
+            resource_id=str(exec_id),
+            new_value=f"Re-enqueued {task_name} (new task id {new_task_id})",
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Task {task_name.rsplit(".", 1)[-1]} re-enqueued successfully.',
+            'task_name': task_name,
+            'new_task_id': new_task_id,
+        })
+    except Exception as e:
+        logger.error(f"Error retrying task: {e}")
+        return jsonify({'success': False, 'message': 'Error retrying task'}), 500
+
+
+@admin_panel_bp.route('/monitoring/system/performance/historical')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def system_performance_historical():
+    """
+    Return the response-time + requests/min timeline for a given period.
+
+    Used by the System Performance page period toggle (1h / 6h / 24h / 7d). Built
+    entirely from real APIRequestLog rows; an empty/missing table degrades to empty
+    series (never a 500). The bucket granularity adapts to the window.
+    """
+    from sqlalchemy import func
+
+    period = (request.args.get('period') or '24h').lower()
+    # Map period -> (lookback timedelta, postgres date_trunc granularity, label fmt)
+    period_map = {
+        '1h':  (timedelta(hours=1),  'minute', '%H:%M'),
+        '6h':  (timedelta(hours=6),  'hour',   '%H:%M'),
+        '24h': (timedelta(hours=24), 'hour',   '%H:%M'),
+        '7d':  (timedelta(days=7),   'day',    '%m-%d'),
+    }
+    lookback, granularity, label_fmt = period_map.get(period, period_map['24h'])
+
+    payload = {
+        'period': period,
+        'labels': [],
+        'response_time': [],
+        'requests': [],
+    }
+
+    try:
+        from app.models.api_logs import APIRequestLog
+        now = datetime.utcnow()
+        cutoff = now - lookback
+
+        bucket = func.date_trunc(granularity, APIRequestLog.timestamp)
+        rows = db.session.query(
+            bucket.label('b'),
+            func.count(APIRequestLog.id).label('cnt'),
+            func.avg(APIRequestLog.response_time_ms).label('avg_t'),
+        ).filter(
+            APIRequestLog.timestamp >= cutoff
+        ).group_by(bucket).order_by(bucket).all()
+
+        # Seconds per bucket, to derive a stable requests/min figure.
+        secs_per_bucket = {'minute': 60.0, 'hour': 3600.0, 'day': 86400.0}.get(granularity, 3600.0)
+
+        for r in rows:
+            payload['labels'].append(r.b.strftime(label_fmt) if r.b else '')
+            payload['response_time'].append(round(r.avg_t or 0))
+            payload['requests'].append(round((r.cnt or 0) / (secs_per_bucket / 60.0), 1))
+    except Exception as e:
+        logger.warning(f"Historical performance query failed for period {period}: {e}")
+        # Keep empty series; the client renders an honest empty chart.
+
+    return jsonify({'success': True, **payload})
+
+
 @admin_panel_bp.route('/monitoring/system/performance')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -562,6 +833,9 @@ def system_performance():
         except Exception:
             celery_info = {'active_tasks': 0, 'reserved_tasks': 0, 'workers': 0}
 
+        # --- Request analytics from APIRequestLog (real data; degrades to zeros) ---
+        request_analytics = _get_request_analytics()
+
         performance_metrics = {
             'cpu_usage': round(cpu_usage),
             'memory_usage': round(memory.percent),
@@ -576,11 +850,31 @@ def system_performance():
             'db_pool': db_pool_info,
             'redis': redis_info,
             'celery': celery_info,
+            # Request analytics (consumed by both Classic + console branches)
+            'response_time_avg': request_analytics['response_time_avg'],
+            'response_time_p50': request_analytics['p50'],
+            'response_time_p95': request_analytics['p95'],
+            'response_time_peak': request_analytics['peak'],
+            'response_time_delta_1h': request_analytics['delta_1h'],
+            'requests_per_minute': request_analytics['requests_per_minute'],
+            'requests_per_minute_peak': request_analytics['requests_per_minute_peak'],
+            'error_rate_percent': request_analytics['error_rate_percent'],
+            'error_count_24h': request_analytics['error_count_24h'],
+            'total_requests_24h': request_analytics['total_requests_24h'],
+            'active_sessions': request_analytics['active_sessions'],
+            'top_endpoints': request_analytics['top_endpoints'],
+            'request_distribution': request_analytics['request_distribution'],
+            # Cache hit rate + DB connection counts for the Classic Resource panel
+            'cache_hit_rate': request_analytics['cache_hit_rate'],
+            'db_connections_active': (db_pool_info.get('checked_out')
+                                      if isinstance(db_pool_info.get('checked_out'), int) else 0),
+            'db_connections_max': (db_pool_info.get('size')
+                                   if isinstance(db_pool_info.get('size'), int) else 0),
         }
 
         return render_template('admin_panel/monitoring/system_performance_flowbite.html',
                              performance_metrics=performance_metrics,
-                             historical_data={})
+                             historical_data=request_analytics['historical_data'])
     except Exception as e:
         logger.error(f"Error loading system performance: {e}")
         flash('System performance data unavailable. Verify monitoring tools and system access.', 'error')
@@ -676,6 +970,32 @@ def system_logs():
                     })
             except Exception:
                 pass
+
+        # CSV export of the real, filtered log entries currently loaded.
+        if request.args.get('export') == 'true':
+            import csv
+            import io
+            from flask import Response
+
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(['Timestamp', 'Level', 'Source', 'Message'])
+            for entry in logs:
+                ts = entry.get('timestamp')
+                ts_str = ts.strftime('%Y-%m-%d %H:%M:%S') if hasattr(ts, 'strftime') else str(ts or '')
+                writer.writerow([
+                    ts_str,
+                    entry.get('level', ''),
+                    entry.get('source', ''),
+                    entry.get('message', ''),
+                ])
+
+            filename = f"system_logs_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+            return Response(
+                output.getvalue(),
+                mimetype='text/csv',
+                headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+            )
 
         # Paginate
         start = (page - 1) * per_page
@@ -868,6 +1188,222 @@ def dismiss_alert(alert_id):
     except Exception as e:
         logger.error(f"Error dismissing alert: {e}")
         return jsonify({'success': False, 'message': 'Error dismissing alert'})
+
+
+def _classify_request_path(path):
+    """Bucket a request path into api / web / static / other for the distribution chart."""
+    if not path:
+        return 'other'
+    p = path.lower()
+    if p.startswith('/api') or p.startswith('/v1') or '/api/' in p:
+        return 'api'
+    if p.startswith('/static') or p.startswith('/assets') or p.endswith(('.js', '.css', '.png', '.jpg', '.svg', '.ico', '.woff', '.woff2')):
+        return 'static'
+    return 'web'
+
+
+def _get_request_analytics():
+    """
+    Compute request analytics from APIRequestLog for the System Performance page.
+
+    Returns a dict with KPI figures (P50/P95/Peak/avg response time, requests/min,
+    error rate, active sessions), top endpoints, an api/web/static/other request
+    distribution, a cache hit rate, and a historical_data payload (response-time
+    series, distribution, and an hourly dual-axis timeline over the last 24h) shaped
+    for the Chart.js hooks already in the template.
+
+    Every query is defensive: a missing/empty table degrades to zeros, never a 500.
+    """
+    empty = {
+        'response_time_avg': 0, 'p50': 0, 'p95': 0, 'peak': 0, 'delta_1h': 0,
+        'requests_per_minute': 0, 'requests_per_minute_peak': 0,
+        'error_rate_percent': 0, 'error_count_24h': 0, 'total_requests_24h': 0,
+        'active_sessions': 0, 'cache_hit_rate': 0,
+        'top_endpoints': [],
+        'request_distribution': {'labels': ['API', 'Web', 'Static', 'Other'], 'data': [0, 0, 0, 0]},
+        'historical_data': {
+            'response_time': {'labels': [], 'data': []},
+            'request_distribution': {'labels': ['API', 'Web', 'Static', 'Other'], 'data': [0, 0, 0, 0]},
+            'timeline': {'labels': [], 'response_time': [], 'requests': []},
+        },
+    }
+
+    try:
+        from sqlalchemy import func
+        from app.models.api_logs import APIRequestLog
+
+        now = datetime.utcnow()
+        cutoff_24h = now - timedelta(hours=24)
+
+        total_24h = db.session.query(func.count(APIRequestLog.id)).filter(
+            APIRequestLog.timestamp >= cutoff_24h
+        ).scalar() or 0
+
+        if total_24h == 0:
+            return empty
+
+        # --- P50 / P95 via Postgres PERCENTILE_CONT (continuous percentile) ---
+        p50 = p95 = avg_rt = peak = 0
+        try:
+            row = db.session.query(
+                func.percentile_cont(0.5).within_group(APIRequestLog.response_time_ms.asc()),
+                func.percentile_cont(0.95).within_group(APIRequestLog.response_time_ms.asc()),
+                func.avg(APIRequestLog.response_time_ms),
+                func.max(APIRequestLog.response_time_ms),
+            ).filter(APIRequestLog.timestamp >= cutoff_24h).one()
+            p50 = round(row[0] or 0)
+            p95 = round(row[1] or 0)
+            avg_rt = round(row[2] or 0)
+            peak = round(row[3] or 0)
+        except Exception as e:
+            logger.warning(f"PERCENTILE_CONT unavailable, falling back to avg only: {e}")
+            avg_rt = round(db.session.query(func.avg(APIRequestLog.response_time_ms)).filter(
+                APIRequestLog.timestamp >= cutoff_24h).scalar() or 0)
+            peak = round(db.session.query(func.max(APIRequestLog.response_time_ms)).filter(
+                APIRequestLog.timestamp >= cutoff_24h).scalar() or 0)
+            p50, p95 = avg_rt, peak
+
+        # --- Requests/min: last full minute vs busiest minute over 24h ---
+        cutoff_1m = now - timedelta(minutes=1)
+        rpm_now = db.session.query(func.count(APIRequestLog.id)).filter(
+            APIRequestLog.timestamp >= cutoff_1m).scalar() or 0
+        # Average req/min across the window is a stable headline figure.
+        rpm_avg = round(total_24h / (24 * 60), 1)
+        requests_per_minute = rpm_now if rpm_now else int(round(rpm_avg))
+        # Peak req/min via per-minute bucketing.
+        rpm_peak = 0
+        try:
+            minute_bucket = func.date_trunc('minute', APIRequestLog.timestamp)
+            peak_row = db.session.query(func.count(APIRequestLog.id).label('c')).filter(
+                APIRequestLog.timestamp >= cutoff_24h
+            ).group_by(minute_bucket).order_by(func.count(APIRequestLog.id).desc()).first()
+            rpm_peak = peak_row.c if peak_row else 0
+        except Exception:
+            rpm_peak = requests_per_minute
+
+        # --- Error rate (4xx + 5xx) over 24h ---
+        error_count = db.session.query(func.count(APIRequestLog.id)).filter(
+            APIRequestLog.timestamp >= cutoff_24h,
+            APIRequestLog.status_code >= 400
+        ).scalar() or 0
+        error_rate = round((error_count / total_24h * 100), 2) if total_24h else 0
+
+        # --- 1h response-time delta (current hour avg vs prior hour avg) ---
+        delta_1h = 0
+        try:
+            cur_hr = db.session.query(func.avg(APIRequestLog.response_time_ms)).filter(
+                APIRequestLog.timestamp >= now - timedelta(hours=1)).scalar()
+            prev_hr = db.session.query(func.avg(APIRequestLog.response_time_ms)).filter(
+                APIRequestLog.timestamp >= now - timedelta(hours=2),
+                APIRequestLog.timestamp < now - timedelta(hours=1)).scalar()
+            if cur_hr is not None and prev_hr is not None:
+                delta_1h = round(cur_hr - prev_hr)
+        except Exception:
+            delta_1h = 0
+
+        # --- Top endpoints (count + avg time) ---
+        top_endpoints = []
+        try:
+            rows = db.session.query(
+                APIRequestLog.endpoint_path,
+                func.count(APIRequestLog.id).label('cnt'),
+                func.avg(APIRequestLog.response_time_ms).label('avg_t'),
+            ).filter(
+                APIRequestLog.timestamp >= cutoff_24h
+            ).group_by(APIRequestLog.endpoint_path).order_by(
+                func.count(APIRequestLog.id).desc()
+            ).limit(8).all()
+            top_endpoints = [
+                {'path': r.endpoint_path, 'requests': int(r.cnt), 'avg_time': round(r.avg_t or 0)}
+                for r in rows
+            ]
+        except Exception as e:
+            logger.warning(f"Top endpoints query failed: {e}")
+
+        # --- Request distribution (api / web / static / other) ---
+        dist = {'api': 0, 'web': 0, 'static': 0, 'other': 0}
+        try:
+            path_rows = db.session.query(
+                APIRequestLog.endpoint_path,
+                func.count(APIRequestLog.id).label('cnt'),
+            ).filter(
+                APIRequestLog.timestamp >= cutoff_24h
+            ).group_by(APIRequestLog.endpoint_path).all()
+            for r in path_rows:
+                dist[_classify_request_path(r.endpoint_path)] += int(r.cnt)
+        except Exception as e:
+            logger.warning(f"Request distribution query failed: {e}")
+        dist_data = [dist['api'], dist['web'], dist['static'], dist['other']]
+
+        # --- Hourly timeline (avg response time + request count per hour) ---
+        timeline_labels, timeline_rt, timeline_req = [], [], []
+        try:
+            hour_bucket = func.date_trunc('hour', APIRequestLog.timestamp)
+            hour_rows = db.session.query(
+                hour_bucket.label('hr'),
+                func.count(APIRequestLog.id).label('cnt'),
+                func.avg(APIRequestLog.response_time_ms).label('avg_t'),
+            ).filter(
+                APIRequestLog.timestamp >= cutoff_24h
+            ).group_by(hour_bucket).order_by(hour_bucket).all()
+            for r in hour_rows:
+                timeline_labels.append(r.hr.strftime('%H:%M') if r.hr else '')
+                timeline_rt.append(round(r.avg_t or 0))
+                # requests-per-minute within that hour bucket
+                timeline_req.append(round((r.cnt or 0) / 60.0, 1))
+        except Exception as e:
+            logger.warning(f"Hourly timeline query failed: {e}")
+
+        # --- Cache hit rate (best-effort from Redis keyspace stats) ---
+        cache_hit_rate = 0
+        try:
+            from app.utils.redis_manager import UnifiedRedisManager
+            rm = UnifiedRedisManager()
+            if rm.redis_client:
+                stats = rm.redis_client.info('stats')
+                hits = stats.get('keyspace_hits', 0)
+                misses = stats.get('keyspace_misses', 0)
+                if (hits + misses) > 0:
+                    cache_hit_rate = round(hits / (hits + misses) * 100, 1)
+        except Exception:
+            cache_hit_rate = 0
+
+        # --- Active sessions (authenticated users seen in the last 15 min) ---
+        active_sessions = 0
+        try:
+            active_sessions = db.session.query(
+                func.count(func.distinct(APIRequestLog.user_id))
+            ).filter(
+                APIRequestLog.timestamp >= now - timedelta(minutes=15),
+                APIRequestLog.user_id.isnot(None)
+            ).scalar() or 0
+        except Exception:
+            active_sessions = 0
+
+        return {
+            'response_time_avg': avg_rt,
+            'p50': p50,
+            'p95': p95,
+            'peak': peak,
+            'delta_1h': delta_1h,
+            'requests_per_minute': requests_per_minute,
+            'requests_per_minute_peak': rpm_peak,
+            'error_rate_percent': error_rate,
+            'error_count_24h': error_count,
+            'total_requests_24h': total_24h,
+            'active_sessions': active_sessions,
+            'cache_hit_rate': cache_hit_rate,
+            'top_endpoints': top_endpoints,
+            'request_distribution': {'labels': ['API', 'Web', 'Static', 'Other'], 'data': dist_data},
+            'historical_data': {
+                'response_time': {'labels': timeline_labels, 'data': timeline_rt},
+                'request_distribution': {'labels': ['API', 'Web', 'Static', 'Other'], 'data': dist_data},
+                'timeline': {'labels': timeline_labels, 'response_time': timeline_rt, 'requests': timeline_req},
+            },
+        }
+    except Exception as e:
+        logger.error(f"Error computing request analytics: {e}")
+        return empty
 
 
 def _get_slow_queries():

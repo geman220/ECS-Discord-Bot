@@ -19,15 +19,23 @@
             </h1>
             <p class="text-gray-500 dark:text-gray-400">Detailed information for {{ wallet_pass.member_name }}'s pass</p>
         </div>
-        {% if wallet_pass.pass_type and wallet_pass.pass_type.code == 'ecs_membership' %}
-        <a href="{{ url_for('wallet_admin.passes_list', tab='ecs') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>Back to ECS Passes
-        </a>
-        {% else %}
-        <a href="{{ url_for('wallet_admin.passes_list', tab='pub_league') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>Back to Pub League Passes
-        </a>
-        {% endif %}
+        <div class="flex flex-wrap items-center gap-2">
+            {% if wallet_pass.pass_type and wallet_pass.pass_type.code == 'ecs_membership' %}
+            <a href="{{ url_for('wallet_admin.passes_list', tab='ecs') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>Back to ECS Passes
+            </a>
+            {% else %}
+            <a href="{{ url_for('wallet_admin.passes_list', tab='pub_league') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>Back to Pub League Passes
+            </a>
+            {% endif %}
+            <a href="{{ url_for('wallet_admin.scanner') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>Scan
+            </a>
+            <a href="{{ url_for('wallet_admin.download_pass', pass_id=wallet_pass.id, platform='apple') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>Download .pkpass
+            </a>
+        </div>
     </div>
 
     <!-- Status Banner -->
@@ -254,6 +262,14 @@
                         <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>Download Apple Pass
                     </a>
 
+                    <button type="button" id="download-google-btn" data-google-url="{{ url_for('wallet_admin.download_pass', pass_id=wallet_pass.id, platform='google') }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                        <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.26 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>Download Google Pass
+                    </button>
+
+                    <a href="{{ url_for('wallet_admin.scanner') }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>Check-in / Scan
+                    </a>
+
                     {% if wallet_pass.status == 'active' %}
                     <button type="button" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800 rounded-lg transition-colors" id="void-pass-btn">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>Void Pass
@@ -263,6 +279,39 @@
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Reactivate Pass
                     </button>
                     {% endif %}
+                </div>
+            </div>
+
+            <!-- Pass Preview (Apple-Wallet-style card) -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0"/></svg>Pass Preview
+                    </h6>
+                </div>
+                <div class="p-4">
+                    <div class="rounded-xl bg-gradient-to-br from-emerald-700 to-emerald-950 text-white p-5 shadow-lg">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center justify-center h-9 w-9 rounded-full bg-white/15">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 0v20m-7.5-5l15-10m-15 0l15 10"/></svg>
+                                </span>
+                                <div class="leading-tight">
+                                    <p class="text-[11px] uppercase tracking-wide text-white/70">{{ wallet_pass.pass_type.name if wallet_pass.pass_type else 'Membership' }}</p>
+                                    <p class="text-xs font-semibold">{{ wallet_pass.display_validity }}</p>
+                                </div>
+                            </div>
+                            <svg class="w-5 h-5 text-white/80" fill="currentColor" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                        </div>
+                        <p class="mt-5 text-2xl font-bold leading-tight">{{ wallet_pass.member_name }}</p>
+                        {% if wallet_pass.team_name %}
+                        <p class="text-sm text-white/80">{{ wallet_pass.team_name }}</p>
+                        {% endif %}
+                        <div class="mt-5 rounded-lg bg-white p-2.5">
+                            <div id="qrcode-preview" class="flex items-center justify-center"></div>
+                            <code class="block text-center text-[10px] font-mono text-black/70 mt-1.5 break-all">{{ wallet_pass.barcode_data }}</code>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -319,6 +368,41 @@ document.addEventListener('DOMContentLoaded', function() {
         qr.addData('{{ wallet_pass.barcode_data }}');
         qr.make();
         document.getElementById('qrcode').innerHTML = qr.createSvgTag(4, 0);
+        const previewEl = document.getElementById('qrcode-preview');
+        if (previewEl) {
+            previewEl.innerHTML = qr.createSvgTag(3, 0);
+        }
+    }
+
+    // Download Google Pass (endpoint returns JSON {url})
+    const googleBtn = document.getElementById('download-google-btn');
+    if (googleBtn) {
+        googleBtn.addEventListener('click', function() {
+            fetch(googleBtn.dataset.googleUrl, { headers: { 'X-CSRFToken': csrfToken } })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.url) {
+                        window.open(data.url, '_blank', 'noopener');
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Unavailable',
+                            text: data.error || 'Could not generate a Google Pass link.',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    }
+                })
+                .catch(() => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Could not generate a Google Pass link.',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                });
+        });
     }
 
     // Copy link

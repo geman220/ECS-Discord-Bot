@@ -4,165 +4,202 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state, alert %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state, alert %}
 {% from 'macros/flowbite.html' import button %}
+
+{# --- derive real figures (no fabrication) --- #}
+{% set reply_count = feedback.replies | length %}
+{% set admin_replies = feedback.replies | selectattr('is_admin_reply') | list | length %}
+{% set your_replies = reply_count - admin_replies %}
+{% set last_activity = (feedback.replies | last).created_at if feedback.replies else feedback.created_at %}
+{% set status_meta = {
+  'Open':        {'tone': 'info',    'dot': 'bg-blue-500',  'pill': 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',   'i': 'ti-circle-dot'},
+  'In Progress': {'tone': 'warning', 'dot': 'bg-amber-500', 'pill': 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300','i': 'ti-progress'},
+  'Closed':      {'tone': 'neutral', 'dot': 'bg-gray-400',  'pill': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',        'i': 'ti-circle-check'}
+} %}
+{% set sm = status_meta.get(feedback.status, status_meta['Open']) %}
+{% set prio_meta = {
+  'Low':    {'pill': 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300',  'i': 'ti-flag'},
+  'Medium': {'pill': 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',  'i': 'ti-flag'},
+  'High':   {'pill': 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',           'i': 'ti-flag-filled'}
+} %}
+{% set pm = prio_meta.get(feedback.priority, prio_meta['Low']) %}
+
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
-  {% call page_header("Feedback #" ~ feedback.id, subtitle="Feedback details") %}
+  {% call page_header("Feedback #" ~ feedback.id, subtitle="Support ticket") %}
     {{ button("Back to Feedbacks", variant="secondary", size="md", icon="ti-arrow-left", href=url_for('feedback.submit_feedback')) }}
   {% endcall %}
 
-  <!-- KPI band -->
-  {% set status_tones = {'Open': 'info', 'In Progress': 'warning', 'Closed': 'neutral'} %}
-  {% set priority_tones = {'High': 'danger', 'Medium': 'warning', 'Low': 'success'} %}
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
-    {{ stat_card("ti-flag", "Status", feedback.status, tone=status_tones.get(feedback.status, 'info')) }}
-    {{ stat_card("ti-alert-triangle", "Priority", feedback.priority, tone=priority_tones.get(feedback.priority, 'neutral')) }}
-    {{ stat_card("ti-messages", "Replies", feedback.replies|length, tone='primary') }}
-    {{ stat_card("ti-category", "Category", feedback.category, tone='gold') }}
-  </div>
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
 
-  <div class="grid grid-cols-1 lg:grid-cols-4 gap-5 sm:gap-6">
-    <!-- Main Content -->
-    <div class="lg:col-span-3 space-y-5 sm:space-y-6">
+    <!-- ============ PRIMARY COLUMN ============ -->
+    <div class="xl:col-span-2 space-y-5 sm:space-y-6">
 
-      <!-- Feedback Description -->
-      {% call section_card(feedback.title, icon="ti-message-report") %}
-        <div class="px-4 sm:px-5 py-4">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Description</h3>
-          <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ feedback.description }}</div>
+      <!-- FEATURE CARD: the ticket -->
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <!-- header bar with status pills -->
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-2 py-1 rounded-md {{ sm.pill }}">
+            <i class="ti {{ sm.i }} text-[13px]" aria-hidden="true"></i>{{ feedback.status }}
+          </span>
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-2 py-1 rounded-md {{ pm.pill }}">
+            <i class="ti {{ pm.i }} text-[13px]" aria-hidden="true"></i>{{ feedback.priority }} priority
+          </span>
+          <span class="ml-auto inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+            {% if feedback.source == 'app' %}
+            <i class="ti ti-device-mobile text-[13px]" aria-hidden="true"></i>App
+            {% else %}
+            <i class="ti ti-world text-[13px]" aria-hidden="true"></i>Web
+            {% endif %}
+          </span>
         </div>
-      {% endcall %}
-
-      <!-- Conversation -->
-      {% call section_card("Conversation", icon="ti-messages") %}
+        <!-- title + description -->
         <div class="px-4 sm:px-5 py-4">
-          {% if feedback.replies %}
-          <div class="space-y-4">
-            {% for reply in feedback.replies %}
-            <div class="flex gap-3">
-              <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 {% if reply.is_admin_reply %}bg-red-100 dark:bg-red-900/50{% else %}bg-blue-100 dark:bg-blue-900/50{% endif %}">
-                <span class="text-sm font-bold {% if reply.is_admin_reply %}text-red-600 dark:text-red-400{% else %}text-blue-600 dark:text-blue-400{% endif %}">
-                  {% if reply.is_admin_reply %}A{% else %}{{ feedback.name[0]|upper if feedback.name else 'U' }}{% endif %}
-                </span>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                  <span class="text-sm font-semibold {% if reply.is_admin_reply %}text-red-600 dark:text-red-400{% else %}text-blue-600 dark:text-blue-400{% endif %}">
-                    {% if reply.is_admin_reply %}Admin Response{% else %}Your Response{% endif %}
-                  </span>
-                  <span class="text-xs font-mono text-gray-400 dark:text-gray-500">{{ reply.created_at.strftime('%b %d, %Y at %I:%M %p') }}</span>
-                </div>
-                <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ reply.content }}</div>
-              </div>
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ feedback.category }}</p>
+          <h2 class="mt-1 text-lg sm:text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">{{ feedback.title }}</h2>
+          <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ feedback.description }}</div>
+        </div>
+        <!-- footer KPI band: mono figures w/ dividers -->
+        <div class="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700">
+          <div class="px-4 py-3 text-center">
+            <p class="font-mono text-2xl font-bold leading-none text-ecs-green">{{ reply_count }}</p>
+            <p class="mt-1 text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Replies</p>
+          </div>
+          <div class="px-4 py-3 text-center">
+            <p class="font-mono text-2xl font-bold leading-none text-red-600 dark:text-red-400">{{ admin_replies }}</p>
+            <p class="mt-1 text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">From Admin</p>
+          </div>
+          <div class="px-4 py-3 text-center">
+            <p class="font-mono text-sm font-bold leading-tight text-gray-900 dark:text-white">{{ last_activity.strftime('%b %d') }}</p>
+            <p class="mt-1 text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Last Activity</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONVERSATION THREAD -->
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <i class="ti ti-messages text-ecs-green" aria-hidden="true"></i>Conversation
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ reply_count }}</span>
+          </h2>
+        </div>
+
+        {% if feedback.replies %}
+        <ul role="list" class="divide-y divide-gray-100 dark:divide-gray-700/60">
+          {% for reply in feedback.replies %}
+          <li class="flex gap-3 px-4 sm:px-5 py-4">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-mono text-sm font-bold {% if reply.is_admin_reply %}bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400{% else %}bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400{% endif %}">
+              {% if reply.is_admin_reply %}A{% else %}{{ feedback.name[0]|upper if feedback.name else 'U' }}{% endif %}
             </div>
-            {% endfor %}
-          </div>
-          {% else %}
-          {{ empty_state("ti-messages-off", "No replies yet", "Be the first to reply to this feedback.") }}
-          {% endif %}
-
-          <!-- Add Reply Form -->
-          {% if feedback.status != 'Closed' %}
-          <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Add Your Reply</h4>
-            <form method="POST" action="{{ url_for('feedback.view_feedback', feedback_id=feedback.id) }}">
-              {{ form.hidden_tag() }}
-              <div class="mb-4">
-                {{ form.content(class="input-ecs w-full", rows="4", placeholder="Enter your reply here...") }}
-                {% for error in form.content.errors %}
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-                {% endfor %}
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
+                <span class="text-sm font-semibold {% if reply.is_admin_reply %}text-red-600 dark:text-red-400{% else %}text-blue-600 dark:text-blue-400{% endif %}">
+                  {% if reply.is_admin_reply %}Admin Response{% else %}Your Response{% endif %}
+                </span>
+                {% if reply.is_admin_reply %}
+                <span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300">Staff</span>
+                {% endif %}
+                <span class="ml-auto text-xs font-mono text-gray-400 dark:text-gray-500">{{ reply.created_at.strftime('%b %d, %Y · %I:%M %p') }}</span>
               </div>
-              <div class="flex flex-wrap gap-3">
-                <button type="submit"
-                        class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                  <i class="ti ti-send" aria-hidden="true"></i>
-                  Send Reply
-                </button>
-              </div>
-            </form>
+              <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ reply.content }}</div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        {{ empty_state("ti-messages-off", "No replies yet", "Add a reply below to continue the conversation with our team.") }}
+        {% endif %}
 
-            <form method="POST" action="{{ url_for('feedback.close_feedback', feedback_id=feedback.id) }}" class="mt-3">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <!-- COMMAND TOOLBAR: reply composer -->
+        {% if feedback.status != 'Closed' %}
+        <div class="px-4 sm:px-5 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Add Your Reply</h3>
+          <form method="POST" action="{{ url_for('feedback.view_feedback', feedback_id=feedback.id) }}">
+            {{ form.hidden_tag() }}
+            <div class="mb-3">
+              {{ form.content(class="input-ecs w-full", rows="4", placeholder="Enter your reply here...") }}
+              {% for error in form.content.errors %}
+              <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+              {% endfor %}
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
               <button type="submit"
-                      class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                <i class="ti ti-x-circle" aria-hidden="true"></i>
-                Close Feedback
+                      class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti ti-send" aria-hidden="true"></i>
+                Send Reply
               </button>
-            </form>
-          </div>
-          {% else %}
-          <div class="mt-6">
-            {{ alert("info", "No further replies can be added.", title="This feedback is closed.", dismissible=False) }}
-          </div>
-          {% endif %}
+              <span class="text-xs text-gray-400 dark:text-gray-500 hidden sm:inline">Replies notify our team.</span>
+            </div>
+          </form>
+
+          <form method="POST" action="{{ url_for('feedback.close_feedback', feedback_id=feedback.id) }}" class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-x-circle" aria-hidden="true"></i>
+              Close Feedback
+            </button>
+          </form>
         </div>
-      {% endcall %}
+        {% else %}
+        <div class="px-4 sm:px-5 py-4 border-t border-gray-200 dark:border-gray-700">
+          {{ alert("info", "No further replies can be added.", title="This feedback is closed.", dismissible=False) }}
+        </div>
+        {% endif %}
+      </section>
     </div>
 
-    <!-- Sidebar -->
+    <!-- ============ RAIL ============ -->
     <div class="space-y-5 sm:space-y-6">
-      <!-- Details -->
-      {% call section_card("Details", icon="ti-info-circle") %}
-        <div class="px-4 sm:px-5 py-4">
-          <dl class="space-y-3 text-sm">
-            <div class="flex justify-between gap-2">
-              <dt class="text-gray-500 dark:text-gray-400">Category</dt>
-              <dd class="font-medium text-gray-900 dark:text-white text-right">{{ feedback.category }}</dd>
-            </div>
-            <div class="flex justify-between gap-2">
-              <dt class="text-gray-500 dark:text-gray-400">Status</dt>
-              <dd>
-                {% if feedback.status == 'Open' %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">{{ feedback.status }}</span>
-                {% elif feedback.status == 'In Progress' %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">{{ feedback.status }}</span>
-                {% elif feedback.status == 'Closed' %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">{{ feedback.status }}</span>
-                {% endif %}
-              </dd>
-            </div>
-            <div class="flex justify-between gap-2">
-              <dt class="text-gray-500 dark:text-gray-400">Priority</dt>
-              <dd>
-                {% if feedback.priority == 'Low' %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">{{ feedback.priority }}</span>
-                {% elif feedback.priority == 'Medium' %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">{{ feedback.priority }}</span>
-                {% elif feedback.priority == 'High' %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">{{ feedback.priority }}</span>
-                {% endif %}
-              </dd>
-            </div>
-            <div class="flex justify-between gap-2">
-              <dt class="text-gray-500 dark:text-gray-400">Source</dt>
-              <dd>
-                {% if feedback.source == 'app' %}
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-ecs-green-100 dark:bg-ecs-green-900/30 text-ecs-green-700 dark:text-ecs-green-300">
-                  <i class="ti ti-device-mobile text-xs" aria-hidden="true"></i>App
-                </span>
-                {% else %}
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                  <i class="ti ti-world text-xs" aria-hidden="true"></i>Web
-                </span>
-                {% endif %}
-              </dd>
-            </div>
-            <div class="flex justify-between gap-2">
-              <dt class="text-gray-500 dark:text-gray-400">Submitted</dt>
-              <dd class="font-medium text-gray-900 dark:text-white font-mono">{{ feedback.created_at.strftime('%b %d, %Y') }}</dd>
-            </div>
-            <div class="flex justify-between gap-2">
-              <dt class="text-gray-500 dark:text-gray-400">ID</dt>
-              <dd class="font-medium text-gray-900 dark:text-white font-mono">#{{ feedback.id }}</dd>
-            </div>
-          </dl>
-        </div>
-      {% endcall %}
 
-      <!-- Activity Timeline -->
-      {% call section_card("Activity", icon="ti-timeline") %}
+      <!-- Details: dense definition rows -->
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+          <i class="ti ti-info-circle text-ecs-green" aria-hidden="true"></i>
+          <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Details</h3>
+        </div>
+        <dl class="divide-y divide-gray-100 dark:divide-gray-700/60 text-sm">
+          <div class="flex justify-between gap-2 px-4 sm:px-5 py-2.5">
+            <dt class="text-gray-500 dark:text-gray-400">Ticket ID</dt>
+            <dd class="font-mono font-semibold text-gray-900 dark:text-white">#{{ feedback.id }}</dd>
+          </div>
+          <div class="flex justify-between gap-2 px-4 sm:px-5 py-2.5">
+            <dt class="text-gray-500 dark:text-gray-400">Category</dt>
+            <dd class="font-medium text-gray-900 dark:text-white text-right">{{ feedback.category }}</dd>
+          </div>
+          <div class="flex justify-between gap-2 px-4 sm:px-5 py-2.5">
+            <dt class="text-gray-500 dark:text-gray-400">Status</dt>
+            <dd><span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium {{ sm.pill }}"><span class="w-1.5 h-1.5 rounded-full {{ sm.dot }}"></span>{{ feedback.status }}</span></dd>
+          </div>
+          <div class="flex justify-between gap-2 px-4 sm:px-5 py-2.5">
+            <dt class="text-gray-500 dark:text-gray-400">Priority</dt>
+            <dd><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ pm.pill }}">{{ feedback.priority }}</span></dd>
+          </div>
+          <div class="flex justify-between gap-2 px-4 sm:px-5 py-2.5">
+            <dt class="text-gray-500 dark:text-gray-400">Source</dt>
+            <dd>
+              {% if feedback.source == 'app' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-ecs-green-100 dark:bg-ecs-green-900/30 text-ecs-green-700 dark:text-ecs-green-300"><i class="ti ti-device-mobile text-xs" aria-hidden="true"></i>App</span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"><i class="ti ti-world text-xs" aria-hidden="true"></i>Web</span>
+              {% endif %}
+            </dd>
+          </div>
+          <div class="flex justify-between gap-2 px-4 sm:px-5 py-2.5">
+            <dt class="text-gray-500 dark:text-gray-400">Submitted</dt>
+            <dd class="font-mono font-medium text-gray-900 dark:text-white">{{ feedback.created_at.strftime('%b %d, %Y') }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- Activity timeline -->
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+          <i class="ti ti-timeline text-ecs-green" aria-hidden="true"></i>
+          <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Activity</h3>
+        </div>
         <div class="px-4 sm:px-5 py-4">
           <div class="relative pl-6 space-y-4">
             <div class="absolute left-2 top-2 bottom-2 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
@@ -171,10 +208,8 @@
               <div class="absolute -left-4 w-4 h-4 rounded-full bg-ecs-green flex items-center justify-center">
                 <i class="ti ti-plus text-white text-xs" aria-hidden="true"></i>
               </div>
-              <div>
-                <p class="text-sm font-medium text-gray-900 dark:text-white">Feedback Created</p>
-                <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ feedback.created_at.strftime('%b %d, %Y') }}</p>
-              </div>
+              <p class="text-sm font-medium text-gray-900 dark:text-white">Feedback Created</p>
+              <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ feedback.created_at.strftime('%b %d, %Y') }}</p>
             </div>
 
             {% for reply in feedback.replies %}
@@ -182,13 +217,9 @@
               <div class="absolute -left-4 w-4 h-4 rounded-full {% if reply.is_admin_reply %}bg-red-500{% else %}bg-blue-500{% endif %} flex items-center justify-center">
                 <i class="ti ti-message text-white text-xs" aria-hidden="true"></i>
               </div>
-              <div>
-                <p class="text-sm font-medium text-gray-900 dark:text-white">
-                  {% if reply.is_admin_reply %}Admin Replied{% else %}You Replied{% endif %}
-                </p>
-                <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ reply.created_at.strftime('%b %d, %Y') }}</p>
-                <p class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ reply.content | truncate(50) }}</p>
-              </div>
+              <p class="text-sm font-medium text-gray-900 dark:text-white">{% if reply.is_admin_reply %}Admin Replied{% else %}You Replied{% endif %}</p>
+              <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ reply.created_at.strftime('%b %d, %Y') }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ reply.content | truncate(50) }}</p>
             </div>
             {% endfor %}
 
@@ -197,15 +228,13 @@
               <div class="absolute -left-4 w-4 h-4 rounded-full bg-gray-400 flex items-center justify-center">
                 <i class="ti ti-check text-white text-xs" aria-hidden="true"></i>
               </div>
-              <div>
-                <p class="text-sm font-medium text-gray-900 dark:text-white">Feedback Closed</p>
-                <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ feedback.updated_at.strftime('%b %d, %Y') }}</p>
-              </div>
+              <p class="text-sm font-medium text-gray-900 dark:text-white">Feedback Closed</p>
+              <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ feedback.updated_at.strftime('%b %d, %Y') }}</p>
             </div>
             {% endif %}
           </div>
         </div>
-      {% endcall %}
+      </section>
     </div>
   </div>
 </div>

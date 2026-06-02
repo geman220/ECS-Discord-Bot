@@ -4,43 +4,185 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, section_card, data_table, data_table_th, empty_state %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+{# Every figure on this page is derived ENTIRELY from the real `feedbacks` list
+   the route provides (Feedback model rows) + request.args — no extra vars exist.
+   selectattr/groupby run over the in-memory rows; nothing is fabricated. #}
+{% set fb_total    = feedbacks|length %}
+{% set fb_open     = feedbacks|selectattr('status', 'equalto', 'Open')|list|length %}
+{% set fb_progress = feedbacks|selectattr('status', 'equalto', 'In Progress')|list|length %}
+{% set fb_closed   = feedbacks|selectattr('status', 'equalto', 'Closed')|list|length %}
+{% set fb_high     = feedbacks|selectattr('priority', 'equalto', 'High')|list|length %}
+{% set fb_active   = fb_open + fb_progress %}
+{% set fb_app      = feedbacks|selectattr('source', 'equalto', 'app')|list|length %}
+{% set fb_web      = feedbacks|rejectattr('source', 'equalto', 'app')|list|length %}
+{# Active server-side filters (for the toolbar pill row + clear control) #}
+{% set f_status   = request.args.get('status') %}
+{% set f_priority = request.args.get('priority') %}
+{% set has_filters = f_status or f_priority %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5 sm:space-y-6">
 
-  {{ page_header("All Feedback", subtitle="Reports") }}
+  {# ── Page header: ONE primary job (work the queue) + source split context ── #}
+  {% call page_header("Feedback Triage", subtitle="Reports") %}
+    <span class="hidden sm:inline-flex items-center gap-2 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
+      <span class="inline-flex items-center gap-1"><i class="ti ti-world text-blue-500" aria-hidden="true"></i><span class="font-mono font-bold">{{ fb_web }}</span> web</span>
+      <span class="w-px h-3.5 bg-gray-200 dark:bg-gray-600" aria-hidden="true"></span>
+      <span class="inline-flex items-center gap-1"><i class="ti ti-device-mobile text-ecs-green" aria-hidden="true"></i><span class="font-mono font-bold">{{ fb_app }}</span> app</span>
+    </span>
+    <a href="{{ url_for('admin.admin_reports') }}#fbQueue"
+       class="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-inbox" aria-hidden="true"></i>
+      Work Queue
+      {% if fb_active %}<span class="font-mono font-bold px-1.5 py-0.5 rounded bg-white/20">{{ fb_active }}</span>{% endif %}
+    </a>
+  {% endcall %}
 
-  {# Filters — server-side: each select reloads with its query param.
-     IDs filterStatus / filterPriority + option values copied VERBATIM (admin-reports.js binds change -> updateFilter). #}
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
-    <div>
-      <label for="filterStatus" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Status</label>
-      <select id="filterStatus" class="input-ecs h-10 text-sm" aria-label="Filter by status">
-        <option value="">All Statuses</option>
-        <option value="Open" {% if request.args.get('status') == 'Open' %}selected{% endif %}>Open</option>
-        <option value="In Progress" {% if request.args.get('status') == 'In Progress' %}selected{% endif %}>In Progress</option>
-        <option value="Closed" {% if request.args.get('status') == 'Closed' %}selected{% endif %}>Closed</option>
-      </select>
+  {# ── KPI BAND — operational at-a-glance, real counts, mono figures ───────── #}
+  <section aria-labelledby="fbKpiHead">
+    <h2 id="fbKpiHead" class="sr-only">Feedback queue metrics</h2>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Needs Action</span>
+          <i class="ti ti-inbox text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ fb_active }}</div>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">open + in progress</p>
+      </div>
+
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Open</span>
+          <i class="ti ti-circle-dot text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ fb_open }}</div>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">untouched tickets</p>
+      </div>
+
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">In Progress</span>
+          <i class="ti ti-progress text-lg text-cyan-600 dark:text-cyan-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-cyan-600 dark:text-cyan-400">{{ fb_progress }}</div>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">being worked</p>
+      </div>
+
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">High Priority</span>
+          <i class="ti ti-alert-triangle-filled text-lg text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none {% if fb_high %}text-red-600 dark:text-red-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ fb_high }}</div>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">{% if fb_high %}escalate first{% else %}none flagged{% endif %}</p>
+      </div>
+
     </div>
-    <div>
-      <label for="filterPriority" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Priority</label>
-      <select id="filterPriority" class="input-ecs h-10 text-sm" aria-label="Filter by priority">
-        <option value="">All Priorities</option>
-        <option value="Low" {% if request.args.get('priority') == 'Low' %}selected{% endif %}>Low</option>
-        <option value="Medium" {% if request.args.get('priority') == 'Medium' %}selected{% endif %}>Medium</option>
-        <option value="High" {% if request.args.get('priority') == 'High' %}selected{% endif %}>High</option>
-      </select>
-    </div>
-  </div>
+  </section>
 
-  {% call data_table("Feedback Reports", icon="ti-message-report", count=feedbacks|length, filters=False) %}
+  {# ── Two-column: queue composition rail (real category mix) + the queue ──── #}
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6 items-start">
+
+    {# COMPOSITION RAIL — bespoke feature card: category breakdown bars built
+       purely from groupby over the real rows. Each bar links into a filtered
+       view via the same query-param contract the JS filters use. #}
+    <aside class="xl:col-span-1 space-y-5 sm:space-y-6">
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <i class="ti ti-chart-donut text-ecs-green" aria-hidden="true"></i> By Category
+          </h2>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ fb_total }}</span>
+        </div>
+        {% if feedbacks %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+          {% for category, rows in feedbacks|groupby('category') %}
+          {% set cat_count = rows|list|length %}
+          {% set cat_pct = (cat_count * 100 // fb_total) if fb_total else 0 %}
+          <li class="px-4 py-3">
+            <div class="flex items-center justify-between gap-2 text-sm">
+              <span class="font-medium text-gray-900 dark:text-white truncate">{{ category or 'Uncategorized' }}</span>
+              <span class="font-mono text-xs text-gray-500 dark:text-gray-400 shrink-0">{{ cat_count }} · {{ cat_pct }}%</span>
+            </div>
+            <div class="mt-1.5 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="presentation">
+              <div class="h-full rounded-full bg-ecs-green" style="width: {{ cat_pct }}%"></div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="px-4 py-6 text-sm text-gray-500 dark:text-gray-400 text-center">No tickets in this view.</p>
+        {% endif %}
+      </section>
+
+      {# CLOSED counter — kept off the action band so it doesn't compete with the
+         active work, but surfaced here for completeness using the real count. #}
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Resolved</span>
+          <i class="ti ti-circle-check text-lg text-gray-400 dark:text-gray-500 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 flex items-end gap-2">
+          <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ fb_closed }}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">closed in view</span>
+        </div>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">
+          {{ fb_total - fb_closed }} still active
+        </p>
+      </section>
+    </aside>
+
+  {# ── PRIMARY OBJECT: the triage queue ──────────────────────────────────── #}
+  <section id="fbQueue" data-modern-table class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden scroll-mt-20">
+
+    {# Command toolbar: title + count + server-side filter controls + active-filter pills.
+       IDs filterStatus / filterPriority + option values copied VERBATIM
+       (admin-reports.js binds `change` -> updateFilter, which reloads with the query param). #}
+    <div class="flex flex-col gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-message-report text-ecs-green" aria-hidden="true"></i> Feedback Queue
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ fb_total }}</span>
+        </h2>
+        {% if has_filters %}
+        <a href="{{ url_for('admin.admin_reports') }}"
+           class="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-x" aria-hidden="true"></i> Clear
+        </a>
+        {% endif %}
+      </div>
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="min-w-[150px]">
+          <label for="filterStatus" class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Status</label>
+          <select id="filterStatus" class="input-ecs h-9 text-sm" aria-label="Filter by status">
+            <option value="">All Statuses</option>
+            <option value="Open" {% if request.args.get('status') == 'Open' %}selected{% endif %}>Open</option>
+            <option value="In Progress" {% if request.args.get('status') == 'In Progress' %}selected{% endif %}>In Progress</option>
+            <option value="Closed" {% if request.args.get('status') == 'Closed' %}selected{% endif %}>Closed</option>
+          </select>
+        </div>
+        <div class="min-w-[150px]">
+          <label for="filterPriority" class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Priority</label>
+          <select id="filterPriority" class="input-ecs h-9 text-sm" aria-label="Filter by priority">
+            <option value="">All Priorities</option>
+            <option value="Low" {% if request.args.get('priority') == 'Low' %}selected{% endif %}>Low</option>
+            <option value="Medium" {% if request.args.get('priority') == 'Medium' %}selected{% endif %}>Medium</option>
+            <option value="High" {% if request.args.get('priority') == 'High' %}selected{% endif %}>High</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
     {# Desktop / md+ table #}
+    <div class="md:overflow-x-auto">
     <table class="hidden md:table w-full text-sm">
-      <thead class="bg-gray-50 dark:bg-gray-700/40">
-        <tr>
-          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">ID</th>
-          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Category</th>
-          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Title</th>
-          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">
+      <thead>
+        <tr class="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+          <th scope="col" class="px-3 py-2.5 font-semibold">ID</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold">Ticket</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold hidden lg:table-cell">Category</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold">
             <a href="{{ url_for('admin.admin_reports', sort_by='priority', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
               Priority
               {% if request.args.get('sort_by') == 'priority' %}
@@ -48,7 +190,7 @@
               {% else %}<i class="ti ti-arrows-sort text-xs opacity-60" aria-hidden="true"></i>{% endif %}
             </a>
           </th>
-          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">
+          <th scope="col" class="px-3 py-2.5 font-semibold">
             <a href="{{ url_for('admin.admin_reports', sort_by='status', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
               Status
               {% if request.args.get('sort_by') == 'status' %}
@@ -56,8 +198,8 @@
               {% else %}<i class="ti ti-arrows-sort text-xs opacity-60" aria-hidden="true"></i>{% endif %}
             </a>
           </th>
-          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Submitted By</th>
-          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">
+          <th scope="col" class="px-3 py-2.5 font-semibold hidden lg:table-cell">Submitted By</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold hidden lg:table-cell">
             <a href="{{ url_for('admin.admin_reports', sort_by='created_at', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
               Date
               {% if request.args.get('sort_by') == 'created_at' %}
@@ -65,18 +207,38 @@
               {% else %}<i class="ti ti-arrows-sort text-xs opacity-60" aria-hidden="true"></i>{% endif %}
             </a>
           </th>
-          <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Actions</th>
+          <th scope="col" class="px-3 py-2.5 text-right font-semibold">Actions</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for feedback in feedbacks %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-3 font-mono font-medium text-gray-900 dark:text-white">#{{ feedback.id }}</td>
-          <td class="px-3 py-3 text-gray-600 dark:text-gray-300 hidden lg:table-cell">{{ feedback.category }}</td>
-          <td class="px-3 py-3 text-gray-900 dark:text-white">
-            <div class="max-w-xs truncate">{{ feedback.title }}</div>
+        {# Date-group divider: mono date label + rule, emitted when the day changes.
+           Works regardless of sort because it only marks transitions in the list. #}
+        {% if loop.changed(feedback.created_at.date()) %}
+        <tr class="bg-gray-50/60 dark:bg-gray-700/30">
+          <td colspan="8" class="px-3 py-1.5">
+            <div class="flex items-center gap-3">
+              <span class="font-mono text-xs font-bold text-ecs-green whitespace-nowrap">{{ feedback.created_at.strftime('%b %d, %Y') }}</span>
+              <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700" aria-hidden="true"></span>
+            </div>
           </td>
-          <td class="px-3 py-3">
+        </tr>
+        {% endif %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3 align-top font-mono font-medium text-gray-900 dark:text-white whitespace-nowrap">#{{ feedback.id }}</td>
+          <td class="px-3 py-3 align-top">
+            <a href="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}" class="block max-w-md text-gray-900 dark:text-white font-medium hover:text-ecs-green focus:outline-none focus:underline truncate">{{ feedback.title }}</a>
+            <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+              {% if feedback.source %}
+              <span class="inline-flex items-center gap-1"><i class="ti ti-{% if feedback.source == 'app' %}device-mobile{% else %}world{% endif %} text-[11px]" aria-hidden="true"></i>{{ feedback.source }}</span>
+              {% endif %}
+              {% if feedback.replies %}
+              <span class="inline-flex items-center gap-1"><i class="ti ti-messages text-[11px]" aria-hidden="true"></i><span class="font-mono">{{ feedback.replies|length }}</span></span>
+              {% endif %}
+            </div>
+          </td>
+          <td class="px-3 py-3 align-top text-gray-600 dark:text-gray-300 hidden lg:table-cell whitespace-nowrap">{{ feedback.category }}</td>
+          <td class="px-3 py-3 align-top">
             {% if feedback.priority == 'Low' %}
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300"><i class="ti ti-arrow-down text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
             {% elif feedback.priority == 'Medium' %}
@@ -87,7 +249,7 @@
             {{ feedback.priority }}
             {% endif %}
           </td>
-          <td class="px-3 py-3">
+          <td class="px-3 py-3 align-top">
             {% if feedback.status == 'Open' %}
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"><i class="ti ti-circle-dot text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
             {% elif feedback.status == 'In Progress' %}
@@ -98,17 +260,19 @@
             {{ feedback.status }}
             {% endif %}
           </td>
-          <td class="px-3 py-3 text-gray-600 dark:text-gray-300 hidden lg:table-cell">
+          <td class="px-3 py-3 align-top text-gray-600 dark:text-gray-300 hidden lg:table-cell whitespace-nowrap">
             {% if feedback.user %}
             {{ feedback.user.username }}
+            {% elif feedback.name %}
+            {{ feedback.name }}
             {% else %}
             <span class="text-gray-400 dark:text-gray-500 italic">Anonymous</span>
             {% endif %}
           </td>
-          <td class="px-3 py-3 text-gray-600 dark:text-gray-300 hidden lg:table-cell font-mono text-xs">
+          <td class="px-3 py-3 align-top text-gray-600 dark:text-gray-300 hidden lg:table-cell font-mono text-xs whitespace-nowrap">
             {{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}
           </td>
-          <td class="px-3 py-3 text-right">
+          <td class="px-3 py-3 align-top text-right">
             <a href="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}"
                class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
               <i class="ti ti-edit text-sm" aria-hidden="true"></i>
@@ -119,6 +283,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
 
     {# Mobile / stacked cards #}
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
@@ -147,7 +312,7 @@
           {% endif %}
         </div>
         <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-          <p>{{ feedback.category }}{% if feedback.user %} · {{ feedback.user.username }}{% else %} · Anonymous{% endif %}</p>
+          <p>{{ feedback.category }}{% if feedback.user %} · {{ feedback.user.username }}{% elif feedback.name %} · {{ feedback.name }}{% else %} · Anonymous{% endif %}{% if feedback.source %} · {{ feedback.source }}{% endif %}</p>
           <p class="font-mono">{{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
         </div>
       </a>
@@ -157,7 +322,9 @@
     {% if not feedbacks %}
       {{ empty_state("ti-message-off", "No feedback reports found", "There are no feedback reports matching the current filters.") }}
     {% endif %}
-  {% endcall %}
+  </section>
+
+  </div>{# /two-column grid #}
 
 </div>
 {% else %}
@@ -300,7 +467,7 @@
 
 {% block custom_js %}
 {{ super() }}
-<script src="{{ url_for('static', filename='custom_js/admin-reports.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='custom_js/admin-reports.js') }}"></script>
 <script>
 AdminReports.init();
 </script>

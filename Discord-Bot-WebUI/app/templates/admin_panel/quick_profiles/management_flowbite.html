@@ -16,210 +16,418 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state as kit_empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state as kit_empty_state %}
 
-{% call page_header("Quick Profiles", subtitle="Tryout player management") %}
+{# --- Real-data derivations (no fabrication): pull from the same `profiles` list the route provides. --- #}
+{% set total_profiles = stats.pending + stats.claimed + stats.linked + stats.expired %}
+{% set settled = stats.claimed + stats.linked %}
+{% set pending_profiles = profiles | selectattr('status', 'equalto', 'pending') | list %}
+{# Soonest-to-expire OUTSTANDING code: pure ordering over real expires_at, no "now" needed. #}
+{% set next_expiring = (pending_profiles | sort(attribute='expires_at') | first) if pending_profiles else none %}
+
+{% call page_header("Quick Profiles", subtitle="Tryout claim-code lifecycle") %}
   <button type="button" id="create-profile-btn"
           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
     <i class="ti ti-plus" aria-hidden="true"></i><span>Create Quick Profile</span>
   </button>
 {% endcall %}
 
-<div class="space-y-5 sm:space-y-6">
-  {# KPI band #}
-  <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    {{ stat_card("ti-clock", "Pending", stats.pending, tone='warning') }}
-    {{ stat_card("ti-user-check", "Claimed", stats.claimed, tone='success') }}
-    {{ stat_card("ti-link", "Linked", stats.linked, tone='info') }}
-    {{ stat_card("ti-clock-x", "Expired", stats.expired, tone='danger') }}
-  </div>
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6 items-start">
 
-  {# Profiles table #}
-  {% call data_table("Profiles", icon="ti-id-badge-2", count=profiles|length, filters=false) %}
-    {# Filter bar — preserves status-filter + search-input JS hooks verbatim #}
-    <div class="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-      <select id="status-filter"
-              class="h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
-        <option value="" {% if not status_filter %}selected{% endif %}>All Statuses</option>
-        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
-        <option value="claimed" {% if status_filter == 'claimed' %}selected{% endif %}>Claimed</option>
-        <option value="linked" {% if status_filter == 'linked' %}selected{% endif %}>Linked</option>
-        <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>Expired</option>
-      </select>
-      <div class="relative flex-1 min-w-[180px]">
-        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
-        <input type="text" id="search-input" placeholder="Search by name..." value="{{ search }}"
-               class="w-full h-9 pl-9 pr-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green"
-               aria-label="Search by name">
-      </div>
-    </div>
+  {# ============ LEFT: primary object — the codes table (2 cols) ============ #}
+  <div class="xl:col-span-2 space-y-5 sm:space-y-6">
 
-    {% if profiles %}
-    {# md+ table #}
-    <table class="hidden md:table w-full text-sm text-left">
-      <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-        <tr>
-          {{ data_table_th("Photo", sortable=false) }}
-          {{ data_table_th("Name", sortable=false) }}
-          {{ data_table_th("Claim Code", sortable=false) }}
-          {{ data_table_th("Status", sortable=false) }}
-          {{ data_table_th("Expires", sortable=false, hide='sm') }}
-          {{ data_table_th("Created", sortable=false, hide='sm') }}
-          {{ data_table_th("Actions", sortable=false, align='right') }}
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for profile in profiles %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-          <td class="px-3 py-3">
-            {% if profile.profile_picture_url %}
-            <img src="{{ profile.profile_picture_url }}" alt="{{ profile.player_name }}"
-                 class="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600">
-            {% else %}
-            <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
-              <i class="ti ti-user text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
-            </div>
-            {% endif %}
-          </td>
-          <td class="px-3 py-3">
-            <div class="font-semibold text-gray-900 dark:text-white">{{ profile.player_name }}</div>
-            {% if profile.notes %}
-            <div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">{{ profile.notes }}</div>
-            {% endif %}
-          </td>
-          <td class="px-3 py-3">
-            <code class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-base font-mono font-bold tracking-wider text-gray-900 dark:text-white">
-              {{ profile.claim_code }}
-            </code>
-            <button type="button" onclick="copyCode('{{ profile.claim_code }}')" title="Copy code"
-                    class="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded"
-                    aria-label="Copy claim code">
-              <i class="ti ti-copy" aria-hidden="true"></i>
-            </button>
-          </td>
-          <td class="px-3 py-3">
-            {% if profile.status == 'pending' %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
-              <i class="ti ti-clock mr-1" aria-hidden="true"></i>Pending
-            </span>
-            {% elif profile.status == 'claimed' %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
-              <i class="ti ti-check mr-1" aria-hidden="true"></i>Claimed
-            </span>
-            {% elif profile.status == 'linked' %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">
-              <i class="ti ti-link mr-1" aria-hidden="true"></i>Linked
-            </span>
-            {% else %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300">
-              <i class="ti ti-clock-x mr-1" aria-hidden="true"></i>Expired
-            </span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono hidden md:table-cell">
-            {{ profile.expires_at.strftime('%b %d, %Y') }}
-          </td>
-          <td class="px-3 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono hidden md:table-cell">
-            {{ profile.created_at.strftime('%b %d, %Y') }}
-          </td>
-          <td class="px-3 py-3 text-right">
-            <div class="flex items-center justify-end gap-2">
-              {% if profile.status == 'pending' %}
-              <button type="button" onclick="openLinkModal({{ profile.id }}, '{{ profile.player_name }}')"
-                      class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                      title="Link to player" aria-label="Link to player">
-                <i class="ti ti-link" aria-hidden="true"></i>
-              </button>
-              <button type="button" onclick="deleteProfile({{ profile.id }}, '{{ profile.player_name }}')"
-                      class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                      title="Delete profile" aria-label="Delete profile">
-                <i class="ti ti-trash" aria-hidden="true"></i>
-              </button>
-              {% else %}
-              <button type="button" onclick="viewProfile({{ profile.id }})"
-                      class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                      title="View details" aria-label="View details">
-                <i class="ti ti-eye" aria-hidden="true"></i>
-              </button>
-              {% endif %}
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    {# Mobile stacked cards #}
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-      {% for profile in profiles %}
-      <div class="px-4 py-3.5">
-        <div class="flex items-start gap-3">
-          {% if profile.profile_picture_url %}
-          <img src="{{ profile.profile_picture_url }}" alt="{{ profile.player_name }}"
-               class="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600 shrink-0">
-          {% else %}
-          <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center shrink-0">
-            <i class="ti ti-user text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
-          </div>
-          {% endif %}
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ profile.player_name }}</span>
-              {% if profile.status == 'pending' %}
-              <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock mr-1" aria-hidden="true"></i>Pending</span>
-              {% elif profile.status == 'claimed' %}
-              <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check mr-1" aria-hidden="true"></i>Claimed</span>
-              {% elif profile.status == 'linked' %}
-              <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300"><i class="ti ti-link mr-1" aria-hidden="true"></i>Linked</span>
-              {% else %}
-              <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"><i class="ti ti-clock-x mr-1" aria-hidden="true"></i>Expired</span>
-              {% endif %}
-            </div>
-            {% if profile.notes %}
-            <div class="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{{ profile.notes }}</div>
-            {% endif %}
-            <div class="flex items-center gap-2 mt-1.5">
-              <code class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono font-bold tracking-wider text-gray-900 dark:text-white">{{ profile.claim_code }}</code>
-              <button type="button" onclick="copyCode('{{ profile.claim_code }}')" title="Copy code"
-                      class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded" aria-label="Copy claim code">
-                <i class="ti ti-copy" aria-hidden="true"></i>
-              </button>
-            </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">
-              Expires {{ profile.expires_at.strftime('%b %d, %Y') }} · Created {{ profile.created_at.strftime('%b %d, %Y') }}
-            </div>
-            <div class="flex items-center gap-2 mt-2">
-              {% if profile.status == 'pending' %}
-              <button type="button" onclick="openLinkModal({{ profile.id }}, '{{ profile.player_name }}')"
-                      class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <i class="ti ti-link" aria-hidden="true"></i>Link
-              </button>
-              <button type="button" onclick="deleteProfile({{ profile.id }}, '{{ profile.player_name }}')"
-                      class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <i class="ti ti-trash" aria-hidden="true"></i>Delete
-              </button>
-              {% else %}
-              <button type="button" onclick="viewProfile({{ profile.id }})"
-                      class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <i class="ti ti-eye" aria-hidden="true"></i>View
-              </button>
-              {% endif %}
-            </div>
-          </div>
+    {# Lifecycle KPI band — one figure per state, divider footer carries share-of-total. #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {% set kpis = [
+        ('ti-clock',      'Pending', stats.pending, 'text-amber-600 dark:text-amber-400', 'Awaiting claim'),
+        ('ti-user-check', 'Claimed', stats.claimed, 'text-green-600 dark:text-green-400', 'Self-claimed'),
+        ('ti-link',       'Linked',  stats.linked,  'text-blue-600 dark:text-blue-400',   'Admin-linked'),
+        ('ti-clock-x',    'Expired', stats.expired, 'text-red-600 dark:text-red-400',     'Lapsed')
+      ] %}
+      {% for icon, label, value, tone, foot in kpis %}
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">{{ label }}</span>
+          <i class="ti {{ icon }} text-lg {{ tone }} shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none {{ tone }}">{{ value }}</div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+          <span class="truncate">{{ foot }}</span>
+          <span class="font-mono shrink-0 ml-2">{{ ((value / total_profiles * 100) | round | int) if total_profiles else 0 }}%</span>
         </div>
       </div>
       {% endfor %}
     </div>
-    {% else %}
-    {{ kit_empty_state("ti-user-plus", "No Quick Profiles", "Create a quick profile for tryout players.") }}
-    <div class="px-4 pb-6 -mt-4 flex justify-center">
-      <button type="button" id="create-profile-btn-empty"
-              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-plus" aria-hidden="true"></i><span>Create Quick Profile</span>
-      </button>
-    </div>
+
+    {# Codes table — real <table> w/ mono claim codes; the page's tabular primary object. #}
+    <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      {# Command toolbar — title + count, then filter/search (status-filter + search-input hooks verbatim). #}
+      <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-id-badge-2 text-ecs-green" aria-hidden="true"></i> Claim Codes
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ profiles|length }}</span>
+        </h2>
+        {% if status_filter or search %}
+        <a href="{{ url_for('admin_panel.quick_profiles_management') }}"
+           class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green rounded px-2 py-1">
+          <i class="ti ti-x" aria-hidden="true"></i>Clear filters
+        </a>
+        {% endif %}
+      </div>
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div class="relative flex-1 min-w-[180px]">
+          <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+          <input type="text" id="search-input" placeholder="Search by name..." value="{{ search }}"
+                 class="w-full h-9 pl-9 pr-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green"
+                 aria-label="Search by name">
+        </div>
+        <select id="status-filter"
+                class="h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green sm:w-44">
+          <option value="" {% if not status_filter %}selected{% endif %}>All Statuses</option>
+          <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+          <option value="claimed" {% if status_filter == 'claimed' %}selected{% endif %}>Claimed</option>
+          <option value="linked" {% if status_filter == 'linked' %}selected{% endif %}>Linked</option>
+          <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>Expired</option>
+        </select>
+      </div>
+
+      {% if profiles %}
+      {# md+ real table — claim CODE is the lead column (mono, prominent), it's the object admins hand out. #}
+      <div class="md:overflow-x-auto">
+        <table class="hidden md:table w-full text-sm text-left">
+          <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+            <tr>
+              <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Code</th>
+              <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Player</th>
+              <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+              <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell text-right">Expires</th>
+              <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell text-right">Created</th>
+              <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for profile in profiles %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+              {# CODE cell — big mono with inline copy, the row's anchor. #}
+              <td class="px-3 py-3 whitespace-nowrap">
+                <div class="flex items-center gap-1.5">
+                  <code class="font-mono text-base font-bold tracking-[0.2em] text-gray-900 dark:text-white">{{ profile.claim_code }}</code>
+                  <button type="button" onclick="copyCode('{{ profile.claim_code }}')" title="Copy code"
+                          class="p-1.5 inline-flex items-center justify-center text-gray-400 hover:text-ecs-green dark:hover:text-ecs-green rounded focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          aria-label="Copy claim code">
+                    <i class="ti ti-copy text-sm" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </td>
+              {# PLAYER cell — avatar + name + notes. #}
+              <td class="px-3 py-3">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  {% if profile.profile_picture_url %}
+                  <img src="{{ profile.profile_picture_url }}" alt="{{ profile.player_name }}"
+                       class="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-gray-600 shrink-0">
+                  {% else %}
+                  <div class="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center shrink-0">
+                    <i class="ti ti-user text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                  </div>
+                  {% endif %}
+                  <div class="min-w-0">
+                    <div class="font-semibold text-gray-900 dark:text-white truncate max-w-[220px]">{{ profile.player_name }}</div>
+                    {# Settled rows: who received the data (real claimed_by_player relationship). #}
+                    {% if profile.status in ['claimed', 'linked'] and profile.claimed_by_player %}
+                    <div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[220px] flex items-center gap-1">
+                      <i class="ti ti-arrow-right text-[10px]" aria-hidden="true"></i>{{ profile.claimed_by_player.name }}
+                    </div>
+                    {% elif profile.notes %}
+                    <div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[220px]">{{ profile.notes }}</div>
+                    {% endif %}
+                    {# Real meta chips — jersey / pronouns / deliverable channels. Only render what exists. #}
+                    {% if profile.jersey_number or profile.pronouns or profile.email or profile.phone_number %}
+                    <div class="flex flex-wrap items-center gap-1 mt-1">
+                      {% if profile.jersey_number %}
+                      <span class="inline-flex items-center gap-0.5 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ profile.jersey_number }}{% if profile.jersey_size %} · {{ profile.jersey_size }}{% endif %}</span>
+                      {% elif profile.jersey_size %}
+                      <span class="inline-flex items-center gap-0.5 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ profile.jersey_size }}</span>
+                      {% endif %}
+                      {% if profile.pronouns %}
+                      <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ profile.pronouns }}</span>
+                      {% endif %}
+                      {% if profile.email %}
+                      <span class="inline-flex items-center text-gray-400 dark:text-gray-500" title="Email on file"><i class="ti ti-mail text-xs" aria-hidden="true"></i><span class="sr-only">Email on file</span></span>
+                      {% endif %}
+                      {% if profile.phone_number %}
+                      <span class="inline-flex items-center text-gray-400 dark:text-gray-500" title="SMS on file"><i class="ti ti-device-mobile text-xs" aria-hidden="true"></i><span class="sr-only">SMS on file</span></span>
+                      {% endif %}
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              {# STATUS pill — icon + text, never color-only. #}
+              <td class="px-3 py-3 whitespace-nowrap">
+                {% if profile.status == 'pending' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+                  <i class="ti ti-clock mr-1" aria-hidden="true"></i>Pending
+                </span>
+                {% elif profile.status == 'claimed' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+                  <i class="ti ti-check mr-1" aria-hidden="true"></i>Claimed
+                </span>
+                {% elif profile.status == 'linked' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">
+                  <i class="ti ti-link mr-1" aria-hidden="true"></i>Linked
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300">
+                  <i class="ti ti-clock-x mr-1" aria-hidden="true"></i>Expired
+                </span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono hidden lg:table-cell text-right whitespace-nowrap">
+                {{ profile.expires_at.strftime('%b %d, %Y') }}
+              </td>
+              <td class="px-3 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono hidden lg:table-cell text-right whitespace-nowrap">
+                {{ profile.created_at.strftime('%b %d, %Y') }}
+              </td>
+              <td class="px-3 py-3 text-right whitespace-nowrap">
+                <div class="flex items-center justify-end gap-1">
+                  {% if profile.status == 'pending' %}
+                  <button type="button" onclick="openLinkModal({{ profile.id }}, '{{ profile.player_name }}')"
+                          class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          title="Link to player" aria-label="Link to player">
+                    <i class="ti ti-link" aria-hidden="true"></i>
+                  </button>
+                  <button type="button" onclick="deleteProfile({{ profile.id }}, '{{ profile.player_name }}')"
+                          class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          title="Delete profile" aria-label="Delete profile">
+                    <i class="ti ti-trash" aria-hidden="true"></i>
+                  </button>
+                  {% else %}
+                  <button type="button" onclick="viewProfile({{ profile.id }})"
+                          class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          title="View details" aria-label="View details">
+                    <i class="ti ti-eye" aria-hidden="true"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {# Mobile stacked rows — code leads, dense meta. #}
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for profile in profiles %}
+        <div class="px-4 py-3.5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <code class="font-mono text-base font-bold tracking-[0.18em] text-gray-900 dark:text-white">{{ profile.claim_code }}</code>
+              <button type="button" onclick="copyCode('{{ profile.claim_code }}')" title="Copy code"
+                      class="p-1.5 inline-flex items-center justify-center text-gray-400 hover:text-ecs-green rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Copy claim code">
+                <i class="ti ti-copy text-sm" aria-hidden="true"></i>
+              </button>
+            </div>
+            {% if profile.status == 'pending' %}
+            <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock mr-1" aria-hidden="true"></i>Pending</span>
+            {% elif profile.status == 'claimed' %}
+            <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check mr-1" aria-hidden="true"></i>Claimed</span>
+            {% elif profile.status == 'linked' %}
+            <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300"><i class="ti ti-link mr-1" aria-hidden="true"></i>Linked</span>
+            {% else %}
+            <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"><i class="ti ti-clock-x mr-1" aria-hidden="true"></i>Expired</span>
+            {% endif %}
+          </div>
+          <div class="flex items-start gap-2.5 mt-2">
+            {% if profile.profile_picture_url %}
+            <img src="{{ profile.profile_picture_url }}" alt="{{ profile.player_name }}"
+                 class="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-gray-600 shrink-0">
+            {% else %}
+            <div class="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center shrink-0">
+              <i class="ti ti-user text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+            </div>
+            {% endif %}
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ profile.player_name }}</div>
+              {% if profile.status in ['claimed', 'linked'] and profile.claimed_by_player %}
+              <div class="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5 flex items-center gap-1">
+                <i class="ti ti-arrow-right text-[10px]" aria-hidden="true"></i>{{ profile.claimed_by_player.name }}
+              </div>
+              {% elif profile.notes %}
+              <div class="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{{ profile.notes }}</div>
+              {% endif %}
+              {% if profile.jersey_number or profile.pronouns or profile.email or profile.phone_number %}
+              <div class="flex flex-wrap items-center gap-1 mt-1">
+                {% if profile.jersey_number %}
+                <span class="inline-flex items-center gap-0.5 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ profile.jersey_number }}{% if profile.jersey_size %} · {{ profile.jersey_size }}{% endif %}</span>
+                {% elif profile.jersey_size %}
+                <span class="inline-flex items-center gap-0.5 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ profile.jersey_size }}</span>
+                {% endif %}
+                {% if profile.pronouns %}
+                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ profile.pronouns }}</span>
+                {% endif %}
+                {% if profile.email %}
+                <span class="inline-flex items-center text-gray-400 dark:text-gray-500" title="Email on file"><i class="ti ti-mail text-xs" aria-hidden="true"></i><span class="sr-only">Email on file</span></span>
+                {% endif %}
+                {% if profile.phone_number %}
+                <span class="inline-flex items-center text-gray-400 dark:text-gray-500" title="SMS on file"><i class="ti ti-device-mobile text-xs" aria-hidden="true"></i><span class="sr-only">SMS on file</span></span>
+                {% endif %}
+              </div>
+              {% endif %}
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">
+                Expires {{ profile.expires_at.strftime('%b %d, %Y') }} · Created {{ profile.created_at.strftime('%b %d, %Y') }}
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 mt-2.5">
+            {% if profile.status == 'pending' %}
+            <button type="button" onclick="openLinkModal({{ profile.id }}, '{{ profile.player_name }}')"
+                    class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-link" aria-hidden="true"></i>Link
+            </button>
+            <button type="button" onclick="deleteProfile({{ profile.id }}, '{{ profile.player_name }}')"
+                    class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-trash" aria-hidden="true"></i>Delete
+            </button>
+            {% else %}
+            <button type="button" onclick="viewProfile({{ profile.id }})"
+                    class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-eye" aria-hidden="true"></i>View
+            </button>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      {{ kit_empty_state("ti-user-plus", ("No matching profiles" if (status_filter or search) else "No Quick Profiles"), ("Try clearing the filter or search." if (status_filter or search) else "Create a quick profile for a walk-in tryout player.")) }}
+      {% if not (status_filter or search) %}
+      <div class="px-4 pb-6 -mt-4 flex justify-center">
+        <button type="button" id="create-profile-btn-empty"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-plus" aria-hidden="true"></i><span>Create Quick Profile</span>
+        </button>
+      </div>
+      {% endif %}
+      {% endif %}
+    </section>
+  </div>
+
+  {# ============ RIGHT: rail — workflow primer + outstanding-code spotlight ============ #}
+  <div class="space-y-5 sm:space-y-6">
+
+    {# Lifecycle composition — big outstanding figure + a real segmented bar across every state.
+       Segment widths are pure proportions of real stats (total > 0 guarded); legend mirrors KPI tones. #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <i class="ti ti-chart-donut text-ecs-green" aria-hidden="true"></i>
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Lifecycle</h3>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-baseline gap-2">
+          <span class="font-mono text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ stats.pending }}</span>
+          <span class="text-sm text-gray-500 dark:text-gray-400">code{{ '' if stats.pending == 1 else 's' }} outstanding</span>
+        </div>
+
+        {# Segmented composition bar — one strip, proportional fills, never color-only (legend below). #}
+        {% set segs = [
+          ('Pending', stats.pending, 'bg-amber-500 dark:bg-amber-400', 'text-amber-600 dark:text-amber-400'),
+          ('Claimed', stats.claimed, 'bg-green-500 dark:bg-green-400', 'text-green-600 dark:text-green-400'),
+          ('Linked',  stats.linked,  'bg-blue-500 dark:bg-blue-400',   'text-blue-600 dark:text-blue-400'),
+          ('Expired', stats.expired, 'bg-red-500 dark:bg-red-400',     'text-red-600 dark:text-red-400')
+        ] %}
+        <div class="mt-4 flex h-2.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700" role="img"
+             aria-label="Lifecycle composition: {{ stats.pending }} pending, {{ stats.claimed }} claimed, {{ stats.linked }} linked, {{ stats.expired }} expired">
+          {% for label, value, bar, _ in segs %}
+          {% if value %}
+          <div class="h-full {{ bar }}" style="width: {{ (value / total_profiles * 100) if total_profiles else 0 }}%"></div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+          {% for label, value, bar, tone in segs %}
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="w-2 h-2 rounded-full {{ bar }} shrink-0" aria-hidden="true"></span>
+            <span class="text-gray-500 dark:text-gray-400 truncate">{{ label }}</span>
+            <span class="font-mono font-semibold ml-auto {{ tone }}">{{ value }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs">
+          <span class="text-gray-500 dark:text-gray-400 uppercase tracking-wide">Settled</span>
+          <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ settled }}<span class="text-gray-400 dark:text-gray-500 font-normal"> / {{ total_profiles }}</span></span>
+        </div>
+      </div>
+    </section>
+
+    {# Next-to-expire spotlight — derived from real pending list (soonest expires_at). Omitted when none. #}
+    {% if next_expiring %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <i class="ti ti-hourglass-low text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Expiring Soonest</h3>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center gap-3">
+          {% if next_expiring.profile_picture_url %}
+          <img src="{{ next_expiring.profile_picture_url }}" alt="{{ next_expiring.player_name }}"
+               class="w-11 h-11 rounded-full object-cover border border-gray-200 dark:border-gray-600 shrink-0">
+          {% else %}
+          <div class="w-11 h-11 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center shrink-0">
+            <i class="ti ti-user text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+          </div>
+          {% endif %}
+          <div class="min-w-0">
+            <div class="font-semibold text-gray-900 dark:text-white truncate">{{ next_expiring.player_name }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">Expires {{ next_expiring.expires_at.strftime('%b %d, %Y') }}</div>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center gap-1.5">
+          <code class="flex-1 text-center font-mono text-xl font-bold tracking-[0.25em] text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 rounded-lg py-2">{{ next_expiring.claim_code }}</code>
+          <button type="button" onclick="copyCode('{{ next_expiring.claim_code }}')" title="Copy code"
+                  class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-ecs-green rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  aria-label="Copy claim code">
+            <i class="ti ti-copy" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+          <button type="button" onclick="openLinkModal({{ next_expiring.id }}, '{{ next_expiring.player_name }}')"
+                  class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-link" aria-hidden="true"></i>Link Now
+          </button>
+        </div>
+      </div>
+    </section>
     {% endif %}
-  {% endcall %}
+
+    {# How-it-works primer — static workflow copy (no data), helps admins handing out codes. #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <i class="ti ti-list-check text-ecs-green" aria-hidden="true"></i>
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">How Claim Codes Work</h3>
+      </div>
+      <ol class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% set steps = [
+          ('ti-camera', 'Capture the player', 'Create a profile with name + photo for a walk-in tryout.'),
+          ('ti-ticket', 'Hand out the code', 'Share the 6-character code — or send it by email / SMS.'),
+          ('ti-brand-discord', 'Player claims it', 'They enter the code during Discord registration at ecsfc.com.'),
+          ('ti-link', 'Or link manually', 'Match a pending code to an existing player yourself.')
+        ] %}
+        {% for icon, head, body in steps %}
+        <li class="flex items-start gap-3 px-4 py-3">
+          <span class="shrink-0 w-7 h-7 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center mt-0.5">
+            <i class="ti {{ icon }} text-sm" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ loop.index }}. {{ head }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ body }}</div>
+          </div>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+  </div>
 </div>
 {% else %}
 <!-- Stats Cards -->

@@ -52,7 +52,7 @@ export function initTour() {
 
     const tourVar = new window.Shepherd.Tour({
         defaultStepOptions: {
-            scrollTo: true,
+            scrollTo: { behavior: 'smooth', block: 'center' },
             cancelIcon: {
                 enabled: true
             }
@@ -60,83 +60,37 @@ export function initTour() {
         useModalOverlay: true
     });
 
-    tourVar.addStep({
-        title: 'Welcome',
-        text: "Glad you're here! This tour will guide you through the main features of the site.",
-        attachTo: { element: '.navbar', on: 'bottom' },
-        buttons: [
-            { text: 'Next', action: tourVar.next },
-            { text: 'Skip', action: createSkipAction(tourVar) }
-        ]
-    });
+    // Candidate steps for the modern dashboard. `element: null` => a centered
+    // intro card (no anchor). Every other step is anchored to a real element via
+    // a stable `data-tour` hook (or an existing id). Steps whose target is not on
+    // the current page are skipped, so the tour never attaches to a missing
+    // element and floats scrambled in the middle of the screen.
+    const candidateSteps = [
+        { title: 'Welcome', text: "Glad you're here! Here's a quick tour of your dashboard.", element: null },
+        { title: 'Your Teams', text: 'Your current teams show up here.', element: '[data-tour="teams"]', on: 'bottom' },
+        { title: 'Your Next Match', text: "Your next match — RSVP right here so your coach knows you're coming.", element: '[data-tour="next-match"]', on: 'bottom' },
+        { title: 'Announcements', text: 'League announcements show up here.', element: '#announcementsCarousel', on: 'bottom' },
+        { title: 'Upcoming Matches', text: 'All your upcoming matches, with RSVP and details.', element: '[data-tour="matches"]', on: 'top' }
+    ];
 
-    tourVar.addStep({
-        title: 'User Profile',
-        text: 'Click here to view your profile, edit settings, or logout.',
-        attachTo: { element: '.nav-item.dropdown-user', on: 'bottom' },
-        buttons: [
-            { text: 'Next', action: tourVar.next },
-            { text: 'Skip', action: createSkipAction(tourVar) }
-        ]
-    });
+    const steps = candidateSteps.filter(s => s.element === null || document.querySelector(s.element));
 
-    tourVar.addStep({
-        title: 'Announcements!',
-        text: 'You can see new announcements here.',
-        attachTo: { element: '#announcementsCarousel', on: 'top' },
-        buttons: [
-            { text: 'Next', action: tourVar.next },
-            { text: 'Skip', action: createSkipAction(tourVar) }
-        ]
-    });
-
-    tourVar.addStep({
-        title: 'Profile',
-        text: 'You can view and update your profile here.',
-        attachTo: { element: '#playerProfile', on: 'top' },
-        buttons: [
-            { text: 'Next', action: tourVar.next },
-            { text: 'Skip', action: createSkipAction(tourVar) }
-        ]
-    });
-
-    tourVar.addStep({
-        title: 'Team Page',
-        text: 'You can find your teammates here.',
-        attachTo: { element: '#teamOverview', on: 'top' },
-        buttons: [
-            { text: 'Next', action: tourVar.next },
-            { text: 'Skip', action: createSkipAction(tourVar) }
-        ]
-    });
-
-    tourVar.addStep({
-        title: 'Matches',
-        text: 'You can view and RSVP to your upcoming matches here.',
-        attachTo: { element: '#matchOverview', on: 'top' },
-        buttons: [
-            { text: 'Next', action: tourVar.next },
-            { text: 'Skip', action: createSkipAction(tourVar) }
-        ]
-    });
-
-    tourVar.addStep({
-        title: 'Feedback',
-        text: 'You can report bugs or give feedback here. We need your feedback to get better!',
-        attachTo: { element: 'a.feedback-link', on: 'top' },
-        buttons: [
-            { text: 'Next', action: tourVar.next },
-            { text: 'Skip', action: createSkipAction(tourVar) }
-        ]
-    });
-
-    tourVar.addStep({
-        title: 'Teams',
-        text: 'You can view other teams here.',
-        attachTo: { element: 'a.teams-link', on: 'bottom' },
-        buttons: [
-            { text: 'Finish', action: createSkipAction(tourVar) }
-        ]
+    steps.forEach((s, idx) => {
+        const isLast = idx === steps.length - 1;
+        const step = {
+            title: s.title,
+            text: s.text,
+            buttons: isLast
+                ? [{ text: 'Finish', action: createSkipAction(tourVar) }]
+                : [
+                    { text: 'Skip', action: createSkipAction(tourVar), secondary: true },
+                    { text: 'Next', action: tourVar.next }
+                  ]
+        };
+        if (s.element) {
+            step.attachTo = { element: s.element, on: s.on || 'bottom' };
+        }
+        tourVar.addStep(step);
     });
 
     // Start the tour if showTour is defined and truthy (set by template)

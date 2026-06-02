@@ -8,6 +8,8 @@
 {% set real_teams = league.teams|rejectattr('name', 'in', ['FUN WEEK', 'BYE', 'TST'])|list %}
 {% set placeholder_teams = league.teams|selectattr('name', 'in', ['FUN WEEK', 'BYE', 'TST'])|list %}
 {% set team_count = real_teams|length %}
+{% set field_list = config.get_field_list() if config else [] %}
+{% set practice_list = config.get_practice_weeks_list() if config else [] %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
   {% call kit.page_header(league.name ~ ' — Auto Schedule Overview', subtitle='Season: ' ~ league.season.name ~ ' (' ~ league.season.league_type ~ ')') %}
@@ -17,15 +19,101 @@
     </a>
   {% endcall %}
 
-  {# KPI band #}
+  {# ===== PRIMARY FEATURE CARD — the generator console: state pill + readiness + command toolbar ===== #}
+  <section class="rounded-xl border bg-white dark:bg-gray-800 overflow-hidden mb-5 sm:mb-6
+                  {% if existing_schedule %}border-red-300 dark:border-red-500/40{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+    {# header bar #}
+    <div class="flex items-center justify-between gap-3 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
+      <h2 class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">
+        <i class="ti ti-calendar-cog text-ecs-green" aria-hidden="true"></i> Schedule Generator
+      </h2>
+      {% if existing_schedule %}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">
+          <i class="ti ti-alert-octagon text-[12px]" aria-hidden="true"></i> Blocked
+        </span>
+      {% elif team_count < 2 %}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+          <i class="ti ti-alert-triangle-filled text-[12px]" aria-hidden="true"></i> Not Ready
+        </span>
+      {% elif config %}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+          <i class="ti ti-circle-check-filled text-[12px]" aria-hidden="true"></i> Configured
+        </span>
+      {% else %}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">
+          <i class="ti ti-info-circle-filled text-[12px]" aria-hidden="true"></i> Ready to Configure
+        </span>
+      {% endif %}
+    </div>
+
+    {# readiness line + BIG figure + command toolbar #}
+    <div class="p-4 sm:p-5 flex flex-col xl:flex-row xl:items-center gap-5 xl:gap-6">
+      <div class="flex items-end gap-4 shrink-0">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Eligible Teams</p>
+          <p class="mt-1 font-mono text-4xl sm:text-5xl font-bold leading-none {% if team_count >= 2 %}text-ecs-green{% else %}text-amber-600 dark:text-amber-400{% endif %}">{{ team_count }}</p>
+        </div>
+        <div class="pb-1">
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Projected Matches</p>
+          <p class="mt-1 font-mono text-4xl sm:text-5xl font-bold leading-none text-gray-900 dark:text-white">{{ team_count * (team_count - 1) if team_count >= 2 else 0 }}</p>
+        </div>
+      </div>
+
+      <div class="flex-1 min-w-0 text-sm">
+        {% if existing_schedule %}
+          <p class="font-semibold text-red-700 dark:text-red-400 flex items-center gap-1.5"><i class="ti ti-alert-octagon" aria-hidden="true"></i> Manual schedule already exists.</p>
+          <p class="mt-0.5 text-gray-500 dark:text-gray-400">The auto generator is blocked until the existing manual schedule is removed through the schedule manager.</p>
+        {% elif team_count < 2 %}
+          <p class="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Needs at least 2 teams.</p>
+          <p class="mt-0.5 text-gray-500 dark:text-gray-400">Add teams to this league before a round-robin schedule can be generated.</p>
+        {% elif config %}
+          <p class="font-semibold text-green-700 dark:text-green-400 flex items-center gap-1.5"><i class="ti ti-circle-check" aria-hidden="true"></i> Configuration on file — ready to regenerate.</p>
+          <p class="mt-0.5 text-gray-500 dark:text-gray-400">A double round-robin over <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ config.weeks_count }}</span> weeks across <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ field_list|length }}</span> field(s), kicking off <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ config.premier_start_time.strftime('%H:%M') }}</span> Premier / <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ config.classic_start_time.strftime('%H:%M') }}</span> Classic.</p>
+        {% else %}
+          <p class="font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-1.5"><i class="ti ti-info-circle" aria-hidden="true"></i> No conflicting manual schedule found.</p>
+          <p class="mt-0.5 text-gray-500 dark:text-gray-400">Configure start times, fields and week count, then generate a draft you can preview before committing.</p>
+        {% endif %}
+      </div>
+
+      {# command toolbar — ONE primary CTA leads #}
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        {% if team_count >= 2 %}
+        <a href="{{ url_for('auto_schedule.auto_schedule_config', league_id=league.id) }}"
+           class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+          <i class="ti ti-calendar" aria-hidden="true"></i>
+          {% if config %}Reconfigure &amp; Generate{% else %}Configure &amp; Generate{% endif %}
+        </a>
+        {% endif %}
+        {% if templates_count > 0 %}
+        <a href="{{ url_for('auto_schedule.preview_schedule', league_id=league.id) }}"
+           class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+          <i class="ti ti-eye" aria-hidden="true"></i> Preview Draft (<span class="font-mono">{{ templates_count }}</span>)
+        </a>
+        {% endif %}
+        {% if existing_schedule %}
+        <button type="button"
+                class="js-show-schedule-conflict-info inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-400 text-sm font-semibold hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                data-action="show-schedule-conflict-info">
+          <i class="ti ti-alert-triangle" aria-hidden="true"></i> Resolve Conflict
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  {# ===== KPI band ===== #}
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
-    {{ kit.stat_card('ti-shield-half', 'Teams', league.teams|length, sublabel='in league', tone='info') }}
+    {{ kit.stat_card('ti-shield-half', 'Teams', team_count, sublabel='eligible', tone='info') }}
     {% if config %}
-      {{ kit.stat_card('ti-circle-check', 'Configuration', 'Set', sublabel='ready', tone='success') }}
+      {% call kit.stat_card('ti-circle-check', 'Configuration', 'Set', sublabel='ready', tone='success') %}
+        <span class="font-mono">{{ config.weeks_count }}</span> wks · <span class="font-mono">{{ config.match_duration_minutes }}</span> min matches
+      {% endcall %}
     {% else %}
       {{ kit.stat_card('ti-circle-x', 'Configuration', 'None', sublabel='not configured', tone='warning') }}
     {% endif %}
-    {{ kit.stat_card('ti-layout-grid', 'Draft Templates', templates_count, sublabel='matches', tone=('info' if templates_count > 0 else 'neutral')) }}
+    {% call kit.stat_card('ti-layout-grid', 'Draft Templates', templates_count, sublabel='matches', tone=('info' if templates_count > 0 else 'neutral')) %}
+      {% if templates_count > 0 %}uncommitted draft pending preview{% else %}no draft generated yet{% endif %}
+    {% endcall %}
     {% if existing_schedule %}
       {{ kit.stat_card('ti-alert-triangle', 'Schedule Status', 'Conflict', sublabel='manual schedule exists', tone='danger') }}
     {% else %}
@@ -33,124 +121,129 @@
     {% endif %}
   </div>
 
-  {# Status alert #}
-  <div class="mb-5 sm:mb-6">
-    {% if existing_schedule %}
-      {{ kit.alert('danger', 'This league already has a manual schedule. Using the auto schedule system will require deleting the existing schedule first.', title='Existing schedule detected.', dismissible=False) }}
-    {% else %}
-      {{ kit.alert('success', 'This league is ready for automatic schedule generation. No conflicting manual schedule found.', title='Ready for auto schedule.', dismissible=False) }}
-    {% endif %}
-  </div>
-
-  {# Actions #}
-  <div class="flex flex-wrap gap-3 mb-5 sm:mb-6">
-    {% if league.teams|length >= 2 %}
-    <a href="{{ url_for('auto_schedule.auto_schedule_config', league_id=league.id) }}"
-       class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-      <i class="ti ti-calendar" aria-hidden="true"></i>
-      {% if config %}Reconfigure &amp; Generate{% else %}Configure &amp; Generate{% endif %}
-    </a>
-    {% endif %}
-    {% if templates_count > 0 %}
-    <a href="{{ url_for('auto_schedule.preview_schedule', league_id=league.id) }}"
-       class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-      <i class="ti ti-eye" aria-hidden="true"></i> Preview Schedule ({{ templates_count }} matches)
-    </a>
-    {% endif %}
-    {% if existing_schedule %}
-    <button type="button"
-            class="js-show-schedule-conflict-info inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-            data-action="show-schedule-conflict-info">
-      <i class="ti ti-alert-triangle" aria-hidden="true"></i> Existing Schedule Conflict
-    </button>
-    {% endif %}
-  </div>
-
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
-    {# Teams #}
-    <div class="lg:col-span-2">
-      {% call kit.section_card('Teams (' ~ league.teams|length ~ ')', icon='ti-users') %}
-        {% if league.teams %}
-        <div class="p-4 sm:p-5">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {% for team in league.teams %}
-              {% if team.name not in ['FUN WEEK', 'BYE', 'TST'] %}
-              <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-3">
-                <h5 class="font-semibold text-gray-900 dark:text-white truncate">{{ team.name }}</h5>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><span class="font-mono">{{ team.players|length }}</span> players</p>
-              </div>
-              {% endif %}
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
+    {# ===== Teams — real dense table with mono player counts ===== #}
+    <div class="xl:col-span-2">
+      {% call kit.section_card('Teams', icon='ti-users') %}
+        {% if real_teams %}
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 dark:bg-gray-900/40 border-b border-gray-200 dark:border-gray-700">
+            <tr>
+              <th scope="col" class="px-4 sm:px-5 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Team</th>
+              <th scope="col" class="px-4 sm:px-5 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Players</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for team in real_teams %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <td class="px-4 sm:px-5 py-3">
+                <span class="inline-flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                  <i class="ti ti-shield-half text-gray-400 dark:text-gray-500" aria-hidden="true"></i>{{ team.name }}
+                </span>
+              </td>
+              <td class="px-4 sm:px-5 py-3 text-right">
+                <span class="font-mono font-bold text-gray-900 dark:text-white">{{ team.players|length }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">players</span>
+              </td>
+            </tr>
             {% endfor %}
-          </div>
-          {% if placeholder_teams %}
-          <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h6 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Special Week Placeholder Teams</h6>
-            <div class="flex flex-wrap gap-2">
-              {% for team in placeholder_teams %}
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ team.name }}</span>
-              {% endfor %}
-            </div>
-          </div>
-          {% endif %}
+          </tbody>
+        </table>
+        {% if placeholder_teams %}
+        <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2">
+          <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mr-1">Special-week placeholders</span>
+          {% for team in placeholder_teams %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium font-mono bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-calendar-pause text-[11px]" aria-hidden="true"></i>{{ team.name }}</span>
+          {% endfor %}
         </div>
+        {% endif %}
         {% else %}
           {{ kit.empty_state('ti-users-off', 'No teams found', 'Create teams in this league before generating a schedule.') }}
         {% endif %}
       {% endcall %}
     </div>
 
-    {# Configuration #}
-    {% if config %}
-    {% call kit.section_card('Current Configuration', icon='ti-settings') %}
-      <div class="p-4 sm:p-5 grid grid-cols-2 gap-4">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Start Time</p>
-          <p class="mt-1 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ config.start_time.strftime('%H:%M') }}</p>
-        </div>
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Match Duration</p>
-          <p class="mt-1 text-gray-900 dark:text-white"><span class="font-mono text-lg font-bold">{{ config.match_duration_minutes }}</span> <span class="text-sm text-gray-500 dark:text-gray-400">min</span></p>
-        </div>
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Weeks</p>
-          <p class="mt-1 text-gray-900 dark:text-white"><span class="font-mono text-lg font-bold">{{ config.weeks_count }}</span> <span class="text-sm text-gray-500 dark:text-gray-400">weeks</span></p>
-        </div>
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Fields</p>
-          <p class="mt-1 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ config.fields }}</p>
-        </div>
-      </div>
-    {% endcall %}
-    {% endif %}
-
-    {# Schedule Calculation #}
-    {% if league.teams|length >= 2 %}
-    <div class="{% if not config %}lg:col-span-2{% endif %}">
-      {% call kit.section_card('Schedule Calculation', icon='ti-calculator') %}
-        <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-          <div class="flex items-baseline justify-between gap-3 sm:block">
-            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Teams</span>
-            <span class="text-sm text-gray-900 dark:text-white"><span class="font-mono font-bold">{{ team_count }}</span> teams</span>
+    {# ===== right rail ===== #}
+    <div class="space-y-5 sm:space-y-6">
+      {# Current Configuration — full rich readout #}
+      {% if config %}
+      {% call kit.section_card('Current Configuration', icon='ti-settings') %}
+        <dl class="divide-y divide-gray-200 dark:divide-gray-700">
+          <div class="flex items-baseline justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Premier start</dt>
+            <dd class="font-mono text-base font-bold text-gray-900 dark:text-white">{{ config.premier_start_time.strftime('%H:%M') }}</dd>
           </div>
-          <div class="flex items-baseline justify-between gap-3 sm:block">
-            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Matches per team</span>
-            <span class="text-sm text-gray-900 dark:text-white"><span class="font-mono font-bold">{{ (team_count - 1) * 2 }}</span> total matches</span>
+          <div class="flex items-baseline justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Classic start</dt>
+            <dd class="font-mono text-base font-bold text-gray-900 dark:text-white">{{ config.classic_start_time.strftime('%H:%M') }}</dd>
           </div>
-          <div class="flex items-baseline justify-between gap-3 sm:block">
-            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Games per day</span>
-            <span class="text-sm text-gray-900 dark:text-white"><span class="font-mono font-bold">2</span> back-to-back</span>
+          <div class="flex items-baseline justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Match length</dt>
+            <dd class="text-gray-900 dark:text-white"><span class="font-mono text-base font-bold">{{ config.match_duration_minutes }}</span> <span class="text-xs text-gray-500 dark:text-gray-400">min</span></dd>
           </div>
-          <div class="flex items-baseline justify-between gap-3 sm:block">
-            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Total league matches</span>
-            <span class="text-sm text-gray-900 dark:text-white"><span class="font-mono font-bold">{{ (team_count * (team_count - 1)) }}</span> matches</span>
+          <div class="flex items-baseline justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Break</dt>
+            <dd class="text-gray-900 dark:text-white"><span class="font-mono text-base font-bold">{{ config.break_duration_minutes }}</span> <span class="text-xs text-gray-500 dark:text-gray-400">min</span></dd>
           </div>
-          <div class="sm:col-span-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-            <p>Regular season: each team plays every other team twice. Special weeks supported: FUN, TST, BYE.</p>
+          <div class="flex items-baseline justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Weeks</dt>
+            <dd class="text-gray-900 dark:text-white"><span class="font-mono text-base font-bold">{{ config.weeks_count }}</span> <span class="text-xs text-gray-500 dark:text-gray-400">weeks</span></dd>
           </div>
-        </div>
+          <div class="flex items-baseline justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Time rotation</dt>
+            <dd class="text-sm font-semibold {% if config.enable_time_rotation %}text-green-600 dark:text-green-400{% else %}text-gray-500 dark:text-gray-400{% endif %}">{{ 'On' if config.enable_time_rotation else 'Off' }}</dd>
+          </div>
+          <div class="px-4 sm:px-5 py-2.5">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Fields</dt>
+            <dd class="flex flex-wrap gap-1.5">
+              {% for f in field_list %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ f }}</span>
+              {% endfor %}
+            </dd>
+          </div>
+          {% if config.enable_practice_weeks %}
+          <div class="px-4 sm:px-5 py-2.5">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Practice weeks</dt>
+            <dd class="flex flex-wrap gap-1.5">
+              {% if practice_list %}
+                {% for w in practice_list %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-ecs-gold-500/15 text-ecs-gold-600 dark:text-ecs-gold-400">Wk {{ w }}</span>
+                {% endfor %}
+              {% else %}
+                <span class="text-xs text-gray-500 dark:text-gray-400">Enabled, no weeks set</span>
+              {% endif %}
+            </dd>
+          </div>
+          {% endif %}
+        </dl>
       {% endcall %}
+      {% else %}
+      {% call kit.section_card('Current Configuration', icon='ti-settings') %}
+        {{ kit.empty_state('ti-settings-off', 'Not configured', 'Set start times, fields and week count to enable schedule generation.') }}
+      {% endcall %}
+      {% endif %}
+
+      {# Schedule math — derived from real team count + config #}
+      {% if team_count >= 2 %}
+      {% call kit.section_card('Schedule Math', icon='ti-calculator') %}
+        <dl class="divide-y divide-gray-200 dark:divide-gray-700">
+          <div class="flex items-baseline justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Matches per team</dt>
+            <dd class="text-gray-900 dark:text-white"><span class="font-mono text-base font-bold">{{ (team_count - 1) * 2 }}</span></dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Total matches</dt>
+            <dd class="text-gray-900 dark:text-white"><span class="font-mono text-base font-bold text-ecs-green">{{ team_count * (team_count - 1) }}</span></dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3 px-4 sm:px-5 py-2.5">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Games per day</dt>
+            <dd class="text-gray-900 dark:text-white"><span class="font-mono text-base font-bold">2</span> <span class="text-xs text-gray-500 dark:text-gray-400">back-to-back</span></dd>
+          </div>
+        </dl>
+        <p class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Double round-robin — each team plays every other team twice. Special weeks supported: FUN, TST, BYE.</p>
+      {% endcall %}
+      {% endif %}
     </div>
-    {% endif %}
   </div>
 </div>
 {% else %}

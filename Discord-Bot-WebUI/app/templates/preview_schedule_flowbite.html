@@ -1,84 +1,147 @@
 {% extends "base_flowbite.html" %}
 {% from "macros/flowbite.html" import modal %}
-{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, modal %}
 
 {% block title %}Schedule Preview - {{ league.name }}{% endblock %}
 
 {% block main_content %}
 {% if shell == 'console' %}
+{# ---- Derive real KPI figures from schedule_preview (dict: week -> [match dicts]) ---- #}
+{% set ns = namespace(total_matches=0, regular_weeks=0, special_weeks=0, playable_matches=0, fields=[], times=[]) %}
+{% for week, matches in schedule_preview.items() %}
+    {% set wt = matches[0].week_type if matches else 'REGULAR' %}
+    {% if wt == 'REGULAR' %}{% set ns.regular_weeks = ns.regular_weeks + 1 %}{% else %}{% set ns.special_weeks = ns.special_weeks + 1 %}{% endif %}
+    {% for m in matches %}
+        {% set ns.total_matches = ns.total_matches + 1 %}
+        {% if m.week_type not in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}{% set ns.playable_matches = ns.playable_matches + 1 %}{% endif %}
+        {% if m.field and m.field not in ns.fields %}{% set ns.fields = ns.fields + [m.field] %}{% endif %}
+    {% endfor %}
+{% endfor %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-    {{ page_header(league.name ~ ' Schedule Preview', subtitle='Review and modify the generated schedule before committing') }}
-
-    <!-- Action toolbar -->
-    <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-5 sm:mb-6">
-        <button id="commitScheduleBtn" type="button"
-                class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-            <i class="ti ti-check" aria-hidden="true"></i>
-            Commit Schedule
-        </button>
-        <a href="{{ url_for('auto_schedule.auto_schedule_config', league_id=league.id) }}"
-           class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-edit" aria-hidden="true"></i>
-            Modify Configuration
-        </a>
+    {% call page_header(league.name ~ ' Schedule Preview', subtitle='Auto-schedule draft · review before committing') %}
         <a href="{{ url_for('auto_schedule.schedule_manager') }}"
-           class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-arrow-left" aria-hidden="true"></i>
-            Back to Season Builder
+           class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i>Builder
         </a>
-        <button id="toggleSettingsBtn" type="button"
-                class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green ml-auto">
-            <i class="ti ti-settings" aria-hidden="true"></i>
-            Settings
+        <button id="commitScheduleBtn" type="button"
+                class="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-check" aria-hidden="true"></i>Commit Schedule
         </button>
-    </div>
+    {% endcall %}
 
-    <!-- Schedule Settings Panel (Hidden by default) -->
-    <div id="scheduleSettings" class="hidden mb-5 sm:mb-6">
-        {% call section_card('Schedule Configuration', icon='ti-adjustments') %}
-        <div class="p-4 sm:p-5">
-            <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Start Time</dt>
-                    <dd class="mt-1 font-mono font-semibold text-gray-900 dark:text-white">{{ config.start_time.strftime('%H:%M') }}</dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Duration</dt>
-                    <dd class="mt-1 font-mono font-semibold text-gray-900 dark:text-white">{{ config.match_duration_minutes }} min</dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Weeks</dt>
-                    <dd class="mt-1 font-mono font-semibold text-gray-900 dark:text-white">{{ config.weeks_count }}</dd>
-                </div>
-                <div>
-                    <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Fields</dt>
-                    <dd class="mt-1 font-mono font-semibold text-gray-900 dark:text-white">{{ config.fields }}</dd>
-                </div>
-            </dl>
-            <div class="mt-5 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row flex-wrap gap-3">
-                <form method="POST" action="{{ url_for('auto_schedule.regenerate_schedule', league_id=league.id) }}" class="flex items-center gap-2">
-                    <input type="date" name="start_date" id="regenerate_start_date" required
-                           class="input-ecs h-11 sm:h-10 text-sm" aria-label="Regenerate start date">
-                    <button type="submit"
-                            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-                        <i class="ti ti-refresh" aria-hidden="true"></i>
-                        Regenerate
-                    </button>
-                </form>
-                <button id="deleteScheduleBtn" type="button"
-                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-                    <i class="ti ti-trash" aria-hidden="true"></i>
-                    Delete
+    {# ---------- Primary object: draft summary banner + KPI band ---------- #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-5 sm:mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 h-auto sm:h-14 py-3 sm:py-0 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+                    <i class="ti ti-flask" aria-hidden="true"></i>Draft · Uncommitted
+                </span>
+                <span class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400 font-mono truncate">commit creates live matches</span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button id="toggleSettingsBtn" type="button"
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <i class="ti ti-settings" aria-hidden="true"></i>Settings &amp; Tools
                 </button>
+                <a href="{{ url_for('auto_schedule.auto_schedule_config', league_id=league.id) }}"
+                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <i class="ti ti-edit" aria-hidden="true"></i>Config
+                </a>
             </div>
         </div>
-        {% endcall %}
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-gray-200 dark:divide-gray-700">
+            <div class="px-4 sm:px-5 py-4">
+                <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Weeks</p>
+                <p class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-ecs-green leading-none">{{ schedule_preview|length }}</p>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 font-mono">{{ ns.regular_weeks }} regular · {{ ns.special_weeks }} special</p>
+            </div>
+            <div class="px-4 sm:px-5 py-4">
+                <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Matches</p>
+                <p class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-none">{{ ns.total_matches }}</p>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 font-mono">{{ ns.playable_matches }} playable games</p>
+            </div>
+            <div class="px-4 sm:px-5 py-4">
+                <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Fields</p>
+                <p class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-none">{{ ns.fields|length }}</p>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 font-mono truncate">{{ ns.fields|join(' · ') if ns.fields else '—' }}</p>
+            </div>
+            {% if config %}
+            <div class="px-4 sm:px-5 py-4">
+                <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Start</p>
+                <p class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-none">{{ config.start_time.strftime('%H:%M') if config.start_time else '—' }}</p>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 font-mono">first kickoff</p>
+            </div>
+            <div class="px-4 sm:px-5 py-4">
+                <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Slot</p>
+                <p class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-none">{{ config.match_duration_minutes }}<span class="text-base font-semibold text-gray-400 dark:text-gray-500">m</span></p>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 font-mono">per match</p>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    {# ---------- Settings / tools drawer (hidden by default) ---------- #}
+    <div id="scheduleSettings" class="hidden mb-5 sm:mb-6">
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <i class="ti ti-adjustments text-ecs-green" aria-hidden="true"></i>
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Draft Tools</h2>
+            </div>
+            <div class="p-4 sm:p-5 grid gap-5 lg:grid-cols-2">
+                <div>
+                    <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Generator Configuration</p>
+                    <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                        <div class="flex items-center justify-between gap-2">
+                            <dt class="text-xs text-gray-500 dark:text-gray-400">Start Time</dt>
+                            <dd class="font-mono font-semibold text-gray-900 dark:text-white">{{ config.start_time.strftime('%H:%M') if config and config.start_time else '—' }}</dd>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <dt class="text-xs text-gray-500 dark:text-gray-400">Duration</dt>
+                            <dd class="font-mono font-semibold text-gray-900 dark:text-white">{{ config.match_duration_minutes if config else '—' }} min</dd>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <dt class="text-xs text-gray-500 dark:text-gray-400">Weeks</dt>
+                            <dd class="font-mono font-semibold text-gray-900 dark:text-white">{{ config.weeks_count if config else '—' }}</dd>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <dt class="text-xs text-gray-500 dark:text-gray-400">Fields</dt>
+                            <dd class="font-mono font-semibold text-gray-900 dark:text-white truncate">{{ config.fields if config else '—' }}</dd>
+                        </div>
+                    </dl>
+                </div>
+                <div class="lg:border-l lg:border-gray-200 lg:dark:border-gray-700 lg:pl-5">
+                    <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Destructive Actions</p>
+                    <form method="POST" action="{{ url_for('auto_schedule.regenerate_schedule', league_id=league.id) }}" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <input type="date" name="start_date" id="regenerate_start_date" required
+                               class="input-ecs h-11 sm:h-10 text-sm flex-1" aria-label="Regenerate start date">
+                        <button type="submit"
+                                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                            <i class="ti ti-refresh" aria-hidden="true"></i>Regenerate
+                        </button>
+                    </form>
+                    <button id="deleteScheduleBtn" type="button"
+                            class="mt-2 w-full sm:w-auto inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                        <i class="ti ti-trash" aria-hidden="true"></i>Delete Draft
+                    </button>
+                    <p class="mt-2 text-[11px] text-gray-500 dark:text-gray-400">Regenerate rebuilds all templates from the chosen start date. Delete discards the draft.</p>
+                </div>
+            </div>
+        </section>
     </div>
 
-    <!-- Schedule Preview -->
-    <div class="space-y-5 sm:space-y-6">
+    {# ---------- Swap helper hint ---------- #}
+    {% if ns.playable_matches > 1 %}
+    <div class="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg bg-ecs-green/5 border border-ecs-green/20 text-xs text-gray-600 dark:text-gray-300">
+        <i class="ti ti-arrows-exchange text-ecs-green" aria-hidden="true"></i>
+        <span>Pick <span class="font-semibold text-gray-900 dark:text-white">two regular-week matches</span> to swap their team pairings before committing.</span>
+    </div>
+    {% endif %}
+
+    {# ---------- Schedule weeks: feature cards w/ date-group header + dense rows ---------- #}
+    <div class="space-y-4 sm:space-y-5">
         {% for week, matches in schedule_preview.items() %}
         {% set week_type = matches[0].week_type if matches else 'REGULAR' %}
+        {% set week_date = matches[0].date if matches else None %}
         {% set wk = {
             'FUN': {'label': 'FUN WEEK', 'cls': 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300', 'icon': 'ti-ball-football', 'bcls': 'text-amber-700 dark:text-amber-400', 'bbg': 'bg-amber-50 dark:bg-amber-500/10', 'msg': 'Special activities and fun games.'},
             'TST': {'label': 'TST WEEK', 'cls': 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300', 'icon': 'ti-trophy', 'bcls': 'text-blue-700 dark:text-blue-400', 'bbg': 'bg-blue-50 dark:bg-blue-500/10', 'msg': 'The Soccer Tournament week.'},
@@ -88,10 +151,16 @@
         {% set w = wk.get(week_type, wk['REGULAR']) %}
         <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
             <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
-                <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-calendar-week text-ecs-green" aria-hidden="true"></i>{{ week }}
-                </h3>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold {{ w.cls }}">{{ w.label }}</span>
+                <div class="flex items-baseline gap-3 min-w-0">
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2 shrink-0">
+                        <i class="ti ti-calendar-week text-ecs-green" aria-hidden="true"></i>{{ week }}
+                    </h3>
+                    {% if week_date %}<span class="font-mono text-xs text-ecs-green truncate">{{ week_date }}</span>{% endif %}
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="hidden sm:inline font-mono text-xs text-gray-400 dark:text-gray-500">{{ matches|length }}</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold {{ w.cls }}">{{ w.label }}</span>
+                </div>
             </div>
 
             {% if week_type in ['BYE', 'FUN', 'TST'] %}
@@ -107,13 +176,13 @@
             <table class="hidden md:table w-full text-sm">
                 <thead class="bg-gray-50 dark:bg-gray-700/50">
                     <tr>
-                        <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Time</th>
-                        <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Field</th>
+                        <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 w-px">Time</th>
+                        <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 w-px">Field</th>
                         <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Home Team</th>
                         <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Away Team</th>
-                        <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Order</th>
+                        <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 w-px">Order</th>
                         {% if week_type == 'REGULAR' %}
-                        <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Actions</th>
+                        <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 w-px">Actions</th>
                         {% endif %}
                     </tr>
                 </thead>
@@ -121,15 +190,15 @@
                     {% for match in matches %}
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 {% if match.week_type != 'REGULAR' %}bg-gray-50 dark:bg-gray-700/30{% endif %}"
                         data-template-id="{{ match.id }}">
-                        <td class="px-4 py-3 font-mono text-gray-900 dark:text-white">{{ match.time }}</td>
+                        <td class="px-4 py-3 font-mono font-semibold text-gray-900 dark:text-white whitespace-nowrap">{{ match.time }}</td>
                         <td class="px-4 py-3">
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                                 {{ match.field }}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-gray-900 dark:text-white">
+                        <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white">
                             {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
-                            <span class="text-gray-500 dark:text-gray-400 italic">{{ match.week_type }} Week</span>
+                            <span class="font-normal text-gray-500 dark:text-gray-400 italic">{{ match.week_type }} Week</span>
                             {% else %}
                             {{ match.home_team }}
                             {% endif %}
@@ -147,7 +216,7 @@
                             </span>
                         </td>
                         {% if week_type == 'REGULAR' %}
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 text-right">
                             <button class="inline-flex items-center justify-center gap-1 min-h-[36px] px-2.5 text-xs font-semibold rounded-lg border border-ecs-green text-ecs-green hover:bg-ecs-green/10 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green js-select-swap"
                                     data-match-id="{{ match.id }}"
                                     data-match-desc="{{ match.home_team }} vs {{ match.away_team }}">
@@ -178,7 +247,7 @@
                         </span>
                     </div>
                     <div class="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                        <span class="font-mono">{{ match.time }}</span>
+                        <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ match.time }}</span>
                         <span class="inline-flex items-center px-2 py-0.5 rounded font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ match.field }}</span>
                     </div>
                     {% if week_type == 'REGULAR' %}

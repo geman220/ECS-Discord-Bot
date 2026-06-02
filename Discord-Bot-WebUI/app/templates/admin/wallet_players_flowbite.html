@@ -33,9 +33,44 @@
         </div>
     </div>
 
+    <!-- KPI Tiles -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
+                <i class="ti ti-users"></i> Total Players
+            </div>
+            <div class="mt-2 text-2xl font-bold font-mono text-gray-900 dark:text-white">{{ wallet_stats.total }}</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
+                <i class="ti ti-circle-check"></i> Eligible
+            </div>
+            <div class="mt-2 text-2xl font-bold font-mono text-ecs-green">{{ wallet_stats.eligible }}</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
+                <i class="ti ti-alert-triangle"></i> Not Eligible
+            </div>
+            <div class="mt-2 text-2xl font-bold font-mono text-yellow-600 dark:text-yellow-400">{{ wallet_stats.not_eligible }}</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
+                <i class="ti ti-id-badge-2"></i> Passes Issued
+            </div>
+            <div class="mt-2 text-2xl font-bold font-mono text-blue-600 dark:text-blue-400">{{ wallet_stats.passes_issued }}</div>
+        </div>
+    </div>
+
     <!-- Filters -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
         <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div>
+                <label for="f-search" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search</label>
+                <div class="relative">
+                    <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <input id="f-search" type="text" name="q" value="{{ current_filters.q or '' }}" placeholder="Name or ID..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 pl-9 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
+                </div>
+            </div>
             <div>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Team Filter</label>
                 <select name="team" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
@@ -58,7 +93,7 @@
                 <button type="submit" class="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>Apply
                 </button>
-                {% if current_filters.team != 'all' or current_filters.status != 'all' %}
+                {% if current_filters.team != 'all' or current_filters.status != 'all' or current_filters.q %}
                 <a href="{{ url_for('wallet_admin.wallet_players') }}" class="inline-flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Clear
                 </a>

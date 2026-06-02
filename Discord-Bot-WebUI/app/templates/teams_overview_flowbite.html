@@ -4,78 +4,147 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, empty_state %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-    {{ page_header("Teams Overview", subtitle="League") }}
+{% from 'macros/_modern_kit.html' import empty_state %}
 
-    <!-- Division Tabs (JS hooks preserved verbatim) -->
+{# ---------------------------------------------------------------------------
+   Team card — matches approved mock (crest + name + season, Players count,
+   division badge, View Team CTA). Uses ONLY real Team attrs the route loads:
+     id, name, kit_url, league.name, league.season.name, players.
+   accent: 'gold' for ECS FC, 'green' otherwise.
+   No fabricated records / standings / next match (route passes only `teams`).
+--------------------------------------------------------------------------- #}
+{% macro team_card(team, accent) %}
+<div class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden transition-colors flex flex-col
+            {% if accent == 'gold' %}hover:border-ecs-gold/60{% else %}hover:border-ecs-green/60 dark:hover:border-ecs-green/60{% endif %}">
+    <div class="px-4 sm:px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-4">
+        {% if team.kit_url %}
+        <img src="{{ team.kit_url }}" alt="{{ team.name }}"
+             class="w-14 h-14 rounded-lg object-cover border border-gray-200 dark:border-gray-600 shrink-0">
+        {% elif accent == 'gold' %}
+        <div class="w-14 h-14 rounded-lg bg-ecs-gold flex items-center justify-center shrink-0 font-mono text-xl font-bold text-gray-900">{{ team.name[0] }}</div>
+        {% else %}
+        <div class="w-14 h-14 rounded-lg bg-ecs-green flex items-center justify-center shrink-0 font-mono text-xl font-bold text-white">{{ team.name[0] }}</div>
+        {% endif %}
+        <div class="flex-1 min-w-0">
+            <h3 class="font-semibold text-gray-900 dark:text-white truncate">{{ team.name }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                <i class="ti ti-calendar-event" aria-hidden="true"></i>
+                <span class="font-mono">{{ team.league.season.name }}</span>
+            </p>
+        </div>
+    </div>
+    <div class="px-4 sm:px-5 py-4 flex-1">
+        <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+            <span class="flex items-center gap-1.5">
+                <i class="ti ti-users {% if accent == 'gold' %}text-ecs-gold-600 dark:text-ecs-gold-400{% else %}text-ecs-green{% endif %}" aria-hidden="true"></i>
+                <span class="font-mono text-gray-900 dark:text-white font-semibold">{{ team.players | length }}</span> Players
+            </span>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide
+                         {% if accent == 'gold' %}bg-ecs-gold/15 text-ecs-gold-600 dark:text-ecs-gold-400{% else %}bg-ecs-green/12 text-ecs-green{% endif %}">
+                <i class="ti {% if accent == 'gold' %}ti-shield{% else %}ti-trophy{% endif %} text-[11px]" aria-hidden="true"></i>
+                {{ team.league.name }}
+            </span>
+        </div>
+    </div>
+    <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700">
+        <a href="{{ url_for('teams.team_details', team_id=team.id) }}"
+           class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-3.5 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                  {% if accent == 'gold' %}bg-ecs-gold hover:bg-ecs-gold/90 text-gray-900 focus:ring-ecs-gold{% else %}bg-ecs-green hover:bg-ecs-green-700 text-white focus:ring-ecs-green{% endif %}">
+            <i class="ti ti-eye" aria-hidden="true"></i>
+            View Team
+        </a>
+    </div>
+</div>
+{% endmacro %}
+
+{% set classic_teams = teams | selectattr("league.name", "equalto", "Classic") | list %}
+{% set premier_teams = teams | selectattr("league.name", "equalto", "Premier") | list %}
+{% set ecs_fc_teams = teams | selectattr("league.name", "equalto", "ECS FC") | list %}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    <!-- Title row -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Teams</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Every team across our leagues, all in one place.</p>
+        </div>
+        <a href="{{ url_for('calendar.calendar_view') }}"
+           class="inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold text-gray-900 dark:text-white shrink-0">
+            <i class="ti ti-calendar-event" aria-hidden="true"></i>
+            View Schedule
+        </a>
+    </div>
+
+    <!-- directory summary stat strip -->
+    <section class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Teams</span>
+                <i class="ti ti-shield-half text-ecs-green text-lg shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-2 font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ teams | length }}</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Classic</span>
+                <i class="ti ti-ball-football text-ecs-green text-lg shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-2 font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ classic_teams | length }}</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Premier</span>
+                <i class="ti ti-trophy text-ecs-green text-lg shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-2 font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ premier_teams | length }}</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">ECS FC</span>
+                <i class="ti ti-shield text-ecs-gold-500 dark:text-ecs-gold-400 text-lg shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-2 font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ ecs_fc_teams | length }}</div>
+        </div>
+    </section>
+
+    <!-- Division Tabs (JS hooks preserved verbatim) — segmented control -->
     <div class="mb-6">
-        <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700">
+        <div class="inline-flex flex-wrap gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
             <button type="button"
-                    class="division-tab px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 border-ecs-green text-ecs-green bg-ecs-green/10"
+                    class="division-tab inline-flex items-center gap-1.5 px-4 h-10 rounded-lg text-sm font-semibold bg-white dark:bg-gray-700 shadow-sm text-ecs-green"
                     data-tab="classic">
-                <i class="ti ti-ball-football mr-1" aria-hidden="true"></i>
-                Classic Division
+                <i class="ti ti-ball-football" aria-hidden="true"></i>
+                Classic
+                <span class="ml-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-200">{{ classic_teams | length }}</span>
             </button>
             <button type="button"
-                    class="division-tab px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    class="division-tab inline-flex items-center gap-1.5 px-4 h-10 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                     data-tab="premier">
-                <i class="ti ti-trophy mr-1" aria-hidden="true"></i>
-                Premier Division
+                <i class="ti ti-trophy" aria-hidden="true"></i>
+                Premier
+                <span class="ml-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-200">{{ premier_teams | length }}</span>
             </button>
             <button type="button"
-                    class="division-tab px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    class="division-tab inline-flex items-center gap-1.5 px-4 h-10 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                     data-tab="ecsfc">
-                <i class="ti ti-shield mr-1" aria-hidden="true"></i>
-                ECS FC Division
+                <i class="ti ti-shield" aria-hidden="true"></i>
+                ECS FC
+                <span class="ml-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-200">{{ ecs_fc_teams | length }}</span>
             </button>
         </div>
     </div>
 
     <!-- Classic Division Teams -->
     <div class="division-content" id="classic-content">
-        {% set classic_teams = teams | selectattr("league.name", "equalto", "Classic") | list %}
         {% if classic_teams %}
+        <div class="px-1 pb-3 flex items-center gap-2">
+            <span class="font-mono text-[11px] font-semibold text-ecs-green uppercase tracking-wide">Classic Division</span>
+            <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+            <span class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide"><span class="font-mono">{{ classic_teams | length }}</span> teams</span>
+        </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {% for team in classic_teams %}
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-md transition-shadow">
-                <div class="p-4 sm:p-5">
-                    <div class="flex items-center gap-4 mb-4">
-                        {% if team.kit_url %}
-                        <img src="{{ team.kit_url }}" alt="{{ team.name }}"
-                             class="w-14 h-14 rounded-lg object-cover border border-gray-200 dark:border-gray-600 shrink-0">
-                        {% else %}
-                        <div class="w-14 h-14 rounded-lg bg-ecs-green flex items-center justify-center shrink-0">
-                            <span class="text-xl font-bold text-white">{{ team.name[0] }}</span>
-                        </div>
-                        {% endif %}
-                        <div class="flex-1 min-w-0">
-                            <h3 class="font-semibold text-gray-900 dark:text-white truncate">{{ team.name }}</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <i class="ti ti-calendar-event" aria-hidden="true"></i>
-                                {{ team.league.season.name }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
-                        <span class="flex items-center gap-1">
-                            <i class="ti ti-users" aria-hidden="true"></i>
-                            <span class="font-mono">{{ team.players | length }}</span> Players
-                        </span>
-                        <span class="flex items-center gap-1">
-                            <i class="ti ti-trophy" aria-hidden="true"></i>
-                            {{ team.league.name }}
-                        </span>
-                    </div>
-
-                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}"
-                       class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                        <i class="ti ti-eye" aria-hidden="true"></i>
-                        View Team
-                    </a>
-                </div>
-            </div>
+            {{ team_card(team, 'green') }}
             {% endfor %}
         </div>
         {% else %}
@@ -85,48 +154,15 @@
 
     <!-- Premier Division Teams -->
     <div class="division-content hidden" id="premier-content">
-        {% set premier_teams = teams | selectattr("league.name", "equalto", "Premier") | list %}
         {% if premier_teams %}
+        <div class="px-1 pb-3 flex items-center gap-2">
+            <span class="font-mono text-[11px] font-semibold text-ecs-green uppercase tracking-wide">Premier Division</span>
+            <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+            <span class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide"><span class="font-mono">{{ premier_teams | length }}</span> teams</span>
+        </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {% for team in premier_teams %}
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-md transition-shadow">
-                <div class="p-4 sm:p-5">
-                    <div class="flex items-center gap-4 mb-4">
-                        {% if team.kit_url %}
-                        <img src="{{ team.kit_url }}" alt="{{ team.name }}"
-                             class="w-14 h-14 rounded-lg object-cover border border-gray-200 dark:border-gray-600 shrink-0">
-                        {% else %}
-                        <div class="w-14 h-14 rounded-lg bg-ecs-green flex items-center justify-center shrink-0">
-                            <span class="text-xl font-bold text-white">{{ team.name[0] }}</span>
-                        </div>
-                        {% endif %}
-                        <div class="flex-1 min-w-0">
-                            <h3 class="font-semibold text-gray-900 dark:text-white truncate">{{ team.name }}</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <i class="ti ti-calendar-event" aria-hidden="true"></i>
-                                {{ team.league.season.name }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
-                        <span class="flex items-center gap-1">
-                            <i class="ti ti-users" aria-hidden="true"></i>
-                            <span class="font-mono">{{ team.players | length }}</span> Players
-                        </span>
-                        <span class="flex items-center gap-1">
-                            <i class="ti ti-trophy" aria-hidden="true"></i>
-                            {{ team.league.name }}
-                        </span>
-                    </div>
-
-                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}"
-                       class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                        <i class="ti ti-eye" aria-hidden="true"></i>
-                        View Team
-                    </a>
-                </div>
-            </div>
+            {{ team_card(team, 'green') }}
             {% endfor %}
         </div>
         {% else %}
@@ -136,48 +172,15 @@
 
     <!-- ECS FC Division Teams -->
     <div class="division-content hidden" id="ecsfc-content">
-        {% set ecs_fc_teams = teams | selectattr("league.name", "equalto", "ECS FC") | list %}
         {% if ecs_fc_teams %}
+        <div class="px-1 pb-3 flex items-center gap-2">
+            <span class="font-mono text-[11px] font-semibold text-ecs-gold-600 dark:text-ecs-gold-400 uppercase tracking-wide">ECS FC Division</span>
+            <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+            <span class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide"><span class="font-mono">{{ ecs_fc_teams | length }}</span> teams</span>
+        </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {% for team in ecs_fc_teams %}
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-md transition-shadow">
-                <div class="p-4 sm:p-5">
-                    <div class="flex items-center gap-4 mb-4">
-                        {% if team.kit_url %}
-                        <img src="{{ team.kit_url }}" alt="{{ team.name }}"
-                             class="w-14 h-14 rounded-lg object-cover border border-gray-200 dark:border-gray-600 shrink-0">
-                        {% else %}
-                        <div class="w-14 h-14 rounded-lg bg-ecs-gold flex items-center justify-center shrink-0">
-                            <span class="text-xl font-bold text-gray-900">{{ team.name[0] }}</span>
-                        </div>
-                        {% endif %}
-                        <div class="flex-1 min-w-0">
-                            <h3 class="font-semibold text-gray-900 dark:text-white truncate">{{ team.name }}</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <i class="ti ti-calendar-event" aria-hidden="true"></i>
-                                {{ team.league.season.name }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
-                        <span class="flex items-center gap-1">
-                            <i class="ti ti-users" aria-hidden="true"></i>
-                            <span class="font-mono">{{ team.players | length }}</span> Players
-                        </span>
-                        <span class="flex items-center gap-1">
-                            <i class="ti ti-shield" aria-hidden="true"></i>
-                            {{ team.league.name }}
-                        </span>
-                    </div>
-
-                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}"
-                       class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                        <i class="ti ti-eye" aria-hidden="true"></i>
-                        View Team
-                    </a>
-                </div>
-            </div>
+            {{ team_card(team, 'gold') }}
             {% endfor %}
         </div>
         {% else %}

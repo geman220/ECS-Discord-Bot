@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import modal, section_card %}
 {% from "macros/flowbite.html" import modal %}
 {% from "macros/_modern_kit.html" import page_header, section_card, toast as kit_toast %}
 {% from "macros/_modern_kit.html" import modal as kit_modal %}
@@ -8,8 +9,64 @@
 {% block main_content %}
 {% if shell == 'console' %}
 {# ===================== MODERN ("console") ===================== #}
+{# Channel-status helpers derived from REAL user fields (no fabricated data). #}
+{% set channels_on = (safe_current_user.email_notifications|int) + (safe_current_user.discord_notifications|int) + (safe_current_user.match_reminder_notifications|int) + (1 if safe_current_user.sms_opted_in else 0) %}
+{% set discord_linked = safe_current_user.player and safe_current_user.player.discord_id %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-    {{ page_header("Settings", subtitle="Account & preferences") }}
+
+    {# ---- Identity feature card: the page's primary object (this account) ---- #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+        <div class="h-1.5 bg-gradient-to-r from-ecs-green to-ecs-gold-500"></div>
+        <div class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div class="w-14 h-14 shrink-0 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center">
+                <i class="ti ti-user-circle text-3xl" aria-hidden="true"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Account &amp; preferences</p>
+                <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">
+                    {{ safe_current_user.player.name if safe_current_user.player else safe_current_user.email }}
+                </h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400 font-mono truncate">{{ safe_current_user.email }}</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                {% if safe_current_user.player and safe_current_user.player.is_current_player %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-300 rounded-full"><i class="ti ti-circle-check" aria-hidden="true"></i> Active player</span>
+                {% elif safe_current_user.player %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-full"><i class="ti ti-circle" aria-hidden="true"></i> Inactive</span>
+                {% endif %}
+                {% if safe_current_user.totp_secret %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-300 rounded-full"><i class="ti ti-shield-check" aria-hidden="true"></i> 2FA on</span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 rounded-full"><i class="ti ti-shield-x" aria-hidden="true"></i> 2FA off</span>
+                {% endif %}
+                {% if is_referee %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 rounded-full"><i class="ti ti-whistle" aria-hidden="true"></i> Referee</span>
+                {% endif %}
+            </div>
+        </div>
+        {# KPI band — real figures only #}
+        <div class="grid grid-cols-2 sm:grid-cols-4 border-t border-gray-200 dark:border-gray-700 divide-x divide-y sm:divide-y-0 divide-gray-200 dark:divide-gray-700">
+            <div class="p-4">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Teams</p>
+                <p class="mt-1 font-mono text-2xl font-bold text-ecs-green leading-none">{{ safe_current_user.player.teams|length if (safe_current_user.player and safe_current_user.player.teams) else 0 }}</p>
+            </div>
+            <div class="p-4">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">League</p>
+                <p class="mt-1 text-sm font-semibold text-gray-900 dark:text-white truncate">{{ safe_current_user.player.league.name if (safe_current_user.player and safe_current_user.player.league) else 'None' }}</p>
+            </div>
+            <div class="p-4">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Notify channels</p>
+                <p class="mt-1 font-mono text-2xl font-bold text-gray-900 dark:text-white leading-none">{{ channels_on }}<span class="text-sm text-gray-400 dark:text-gray-500">/4</span></p>
+            </div>
+            <div class="p-4">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Discord</p>
+                <p class="mt-1 text-sm font-semibold {{ 'text-green-600 dark:text-green-400' if discord_linked else 'text-gray-500 dark:text-gray-400' }}">
+                    <i class="ti {{ 'ti-plug-connected' if discord_linked else 'ti-plug-x' }}" aria-hidden="true"></i>
+                    {{ 'Linked' if discord_linked else 'Not linked' }}
+                </p>
+            </div>
+        </div>
+    </section>
 
     {# Tab Navigation — JS hooks preserved verbatim (.settings-tab / data-tab; settings.js owns the active-class contract) #}
     <div class="mb-6">
@@ -77,58 +134,59 @@
                     </div>
                     {% endcall %}
 
-                    {% if safe_current_user.player %}
-                    {% call section_card("Player Status", icon="ti-shield-check") %}
-                    <div class="p-4 sm:p-6">
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Status</p>
-                                {% if safe_current_user.player.is_current_player %}
-                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-300 rounded-full"><i class="ti ti-circle-check" aria-hidden="true"></i> Active</span>
-                                {% else %}
-                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-full"><i class="ti ti-circle" aria-hidden="true"></i> Inactive</span>
-                                {% endif %}
-                            </div>
-                            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Primary Team</p>
-                                <p class="font-medium text-gray-900 dark:text-white text-sm">{{ safe_current_user.player.primary_team.name if safe_current_user.player.primary_team else 'None' }}</p>
-                            </div>
-                            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">League</p>
-                                <p class="font-medium text-gray-900 dark:text-white text-sm">{{ safe_current_user.player.league.name if safe_current_user.player.league else 'None' }}</p>
-                            </div>
-                            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Teams</p>
-                                <p class="font-mono font-bold text-gray-900 dark:text-white text-sm">{{ safe_current_user.player.teams|length if safe_current_user.player.teams else 0 }}</p>
-                            </div>
+                    {% if safe_current_user.player and user_team and user_team|length > 0 %}
+                    {% call section_card("Current Season Teams", icon="ti-shield-check") %}
+                    <div class="p-4 sm:p-5">
+                        <div class="flex flex-wrap gap-2">
+                            {% for team in user_team %}
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-ecs-green/10 text-ecs-green rounded-full text-sm font-semibold">
+                                <i class="ti ti-shield" aria-hidden="true"></i>{{ team.name }}
+                            </span>
+                            {% endfor %}
                         </div>
-                        {% if user_team and user_team|length > 0 %}
-                        <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Current Season Teams</p>
-                            <div class="flex flex-wrap gap-2">
-                                {% for team in user_team %}
-                                <span class="px-3 py-1 bg-ecs-green/10 text-ecs-green rounded-full text-sm font-medium">{{ team.name }}</span>
-                                {% endfor %}
-                            </div>
-                        </div>
+                        {% if safe_current_user.player.primary_team %}
+                        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                            Primary team: <span class="font-semibold text-gray-700 dark:text-gray-300">{{ safe_current_user.player.primary_team.name }}</span>
+                        </p>
                         {% endif %}
                     </div>
                     {% endcall %}
                     {% endif %}
                 </div>
 
-                {# Quick Actions Sidebar #}
-                <div>
+                {# Command rail — quick jumps off the account #}
+                <div class="space-y-6">
                     {% call section_card("Quick Actions", icon="ti-bolt") %}
                     <div class="p-2">
                         <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) if safe_current_user.player else '#' }}"
-                           class="flex items-center gap-2 min-h-[44px] px-3 py-2 rounded-lg {{ 'hover:bg-gray-50 dark:hover:bg-gray-700/50' if safe_current_user.player else 'opacity-50 cursor-not-allowed' }} text-gray-700 dark:text-gray-300 text-sm font-medium">
-                            <i class="ti ti-user" aria-hidden="true"></i> View My Profile
+                           class="flex items-center gap-3 min-h-[44px] px-3 py-2.5 rounded-lg {{ 'hover:bg-gray-50 dark:hover:bg-gray-700/50' if safe_current_user.player else 'opacity-50 cursor-not-allowed' }} text-gray-700 dark:text-gray-300 text-sm font-medium">
+                            <i class="ti ti-user text-ecs-green" aria-hidden="true"></i>
+                            <span class="flex-1">View My Profile</span>
+                            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
                         </a>
                         <a href="{{ url_for('players.profile_wizard') }}"
-                           class="flex items-center gap-2 min-h-[44px] px-3 py-2 rounded-lg {{ 'hover:bg-gray-50 dark:hover:bg-gray-700/50' if safe_current_user.player else 'opacity-50 cursor-not-allowed' }} text-gray-700 dark:text-gray-300 text-sm font-medium">
-                            <i class="ti ti-clipboard-check" aria-hidden="true"></i> Verify Profile
+                           class="flex items-center gap-3 min-h-[44px] px-3 py-2.5 rounded-lg {{ 'hover:bg-gray-50 dark:hover:bg-gray-700/50' if safe_current_user.player else 'opacity-50 cursor-not-allowed' }} text-gray-700 dark:text-gray-300 text-sm font-medium">
+                            <i class="ti ti-clipboard-check text-ecs-green" aria-hidden="true"></i>
+                            <span class="flex-1">Verify Profile</span>
+                            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
                         </a>
+                    </div>
+                    {% endcall %}
+
+                    {# Security at-a-glance — drives users to the Security tab when 2FA is off #}
+                    {% call section_card("Security", icon="ti-lock") %}
+                    <div class="p-4 sm:p-5 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <i class="ti {{ 'ti-shield-check text-green-600 dark:text-green-400' if safe_current_user.totp_secret else 'ti-shield-x text-amber-600 dark:text-amber-400' }} text-xl" aria-hidden="true"></i>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-gray-900 dark:text-white">Two-factor auth</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ 'Enabled' if safe_current_user.totp_secret else 'Not enabled' }}</p>
+                            </div>
+                        </div>
+                        <button type="button" data-tab="security"
+                                class="settings-tab w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                            <i class="ti ti-arrow-right" aria-hidden="true"></i> Manage security
+                        </button>
                     </div>
                     {% endcall %}
                 </div>
@@ -257,60 +315,74 @@
 
         {# ---------- Notifications ---------- #}
         <div class="settings-pane hidden" id="notifications">
-            {% call section_card("Notification Preferences", icon="ti-bell") %}
-            <div class="p-4 sm:p-6">
-                <form id="notificationForm" action="{{ url_for('account.update_notifications') }}" method="POST" class="space-y-6">
-                    {{ notification_form.hidden_tag() }}
-                    <div class="space-y-4">
-                        <label class="flex items-center justify-between gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer">
-                            <div>
-                                <p class="font-medium text-gray-900 dark:text-white">Email Notifications</p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">Receive updates via email</p>
-                            </div>
+            {% call section_card("Delivery Channels", icon="ti-bell") %}
+            <form id="notificationForm" action="{{ url_for('account.update_notifications') }}" method="POST">
+                {{ notification_form.hidden_tag() }}
+                {# Dense channel rows: icon tile + channel + toggle/status, divided #}
+                <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+                    <li>
+                        <label class="flex items-center gap-3 px-4 sm:px-5 py-3.5 min-h-[44px] cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <span class="w-9 h-9 shrink-0 rounded-lg bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-mail" aria-hidden="true"></i></span>
+                            <span class="flex-1 min-w-0">
+                                <span class="block text-sm font-semibold text-gray-900 dark:text-white">Email</span>
+                                <span class="block text-xs text-gray-500 dark:text-gray-400 font-mono truncate">{{ safe_current_user.email }}</span>
+                            </span>
                             <input type="checkbox" name="email_notifications" {{ 'checked' if safe_current_user.email_notifications else '' }}
                                    class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                         </label>
-                        <div class="flex items-center justify-between gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                            <div>
-                                <p class="font-medium text-gray-900 dark:text-white">SMS Notifications</p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">Receive text messages for important updates</p>
+                    </li>
+                    <li>
+                        <div class="flex items-center gap-3 px-4 sm:px-5 py-3.5">
+                            <span class="w-9 h-9 shrink-0 rounded-lg bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center"><i class="ti ti-message-2" aria-hidden="true"></i></span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-gray-900 dark:text-white">SMS / Text</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Important updates &amp; schedule changes</p>
                             </div>
                             {% if safe_current_user.sms_opted_in %}
-                            <div class="flex items-center gap-3">
-                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-300 rounded-full text-sm font-semibold"><i class="ti ti-circle-check" aria-hidden="true"></i> Enabled</span>
-                                <button type="button" id="smsOptOutBtn" class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <div class="flex items-center gap-2 shrink-0">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-300 rounded-full text-xs font-semibold"><i class="ti ti-circle-check" aria-hidden="true"></i> On</span>
+                                <button type="button" id="smsOptOutBtn" class="inline-flex items-center justify-center min-h-[44px] px-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-red-500">
                                     Disable
                                 </button>
                             </div>
                             {% else %}
-                            <button type="button" class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                            <button type="button" class="shrink-0 inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                                     data-modal-target="smsOptInModal" data-modal-toggle="smsOptInModal">
-                                Enable SMS
+                                Enable
                             </button>
                             {% endif %}
                         </div>
-                        <label class="flex items-center justify-between gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer">
-                            <div>
-                                <p class="font-medium text-gray-900 dark:text-white">Discord Notifications</p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">Receive notifications via Discord DM</p>
-                            </div>
+                    </li>
+                    <li>
+                        <label class="flex items-center gap-3 px-4 sm:px-5 py-3.5 min-h-[44px] cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <span class="w-9 h-9 shrink-0 rounded-lg bg-indigo-100 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center"><i class="ti ti-brand-discord" aria-hidden="true"></i></span>
+                            <span class="flex-1 min-w-0">
+                                <span class="block text-sm font-semibold text-gray-900 dark:text-white">Discord DM</span>
+                                <span class="block text-xs text-gray-500 dark:text-gray-400">{{ 'Linked account' if discord_linked else 'Link Discord in Integrations to receive DMs' }}</span>
+                            </span>
                             <input type="checkbox" name="discord_notifications" {{ 'checked' if safe_current_user.discord_notifications else '' }}
                                    class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                         </label>
-                        <label class="flex items-center justify-between gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer">
-                            <div>
-                                <p class="font-medium text-gray-900 dark:text-white">Match Reminders</p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">Day-before and 2-hour reminders for your matches</p>
-                            </div>
+                    </li>
+                    <li>
+                        <label class="flex items-center gap-3 px-4 sm:px-5 py-3.5 min-h-[44px] cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <span class="w-9 h-9 shrink-0 rounded-lg bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-calendar-event" aria-hidden="true"></i></span>
+                            <span class="flex-1 min-w-0">
+                                <span class="block text-sm font-semibold text-gray-900 dark:text-white">Match Reminders</span>
+                                <span class="block text-xs text-gray-500 dark:text-gray-400">Day-before &amp; 2-hour reminders for your matches</span>
+                            </span>
                             <input type="checkbox" name="match_reminder_notifications" {{ 'checked' if safe_current_user.match_reminder_notifications else '' }}
                                    class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                         </label>
-                    </div>
+                    </li>
+                </ul>
+                <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ channels_on }}/4 channels on</p>
                     <button type="submit" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-device-floppy" aria-hidden="true"></i> Save Preferences
                     </button>
-                </form>
-            </div>
+                </div>
+            </form>
             {% endcall %}
         </div>
 
@@ -355,17 +427,37 @@
                 {% call section_card("Calendar Subscription", icon="ti-calendar") %}
                 <div class="p-4 sm:p-6">
                     <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">Add your team's matches to Google Calendar, Apple Calendar, or Outlook.</p>
+                    <input type="hidden" id="subscriptionUrl" value="">
                     <div class="flex flex-wrap gap-3">
-                        <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        <button type="button" data-action="copy-subscription-url" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green"
                                 id="copyCalendarUrl">
                             <i class="ti ti-link" aria-hidden="true"></i> Copy Calendar URL
                         </button>
-                        <a href="#" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                        <a href="#" data-action="subscribe-google" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                            id="addToGoogleCalendar">
                             <i class="ti ti-brand-google" aria-hidden="true"></i> Add to Google
                         </a>
                     </div>
                 </div>
+                <script>
+                (function() {
+                    fetch('/api/calendar/subscription', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(function(r) { return r.ok ? r.json() : null; })
+                        .then(function(data) {
+                            if (!data || !data.feed_url) return;
+                            var urlInput = document.getElementById('subscriptionUrl');
+                            if (urlInput) urlInput.value = data.feed_url;
+                            var googleLink = document.getElementById('addToGoogleCalendar');
+                            if (googleLink) {
+                                googleLink.dataset.feedUrl = data.feed_url;
+                                googleLink.setAttribute('href', data.google_calendar_url || ('https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(data.feed_url)));
+                                googleLink.setAttribute('target', '_blank');
+                                googleLink.setAttribute('rel', 'noopener');
+                            }
+                        })
+                        .catch(function() { /* subscription unavailable */ });
+                })();
+                </script>
                 {% endcall %}
 
                 {% if safe_current_user.player and safe_current_user.player.discord_id %}

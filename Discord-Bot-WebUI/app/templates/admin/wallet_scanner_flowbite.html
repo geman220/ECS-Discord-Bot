@@ -147,5 +147,5 @@
 {{ super() }}
 <!-- QR Scanner Library -->
 <script src="https://unpkg.com/@AziDev/qrcodescanner/dist/qrCodeScanner.min.js"></script>
-<script src="{{ url_for('static', filename='custom_js/wallet-scanner.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='custom_js/wallet-scanner.js') }}"></script>
 {% endblock %}

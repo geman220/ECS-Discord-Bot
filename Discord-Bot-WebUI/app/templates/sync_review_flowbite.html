@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import alert, empty_state, modal, page_header, stat_card %}
 {% from "macros/flowbite.html" import modal_info %}
 {% from "macros/_modern_kit.html" import page_header, stat_card, section_card, alert, empty_state, modal %}
 
@@ -7,41 +8,61 @@
 {% block main_content %}
 {% if shell == 'console' %}
 {# ===================== MODERN (console) ===================== #}
+{% set total_issues = sync_data.flagged_multi_orders|length + sync_data.new_players|length + sync_data.email_mismatch_players|length %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-    {{ page_header("WooCommerce Sync Review", subtitle="Review and resolve sync issues before applying changes") }}
-    <div class="flex flex-wrap items-center gap-2 -mt-2 mb-6">
+
+    {# Command bar: eyebrow + title on the left, toolbar actions on the right #}
+    {% call page_header("WooCommerce Sync Review", subtitle="Players & Memberships / Sync") %}
         <a href="{{ url_for('user_management.manage_users') }}"
            class="inline-flex items-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to User Management
+            <i class="ti ti-arrow-left" aria-hidden="true"></i> <span class="hidden sm:inline">User Management</span>
         </a>
         <button type="button" class="js-refresh-sync inline-flex items-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-ecs-green text-ecs-green text-sm font-medium hover:bg-ecs-green hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green"
                 data-action="refresh-sync">
-            <i class="ti ti-refresh" aria-hidden="true"></i> Refresh Data
+            <i class="ti ti-refresh" aria-hidden="true"></i> Refresh
         </button>
-    </div>
+    {% endcall %}
 
-    {# Resolution Progress #}
-    <div class="mb-6">
-    {% call section_card("Resolution Progress", icon="ti-progress") %}
-        <div class="p-4 sm:p-5">
-            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-6 overflow-hidden">
-                <div class="bg-ecs-green h-6 rounded-full flex items-center justify-center text-white text-sm font-mono font-medium transition-all duration-300"
-                     id="resolutionProgress" style="width: 0%;">
-                    <span id="progressText">0% Complete</span>
+    {# ── PRIMARY: resolution status band ─────────────────────────────────
+       The page's one job is to drive every flagged issue to resolved and
+       then commit. This band leads with that progress + the commit CTA. #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3">
+            <div class="lg:col-span-2 p-5 sm:p-6 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Resolution Progress</span>
+                    <span class="text-xs font-mono text-gray-500 dark:text-gray-400">task <span class="text-gray-700 dark:text-gray-300">{{ task_id }}</span></span>
                 </div>
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-6 overflow-hidden">
+                    <div class="bg-ecs-green h-6 rounded-full flex items-center justify-center text-white text-sm font-mono font-medium transition-all duration-300"
+                         id="resolutionProgress" style="width: 0%;">
+                        <span id="progressText">0% Complete</span>
+                    </div>
+                </div>
+                <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                    <span class="font-mono font-bold text-gray-900 dark:text-white">{{ total_issues }}</span>
+                    issue{{ '' if total_issues == 1 else 's' }} need attention before changes can be committed.
+                </p>
+            </div>
+            <div class="p-5 sm:p-6 flex flex-col justify-center gap-1">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Resolved</span>
+                <div class="flex items-end gap-2">
+                    <span class="font-mono text-4xl font-bold leading-none text-ecs-green" id="issuesResolvedCount">0</span>
+                    <span class="font-mono text-lg text-gray-400 dark:text-gray-500 mb-0.5">/ {{ total_issues }}</span>
+                </div>
+                <span class="text-xs text-gray-500 dark:text-gray-400">issues cleared</span>
             </div>
         </div>
-    {% endcall %}
-    </div>
+    </section>
 
-    {# Stats Overview #}
+    {# ── KPI band: one tile per issue category, mono figures, severity by tone ── #}
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-        {{ stat_card("ti-user-plus", "New Players", ('<span id="newPlayersCount">' ~ sync_data.new_players|length ~ '</span>')|safe, tone='info') }}
-        {{ stat_card("ti-user-check", "Existing Players", ('<span id="existingPlayersCount">' ~ sync_data.player_league_updates|length ~ '</span>')|safe, tone='success') }}
-        {{ stat_card("ti-users", "Multi-Orders", ('<span id="flaggedOrdersCount">' ~ sync_data.flagged_multi_orders|length ~ '</span>')|safe, tone='warning') }}
-        {{ stat_card("ti-mail-x", "Email Mismatches", ('<span id="emailMismatchCount">' ~ sync_data.email_mismatch_players|length ~ '</span>')|safe, tone='danger') }}
-        {{ stat_card("ti-user-off", "Potential Inactive", ('<span id="potentialInactiveCount">' ~ sync_data.potential_inactive|length ~ '</span>')|safe, tone='info') }}
-        {{ stat_card("ti-circle-check", "Issues Resolved", ('<span id="issuesResolvedCount">0</span>')|safe, tone='neutral') }}
+        {{ stat_card("ti-users", "Multi-Orders", ('<span id="flaggedOrdersCount">' ~ sync_data.flagged_multi_orders|length ~ '</span>')|safe, sublabel="to assign", tone='warning') }}
+        {{ stat_card("ti-user-plus", "New Players", ('<span id="newPlayersCount">' ~ sync_data.new_players|length ~ '</span>')|safe, sublabel="to verify", tone='info') }}
+        {{ stat_card("ti-mail-x", "Email Mismatch", ('<span id="emailMismatchCount">' ~ sync_data.email_mismatch_players|length ~ '</span>')|safe, sublabel="conflicts", tone='danger') }}
+        {{ stat_card("ti-user-check", "Existing", ('<span id="existingPlayersCount">' ~ sync_data.player_league_updates|length ~ '</span>')|safe, sublabel="matched", tone='success') }}
+        {{ stat_card("ti-user-off", "Inactive", ('<span id="potentialInactiveCount">' ~ sync_data.potential_inactive|length ~ '</span>')|safe, sublabel="potential", tone='neutral') }}
+        {{ stat_card("ti-list-check", "Total Issues", total_issues|string, sublabel="open", tone='primary') }}
     </div>
 
     {# Main Issues Card with Tabs — JS hooks preserved verbatim #}
@@ -92,22 +113,26 @@
 
                 {% for order in sync_data.flagged_multi_orders %}
                 {% set outer_loop = loop %}
-                <div class="issue-card border border-gray-200 dark:border-gray-700 rounded-xl p-4 sm:p-6 mb-6" data-issue-type="multi-order" data-issue-id="{{ loop.index0 }}">
-                    <div class="flex flex-col md:flex-row justify-between gap-4 mb-4">
-                        <div>
-                            <div class="flex items-center gap-2 mb-2">
-                                <i class="ti ti-user text-ecs-green" aria-hidden="true"></i>
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ order.buyer_info.name }}</h3>
-                                <span class="status-badge px-2 py-1 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full">Pending Assignment</span>
+                <div class="issue-card border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-6" data-issue-type="multi-order" data-issue-id="{{ loop.index0 }}">
+                    {# Feature-card header bar #}
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800/60">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono text-xs text-amber-700 dark:text-amber-400">#{{ '%02d' % (outer_loop.index) }}</span>
+                                <i class="ti ti-user text-ecs-green shrink-0" aria-hidden="true"></i>
+                                <h3 class="text-base font-bold text-gray-900 dark:text-white truncate">{{ order.buyer_info.name }}</h3>
                             </div>
-                            <p class="text-gray-500 dark:text-gray-400 text-sm">
-                                <i class="ti ti-mail mr-1" aria-hidden="true"></i>{{ order.buyer_info.email }}<br>
-                                <span class="text-xs">{{ order.reason }}</span>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                                <i class="ti ti-mail mr-0.5" aria-hidden="true"></i>{{ order.buyer_info.email }}
+                                <span class="mx-1 text-gray-300 dark:text-gray-600">&bull;</span>{{ order.reason }}
                             </p>
                         </div>
+                        <span class="status-badge shrink-0 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full">
+                            <i class="ti ti-clock" aria-hidden="true"></i> Pending Assignment
+                        </span>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 sm:p-6">
                         <div>
                             <h4 class="font-medium text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
                                 <i class="ti ti-shopping-cart" aria-hidden="true"></i> Orders to Assign
@@ -243,14 +268,19 @@
                 </div>
 
                 {% for player in sync_data.new_players %}
-                <div class="issue-card border border-gray-200 dark:border-gray-700 rounded-xl p-4 sm:p-6 mb-4" data-issue-type="new-player" data-issue-id="{{ loop.index0 }}">
-                    <div class="flex items-center gap-2 mb-4">
-                        <i class="ti ti-user-plus text-blue-500" aria-hidden="true"></i>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ player.info.name }}</h3>
-                        <span class="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">New Player</span>
+                <div class="issue-card border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-4" data-issue-type="new-player" data-issue-id="{{ loop.index0 }}">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800/60">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="font-mono text-xs text-blue-700 dark:text-blue-400">#{{ '%02d' % (loop.index) }}</span>
+                            <i class="ti ti-user-plus text-blue-500 shrink-0" aria-hidden="true"></i>
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white truncate">{{ player.info.name }}</h3>
+                        </div>
+                        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
+                            <i class="ti ti-sparkles" aria-hidden="true"></i> New Player
+                        </span>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 sm:p-6">
                         <div>
                             <h4 class="font-medium text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
                                 <i class="ti ti-info-circle" aria-hidden="true"></i> Player Information
@@ -308,20 +338,23 @@
                 </div>
 
                 {% for player in sync_data.email_mismatch_players %}
-                <div class="issue-card border border-gray-200 dark:border-gray-700 rounded-xl p-4 sm:p-6 mb-4" data-issue-type="email-mismatch" data-issue-id="{{ loop.index0 }}">
-                    <div class="flex flex-col md:flex-row justify-between gap-4 mb-4">
-                        <div class="flex items-center gap-2">
-                            <i class="ti ti-mail-x text-red-500" aria-hidden="true"></i>
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ player.existing_player.name }}</h3>
-                            <span class="px-2 py-1 text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-full">Email Mismatch</span>
+                <div class="issue-card border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-4" data-issue-type="email-mismatch" data-issue-id="{{ loop.index0 }}">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800/60">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="font-mono text-xs text-red-700 dark:text-red-400">#{{ '%02d' % (loop.index) }}</span>
+                            <i class="ti ti-mail-x text-red-500 shrink-0" aria-hidden="true"></i>
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white truncate">{{ player.existing_player.name }}</h3>
+                            <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-full">
+                                <i class="ti ti-alert-triangle" aria-hidden="true"></i> Email Mismatch
+                            </span>
                         </div>
                         <a href="/players/profile/{{ player.existing_player.id }}" target="_blank"
-                           class="inline-flex items-center gap-1 px-3 py-1 min-h-[44px] sm:min-h-0 text-sm border border-ecs-green text-ecs-green rounded-lg hover:bg-ecs-green hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                           class="shrink-0 inline-flex items-center gap-1 px-3 py-1 min-h-[44px] sm:min-h-0 text-sm border border-ecs-green text-ecs-green rounded-lg hover:bg-ecs-green hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green">
                             <i class="ti ti-external-link" aria-hidden="true"></i> View Profile
                         </a>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 sm:p-6">
                         <div class="space-y-4">
                             <h4 class="font-medium text-blue-600 dark:text-blue-400 flex items-center gap-2">
                                 <i class="ti ti-search" aria-hidden="true"></i> Match Analysis
@@ -396,33 +429,63 @@
                 {{ alert('info', 'These players already exist in the database and will have their status updated (active/inactive only).', title='Existing Players Found', dismissible=False) }}
                 </div>
 
-                {% for update in sync_data.player_league_updates %}
-                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-3">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                        <div>
-                            <h5 class="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                                <i class="ti ti-user-check text-green-500" aria-hidden="true"></i>
-                                {{ update.buyer_info.name }}
-                            </h5>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">
-                                <i class="ti ti-mail mr-1" aria-hidden="true"></i>{{ update.buyer_info.email }}<br>
-                                <i class="ti ti-phone mr-1" aria-hidden="true"></i>{{ update.buyer_info.phone }}
-                            </p>
+                {# Real table on md+ with mono numerals; stacked cards on mobile #}
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <table class="hidden md:table w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
+                                <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Player</th>
+                                <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Contact</th>
+                                <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Order</th>
+                                <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Qty</th>
+                                <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Confidence</th>
+                                <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Match</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for update in sync_data.player_league_updates %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                                <td class="px-4 py-3">
+                                    <span class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                                        <i class="ti ti-user-check text-green-500 shrink-0" aria-hidden="true"></i>{{ update.buyer_info.name }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-gray-500 dark:text-gray-400 hidden lg:table-cell">
+                                    <span class="block truncate">{{ update.buyer_info.email }}</span>
+                                    <span class="block font-mono text-xs">{{ update.buyer_info.phone }}</span>
+                                </td>
+                                <td class="px-4 py-3 text-right font-mono text-gray-700 dark:text-gray-300">#{{ update.order_id }}</td>
+                                <td class="px-4 py-3 text-right font-mono text-gray-700 dark:text-gray-300">{{ update.quantity }}</td>
+                                <td class="px-4 py-3 text-right font-mono font-semibold text-gray-900 dark:text-white">{{ "%.0f"|format(update.confidence * 100) }}%</td>
+                                <td class="px-4 py-3 text-right whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-semibold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-full">{{ update.match_type }}</span>
+                                    {% if update.name_updated %}
+                                    <span class="px-2 py-1 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full ml-1 inline-block">Name Updated</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {# Mobile stacked cards #}
+                    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for update in sync_data.player_league_updates %}
+                        <div class="px-4 py-3.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white truncate">
+                                    <i class="ti ti-user-check text-green-500 shrink-0" aria-hidden="true"></i>{{ update.buyer_info.name }}
+                                </span>
+                                <span class="shrink-0 px-2 py-1 text-xs font-semibold bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-full">{{ update.match_type }}</span>
+                            </div>
+                            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+                                <p class="truncate"><i class="ti ti-mail mr-1" aria-hidden="true"></i>{{ update.buyer_info.email }}</p>
+                                <p class="font-mono">Order #{{ update.order_id }} &bull; Qty {{ update.quantity }} &bull; {{ "%.0f"|format(update.confidence * 100) }}%</p>
+                                {% if update.name_updated %}<span class="px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full inline-block">Name Updated</span>{% endif %}
+                            </div>
                         </div>
-                        <div>
-                            <span class="font-medium text-gray-900 dark:text-white">Order #{{ update.order_id }}</span><br>
-                            <span class="text-sm text-gray-500 dark:text-gray-400 font-mono">Qty: {{ update.quantity }}</span>
-                        </div>
-                        <div class="text-right">
-                            <span class="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-full">{{ update.match_type }}</span>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 font-mono">Confidence: {{ "%.0f"|format(update.confidence * 100) }}%</p>
-                            {% if update.name_updated %}
-                            <span class="px-2 py-1 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full mt-1 inline-block">Name Updated</span>
-                            {% endif %}
-                        </div>
+                        {% endfor %}
                     </div>
                 </div>
-                {% endfor %}
                 {% else %}
                 {{ empty_state('ti-users', 'No Existing Players Found', 'All orders are for new players or flagged for review.') }}
                 {% endif %}
@@ -446,32 +509,59 @@
                     </label>
                 </div>
 
-                {% for player in sync_data.players_to_inactivate %}
-                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-3">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                        <div>
-                            <h5 class="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                                <i class="ti ti-user-off text-amber-500" aria-hidden="true"></i>
-                                {{ player.player_name }}
-                            </h5>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">
-                                <i class="ti ti-user mr-1" aria-hidden="true"></i>Username: {{ player.username }}<br>
-                                <i class="ti ti-shield mr-1" aria-hidden="true"></i>League: {{ player.league_name }}
-                            </p>
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <table class="hidden md:table w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
+                                <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Player</th>
+                                <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">League</th>
+                                <th scope="col" class="px-4 py-2.5 text-center font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Transition</th>
+                                <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for player in sync_data.players_to_inactivate %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                                <td class="px-4 py-3">
+                                    <span class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                                        <i class="ti ti-user-off text-amber-500 shrink-0" aria-hidden="true"></i>{{ player.player_name }}
+                                    </span>
+                                    <span class="block text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">@{{ player.username }}</span>
+                                </td>
+                                <td class="px-4 py-3 text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ player.league_name }}</td>
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center justify-center gap-2 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-full">Active</span>
+                                        <i class="ti ti-arrow-right text-amber-500" aria-hidden="true"></i>
+                                        <span class="px-2 py-1 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full">Inactive</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-gray-500 dark:text-gray-400">{{ player.reason }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for player in sync_data.players_to_inactivate %}
+                        <div class="px-4 py-3.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white truncate">
+                                    <i class="ti ti-user-off text-amber-500 shrink-0" aria-hidden="true"></i>{{ player.player_name }}
+                                </span>
+                                <div class="flex items-center gap-1 shrink-0">
+                                    <span class="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-full">Active</span>
+                                    <i class="ti ti-arrow-right text-amber-500" aria-hidden="true"></i>
+                                    <span class="px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full">Inactive</span>
+                                </div>
+                            </div>
+                            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+                                <p class="font-mono">@{{ player.username }} &bull; {{ player.league_name }}</p>
+                                <p>{{ player.reason }}</p>
+                            </div>
                         </div>
-                        <div class="text-center">
-                            <span class="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-full">Currently Active</span>
-                            <div class="my-2"><i class="ti ti-arrow-down text-amber-500" aria-hidden="true"></i></div>
-                            <span class="px-2 py-1 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full">Will be Inactive</span>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm text-gray-500 dark:text-gray-400">
-                                <i class="ti ti-info-circle mr-1" aria-hidden="true"></i>{{ player.reason }}
-                            </p>
-                        </div>
+                        {% endfor %}
                     </div>
                 </div>
-                {% endfor %}
                 {% else %}
                 {{ empty_state('ti-circle-check', 'No Players to Mark Inactive!', 'All currently active players have current WooCommerce memberships.') }}
                 {% endif %}
@@ -1148,7 +1238,6 @@
 
 {% block custom_js %}
 {{ super() }}
-<script src="{{ url_for('static', filename='custom_js/sync-review.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Tab switching functionality

@@ -19,6 +19,7 @@ from app.decorators import role_required
 from app.admin_panel.routes.user_management.helpers import (
     get_user_analytics,
     generate_user_export_data,
+    get_registration_trends,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,30 @@ def user_analytics():
         logger.error(f"Error loading user analytics: {e}", exc_info=True)
         flash('User analytics unavailable. Verify database connection and analytics data.', 'error')
         return redirect(url_for('admin_panel.users_comprehensive'))
+
+
+@admin_panel_bp.route('/users/analytics/registration-trends')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def user_analytics_registration_trends():
+    """Return registration trend data for a given period as JSON.
+
+    Used by the analytics dashboard's period toggle (30d/90d/12m) to reload
+    the registration trend chart without a full page reload.
+    """
+    try:
+        period = request.args.get('period', '30d')
+        if period not in ('30d', '90d', '12m'):
+            period = '30d'
+        trends = get_registration_trends(period)
+        return jsonify({
+            'success': True,
+            'period': period,
+            'registration_trends': trends,
+        })
+    except Exception as e:
+        logger.error(f"Error loading registration trends: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Failed to load trends'}), 500
 
 
 @admin_panel_bp.route('/users/analytics/export', methods=['POST'])

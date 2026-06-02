@@ -22,137 +22,369 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state as kit_empty_state, alert as kit_alert %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state as kit_empty_state, alert as kit_alert, attention_list %}
 
-{{ page_header("Substitute Management", subtitle="Match Operations") }}
+{# ── Everything below is derived from real assignment + RSVP counts. No fabricated fields. ──
+   active_open : rows still needing a body (gap > 0) — drives the Priority Fill Queue + leads the cards
+   active_full : rows already fully staffed
+   Row shape: {r: request, filled, needed, gap, counts}
+   Tallies feed the KPI band. #}
+{% set ns = namespace(open_slots=0, filled_slots=0, need_slots=0, fully_filled=0) %}
+{% set active_open = [] %}
+{% set active_full = [] %}
+{% for request in sub_requests %}
+  {% if request.status in ['OPEN', 'PENDING', 'APPROVED'] %}
+    {% set _filled = (request.assignments|length if request.assignments else 0) %}
+    {% set _needed = request.substitutes_needed %}
+    {% set _gap = (_needed - _filled) if _needed > _filled else 0 %}
+    {% set _counts = rsvp_counts.get(request.id, {'yes': 0, 'maybe': 0, 'no': 0}) %}
+    {% set _row = {'r': request, 'filled': _filled, 'needed': _needed, 'gap': _gap, 'counts': _counts} %}
+    {% set ns.filled_slots = ns.filled_slots + _filled %}
+    {% set ns.need_slots = ns.need_slots + _needed %}
+    {% if _gap > 0 %}
+      {% set _ = active_open.append(_row) %}
+    {% else %}
+      {% set ns.fully_filled = ns.fully_filled + 1 %}
+      {% set _ = active_full.append(_row) %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+{% set ns.open_slots = ns.need_slots - ns.filled_slots if ns.need_slots > ns.filled_slots else 0 %}
+
+{% call(slot) page_header("Substitute Management", subtitle="Match Operations") %}
+  {# TODO backend: the mock has a page-level "Contact Subs" primary button, but the
+     show-contact-subs handler requires a specific request_id (a request-scoped compose
+     flow). A requestless/page-level contact action would need a new backend endpoint
+     (e.g. pick a request or broadcast to the whole pool). Per-request Contact Subs is
+     still available on each request card below. Not rendering a broken header button. #}
+  <a href="{{ url_for('admin_panel.match_operations') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Operations</span>
+  </a>
+{% endcall %}
 
 <div class="space-y-5 sm:space-y-6">
-  {# KPI band: 2-up mobile -> 4-up lg #}
+  {# ===== KPI band: open slots leads (the page's one job is filling them) ===== #}
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card("ti-clipboard-list", "Total Requests", stats.total_requests, tone='primary') }}
-    {{ stat_card("ti-clock", "Active Requests", stats.active_requests, tone='warning') }}
-    {{ stat_card("ti-user-check", "Available Subs", stats.available_subs, tone='success') }}
-    {{ stat_card("ti-calendar", "Upcoming Matches", stats.upcoming_matches, tone='info') }}
+    {% call stat_card("ti-user-exclamation", "Open Slots", ns.open_slots, tone=('warning' if ns.open_slots else 'success')) %}
+      {{ ns.filled_slots }}/{{ ns.need_slots }} assigned across {{ stats.active_requests }} active request{{ '' if stats.active_requests == 1 else 's' }}
+    {% endcall %}
+    {% call stat_card("ti-clipboard-check", "Fully Staffed", ns.fully_filled, tone='success') %}
+      requests with every slot filled
+    {% endcall %}
+    {% call stat_card("ti-user-check", "Sub Pool", stats.available_subs, tone='info') %}
+      active members available to assign
+    {% endcall %}
+    {% call stat_card("ti-calendar", "Upcoming Matches", stats.upcoming_matches, tone='primary') %}
+      {{ stats.total_requests }} total request{{ '' if stats.total_requests == 1 else 's' }} this season
+    {% endcall %}
   </div>
 
-  {# Filters #}
-  {% call section_card("Filters", icon="ti-filter") %}
-  <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 sm:p-5">
-    <div>
-      <label for="show_requested" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Show Matches</label>
-      <select name="show_requested" id="show_requested"
-              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <option value="all" {% if show_requested == 'all' %}selected{% endif %}>All Matches</option>
-        <option value="requested" {% if show_requested == 'requested' %}selected{% endif %}>With Sub Requests</option>
-        <option value="not_requested" {% if show_requested == 'not_requested' %}selected{% endif %}>Without Sub Requests</option>
-      </select>
-    </div>
-    <div>
-      <label for="week" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Week</label>
-      <select name="week" id="week"
-              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <option value="">All Weeks</option>
-        {% for week in weeks %}
-        <option value="{{ week }}" {% if current_week == week %}selected{% endif %}>Week {{ week }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="flex items-end gap-2 sm:col-span-2">
-      <button type="submit"
-              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-search" aria-hidden="true"></i>Filter
-      </button>
-      <a href="{{ url_for('admin_panel.substitute_management') }}"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        <i class="ti ti-x" aria-hidden="true"></i>Clear
-      </a>
-    </div>
-  </form>
+  {# ===== Priority Fill Queue — THE page's one job: slots still needing a body ===== #}
+  {% if active_open %}
+  {% call attention_list("Priority Fill Queue", count=active_open|length, icon="ti-user-exclamation") %}
+    {% for row in active_open %}
+    {% set request = row.r %}
+    {# Severity from real signals only: nothing filled & no available yes = critical; nothing filled = warning; partially filled = notice. #}
+    {% set _sev = 'notice' %}
+    {% if row.filled == 0 and row.counts.yes == 0 %}{% set _sev = 'critical' %}
+    {% elif row.filled == 0 %}{% set _sev = 'warning' %}{% endif %}
+    {% set _sevmap = {'critical': 'text-red-600 dark:text-red-400 ti-alert-octagon', 'warning': 'text-amber-600 dark:text-amber-400 ti-alert-triangle-filled', 'notice': 'text-blue-600 dark:text-blue-400 ti-info-circle-filled'} %}
+    {% set _sevword = {'critical': 'Critical', 'warning': 'Open', 'notice': 'Partial'} %}
+    {% set _scls = _sevmap[_sev].split(' ')[:-1]|join(' ') %}
+    {% set _sicon = _sevmap[_sev].split(' ')[-1] %}
+    <li class="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+      <span class="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide w-24 {{ _scls }}">
+        <i class="ti {{ _sicon }} text-[12px]" aria-hidden="true"></i> {{ _sevword[_sev] }}
+      </span>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+          {{ request.match.home_team.name }} <span class="text-gray-400 font-normal">vs</span> {{ request.match.away_team.name }}
+        </p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span class="font-medium text-gray-600 dark:text-gray-300">{{ request.team.name }}</span>
+          <span class="font-mono">{{ request.match.date.strftime('%a %m/%d') if request.match.date else 'TBD' }}{% if request.match.time %} {{ request.match.time.strftime('%I:%M %p') }}{% endif %}</span>
+          {% if request.positions_needed %}<span class="inline-flex items-center gap-0.5"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ request.positions_needed }}</span>{% endif %}
+        </p>
+      </div>
+      {# Mono fill gap = the actionable number #}
+      <div class="shrink-0 flex items-center gap-3">
+        <span class="text-right leading-tight">
+          <span class="block font-mono text-base font-bold {{ _scls }}">{{ row.gap }}</span>
+          <span class="block text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">to fill</span>
+        </span>
+        <span class="hidden sm:flex flex-col items-end text-[11px] font-mono text-gray-500 dark:text-gray-400">
+          <span class="text-green-600 dark:text-green-400">{{ row.counts.yes }} yes</span>
+          <span>{{ row.filled }}/{{ row.needed }} set</span>
+        </span>
+        <button class="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                data-action="show-sub-assignment" data-request-id="{{ request.id }}" data-match-id="{{ request.match.id }}" data-team-id="{{ request.team.id }}">
+          <i class="ti ti-plus" aria-hidden="true"></i><span>Assign</span>
+        </button>
+      </div>
+    </li>
+    {% endfor %}
   {% endcall %}
+  {% endif %}
 
-  {# Active Substitute Requests #}
-  {% call section_card("Active Substitute Requests", icon="ti-alert-circle") %}
-  <div class="p-4 sm:p-5">
-    {% if sub_requests %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-      {% for request in sub_requests %}
-      {% if request.status in ['OPEN', 'PENDING', 'APPROVED'] %}
-      <div class="rounded-xl border border-gray-200 dark:border-gray-700 border-l-4 {% if request.league_type == 'Premier' %}border-l-red-500{% elif request.league_type == 'Classic' %}border-l-green-500{% else %}border-l-amber-500{% endif %} bg-white dark:bg-gray-800 p-4">
-        <div class="flex justify-between items-start gap-2 mb-3">
-          <h4 class="font-semibold text-gray-900 dark:text-white">{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</h4>
-          <div class="flex gap-1.5 shrink-0">
+  {# ===== Filter toolbar ===== #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <form method="GET" class="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 px-4 py-3">
+      <div class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:self-center sm:mb-2">
+        <i class="ti ti-filter" aria-hidden="true"></i>Filter
+      </div>
+      <div class="flex-1 min-w-[160px]">
+        <label for="show_requested" class="block mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">Show Matches</label>
+        <select name="show_requested" id="show_requested"
+                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="all" {% if show_requested == 'all' %}selected{% endif %}>All Matches</option>
+          <option value="requested" {% if show_requested == 'requested' %}selected{% endif %}>With Sub Requests</option>
+          <option value="not_requested" {% if show_requested == 'not_requested' %}selected{% endif %}>Without Sub Requests</option>
+        </select>
+      </div>
+      <div class="flex-1 min-w-[140px]">
+        <label for="week" class="block mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">Week</label>
+        <select name="week" id="week"
+                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="">All Weeks</option>
+          {% for week in weeks %}
+          <option value="{{ week }}" {% if current_week == week %}selected{% endif %}>Week {{ week }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex items-end gap-2">
+        <button type="submit"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-search" aria-hidden="true"></i>Apply
+        </button>
+        <a href="{{ url_for('admin_panel.substitute_management') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-x" aria-hidden="true"></i>Clear
+        </a>
+      </div>
+    </form>
+  </section>
+
+  {# ===== Board: open requests (2 cols) ↔ available sub pool (1 col) ===== #}
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
+
+  {# ===== Active Substitute Requests — bespoke feature cards (the primary object) ===== #}
+  <section class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-alert-circle text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>Active Substitute Requests
+        {% if stats.active_requests %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ stats.active_requests }}</span>{% endif %}
+      </h2>
+    </div>
+    <div class="p-4 sm:p-5">
+    {% if active_open or active_full %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {# Unfilled requests lead; fully-staffed follow. Both share the same card. #}
+      {% for row in active_open + active_full %}
+      {% set request = row.r %}
+      {% set filled = row.filled %}
+      {% set needed = row.needed %}
+      {% set pct = ((filled / needed) * 100)|round|int if needed else 0 %}
+      {% set is_full = filled >= needed %}
+      {% set counts = row.counts %}
+      <div class="flex flex-col rounded-xl border {% if is_full %}border-gray-200 dark:border-gray-700{% else %}border-amber-200 dark:border-amber-500/30{% endif %} bg-white dark:bg-gray-800 overflow-hidden">
+        {# Header bar: league accent + match + status pill #}
+        <div class="flex items-start justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700 border-l-4 {% if request.league_type == 'Premier' %}border-l-red-500{% elif request.league_type == 'Classic' %}border-l-green-500{% else %}border-l-amber-500{% endif %}">
+          <div class="min-w-0">
+            <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ request.team.name }}</p>
+            <h4 class="font-semibold text-gray-900 dark:text-white truncate">{{ request.match.home_team.name }} <span class="text-gray-400 font-normal">vs</span> {{ request.match.away_team.name }}</h4>
+          </div>
+          <div class="flex flex-col items-end gap-1 shrink-0">
             {% if request.league_type == 'Premier' %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Premier</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Premier</span>
             {% elif request.league_type == 'Classic' %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Classic</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Classic</span>
             {% endif %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">{{ request.status }}</span>
+            {% if is_full %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-circle-check text-[10px]" aria-hidden="true"></i>Staffed</span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><i class="ti ti-point-filled text-[10px]" aria-hidden="true"></i>Needs <span class="font-mono font-bold">{{ row.gap }}</span></span>
+            {% endif %}
           </div>
         </div>
-        <div class="text-sm text-gray-500 dark:text-gray-400 mb-2">
-          <p class="flex items-center gap-1">
-            <i class="ti ti-calendar" aria-hidden="true"></i><span class="font-mono">{{ request.match.date.strftime('%m/%d/%Y') if request.match.date }}</span>
+
+        <div class="flex-1 px-4 py-3 space-y-3">
+          {# Date / time line, mono #}
+          <p class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <i class="ti ti-calendar" aria-hidden="true"></i><span class="font-mono text-gray-700 dark:text-gray-300">{{ request.match.date.strftime('%a %m/%d/%Y') if request.match.date else 'TBD' }}</span>
             {% if request.match.time %}
-            <i class="ti ti-clock ml-2" aria-hidden="true"></i><span class="font-mono">{{ request.match.time.strftime('%I:%M %p') }}</span>
+            <i class="ti ti-clock ml-1.5" aria-hidden="true"></i><span class="font-mono text-gray-700 dark:text-gray-300">{{ request.match.time.strftime('%I:%M %p') }}</span>
             {% endif %}
           </p>
-        </div>
-        <div class="text-sm text-gray-600 dark:text-gray-300 mb-3">
-          <p><strong>Team:</strong> {{ request.team.name }}</p>
-          <p><strong>Needed:</strong> <span class="font-mono">{{ request.substitutes_needed }}</span> substitute(s)</p>
-          {% set counts = rsvp_counts.get(request.id, {'yes': 0, 'maybe': 0, 'no': 0}) %}
-          <p class="mt-1 flex items-center gap-1 flex-wrap">
-            <strong>RSVPs:</strong>
-            {% if counts.yes or counts.maybe or counts.no %}
-            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><span class="font-mono">{{ counts.yes }}</span>&nbsp;Yes</span>
-            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><span class="font-mono">{{ counts.maybe }}</span>&nbsp;Maybe</span>
-            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><span class="font-mono">{{ counts.no }}</span>&nbsp;No</span>
-            {% else %}
-            <span class="text-gray-400 text-xs">No responses yet</span>
+
+          {# Requirement chips — positions / gender the request actually specified #}
+          {% if request.positions_needed or request.gender_preference %}
+          <div class="flex flex-wrap items-center gap-1.5">
+            {% if request.positions_needed %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ request.positions_needed }}
+            </span>
             {% endif %}
-          </p>
-          {% if request.notes %}
-          <div>
-            <strong>Notes:</strong>
-            {% if request.notes|length > 50 %}
-            <span data-notes-short="{{ request.id }}">{{ request.notes[:50] }}... <button type="button" data-action="expand-notes" data-request-id="{{ request.id }}" class="text-ecs-green hover:underline text-xs font-medium">(more)</button></span>
-            <span data-notes-full="{{ request.id }}" class="hidden">{{ request.notes }} <button type="button" data-action="collapse-notes" data-request-id="{{ request.id }}" class="text-ecs-green hover:underline text-xs font-medium">(less)</button></span>
-            {% else %}
-            {{ request.notes }}
+            {% if request.gender_preference %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-user text-[11px]" aria-hidden="true"></i>{{ request.gender_preference|capitalize }}
+            </span>
             {% endif %}
           </div>
           {% endif %}
+
+          {# Fill progress: the card's headline metric #}
+          <div>
+            <div class="flex items-baseline justify-between mb-1">
+              <span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Assigned</span>
+              <span class="font-mono text-sm font-bold {% if is_full %}text-green-600 dark:text-green-400{% else %}text-amber-600 dark:text-amber-400{% endif %}">{{ filled }}<span class="text-gray-400 dark:text-gray-500">/{{ needed }}</span></span>
+            </div>
+            <div class="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+              <div class="h-full rounded-full {% if is_full %}bg-green-500{% else %}bg-ecs-green{% endif %}" style="width: {{ pct if pct <= 100 else 100 }}%"></div>
+            </div>
+          </div>
+
+          {# RSVP readout: segmented mono counts #}
+          <div>
+            <span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">RSVPs</span>
+            {% if counts.yes or counts.maybe or counts.no %}
+            <div class="mt-1 grid grid-cols-3 gap-1.5">
+              <div class="rounded-lg bg-green-50 dark:bg-green-500/10 px-2 py-1.5 text-center">
+                <span class="block font-mono text-base font-bold text-green-600 dark:text-green-400">{{ counts.yes }}</span>
+                <span class="block text-[10px] uppercase tracking-wide text-green-700/70 dark:text-green-300/70">Yes</span>
+              </div>
+              <div class="rounded-lg bg-amber-50 dark:bg-amber-500/10 px-2 py-1.5 text-center">
+                <span class="block font-mono text-base font-bold text-amber-600 dark:text-amber-400">{{ counts.maybe }}</span>
+                <span class="block text-[10px] uppercase tracking-wide text-amber-700/70 dark:text-amber-300/70">Maybe</span>
+              </div>
+              <div class="rounded-lg bg-red-50 dark:bg-red-500/10 px-2 py-1.5 text-center">
+                <span class="block font-mono text-base font-bold text-red-600 dark:text-red-400">{{ counts.no }}</span>
+                <span class="block text-[10px] uppercase tracking-wide text-red-700/70 dark:text-red-300/70">No</span>
+              </div>
+            </div>
+            {% else %}
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500 italic">No responses yet</p>
+            {% endif %}
+          </div>
+
+          {% if request.notes %}
+          <div class="text-xs text-gray-600 dark:text-gray-300">
+            <span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Notes</span>
+            <p class="mt-0.5">
+            {% if request.notes|length > 50 %}
+            <span data-notes-short="{{ request.id }}">{{ request.notes[:50] }}... <button type="button" data-action="expand-notes" data-request-id="{{ request.id }}" class="text-ecs-green hover:underline font-medium">(more)</button></span>
+            <span data-notes-full="{{ request.id }}" class="hidden">{{ request.notes }} <button type="button" data-action="collapse-notes" data-request-id="{{ request.id }}" class="text-ecs-green hover:underline font-medium">(less)</button></span>
+            {% else %}
+            {{ request.notes }}
+            {% endif %}
+            </p>
+          </div>
+          {% endif %}
         </div>
-        <div class="flex justify-between items-center pt-3 border-t border-gray-200 dark:border-gray-700">
-          <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ request.assignments|length if request.assignments else 0 }}/{{ request.substitutes_needed }} assigned</span>
-          <div class="flex gap-1">
-            <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-100 rounded-lg dark:text-red-400 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                    data-action="delete-active-request" data-request-id="{{ request.id }}" data-team-name="{{ request.team.name }}" aria-label="Delete Request" title="Delete Request">
-              <i class="ti ti-trash" aria-hidden="true"></i>
-            </button>
+
+        {# Command footer: secondary icon actions + primary Assign CTA #}
+        <div class="flex items-center justify-between gap-1 px-4 py-2.5 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+          <div class="flex items-center gap-0.5">
             <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
                     data-action="show-contact-subs" data-request-id="{{ request.id }}" data-league="{{ request.team.league.name if request.team.league else 'Premier' }}" aria-label="Contact Subs" title="Contact Subs">
               <i class="ti ti-send" aria-hidden="true"></i>
             </button>
-            <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 hover:bg-green-100 rounded-lg dark:text-green-400 dark:hover:bg-green-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+            <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:bg-gray-200 rounded-lg dark:text-gray-400 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green"
                     data-action="show-availability" data-request-id="{{ request.id }}" aria-label="View Availability" title="View Availability">
               <i class="ti ti-list-check" aria-hidden="true"></i>
             </button>
-            <button class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                    data-action="show-sub-assignment" data-request-id="{{ request.id }}" data-match-id="{{ request.match.id }}" data-team-id="{{ request.team.id }}">
-              <i class="ti ti-plus" aria-hidden="true"></i>Assign
+            <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-100 rounded-lg dark:text-red-400 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    data-action="delete-active-request" data-request-id="{{ request.id }}" data-team-name="{{ request.team.name }}" aria-label="Delete Request" title="Delete Request">
+              <i class="ti ti-trash" aria-hidden="true"></i>
             </button>
           </div>
+          <button class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                  data-action="show-sub-assignment" data-request-id="{{ request.id }}" data-match-id="{{ request.match.id }}" data-team-id="{{ request.team.id }}">
+            <i class="ti ti-plus" aria-hidden="true"></i>Assign
+          </button>
         </div>
       </div>
-      {% endif %}
       {% endfor %}
     </div>
     {% else %}
-    {{ kit_empty_state("ti-clipboard-list", "No active substitute requests", "All substitute requests have been fulfilled or there are no pending requests.") }}
+    {{ kit_empty_state("ti-clipboard-check", "No active substitute requests", "All substitute requests have been fulfilled or there are no pending requests.") }}
     {% endif %}
-  </div>
-  {% endcall %}
+    </div>
+  </section>
+
+  {# ===== Available Sub Pool — searchable roster of active pool members ===== #}
+  {# Data: available_subs = [{id, name, positions, league_type}] from SubstitutePool (route).
+     No per-member live availability field exists, so we surface league_type (real) rather
+     than fabricating Available/Maybe pills. #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col"
+           id="subPoolBoard">
+    <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-user-check text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Available Sub Pool</h2>
+      {% if available_subs %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ available_subs|length }}</span>{% endif %}
+    </div>
+
+    {% if available_subs %}
+    {# Search + league filter pills (client-side filter over rendered rows) #}
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <label for="poolSearch" class="sr-only">Search sub pool</label>
+      <div class="relative">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
+        <input id="poolSearch" type="text" placeholder="Search subs by name or position…"
+               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+      </div>
+      <div class="mt-2 flex flex-wrap gap-1.5" id="poolLeagueFilters">
+        <button type="button" data-pool-league="all"
+                class="px-2.5 py-1 rounded-md text-xs font-medium bg-ecs-green/15 text-ecs-green is-active">All</button>
+        <button type="button" data-pool-league="Premier"
+                class="px-2.5 py-1 rounded-md text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">Premier</button>
+        <button type="button" data-pool-league="Classic"
+                class="px-2.5 py-1 rounded-md text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">Classic</button>
+      </div>
+    </div>
+
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700 overflow-y-auto" id="subPoolList" role="list">
+      {% for sub in available_subs %}
+      {# Avatar initials from real name; up to two words #}
+      {% set _parts = sub.name.split() %}
+      {% set _initials = (_parts[0][0] ~ (_parts[-1][0] if _parts|length > 1 else ''))|upper if _parts else '?' %}
+      <li class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          data-pool-row
+          data-pool-name="{{ sub.name|lower }}"
+          data-pool-positions="{{ (sub.positions or '')|lower }}"
+          data-pool-league="{{ sub.league_type or '' }}">
+        <span class="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-xs font-mono font-bold text-gray-500 dark:text-gray-300">{{ _initials }}</span>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ sub.name }}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+            {% if sub.positions %}{{ sub.positions }}{% if sub.league_type %} · {% endif %}{% endif %}
+            {% if sub.league_type == 'Premier' %}<span class="text-red-600 dark:text-red-400">Premier</span>
+            {% elif sub.league_type == 'Classic' %}<span class="text-green-600 dark:text-green-400">Classic</span>
+            {% elif sub.league_type %}<span>{{ sub.league_type }}</span>{% endif %}
+          </p>
+        </div>
+        <button class="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                data-action="show-sub-assignment" data-player-id="{{ sub.id }}"
+                aria-label="Assign {{ sub.name }}" title="Assign {{ sub.name }}">
+          <i class="ti ti-plus" aria-hidden="true"></i>
+        </button>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="hidden px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500 italic" id="subPoolEmpty">No subs match your search.</p>
+    {% else %}
+    {{ kit_empty_state("ti-user-off", "No subs in the pool", "No active members are in the substitute pool yet.") }}
+    {% endif %}
+
+    <div class="mt-auto px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+      <a href="{{ url_for('admin_panel.substitute_pools') }}"
+         class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-users" aria-hidden="true"></i>Manage sub pool
+      </a>
+    </div>
+  </section>
+
+  </div>{# /board grid #}
 
   {# Upcoming Matches #}
   {% if upcoming_matches %}
@@ -168,9 +400,23 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% set dt = namespace(last='') %}
         {% for match in upcoming_matches %}
+        {% set _daykey = match.date.strftime('%Y-%m-%d') if match.date else 'tbd' %}
+        {% if _daykey != dt.last %}
+        {% set dt.last = _daykey %}
+        {# Date-group divider: mono ecs-green date, the concept's grouping rule #}
+        <tr class="bg-gray-50 dark:bg-gray-900/40">
+          <td colspan="5" class="px-3 py-1.5">
+            <span class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide font-mono text-ecs-green">
+              <i class="ti ti-calendar-event text-[12px]" aria-hidden="true"></i>{{ match.date.strftime('%A, %b %d') if match.date else 'Date TBD' }}
+            </span>
+          </td>
+        </tr>
+        {% endif %}
         <tr data-row class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50">
           <td class="px-3 py-3 align-top">
+            <span class="block text-[10px] font-medium uppercase tracking-wide text-ecs-green">{{ match.date.strftime('%a') if match.date else '' }}</span>
             <span class="text-gray-900 dark:text-white whitespace-nowrap font-mono">{{ match.date.strftime('%m/%d') if match.date else 'TBD' }}</span><br>
             <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap font-mono">{{ match.time.strftime('%I:%M %p') if match.time else '' }}</span>
           </td>
@@ -185,9 +431,14 @@
             {% endif %}
           </td>
           <td class="px-3 py-3 align-top">
-            <span class="font-medium text-gray-900 dark:text-white">{{ match.home_team.name }}</span><br>
-            <span class="text-xs text-gray-500 dark:text-gray-400">vs</span><br>
-            <span class="font-medium text-gray-900 dark:text-white">{{ match.away_team.name }}</span>
+            <span class="flex items-center gap-1.5">
+              <span class="inline-flex items-center justify-center w-5 h-5 shrink-0 rounded font-mono text-[10px] font-bold bg-ecs-green/10 text-ecs-green">H</span>
+              <span class="font-medium text-gray-900 dark:text-white">{{ match.home_team.name }}</span>
+            </span>
+            <span class="flex items-center gap-1.5 mt-1">
+              <span class="inline-flex items-center justify-center w-5 h-5 shrink-0 rounded font-mono text-[10px] font-bold bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">A</span>
+              <span class="font-medium text-gray-900 dark:text-white">{{ match.away_team.name }}</span>
+            </span>
           </td>
           <td class="px-3 py-3 hidden lg:table-cell align-top">
             {% set match_requests = requested_teams_by_match.get(match.id, {}) %}
@@ -829,8 +1080,101 @@ window.SUB_MANAGEMENT_CONFIG = {
     availabilityUrl: '/admin-panel/substitute-contact'
 };
 
-// All event handlers are in app/static/js/event-delegation/handlers/substitute-pool.js
+// Most event handlers are in app/static/js/event-delegation/handlers/substitute-pool.js
 // Actions: show-contact-subs, send-sub-request, show-availability, show-sub-assignment, etc.
+//
+// The notes expand/collapse toggles and the delete-active-request action are page-local,
+// so their handlers live here. main-entry.js is a deferred module, so EventDelegation may
+// not be ready at parse time -> register on DOMContentLoaded (see feedback note).
+document.addEventListener('DOMContentLoaded', function() {
+    if (!window.EventDelegation || typeof window.EventDelegation.register !== 'function') {
+        console.error('[substitute-management] EventDelegation unavailable; notes/delete handlers not registered');
+        return;
+    }
+
+    // --- Notes expand/collapse: swap the truncated/full spans (data-notes-short / -full) ---
+    window.EventDelegation.register('expand-notes', function(element, e) {
+        e.preventDefault();
+        const id = element.dataset.requestId;
+        if (!id) return;
+        const shortEl = document.querySelector('[data-notes-short="' + id + '"]');
+        const fullEl  = document.querySelector('[data-notes-full="' + id + '"]');
+        if (shortEl) shortEl.classList.add('hidden');
+        if (fullEl)  fullEl.classList.remove('hidden');
+    }, { preventDefault: true });
+
+    window.EventDelegation.register('collapse-notes', function(element, e) {
+        e.preventDefault();
+        const id = element.dataset.requestId;
+        if (!id) return;
+        const shortEl = document.querySelector('[data-notes-short="' + id + '"]');
+        const fullEl  = document.querySelector('[data-notes-full="' + id + '"]');
+        if (fullEl)  fullEl.classList.add('hidden');
+        if (shortEl) shortEl.classList.remove('hidden');
+    }, { preventDefault: true });
+
+    // --- Delete a substitute request (DELETE /api/substitute-pools/requests/<id>) ---
+    window.EventDelegation.register('delete-active-request', function(element, e) {
+        e.preventDefault();
+        const id = element.dataset.requestId;
+        if (!id) {
+            console.error('[delete-active-request] Missing request ID');
+            return;
+        }
+        const teamName = element.dataset.teamName || 'this team';
+
+        function getCsrfToken() {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.getAttribute('content') : '';
+        }
+
+        function doDelete() {
+            fetch('/api/substitute-pools/requests/' + encodeURIComponent(id), {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    if (typeof window.Swal !== 'undefined') {
+                        window.Swal.fire('Deleted', data.message || 'Substitute request deleted.', 'success')
+                            .then(() => location.reload());
+                    } else {
+                        location.reload();
+                    }
+                } else if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', data.error || 'Failed to delete request.', 'error');
+                } else {
+                    console.error('[delete-active-request]', data.error);
+                }
+            })
+            .catch(err => {
+                console.error('[delete-active-request] request failed', err);
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', 'Failed to delete request.', 'error');
+                }
+            });
+        }
+
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
+                title: 'Delete substitute request?',
+                text: 'Delete the substitute request for ' + teamName + '? This cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Delete',
+                confirmButtonColor: '#dc2626'
+            }).then((result) => {
+                if (result.isConfirmed) doDelete();
+            });
+        } else if (window.confirm('Delete the substitute request for ' + teamName + '? This cannot be undone.')) {
+            doDelete();
+        }
+    }, { preventDefault: true });
+});
 
 // --- Assign modal: responded / pool / search toggle ---
 (function() {
@@ -943,6 +1287,58 @@ window.SUB_MANAGEMENT_CONFIG = {
             resultsDiv.classList.add('hidden');
         }
     });
+})();
+
+// --- Available Sub Pool: client-side search + league filter ---
+(function() {
+    const search  = document.getElementById('poolSearch');
+    const list    = document.getElementById('subPoolList');
+    const filters = document.getElementById('poolLeagueFilters');
+    const empty   = document.getElementById('subPoolEmpty');
+    if (!list) return;
+
+    let activeLeague = 'all';
+    const rows = Array.from(list.querySelectorAll('[data-pool-row]'));
+
+    function apply() {
+        const term = (search ? search.value : '').trim().toLowerCase();
+        let visible = 0;
+        rows.forEach(row => {
+            const name = row.dataset.poolName || '';
+            const pos  = row.dataset.poolPositions || '';
+            const lg   = row.dataset.poolLeague || '';
+            const matchesText   = !term || name.includes(term) || pos.includes(term);
+            const matchesLeague = activeLeague === 'all' || lg === activeLeague;
+            const show = matchesText && matchesLeague;
+            row.classList.toggle('hidden', !show);
+            if (show) visible++;
+        });
+        if (empty) empty.classList.toggle('hidden', visible !== 0);
+    }
+
+    if (search) search.addEventListener('input', apply);
+
+    if (filters) {
+        filters.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-pool-league]');
+            if (!btn) return;
+            activeLeague = btn.dataset.poolLeague;
+            filters.querySelectorAll('[data-pool-league]').forEach(b => {
+                const on = b === btn;
+                b.classList.toggle('is-active', on);
+                b.classList.toggle('bg-ecs-green/15', on);
+                b.classList.toggle('text-ecs-green', on);
+                b.classList.toggle('border', !on);
+                b.classList.toggle('border-gray-300', !on);
+                b.classList.toggle('dark:border-gray-600', !on);
+                b.classList.toggle('text-gray-500', !on);
+                b.classList.toggle('dark:text-gray-400', !on);
+                b.classList.toggle('hover:bg-gray-100', !on);
+                b.classList.toggle('dark:hover:bg-gray-700', !on);
+            });
+            apply();
+        });
+    }
 })();
 
 // Auto-refresh every 2 minutes

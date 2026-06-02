@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import alert, empty_state, page_header, stat_card %}
 {% from "macros/flowbite.html" import modal_form %}
 {% from "macros/_modern_kit.html" import page_header, stat_card, section_card, data_table, data_table_th, empty_state, alert %}
 
@@ -55,11 +56,26 @@
 {% block main_content %}
 {% if shell == 'console' %}
 {# ===================== MODERN (console) ===================== #}
+{# Real-data note: matches are dicts from load_match_dates_from_db + the route, exposing
+   match_id, opponent, venue, is_home_game, competition, date_time (Pacific) and formatted_date.
+   live_reporting_status / id are referenced by the original JS hooks and are preserved verbatim;
+   counts below derive only from fields the route actually provides. #}
 {% set running_count = matches | selectattr('live_reporting_status', 'equalto', 'running') | list | length %}
 {% set scheduled_count = matches | selectattr('live_reporting_status', 'equalto', 'scheduled') | list | length %}
+{% set home_count = matches | selectattr('is_home_game') | list | length %}
 <div class="max-w-7xl mx-auto space-y-5 sm:space-y-6">
 
-  {{ page_header("Sounders Schedule", subtitle="Live reporting control") }}
+  {# ---- Command header: primary job is running live reporting from the schedule ---- #}
+  {% call page_header("Sounders Schedule", subtitle="Live reporting control") %}
+    <button type="button" data-modal-target="addMatchModal" data-modal-toggle="addMatchModal"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-plus" aria-hidden="true"></i> Add a Match
+    </button>
+    <button type="button" id="clearMatchesBtn"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
+      <i class="ti ti-trash" aria-hidden="true"></i> Clear Matches
+    </button>
+  {% endcall %}
 
   {# Deprecation banner — kit alert, links to the replacement interface #}
   {{ alert('warning',
@@ -73,108 +89,119 @@
   </p>
 
   {# KPI band — real counts from the matches context #}
-  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-    {{ stat_card('ti-calendar-event', 'Upcoming', matches | length, sublabel='matches', tone='neutral') }}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-calendar-event', 'Scheduled', matches | length, sublabel='matches', tone='neutral') }}
     {{ stat_card('ti-broadcast', 'Live now', running_count, sublabel='reporting', tone='success') }}
-    {{ stat_card('ti-clock', 'Scheduled', scheduled_count, sublabel='queued', tone='info') }}
+    {{ stat_card('ti-clock', 'Queued', scheduled_count, sublabel='awaiting kickoff', tone='info') }}
+    {{ stat_card('ti-home', 'Home dates', home_count, sublabel='of ' ~ (matches | length), tone='gold') }}
   </div>
 
-  {% call data_table('Manage Upcoming Matches', icon='ti-ballpark', count=(matches | length) if matches else None, search_placeholder='Filter by opponent or competition…', search_id='matchFilter', filters=(matches | length > 0)) %}
-    {% if matches %}
-    {# --- md+ table --- #}
-    <table class="hidden md:table w-full text-sm">
-      <thead>
-        <tr class="border-b border-gray-200 dark:border-gray-700">
-          {{ data_table_th('Opponent', key='opponent') }}
-          {{ data_table_th('Date', key='date') }}
-          {{ data_table_th('Competition', key='competition', hide='sm') }}
-          {{ data_table_th('Status', key='status') }}
-          {{ data_table_th('Actions', key='actions', sortable=False, align='right') }}
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for match in matches %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-match-id="{{ match.match_id }}">
-          <td class="px-3 py-3">
-            <span class="font-semibold text-gray-900 dark:text-white" id="opponent-{{ match.id }}">{{ match.opponent }}</span>
-          </td>
-          <td class="px-3 py-3">
-            <span class="font-mono text-gray-700 dark:text-gray-300" id="date-{{ match.id }}">{{ match.formatted_date }}</span>
-          </td>
-          <td class="px-3 py-3 hidden md:table-cell">
-            <span class="text-gray-700 dark:text-gray-300" id="competition-{{ match.id }}">{{ inverse_competition_mappings.get(match.competition, match.competition) }}</span>
-          </td>
-          <td class="px-3 py-3">
-            <span id="status-{{ match.id }}" class="live-status-indicator {{ match.live_reporting_status }}">
-              {{ match.live_reporting_status|capitalize }}
-            </span>
-          </td>
-          <td class="px-3 py-3" id="actions-{{ match.id }}">
-            <div class="flex items-center justify-end gap-2">
-              <button type="button"
-                      data-action="start-reporting"
-                      data-match-id="{{ match.id }}"
-                      {% if match.live_reporting_status == 'running' %}disabled{% endif %}
-                      class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      aria-label="Start live reporting for match against {{ match.opponent }}">
-                {% if match.live_reporting_status == 'scheduled' %}Force Start{% elif match.live_reporting_status == 'running' %}Running{% else %}Start{% endif %}
-              </button>
-              <button type="button"
-                      data-action="stop-reporting"
-                      data-match-id="{{ match.id }}"
-                      {% if match.live_reporting_status != 'running' %}disabled{% endif %}
-                      class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      aria-label="Stop live reporting for match against {{ match.opponent }}">
-                Stop
-              </button>
-              <div class="relative">
-                <button type="button" data-dropdown-toggle="matchDropdown-{{ match.id }}"
-                        class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                        aria-label="More actions for {{ match.opponent }}">
-                  <i class="ti ti-dots-vertical" aria-hidden="true"></i>
-                </button>
-                <div id="matchDropdown-{{ match.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-lg w-40 dark:bg-gray-700 dark:divide-gray-600 border border-gray-200 dark:border-gray-600">
-                  <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
-                    <li>
-                      <button type="button" data-action="edit-match-schedule" data-match-id="{{ match.id }}" class="w-full flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
-                        <i class="ti ti-edit mr-2" aria-hidden="true"></i> Edit Schedule
-                      </button>
-                    </li>
-                    <li>
-                      <button type="button" data-action="remove-match" data-match-id="{{ match.match_id }}" class="w-full flex items-center px-4 py-2 text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600">
-                        <i class="ti ti-trash mr-2" aria-hidden="true"></i> Delete
-                      </button>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  {# ---- Primary object: the schedule as a date-grouped dense match list (concept Upcoming Matches treatment) ---- #}
+  <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex flex-col gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-ballpark text-ecs-green" aria-hidden="true"></i> Match Schedule
+          {% if matches %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ matches | length }}</span>{% endif %}
+        </h2>
+      </div>
+      {% if matches %}
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="relative flex-1 min-w-[180px]">
+          <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+          <input type="search" id="matchFilter" placeholder="Filter by opponent, venue or competition…"
+                 class="input-ecs h-9 pl-9 pr-3 text-sm w-full" aria-label="Filter matches">
+        </div>
+      </div>
+      {% endif %}
+    </div>
 
-    {# --- mobile stacked cards --- #}
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+    {% if matches %}
+    {# Date-group dividers (mono ecs-green date + h-px rule), dense rows with H/A badge, mono time, venue + competition pill, inline command controls. #}
+    {% set ns = namespace(current_day='') %}
+    <div class="divide-y divide-gray-200 dark:divide-gray-700" id="matchList">
       {% for match in matches %}
-      <div class="px-4 py-3.5" data-match-id="{{ match.match_id }}">
-        <div class="flex items-start justify-between gap-2">
+      {% set day_key = match.date_time.strftime('%a · %b %d') if match.date_time else (match.formatted_date or 'Date TBD') %}
+      {% if day_key != ns.current_day %}
+        {% set ns.current_day = day_key %}
+        <div class="px-4 sm:px-5 pt-4 pb-1 flex items-center gap-2" data-date-group>
+          <span class="font-mono text-[11px] font-semibold uppercase tracking-wide text-ecs-green">{{ day_key }}</span>
+          <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+          {% if match.date_time %}<span class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide font-mono">{{ match.date_time.strftime('%Y') }}</span>{% endif %}
+        </div>
+      {% endif %}
+
+      <div class="match-row px-4 sm:px-5 py-3.5 flex flex-col lg:flex-row lg:items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+           data-row-card
+           data-match-id="{{ match.match_id }}"
+           data-search="{{ (match.opponent ~ ' ' ~ (match.venue or '') ~ ' ' ~ inverse_competition_mappings.get(match.competition, match.competition)) | lower }}">
+
+        {# --- Identity: H/A badge + opponent + meta line --- #}
+        <div class="flex items-start gap-3 flex-1 min-w-0">
+          <span class="shrink-0 w-8 h-8 rounded-md flex items-center justify-center text-[11px] font-bold font-mono mt-0.5
+                       {% if match.is_home_game %}bg-ecs-green/10 text-ecs-green{% else %}bg-blue-500/10 text-blue-600 dark:text-blue-400{% endif %}"
+                title="{% if match.is_home_game %}Home match{% else %}Away match{% endif %}">
+            {{ 'H' if match.is_home_game else 'A' }}
+          </span>
           <div class="min-w-0">
-            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate" id="opponent-{{ match.id }}">{{ match.opponent }}</p>
-            <p class="mt-0.5 text-xs font-mono text-gray-500 dark:text-gray-400" id="date-{{ match.id }}">{{ match.formatted_date }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400" id="competition-{{ match.id }}">{{ inverse_competition_mappings.get(match.competition, match.competition) }}</p>
+            <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+              <span class="text-ecs-green">Sounders</span>
+              <span class="text-gray-400 dark:text-gray-500 font-normal">{{ 'vs' if match.is_home_game else 'at' }}</span>
+              <span id="opponent-{{ match.id }}">{{ match.opponent }}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <span class="flex items-center gap-1">
+                <i class="ti ti-clock" aria-hidden="true"></i>
+                <span class="font-mono" id="date-{{ match.id }}">{{ match.date_time.strftime('%-I:%M %p') if match.date_time else match.formatted_date }}</span>
+              </span>
+              {% if match.venue %}
+              <span class="flex items-center gap-1 min-w-0">
+                <i class="ti ti-map-pin shrink-0" aria-hidden="true"></i>
+                <span class="truncate">{{ match.venue }}</span>
+              </span>
+              {% endif %}
+              <span class="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" id="competition-{{ match.id }}">
+                {{ inverse_competition_mappings.get(match.competition, match.competition) }}
+              </span>
+            </div>
           </div>
-          <div class="relative shrink-0">
-            <button type="button" data-dropdown-toggle="matchDropdownM-{{ match.id }}"
-                    class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+        </div>
+
+        {# --- Status + command controls --- #}
+        <div class="flex items-center gap-2 shrink-0 pl-11 lg:pl-0" id="actions-{{ match.id }}">
+          <span id="status-{{ match.id }}" class="live-status-indicator {{ match.live_reporting_status }}">
+            {{ match.live_reporting_status|capitalize }}
+          </span>
+          <button type="button"
+                  data-action="start-reporting"
+                  data-match-id="{{ match.id }}"
+                  {% if match.live_reporting_status == 'running' %}disabled{% endif %}
+                  class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-xs font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Start live reporting for match against {{ match.opponent }}">
+            <i class="ti ti-player-play" aria-hidden="true"></i>
+            {% if match.live_reporting_status == 'scheduled' %}Force Start{% elif match.live_reporting_status == 'running' %}Running{% else %}Start{% endif %}
+          </button>
+          <button type="button"
+                  data-action="stop-reporting"
+                  data-match-id="{{ match.id }}"
+                  {% if match.live_reporting_status != 'running' %}disabled{% endif %}
+                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Stop live reporting for match against {{ match.opponent }}">
+            <i class="ti ti-player-stop" aria-hidden="true"></i>
+          </button>
+          <div class="relative">
+            <button type="button" data-dropdown-toggle="matchDropdown-{{ match.id }}"
+                    class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 inline-flex items-center justify-center text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
                     aria-label="More actions for {{ match.opponent }}">
               <i class="ti ti-dots-vertical" aria-hidden="true"></i>
             </button>
-            <div id="matchDropdownM-{{ match.id }}" class="z-10 hidden absolute right-0 top-full bg-white divide-y divide-gray-100 rounded-lg shadow-lg w-40 dark:bg-gray-700 dark:divide-gray-600 border border-gray-200 dark:border-gray-600">
+            <div id="matchDropdown-{{ match.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-lg w-40 dark:bg-gray-700 dark:divide-gray-600 border border-gray-200 dark:border-gray-600">
               <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                 <li>
-                  <button type="button" data-action="edit-match-schedule" data-match-id="{{ match.id }}" class="w-full flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
+                  <button type="button" data-action="edit-match-schedule" data-match-id="{{ match.id }}"
+                          data-match-date="{{ match.date_time.strftime('%Y-%m-%d %H:%M') if match.date_time else '' }}"
+                          data-match-competition="{{ inverse_competition_mappings.get(match.competition, match.competition) }}"
+                          class="w-full flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
                     <i class="ti ti-edit mr-2" aria-hidden="true"></i> Edit Schedule
                   </button>
                 </li>
@@ -187,49 +214,14 @@
             </div>
           </div>
         </div>
-        <div class="mt-2 flex items-center justify-between gap-2 flex-wrap">
-          <span id="status-{{ match.id }}" class="live-status-indicator {{ match.live_reporting_status }}">
-            {{ match.live_reporting_status|capitalize }}
-          </span>
-          <div class="flex items-center gap-2">
-            <button type="button"
-                    data-action="start-reporting"
-                    data-match-id="{{ match.id }}"
-                    {% if match.live_reporting_status == 'running' %}disabled{% endif %}
-                    class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Start live reporting for match against {{ match.opponent }}">
-              {% if match.live_reporting_status == 'scheduled' %}Force Start{% elif match.live_reporting_status == 'running' %}Running{% else %}Start{% endif %}
-            </button>
-            <button type="button"
-                    data-action="stop-reporting"
-                    data-match-id="{{ match.id }}"
-                    {% if match.live_reporting_status != 'running' %}disabled{% endif %}
-                    class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Stop live reporting for match against {{ match.opponent }}">
-              Stop
-            </button>
-          </div>
-        </div>
       </div>
       {% endfor %}
     </div>
     {% else %}
-    {{ empty_state('ti-calendar-off', 'No matches scheduled', 'There are no upcoming matches to display.',
+    {{ empty_state('ti-calendar-off', 'No matches scheduled', 'There are no upcoming matches to display. Add a match to schedule live reporting.',
                    action={'label': 'Add a Match', 'icon': 'ti-plus', 'url': '#'}) }}
     {% endif %}
-  {% endcall %}
-
-  {# Match-level actions (add / clear) — kept here with the original JS hooks #}
-  <div class="flex flex-wrap items-center gap-2">
-    <button type="button" data-modal-target="addMatchModal" data-modal-toggle="addMatchModal"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-      <i class="ti ti-plus" aria-hidden="true"></i> Add a Match
-    </button>
-    <button type="button" id="clearMatchesBtn"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
-      <i class="ti ti-trash" aria-hidden="true"></i> Clear Matches
-    </button>
-  </div>
+  </section>
 
 </div>
 {% else %}
@@ -388,6 +380,24 @@
     <div>
         <label for="competition" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Competition</label>
         <select id="competition" name="competition" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+            {% for name, value in competition_mappings.items() %}
+            <option value="{{ name }}">{{ name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+{% endcall %}
+
+<!-- Edit Match Modal -->
+{% call modal_form('editMatchModal', 'Edit Match Schedule', form_id='editMatchForm', action='#', size='sm', submit_text='Save Changes', loading_text='Saving...') %}
+    <input type="hidden" id="editMatchId" name="match_id" value="">
+    <div class="mb-4">
+        <label for="editDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date</label>
+        <input type="text" id="editDate" name="date" placeholder="Select Date" required class="flatpickr-edit w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+    </div>
+
+    <div>
+        <label for="editCompetition" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Competition</label>
+        <select id="editCompetition" name="competition" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
             {% for name, value in competition_mappings.items() %}
             <option value="{{ name }}">{{ name }}</option>
             {% endfor %}
@@ -736,14 +746,92 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Edit Match Schedule (placeholder - implement actual edit modal if needed)
+    // Edit Match Schedule — open prefilled modal posting to the real update route
+    // (bot_admin.update_mls_match_route: /bot/admin/update_match/<int:match_id>)
+    const editForm = document.getElementById('editMatchForm');
+    const editMatchIdInput = document.getElementById('editMatchId');
+    const editDateInput = document.getElementById('editDate');
+    const editCompetitionSelect = document.getElementById('editCompetition');
+
     document.querySelectorAll('[data-action="edit-match-schedule"]').forEach(btn => {
         btn.addEventListener('click', function() {
             const matchId = this.dataset.matchId;
-            showToast('info', `Edit functionality for match ${matchId} coming soon`);
-            // TODO: Implement edit modal if needed
+            if (!matchId || !editForm) return;
+
+            // Prefill from data attributes (modern shell, format Y-m-d H:i). The
+            // #competition- span exists in both shells and holds the friendly name.
+            // The date input is only prefilled when we have a parseable Y-m-d value;
+            // otherwise the admin picks it via flatpickr before saving.
+            const dateText = this.dataset.matchDate || '';
+            const competitionText = this.dataset.matchCompetition
+                || document.getElementById(`competition-${matchId}`)?.textContent.trim()
+                || '';
+
+            if (editMatchIdInput) editMatchIdInput.value = matchId;
+            if (editDateInput) editDateInput.value = /^\d{4}-\d{2}-\d{2}/.test(dateText) ? dateText : '';
+            if (editCompetitionSelect && competitionText) {
+                Array.from(editCompetitionSelect.options).forEach(opt => {
+                    if (opt.value === competitionText) editCompetitionSelect.value = competitionText;
+                });
+            }
+
+            FlowbiteModal.show('editMatchModal');
         });
     });
+
+    editForm?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const matchId = editMatchIdInput?.value;
+        if (!matchId) return;
+
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn ? submitBtn.textContent : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = submitBtn.getAttribute('data-loading-text') || 'Saving...';
+        }
+
+        try {
+            const response = await fetch(`/bot/admin/update_match/${matchId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': _csrfToken
+                },
+                body: JSON.stringify({
+                    date: editDateInput?.value || '',
+                    competition: editCompetitionSelect?.value || ''
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                showToast('success', 'Match schedule updated successfully');
+                FlowbiteModal.hide('editMatchModal');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('error', result.message || 'Failed to update match schedule');
+            }
+        } catch (error) {
+            console.error('Error updating match schedule:', error);
+            showToast('error', 'An error occurred while updating the match schedule');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        }
+    });
+
+    // Initialize flatpickr for the edit modal date input
+    if (typeof flatpickr !== 'undefined') {
+        flatpickr('.flatpickr-edit', {
+            enableTime: true,
+            dateFormat: 'Y-m-d H:i',
+            time_24hr: true
+        });
+    }
 });
 </script>
 {% endblock %}

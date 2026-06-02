@@ -125,7 +125,13 @@ class Config:
     
     # JWT Configuration
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=1)
+    # Access token lifetime is long because the mobile client does not refresh
+    # reliably (only ~16 rotations/day across 200-300 users observed in prod);
+    # a short-lived access token meant most sessions died at expiry and users
+    # saw "session timed out". Long-lived access tokens are safe here because
+    # logout/revocation goes through the Redis blocklist (checked on every
+    # request in app/init/jwt.py), so a token can still be killed before expiry.
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=30)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)  # Match session lifetime
     
     # External Service Keys

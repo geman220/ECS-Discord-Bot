@@ -12,7 +12,7 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-<div class="max-w-3xl mx-auto space-y-5 sm:space-y-6">
+<div class="max-w-5xl mx-auto space-y-5 sm:space-y-6">
     <nav class="flex" aria-label="Breadcrumb">
         <ol class="inline-flex items-center gap-1 sm:gap-2">
             <li class="inline-flex items-center">
@@ -30,11 +30,71 @@
         </ol>
     </nav>
 
-    {% call page_header("Edit Help Topic", subtitle="Help Center Administration") %}
-        {{ button("Cancel", variant="outline", href=url_for('help.admin_help_topics'), icon="x") }}
-    {% endcall %}
+    {# ── FEATURE CARD: the topic being edited (header bar + identity + KPI band) ── #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 h-auto sm:h-14 py-3 sm:py-0 border-b border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/30">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-ecs-green">
+                    <i class="ti ti-pencil-cog text-sm" aria-hidden="true"></i> Editing Topic
+                </span>
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">#{{ topic.id }}</span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{{ url_for('help.view_topic', topic_id=topic.id) }}"
+                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <i class="ti ti-eye text-sm" aria-hidden="true"></i> View Live
+                </a>
+                {{ button("Cancel", variant="outline", href=url_for('help.admin_help_topics'), icon="x") }}
+            </div>
+        </div>
 
-    {% call section_card("Topic Content", icon="ti-edit") %}
+        <div class="px-4 sm:px-5 py-4">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Title</p>
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white break-words">{{ topic.title }}</h1>
+        </div>
+
+        {# KPI band — real metadata from the HelpTopic model #}
+        <dl class="grid grid-cols-2 lg:grid-cols-4 border-t border-gray-200 dark:border-gray-700 divide-x divide-y lg:divide-y-0 divide-gray-200 dark:divide-gray-700">
+            <div class="p-4 sm:p-5">
+                <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Topic ID</dt>
+                <dd class="mt-2 font-mono text-2xl sm:text-3xl font-bold leading-none text-ecs-green">#{{ topic.id }}</dd>
+            </div>
+            <div class="p-4 sm:p-5">
+                <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Audience</dt>
+                <dd class="mt-2 font-mono text-2xl sm:text-3xl font-bold leading-none {{ 'text-blue-600 dark:text-blue-400' if topic.allowed_roles else 'text-ecs-gold-500 dark:text-ecs-gold-400' }}">{{ topic.allowed_roles|length }}</dd>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ 'role' if topic.allowed_roles|length == 1 else 'roles' }} {{ 'restricted' if topic.allowed_roles else '— public' }}</p>
+            </div>
+            <div class="p-4 sm:p-5">
+                <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Created</dt>
+                <dd class="mt-2 font-mono text-base sm:text-lg font-bold leading-tight text-gray-900 dark:text-white">{{ topic.created_at.strftime('%Y-%m-%d') if topic.created_at else '—' }}</dd>
+                {% if topic.created_at %}<p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ topic.created_at.strftime('%H:%M UTC') }}</p>{% endif %}
+            </div>
+            <div class="p-4 sm:p-5">
+                <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Last Updated</dt>
+                <dd class="mt-2 font-mono text-base sm:text-lg font-bold leading-tight text-gray-900 dark:text-white">{{ topic.updated_at.strftime('%Y-%m-%d') if topic.updated_at else '—' }}</dd>
+                {% if topic.updated_at %}<p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ topic.updated_at.strftime('%H:%M UTC') }}</p>{% endif %}
+            </div>
+        </dl>
+
+        {# Current audience chips — derived from real allowed_roles #}
+        <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Visible to</span>
+            {% if topic.allowed_roles %}
+                {% for role in topic.allowed_roles %}
+                <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                    <i class="ti ti-shield-half text-[12px]" aria-hidden="true"></i>{{ role.name }}
+                </span>
+                {% endfor %}
+            {% else %}
+                <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md bg-ecs-gold-100 text-ecs-gold-700 dark:bg-ecs-gold-500/15 dark:text-ecs-gold-400">
+                    <i class="ti ti-world text-[12px]" aria-hidden="true"></i>Public — all users
+                </span>
+            {% endif %}
+        </div>
+    </section>
+
+    {# ── PRIMARY JOB: the edit form ── #}
+    {% call section_card("Edit Content", icon="ti-edit") %}
     <form method="POST" class="space-y-6 p-4 sm:p-5">
         {{ form.hidden_tag() }}
 
@@ -44,6 +104,9 @@
                 <span class="text-red-500" aria-hidden="true">*</span>
             </label>
             {{ form.title(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", placeholder="Enter help topic title") }}
+            {% if form.title.errors %}
+            <p class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><i class="ti ti-alert-circle text-sm" aria-hidden="true"></i>{{ form.title.errors[0] }}</p>
+            {% endif %}
         </div>
 
         <div>
@@ -52,6 +115,10 @@
                 <span class="text-red-500" aria-hidden="true">*</span>
             </label>
             {{ form.markdown_content(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", id="markdown_editor", rows="10", placeholder="Enter help content in Markdown") }}
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1"><i class="ti ti-markdown text-sm" aria-hidden="true"></i>Markdown supported — changes autosave locally as you type.</p>
+            {% if form.markdown_content.errors %}
+            <p class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><i class="ti ti-alert-circle text-sm" aria-hidden="true"></i>{{ form.markdown_content.errors[0] }}</p>
+            {% endif %}
         </div>
 
         <div>
@@ -62,6 +129,9 @@
             <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 Hold Ctrl/Cmd to select multiple roles. Leave empty or select "Public" for all users.
             </p>
+            {% if form.roles.errors %}
+            <p class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><i class="ti ti-alert-circle text-sm" aria-hidden="true"></i>{{ form.roles.errors[0] }}</p>
+            {% endif %}
         </div>
 
         <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">

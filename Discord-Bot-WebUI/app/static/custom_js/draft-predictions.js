@@ -45,16 +45,16 @@ export class DraftPredictionsManager {
             });
         }
 
-        // Auto-save on any change to prediction fields
+        // Auto-save on any change to prediction fields (round/confidence selects)
         document.addEventListener('change', (e) => {
-            if (e.target.matches('.predicted-round-input, .confidence-input')) {
+            if (e.target.matches('.prediction-input[data-field="predicted_round"], .prediction-input[data-field="confidence_level"]')) {
                 this.handleFieldChange(e.target);
             }
         });
 
         // Auto-save notes with debouncing
         document.addEventListener('input', (e) => {
-            if (e.target.matches('.notes-input')) {
+            if (e.target.matches('.prediction-input[data-field="notes"]')) {
                 this.handleNotesChange(e.target);
             }
         });
@@ -122,44 +122,70 @@ export class DraftPredictionsManager {
         }
     }
 
-    getPlayerCurrentValues(playerId) {
-        const row = document.querySelector(`tr[data-player-id="${playerId}"]`);
-        if (!row) return {};
+    // Returns every row (tr OR div) that represents this player. The page
+    // renders the same player in multiple layouts (desktop table + mobile
+    // stacked cards) that share the same data-player-id.
+    getPlayerRows(playerId) {
+        return Array.from(document.querySelectorAll(`[data-player-id="${playerId}"].prediction-row`));
+    }
 
-        const roundInput = row.querySelector('.predicted-round-input');
-        const confidenceInput = row.querySelector('.confidence-input');
-        const notesInput = row.querySelector('.notes-input');
+    getPlayerCurrentValues(playerId) {
+        const rows = this.getPlayerRows(playerId);
+        if (rows.length === 0) return {};
+
+        // Read each field from whichever row currently holds a value. Across
+        // duplicate layouts only the visible one is edited, so the most recent
+        // non-empty value wins.
+        const readField = (field) => {
+            let value = '';
+            rows.forEach((row) => {
+                const input = row.querySelector(`.prediction-input[data-field="${field}"]`);
+                if (input && input.value !== '') {
+                    value = input.value;
+                }
+            });
+            return value;
+        };
 
         return {
-            predicted_round: roundInput ? roundInput.value : '',
-            confidence_level: confidenceInput ? confidenceInput.value : '',
-            notes: notesInput ? notesInput.value : ''
+            predicted_round: readField('predicted_round'),
+            confidence_level: readField('confidence_level'),
+            notes: readField('notes')
         };
     }
 
     getPlayerName(playerId) {
-        const row = document.querySelector(`tr[data-player-id="${playerId}"]`);
-        if (row) {
-            const nameElement = row.querySelector('.fw-medium');
-            return nameElement ? nameElement.textContent : `Player ${playerId}`;
+        const rows = this.getPlayerRows(playerId);
+        for (const row of rows) {
+            // Proper-cased name is available on the clickable avatar in every layout.
+            const avatar = row.querySelector('.player-avatar-clickable[data-player-name]');
+            if (avatar && avatar.dataset.playerName) {
+                return avatar.dataset.playerName;
+            }
+            // Fallback to the lowercase name carried on the row itself.
+            if (row.dataset.playerName) {
+                return row.dataset.playerName;
+            }
         }
         return `Player ${playerId}`;
     }
 
     updateRowAppearance(playerId, status) {
-        const row = document.querySelector(`tr[data-player-id="${playerId}"]`);
-        if (!row) return;
+        const rows = this.getPlayerRows(playerId);
+        if (rows.length === 0) return;
 
-        // Remove all status classes
-        row.classList.remove('table-success', 'table-warning', 'table-danger', 'is-saving', 'is-saved', 'is-error');
+        rows.forEach((row) => {
+            // Remove all status classes
+            row.classList.remove('table-success', 'table-warning', 'table-danger', 'is-saving', 'is-saved', 'is-error');
 
-        if (status === 'saving') {
-            row.classList.add('is-saving');
-        } else if (status === true) {
-            row.classList.add('is-saved');
-        } else if (status === 'error') {
-            row.classList.add('is-error');
-        }
+            if (status === 'saving') {
+                row.classList.add('is-saving');
+            } else if (status === true) {
+                row.classList.add('is-saved');
+            } else if (status === 'error') {
+                row.classList.add('is-error');
+            }
+        });
     }
 
     showAutoSaveStatus(status) {
@@ -187,11 +213,13 @@ export class DraftPredictionsManager {
 
     async submitPrediction(playerId, values) {
         try {
-            const currentUrl = window.location.pathname;
-            const seasonId = currentUrl.split('/').pop();
+            // The page URL is /draft-predictions/predict/<league_type> so the
+            // last path segment is the league type (Premier|Classic). The
+            // season is resolved server-side from the current active season.
+            const leagueType = window.location.pathname.split('/').pop();
 
             const requestData = {
-                draft_season_id: parseInt(seasonId),
+                league_type: leagueType,
                 player_id: parseInt(playerId),
                 predicted_round: values.predicted_round ? parseInt(values.predicted_round) : null,
                 confidence_level: values.confidence_level ? parseInt(values.confidence_level) : null,
@@ -204,7 +232,7 @@ export class DraftPredictionsManager {
 
             const csrfToken = this.getCSRFToken();
 
-            const response = await fetch('/draft-predictions/predict', {
+            const response = await fetch('/draft-predictions/api/predict', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -321,25 +349,25 @@ export class DraftPredictionsManager {
 // Utility functions for quick access
 window.DraftPredictions = {
     setPrediction: function(playerId, round, confidence = null, notes = '') {
-        const row = document.querySelector(`tr[data-player-id="${playerId}"]`);
-        if (row) {
-            const roundInput = row.querySelector('.predicted-round-input');
-            const confidenceInput = row.querySelector('.confidence-input');
-            const notesInput = row.querySelector('.notes-input');
+        const rows = document.querySelectorAll(`[data-player-id="${playerId}"].prediction-row`);
+        rows.forEach((row) => {
+            const roundInput = row.querySelector('.prediction-input[data-field="predicted_round"]');
+            const confidenceInput = row.querySelector('.prediction-input[data-field="confidence_level"]');
+            const notesInput = row.querySelector('.prediction-input[data-field="notes"]');
 
             if (roundInput) {
                 roundInput.value = round;
-                roundInput.dispatchEvent(new Event('change'));
+                roundInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
             if (confidence && confidenceInput) {
                 confidenceInput.value = confidence;
-                confidenceInput.dispatchEvent(new Event('change'));
+                confidenceInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
             if (notes && notesInput) {
                 notesInput.value = notes;
-                notesInput.dispatchEvent(new Event('input'));
+                notesInput.dispatchEvent(new Event('input', { bubbles: true }));
             }
-        }
+        });
     },
 
     bulkSetRounds: function(roundMappings) {

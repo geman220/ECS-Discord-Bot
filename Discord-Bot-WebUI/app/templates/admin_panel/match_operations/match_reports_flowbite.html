@@ -22,253 +22,308 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/_modern_kit.html' import stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{# Derive honest figures from the real data the route provides. Match has score
+   columns (home_team_score/away_team_score) but NO status column and NO league
+   relationship (league lives on the team), so 'completed' is derived from the
+   presence of scores, never invented. #}
+{% set _matches = (reports_data.recent_matches if reports_data and reports_data.recent_matches else []) %}
+{% set _teams = (reports_data.teams if reports_data and reports_data.teams else []) %}
+{% set _ns = namespace(scored=0) %}
+{% for m in _matches %}
+  {% if m.home_team_score is not none and m.away_team_score is not none %}{% set _ns.scored = _ns.scored + 1 %}{% endif %}
+{% endfor %}
+{% set _leagues = (_teams | rejectattr('league', 'none') | map(attribute='league.name') | reject('none') | unique | list) %}
 <div class="space-y-6">
 
-  {{ page_header('Match Reports', subtitle='Generate and view match reports') }}
-
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-calendar', 'Total Matches', reports_data.total_matches if reports_data else 0, tone='info') }}
-    {{ stat_card('ti-check', 'Completed', reports_data.completed_matches if reports_data else 0, tone='success') }}
-    {{ stat_card('ti-clock', 'Pending', reports_data.pending_matches if reports_data else 0, tone='warning') }}
-    {{ stat_card('ti-users', 'Total Teams', reports_data.total_teams if reports_data else 0, tone='primary') }}
+  <!-- Command header: page identity + primary report CTA + export toolbar -->
+  <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+    <div class="min-w-0">
+      <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Match Operations · Reporting</p>
+      <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Match Reports</h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Generate, review and export reports across <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ reports_data.total_matches if reports_data else 0 }}</span> matches.</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 shrink-0">
+      <a href="{{ url_for('admin_panel.view_matches') }}" class="inline-flex items-center gap-1.5 min-h-[44px] sm:h-10 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-list-details" aria-hidden="true"></i><span class="hidden sm:inline">All Matches</span>
+      </a>
+      {# Export toolbar removed: no report-export backend route exists, so PDF/Excel/CSV
+         buttons here would 404. Re-add once admin_panel exposes a reports export endpoint. #}
+      <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900" data-action="generate-match-report">
+        <i class="ti ti-file-text" aria-hidden="true"></i>Generate Report
+      </button>
+    </div>
   </div>
 
-  <!-- Generate Reports -->
-  {% call section_card('Generate Reports', icon='ti-report') %}
-    <div class="p-4 sm:p-5">
-      <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <button type="button" class="flex flex-col items-center justify-center min-h-[44px] p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="generate-match-report">
-          <i class="ti ti-file-text text-2xl text-blue-600 dark:text-blue-400 mb-2" aria-hidden="true"></i>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white">Match Summary</span>
-        </button>
-        <button type="button" class="flex flex-col items-center justify-center min-h-[44px] p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="generate-league-report">
-          <i class="ti ti-trophy text-2xl text-ecs-green mb-2" aria-hidden="true"></i>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white">League Statistics</span>
-        </button>
-        <button type="button" class="flex flex-col items-center justify-center min-h-[44px] p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="generate-team-report">
-          <i class="ti ti-users text-2xl text-amber-600 dark:text-amber-400 mb-2" aria-hidden="true"></i>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white">Team Performance</span>
-        </button>
-        <button type="button" class="flex flex-col items-center justify-center min-h-[44px] p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="generate-custom-report">
-          <i class="ti ti-chart-bar text-2xl text-blue-600 dark:text-blue-400 mb-2" aria-hidden="true"></i>
-          <span class="text-sm font-semibold text-gray-900 dark:text-white">Custom Report</span>
-        </button>
-      </div>
+  <!-- KPI band — every figure is real route data or derived from it -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {% call stat_card('ti-calendar', 'Total Matches', reports_data.total_matches if reports_data else 0, tone='info') %}
+      all-time scheduled
+    {% endcall %}
+    {% call stat_card('ti-history', 'Last 30 Days', reports_data.recent_matches_count if reports_data else 0, tone='primary') %}
+      window for this report
+    {% endcall %}
+    {% call stat_card('ti-clipboard-check', 'Scored', _ns.scored, tone='success') %}
+      of {{ _matches | length }} in window
+    {% endcall %}
+    {% call stat_card('ti-shield-half', 'Teams', _teams | length, tone='gold') %}
+      across {{ _leagues | length }} league{{ '' if _leagues | length == 1 else 's' }}
+    {% endcall %}
+  </div>
+
+  <!-- Report builder — feature cards for the page's primary job -->
+  {% call section_card('Build a Report', icon='ti-report') %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700">
+      <button type="button" class="group flex items-start gap-3 text-left min-h-[44px] p-4 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="generate-match-report">
+        <span class="shrink-0 w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-file-text text-lg" aria-hidden="true"></i></span>
+        <span class="min-w-0">
+          <span class="block text-sm font-bold text-gray-900 dark:text-white">Match Summary</span>
+          <span class="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">Scores &amp; result recap</span>
+        </span>
+      </button>
+      <button type="button" class="group flex items-start gap-3 text-left min-h-[44px] p-4 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="generate-league-report">
+        <span class="shrink-0 w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/40 text-ecs-green flex items-center justify-center"><i class="ti ti-trophy text-lg" aria-hidden="true"></i></span>
+        <span class="min-w-0">
+          <span class="block text-sm font-bold text-gray-900 dark:text-white">League Statistics</span>
+          <span class="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">Standings &amp; aggregates</span>
+        </span>
+      </button>
+      <button type="button" class="group flex items-start gap-3 text-left min-h-[44px] p-4 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="generate-team-report">
+        <span class="shrink-0 w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-users text-lg" aria-hidden="true"></i></span>
+        <span class="min-w-0">
+          <span class="block text-sm font-bold text-gray-900 dark:text-white">Team Performance</span>
+          <span class="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">Per-team breakdown</span>
+        </span>
+      </button>
+      <button type="button" class="group flex items-start gap-3 text-left min-h-[44px] p-4 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="generate-custom-report">
+        <span class="shrink-0 w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center"><i class="ti ti-chart-bar text-lg" aria-hidden="true"></i></span>
+        <span class="min-w-0">
+          <span class="block text-sm font-bold text-gray-900 dark:text-white">Custom Report</span>
+          <span class="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">Pick your own filters</span>
+        </span>
+      </button>
     </div>
   {% endcall %}
 
-  <!-- Quick Reports + Export Options -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    {% call section_card('Quick Reports', icon='ti-clock-bolt') %}
-      <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-        <li>
-          <button type="button" class="w-full flex items-center justify-between gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="view-recent-matches">
-            <span class="flex items-center gap-3 min-w-0">
-              <i class="ti ti-calendar-event text-xl text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
-              <span class="min-w-0">
-                <span class="block font-semibold text-gray-900 dark:text-white">Recent Matches</span>
-                <span class="block text-sm text-gray-500 dark:text-gray-400">Last 7 days activity</span>
-              </span>
-            </span>
-            <span class="shrink-0 font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">{{ reports_data.recent_matches|length if reports_data and reports_data.recent_matches else 0 }}</span>
-          </button>
-        </li>
-        <li>
-          <button type="button" class="w-full flex items-center justify-between gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="view-upcoming-matches">
-            <span class="flex items-center gap-3 min-w-0">
-              <i class="ti ti-calendar-plus text-xl text-ecs-green shrink-0" aria-hidden="true"></i>
-              <span class="min-w-0">
-                <span class="block font-semibold text-gray-900 dark:text-white">Upcoming Matches</span>
-                <span class="block text-sm text-gray-500 dark:text-gray-400">Next 7 days schedule</span>
-              </span>
-            </span>
-            <span class="shrink-0 font-mono text-xs font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">{{ reports_data.upcoming_matches if reports_data else 0 }}</span>
-          </button>
-        </li>
-        <li>
-          <button type="button" class="w-full flex items-center justify-between gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="view-top-scorers">
-            <span class="flex items-center gap-3 min-w-0">
-              <i class="ti ti-trophy text-xl text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
-              <span class="min-w-0">
-                <span class="block font-semibold text-gray-900 dark:text-white">Top Scorers</span>
-                <span class="block text-sm text-gray-500 dark:text-gray-400">Highest scoring teams</span>
-              </span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-          </button>
-        </li>
-        <li>
-          <button type="button" class="w-full flex items-center justify-between gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="view-league-standings">
-            <span class="flex items-center gap-3 min-w-0">
-              <i class="ti ti-list-numbers text-xl text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
-              <span class="min-w-0">
-                <span class="block font-semibold text-gray-900 dark:text-white">League Standings</span>
-                <span class="block text-sm text-gray-500 dark:text-gray-400">Current league positions</span>
-              </span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-          </button>
-        </li>
-      </ul>
-    {% endcall %}
+  <!-- Two-column: primary results table (2/3) + quick views & exports (1/3) -->
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
-    {% call section_card('Export Options', icon='ti-download') %}
-      <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-        <li>
-          <button type="button" class="w-full flex items-center justify-between gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="export-pdf">
-            <span class="flex items-center gap-3 min-w-0">
-              <i class="ti ti-file-type-pdf text-xl text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
-              <span class="min-w-0">
-                <span class="block font-semibold text-gray-900 dark:text-white">PDF Report</span>
-                <span class="block text-sm text-gray-500 dark:text-gray-400">Formatted report document</span>
-              </span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-          </button>
-        </li>
-        <li>
-          <button type="button" class="w-full flex items-center justify-between gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="export-excel">
-            <span class="flex items-center gap-3 min-w-0">
-              <i class="ti ti-file-spreadsheet text-xl text-ecs-green shrink-0" aria-hidden="true"></i>
-              <span class="min-w-0">
-                <span class="block font-semibold text-gray-900 dark:text-white">Excel Spreadsheet</span>
-                <span class="block text-sm text-gray-500 dark:text-gray-400">Data for analysis</span>
-              </span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-          </button>
-        </li>
-        <li>
-          <button type="button" class="w-full flex items-center justify-between gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="export-csv">
-            <span class="flex items-center gap-3 min-w-0">
-              <i class="ti ti-file-text text-xl text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
-              <span class="min-w-0">
-                <span class="block font-semibold text-gray-900 dark:text-white">CSV Export</span>
-                <span class="block text-sm text-gray-500 dark:text-gray-400">Raw data export</span>
-              </span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-          </button>
-        </li>
-        <li>
-          <button type="button" class="w-full flex items-center justify-between gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="schedule-report">
-            <span class="flex items-center gap-3 min-w-0">
-              <i class="ti ti-calendar-time text-xl text-purple-600 dark:text-purple-400 shrink-0" aria-hidden="true"></i>
-              <span class="min-w-0">
-                <span class="block font-semibold text-gray-900 dark:text-white">Schedule Report</span>
-                <span class="block text-sm text-gray-500 dark:text-gray-400">Automated reports</span>
-              </span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-          </button>
-        </li>
-      </ul>
-    {% endcall %}
-  </div>
-
-  <!-- Recent Match Results -->
-  {% if reports_data and reports_data.recent_matches %}
-  {% call data_table('Recent Match Results', icon='ti-history', count=reports_data.recent_matches|length, search_placeholder='Filter matches…', search_id='recentMatchFilter') %}
-    <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
-      <thead>
-        <tr class="border-b border-gray-200 dark:border-gray-700">
-          {{ data_table_th('Date', key='date') }}
-          {{ data_table_th('Home Team', key='home') }}
-          {{ data_table_th('Score', key='score', align='center') }}
-          {{ data_table_th('Away Team', key='away') }}
-          {{ data_table_th('League', key='league', hide='sm') }}
-          {{ data_table_th('Actions', sortable=False, align='right') }}
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for match in reports_data.recent_matches[:10] %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-2.5 whitespace-nowrap">
-            <span class="font-mono text-gray-900 dark:text-white">{{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}</span>
-            {% if match.time %}<span class="block text-xs text-gray-500 dark:text-gray-400 font-mono">{{ match.time.strftime('%H:%M') }}</span>{% endif %}
-          </td>
-          <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</td>
-          <td class="px-3 py-2.5 text-center">
-            {% if match.home_score is not none and match.away_score is not none %}
-            <span class="inline-flex items-center font-mono px-2.5 py-0.5 rounded-full text-xs font-bold {% if match.home_score > match.away_score %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% elif match.home_score == match.away_score %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ match.home_score }} - {{ match.away_score }}</span>
+    <!-- PRIMARY: recent results table -->
+    <div class="xl:col-span-2 space-y-6">
+      {% if _matches %}
+      {% call data_table('Recent Match Results', icon='ti-history', count=_matches|length, search_placeholder='Filter matches…', search_id='recentMatchFilter') %}
+        <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
+          <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+              {{ data_table_th('Kickoff', key='date') }}
+              {{ data_table_th('Fixture', key='fixture') }}
+              {{ data_table_th('Result', key='score', align='center') }}
+              {{ data_table_th('League', key='league', hide='sm') }}
+              {{ data_table_th('Actions', sortable=False, align='right') }}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for match in _matches[:10] %}
+            {% set _league = match.home_team.league.name if match.home_team and match.home_team.league else None %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <td class="px-3 py-3 whitespace-nowrap align-top">
+                <span class="block font-mono text-xs font-semibold text-gray-900 dark:text-white">{{ match.date.strftime('%a · %b %d') if match.date else 'TBD' }}</span>
+                {% if match.time %}<span class="block text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">{{ match.time.strftime('%I:%M %p') }}</span>{% endif %}
+                {% if match.location %}<span class="block text-xs text-gray-400 dark:text-gray-500 truncate max-w-[140px]"><i class="ti ti-map-pin text-[10px]" aria-hidden="true"></i> {{ match.location }}</span>{% endif %}
+              </td>
+              <td class="px-3 py-3 align-top">
+                <div class="font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }} <span class="text-gray-400 dark:text-gray-500 font-normal">vs</span> {{ match.away_team.name if match.away_team else 'TBD' }}</div>
+                {% if match.is_playoff_game %}<span class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-ecs-gold-500 dark:text-ecs-gold-400"><i class="ti ti-tournament text-[11px]" aria-hidden="true"></i>Playoff</span>
+                {% elif match.week_type and match.week_type != 'REGULAR' %}<span class="inline-flex items-center gap-1 mt-1 text-xs font-medium text-gray-500 dark:text-gray-400"><i class="ti ti-tag text-[11px]" aria-hidden="true"></i>{{ match.week_type|title }}</span>{% endif %}
+              </td>
+              <td class="px-3 py-3 text-center align-top">
+                {% if match.home_team_score is not none and match.away_team_score is not none %}
+                <span class="inline-flex items-center font-mono px-2.5 py-0.5 rounded-full text-sm font-bold {% if match.home_team_score > match.away_team_score %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% elif match.home_team_score == match.away_team_score %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ match.home_team_score }}&ndash;{{ match.away_team_score }}</span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-clock text-xs" aria-hidden="true"></i>No score</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-3 hidden md:table-cell align-top">
+                {% if _league %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">{{ _league }}</span>
+                {% else %}<span class="text-gray-400 dark:text-gray-500">&mdash;</span>{% endif %}
+              </td>
+              <td class="px-3 py-3 align-top">
+                <div class="flex items-center justify-end gap-2">
+                  <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-match-report" data-match-id="{{ match.id }}" aria-label="View match report"><i class="ti ti-eye" aria-hidden="true"></i></button>
+                  <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-ecs-green hover:bg-green-50 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="generate-match-report" data-match-id="{{ match.id }}" aria-label="Generate match report"><i class="ti ti-file-text" aria-hidden="true"></i></button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+          {% for match in _matches[:10] %}
+          {% set _league = match.home_team.league.name if match.home_team and match.home_team.league else None %}
+          {% set _score_badge %}
+            {% if match.home_team_score is not none and match.away_team_score is not none %}
+            <span class="inline-flex items-center font-mono px-2.5 py-0.5 rounded-full text-xs font-bold {% if match.home_team_score > match.away_team_score %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% elif match.home_team_score == match.away_team_score %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ match.home_team_score }}&ndash;{{ match.away_team_score }}</span>
             {% else %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"><i class="ti ti-clock text-xs" aria-hidden="true"></i>Pending</span>
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-clock text-xs" aria-hidden="true"></i>No score</span>
             {% endif %}
-          </td>
-          <td class="px-3 py-2.5 text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</td>
-          <td class="px-3 py-2.5 hidden md:table-cell">
-            {% if match.league %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">{{ match.league.name }}</span>
-            {% else %}<span class="text-gray-500 dark:text-gray-400">No League</span>{% endif %}
-          </td>
-          <td class="px-3 py-2.5">
-            <div class="flex items-center justify-end gap-2">
-              <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-match-report" data-match-id="{{ match.id }}" aria-label="View match report"><i class="ti ti-eye" aria-hidden="true"></i></button>
-              <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-ecs-green hover:bg-green-50 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="generate-match-report" data-match-id="{{ match.id }}" aria-label="Generate match report"><i class="ti ti-file-text" aria-hidden="true"></i></button>
+          {% endset %}
+          {% call data_table_row_card((match.home_team.name if match.home_team else 'TBD') ~ ' vs ' ~ (match.away_team.name if match.away_team else 'TBD'), badge=_score_badge) %}
+            <p class="font-mono">{{ match.date.strftime('%a · %b %d') if match.date else 'TBD' }}{% if match.time %} · {{ match.time.strftime('%I:%M %p') }}{% endif %}</p>
+            {% if match.location %}<p class="truncate"><i class="ti ti-map-pin text-[10px]" aria-hidden="true"></i> {{ match.location }}</p>{% endif %}
+            {% if _league %}<p>{{ _league }}</p>{% endif %}
+            <div class="flex items-center gap-2 pt-1">
+              <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-match-report" data-match-id="{{ match.id }}" aria-label="View match report"><i class="ti ti-eye" aria-hidden="true"></i></button>
+              <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-ecs-green bg-green-50 dark:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="generate-match-report" data-match-id="{{ match.id }}" aria-label="Generate match report"><i class="ti ti-file-text" aria-hidden="true"></i></button>
             </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-      {% for match in reports_data.recent_matches[:10] %}
-      {% set _score_badge %}
-        {% if match.home_score is not none and match.away_score is not none %}
-        <span class="inline-flex items-center font-mono px-2.5 py-0.5 rounded-full text-xs font-bold {% if match.home_score > match.away_score %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% elif match.home_score == match.away_score %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ match.home_score }} - {{ match.away_score }}</span>
-        {% else %}
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"><i class="ti ti-clock text-xs" aria-hidden="true"></i>Pending</span>
-        {% endif %}
-      {% endset %}
-      {% call data_table_row_card((match.home_team.name if match.home_team else 'TBD') ~ ' vs ' ~ (match.away_team.name if match.away_team else 'TBD'), badge=_score_badge) %}
-        <p class="font-mono">{{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}{% if match.time %} · {{ match.time.strftime('%H:%M') }}{% endif %}</p>
-        {% if match.league %}<p>{{ match.league.name }}</p>{% endif %}
-        <div class="flex items-center gap-2 pt-1">
-          <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-match-report" data-match-id="{{ match.id }}" aria-label="View match report"><i class="ti ti-eye" aria-hidden="true"></i></button>
-          <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-ecs-green bg-green-50 dark:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="generate-match-report" data-match-id="{{ match.id }}" aria-label="Generate match report"><i class="ti ti-file-text" aria-hidden="true"></i></button>
+          {% endcall %}
+          {% endfor %}
         </div>
       {% endcall %}
-      {% endfor %}
-    </div>
-  {% endcall %}
-  {% else %}
-  {{ empty_state('ti-calendar-off', 'No recent matches', 'Match results from the last 7 days will appear here once games are played.') }}
-  {% endif %}
+      {% else %}
+      {{ empty_state('ti-calendar-off', 'No matches in the last 30 days', 'Match results from the reporting window will appear here once games are scheduled and scored.') }}
+      {% endif %}
 
-  <!-- Statistics Charts -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    {% call section_card('Match Status Distribution', icon='ti-chart-pie') %}
-      <div class="p-4 sm:p-5">
-        <div class="h-64"><canvas id="matchStatusChart"></canvas></div>
+      <!-- Trends -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% call section_card('Result Distribution', icon='ti-chart-pie') %}
+          <div class="p-4 sm:p-5">
+            <div class="h-64"><canvas id="matchStatusChart"></canvas></div>
+          </div>
+        {% endcall %}
+        {% call section_card('Matches per Week', icon='ti-chart-line') %}
+          <div class="p-4 sm:p-5">
+            <div class="h-64"><canvas id="matchesPerWeekChart"></canvas></div>
+          </div>
+        {% endcall %}
       </div>
-    {% endcall %}
-    {% call section_card('Matches per Week', icon='ti-chart-line') %}
-      <div class="p-4 sm:p-5">
-        <div class="h-64"><canvas id="matchesPerWeekChart"></canvas></div>
-      </div>
-    {% endcall %}
+    </div>
+
+    <!-- SIDEBAR: quick views + scheduled export -->
+    <div class="space-y-6">
+      {% call section_card('Quick Views', icon='ti-clock-bolt') %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+          <li>
+            <button type="button" class="w-full flex items-center justify-between gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="view-recent-matches">
+              <span class="flex items-center gap-3 min-w-0">
+                <i class="ti ti-calendar-event text-xl text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+                <span class="min-w-0">
+                  <span class="block font-semibold text-gray-900 dark:text-white">Recent Matches</span>
+                  <span class="block text-xs text-gray-500 dark:text-gray-400">Last 30 days window</span>
+                </span>
+              </span>
+              <span class="shrink-0 font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">{{ _matches|length }}</span>
+            </button>
+          </li>
+          <li>
+            {# No upcoming-matches count is provided by the route, so this navigates without a fabricated badge. #}
+            <button type="button" class="w-full flex items-center justify-between gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="view-upcoming-matches">
+              <span class="flex items-center gap-3 min-w-0">
+                <i class="ti ti-calendar-plus text-xl text-ecs-green shrink-0" aria-hidden="true"></i>
+                <span class="min-w-0">
+                  <span class="block font-semibold text-gray-900 dark:text-white">Upcoming Matches</span>
+                  <span class="block text-xs text-gray-500 dark:text-gray-400">Next 7 days schedule</span>
+                </span>
+              </span>
+              <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="w-full flex items-center justify-between gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="view-top-scorers">
+              <span class="flex items-center gap-3 min-w-0">
+                <i class="ti ti-trophy text-xl text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+                <span class="min-w-0">
+                  <span class="block font-semibold text-gray-900 dark:text-white">Top Scorers</span>
+                  <span class="block text-xs text-gray-500 dark:text-gray-400">Highest scoring teams</span>
+                </span>
+              </span>
+              <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="w-full flex items-center justify-between gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="view-league-standings">
+              <span class="flex items-center gap-3 min-w-0">
+                <i class="ti ti-list-numbers text-xl text-ecs-green shrink-0" aria-hidden="true"></i>
+                <span class="min-w-0">
+                  <span class="block font-semibold text-gray-900 dark:text-white">League Standings</span>
+                  <span class="block text-xs text-gray-500 dark:text-gray-400">Current positions</span>
+                </span>
+              </span>
+              <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+            </button>
+          </li>
+        </ul>
+      {% endcall %}
+
+      {# Automation section removed: scheduled report email delivery has no backend
+         (no persisted schedule config and no Celery delivery task), so the
+         "Schedule Report" control was a stub. Re-add once a real scheduling
+         endpoint + delivery task exist. #}
+
+      <!-- League roster — real teams grouped by their real league -->
+      {% if _teams %}
+      {% call section_card('Teams by League', icon='ti-shield-half') %}
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for league_name in (_leagues + ([none] if (_teams | selectattr('league', 'none') | list) else [])) %}
+          {% set _group = (_teams | selectattr('league.name', 'equalto', league_name) | list) if league_name else (_teams | selectattr('league', 'none') | list) %}
+          {% if _group %}
+          <div class="px-4 pt-3 pb-1 flex items-center gap-2">
+            <span class="font-mono text-[11px] font-semibold uppercase tracking-wide text-ecs-green truncate">{{ league_name or 'Unassigned' }}</span>
+            <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+            <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ _group | length }}</span>
+          </div>
+          <ul role="list">
+            {% for team in _group %}
+            <li>
+              <button type="button" class="w-full flex items-center justify-between gap-3 min-h-[44px] px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="generate-team-report" data-team-id="{{ team.id }}">
+                <span class="flex items-center gap-3 min-w-0">
+                  <span class="flex items-center justify-center w-7 h-7 rounded-full bg-ecs-green text-white font-bold text-xs shrink-0">{{ team.name[0] if team.name else 'T' }}</span>
+                  <span class="font-medium text-gray-900 dark:text-white truncate">{{ team.name }}</span>
+                </span>
+                <i class="ti ti-file-text text-ecs-green shrink-0" aria-hidden="true"></i>
+              </button>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          {% endfor %}
+        </div>
+      {% endcall %}
+      {% endif %}
+    </div>
+
   </div>
 
-  <!-- Team Performance Summary -->
-  {% if reports_data and reports_data.teams %}
-  {% call data_table('Team Performance Summary', icon='ti-users', count=reports_data.teams|length, search_placeholder='Filter teams…', search_id='teamPerfFilter') %}
-    {% set _perf_filters %}
-      <div class="flex gap-2 ml-auto" role="group" aria-label="Performance view">
-        <button type="button" class="px-3 py-1.5 text-xs font-semibold text-white bg-ecs-green rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" id="viewWins">Wins</button>
-        <button type="button" class="px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green" id="viewGoals">Goals</button>
-        <button type="button" class="px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green" id="viewMatches">Matches</button>
+  <!-- Team Performance Summary — real per-team standings from the current/most-recent season row -->
+  {# team.standings is the Standings backref (one row per season). Pick each team's
+     most-recent row by season_id; only teams with a standings row are shown so no
+     zero-filled placeholder rows are invented. #}
+  {% set _perf = namespace(rows=[]) %}
+  {% for team in _teams %}
+    {% set _s = namespace(row=none) %}
+    {% for st in (team.standings or []) %}
+      {% if _s.row is none or (st.season_id or 0) > (_s.row.season_id or 0) %}{% set _s.row = st %}{% endif %}
+    {% endfor %}
+    {% if _s.row is not none %}{% set _perf.rows = _perf.rows + [(team, _s.row)] %}{% endif %}
+  {% endfor %}
+  {% if _perf.rows %}
+  {% call data_table('Team Performance Summary', icon='ti-users', count=_perf.rows|length, filters=False) %}
+    {# Sort toggle mirrors the mock; the active sort is applied client-side by the shared action handler. #}
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-end">
+      <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden" role="group" aria-label="Sort team summary">
+        <button type="button" data-sort="wins" class="px-3 h-9 text-xs font-semibold bg-ecs-green text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">Wins</button>
+        <button type="button" data-sort="goals" class="px-3 h-9 text-xs font-medium border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">Goals</button>
+        <button type="button" data-sort="matches" class="px-3 h-9 text-xs font-medium border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">Matches</button>
       </div>
-    {% endset %}
+    </div>
     <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
       <thead>
         <tr class="border-b border-gray-200 dark:border-gray-700">
           {{ data_table_th('Team', key='team') }}
-          {{ data_table_th('League', key='league', hide='sm') }}
-          {{ data_table_th('Played', key='played', align='center') }}
-          {{ data_table_th('Won', key='won', align='center') }}
-          {{ data_table_th('Lost', key='lost', align='center') }}
+          {{ data_table_th('League', key='league', hide='lg') }}
+          {{ data_table_th('P', key='played', align='center') }}
+          {{ data_table_th('W', key='wins', align='center') }}
+          {{ data_table_th('L', key='losses', align='center', hide='sm') }}
           {{ data_table_th('GF', key='gf', align='center', hide='md') }}
           {{ data_table_th('GA', key='ga', align='center', hide='md') }}
           {{ data_table_th('GD', key='gd', align='center') }}
@@ -276,29 +331,26 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for team in reports_data.teams[:10] %}
-        {% set goal_diff = (team.goals_for or 0) - (team.goals_against or 0) %}
+        {% for team, st in _perf.rows %}
+        {% set _gd = st.goal_difference if st.goal_difference is not none else ((st.goals_for or 0) - (st.goals_against or 0)) %}
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-2.5">
+          <td class="px-4 py-3">
             <div class="flex items-center gap-3">
               <span class="flex items-center justify-center w-8 h-8 rounded-full bg-ecs-green text-white font-bold text-sm shrink-0">{{ team.name[0] if team.name else 'T' }}</span>
               <span class="font-medium text-gray-900 dark:text-white">{{ team.name }}</span>
             </div>
           </td>
-          <td class="px-3 py-2.5 hidden md:table-cell">
-            {% if team.league %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">{{ team.league.name }}</span>
-            {% else %}<span class="text-gray-500 dark:text-gray-400">No League</span>{% endif %}
+          <td class="px-3 py-3 hidden lg:table-cell">
+            {% if team.league %}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">{{ team.league.name }}</span>
+            {% else %}<span class="text-gray-400 dark:text-gray-500">&mdash;</span>{% endif %}
           </td>
-          <td class="px-3 py-2.5 text-center font-mono text-gray-900 dark:text-white">{{ team.matches_played if team.matches_played else 0 }}</td>
-          <td class="px-3 py-2.5 text-center"><span class="inline-flex items-center font-mono px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">{{ team.wins if team.wins else 0 }}</span></td>
-          <td class="px-3 py-2.5 text-center"><span class="inline-flex items-center font-mono px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">{{ team.losses if team.losses else 0 }}</span></td>
-          <td class="px-3 py-2.5 text-center font-mono text-gray-900 dark:text-white hidden lg:table-cell">{{ team.goals_for if team.goals_for else 0 }}</td>
-          <td class="px-3 py-2.5 text-center font-mono text-gray-900 dark:text-white hidden lg:table-cell">{{ team.goals_against if team.goals_against else 0 }}</td>
-          <td class="px-3 py-2.5 text-center">
-            <span class="inline-flex items-center font-mono px-2 py-0.5 rounded text-xs font-bold {% if goal_diff > 0 %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% elif goal_diff < 0 %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ '+' ~ goal_diff if goal_diff > 0 else goal_diff }}</span>
-          </td>
-          <td class="px-3 py-2.5">
+          <td class="px-3 py-3 text-center font-mono tabular-nums text-gray-900 dark:text-white">{{ st.played or 0 }}</td>
+          <td class="px-3 py-3 text-center"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold font-mono bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">{{ st.wins or 0 }}</span></td>
+          <td class="px-3 py-3 text-center hidden sm:table-cell"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold font-mono bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">{{ st.losses or 0 }}</span></td>
+          <td class="px-3 py-3 text-center font-mono tabular-nums hidden md:table-cell text-gray-900 dark:text-white">{{ st.goals_for or 0 }}</td>
+          <td class="px-3 py-3 text-center font-mono tabular-nums hidden md:table-cell text-gray-900 dark:text-white">{{ st.goals_against or 0 }}</td>
+          <td class="px-3 py-3 text-center"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold font-mono {% if _gd > 0 %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% elif _gd < 0 %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ '+' ~ _gd if _gd > 0 else _gd }}</span></td>
+          <td class="px-3 py-3">
             <div class="flex items-center justify-end gap-2">
               <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-team-report" data-team-id="{{ team.id }}" aria-label="View team report"><i class="ti ti-eye" aria-hidden="true"></i></button>
               <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-ecs-green hover:bg-green-50 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="generate-team-report" data-team-id="{{ team.id }}" aria-label="Generate team report"><i class="ti ti-file-text" aria-hidden="true"></i></button>
@@ -309,12 +361,14 @@
       </tbody>
     </table>
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-      {% for team in reports_data.teams[:10] %}
-      {% set goal_diff = (team.goals_for or 0) - (team.goals_against or 0) %}
-      {% set _gd_badge %}<span class="inline-flex items-center font-mono px-2 py-0.5 rounded text-xs font-bold {% if goal_diff > 0 %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% elif goal_diff < 0 %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">GD {{ '+' ~ goal_diff if goal_diff > 0 else goal_diff }}</span>{% endset %}
+      {% for team, st in _perf.rows %}
+      {% set _gd = st.goal_difference if st.goal_difference is not none else ((st.goals_for or 0) - (st.goals_against or 0)) %}
+      {% set _gd_badge %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold font-mono {% if _gd > 0 %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% elif _gd < 0 %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">GD {{ '+' ~ _gd if _gd > 0 else _gd }}</span>
+      {% endset %}
       {% call data_table_row_card(team.name, badge=_gd_badge) %}
         {% if team.league %}<p>{{ team.league.name }}</p>{% endif %}
-        <p class="font-mono">P {{ team.matches_played or 0 }} · W {{ team.wins or 0 }} · L {{ team.losses or 0 }} · GF {{ team.goals_for or 0 }} · GA {{ team.goals_against or 0 }}</p>
+        <p class="font-mono">P {{ st.played or 0 }} · W {{ st.wins or 0 }} · L {{ st.losses or 0 }} · GF {{ st.goals_for or 0 }} · GA {{ st.goals_against or 0 }}</p>
         <div class="flex items-center gap-2 pt-1">
           <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-team-report" data-team-id="{{ team.id }}" aria-label="View team report"><i class="ti ti-eye" aria-hidden="true"></i></button>
           <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-ecs-green bg-green-50 dark:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="generate-team-report" data-team-id="{{ team.id }}" aria-label="Generate team report"><i class="ti ti-file-text" aria-hidden="true"></i></button>
@@ -324,6 +378,19 @@
     </div>
   {% endcall %}
   {% endif %}
+
+  <!-- Reports — export buttons removed (no backend export route exists; they would 404);
+       Schedule Report removed (no scheduled-delivery backend; it was a stub). -->
+  {% call section_card('Reports', icon='ti-report') %}
+    <div class="p-4 sm:p-5">
+      <div class="grid grid-cols-1 gap-3">
+        <a href="{{ url_for('admin_panel.view_matches') }}" class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <span class="w-9 h-9 shrink-0 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-list-details text-lg" aria-hidden="true"></i></span>
+          <span class="min-w-0"><span class="block text-sm font-semibold text-gray-900 dark:text-white">All Matches</span><span class="block text-xs text-gray-500 dark:text-gray-400">Browse and filter results</span></span>
+        </a>
+      </div>
+    </div>
+  {% endcall %}
 
 </div>
 {% else %}
@@ -759,20 +826,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle button clicks
-    document.addEventListener('click', function(e) {
-        const action = e.target.closest('[data-action]');
-        if (action) {
-            const actionName = action.dataset.action;
-            Swal.fire({
-                title: actionName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                text: 'This feature is being implemented.',
-                icon: 'info',
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            });
-        }
-    });
+    // NOTE: The page-wide "feature is being implemented" catch-all click handler
+    // was removed. It intercepted every [data-action] button and suppressed the
+    // real handlers registered by match-operations/match-reports.js (view/generate/
+    // standings/schedule navigation). Those handlers now run unobstructed.
 });
 </script>
 {% endblock %}

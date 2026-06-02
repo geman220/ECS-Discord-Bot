@@ -7,78 +7,299 @@
 {% block main_content %}
 {% if shell == 'console' %}
 {# ===================== MODERN (console) ===================== #}
+{# Intent: RBAC operations control surface — the admin's primary job here is
+   wiring permissions onto roles, with admin destinations and live infra
+   (Docker + Celery) as secondary surfaces. REAL DATA only:
+     roles       -> Role models: id, name, description, permissions (rel),
+                    sync_enabled, discord_role_id
+     permissions -> Permission models: id, name, description, roles (rel)
+     total       -> user count (admin_dashboard route ONLY; guarded is defined)
+     teams       -> Team models   (admin_dashboard route ONLY; guarded)
+   Docker/task counts hydrate client-side via admin-dashboard.js. Nothing is
+   fabricated; per-role permission counts come from role.permissions|length. #}
+{% set _roles_with_perms = roles|selectattr('permissions')|list %}
+{% set _synced_roles = roles|selectattr('discord_role_id')|list %}
 <div class="max-w-7xl mx-auto space-y-5 sm:space-y-6">
-    {% call page_header("Admin Dashboard", subtitle="System configuration, roles, and container status") %}
-        <button type="button" data-action="refresh-containers"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-            <i class="ti ti-refresh" aria-hidden="true"></i><span>Refresh Containers</span>
-        </button>
-    {% endcall %}
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
-        <!-- Manage Roles and Permissions Section -->
-        {% call section_card("Manage Roles & Permissions", icon="ti-shield-lock") %}
-        <div class="p-4 sm:p-5">
-            <form method="POST" action="{{ url_for('admin.admin_dashboard') }}" class="space-y-4">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="action" value="update_permissions">
-
-                <div>
-                    <label for="role_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Select Role <span class="text-red-500">*</span>
-                    </label>
-                    <select name="role_id" id="role_id" required
-                            class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                        <option value="" disabled selected>Select a role...</option>
-                        {% for role in roles %}
-                        <option value="{{ role.id }}">{{ role.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div>
-                    <label for="permissions" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Assign Permissions
-                    </label>
-                    <select name="permissions" id="permissions" multiple size="6"
-                            class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                        {% for permission in permissions %}
-                        <option value="{{ permission.id }}">{{ permission.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                    <i class="ti ti-check" aria-hidden="true"></i><span>Update Permissions</span>
-                </button>
-            </form>
-
-            <hr class="my-4 border-gray-200 dark:border-gray-700">
-
-            <h4 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white mb-2">Current Permissions</h4>
-            <ul id="current-permissions-list" class="space-y-1 text-sm text-gray-500 dark:text-gray-400">
-                <li>Select a role to view permissions.</li>
-            </ul>
+    <!-- Title + breadcrumb + primary action -->
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div class="min-w-0">
+            <nav class="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1.5" aria-label="Breadcrumb">
+                <span>Admin</span><i class="ti ti-chevron-right text-[13px]" aria-hidden="true"></i>
+                <span class="font-medium text-gray-700 dark:text-gray-300">Control Center</span>
+            </nav>
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">Admin Dashboard</h1>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Access control, admin destinations, and live system status</p>
         </div>
-        {% endcall %}
+        <div class="flex items-center gap-2 shrink-0">
+            <a href="#rbacPanel"
+               class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                <i class="ti ti-shield-plus" aria-hidden="true"></i><span>Assign Permissions</span>
+            </a>
+        </div>
+    </div>
 
-        <!-- Quick Links Section -->
-        {% call section_card("Quick Admin Links", icon="ti-layout-grid") %}
-        <div class="p-2 sm:p-3 space-y-1">
+    <!-- Command toolbar: admin destinations as quick actions -->
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Admin quick actions">
+        <a href="{{ url_for('admin.user_approvals') }}"
+           class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-user-check text-base text-amber-600 dark:text-amber-400" aria-hidden="true"></i> User Approvals
+        </a>
+        <a href="{{ url_for('admin.user_waitlist') }}"
+           class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-clock text-base text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i> Waitlist
+        </a>
+        <a href="{{ url_for('monitoring.monitor_dashboard') }}"
+           class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-chart-dots text-base text-purple-600 dark:text-purple-400" aria-hidden="true"></i> Monitoring
+        </a>
+        <button type="button" data-action="refresh-containers"
+                class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-refresh text-base text-ecs-green" aria-hidden="true"></i> Refresh Containers
+        </button>
+    </div>
+
+    <!-- KPI band — derived strictly from server data we actually have -->
+    <section aria-labelledby="kpiHead">
+        <h2 id="kpiHead" class="sr-only">Access-control and system metrics</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Roles</span>
+                    <i class="ti ti-id-badge-2 text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ roles|length }}</div>
+                <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">in access model</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Permissions</span>
+                    <i class="ti ti-key text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ permissions|length }}</div>
+                <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">assignable to roles</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Discord-Synced</span>
+                    <i class="ti ti-brand-discord text-lg text-indigo-500 dark:text-indigo-400 shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ _synced_roles|length }}</div>
+                <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">of {{ roles|length }} roles mapped</p>
+            </div>
+            {% if total is defined %}
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Users</span>
+                    <i class="ti ti-users text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ total }}</div>
+                <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">match current filter</p>
+            </div>
+            {% endif %}
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Containers</span>
+                    <i class="ti ti-box text-lg text-gray-400 shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white" id="kpiContainerCount" data-stat-id="container-count">—</div>
+                <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">live · click refresh</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Bg Tasks</span>
+                    <i class="ti ti-list-check text-lg text-indigo-600 dark:text-indigo-400 shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white" id="kpiTaskCount" data-stat-id="task-count">—</div>
+                <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">load below to populate</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
+
+        <!-- PRIMARY OBJECT: RBAC feature card (the dashboard's main job) -->
+        <section id="rbacPanel" class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden scroll-mt-20">
+            <div class="px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-shield-lock text-ecs-green" aria-hidden="true"></i> Roles &amp; Permissions
+                </h2>
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">{{ permissions|length }} perms</span>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 dark:divide-gray-700">
+                <!-- Edit form -->
+                <div class="p-4 sm:p-5">
+                    <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold mb-3">Assign Permissions</p>
+                    <form method="POST" action="{{ url_for('admin.admin_dashboard') }}" class="space-y-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="action" value="update_permissions">
+
+                        <div>
+                            <label for="role_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Select Role <span class="text-red-500">*</span>
+                            </label>
+                            <select name="role_id" id="role_id" required
+                                    class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                                <option value="" disabled selected>Select a role...</option>
+                                {% for role in roles %}
+                                <option value="{{ role.id }}">{{ role.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="permissions" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Assign Permissions
+                            </label>
+                            <select name="permissions" id="permissions" multiple size="6"
+                                    class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                                {% for permission in permissions %}
+                                <option value="{{ permission.id }}">{{ permission.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold <kbd class="font-mono">Ctrl</kbd>/<kbd class="font-mono">⌘</kbd> to multi-select.</p>
+                        </div>
+
+                        <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            <i class="ti ti-check" aria-hidden="true"></i><span>Update Permissions</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Live permissions preview (hydrated by JS via #current-permissions-list) -->
+                <div class="p-4 sm:p-5">
+                    <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold mb-3">Current Permissions</p>
+                    <ul id="current-permissions-list" class="space-y-1.5 text-sm text-gray-600 dark:text-gray-300">
+                        <li class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                            <i class="ti ti-arrow-up-left text-base" aria-hidden="true"></i>
+                            Select a role to view its permissions.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Roles roster: real rich table (id, name+desc, perm count, Discord sync) -->
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-id-badge-2 text-ecs-green" aria-hidden="true"></i> Role Roster
+                </h2>
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ roles|length }}</span>
+            </div>
+            {% if roles %}
+            <div class="overflow-x-auto max-h-[28rem]">
+                <table class="w-full text-sm">
+                    <thead class="sticky top-0 bg-gray-50/90 dark:bg-gray-900/70 backdrop-blur z-10">
+                        <tr class="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                            <th scope="col" class="px-4 py-2.5 w-8 text-right font-semibold">#</th>
+                            <th scope="col" class="px-3 py-2.5 font-semibold">Role</th>
+                            <th scope="col" class="px-3 py-2.5 text-right font-semibold">Perms</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for role in roles %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 align-top">
+                            <td class="px-4 py-2.5 text-right font-mono text-xs text-gray-400 dark:text-gray-500">{{ role.id }}</td>
+                            <td class="px-3 py-2.5">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="font-semibold text-gray-900 dark:text-white">{{ role.name }}</span>
+                                    {% if role.discord_role_id %}
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300" title="Mapped to a Discord role">
+                                        <i class="ti ti-brand-discord text-[11px]" aria-hidden="true"></i> Synced
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                {% if role.description %}
+                                <span class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ role.description }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-2.5 text-right">
+                                <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded {% if role.permissions|length %}bg-ecs-green/10 text-ecs-green{% else %}bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500{% endif %}">{{ role.permissions|length }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                <i class="ti ti-id-off text-2xl block mb-2" aria-hidden="true"></i>
+                No roles defined.
+            </div>
+            {% endif %}
+        </section>
+    </div>
+
+    <!-- Permission catalogue: real table of every permission + its description + how many roles hold it -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-key text-ecs-green" aria-hidden="true"></i> Permission Catalogue
+            </h2>
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ permissions|length }}</span>
+        </div>
+        {% if permissions %}
+        <div class="overflow-x-auto max-h-[26rem]">
+            <table class="w-full text-sm">
+                <thead class="sticky top-0 bg-gray-50/90 dark:bg-gray-900/70 backdrop-blur z-10">
+                    <tr class="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                        <th scope="col" class="px-4 py-2.5 w-8 text-right font-semibold">#</th>
+                        <th scope="col" class="px-3 py-2.5 font-semibold">Permission</th>
+                        <th scope="col" class="px-3 py-2.5 font-semibold hidden md:table-cell">Description</th>
+                        <th scope="col" class="px-3 py-2.5 text-right font-semibold">Roles</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for permission in permissions %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 align-top">
+                        <td class="px-4 py-2.5 text-right font-mono text-xs text-gray-400 dark:text-gray-500">{{ permission.id }}</td>
+                        <td class="px-3 py-2.5">
+                            <span class="font-mono text-xs font-semibold text-gray-900 dark:text-white">{{ permission.name }}</span>
+                            {% if permission.description %}
+                            <span class="block text-xs text-gray-500 dark:text-gray-400 md:hidden truncate">{{ permission.description }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-2.5 hidden md:table-cell text-gray-600 dark:text-gray-300">
+                            {% if permission.description %}{{ permission.description }}{% else %}<span class="text-gray-400 dark:text-gray-500">—</span>{% endif %}
+                        </td>
+                        <td class="px-3 py-2.5 text-right">
+                            <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded {% if permission.roles|length %}bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300{% else %}bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500{% endif %}">{{ permission.roles|length }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            <i class="ti ti-key-off text-2xl block mb-2" aria-hidden="true"></i>
+            No permissions defined.
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Admin destinations — command grid of feature cards -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+            <i class="ti ti-layout-grid text-ecs-green" aria-hidden="true"></i>
+            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Quick Admin Links</h2>
+        </div>
+        <div class="p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
             <a href="{{ url_for('admin.message_config.list_categories') }}"
-               class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                     <i class="ti ti-message-2 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                     <h4 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">Message Management</h4>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Manage Discord bot messages and website announcements</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Discord bot messages &amp; announcements</p>
                 </div>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+                <i class="ti ti-chevron-right text-gray-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i>
             </a>
 
             <a href="{{ url_for('admin.manage_polls') }}"
-               class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                     <i class="ti ti-chart-bar text-green-600 dark:text-green-400" aria-hidden="true"></i>
                 </div>
@@ -86,23 +307,23 @@
                     <h4 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">League Polls</h4>
                     <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Create and manage league polls</p>
                 </div>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+                <i class="ti ti-chevron-right text-gray-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i>
             </a>
 
             <a href="{{ url_for('admin.user_approvals') }}"
-               class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
                     <i class="ti ti-users text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                     <h4 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">User Approvals</h4>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Approve pending user registrations</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Approve pending registrations</p>
                 </div>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+                <i class="ti ti-chevron-right text-gray-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i>
             </a>
 
             <a href="{{ url_for('admin.user_waitlist') }}"
-               class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center">
                     <i class="ti ti-clock text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i>
                 </div>
@@ -110,23 +331,23 @@
                     <h4 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">User Waitlist</h4>
                     <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Manage users on the waitlist</p>
                 </div>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+                <i class="ti ti-chevron-right text-gray-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i>
             </a>
 
             <a href="{{ url_for('monitoring.monitor_dashboard') }}"
-               class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
                     <i class="ti ti-chart-dots text-purple-600 dark:text-purple-400" aria-hidden="true"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                     <h4 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">System Monitoring</h4>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Monitor system tasks and performance</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Monitor tasks and performance</p>
                 </div>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+                <i class="ti ti-chevron-right text-gray-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i>
             </a>
 
             <button type="button" data-action="open-task-management"
-                    class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group text-left focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    class="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group text-left focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
                     <i class="ti ti-list-check text-indigo-600 dark:text-indigo-400" aria-hidden="true"></i>
                 </div>
@@ -134,52 +355,65 @@
                     <h4 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">Task Management</h4>
                     <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Monitor and manage Celery tasks</p>
                 </div>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+                <i class="ti ti-chevron-right text-gray-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i>
             </button>
         </div>
-        {% endcall %}
-    </div>
+    </section>
 
-    <!-- Docker Containers Status Section -->
-    {% call section_card("Docker Containers Status", icon="ti-box") %}
-    <div class="p-4 sm:p-5">
-        <div id="dockerStatusContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <div class="col-span-full flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400">
-                <div class="w-8 h-8 border-2 border-ecs-green border-t-transparent rounded-full animate-spin mb-2"></div>
-                <p>Loading container status...</p>
-            </div>
-        </div>
-    </div>
-    {% endcall %}
-
-    <!-- Task Management Section -->
-    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
-                <i class="ti ti-list-check text-ecs-green" aria-hidden="true"></i> Global Task Management
-            </h3>
-            <div class="flex gap-2">
-                <button type="button" data-action="refresh-task-list"
-                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                    <i class="ti ti-refresh text-sm" aria-hidden="true"></i><span>Refresh</span>
-                </button>
-                <button type="button" data-action="cleanup-old-tasks"
-                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
-                    <i class="ti ti-broom text-sm" aria-hidden="true"></i><span>Cleanup</span>
+    <!-- INFRASTRUCTURE: Docker + Celery (hydrated client-side) -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 sm:gap-6">
+        <!-- Docker Containers Status -->
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-box text-ecs-green" aria-hidden="true"></i> Docker Containers
+                </h2>
+                <button type="button" data-action="refresh-containers"
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <i class="ti ti-refresh text-sm" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
                 </button>
             </div>
-        </div>
-        <div class="p-4 sm:p-5">
-            <div id="taskManagementContainer">
-                <div class="flex justify-center py-4">
-                    <button type="button" data-action="load-task-management"
-                            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-ecs-green text-ecs-green dark:text-ecs-gold dark:border-ecs-gold hover:bg-ecs-green/10 dark:hover:bg-ecs-gold/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                        <i class="ti ti-list-check" aria-hidden="true"></i><span>Load Task Management</span>
+            <div class="p-4 sm:p-5">
+                <div id="dockerStatusContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="col-span-full flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400">
+                        <div class="w-8 h-8 border-2 border-ecs-green border-t-transparent rounded-full animate-spin mb-2"></div>
+                        <p class="text-sm">Loading container status...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Global Task Management -->
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="px-4 sm:px-5 py-2.5 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-list-check text-ecs-green" aria-hidden="true"></i> Global Task Management
+                </h2>
+                <div class="flex gap-2">
+                    <button type="button" data-action="refresh-task-list"
+                            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        <i class="ti ti-refresh text-sm" aria-hidden="true"></i><span>Refresh</span>
+                    </button>
+                    <button type="button" data-action="cleanup-old-tasks"
+                            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg border border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <i class="ti ti-broom text-sm" aria-hidden="true"></i><span>Cleanup</span>
                     </button>
                 </div>
             </div>
-        </div>
-    </section>
+            <div class="p-4 sm:p-5">
+                <div id="taskManagementContainer">
+                    <div class="flex flex-col items-center justify-center gap-2 py-6 text-center">
+                        <i class="ti ti-list-search text-3xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Celery task queue not loaded.</p>
+                        <button type="button" data-action="load-task-management"
+                                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-ecs-green text-ecs-green dark:text-ecs-gold dark:border-ecs-gold hover:bg-ecs-green/10 dark:hover:bg-ecs-gold/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                            <i class="ti ti-list-check" aria-hidden="true"></i><span>Load Task Management</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
 </div>
 
 <!-- Docker Logs Modal -->

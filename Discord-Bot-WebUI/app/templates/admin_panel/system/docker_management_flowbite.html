@@ -22,122 +22,207 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state, modal %}
-{% set _running = containers|selectattr('status', 'startswith', 'running')|list|length %}
-{% set _stopped = containers|rejectattr('status', 'startswith', 'running')|list|length %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state, modal %}
+{# Real data only: each container = {id(12), name, status, image}. No ports field exists. #}
+{% set _total = containers|length %}
+{% set _running_list = containers|selectattr('status', 'startswith', 'running')|list %}
+{% set _exited_list = containers|selectattr('status', 'startswith', 'exited')|list %}
+{% set _running = _running_list|length %}
+{% set _exited = _exited_list|length %}
+{% set _stopped = _total - _running %}
+{% set _other_list = containers|rejectattr('status', 'startswith', 'running')|rejectattr('status', 'startswith', 'exited')|list %}
+{% set _health_pct = ((_running / _total * 100) | round | int) if _total else 0 %}
+{# Status-grouped fleet (concept group-divider pattern). Running first — the operator's primary lens. #}
+{% set _groups = [
+  {'key': 'running', 'label': 'Running', 'icon': 'ti-circle-check', 'cls': 'text-green-600 dark:text-green-400', 'rows': _running_list},
+  {'key': 'exited',  'label': 'Exited',  'icon': 'ti-circle-x',     'cls': 'text-red-600 dark:text-red-400',     'rows': _exited_list},
+  {'key': 'other',   'label': 'Other',   'icon': 'ti-circle-pause', 'cls': 'text-amber-600 dark:text-amber-400', 'rows': _other_list}
+] %}
 <div class="space-y-6">
 
-  {% call page_header('Docker Management', subtitle='Container monitoring and management') %}
+  {% call page_header('Docker Management', subtitle='System / Container orchestration') %}
+    <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 h-9 rounded-lg text-xs font-semibold
+                 {% if _stopped %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400
+                 {% else %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400{% endif %}">
+      <i class="ti {% if _stopped %}ti-alert-triangle{% else %}ti-circle-check{% endif %}" aria-hidden="true"></i>
+      <span class="font-mono">{{ _running }}/{{ _total }}</span> up
+    </span>
     <button id="docker-refresh-btn" type="button"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
       <i class="ti ti-refresh" aria-hidden="true"></i>Refresh
     </button>
   {% endcall %}
 
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-    {{ stat_card('ti-circle-check', 'Running', _running, tone='success') }}
-    {{ stat_card('ti-circle-pause', 'Stopped', _stopped, tone='warning') }}
-    {{ stat_card('ti-box', 'Total Containers', containers|length, tone='info') }}
+  <!-- ============ KPI band (real, derived from container.status) ============ -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Running</span>
+        <i class="ti ti-circle-check text-lg text-green-600 dark:text-green-400" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ _running }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ _health_pct }}% of {{ _total }} up</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Stopped</span>
+        <i class="ti ti-circle-pause text-lg {% if _stopped %}text-amber-600 dark:text-amber-400{% else %}text-gray-400 dark:text-gray-500{% endif %}" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none {% if _stopped %}text-amber-600 dark:text-amber-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ _stopped }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ _exited }} exited</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</span>
+        <i class="ti ti-stack-2 text-lg text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ _total }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">containers tracked</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Health</span>
+        <i class="ti ti-heartbeat text-lg {% if _stopped %}text-amber-600 dark:text-amber-400{% else %}text-ecs-green{% endif %}" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none {% if _stopped %}text-amber-600 dark:text-amber-400{% else %}text-ecs-green{% endif %}">{{ _health_pct }}<span class="text-xl">%</span></div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">{% if _stopped %}{{ _stopped }} need attention{% else %}all healthy{% endif %}</div>
+    </div>
   </div>
 
-  <!-- Container list -->
+  <!-- ============ Container fleet (real table; mono ID/image, status pills, command actions) ============ -->
   {% if containers %}
-  {% call data_table('Containers', icon='ti-box', count=containers|length, search_placeholder='Filter containers…', search_id='dockerFilter', filters=true) %}
+  <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-box text-ecs-green" aria-hidden="true"></i> Container Fleet
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ _total }}</span>
+      </h2>
+      <div class="relative flex-1 sm:flex-none min-w-[180px] sm:w-64">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+        <input type="search" id="dockerFilter" placeholder="Filter containers…"
+               class="input-ecs h-9 pl-9 pr-3 text-sm w-full" aria-label="Filter containers">
+      </div>
+    </div>
+
     <!-- md+ table -->
-    <table class="hidden md:table w-full text-sm">
-      <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-        <tr>
-          {{ data_table_th('Name', key='name', active=true, dir='asc') }}
-          {{ data_table_th('Image', key='image', hide='sm') }}
-          {{ data_table_th('Status', key='status', hide='sm') }}
-          {{ data_table_th('Ports', key='ports', sortable=false, hide='sm') }}
-          {{ data_table_th('Actions', sortable=false, align='right') }}
-        </tr>
-      </thead>
-      <tbody id="container-list" class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for container in containers %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-container-id="{{ container.id }}">
-          <td class="px-3 py-2.5">
-            <div class="flex items-center gap-2">
-              <i class="ti ti-box text-gray-400" aria-hidden="true"></i>
-              <span class="font-medium text-gray-900 dark:text-white">{{ container.name }}</span>
-            </div>
-          </td>
-          <td class="px-3 py-2.5 hidden md:table-cell">
-            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">{{ container.image }}</code>
-          </td>
-          <td class="px-3 py-2.5 hidden md:table-cell">
-            {% if container.status.startswith('running') %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-              <i class="ti ti-circle-check" aria-hidden="true"></i>Running
-            </span>
-            {% elif container.status.startswith('exited') %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
-              <i class="ti ti-circle-x" aria-hidden="true"></i>Exited
-            </span>
-            {% else %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
-              <i class="ti ti-circle-pause" aria-hidden="true"></i>{{ container.status }}
-            </span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-2.5 hidden md:table-cell">
-            {% if container.ports %}
-            <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ container.ports }}</span>
-            {% else %}
-            <span class="text-gray-400">-</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-2.5">
-            <div class="flex items-center justify-end gap-1">
+    <div class="md:overflow-x-auto">
+      <table class="hidden md:table w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+          <tr class="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <th scope="col" class="px-4 py-2.5 font-semibold">Container</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold">Image</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold">Status</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="container-list" class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for group in _groups if group.rows %}
+          <tr data-status-group="{{ group.key }}" class="bg-gray-50/70 dark:bg-gray-900/30">
+            <td colspan="4" class="px-4 py-2">
+              <div class="flex items-center gap-2">
+                <i class="ti {{ group.icon }} text-sm {{ group.cls }}" aria-hidden="true"></i>
+                <span class="text-xs font-bold uppercase tracking-wide {{ group.cls }}">{{ group.label }}</span>
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ group.rows|length }}</span>
+                <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700" aria-hidden="true"></span>
+              </div>
+            </td>
+          </tr>
+          {% for container in group.rows %}
+          {% set _img_parts = container.image.rsplit(':', 1) %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors align-middle" data-container-id="{{ container.id }}" data-container-search="{{ container.name|lower }} {{ container.image|lower }} {{ container.status|lower }}">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg
+                             {% if container.status.startswith('running') %}bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400
+                             {% elif container.status.startswith('exited') %}bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400
+                             {% else %}bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400{% endif %}">
+                  <i class="ti ti-box" aria-hidden="true"></i>
+                </span>
+                <div class="min-w-0">
+                  <div class="font-semibold text-gray-900 dark:text-white truncate">{{ container.name }}</div>
+                  <div class="font-mono text-[11px] text-gray-400 dark:text-gray-500">{{ container.id }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center font-mono text-xs rounded overflow-hidden border border-gray-200 dark:border-gray-700">
+                <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ _img_parts[0] }}</span>
+                {% if _img_parts|length > 1 %}<span class="px-2 py-1 bg-ecs-green/10 text-ecs-green dark:text-ecs-green-400">{{ _img_parts[1] }}</span>{% endif %}
+              </span>
+            </td>
+            <td class="px-4 py-3">
               {% if container.status.startswith('running') %}
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="stop" title="Stop" aria-label="Stop container">
-                <i class="ti ti-player-stop" aria-hidden="true"></i>
-              </button>
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="restart" title="Restart" aria-label="Restart container">
-                <i class="ti ti-refresh" aria-hidden="true"></i>
-              </button>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+                <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i>Running
+              </span>
+              {% elif container.status.startswith('exited') %}
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300">
+                <i class="ti ti-circle-x text-[10px]" aria-hidden="true"></i>Exited
+              </span>
               {% else %}
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="start" title="Start" aria-label="Start container">
-                <i class="ti ti-player-play" aria-hidden="true"></i>
-              </button>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+                <i class="ti ti-circle-pause text-[10px]" aria-hidden="true"></i>{{ container.status }}
+              </span>
               {% endif %}
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-view-logs" data-container-id="{{ container.id }}" data-container-name="{{ container.name }}" title="View Logs" aria-label="View logs">
-                <i class="ti ti-file-text" aria-hidden="true"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-end gap-1">
+                {% if container.status.startswith('running') %}
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="stop" title="Stop" aria-label="Stop container">
+                  <i class="ti ti-player-stop" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="restart" title="Restart" aria-label="Restart container">
+                  <i class="ti ti-refresh" aria-hidden="true"></i>
+                </button>
+                {% else %}
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="start" title="Start" aria-label="Start container">
+                  <i class="ti ti-player-play" aria-hidden="true"></i>
+                </button>
+                {% endif %}
+                <span class="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-0.5" aria-hidden="true"></span>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-view-logs" data-container-id="{{ container.id }}" data-container-name="{{ container.name }}" title="View Logs" aria-label="View logs">
+                  <i class="ti ti-file-text" aria-hidden="true"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
     <!-- mobile stacked cards -->
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
       {% for container in containers %}
-      <div class="px-4 py-3.5" data-container-id="{{ container.id }}">
+      <div class="px-4 py-3.5" data-container-id="{{ container.id }}" data-container-search="{{ container.name|lower }} {{ container.image|lower }} {{ container.status|lower }}">
         <div class="flex items-center justify-between gap-2">
           <span class="flex items-center gap-2 min-w-0">
-            <i class="ti ti-box text-gray-400 shrink-0" aria-hidden="true"></i>
+            <span class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg
+                         {% if container.status.startswith('running') %}bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400
+                         {% elif container.status.startswith('exited') %}bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400
+                         {% else %}bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400{% endif %}">
+              <i class="ti ti-box text-sm" aria-hidden="true"></i>
+            </span>
             <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ container.name }}</span>
           </span>
           {% if container.status.startswith('running') %}
-          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-            <i class="ti ti-circle-check" aria-hidden="true"></i>Running
+          <span class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+            <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i>Running
           </span>
           {% elif container.status.startswith('exited') %}
-          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
-            <i class="ti ti-circle-x" aria-hidden="true"></i>Exited
+          <span class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300">
+            <i class="ti ti-circle-x text-[10px]" aria-hidden="true"></i>Exited
           </span>
           {% else %}
-          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
-            <i class="ti ti-circle-pause" aria-hidden="true"></i>{{ container.status }}
+          <span class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+            <i class="ti ti-circle-pause text-[10px]" aria-hidden="true"></i>{{ container.status }}
           </span>
           {% endif %}
         </div>
-        <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-          <div><code class="font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded">{{ container.image }}</code></div>
-          {% if container.ports %}<div class="font-mono">{{ container.ports }}</div>{% endif %}
+        <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+          <code class="font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded">{{ container.image }}</code>
+          <span class="font-mono text-gray-400 dark:text-gray-500">{{ container.id }}</span>
         </div>
         <div class="mt-2 flex items-center gap-1">
           {% if container.status.startswith('running') %}
@@ -152,6 +237,7 @@
             <i class="ti ti-player-play" aria-hidden="true"></i>
           </button>
           {% endif %}
+          <span class="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-0.5" aria-hidden="true"></span>
           <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-view-logs" data-container-id="{{ container.id }}" data-container-name="{{ container.name }}" title="View Logs" aria-label="View logs">
             <i class="ti ti-file-text" aria-hidden="true"></i>
           </button>
@@ -159,28 +245,44 @@
       </div>
       {% endfor %}
     </div>
-  {% endcall %}
+    <div class="flex items-center justify-between gap-2 px-4 py-2.5 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">
+      <span>{{ _running }} running · {{ _stopped }} stopped</span>
+      <span class="inline-flex items-center gap-1"><i class="ti ti-info-circle" aria-hidden="true"></i>Actions are logged to the audit trail</span>
+    </div>
+  </section>
   {% else %}
   {{ empty_state('ti-box-off', 'No Docker Containers Found', 'No Docker containers found or Docker is not available.', action={'label': 'Check System Health', 'url': url_for('admin_panel.health_dashboard'), 'icon': 'ti-heartbeat'}) }}
   {% endif %}
 
-  <!-- Related tools -->
-  {% call section_card('Related Tools', icon='ti-link') %}
-    <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <a href="{{ url_for('admin_panel.health_dashboard') }}" class="flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-sm font-medium text-gray-900 dark:text-white">
-        <i class="ti ti-heartbeat text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Health Dashboard
+  <!-- ============ Related tools (dense nav rows) ============ -->
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+      <i class="ti ti-link text-ecs-green" aria-hidden="true"></i>
+      <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Related Tools</h3>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700">
+      <a href="{{ url_for('admin_panel.health_dashboard') }}" class="flex items-center gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+        <i class="ti ti-heartbeat text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+        <span class="text-sm font-medium text-gray-900 dark:text-white">Health Dashboard</span>
+        <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
       </a>
-      <a href="{{ url_for('admin_panel.redis_management') }}" class="flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-sm font-medium text-gray-900 dark:text-white">
-        <i class="ti ti-database text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Redis Management
+      <a href="{{ url_for('admin_panel.redis_management') }}" class="flex items-center gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+        <i class="ti ti-database text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+        <span class="text-sm font-medium text-gray-900 dark:text-white">Redis Management</span>
+        <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
       </a>
-      <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-sm font-medium text-gray-900 dark:text-white">
-        <i class="ti ti-activity text-blue-600 dark:text-blue-400" aria-hidden="true"></i>System Monitoring
+      <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+        <i class="ti ti-activity text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+        <span class="text-sm font-medium text-gray-900 dark:text-white">System Monitoring</span>
+        <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
       </a>
-      <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-sm font-medium text-gray-900 dark:text-white">
-        <i class="ti ti-list-check text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Task Monitor
+      <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="flex items-center gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+        <i class="ti ti-list-check text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+        <span class="text-sm font-medium text-gray-900 dark:text-white">Task Monitor</span>
+        <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
       </a>
     </div>
-  {% endcall %}
+  </section>
 
 </div>
 
@@ -543,6 +645,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Container filter (console shell only; null-safe in classic)
+    const dockerFilter = document.getElementById('dockerFilter');
+    if (dockerFilter) {
+        dockerFilter.addEventListener('input', function() {
+            const q = this.value.trim().toLowerCase();
+            document.querySelectorAll('[data-container-search]').forEach(row => {
+                const hay = row.getAttribute('data-container-search') || '';
+                row.classList.toggle('hidden', q !== '' && !hay.includes(q));
+            });
+        });
+    }
 
     // Close modal on backdrop click and close button
     const logModal = document.getElementById('logModal');

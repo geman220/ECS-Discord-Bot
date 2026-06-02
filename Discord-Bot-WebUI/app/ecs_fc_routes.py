@@ -76,13 +76,35 @@ def match_details(match_id: int):
         rsvp_responses = {}
         for availability in match.availabilities:
             rsvp_responses[availability.player_id] = availability
-        
+
+        # --- Player self-RSVP widget context ---------------------------------
+        # The viewer's own EcsFcAvailability row, only when they are a player on
+        # this team. Powers the "Your RSVP" control in the console shell.
+        # Defensive: any failure leaves current_user_rsvp None and hides it.
+        current_user_rsvp = None
+        viewer_is_team_player = False
+        viewer_player_id = None
+        try:
+            viewer = getattr(current_user, 'player', None)
+            if viewer is not None and match.team and viewer in match.team.players:
+                viewer_is_team_player = True
+                viewer_player_id = viewer.id
+                current_user_rsvp = rsvp_responses.get(viewer.id)
+        except Exception as e:
+            logger.warning(f"Could not resolve current_user_rsvp for ECS FC match {match_id}: {e}")
+            current_user_rsvp = None
+            viewer_is_team_player = False
+            viewer_player_id = None
+
         return render_template(
             'ecs_fc_match_details_flowbite.html',
             match=match,
             rsvp_summary=rsvp_summary,
             rsvp_responses=rsvp_responses,
-            can_manage=can_manage
+            can_manage=can_manage,
+            current_user_rsvp=current_user_rsvp,
+            viewer_is_team_player=viewer_is_team_player,
+            viewer_player_id=viewer_player_id
         )
         
     except Exception as e:
@@ -137,8 +159,10 @@ def submit_rsvp(match_id: int):
         if not current_user.player or current_user.player not in match.team.players:
             abort(403)
         
-        # Get form data
-        response = request.form.get('response')
+        # Get form data. The RSVP forms (Modern + Classic) post the radio as
+        # `availability`; older callers post `response`. Read both so the RSVP
+        # actually saves in every shell (was a silent no-save bug).
+        response = request.form.get('response') or request.form.get('availability')
         notes = request.form.get('notes', '').strip()
         
         if response not in ['yes', 'no', 'maybe']:
@@ -1430,7 +1454,8 @@ def lineup_picker(match_id: int):
             team=team,
             roster=roster,
             lineup=lineup_data,
-            is_coach=can_manage
+            is_coach=can_manage,
+            shell='console'
         )
 
     except Exception as e:

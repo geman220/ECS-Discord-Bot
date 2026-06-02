@@ -58,6 +58,7 @@ class CeleryConfig:
         'app.tasks.discord_cleanup',  # Season rollover Discord cleanup
         'app.tasks.monitoring_tasks',
         'app.tasks.tasks_maintenance',
+        'app.tasks.tasks_draft_clock',  # Draft "on the clock" timer enforcement
         'app.tasks.tasks_cache_management',
         'app.tasks.player_sync',
         'app.tasks.tasks_substitute_pools',
@@ -72,6 +73,7 @@ class CeleryConfig:
         'app.tasks.tasks_email_broadcast',  # Email broadcast campaigns
         'app.tasks.tasks_audit',  # Deferred admin audit log writes
         'app.tasks.tasks_data_export',  # User data export (GDPR)
+        'app.tasks.tasks_waitlist',  # Waitlist confirmation email
         'app.tasks.ai_assistant_cleanup',  # AI assistant log retention
         'app.tasks.tasks_rsvp_dm_reminders',  # Thursday RSVP DM reminders
         'app.tasks.tasks_live_reporting_timers',  # V2 live-match timer reminders + autostop

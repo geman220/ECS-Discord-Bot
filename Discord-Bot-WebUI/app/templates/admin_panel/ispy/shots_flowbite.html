@@ -22,170 +22,261 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state as kit_empty_state %}
-{% from 'macros/flowbite.html' import badge as fb_badge %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state as kit_empty_state %}
 
-{{ page_header("I-Spy Shots", subtitle="I-Spy") }}
+{# Derived metrics — REAL data only (shot_stats dict + shots pagination). #}
+{% set reviewed = shot_stats.approved_shots + shot_stats.disallowed_shots %}
+{% set approval_rate = ((shot_stats.approved_shots / reviewed) * 100) if reviewed else 0 %}
+
+{{ page_header("I-Spy Shots", subtitle="Moderation · I-Spy") }}
 
 <div class="space-y-5 sm:space-y-6">
-  {# Statistics #}
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-    {{ stat_card("ti-camera", "Total Shots", shot_stats.total_shots, tone='primary') }}
-    {{ stat_card("ti-check", "Approved", shot_stats.approved_shots, tone='success') }}
-    {{ stat_card("ti-ban", "Disallowed", shot_stats.disallowed_shots, tone='danger') }}
-    {{ stat_card("ti-star", "Avg Points", shot_stats.avg_points|round(1), tone='info') }}
-  </div>
 
-  {# Filters #}
-  {% call section_card("Filters", icon="ti-filter") %}
-  <div class="flex flex-wrap items-center gap-3 p-4 sm:p-5">
-    <select id="filterStatus" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green min-h-[44px] sm:min-h-0">
-      <option value="">All Status</option>
-      <option value="approved" {% if current_status == 'approved' %}selected{% endif %}>Approved</option>
-      <option value="disallowed" {% if current_status == 'disallowed' %}selected{% endif %}>Disallowed</option>
-    </select>
-    <select id="filterCategory" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green min-h-[44px] sm:min-h-0">
-      <option value="">All Categories</option>
-      {% for category in categories %}
-      <option value="{{ category.id }}" {% if current_category == category.id %}selected{% endif %}>{{ category.display_name }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  {% endcall %}
+  {# ===== KPI band — moderation health, lead with the queue total ===== #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="grid grid-cols-2 lg:grid-cols-4 divide-y divide-x divide-gray-200 dark:divide-gray-700
+                lg:divide-y-0">
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Shots</span>
+          <i class="ti ti-camera text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+        </div>
+        <p class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ shot_stats.total_shots }}</p>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+          <span class="font-mono">{{ reviewed }}</span> reviewed
+        </p>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Approved</span>
+          <i class="ti ti-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <p class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ shot_stats.approved_shots }}</p>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+          <span class="font-mono">{{ approval_rate|round(0)|int }}%</span> approval rate
+        </p>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Disallowed</span>
+          <i class="ti ti-ban text-lg text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <p class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-red-600 dark:text-red-400">{{ shot_stats.disallowed_shots }}</p>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+          flagged by moderators
+        </p>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Avg Points</span>
+          <i class="ti ti-star text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <p class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ shot_stats.avg_points|round(1) }}</p>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+          per approved shot
+        </p>
+      </div>
+    </div>
+  </section>
 
-  {% if shots.items %}
-  {% set table_footer %}
+  {# ===== Submission feed — feature card w/ command toolbar + filters ===== #}
+  <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    {# Header bar #}
+    <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-photo text-ecs-green" aria-hidden="true"></i> Submission Feed
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ shots.total }}</span>
+      </h2>
+    </div>
+
+    {# Command toolbar: live filter + status / category selects #}
+    <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div class="relative flex-1 min-w-[180px]">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+        <input type="search" id="shotFilter" placeholder="Filter loaded shots…"
+               class="input-ecs h-9 pl-9 pr-3 text-sm" aria-label="Filter loaded shots">
+      </div>
+      <select id="filterStatus" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green h-11 sm:h-9">
+        <option value="">All Status</option>
+        <option value="approved" {% if current_status == 'approved' %}selected{% endif %}>Approved</option>
+        <option value="disallowed" {% if current_status == 'disallowed' %}selected{% endif %}>Disallowed</option>
+      </select>
+      <select id="filterCategory" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green h-11 sm:h-9">
+        <option value="">All Categories</option>
+        {% for category in categories %}
+        <option value="{{ category.id }}" {% if current_category == category.id %}selected{% endif %}>{{ category.display_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {% if shots.items %}
+    <div class="md:overflow-x-auto">
+      {# ---------- md+ : real table with thumbnail + mono scoring ---------- #}
+      <table class="hidden md:table w-full text-sm text-left">
+        <thead class="bg-gray-50 dark:bg-gray-900/40">
+          <tr>
+            <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Shot</th>
+            <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Category / Location</th>
+            <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Author</th>
+            <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Points</th>
+            <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+            <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell whitespace-nowrap">Submitted</th>
+            <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for shot in shots.items %}
+          <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            {# Thumbnail + ID #}
+            <td class="px-3 py-3 align-middle">
+              <div class="flex items-center gap-3">
+                <a href="{{ shot.image_url }}" target="_blank" rel="noopener"
+                   class="block w-11 h-11 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0 ring-1 ring-gray-200 dark:ring-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                   title="Open full image">
+                  <img src="{{ shot.image_url }}" alt="Shot #{{ shot.id }}" class="w-full h-full object-cover" loading="lazy">
+                </a>
+                <div class="min-w-0">
+                  <span class="font-mono font-semibold text-gray-900 dark:text-white">#{{ shot.id }}</span>
+                  <p class="font-mono text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{{ shot.target_count }} target{{ '' if shot.target_count == 1 else 's' }}</p>
+                </div>
+              </div>
+            </td>
+            {# Category + location #}
+            <td class="px-3 py-3 align-middle">
+              <span class="text-gray-900 dark:text-white">{{ shot.category.display_name if shot.category else 'N/A' }}</span>
+              {% if shot.location %}
+              <p class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[220px] flex items-center gap-1 mt-0.5">
+                <i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ shot.location }}
+              </p>
+              {% endif %}
+            </td>
+            {# Author #}
+            <td class="px-3 py-3 align-middle hidden lg:table-cell">
+              <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ shot.author_discord_id }}</span>
+            </td>
+            {# Points — mono figure + scoring breakdown #}
+            <td class="px-3 py-3 align-middle text-right whitespace-nowrap">
+              <span class="font-mono text-base font-bold {% if shot.total_points < 0 %}text-red-600 dark:text-red-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ shot.total_points }}</span>
+              {% if shot.status == 'approved' and (shot.bonus_points or shot.streak_bonus) %}
+              <p class="font-mono text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                {{ shot.base_points }}{% if shot.bonus_points %} +{{ shot.bonus_points }}b{% endif %}{% if shot.streak_bonus %} +{{ shot.streak_bonus }}s{% endif %}
+              </p>
+              {% elif shot.status == 'disallowed' and shot.penalty_applied %}
+              <p class="font-mono text-[11px] text-red-400 dark:text-red-500 mt-0.5">−{{ shot.penalty_applied }} penalty</p>
+              {% endif %}
+            </td>
+            {# Status #}
+            <td class="px-3 py-3 align-middle">
+              {% if shot.status == 'approved' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1" aria-hidden="true"></i>Approved</span>
+              {% elif shot.status == 'disallowed' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-ban mr-1" aria-hidden="true"></i>Disallowed</span>
+              {% endif %}
+            </td>
+            {# Submitted #}
+            <td class="px-3 py-3 align-middle hidden lg:table-cell whitespace-nowrap">
+              <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ shot.submitted_at.strftime('%Y-%m-%d %H:%M') if shot.submitted_at else '-' }}</span>
+            </td>
+            {# Actions #}
+            <td class="px-3 py-3 align-middle text-right">
+              <div class="flex items-center justify-end gap-1">
+                {% if shot.status == 'approved' %}
+                <button type="button"
+                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        title="Disallow" data-action="disallow-shot" data-id="{{ shot.id }}" aria-label="Disallow shot">
+                  <i class="ti ti-ban" aria-hidden="true"></i>
+                </button>
+                {% endif %}
+                <button type="button"
+                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        title="Delete" data-action="delete-shot" data-id="{{ shot.id }}" aria-label="Delete shot">
+                  <i class="ti ti-trash" aria-hidden="true"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {# ---------- mobile : dense submission rows w/ thumbnail ---------- #}
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for shot in shots.items %}
+        <div data-row class="px-4 py-3.5">
+          <div class="flex items-start gap-3">
+            <a href="{{ shot.image_url }}" target="_blank" rel="noopener"
+               class="block w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0 ring-1 ring-gray-200 dark:ring-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <img src="{{ shot.image_url }}" alt="Shot #{{ shot.id }}" class="w-full h-full object-cover" loading="lazy">
+            </a>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="font-mono text-sm font-semibold text-gray-900 dark:text-white">#{{ shot.id }}</p>
+                  <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{{ shot.category.display_name if shot.category else 'N/A' }}</p>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  {% if shot.status == 'approved' %}
+                  <button type="button"
+                          class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          title="Disallow" data-action="disallow-shot" data-id="{{ shot.id }}" aria-label="Disallow shot">
+                    <i class="ti ti-ban" aria-hidden="true"></i>
+                  </button>
+                  {% endif %}
+                  <button type="button"
+                          class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          title="Delete" data-action="delete-shot" data-id="{{ shot.id }}" aria-label="Delete shot">
+                    <i class="ti ti-trash" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                {% if shot.status == 'approved' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1" aria-hidden="true"></i>Approved</span>
+                {% elif shot.status == 'disallowed' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-ban mr-1" aria-hidden="true"></i>Disallowed</span>
+                {% endif %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium font-mono {% if shot.total_points < 0 %}bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400{% endif %}">{{ shot.total_points }} pts</span>
+              </div>
+              {% if shot.location %}
+              <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 truncate flex items-center gap-1"><i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ shot.location }}</p>
+              {% endif %}
+              <p class="mt-1 font-mono text-xs text-gray-400 dark:text-gray-500">{{ shot.submitted_at.strftime('%Y-%m-%d %H:%M') if shot.submitted_at else '-' }} · {{ shot.author_discord_id }}</p>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Footer — pagination #}
     {% if shots.pages > 1 %}
-    <p class="text-sm text-gray-700 dark:text-gray-400">
-      Showing <span class="font-medium font-mono">{{ ((shots.page - 1) * shots.per_page) + 1 }}</span>
-      to <span class="font-medium font-mono">{{ [shots.page * shots.per_page, shots.total] | min }}</span>
-      of <span class="font-medium font-mono">{{ shots.total }}</span> shots
-    </p>
-    <div class="flex gap-2">
-      {% if shots.has_prev %}
-      <a href="{{ url_for('admin_panel.ispy_shots', page=shots.prev_num, status=current_status or '', category=current_category or '') }}"
-         class="inline-flex items-center min-h-[44px] sm:min-h-0 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
-        <i class="ti ti-chevron-left mr-1" aria-hidden="true"></i>Previous
-      </a>
-      {% endif %}
-      {% if shots.has_next %}
-      <a href="{{ url_for('admin_panel.ispy_shots', page=shots.next_num, status=current_status or '', category=current_category or '') }}"
-         class="inline-flex items-center min-h-[44px] sm:min-h-0 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
-        Next<i class="ti ti-chevron-right ml-1" aria-hidden="true"></i>
-      </a>
-      {% endif %}
+    <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+      <p class="text-xs text-gray-500 dark:text-gray-400">
+        Showing <span class="font-medium font-mono">{{ ((shots.page - 1) * shots.per_page) + 1 }}</span>
+        to <span class="font-medium font-mono">{{ [shots.page * shots.per_page, shots.total] | min }}</span>
+        of <span class="font-medium font-mono">{{ shots.total }}</span> shots
+      </p>
+      <div class="flex gap-2">
+        {% if shots.has_prev %}
+        <a href="{{ url_for('admin_panel.ispy_shots', page=shots.prev_num, status=current_status or '', category=current_category or '') }}"
+           class="inline-flex items-center min-h-[44px] sm:min-h-0 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
+          <i class="ti ti-chevron-left mr-1" aria-hidden="true"></i>Previous
+        </a>
+        {% endif %}
+        {% if shots.has_next %}
+        <a href="{{ url_for('admin_panel.ispy_shots', page=shots.next_num, status=current_status or '', category=current_category or '') }}"
+           class="inline-flex items-center min-h-[44px] sm:min-h-0 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
+          Next<i class="ti ti-chevron-right ml-1" aria-hidden="true"></i>
+        </a>
+        {% endif %}
+      </div>
     </div>
     {% endif %}
-  {% endset %}
 
-  {% call data_table("Shots", icon="ti-camera", count=shots.total, search_placeholder="Filter shots…", search_id="shotFilter", footer=table_footer) %}
-    <table class="hidden md:table w-full text-sm text-left">
-      <thead class="bg-gray-50 dark:bg-gray-900/40">
-        <tr>
-          {{ data_table_th("ID", key="id") }}
-          {{ data_table_th("Author", key="author", hide='sm') }}
-          {{ data_table_th("Category", key="category") }}
-          {{ data_table_th("Location", key="location", hide='md') }}
-          {{ data_table_th("Points", key="points", align='right') }}
-          {{ data_table_th("Status", key="status") }}
-          {{ data_table_th("Submitted", key="submitted", hide='sm') }}
-          {{ data_table_th("Actions", sortable=false, align='right') }}
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for shot in shots.items %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-3 align-middle">
-            <span class="font-mono font-semibold text-gray-900 dark:text-white">#{{ shot.id }}</span>
-          </td>
-          <td class="px-3 py-3 align-middle hidden md:table-cell">
-            <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ shot.author_discord_id }}</span>
-          </td>
-          <td class="px-3 py-3 align-middle">
-            <span class="text-gray-900 dark:text-white">{{ shot.category.display_name if shot.category else 'N/A' }}</span>
-          </td>
-          <td class="px-3 py-3 align-middle hidden lg:table-cell">
-            <span class="truncate max-w-[200px] block text-gray-600 dark:text-gray-400">{{ shot.location or '-' }}</span>
-          </td>
-          <td class="px-3 py-3 align-middle text-right">
-            <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ shot.total_points }}</span>
-          </td>
-          <td class="px-3 py-3 align-middle">
-            {% if shot.status == 'approved' %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1" aria-hidden="true"></i>Approved</span>
-            {% elif shot.status == 'disallowed' %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-ban mr-1" aria-hidden="true"></i>Disallowed</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-3 align-middle hidden md:table-cell whitespace-nowrap">
-            <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ shot.submitted_at.strftime('%Y-%m-%d %H:%M') if shot.submitted_at else '-' }}</span>
-          </td>
-          <td class="px-3 py-3 align-middle text-right">
-            <div class="flex items-center justify-end gap-1">
-              {% if shot.status == 'approved' %}
-              <button type="button"
-                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                      title="Disallow" data-action="disallow-shot" data-id="{{ shot.id }}" aria-label="Disallow shot">
-                <i class="ti ti-ban" aria-hidden="true"></i>
-              </button>
-              {% endif %}
-              <button type="button"
-                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                      title="Delete" data-action="delete-shot" data-id="{{ shot.id }}" aria-label="Delete shot">
-                <i class="ti ti-trash" aria-hidden="true"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    {# Mobile stacked cards #}
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-      {% for shot in shots.items %}
-      <div class="px-4 py-3.5">
-        <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <p class="font-mono text-sm font-semibold text-gray-900 dark:text-white">#{{ shot.id }}</p>
-            <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{{ shot.category.display_name if shot.category else 'N/A' }}</p>
-          </div>
-          <div class="flex items-center gap-1 shrink-0">
-            {% if shot.status == 'approved' %}
-            <button type="button"
-                    class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                    title="Disallow" data-action="disallow-shot" data-id="{{ shot.id }}" aria-label="Disallow shot">
-              <i class="ti ti-ban" aria-hidden="true"></i>
-            </button>
-            {% endif %}
-            <button type="button"
-                    class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                    title="Delete" data-action="delete-shot" data-id="{{ shot.id }}" aria-label="Delete shot">
-              <i class="ti ti-trash" aria-hidden="true"></i>
-            </button>
-          </div>
-        </div>
-        <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-          {% if shot.status == 'approved' %}
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1" aria-hidden="true"></i>Approved</span>
-          {% elif shot.status == 'disallowed' %}
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-ban mr-1" aria-hidden="true"></i>Disallowed</span>
-          {% endif %}
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium font-mono bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">{{ shot.total_points }} pts</span>
-        </div>
-        {% if shot.location %}
-        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 truncate">{{ shot.location }}</p>
-        {% endif %}
-        <p class="mt-1 font-mono text-xs text-gray-400 dark:text-gray-500">{{ shot.submitted_at.strftime('%Y-%m-%d %H:%M') if shot.submitted_at else '-' }} · {{ shot.author_discord_id }}</p>
-      </div>
-      {% endfor %}
-    </div>
-  {% endcall %}
-  {% else %}
-  {% call data_table("Shots", icon="ti-camera", count=0, filters=false) %}
+    {% else %}
     {{ kit_empty_state("ti-camera-off", "No Shots Found", "No photo submissions match your current filters.") }}
-  {% endcall %}
-  {% endif %}
+    {% endif %}
+  </section>
 </div>
 {% else %}
 <!-- Header Card -->

@@ -108,6 +108,64 @@ def user_to_dict(user):
     }
 
 
+def get_registration_trends(period='30d'):
+    """Compute registration trend data points for a given period.
+
+    Periods:
+      - '30d' : daily counts for the last 30 days
+      - '90d' : daily counts for the last 90 days
+      - '12m' : monthly counts for the last 12 calendar months
+
+    Returns a list of {'date': label, 'count': int} dicts ordered oldest->newest.
+    """
+    now = datetime.utcnow()
+    trends = []
+
+    if period == '12m':
+        # Monthly buckets for the last 12 months.
+        # Start from the first day of the month 11 months ago.
+        year = now.year
+        month = now.month
+        # Walk back 11 months to get the starting bucket.
+        start_month = month - 11
+        start_year = year
+        while start_month <= 0:
+            start_month += 12
+            start_year -= 1
+        bucket_year, bucket_month = start_year, start_month
+        for _ in range(12):
+            month_start = datetime(bucket_year, bucket_month, 1)
+            if bucket_month == 12:
+                next_year, next_month = bucket_year + 1, 1
+            else:
+                next_year, next_month = bucket_year, bucket_month + 1
+            month_end = datetime(next_year, next_month, 1)
+            month_count = User.query.filter(
+                User.created_at >= month_start,
+                User.created_at < month_end
+            ).count()
+            trends.append({
+                'date': month_start.strftime('%b %Y'),
+                'count': month_count,
+            })
+            bucket_year, bucket_month = next_year, next_month
+        return trends
+
+    days = 90 if period == '90d' else 30
+    for i in range(days - 1, -1, -1):
+        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        day_count = User.query.filter(
+            User.created_at >= day_start,
+            User.created_at < day_end
+        ).count()
+        trends.append({
+            'date': day_start.strftime('%b %d'),
+            'count': day_count,
+        })
+    return trends
+
+
 def get_user_analytics():
     """Generate comprehensive user analytics data structured for the analytics template.
 
@@ -184,18 +242,7 @@ def get_user_analytics():
                 league_distribution[role.name] = len(role.users)
 
         # Registration trends (daily counts for last 30 days)
-        registration_trends = []
-        for i in range(29, -1, -1):
-            day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
-            day_end = day_start + timedelta(days=1)
-            day_count = User.query.filter(
-                User.created_at >= day_start,
-                User.created_at < day_end
-            ).count()
-            registration_trends.append({
-                'date': day_start.strftime('%b %d'),
-                'count': day_count,
-            })
+        registration_trends = get_registration_trends('30d')
 
         # Engagement metrics
         users_with_players = db.session.query(func.count(func.distinct(Player.user_id))).scalar() or 0
@@ -313,6 +360,16 @@ def generate_user_export_data(export_type, format_type, date_range):
                         'role_id': role.id,
                         'role_name': role.name
                     })
+
+        elif export_type == 'leagues':
+            league_role_names = ['pl-classic', 'pl-premier', 'pl-ecs-fc']
+            league_roles = Role.query.filter(Role.name.in_(league_role_names)).all()
+            for role in league_roles:
+                export_records.append({
+                    'role_id': role.id,
+                    'league': role.name,
+                    'user_count': len(role.users)
+                })
 
         elif export_type == 'activity':
             if start_date:

@@ -22,38 +22,111 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_row_card, empty_state %}
-{% set role_kind = 'Admin Role' if 'admin' in role.name.lower() else ('Coach Role' if 'coach' in role.name.lower() else ('Player Role' if 'pl-' in role.name.lower() else 'Custom Role')) %}
-{% set role_tone = 'danger' if 'admin' in role.name.lower() else ('primary' if 'coach' in role.name.lower() else ('info' if 'pl-' in role.name.lower() else 'neutral')) %}
+{% from 'macros/_modern_kit.html' import page_header, data_table, data_table_th, empty_state %}
+{% set rn = role.name.lower() %}
+{% set role_kind = 'Admin Role' if 'admin' in rn else ('Coach Role' if 'coach' in rn else ('Player Role' if 'pl-' in rn else 'Custom Role')) %}
+{% set is_admin_role = 'admin' in rn %}
+{% set is_coach_role = 'coach' in rn %}
+{% set is_player_role = 'pl-' in rn %}
+{# accent classes for the role identity (icon chip + figures), severity = icon+text not color-only #}
+{% set accent_text = 'text-red-600 dark:text-red-400' if is_admin_role else ('text-ecs-green' if is_coach_role else ('text-blue-600 dark:text-blue-400' if is_player_role else 'text-gray-700 dark:text-gray-300')) %}
+{% set accent_chip = 'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400' if is_admin_role else ('bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15' if is_coach_role else ('bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400' if is_player_role else 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300')) %}
+{% set total_members = pagination.total if pagination else users|length %}
 <div class="space-y-5 sm:space-y-6">
-  {{ page_header(role.name, subtitle="Role members") }}
+  {% call page_header(role.name, subtitle="Roles / Membership") %}
+    <a href="{{ url_for('admin_panel.roles_comprehensive') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to Roles
+    </a>
+    <button type="button" data-modal-target="assignUserModal" data-modal-toggle="assignUserModal"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-user-plus" aria-hidden="true"></i>Assign User
+    </button>
+  {% endcall %}
 
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    {{ stat_card('ti-id-badge-2', 'Role type', role_kind, sublabel=role.description or none, tone=role_tone) }}
-    {{ stat_card('ti-users', 'Members', users|length, sublabel='user' if users|length == 1 else 'users', tone='info') }}
-    {% call stat_card('ti-bolt', 'Actions', '', tone='primary') %}
-      <div class="flex flex-wrap gap-2 -mt-1">
-        <a href="{{ url_for('admin_panel.roles_comprehensive') }}"
-           class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-          <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to Roles
-        </a>
-        <button type="button" data-modal-target="assignUserModal" data-modal-toggle="assignUserModal"
-                class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-          <i class="ti ti-user-plus" aria-hidden="true"></i>Assign User
-        </button>
+  {# ===== PRIMARY OBJECT: the role itself (feature card w/ header bar + identity + KPI band) ===== #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="p-4 sm:p-5">
+      <div class="flex items-start gap-4">
+        <div class="shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold {{ accent_chip }}">
+          {{ role.name[0].upper() }}
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="text-lg font-bold text-gray-900 dark:text-white truncate">{{ role.name }}</h2>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide {{ accent_chip }}">
+              <i class="ti {{ 'ti-shield-lock' if is_admin_role else ('ti-whistle' if is_coach_role else ('ti-ball-football' if is_player_role else 'ti-tag')) }} text-[12px]" aria-hidden="true"></i>{{ role_kind }}
+            </span>
+          </div>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {% if role.description %}{{ role.description }}{% else %}<span class="italic">No description set for this role.</span>{% endif %}
+          </p>
+          <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+            <span class="inline-flex items-center gap-1.5"><i class="ti ti-hash text-[12px]" aria-hidden="true"></i>Role ID <span class="font-mono text-gray-700 dark:text-gray-300">{{ role.id }}</span></span>
+            <span class="inline-flex items-center gap-1.5"><i class="ti ti-key text-[12px]" aria-hidden="true"></i><span class="font-mono text-gray-700 dark:text-gray-300">{{ role.permissions|length }}</span> permission{{ '' if role.permissions|length == 1 else 's' }}</span>
+          </div>
+        </div>
       </div>
-    {% endcall %}
-  </div>
+    </div>
+    {# KPI band — real role + membership facts, mono figures, divider footers #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700">
+      <div class="p-4 sm:p-5">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Members</span>
+        <div class="mt-2 flex items-end gap-2">
+          <span class="font-mono text-3xl font-bold leading-none {{ accent_text }}">{{ total_members }}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">assigned</span>
+        </div>
+      </div>
+      <div class="p-4 sm:p-5">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Discord Sync</span>
+        <div class="mt-2 flex items-center gap-1.5">
+          {% if role.sync_enabled %}
+          <i class="ti ti-brand-discord text-lg text-indigo-500 dark:text-indigo-400" aria-hidden="true"></i>
+          <span class="text-base font-bold text-gray-900 dark:text-white">Enabled</span>
+          {% else %}
+          <i class="ti ti-plug-connected-x text-lg text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+          <span class="text-base font-bold text-gray-500 dark:text-gray-400">Off</span>
+          {% endif %}
+        </div>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate">
+          {% if role.discord_role_name %}{{ role.discord_role_name }}{% elif role.discord_role_id %}<span class="font-mono">{{ role.discord_role_id }}</span>{% else %}Not linked{% endif %}
+        </p>
+      </div>
+      <div class="p-4 sm:p-5">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Discord ID</span>
+        <div class="mt-2">
+          {% if role.discord_role_id %}
+          <span class="font-mono text-sm font-bold text-gray-900 dark:text-white break-all">{{ role.discord_role_id }}</span>
+          {% else %}
+          <span class="text-base font-bold text-gray-400 dark:text-gray-500">—</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="p-4 sm:p-5">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Last Synced</span>
+        <div class="mt-2">
+          {% if role.last_synced_at %}
+          <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ role.last_synced_at.strftime('%b %d, %Y') }}</span>
+          <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ role.last_synced_at.strftime('%H:%M') }} UTC</p>
+          {% else %}
+          <span class="text-base font-bold text-gray-400 dark:text-gray-500">Never</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
 
   {% if users %}
-    {% call data_table('Users with this Role', icon='ti-users', count=users|length, search_placeholder='Filter users…', search_id='roleUsersFilter') %}
+    {% call data_table('Members', icon='ti-users', count=total_members, search_placeholder='Filter members…', search_id='roleUsersFilter') %}
       <table class="hidden md:table w-full text-sm text-left">
         <thead>
-          <tr class="border-b border-gray-200 dark:border-gray-700">
-            {{ data_table_th('User', key='user') }}
-            {{ data_table_th('Email', key='email', hide='sm') }}
-            {{ data_table_th('Player', key='player', hide='sm') }}
-            {{ data_table_th('Assigned', key='assigned', hide='md') }}
+          <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/30">
+            {{ data_table_th('Member', key='user') }}
+            {{ data_table_th('Status', key='status') }}
+            {{ data_table_th('Linked Player', key='player', hide='sm') }}
+            {{ data_table_th('League', key='league', hide='md') }}
+            {{ data_table_th('Last Login', key='login', hide='md', align='right') }}
+            {{ data_table_th('Joined', key='joined', hide='sm', align='right') }}
             {{ data_table_th('Actions', sortable=false, align='right') }}
           </tr>
         </thead>
@@ -71,32 +144,44 @@
                 {% endif %}
                 <div class="min-w-0">
                   <p class="font-semibold text-gray-900 dark:text-white truncate">{{ user.username }}</p>
-                  <p class="text-xs font-mono text-gray-500 dark:text-gray-400">ID: {{ user.id }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {% if user.email %}{{ user.email }}{% else %}<span class="italic">No email</span>{% endif %}
+                  </p>
                 </div>
               </div>
             </td>
-            <td class="px-3 py-2.5 hidden md:table-cell">
-              {% if user.email %}
-              <span class="text-gray-700 dark:text-gray-300">{{ user.email }}</span>
-              {% else %}
-              <span class="text-gray-400 dark:text-gray-500 italic">No email</span>
-              {% endif %}
+            <td class="px-3 py-2.5">
+              <div class="flex flex-wrap items-center gap-1">
+                {% if user.is_active %}
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                  <i class="ti ti-circle-check text-[11px]" aria-hidden="true"></i>Active</span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                  <i class="ti ti-circle-minus text-[11px]" aria-hidden="true"></i>Inactive</span>
+                {% endif %}
+                {% if not user.is_approved %}
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+                  <i class="ti ti-clock-hour-4 text-[11px]" aria-hidden="true"></i>Pending</span>
+                {% endif %}
+              </div>
             </td>
             <td class="px-3 py-2.5 hidden md:table-cell">
               {% if user.player %}
-              <a href="{{ url_for('players.player_profile', player_id=user.player.id) }}" class="text-ecs-green hover:underline">
-                {{ user.player.name }}
+              <a href="{{ url_for('players.player_profile', player_id=user.player.id) }}" class="inline-flex items-center gap-1 text-ecs-green hover:underline">
+                <i class="ti ti-user-circle text-[14px]" aria-hidden="true"></i>{{ user.player.name }}
               </a>
               {% else %}
               <span class="text-gray-400 dark:text-gray-500 italic">Not linked</span>
               {% endif %}
             </td>
-            <td class="px-3 py-2.5 hidden lg:table-cell text-xs font-mono text-gray-500 dark:text-gray-400">
-              {% if user.created_at %}
-              {{ user.created_at.strftime('%b %d, %Y') }}
-              {% else %}
-              <span class="text-gray-400">Unknown</span>
-              {% endif %}
+            <td class="px-3 py-2.5 hidden lg:table-cell text-gray-600 dark:text-gray-300">
+              {% if user.league %}{{ user.league.name }}{% else %}<span class="text-gray-400 dark:text-gray-500">—</span>{% endif %}
+            </td>
+            <td class="px-3 py-2.5 hidden lg:table-cell text-right text-xs font-mono text-gray-500 dark:text-gray-400">
+              {% if user.last_login %}{{ user.last_login.strftime('%b %d, %Y') }}{% else %}<span class="text-gray-400">never</span>{% endif %}
+            </td>
+            <td class="px-3 py-2.5 hidden md:table-cell text-right text-xs font-mono text-gray-500 dark:text-gray-400">
+              {% if user.created_at %}{{ user.created_at.strftime('%b %d, %Y') }}{% else %}<span class="text-gray-400">unknown</span>{% endif %}
             </td>
             <td class="px-3 py-2.5">
               <div class="flex items-center justify-end gap-1">
@@ -118,7 +203,7 @@
 
       <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
         {% for user in users %}
-        <div data-row class="px-4 py-3.5">
+        <div data-row data-row-card class="px-4 py-3.5">
           <div class="flex items-center gap-3">
             {% if user.player and user.player.profile_picture_url %}
             <img class="w-10 h-10 rounded-full object-cover shrink-0" src="{{ user.player.profile_picture_url }}" alt="{{ user.username }}" />
@@ -129,7 +214,8 @@
             {% endif %}
             <div class="min-w-0 flex-1">
               <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ user.username }}</p>
-              <p class="text-xs font-mono text-gray-500 dark:text-gray-400">ID: {{ user.id }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {% if user.email %}{{ user.email }}{% else %}<span class="italic">No email</span>{% endif %}</p>
             </div>
             <div class="flex items-center gap-1 shrink-0">
               <a href="{{ url_for('admin_panel.users_comprehensive') }}?search={{ user.username }}"
@@ -143,20 +229,56 @@
               </button>
             </div>
           </div>
-          <div class="mt-2 space-y-0.5 text-xs text-gray-500 dark:text-gray-400">
-            <p><span class="font-semibold text-gray-700 dark:text-gray-300">Email:</span>
-              {% if user.email %}{{ user.email }}{% else %}<span class="italic">No email</span>{% endif %}</p>
-            <p><span class="font-semibold text-gray-700 dark:text-gray-300">Player:</span>
+          <div class="mt-2 flex flex-wrap items-center gap-1">
+            {% if user.is_active %}
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check text-[11px]" aria-hidden="true"></i>Active</span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-circle-minus text-[11px]" aria-hidden="true"></i>Inactive</span>
+            {% endif %}
+            {% if not user.is_approved %}
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-clock-hour-4 text-[11px]" aria-hidden="true"></i>Pending</span>
+            {% endif %}
+          </div>
+          <div class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+            <p class="col-span-2"><span class="font-semibold text-gray-700 dark:text-gray-300">Player:</span>
               {% if user.player %}<a href="{{ url_for('players.player_profile', player_id=user.player.id) }}" class="text-ecs-green hover:underline">{{ user.player.name }}</a>{% else %}<span class="italic">Not linked</span>{% endif %}</p>
-            <p class="font-mono"><span class="font-semibold text-gray-700 dark:text-gray-300 font-sans">Assigned:</span>
-              {% if user.created_at %}{{ user.created_at.strftime('%b %d, %Y') }}{% else %}Unknown{% endif %}</p>
+            <p><span class="font-semibold text-gray-700 dark:text-gray-300">League:</span>
+              {% if user.league %}{{ user.league.name }}{% else %}—{% endif %}</p>
+            <p><span class="font-semibold text-gray-700 dark:text-gray-300">Joined:</span>
+              <span class="font-mono">{% if user.created_at %}{{ user.created_at.strftime('%b %d, %Y') }}{% else %}unknown{% endif %}</span></p>
           </div>
         </div>
         {% endfor %}
       </div>
     {% endcall %}
+
+    {% if pagination and pagination.pages > 1 %}
+    <nav class="flex flex-col sm:flex-row items-center justify-between gap-3" aria-label="Members pagination">
+      <p class="text-xs text-gray-500 dark:text-gray-400">
+        Page <span class="font-mono text-gray-700 dark:text-gray-300">{{ pagination.page }}</span>
+        of <span class="font-mono text-gray-700 dark:text-gray-300">{{ pagination.pages }}</span>
+        · <span class="font-mono text-gray-700 dark:text-gray-300">{{ pagination.total }}</span> members
+      </p>
+      <div class="flex items-center gap-1">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('admin_panel.role_comprehensive_users', role_id=role.id, page=pagination.prev_num) }}"
+           class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-chevron-left" aria-hidden="true"></i>Prev</a>
+        {% else %}
+        <span class="inline-flex items-center gap-1 sm:h-9 px-3 rounded-lg text-xs font-semibold text-gray-300 dark:text-gray-600 cursor-not-allowed"><i class="ti ti-chevron-left" aria-hidden="true"></i>Prev</span>
+        {% endif %}
+        {% if pagination.has_next %}
+        <a href="{{ url_for('admin_panel.role_comprehensive_users', role_id=role.id, page=pagination.next_num) }}"
+           class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          Next<i class="ti ti-chevron-right" aria-hidden="true"></i></a>
+        {% else %}
+        <span class="inline-flex items-center gap-1 sm:h-9 px-3 rounded-lg text-xs font-semibold text-gray-300 dark:text-gray-600 cursor-not-allowed">Next<i class="ti ti-chevron-right" aria-hidden="true"></i></span>
+        {% endif %}
+      </div>
+    </nav>
+    {% endif %}
   {% else %}
-    {{ empty_state('ti-users-group', 'No Users Assigned', 'No users have been assigned to this role yet.') }}
+    {{ empty_state('ti-users-group', 'No Members Yet', 'No users have been assigned to the ' ~ role.name ~ ' role. Assign the first member to get started.') }}
     <div class="flex justify-center">
       <button type="button" data-modal-target="assignUserModal" data-modal-toggle="assignUserModal"
               class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">

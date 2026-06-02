@@ -12,129 +12,271 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, stat_card %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+{# --- real-data derivations: counts come ONLY from the server-rendered rosters --- #}
+{% set yes_in = roster_yes | selectattr('checked_in') | list | length %}
+{% set yes_total = roster_yes | length %}
+{% set full_in = roster_full | selectattr('checked_in') | list | length %}
+{% set full_total = roster_full | length %}
+{% set yes_pending = yes_total - yes_in %}
 <div data-page="admin-match-checkin-detail"
      data-league-type="{{ league_type }}"
      data-match-id="{{ match.id }}">
 
 {% call page_header(match_label, subtitle="Match Operations / Check-In") %}
+  <a href="{{ url_for('admin_panel.match_check_in_index') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+     aria-label="Back to check-in queue">
+    <i class="ti ti-list" aria-hidden="true"></i><span class="hidden sm:inline">Queue</span>
+  </a>
+  {% if not token %}
+  <button type="button" data-action="generate-match-qr"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-qrcode" aria-hidden="true"></i><span class="hidden sm:inline">Generate QR</span>
+  </button>
+  {% endif %}
   <a href="{{ export_url }}"
      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
     <i class="ti ti-download" aria-hidden="true"></i>Export CSV
   </a>
 {% endcall %}
 
+<!-- MATCH CONTEXT BAR — match identity + league badge + kickoff/location chips above the KPIs -->
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 sm:p-4 mb-5 sm:mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+  <div class="flex items-center gap-3 flex-1 min-w-0">
+    <span class="shrink-0 w-10 h-10 rounded-lg bg-ecs-green/10 text-ecs-green flex items-center justify-center">
+      <i class="ti ti-ballpark text-lg" aria-hidden="true"></i>
+    </span>
+    <div class="min-w-0">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="font-semibold text-gray-900 dark:text-white truncate">{{ match_label }}</span>
+        <span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">
+          {% if league_type == 'pub_league' %}Pub League{% else %}ECS FC{% endif %}
+        </span>
+      </div>
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <span class="flex items-center gap-1">
+          <i class="ti ti-clock" aria-hidden="true"></i>
+          <span class="font-mono">{% if kickoff %}{{ kickoff.strftime('%a %b %-d, %-I:%M %p') }}{% else %}—{% endif %}</span>
+        </span>
+        <span class="flex items-center gap-1 min-w-0">
+          <i class="ti ti-map-pin" aria-hidden="true"></i>
+          <span class="truncate">{{ location or '—' }}</span>
+        </span>
+      </div>
+    </div>
+  </div>
+  {# Match switcher — hop between scheduled matches without returning to the queue.
+     Navigates on change (page-scoped JS below). Shown only when there's more than
+     one match to switch between. #}
+  {% if switcher_matches and switcher_matches|length > 1 %}
+  <div class="shrink-0 w-full sm:w-auto">
+    <label for="matchSwitcher" class="sr-only">Switch match</label>
+    <div class="relative">
+      <i class="ti ti-switch-horizontal absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+      <select id="matchSwitcher"
+              class="h-10 w-full sm:w-72 pl-9 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green focus:border-ecs-green"
+              aria-label="Switch to another match">
+        {% for opt in switcher_matches %}
+        <option value="{{ opt.detail_url }}"{% if opt.is_current %} selected{% endif %}>
+          {{ opt.label }}{% if opt.kickoff %} — {{ opt.kickoff.strftime('%a %b %-d, %-I:%M %p') }}{% endif %}{% if opt.league_type == 'ecs_fc' %} (ECS FC){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+
+<!-- KPI BAND — live attendance pulse for this match (figures from server roster) -->
+<div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Checked In</span>
+      <i class="ti ti-circle-check-filled text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-2 flex-wrap">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ yes_in }}</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">of {{ yes_total }} RSVP'd</span>
+    </div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Awaiting</span>
+      <i class="ti ti-clock-hour-3 text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-2 flex-wrap">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ yes_pending }}</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">not yet at venue</span>
+    </div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">RSVP'd Yes</span>
+      <i class="ti ti-thumb-up text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-2 flex-wrap">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ yes_total }}</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">expected</span>
+    </div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Full Roster</span>
+      <i class="ti ti-users-group text-lg text-gray-900 dark:text-white shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-2 flex-wrap">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ full_total }}</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ full_in }} in total</span>
+    </div>
+  </div>
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
 
-  <!-- LEFT: QR + token + match info -->
+  <!-- LEFT: QR feature card + match info -->
   <div class="lg:col-span-1 space-y-5 sm:space-y-6">
 
-    {% call section_card("Venue QR", icon="ti-qrcode") %}
-    <div class="p-4 sm:p-5">
-      {% if token %}
-      <div class="flex items-center justify-end mb-3">
+    <!-- VENUE QR — primary venue object, feature card with status header + command toolbar -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+          <i class="ti ti-qrcode text-ecs-green" aria-hidden="true"></i>Venue QR
+        </h3>
+        {% if token %}
         <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
           <i class="ti ti-circle-check" aria-hidden="true"></i>Active
         </span>
+        {% else %}
+        <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+          <i class="ti ti-circle-dashed" aria-hidden="true"></i>None
+        </span>
+        {% endif %}
       </div>
-      <div class="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-center">
-        <img src="{{ qr_url }}" alt="Match QR code" class="w-full max-w-[240px] h-auto">
+      {% if token %}
+      <div class="p-4 sm:p-5">
+        <div class="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-center">
+          <img src="{{ qr_url }}" alt="Match QR code" class="w-full max-w-[240px] h-auto">
+        </div>
+        <div class="mt-4 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-3 py-2">
+          <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-0.5">Check-in URL</p>
+          <p id="checkInUrlText" class="font-mono text-xs text-gray-700 dark:text-gray-300 break-all">{{ check_in_url }}</p>
+        </div>
       </div>
-      <div class="mt-3 text-xs text-gray-500 dark:text-gray-400 break-all">
-        <span class="font-medium text-gray-700 dark:text-gray-300">URL:</span>
-        <span id="checkInUrlText" class="font-mono">{{ check_in_url }}</span>
-      </div>
-      <div class="mt-4 grid grid-cols-2 gap-2">
+      <!-- command toolbar -->
+      <div class="grid grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700">
         <a href="{{ print_url }}" target="_blank"
-           class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-10 px-3 text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-          <i class="ti ti-printer" aria-hidden="true"></i>Print
+           class="inline-flex items-center justify-center gap-1.5 min-h-[48px] px-3 text-xs font-semibold text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+          <i class="ti ti-printer" aria-hidden="true"></i>Print poster
         </a>
         <button type="button" data-action="copy-checkin-url" data-url="{{ check_in_url }}"
-                class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-10 px-3 text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                class="inline-flex items-center justify-center gap-1.5 min-h-[48px] px-3 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <i class="ti ti-copy" aria-hidden="true"></i>Copy URL
         </button>
         <button type="button" data-action="rotate-match-qr"
-                class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-10 px-3 text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+                class="inline-flex items-center justify-center gap-1.5 min-h-[48px] px-3 text-xs font-semibold text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500 border-t border-gray-200 dark:border-gray-700">
           <i class="ti ti-refresh" aria-hidden="true"></i>Rotate
         </button>
         <button type="button" data-action="revoke-match-qr"
-                class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-10 px-3 text-xs font-semibold text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
-          <i class="ti ti-x" aria-hidden="true"></i>Revoke
+                class="inline-flex items-center justify-center gap-1.5 min-h-[48px] px-3 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500 border-t border-gray-200 dark:border-gray-700">
+          <i class="ti ti-ban" aria-hidden="true"></i>Revoke
         </button>
       </div>
       {% else %}
-      {{ empty_state("ti-qrcode", "No active QR yet", "Generate a venue QR code so players can check in for this match.") }}
-      <div class="flex justify-center pb-2">
+      {{ empty_state("ti-qrcode", "No active QR yet", "Generate a venue QR code so players can scan in for this match.") }}
+      <div class="flex justify-center pb-6 -mt-2">
         <button type="button" data-action="generate-match-qr"
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-qrcode" aria-hidden="true"></i>Generate QR
         </button>
       </div>
       {% endif %}
-    </div>
-    {% endcall %}
+    </section>
 
-    {% call section_card("Match Info", icon="ti-info-circle") %}
-    <div class="p-4 sm:p-5">
-      <dl class="space-y-2.5 text-sm">
-        <div class="flex justify-between gap-3">
-          <dt class="text-gray-500 dark:text-gray-400">Kickoff</dt>
-          <dd class="font-medium text-gray-900 dark:text-white text-right font-mono">
+    <!-- MATCH INFO — token card, dense rows -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-info-circle text-ecs-green" aria-hidden="true"></i>
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Match Info</h3>
+      </div>
+      <dl class="divide-y divide-gray-100 dark:divide-gray-700">
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+          <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Kickoff</dt>
+          <dd class="font-mono text-sm font-medium text-gray-900 dark:text-white text-right">
             {% if kickoff %}{{ kickoff.strftime('%a %b %-d, %-I:%M %p') }}{% else %}—{% endif %}
           </dd>
         </div>
-        <div class="flex justify-between gap-3">
-          <dt class="text-gray-500 dark:text-gray-400">Location</dt>
-          <dd class="font-medium text-gray-900 dark:text-white text-right max-w-[60%] truncate">{{ location or '—' }}</dd>
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+          <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide shrink-0">Location</dt>
+          <dd class="text-sm font-medium text-gray-900 dark:text-white text-right truncate">{{ location or '—' }}</dd>
         </div>
-        <div class="flex justify-between gap-3">
-          <dt class="text-gray-500 dark:text-gray-400">League</dt>
-          <dd class="font-medium text-gray-900 dark:text-white text-right">{% if league_type == 'pub_league' %}Pub League{% else %}ECS FC{% endif %}</dd>
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+          <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">League</dt>
+          <dd class="text-right">
+            <span class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+              {% if league_type == 'pub_league' %}Pub League{% else %}ECS FC{% endif %}
+            </span>
+          </dd>
         </div>
       </dl>
-      <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+      <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700">
         <a href="{{ export_url }}"
-           class="inline-flex items-center gap-1 text-sm font-medium text-ecs-green hover:underline">
+           class="inline-flex items-center gap-1.5 text-sm font-medium text-ecs-green hover:underline">
           <i class="ti ti-download" aria-hidden="true"></i>Export attendance CSV
         </a>
       </div>
-    </div>
-    {% endcall %}
+    </section>
   </div>
 
-  <!-- RIGHT: roster split list -->
+  <!-- RIGHT: roster scanner — the page's primary working surface -->
   <div class="lg:col-span-2 space-y-5 sm:space-y-6">
 
-    <!-- Tab toggle + auto-refresh -->
-    <div class="flex flex-wrap items-center gap-2">
-      <button type="button" data-action="set-roster-scope" data-scope="yes"
-              class="checkin-tab inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-ecs-green text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900" data-active="yes">
-        RSVP'd Yes <span class="ml-1.5 text-xs font-mono opacity-80" data-roster-count="yes">({{ roster_yes|length }})</span>
-      </button>
-      <button type="button" data-action="set-roster-scope" data-scope="all"
-              class="checkin-tab inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        All Roster <span class="ml-1.5 text-xs font-mono opacity-80" data-roster-count="all">({{ roster_full|length }})</span>
-      </button>
-      <span class="ml-auto text-xs text-gray-500 dark:text-gray-400" id="rosterRefreshIndicator">
-        Auto-refresh: <span id="rosterAutoRefreshState" class="font-mono">on</span>
+    <!-- Scope toggle + live auto-refresh state -->
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="inline-flex p-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <button type="button" data-action="set-roster-scope" data-scope="yes"
+                class="checkin-tab inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-ecs-green text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900" data-active="yes">
+          RSVP'd Yes <span class="ml-1.5 text-xs font-mono opacity-80" data-roster-count="yes">({{ roster_yes|length }})</span>
+        </button>
+        <button type="button" data-action="set-roster-scope" data-scope="all"
+                class="checkin-tab inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-active="all">
+          All Roster <span class="ml-1.5 text-xs font-mono opacity-80" data-roster-count="all">({{ roster_full|length }})</span>
+        </button>
+      </div>
+      <div class="relative flex-1 sm:min-w-[180px] sm:max-w-xs">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+        <input type="search" id="rosterSearch" placeholder="Find player…"
+               class="h-9 w-full pl-9 pr-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:border-ecs-green"
+               aria-label="Find player">
+      </div>
+      <span class="ml-auto inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400" id="rosterRefreshIndicator">
+        <i class="ti ti-refresh text-sm" aria-hidden="true"></i>Auto-refresh
+        <span id="rosterAutoRefreshState" class="font-mono font-semibold text-ecs-green">on</span>
       </span>
     </div>
 
-    <!-- Not Yet section -->
-    {% call section_card("Not Yet", icon="ti-clock-hour-3") %}
-    <div class="flex items-center justify-end px-4 sm:px-5 py-2 border-b border-gray-200 dark:border-gray-700">
-      <span class="text-sm font-mono text-gray-500 dark:text-gray-400" id="notYetCount">0</span>
-    </div>
-    <ul class="divide-y divide-gray-100 dark:divide-gray-700" id="rosterNotYet"></ul>
-    {% endcall %}
+    <!-- Not Yet -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+          <i class="ti ti-clock-hour-3 text-amber-500" aria-hidden="true"></i>Not Yet
+        </h3>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400" id="notYetCount">0</span>
+      </div>
+      <ul class="divide-y divide-gray-100 dark:divide-gray-700" id="rosterNotYet"></ul>
+    </section>
 
-    <!-- Checked In section -->
-    {% call section_card("Checked In", icon="ti-circle-check") %}
-    <div class="flex items-center justify-end px-4 sm:px-5 py-2 border-b border-gray-200 dark:border-gray-700">
-      <span class="text-sm font-mono text-gray-500 dark:text-gray-400" id="checkedInCount">0</span>
-    </div>
-    <ul class="divide-y divide-gray-100 dark:divide-gray-700" id="rosterCheckedIn"></ul>
-    {% endcall %}
+    <!-- Checked In -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+          <i class="ti ti-circle-check text-green-500" aria-hidden="true"></i>Checked In
+        </h3>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400" id="checkedInCount">0</span>
+      </div>
+      <ul class="divide-y divide-gray-100 dark:divide-gray-700" id="rosterCheckedIn"></ul>
+    </section>
 
   </div>
 </div>
@@ -287,5 +429,15 @@ window.MATCH_CHECKIN_DETAIL_CONFIG = {
     initialRosterYes:  {{ roster_yes|tojson }},
     initialRosterFull: {{ roster_full|tojson }},
 };
+
+// Match switcher (#matchSwitcher) — navigate to the selected match's detail page.
+// Wrapped in DOMContentLoaded so it runs after the deferred module bundle.
+document.addEventListener('DOMContentLoaded', function () {
+    var sw = document.getElementById('matchSwitcher');
+    if (!sw) { return; }
+    sw.addEventListener('change', function () {
+        if (sw.value) { window.location.href = sw.value; }
+    });
+});
 </script>
 {% endblock %}

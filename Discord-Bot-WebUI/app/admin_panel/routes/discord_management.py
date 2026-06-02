@@ -21,7 +21,7 @@ from .. import admin_panel_bp
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.models import Player, Team, User, Season, League
-from app.models.admin_config import AdminAuditLog
+from app.models.admin_config import AdminAuditLog, AdminConfig
 from app.tasks.tasks_discord import (
     update_player_discord_roles,
     fetch_role_status,
@@ -29,6 +29,49 @@ from app.tasks.tasks_discord import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# -----------------------------------------------------------
+# Discord Onboarding "Approval Gate" configuration
+# -----------------------------------------------------------
+# These are stored as generic AdminConfig key/value rows (category
+# 'onboarding') so no schema change is required. The reminder-window choices
+# are constrained to a fixed allow-list; anything else is rejected on save.
+ONBOARDING_REMINDER_WINDOWS = ['24h', '48h', '72h', 'never']
+
+ONBOARDING_CONFIG_KEYS = {
+    'onboarding_auto_approve_linked': {
+        'description': 'Auto-approve members once their Discord ID is verified (skip manual review).',
+        'data_type': 'boolean',
+        'default': 'false',
+    },
+    'onboarding_approval_notify_channel': {
+        'description': 'Discord channel name used for approval notifications.',
+        'data_type': 'string',
+        'default': '',
+    },
+    'onboarding_reminder_window': {
+        'description': 'How long to wait before auto-reminding pending users (24h/48h/72h/never).',
+        'data_type': 'string',
+        'default': 'never',
+    },
+}
+
+
+def _load_onboarding_config():
+    """Read the onboarding approval-gate settings from AdminConfig.
+
+    Returns a plain dict the template can render directly. Reads are defensive:
+    AdminConfig.get_setting already swallows DB errors and returns the default.
+    """
+    reminder = AdminConfig.get_setting('onboarding_reminder_window', 'never')
+    if reminder not in ONBOARDING_REMINDER_WINDOWS:
+        reminder = 'never'
+    return {
+        'auto_approve_linked': bool(AdminConfig.get_setting('onboarding_auto_approve_linked', False)),
+        'approval_notify_channel': AdminConfig.get_setting('onboarding_approval_notify_channel', '') or '',
+        'reminder_window': reminder,
+    }
 
 
 # -----------------------------------------------------------
@@ -254,11 +297,23 @@ def discord_roles():
     """Discord role synchronization management page."""
     session = g.db_session
     try:
-        # Get players needing sync
-        players_needing_sync = session.query(Player).filter(
+        # Base query: players with a linked Discord account whose roles are not synced
+        needing_sync_query = session.query(Player).filter(
             Player.discord_id.isnot(None),
             Player.discord_roles_synced == False
-        ).count()
+        )
+
+        # KPI count for the stat cards / sync buttons
+        players_needing_sync = needing_sync_query.count()
+
+        # Actual rows for the "Players Needing Sync" table (cap to keep the
+        # page light; the bulk sync action still operates on every player).
+        players_needing_sync_list = (
+            needing_sync_query
+            .order_by(Player.name.asc())
+            .limit(100)
+            .all()
+        )
 
         players_needs_update = session.query(Player).filter(
             Player.discord_id.isnot(None),
@@ -267,11 +322,13 @@ def discord_roles():
 
         return render_template('admin_panel/discord/roles_flowbite.html',
                              players_needing_sync=players_needing_sync,
+                             players_needing_sync_list=players_needing_sync_list,
                              players_needs_update=players_needs_update)
     except Exception as e:
         logger.error(f"Error loading Discord roles page: {e}")
         return render_template('admin_panel/discord/roles_flowbite.html',
                              players_needing_sync=0,
+                             players_needing_sync_list=[],
                              players_needs_update=0,
                              error=str(e))
 
@@ -659,12 +716,21 @@ def discord_onboarding():
 
         return render_template('admin_panel/discord/onboarding_flowbite.html',
                              overview_data=overview_data,
-                             stats=stats)
+                             stats=stats,
+                             onboarding_config=_load_onboarding_config(),
+                             reminder_windows=ONBOARDING_REMINDER_WINDOWS)
     except Exception as e:
         logger.error(f"Error loading onboarding page: {e}", exc_info=True)
+        # Still surface the (defensive) config so the settings panel renders.
+        try:
+            cfg = _load_onboarding_config()
+        except Exception:
+            cfg = {'auto_approve_linked': False, 'approval_notify_channel': '', 'reminder_window': 'never'}
         return render_template('admin_panel/discord/onboarding_flowbite.html',
                              overview_data=[],
                              stats={'completed': 0, 'pending_discord': 0, 'pending_approval': 0},
+                             onboarding_config=cfg,
+                             reminder_windows=ONBOARDING_REMINDER_WINDOWS,
                              error=str(e))
 
 
@@ -753,6 +819,81 @@ def discord_retry_onboarding_contact(user_id):
     return jsonify({
         'success': True,
         'message': f'Contact retry enabled for {user.username}'
+    })
+
+
+@admin_panel_bp.route('/discord/onboarding/config', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def discord_save_onboarding_config():
+    """Save the onboarding approval-gate settings to AdminConfig.
+
+    Accepts a JSON body with any subset of:
+      - auto_approve_linked  (bool)
+      - approval_notify_channel (str; trimmed, max 100 chars)
+      - reminder_window (one of ONBOARDING_REMINDER_WINDOWS)
+    Validates each field before persisting. Unknown/invalid values are rejected.
+    """
+    data = request.get_json(silent=True) or {}
+
+    changes = []
+
+    # auto_approve_linked (boolean)
+    if 'auto_approve_linked' in data:
+        new_value = 'true' if bool(data.get('auto_approve_linked')) else 'false'
+        meta = ONBOARDING_CONFIG_KEYS['onboarding_auto_approve_linked']
+        AdminConfig.set_setting(
+            key='onboarding_auto_approve_linked', value=new_value,
+            description=meta['description'], category='onboarding',
+            data_type=meta['data_type'], user_id=current_user.id,
+        )
+        changes.append(f"auto_approve_linked={new_value}")
+
+    # approval_notify_channel (string, optional, capped length)
+    if 'approval_notify_channel' in data:
+        channel = (data.get('approval_notify_channel') or '').strip()[:100]
+        meta = ONBOARDING_CONFIG_KEYS['onboarding_approval_notify_channel']
+        AdminConfig.set_setting(
+            key='onboarding_approval_notify_channel', value=channel,
+            description=meta['description'], category='onboarding',
+            data_type=meta['data_type'], user_id=current_user.id,
+        )
+        changes.append(f"approval_notify_channel={channel or '(none)'}")
+
+    # reminder_window (constrained allow-list)
+    if 'reminder_window' in data:
+        window = (data.get('reminder_window') or '').strip()
+        if window not in ONBOARDING_REMINDER_WINDOWS:
+            return jsonify({
+                'success': False,
+                'error': f"Invalid reminder window. Must be one of: {', '.join(ONBOARDING_REMINDER_WINDOWS)}"
+            }), 400
+        meta = ONBOARDING_CONFIG_KEYS['onboarding_reminder_window']
+        AdminConfig.set_setting(
+            key='onboarding_reminder_window', value=window,
+            description=meta['description'], category='onboarding',
+            data_type=meta['data_type'], user_id=current_user.id,
+        )
+        changes.append(f"reminder_window={window}")
+
+    if not changes:
+        return jsonify({'success': False, 'error': 'No valid settings provided'}), 400
+
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='discord_onboarding_config_update',
+        resource_type='admin_config',
+        resource_id='onboarding',
+        new_value='; '.join(changes),
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+
+    return jsonify({
+        'success': True,
+        'message': 'Onboarding flow settings saved',
+        'config': _load_onboarding_config()
     })
 
 

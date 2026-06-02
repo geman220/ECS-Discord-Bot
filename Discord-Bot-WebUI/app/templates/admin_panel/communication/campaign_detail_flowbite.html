@@ -28,11 +28,25 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
-{% set status_tone = {'sent': 'success', 'scheduled': 'warning', 'draft': 'neutral', 'sending': 'info', 'cancelled': 'danger', 'failed': 'danger'} %}
-{% set status_icon = {'sent': 'ti-circle-check', 'scheduled': 'ti-clock', 'draft': 'ti-pencil', 'sending': 'ti-loader', 'cancelled': 'ti-ban', 'failed': 'ti-alert-triangle'} %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
+{# Status -> pill tone + dot + label, conveyed by icon+text+tone (never color alone). #}
+{% set status_map = {
+  'sent':      {'tone': 'text-green-700 dark:text-green-300',  'bg': 'bg-green-100 dark:bg-green-500/15',  'dot': 'bg-green-500',  'icon': 'ti-circle-check',     'label': 'Sent'},
+  'scheduled': {'tone': 'text-amber-700 dark:text-amber-300',  'bg': 'bg-amber-100 dark:bg-amber-500/15',  'dot': 'bg-amber-500',  'icon': 'ti-clock',            'label': 'Scheduled'},
+  'sending':   {'tone': 'text-blue-700 dark:text-blue-300',    'bg': 'bg-blue-100 dark:bg-blue-500/15',    'dot': 'bg-blue-500',   'icon': 'ti-loader',           'label': 'Sending'},
+  'draft':     {'tone': 'text-gray-700 dark:text-gray-300',    'bg': 'bg-gray-100 dark:bg-gray-700',       'dot': 'bg-gray-400',   'icon': 'ti-pencil',           'label': 'Draft'},
+  'cancelled': {'tone': 'text-red-700 dark:text-red-300',      'bg': 'bg-red-100 dark:bg-red-500/15',      'dot': 'bg-red-500',    'icon': 'ti-ban',              'label': 'Cancelled'},
+  'failed':    {'tone': 'text-red-700 dark:text-red-300',      'bg': 'bg-red-100 dark:bg-red-500/15',      'dot': 'bg-red-500',    'icon': 'ti-alert-triangle',   'label': 'Failed'}
+} %}
+{% set st = status_map.get(campaign.status, status_map['draft']) %}
+{% set pri_map = {
+  'urgent': {'tone': 'text-red-700 dark:text-red-300',   'bg': 'bg-red-100 dark:bg-red-500/15',   'icon': 'ti-alert-octagon'},
+  'high':   {'tone': 'text-amber-700 dark:text-amber-300','bg': 'bg-amber-100 dark:bg-amber-500/15','icon': 'ti-flame'},
+  'normal': {'tone': 'text-gray-600 dark:text-gray-300', 'bg': 'bg-gray-100 dark:bg-gray-700',    'icon': 'ti-minus'}
+} %}
+{% set pr = pri_map.get(campaign.priority, pri_map['normal']) %}
 <div class="max-w-7xl mx-auto space-y-6">
-  {% call page_header(campaign.name, subtitle='Push Campaign') %}
+  {% call page_header(campaign.name, subtitle='Push Campaign · #' ~ campaign.id) %}
     <a href="{{ url_for('admin_panel.campaigns_list') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
               bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
@@ -40,8 +54,10 @@
               focus:outline-none focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Back</span>
     </a>
-    {% if campaign.status == 'draft' %}
+    {% if campaign.is_editable %}
     <button type="button"
+            data-action="edit-campaign-detail"
+            data-campaign-id="{{ campaign.id }}"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                    bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
                    text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
@@ -49,6 +65,9 @@
       <i class="ti ti-edit" aria-hidden="true"></i><span>Edit Campaign</span>
     </button>
     <button type="button"
+            data-action="send-campaign-detail"
+            data-campaign-id="{{ campaign.id }}"
+            data-campaign-name="{{ campaign.name }}"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                    bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
                    focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
@@ -57,47 +76,223 @@
     {% endif %}
   {% endcall %}
 
-  {# Status + meta strip #}
-  <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {% set s_tone = status_tone.get(campaign.status, 'neutral') %}
-    {% set s_icon = status_icon.get(campaign.status, 'ti-broadcast') %}
-    {{ stat_card(s_icon, 'Status', campaign.status|title, tone=s_tone) }}
-    {{ stat_card('ti-target', 'Audience', campaign.get_target_summary(), tone='neutral') }}
-    {{ stat_card('ti-calendar-time', 'Scheduled', campaign.scheduled_send_time.strftime('%b %d, %H:%M') if campaign.scheduled_send_time else 'Immediate', tone='neutral') }}
-    {{ stat_card('ti-send', 'Sent', campaign.actual_send_time.strftime('%b %d, %H:%M') if campaign.actual_send_time else 'Not sent', tone='neutral') }}
-  </div>
-
-  {# Failure banner (failed only) #}
+  {# Failure banner (failed only) — surfaced above the fold. #}
   {% if campaign.status == 'failed' and campaign.error_message %}
-  {% call section_card('Failure Reason', icon='ti-alert-triangle') %}
-    <div class="p-4 sm:p-5">
-      <p class="text-sm font-mono text-red-700 dark:text-red-400 whitespace-pre-wrap">{{ campaign.error_message }}</p>
+  <div role="alert" class="flex items-start gap-3 rounded-xl border p-4 bg-red-50 dark:bg-red-500/10 border-red-300 dark:border-red-500/40">
+    <i class="ti ti-alert-octagon text-lg shrink-0 mt-0.5 text-red-600 dark:text-red-400" aria-hidden="true"></i>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-semibold text-red-800 dark:text-red-300">Delivery failed</p>
+      <p class="mt-1 text-sm font-mono text-red-700 dark:text-red-400 whitespace-pre-wrap break-words">{{ campaign.error_message }}</p>
     </div>
-  {% endcall %}
+  </div>
   {% endif %}
 
-  {# Overview #}
-  {% call section_card('Overview', icon='ti-info-circle') %}
+  {# Cancelled banner #}
+  {% if campaign.status == 'cancelled' %}
+  <div role="alert" class="flex items-start gap-3 rounded-xl border p-4 bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/40">
+    <i class="ti ti-ban text-lg shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+    <div class="flex-1 min-w-0 text-sm text-amber-800 dark:text-amber-300">
+      <span class="font-semibold">Campaign cancelled</span>
+      {% if campaign.cancelled_at %} on <span class="font-mono">{{ campaign.cancelled_at.strftime('%b %d, %Y · %H:%M') }}</span>{% endif %}.
+    </div>
+  </div>
+  {% endif %}
+
+  {# ============ TWO-COLUMN: primary object (preview) + lifecycle rail ============ #}
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+    {# ----- PRIMARY: the push notification as a feature card ----- #}
+    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      {# header bar with status + priority pills #}
+      <div class="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+          <i class="ti ti-bell text-ecs-green" aria-hidden="true"></i> Notification Preview
+        </h2>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold {{ st.bg }} {{ st.tone }}">
+            <span class="w-1.5 h-1.5 rounded-full {{ st.dot }}" aria-hidden="true"></span>{{ st.label }}
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold {{ pr.bg }} {{ pr.tone }}">
+            <i class="ti {{ pr.icon }} text-[12px]" aria-hidden="true"></i>{{ campaign.priority|title }}
+          </span>
+        </div>
+      </div>
+      {# the live push render #}
+      <div class="p-4 sm:p-5">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
+          <div class="flex items-start gap-3">
+            <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-ecs-green/10 text-ecs-green">
+              <i class="ti {{ ('ti-' ~ campaign.icon) if campaign.icon else 'ti-app-window' }}" aria-hidden="true"></i>
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline justify-between gap-2">
+                <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ campaign.title or 'No title' }}</p>
+                <span class="shrink-0 text-[11px] font-mono text-gray-400 dark:text-gray-500">now</span>
+              </div>
+              {% if campaign.body %}
+              <p class="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">{{ campaign.body }}</p>
+              {% else %}
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 italic">No message body</p>
+              {% endif %}
+              {% if campaign.action_url %}
+              <p class="mt-2 inline-flex items-center gap-1 text-xs font-mono text-ecs-green break-all">
+                <i class="ti ti-external-link" aria-hidden="true"></i>{{ campaign.action_url }}
+              </p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {# footer chips: the routing facts about THIS push #}
+        <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-px bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+          <div class="bg-white dark:bg-gray-800 px-3 py-2.5">
+            <div class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Audience</div>
+            <div class="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white truncate">{{ campaign.get_target_summary() }}</div>
+          </div>
+          <div class="bg-white dark:bg-gray-800 px-3 py-2.5">
+            <div class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Platform</div>
+            <div class="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white">{{ (campaign.platform_filter or 'all')|title }}</div>
+          </div>
+          <div class="bg-white dark:bg-gray-800 px-3 py-2.5">
+            <div class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Sound</div>
+            <div class="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white truncate">{{ campaign.sound or 'default' }}</div>
+          </div>
+          <div class="bg-white dark:bg-gray-800 px-3 py-2.5">
+            <div class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Badge</div>
+            <div class="mt-0.5 text-sm font-semibold font-mono text-gray-900 dark:text-white">{{ campaign.badge_count if campaign.badge_count is not none else '—' }}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {# ----- LIFECYCLE RAIL: real timestamps as a dense timeline ----- #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <i class="ti ti-timeline-event text-ecs-green" aria-hidden="true"></i>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Lifecycle</h2>
+      </div>
+      <ol class="divide-y divide-gray-200 dark:divide-gray-700">
+        {# Created #}
+        <li class="flex items-start gap-3 px-4 sm:px-5 py-3">
+          <span class="shrink-0 mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full bg-ecs-green/10 text-ecs-green">
+            <i class="ti ti-plus text-sm" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white">Created</p>
+            <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ campaign.created_at.strftime('%b %d, %Y · %H:%M') if campaign.created_at else 'Unknown' }}</p>
+            {% if campaign.creator %}
+            <p class="text-xs text-gray-500 dark:text-gray-400">by {{ campaign.creator.username }}</p>
+            {% endif %}
+          </div>
+        </li>
+        {# Scheduled / immediate #}
+        <li class="flex items-start gap-3 px-4 sm:px-5 py-3">
+          <span class="shrink-0 mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400">
+            <i class="ti ti-calendar-time text-sm" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ 'Send immediately' if campaign.send_immediately else 'Scheduled' }}</p>
+            <p class="text-xs font-mono text-gray-500 dark:text-gray-400">
+              {{ campaign.scheduled_send_time.strftime('%b %d, %Y · %H:%M') if campaign.scheduled_send_time else 'On demand' }}
+            </p>
+          </div>
+        </li>
+        {# Sent #}
+        <li class="flex items-start gap-3 px-4 sm:px-5 py-3 {{ '' if campaign.actual_send_time else 'opacity-60' }}">
+          <span class="shrink-0 mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full {{ 'bg-green-100 dark:bg-green-500/15 text-green-600 dark:text-green-400' if campaign.actual_send_time else 'bg-gray-100 dark:bg-gray-700 text-gray-400' }}">
+            <i class="ti ti-send text-sm" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ 'Sent' if campaign.actual_send_time else 'Not yet sent' }}</p>
+            <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ campaign.actual_send_time.strftime('%b %d, %Y · %H:%M') if campaign.actual_send_time else 'Pending' }}</p>
+          </div>
+        </li>
+        {# Cancelled (only if cancelled) #}
+        {% if campaign.cancelled_at %}
+        <li class="flex items-start gap-3 px-4 sm:px-5 py-3">
+          <span class="shrink-0 mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400">
+            <i class="ti ti-ban text-sm" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white">Cancelled</p>
+            <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ campaign.cancelled_at.strftime('%b %d, %Y · %H:%M') }}</p>
+            {% if campaign.canceller %}
+            <p class="text-xs text-gray-500 dark:text-gray-400">by {{ campaign.canceller.username }}</p>
+            {% endif %}
+          </div>
+        </li>
+        {% endif %}
+        {# Last updated footer divider #}
+        <li class="px-4 sm:px-5 py-2.5 bg-gray-50 dark:bg-gray-900/30">
+          <div class="flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span class="uppercase tracking-wide font-medium">Last updated</span>
+            <span class="font-mono">{{ campaign.updated_at.strftime('%b %d · %H:%M') if campaign.updated_at else '—' }}</span>
+          </div>
+        </li>
+      </ol>
+    </section>
+  </div>
+
+  {# ============ DELIVERY ANALYTICS — KPI band (sent only) ============ #}
+  {% if campaign.status == 'sent' %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+      <i class="ti ti-chart-bar text-ecs-green" aria-hidden="true"></i>
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Delivery Analytics</h2>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px bg-gray-200 dark:bg-gray-700">
+      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Targeted</div>
+        <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ campaign.target_count or 0 }}</div>
+        <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-[11px] font-mono text-gray-500 dark:text-gray-400">eligible devices</div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Sent</div>
+        <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ campaign.sent_count or 0 }}</div>
+        <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-[11px] font-mono text-gray-500 dark:text-gray-400">dispatched</div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Delivered</div>
+        <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ campaign.delivered_count or 0 }}</div>
+        <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-[11px] font-mono text-green-600 dark:text-green-400">{{ campaign.delivery_rate }}% delivery rate</div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Failed</div>
+        <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-red-600 dark:text-red-400">{{ campaign.failed_count or 0 }}</div>
+        <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-[11px] font-mono text-red-600 dark:text-red-400">{{ campaign.failure_rate }}% failure rate</div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 col-span-2 sm:col-span-1">
+        <div class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Clicks</div>
+        <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ campaign.click_count or 0 }}</div>
+        <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-[11px] font-mono text-ecs-gold-600 dark:text-ecs-gold-400">{{ campaign.click_rate }}% click rate</div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {# ============ TARGETING + DELIVERY SPEC (config sheet) ============ #}
+  {% call section_card('Targeting & Delivery', icon='ti-target') %}
     <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-gray-200 dark:bg-gray-700">
       <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
-        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Title</dt>
-        <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ campaign.title or 'No title' }}</dd>
+        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Target Type</dt>
+        <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ campaign.target_type|title }}</dd>
+      </div>
+      <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Audience</dt>
+        <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ campaign.get_target_summary() }}</dd>
+      </div>
+      {% if campaign.notification_group %}
+      <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Group</dt>
+        <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ campaign.notification_group.name }}</dd>
+      </div>
+      {% endif %}
+      <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Platform Filter</dt>
+        <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ (campaign.platform_filter or 'all')|title }}</dd>
       </div>
       <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
         <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Priority</dt>
         <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ campaign.priority|title }}</dd>
-      </div>
-      <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
-        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Platform</dt>
-        <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ (campaign.platform_filter or 'all')|title }}</dd>
-      </div>
-      <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
-        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Created</dt>
-        <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white">{{ campaign.created_at.strftime('%b %d, %Y · %H:%M') if campaign.created_at else 'Unknown' }}</dd>
-      </div>
-      <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
-        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Last Updated</dt>
-        <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white">{{ campaign.updated_at.strftime('%b %d, %Y · %H:%M') if campaign.updated_at else 'Unknown' }}</dd>
       </div>
       {% if campaign.action_url %}
       <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
@@ -105,59 +300,146 @@
         <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white break-all">{{ campaign.action_url }}</dd>
       </div>
       {% endif %}
+      {% if campaign.celery_task_id %}
+      <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Task ID</dt>
+        <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white break-all">{{ campaign.celery_task_id }}</dd>
+      </div>
+      {% endif %}
     </dl>
   {% endcall %}
 
-  {# Message content — preview the actual push as title + body #}
-  {% call section_card('Notification Preview', icon='ti-message') %}
-    <div class="p-4 sm:p-5">
-      <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
-        <div class="flex items-start gap-3">
-          <span class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg bg-ecs-green/10 text-ecs-green">
-            <i class="ti ti-bell" aria-hidden="true"></i>
-          </span>
-          <div class="min-w-0">
-            <p class="text-sm font-bold text-gray-900 dark:text-white">{{ campaign.title or 'No title' }}</p>
-            {% if campaign.body %}
-            <p class="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ campaign.body }}</p>
-            {% else %}
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 italic">No message body</p>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-    </div>
-  {% endcall %}
+  {# ---- Edit / Send wiring for the modern header actions (real PUT/POST routes) ---- #}
+  {% if campaign.is_editable %}
+  <script>
+  (function () {
+    var sendUrl = "{{ url_for('admin_panel.campaigns_send', campaign_id=campaign.id) }}";
+    var updateUrl = "{{ url_for('admin_panel.campaigns_update', campaign_id=campaign.id) }}";
+    var current = {
+      name: {{ (campaign.name or '')|tojson }},
+      title: {{ (campaign.title or '')|tojson }},
+      body: {{ (campaign.body or '')|tojson }},
+      priority: {{ (campaign.priority or 'normal')|tojson }}
+    };
 
-  {# Delivery analytics (sent only) #}
-  {% if campaign.status == 'sent' %}
-  {% call section_card('Delivery Analytics', icon='ti-chart-bar') %}
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px bg-gray-200 dark:bg-gray-700">
-      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
-        <div class="font-mono text-3xl font-bold text-gray-900 dark:text-white">{{ campaign.target_count or 0 }}</div>
-        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Targeted</div>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
-        <div class="font-mono text-3xl font-bold text-blue-600 dark:text-blue-400">{{ campaign.sent_count or 0 }}</div>
-        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Sent</div>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
-        <div class="font-mono text-3xl font-bold text-green-600 dark:text-green-400">{{ campaign.delivered_count or 0 }}</div>
-        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Delivered</div>
-        <div class="mt-0.5 text-xs font-mono text-green-600 dark:text-green-400">{{ campaign.delivery_rate }}%</div>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
-        <div class="font-mono text-3xl font-bold text-red-600 dark:text-red-400">{{ campaign.failed_count or 0 }}</div>
-        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Failed</div>
-        <div class="mt-0.5 text-xs font-mono text-red-600 dark:text-red-400">{{ campaign.failure_rate }}%</div>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
-        <div class="font-mono text-3xl font-bold text-ecs-gold-500 dark:text-ecs-gold-400">{{ campaign.click_count or 0 }}</div>
-        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Clicks</div>
-        <div class="mt-0.5 text-xs font-mono text-ecs-gold-600 dark:text-ecs-gold-400">{{ campaign.click_rate }}%</div>
-      </div>
-    </div>
-  {% endcall %}
+    function csrf() {
+      var m = document.querySelector('meta[name=csrf-token]');
+      return m ? m.getAttribute('content') : '';
+    }
+    function isDark() {
+      return document.documentElement.classList.contains('dark');
+    }
+    function swalBase() {
+      return { background: isDark() ? '#1f2937' : '#ffffff', color: isDark() ? '#f3f4f6' : '#111827' };
+    }
+
+    function handleSend(btn) {
+      var name = btn.getAttribute('data-campaign-name') || 'this campaign';
+      window.Swal.fire(Object.assign({
+        title: 'Send Campaign Now?',
+        text: 'Send "' + name + '" immediately to all targeted recipients?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Send Now',
+        confirmButtonColor: '#1a472a'
+      }, swalBase())).then(function (result) {
+        if (!result.isConfirmed) return;
+        fetch(sendUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf(), 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.success) {
+            window.Swal.fire(Object.assign({
+              title: 'Campaign Sent!',
+              text: 'Sent to ' + (data.sent_count || 0) + ' devices',
+              icon: 'success',
+              confirmButtonColor: '#1a472a'
+            }, swalBase())).then(function () { window.location.reload(); });
+          } else {
+            window.Swal.fire(Object.assign({ title: 'Error', text: data.error || 'Failed to send campaign', icon: 'error' }, swalBase()));
+          }
+        })
+        .catch(function () {
+          window.Swal.fire(Object.assign({ title: 'Error', text: 'Failed to send campaign', icon: 'error' }, swalBase()));
+        });
+      });
+    }
+
+    function handleEdit() {
+      var priorities = ['normal', 'high', 'urgent'];
+      var opts = priorities.map(function (p) {
+        var sel = (current.priority === p) ? ' selected' : '';
+        return '<option value="' + p + '"' + sel + '>' + p.charAt(0).toUpperCase() + p.slice(1) + '</option>';
+      }).join('');
+      function enc(v) {
+        var d = document.createElement('div'); d.textContent = v || ''; return d.innerHTML;
+      }
+      window.Swal.fire(Object.assign({
+        title: 'Edit Campaign',
+        html:
+          '<div class="text-start space-y-3">' +
+            '<label class="block text-sm font-medium mb-1">Name</label>' +
+            '<input id="ec-name" class="swal2-input mt-0" value="' + enc(current.name) + '">' +
+            '<label class="block text-sm font-medium mb-1 mt-2">Notification Title</label>' +
+            '<input id="ec-title" class="swal2-input mt-0" value="' + enc(current.title) + '">' +
+            '<label class="block text-sm font-medium mb-1 mt-2">Message Body</label>' +
+            '<textarea id="ec-body" class="swal2-textarea mt-0">' + enc(current.body) + '</textarea>' +
+            '<label class="block text-sm font-medium mb-1 mt-2">Priority</label>' +
+            '<select id="ec-priority" class="swal2-select mt-0">' + opts + '</select>' +
+          '</div>',
+        showCancelButton: true,
+        confirmButtonText: 'Save Changes',
+        confirmButtonColor: '#1a472a',
+        focusConfirm: false,
+        preConfirm: function () {
+          var name = document.getElementById('ec-name').value.trim();
+          var title = document.getElementById('ec-title').value.trim();
+          var body = document.getElementById('ec-body').value.trim();
+          var priority = document.getElementById('ec-priority').value;
+          if (!name || !title || !body) {
+            window.Swal.showValidationMessage('Name, title, and body are required');
+            return false;
+          }
+          return { name: name, title: title, body: body, priority: priority };
+        }
+      }, swalBase())).then(function (result) {
+        if (!result.isConfirmed) return;
+        fetch(updateUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf(), 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify(result.value)
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.success) {
+            window.Swal.fire(Object.assign({ title: 'Saved!', text: 'Campaign updated', icon: 'success', confirmButtonColor: '#1a472a' }, swalBase()))
+              .then(function () { window.location.reload(); });
+          } else {
+            window.Swal.fire(Object.assign({ title: 'Error', text: data.error || 'Failed to update campaign', icon: 'error' }, swalBase()));
+          }
+        })
+        .catch(function () {
+          window.Swal.fire(Object.assign({ title: 'Error', text: 'Failed to update campaign', icon: 'error' }, swalBase()));
+        });
+      });
+    }
+
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      var action = btn.getAttribute('data-action');
+      if (action === 'send-campaign-detail') {
+        e.preventDefault();
+        handleSend(btn);
+      } else if (action === 'edit-campaign-detail') {
+        e.preventDefault();
+        handleEdit();
+      }
+    });
+  })();
+  </script>
   {% endif %}
 </div>
 {% else %}

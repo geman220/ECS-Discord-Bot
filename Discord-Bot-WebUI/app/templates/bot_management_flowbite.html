@@ -5,13 +5,195 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
+{# ---------------------------------------------------------------------------
+   CONSOLE / Modern — Bot Operations cockpit.
+   INTENT: the route (bot_admin.bot_management) is an operator landing page that
+   passes ONLY `title` — NO stats, NO records, NO models. It exists to dispatch
+   operators to the three real working surfaces. So this is an HONEST command
+   center: a primary-object feature card for the bot, a command toolbar of the
+   real operator actions, and a routed destination directory. Every "live" hint
+   is a description of where the data lives (the panel), NOT a fabricated metric.
+   Confirmed endpoints only:
+     - admin_panel.discord_bot_management  (full control panel + live API stats)
+     - bot_admin.roles                     (current Discord server roles)
+     - admin.match_management              (thread scheduling + live reporting)
+   No RBAC guard on this route (login_required only) — Classic has none either.
+--------------------------------------------------------------------------- #}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-    {{ page_header(title, subtitle="Discord bot management and configuration") }}
-    {{ empty_state(
-        "ti-robot",
-        "Bot Management",
-        "This page is under construction."
-    ) }}
+  {% call page_header(title, subtitle="Discord bot · operations cockpit") %}
+    <a href="{{ url_for('admin_panel.discord_bot_management') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg
+              bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-robot text-base" aria-hidden="true"></i>
+      <span>Open Bot Panel</span>
+    </a>
+  {% endcall %}
+
+  {# ---- COMMAND TOOLBAR: the real operator actions, routed to real surfaces ---- #}
+  <div class="flex flex-wrap items-center gap-2 mb-4 sm:mb-5">
+    <a href="{{ url_for('admin_panel.discord_bot_management') }}"
+       class="h-10 px-3.5 inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700
+              bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200
+              hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-adjustments-alt text-base text-ecs-green" aria-hidden="true"></i> Manage commands
+    </a>
+    <a href="{{ url_for('admin.match_management') }}"
+       class="h-10 px-3.5 inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700
+              bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200
+              hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-broadcast text-base text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> Live reporting
+    </a>
+    <a href="{{ url_for('bot_admin.roles') }}"
+       class="h-10 px-3.5 inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700
+              bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200
+              hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-shield-half text-base text-blue-600 dark:text-blue-400" aria-hidden="true"></i> Sync roles
+    </a>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-5">
+
+    {# ---- PRIMARY OBJECT: the bot as a feature card (2/3 width) ---- #}
+    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+          <i class="ti ti-brand-discord text-ecs-green" aria-hidden="true"></i> Control Panel
+        </h2>
+        <span class="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-gray-500 dark:text-gray-400">
+          <i class="ti ti-plug-connected text-sm" aria-hidden="true"></i> live in panel
+        </span>
+      </div>
+
+      <div class="p-5 sm:p-6">
+        <div class="flex items-start gap-4">
+          <div class="shrink-0 w-12 h-12 rounded-xl bg-ecs-green/10 dark:bg-ecs-green/15 flex items-center justify-center">
+            <i class="ti ti-robot text-2xl text-ecs-green" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Primary surface</p>
+            <p class="text-base font-bold text-gray-900 dark:text-white">ECS Discord Bot</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-md">
+              Connection status, guild membership, slash-command usage and recent logs
+              are reported live from the bot API inside the control panel.
+            </p>
+          </div>
+        </div>
+
+        {# Honest capability strip: what the panel exposes — eyebrow labels with
+           mono "live" placeholders, NOT fabricated numbers. The figures live in
+           the panel itself; here we name the dimensions an operator will find. #}
+        <div class="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-700">
+          <div class="bg-white dark:bg-gray-800 p-3">
+            <span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+              <i class="ti ti-activity-heartbeat text-sm text-ecs-green" aria-hidden="true"></i> Status
+            </span>
+            <span class="mt-1.5 block font-mono text-sm font-bold text-gray-400 dark:text-gray-500">live</span>
+          </div>
+          <div class="bg-white dark:bg-gray-800 p-3">
+            <span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+              <i class="ti ti-server text-sm text-ecs-green" aria-hidden="true"></i> Guilds
+            </span>
+            <span class="mt-1.5 block font-mono text-sm font-bold text-gray-400 dark:text-gray-500">live</span>
+          </div>
+          <div class="bg-white dark:bg-gray-800 p-3">
+            <span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+              <i class="ti ti-slash text-sm text-ecs-green" aria-hidden="true"></i> Commands
+            </span>
+            <span class="mt-1.5 block font-mono text-sm font-bold text-gray-400 dark:text-gray-500">live</span>
+          </div>
+          <div class="bg-white dark:bg-gray-800 p-3">
+            <span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+              <i class="ti ti-file-text text-sm text-ecs-green" aria-hidden="true"></i> Logs
+            </span>
+            <span class="mt-1.5 block font-mono text-sm font-bold text-gray-400 dark:text-gray-500">live</span>
+          </div>
+        </div>
+
+        <div class="mt-5 flex flex-col sm:flex-row sm:items-center gap-2.5">
+          <a href="{{ url_for('admin_panel.discord_bot_management') }}"
+             class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg
+                    bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                    focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-adjustments-alt text-base" aria-hidden="true"></i>
+            <span>Manage bot &amp; commands</span>
+            <i class="ti ti-arrow-right text-sm" aria-hidden="true"></i>
+          </a>
+          <a href="{{ url_for('bot_admin.roles') }}"
+             class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg
+                    border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200
+                    hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors
+                    focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-shield-half text-base text-gray-400" aria-hidden="true"></i>
+            <span>View roles</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    {# ---- Routed destination directory (dense feature rows, 1/3 width) ---- #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 sm:px-5 h-12 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+          <i class="ti ti-layout-grid text-ecs-green" aria-hidden="true"></i> Operations
+        </h2>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">3</span>
+      </div>
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+        <li>
+          <a href="{{ url_for('admin_panel.discord_bot_management') }}"
+             class="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+                    focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+            <span class="shrink-0 w-9 h-9 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/15 flex items-center justify-center">
+              <i class="ti ti-robot text-ecs-green" aria-hidden="true"></i>
+            </span>
+            <span class="flex-1 min-w-0">
+              <span class="block text-sm font-semibold text-gray-900 dark:text-white">Discord Bot Panel</span>
+              <span class="block text-xs text-gray-500 dark:text-gray-400 truncate font-mono">status · commands · logs</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('bot_admin.roles') }}"
+             class="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+                    focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+            <span class="shrink-0 w-9 h-9 rounded-lg bg-blue-500/10 dark:bg-blue-500/15 flex items-center justify-center">
+              <i class="ti ti-shield-half text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+            </span>
+            <span class="flex-1 min-w-0">
+              <span class="block text-sm font-semibold text-gray-900 dark:text-white">Discord Roles</span>
+              <span class="block text-xs text-gray-500 dark:text-gray-400 truncate font-mono">current server roles</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('admin.match_management') }}"
+             class="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+                    focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+            <span class="shrink-0 w-9 h-9 rounded-lg bg-ecs-gold-500/10 dark:bg-ecs-gold-400/15 flex items-center justify-center">
+              <i class="ti ti-broadcast text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+            </span>
+            <span class="flex-1 min-w-0">
+              <span class="block text-sm font-semibold text-gray-900 dark:text-white">Match Management</span>
+              <span class="block text-xs text-gray-500 dark:text-gray-400 truncate font-mono">threads · live reporting</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+          </a>
+        </li>
+      </ul>
+      <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+        <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+          <i class="ti ti-info-circle text-sm" aria-hidden="true"></i>
+          Live metrics open inside the Bot Panel.
+        </p>
+      </div>
+    </section>
+  </div>
 </div>
 {% else %}
 <div class="container mx-auto px-4 py-8">

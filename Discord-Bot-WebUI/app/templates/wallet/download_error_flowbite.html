@@ -18,7 +18,17 @@
             </div>
 
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{{ error or 'Error' }}</h1>
-            <p class="text-gray-600 dark:text-gray-400 mb-6">{{ message or 'An error occurred while processing your request.' }}</p>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">{{ message or 'An error occurred while processing your request.' }}</p>
+
+            {# Order reference — the real WooCommerce order number from the link,
+               so support can locate the order. Only shown when present. #}
+            {% set _order_ref = request.args.get('order') %}
+            {% if _order_ref %}
+            <div class="inline-flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 px-3 py-1.5 mb-6">
+                <span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Order ref</span>
+                <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">ECS-{{ _order_ref }}</span>
+            </div>
+            {% endif %}
 
             <!-- Help Card -->
             <div class="p-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-blue-400 dark:border-blue-800 text-left mb-6">

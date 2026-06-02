@@ -48,101 +48,130 @@ export function initializeCharts() {
     }
 
     if (matchesPerWeekCtx) {
-        new window.Chart(matchesPerWeekCtx.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
-                datasets: [{
-                    label: 'Matches Played',
-                    data: [12, 19, 3, 5, 2, 15],
-                    borderColor: getComputedStyle(document.documentElement).getPropertyValue('--color-primary') || '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
+        // Real per-week match counts are fetched from the backend; the chart is
+        // only created once the data arrives so no placeholder/fake series is shown.
+        fetch('/admin-panel/match-operations/reports/matches-per-week', {
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        })
+            .then(function(resp) { return resp.ok ? resp.json() : null; })
+            .then(function(data) {
+                if (!data || !data.success || !Array.isArray(data.labels) || data.labels.length === 0) {
+                    return;
                 }
-            }
-        });
+                new window.Chart(matchesPerWeekCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Matches Played',
+                            data: data.counts,
+                            borderColor: getComputedStyle(document.documentElement).getPropertyValue('--color-primary') || '#007bff',
+                            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(function() { /* No real data available; leave the canvas empty. */ });
     }
 }
 
 /**
- * Report generation functions
+ * Report generation functions — each downloads a real CSV from the
+ * match_operations report-export routes. Match Summary exports the full match
+ * results set (matchId is not a backend filter; the per-match view button uses
+ * viewMatchReport instead), League exports the Standings model, Team exports a
+ * single team's stats + roster.
  */
 export function generateMatchReport(matchId = null) {
-    console.log('Generate match report:', matchId);
+    window.location.href = '/admin-panel/match-operations/reports/export/matches';
 }
 
 export function generateLeagueReport() {
-    console.log('Generate league report');
+    window.location.href = '/admin-panel/match-operations/reports/export/standings';
 }
 
 export function generateTeamReport(teamId = null) {
-    console.log('Generate team report:', teamId);
+    if (!teamId) return;
+    window.location.href = '/admin-panel/match-operations/reports/export/team?team_id=' + encodeURIComponent(teamId);
 }
 
+// "Custom Report" has no full report-builder UI/backend (no column picker, no
+// saved filters), so it is wired to the same real match-results CSV export as
+// Match Summary rather than faking a builder. The export route accepts optional
+// season_id/league_id params if a future filter UI wants to pass them.
 export function generateCustomReport() {
-    console.log('Generate custom report');
+    window.location.href = '/admin-panel/match-operations/reports/export/matches';
 }
 
 /**
  * Quick report views
  */
 export function viewRecentMatches() {
-    window.location.href = '/admin-panel/matches/recent';
+    // Real route: admin_panel.view_matches (filtered to already-played matches).
+    window.location.href = '/admin-panel/match-operations/matches?status=past';
 }
 
 export function viewUpcomingMatches() {
-    window.location.href = '/admin-panel/matches/upcoming';
+    // Real route: admin_panel.upcoming_matches
+    window.location.href = '/admin-panel/match-operations/upcoming';
 }
 
 export function viewTopScorers() {
-    console.log('View top scorers');
+    // No top-scorers route/data source exists; route to standings (the closest
+    // real ranking view) rather than dead-ending. The Quick View button itself
+    // is removed in the template, so this is only a backward-compat shim.
+    window.location.href = '/admin-panel/match-operations/standings';
 }
 
 export function viewLeagueStandings() {
-    window.location.href = '/admin-panel/match-operations/league-standings';
+    // Real route: admin_panel.league_standings
+    window.location.href = '/admin-panel/match-operations/standings';
 }
 
-/**
- * Export functions
- */
-export function exportPDF() {
-    window.open('/admin/match-operations/reports/export?format=pdf', '_blank');
-}
-
-export function exportExcel() {
-    window.open('/admin/match-operations/reports/export?format=excel', '_blank');
-}
-
-export function exportCSV() {
-    window.open('/admin/match-operations/reports/export?format=csv', '_blank');
-}
-
+// There is no reusable Celery task for emailing reports on a schedule, so rather
+// than fake a scheduled-email success this handler honestly tells the user the
+// feature is not available and points them at the immediate CSV download. (The
+// template button cannot be removed from here; this keeps the click honest.)
 export function scheduleReport() {
-    console.log('Schedule report');
+    const message = 'Scheduled report delivery is not available. Use Generate Report to download the data as CSV now.';
+    if (window.Swal && window.Swal.fire) {
+        window.Swal.fire({
+            icon: 'info',
+            title: 'Not available',
+            text: message
+        });
+    } else {
+        window.alert(message);
+    }
 }
 
 /**
  * Individual item views
  */
 export function viewMatchReport(matchId) {
-    window.location.href = `/admin/match-operations/match/${matchId}/report`;
+    // Real route: teams.report_match (full match report form/page).
+    window.location.href = `/teams/report_match/${matchId}`;
 }
 
 export function viewTeamReport(teamId) {
-    window.location.href = `/admin/match-operations/team/${teamId}/report`;
+    // Real route: teams.team_details (per-team page with stats/standings).
+    window.location.href = `/teams/${teamId}`;
 }
 
 export function viewAllMatches() {
-    window.location.href = '/admin-panel/matches';
+    // Real route: admin_panel.view_matches
+    window.location.href = '/admin-panel/match-operations/matches';
 }
 
 /**
@@ -207,18 +236,11 @@ export function registerEventHandlers() {
         viewLeagueStandings();
     }, { preventDefault: true });
 
-    // Export Actions (Renamed from export-* to avoid conflicts with admin-scheduled-messages.js)
-    window.EventDelegation.register('export-report-pdf', function(element, e) {
-        exportPDF();
-    }, { preventDefault: true });
-
-    window.EventDelegation.register('export-report-excel', function(element, e) {
-        exportExcel();
-    }, { preventDefault: true });
-
-    window.EventDelegation.register('export-report-csv', function(element, e) {
-        exportCSV();
-    }, { preventDefault: true });
+    // Export Actions removed: no report-export backend route exists (the old
+    // window.open('/admin/match-operations/reports/export?...') target 404s), so
+    // the export buttons were removed from the template rather than shipping a
+    // dead/404 action. Re-add export-report-pdf/excel/csv handlers here once a
+    // real export endpoint exists.
 
     window.EventDelegation.register('schedule-report', function(element, e) {
         scheduleReport();
@@ -256,5 +278,4 @@ if (window.InitSystem && window.InitSystem.register) {
 window.initializeCharts = initializeCharts;
 window.generateMatchReport = generateMatchReport;
 window.viewRecentMatches = viewRecentMatches;
-window.exportPDF = exportPDF;
 window.viewMatchReport = viewMatchReport;

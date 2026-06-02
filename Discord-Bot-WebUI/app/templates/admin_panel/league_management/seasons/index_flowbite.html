@@ -22,22 +22,14 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_filter_bar, data_table_row_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, data_table, data_table_th, empty_state %}
 {% set current_count = seasons | selectattr('is_current') | list | length %}
+{% set archived_count = (seasons | length) - current_count %}
+{% set league_types = ['Pub League', 'ECS FC'] %}
+{% set current_seasons = seasons | selectattr('is_current') | list %}
 <div class="space-y-6">
 
-  {% call page_header('Seasons', subtitle='Pub League and ECS FC') %}
-    <select id="leagueTypeFilter" onchange="applyFilters()" aria-label="Filter by league type"
-            class="input-ecs h-10 px-3 text-sm">
-      <option value="">All League Types</option>
-      <option value="Pub League" {% if current_league_type == 'Pub League' %}selected{% endif %}>Pub League</option>
-      <option value="ECS FC" {% if current_league_type == 'ECS FC' %}selected{% endif %}>ECS FC</option>
-    </select>
-    <label class="inline-flex items-center gap-2 cursor-pointer select-none">
-      <input type="checkbox" id="currentOnlyFilter" class="sr-only peer" {% if show_current_only %}checked{% endif %} onchange="applyFilters()">
-      <span class="relative w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-ecs-green peer-focus:ring-2 peer-focus:ring-ecs-green/40 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></span>
-      <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Current only</span>
-    </label>
+  {% call page_header('Seasons', subtitle='Season lifecycle · Pub League and ECS FC') %}
     <a href="{{ url_for('auto_schedule.schedule_manager') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg
               bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
@@ -46,15 +38,105 @@
     </a>
   {% endcall %}
 
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-    {{ stat_card('ti-calendar', 'Seasons', seasons | length) }}
-    {{ stat_card('ti-circle-check', 'Current', current_count, tone='success') }}
-    {{ stat_card('ti-archive', 'Inactive', (seasons | length) - current_count, tone='neutral') }}
+  <!-- PRIMARY JOB: which season is live right now, per league type (feature band) -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    {% for lt in league_types %}
+    {% set live = (seasons | selectattr('is_current') | selectattr('league_type', 'equalto', lt) | list | first) %}
+    {% set lt_total = seasons | selectattr('league_type', 'equalto', lt) | list | length %}
+    <section class="rounded-xl border bg-white dark:bg-gray-800 overflow-hidden
+                    {% if live %}border-ecs-green/40 dark:border-ecs-green/40{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+      <!-- header bar -->
+      <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700
+                  {% if live %}bg-ecs-green/5 dark:bg-ecs-green/10{% else %}bg-gray-50 dark:bg-gray-900/40{% endif %}">
+        <div class="flex items-center gap-2 min-w-0">
+          <i class="ti {{ 'ti-trophy' if lt == 'Pub League' else 'ti-ball-football' }} text-ecs-green shrink-0" aria-hidden="true"></i>
+          <span class="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 truncate">{{ lt }}</span>
+        </div>
+        {% if live %}
+        <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+          <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i>Live
+        </span>
+        {% else %}
+        <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+          <i class="ti ti-alert-triangle text-[10px]" aria-hidden="true"></i>None set
+        </span>
+        {% endif %}
+      </div>
+      <!-- body: the live season as the hero figure -->
+      <div class="p-4 sm:p-5">
+        {% if live %}
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Current season</p>
+        <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ live.name }}</h2>
+        <div class="mt-4 grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div class="px-1 first:pl-0">
+            <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Leagues</p>
+            <p class="font-mono text-2xl font-bold text-ecs-green leading-none mt-1">{{ live.league_count }}</p>
+          </div>
+          <div class="px-3">
+            <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Teams</p>
+            <p class="font-mono text-2xl font-bold text-gray-900 dark:text-white leading-none mt-1">{{ live.team_count }}</p>
+          </div>
+          <div class="px-3">
+            <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Total seasons</p>
+            <p class="font-mono text-2xl font-bold text-gray-900 dark:text-white leading-none mt-1">{{ lt_total }}</p>
+          </div>
+        </div>
+        {% if live.leagues %}
+        <div class="mt-4 flex flex-wrap gap-1.5">
+          {% for lg in live.leagues %}
+          <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">{{ lg.name }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2">
+          <a href="{{ url_for('admin_panel.league_management_season_detail', season_id=live.id) }}"
+             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg text-sm font-semibold
+                    bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
+                    focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-arrow-right" aria-hidden="true"></i><span>Open season</span>
+          </a>
+          {% if live.created_at %}
+          <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">started {{ live.created_at.strftime('%Y-%m-%d') }}</span>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center text-center py-6">
+          <div class="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-500/10 flex items-center justify-center mb-3">
+            <i class="ti ti-calendar-question text-xl text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+          </div>
+          <p class="text-sm font-semibold text-gray-900 dark:text-white">No current {{ lt }} season</p>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {% if lt_total %}Set one as current from the table below.{% else %}No {{ lt }} seasons exist yet.{% endif %}
+          </p>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+    {% endfor %}
   </div>
 
   {% if seasons %}
-  {% call data_table('All seasons', icon='ti-calendar', count=seasons|length, search_placeholder='Filter seasons…', search_id='seasonFilter') %}
+  {% call data_table('All seasons', icon='ti-calendar', count=seasons|length, search_placeholder='Filter seasons…', search_id='seasonFilter', filters=false) %}
+    <!-- command toolbar: scope + live filters -->
+    <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div class="relative flex-1 min-w-[180px]">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+        <input type="search" id="seasonFilter" placeholder="Filter seasons…"
+               class="input-ecs h-9 pl-9 pr-3 text-sm w-full" aria-label="Filter seasons">
+      </div>
+      <select id="leagueTypeFilter" onchange="applyFilters()" aria-label="Filter by league type"
+              class="input-ecs h-9 px-3 text-sm">
+        <option value="">All league types</option>
+        <option value="Pub League" {% if current_league_type == 'Pub League' %}selected{% endif %}>Pub League</option>
+        <option value="ECS FC" {% if current_league_type == 'ECS FC' %}selected{% endif %}>ECS FC</option>
+      </select>
+      <label class="inline-flex items-center gap-2 cursor-pointer select-none h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700">
+        <input type="checkbox" id="currentOnlyFilter" class="sr-only peer" {% if show_current_only %}checked{% endif %} onchange="applyFilters()">
+        <span class="relative w-9 h-5 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-ecs-green peer-focus:ring-2 peer-focus:ring-ecs-green/40 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></span>
+        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Current only</span>
+      </label>
+    </div>
+
     <table class="hidden md:table w-full text-sm">
       <thead><tr>
         {{ data_table_th('Season', key='name') }}
@@ -65,10 +147,24 @@
         {{ data_table_th('Created', key='created', hide='md') }}
         {{ data_table_th('Actions', sortable=false, align='right') }}
       </tr></thead>
+      {% for lt in league_types %}
+      {% set rows = seasons | selectattr('league_type', 'equalto', lt) | list %}
+      {% if rows %}
       <tbody>
-        {% for season in seasons %}
-        <tr class="border-t border-gray-100 dark:border-gray-700">
-          <td class="px-3 py-2.5 font-semibold text-gray-900 dark:text-white">{{ season.name }}</td>
+        <tr class="bg-gray-50 dark:bg-gray-900/40">
+          <td colspan="7" class="px-3 py-1.5">
+            <span class="font-mono text-xs font-bold uppercase tracking-wide text-ecs-green">{{ lt }}</span>
+            <span class="ml-2 font-mono text-xs text-gray-400 dark:text-gray-500">{{ rows | length }} season{{ '' if rows|length == 1 else 's' }}</span>
+          </td>
+        </tr>
+        {% for season in rows %}
+        <tr class="border-t border-gray-100 dark:border-gray-700 {% if season.is_current %}bg-ecs-green/5 dark:bg-ecs-green/10{% endif %}">
+          <td class="px-3 py-2.5">
+            <div class="flex items-center gap-2">
+              {% if season.is_current %}<i class="ti ti-circle-filled text-[8px] text-ecs-green" aria-hidden="true"></i>{% endif %}
+              <span class="font-semibold text-gray-900 dark:text-white">{{ season.name }}</span>
+            </div>
+          </td>
           <td class="px-3 py-2.5">
             <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">{{ season.league_type }}</span>
           </td>
@@ -79,7 +175,7 @@
             </span>
             {% else %}
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-              <i class="ti ti-circle text-[12px]" aria-hidden="true"></i>Inactive
+              <i class="ti ti-archive text-[12px]" aria-hidden="true"></i>Archived
             </span>
             {% endif %}
           </td>
@@ -114,53 +210,67 @@
         </tr>
         {% endfor %}
       </tbody>
+      {% endif %}
+      {% endfor %}
     </table>
 
-    <!-- Mobile stacked cards -->
-    <div class="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
-      {% for season in seasons %}
-      <div data-row-card class="px-4 py-3.5">
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ season.name }}</span>
-          {% if season.is_current %}
-          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
-            <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Current
-          </span>
-          {% else %}
-          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-            <i class="ti ti-circle text-[12px]" aria-hidden="true"></i>Inactive
-          </span>
-          {% endif %}
-        </div>
-        <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-          <span class="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 font-medium">{{ season.league_type }}</span>
-          <span>Leagues <span class="font-mono text-gray-900 dark:text-white">{{ season.league_count }}</span></span>
-          <span>Teams <span class="font-mono text-gray-900 dark:text-white">{{ season.team_count }}</span></span>
-          {% if season.created_at %}<span class="font-mono">{{ season.created_at.strftime('%Y-%m-%d') }}</span>{% endif %}
-        </div>
-        <div class="mt-3 flex items-center gap-2">
-          <a href="{{ url_for('admin_panel.league_management_season_detail', season_id=season.id) }}"
-             class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 rounded-lg text-sm font-semibold
-                    bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
-                    focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-eye" aria-hidden="true"></i><span>View</span>
-          </a>
-          {% if not season.is_current %}
-          <button data-action="set-current-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
-                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-green-700 bg-green-100 hover:bg-green-200 dark:bg-green-500/15 dark:text-green-300 dark:hover:bg-green-500/25
-                         focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                  aria-label="Set {{ season.name }} as current">
-            <i class="ti ti-check" aria-hidden="true"></i>
-          </button>
-          <button data-action="delete-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
-                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-red-700 bg-red-100 hover:bg-red-200 dark:bg-red-500/15 dark:text-red-300 dark:hover:bg-red-500/25
-                         focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                  aria-label="Delete {{ season.name }}">
-            <i class="ti ti-trash" aria-hidden="true"></i>
-          </button>
-          {% endif %}
-        </div>
+    <!-- Mobile stacked cards, grouped by league type -->
+    <div class="md:hidden">
+      {% for lt in league_types %}
+      {% set rows = seasons | selectattr('league_type', 'equalto', lt) | list %}
+      {% if rows %}
+      <div class="flex items-center gap-2 px-4 py-1.5 bg-gray-50 dark:bg-gray-900/40 border-t border-gray-100 dark:border-gray-700">
+        <span class="font-mono text-xs font-bold uppercase tracking-wide text-ecs-green">{{ lt }}</span>
+        <span class="font-mono text-xs text-gray-400 dark:text-gray-500">{{ rows | length }}</span>
       </div>
+      <div class="divide-y divide-gray-100 dark:divide-gray-700">
+        {% for season in rows %}
+        <div data-row-card class="px-4 py-3.5 {% if season.is_current %}bg-ecs-green/5 dark:bg-ecs-green/10{% endif %}">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate flex items-center gap-1.5">
+              {% if season.is_current %}<i class="ti ti-circle-filled text-[8px] text-ecs-green shrink-0" aria-hidden="true"></i>{% endif %}{{ season.name }}
+            </span>
+            {% if season.is_current %}
+            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+              <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Current
+            </span>
+            {% else %}
+            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-archive text-[12px]" aria-hidden="true"></i>Archived
+            </span>
+            {% endif %}
+          </div>
+          <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+            <span>Leagues <span class="font-mono text-gray-900 dark:text-white">{{ season.league_count }}</span></span>
+            <span>Teams <span class="font-mono text-gray-900 dark:text-white">{{ season.team_count }}</span></span>
+            {% if season.created_at %}<span class="font-mono">{{ season.created_at.strftime('%Y-%m-%d') }}</span>{% endif %}
+          </div>
+          <div class="mt-3 flex items-center gap-2">
+            <a href="{{ url_for('admin_panel.league_management_season_detail', season_id=season.id) }}"
+               class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 rounded-lg text-sm font-semibold
+                      bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
+                      focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-eye" aria-hidden="true"></i><span>View</span>
+            </a>
+            {% if not season.is_current %}
+            <button data-action="set-current-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
+                    class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-green-700 bg-green-100 hover:bg-green-200 dark:bg-green-500/15 dark:text-green-300 dark:hover:bg-green-500/25
+                           focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                    aria-label="Set {{ season.name }} as current">
+              <i class="ti ti-check" aria-hidden="true"></i>
+            </button>
+            <button data-action="delete-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
+                    class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-red-700 bg-red-100 hover:bg-red-200 dark:bg-red-500/15 dark:text-red-300 dark:hover:bg-red-500/25
+                           focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                    aria-label="Delete {{ season.name }}">
+              <i class="ti ti-trash" aria-hidden="true"></i>
+            </button>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
       {% endfor %}
     </div>
   {% endcall %}
@@ -318,7 +428,7 @@ function applyFilters() {
             const seasonId = document.getElementById('setCurrentSeasonId').value;
             const performRollover = document.getElementById('performRollover').checked;
 
-            fetch(`/admin-panel/league-management/seasons/${seasonId}/set-current`, {
+            fetch(`/admin-panel/league-management/seasons/api/${seasonId}/set-current`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -351,7 +461,7 @@ function applyFilters() {
                 ...swalTheme()
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch(`/admin-panel/league-management/seasons/${seasonId}`, {
+                    fetch(`/admin-panel/league-management/seasons/api/${seasonId}/delete`, {
                         method: 'DELETE',
                         headers: { 'X-CSRFToken': csrfToken() }
                     })

@@ -4,17 +4,102 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
+{% set role_destinations = [
+    {
+        'icon': 'ti-shield-cog',
+        'eyebrow': 'Application roles',
+        'title': 'Roles Management',
+        'desc': 'Create, edit, and delete application roles; assign or remove users and review per-role membership.',
+        'url': url_for('admin_panel.roles_comprehensive'),
+        'cta': 'Open',
+        'primary': true
+    },
+    {
+        'icon': 'ti-refresh',
+        'eyebrow': 'Discord',
+        'title': 'Role Sync',
+        'desc': 'Push league and team roles to Discord members and run a mass sync across the guild.',
+        'url': url_for('admin_panel.discord_roles'),
+        'cta': 'Open',
+        'primary': false
+    },
+    {
+        'icon': 'ti-link',
+        'eyebrow': 'Discord',
+        'title': 'Role Mapping',
+        'desc': 'Map application roles to Discord roles and preview which members a sync would affect.',
+        'url': url_for('admin_panel.discord_role_mapping'),
+        'cta': 'Open',
+        'primary': false
+    }
+] %}
 <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
-    {{ page_header(title, subtitle="Team and league role management") }}
+    {% call page_header(title, subtitle="Team and league role management") %}
+        <a href="{{ url_for('admin_panel.roles_comprehensive') }}"
+           class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                  bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-settings text-base" aria-hidden="true"></i>
+            <span>Manage roles</span>
+        </a>
+    {% endcall %}
 
-    {% call section_card("Roles Management", icon="ti-shield-check") %}
-        {{ empty_state(
-            "ti-shield-check",
-            "Roles Management",
-            "This page is under construction. Use the admin panel to manage roles.",
-            action={'label': 'Go to Admin Panel', 'url': url_for('admin_panel.roles_comprehensive'), 'icon': 'ti-settings'}
-        ) }}
+    {# Feature card: the primary object — the roles management hub #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-5 sm:mb-6">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green/10 to-transparent dark:from-ecs-green/15">
+            <div class="flex items-start gap-3">
+                <span class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl bg-ecs-green/15 text-ecs-green" aria-hidden="true">
+                    <i class="ti ti-shield-check text-2xl"></i>
+                </span>
+                <div class="min-w-0">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Access control</p>
+                    <h2 class="text-base sm:text-lg font-extrabold tracking-tight text-gray-900 dark:text-white">Where role management lives</h2>
+                </div>
+            </div>
+        </div>
+        <div class="px-4 sm:px-6 py-4">
+            <p class="text-sm text-gray-600 dark:text-gray-300 max-w-2xl">
+                Role administration is handled in the admin panel. Pick a destination below to manage application
+                roles or keep them in sync with Discord.
+            </p>
+        </div>
+    </section>
+
+    {# Dense destination rows — each links to a real role-management surface #}
+    {% call section_card("Role Destinations", icon="ti-list-details") %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+            {% for d in role_destinations %}
+            <li>
+                <a href="{{ d.url }}"
+                   class="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 min-h-[44px]
+                          hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group
+                          focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                    <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg
+                                 {% if d.primary %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400{% endif %}"
+                          aria-hidden="true">
+                        <i class="ti {{ d.icon }} text-xl"></i>
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] font-mono uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ d.eyebrow }}</span>
+                            {% if d.primary %}
+                            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded
+                                         bg-ecs-green/15 text-ecs-green">Primary</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ d.title }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{{ d.desc }}</p>
+                    </div>
+                    <span class="shrink-0 inline-flex items-center gap-1 text-xs font-semibold
+                                 text-gray-500 dark:text-gray-400 group-hover:text-ecs-green transition-colors">
+                        <span class="hidden sm:inline">{{ d.cta }}</span>
+                        <i class="ti ti-arrow-right text-base" aria-hidden="true"></i>
+                    </span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
     {% endcall %}
 </div>
 {% else %}

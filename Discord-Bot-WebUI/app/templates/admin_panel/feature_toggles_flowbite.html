@@ -16,113 +16,198 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state, alert as kit_alert %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state, alert as kit_alert %}
 
-{# Derive real KPI figures from the page's data (no mock values). #}
+{# ---- Real-data derivations (no fabricated values; all from `categories`) ---- #}
 {% set all_settings = [] %}
 {% for _cat, _settings in categories.items() %}{% for _s in _settings %}{% set _ = all_settings.append(_s) %}{% endfor %}{% endfor %}
 {% set total_settings = all_settings | length %}
 {% set bool_settings = all_settings | selectattr('data_type', 'equalto', 'boolean') | list %}
 {% set enabled_count = bool_settings | selectattr('parsed_value') | list | length %}
+{% set value_settings = all_settings | rejectattr('data_type', 'equalto', 'boolean') | list %}
 {% set category_count = categories | length %}
+{% set last_updated = (all_settings | map(attribute='updated_at') | max) if all_settings else none %}
 
-{% call page_header("Feature Toggles", subtitle="System Administration") %}{% endcall %}
+{# Per-category presentation metadata. Falls back gracefully for any unmapped category. #}
+{% set cat_meta = {
+  'navigation':      {'icon': 'ti-navigation',          'label': 'Navigation'},
+  'registration':    {'icon': 'ti-user-plus',           'label': 'Registration'},
+  'features':        {'icon': 'ti-apps',                 'label': 'Features'},
+  'system':          {'icon': 'ti-server',               'label': 'System'},
+  'pub_league':      {'icon': 'ti-shopping-cart',        'label': 'Pub League / Store'},
+  'mls':             {'icon': 'ti-ball-football',        'label': 'MLS Match Mgmt'},
+  'ai_assistant':    {'icon': 'ti-robot',                'label': 'AI Assistant'},
+  'mobile_app':      {'icon': 'ti-device-mobile',        'label': 'Mobile App'},
+  'mobile_features': {'icon': 'ti-device-mobile-cog',    'label': 'Mobile Features'},
+  'general':         {'icon': 'ti-settings',             'label': 'General'}
+} %}
+
+{% call page_header("Feature Toggles", subtitle="System Administration") %}
+  <span class="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-medium text-gray-500 dark:text-gray-400">
+    <i class="ti ti-clock-edit text-ecs-green" aria-hidden="true"></i>
+    Last change <span class="font-mono text-gray-700 dark:text-gray-300">{{ last_updated.strftime('%Y-%m-%d %H:%M') if last_updated else '—' }}</span>
+  </span>
+{% endcall %}
 
 <div class="space-y-5 sm:space-y-6">
-  {# KPI band — 2-up mobile, 4-up lg #}
+  {# ---- KPI band: live posture of the flag system (2-up mobile, 4-up lg) ---- #}
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card("ti-adjustments", "Total Settings", total_settings, sublabel="across all categories", tone="neutral") }}
-    {{ stat_card("ti-layout-grid", "Categories", category_count, sublabel="setting groups", tone="info") }}
-    {{ stat_card("ti-toggle-right", "Toggles Enabled", enabled_count, sublabel="of " ~ (bool_settings | length) ~ " switches", tone="success") }}
+    {% call stat_card("ti-toggle-right", "Toggles On", enabled_count, sublabel="of " ~ (bool_settings | length) ~ " switches", tone="success") %}
+      {{ (bool_settings | length) - enabled_count }} currently off
+    {% endcall %}
     {{ stat_card("ti-toggles", "Boolean Flags", bool_settings | length, sublabel="on/off features", tone="primary") }}
+    {{ stat_card("ti-adjustments-horizontal", "Value Settings", value_settings | length, sublabel="text / integer", tone="info") }}
+    {{ stat_card("ti-layout-grid", "Categories", category_count, sublabel=total_settings ~ " settings total", tone="neutral") }}
   </div>
 
-  {{ kit_alert("warning", "Changes to these settings take effect immediately. Be careful when modifying critical features like Teams navigation and Waitlist registration, as they directly affect user experience.", title="Heads up:", dismissible=false) }}
+  {{ kit_alert("warning", "Changes take effect immediately — no deploy required. Be deliberate with critical flags like Teams navigation, Waitlist registration and Maintenance Mode; they directly affect what users can see and do.", title="Live system:", dismissible=false) }}
 
   {% if total_settings == 0 %}
     {{ empty_state("ti-adjustments-off", "No settings found", "There are no feature settings configured yet.") }}
-  {% endif %}
+  {% else %}
 
-  {% for category, settings in categories.items() %}
-  {% set cat_meta = {
-    'navigation':   {'icon': 'ti-navigation', 'label': 'Navigation Settings'},
-    'registration': {'icon': 'ti-user-plus',  'label': 'Registration Settings'},
-    'features':     {'icon': 'ti-apps',       'label': 'Feature Settings'},
-    'system':       {'icon': 'ti-server',      'label': 'System Settings'}
-  } %}
-  {% set cm = cat_meta.get(category, {'icon': 'ti-settings', 'label': category.title() ~ ' Settings'}) %}
-  {% call section_card(cm.label, icon=cm.icon) %}
-  <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
-    {% for setting in settings %}
-    <li class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-5 py-4" data-setting-key="{{ setting.key }}">
-      <div class="flex items-start min-w-0">
-        <div class="flex-shrink-0 mr-3 mt-1">
-          {% if setting.data_type == 'boolean' %}
-            {% if setting.parsed_value %}
-              <span class="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30">
-                <i class="ti ti-toggle-right text-green-600 dark:text-green-400" aria-hidden="true"></i>
-              </span>
-            {% else %}
-              <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700">
-                <i class="ti ti-toggle-left text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              </span>
+  {# ---- Two-column workspace: sticky category index rail + setting panels ---- #}
+  <div class="grid grid-cols-1 xl:grid-cols-4 gap-5 sm:gap-6 items-start">
+
+    {# Category index — jump nav with per-group counts (no JS; pure anchors) #}
+    <nav aria-label="Setting categories"
+         class="hidden xl:block xl:sticky xl:top-20 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 h-11 flex items-center border-b border-gray-200 dark:border-gray-700">
+        <span class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Categories</span>
+      </div>
+      <ul class="py-1">
+        {% for category, settings in categories.items() %}
+        {% set cm = cat_meta.get(category, {'icon': 'ti-settings', 'label': category.replace('_', ' ').title()}) %}
+        <li>
+          <a href="#cat-{{ category }}"
+             class="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+            <span class="flex items-center gap-2 min-w-0">
+              <i class="ti {{ cm.icon }} text-ecs-green shrink-0" aria-hidden="true"></i>
+              <span class="truncate">{{ cm.label }}</span>
+            </span>
+            <span class="shrink-0 font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ settings | length }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </nav>
+
+    {# Setting panels — one feature card per category, dense toggle/value rows #}
+    <div class="xl:col-span-3 space-y-5 sm:space-y-6">
+      {% for category, settings in categories.items() %}
+      {% set cm = cat_meta.get(category, {'icon': 'ti-settings', 'label': category.replace('_', ' ').title()}) %}
+      {% set cat_bools = settings | selectattr('data_type', 'equalto', 'boolean') | list %}
+      {% set cat_on = cat_bools | selectattr('parsed_value') | list | length %}
+      <section id="cat-{{ category }}" class="scroll-mt-20 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        {# Header bar with status pill (grounded in concept feature cards) #}
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white min-w-0">
+            <i class="ti {{ cm.icon }} text-ecs-green shrink-0" aria-hidden="true"></i>
+            <span class="truncate">{{ cm.label }}</span>
+          </h2>
+          <div class="flex items-center gap-2 shrink-0">
+            {% if cat_bools %}
+            <span class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+              <span class="font-mono font-bold text-green-600 dark:text-green-400">{{ cat_on }}</span>/<span class="font-mono">{{ cat_bools | length }}</span> on
+            </span>
             {% endif %}
-          {% else %}
-            <span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30">
-              <i class="ti ti-adjustments-horizontal text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
-            </span>
-          {% endif %}
-        </div>
-        <div class="min-w-0">
-          <h6 class="font-semibold text-gray-900 dark:text-white">{{ setting.key.replace('_', ' ').title() }}</h6>
-          <p class="text-sm text-gray-500 dark:text-gray-400">{{ setting.description or 'No description available' }}</p>
-          <div class="flex flex-wrap items-center gap-2 mt-2">
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 font-mono">
-              {{ setting.data_type }}
-            </span>
-            <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">
-              Updated: {{ setting.updated_at.strftime('%Y-%m-%d %H:%M') }}
-            </span>
+            <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ settings | length }}</span>
           </div>
         </div>
-      </div>
-      <div class="flex items-center sm:ml-4 shrink-0">
-        {% if setting.data_type == 'boolean' %}
-        <label class="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" class="sr-only peer setting-toggle"
-                 data-setting-key="{{ setting.key }}"
-                 {% if setting.parsed_value %}checked{% endif %}>
-          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
-          <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 toggle-status">
-            {% if setting.parsed_value %}Enabled{% else %}Disabled{% endif %}
-          </span>
-        </label>
-        {% else %}
-        <form method="POST" action="{{ url_for('admin_panel.update_setting') }}" class="flex items-center gap-2">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="key" value="{{ setting.key }}">
-          {% if setting.data_type == 'integer' %}
-          <input type="number" name="value" value="{{ setting.value or '' }}"
-                 class="w-24 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
-                 placeholder="Value">
-          {% else %}
-          <input type="text" name="value" value="{{ setting.value or '' }}"
-                 class="w-40 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
-                 placeholder="Value">
-          {% endif %}
-          <button type="submit"
-                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                  title="Save" aria-label="Save {{ setting.key.replace('_', ' ').title() }}">
-            <i class="ti ti-check" aria-hidden="true"></i>
-          </button>
-        </form>
-        {% endif %}
-      </div>
-    </li>
-    {% endfor %}
-  </ul>
-  {% endcall %}
-  {% endfor %}
+        <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for setting in settings %}
+          <li class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-setting-key="{{ setting.key }}">
+            <div class="flex items-start min-w-0">
+              {# Icon wrapper — JS targets `.flex-shrink-0 span` here; keep classes verbatim #}
+              <div class="flex-shrink-0 mr-3 mt-0.5">
+                {% if setting.data_type == 'boolean' %}
+                  {% if setting.parsed_value %}
+                    <span class="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30">
+                      <i class="ti ti-toggle-right text-green-600 dark:text-green-400" aria-hidden="true"></i>
+                    </span>
+                  {% else %}
+                    <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700">
+                      <i class="ti ti-toggle-left text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+                    </span>
+                  {% endif %}
+                {% else %}
+                  <span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                    <i class="ti ti-adjustments-horizontal text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+                  </span>
+                {% endif %}
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center flex-wrap gap-2">
+                  <h6 class="font-semibold text-gray-900 dark:text-white">{{ setting.key.replace('_', ' ').title() }}</h6>
+                  {% if setting.data_type == 'boolean' %}
+                    {% if setting.parsed_value %}
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wide bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                      <i class="ti ti-circle-check text-[11px]" aria-hidden="true"></i> On
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wide bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                      <i class="ti ti-circle text-[11px]" aria-hidden="true"></i> Off
+                    </span>
+                    {% endif %}
+                  {% endif %}
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ setting.description or 'No description available' }}</p>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+                  <span class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                    <i class="ti ti-key text-[12px]" aria-hidden="true"></i>
+                    <code class="font-mono text-gray-500 dark:text-gray-400">{{ setting.key }}</code>
+                  </span>
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-mono uppercase tracking-wide">
+                    {{ setting.data_type }}
+                  </span>
+                  <span class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 font-mono">
+                    <i class="ti ti-clock text-[12px]" aria-hidden="true"></i>
+                    {{ setting.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center sm:ml-4 shrink-0 pl-11 sm:pl-0">
+              {% if setting.data_type == 'boolean' %}
+              {# Toggle markup — JS targets `.setting-toggle`, `.toggle-status`; keep verbatim #}
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" class="sr-only peer setting-toggle"
+                       data-setting-key="{{ setting.key }}"
+                       {% if setting.parsed_value %}checked{% endif %}>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 toggle-status">
+                  {% if setting.parsed_value %}Enabled{% else %}Disabled{% endif %}
+                </span>
+              </label>
+              {% else %}
+              <form method="POST" action="{{ url_for('admin_panel.update_setting') }}" class="flex items-center gap-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="key" value="{{ setting.key }}">
+                {% if setting.data_type == 'integer' %}
+                <input type="number" name="value" value="{{ setting.value or '' }}"
+                       class="w-24 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                       placeholder="Value">
+                {% else %}
+                <input type="text" name="value" value="{{ setting.value or '' }}"
+                       class="w-40 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                       placeholder="Value">
+                {% endif %}
+                <button type="submit"
+                        class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                        title="Save" aria-label="Save {{ setting.key.replace('_', ' ').title() }}">
+                  <i class="ti ti-check" aria-hidden="true"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% else %}
 <div class="space-y-6">

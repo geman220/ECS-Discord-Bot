@@ -22,13 +22,72 @@
 
 {% block panel_content %}
 {% if shell == 'console' %}
-{{ page_header("View Matches", subtitle="Match Operations") }}
 
-{# Filter panel #}
-{% call section_card("Filter Matches", icon="ti-filter") %}
+{# ── Derive page-scoped KPI counts from REAL match rows on this page ── #}
+{% set ns = namespace(reported=0, awaiting=0, upcoming=0, unsched=0) %}
+{% for m in matches.items %}
+    {% if m.home_team_score is not none and m.away_team_score is not none %}
+        {% set ns.reported = ns.reported + 1 %}
+        {% if not (m.home_team_verified and m.away_team_verified) %}{% set ns.awaiting = ns.awaiting + 1 %}{% endif %}
+    {% elif m.date and m.date >= today_date %}
+        {% set ns.upcoming = ns.upcoming + 1 %}
+    {% endif %}
+    {% if not m.date %}{% set ns.unsched = ns.unsched + 1 %}{% endif %}
+{% endfor %}
+
+{% set has_filters = current_league_id or current_week or current_status or request.args.get('date_from') or request.args.get('date_to') %}
+
+{# ── Header + primary command toolbar ── #}
+{% call page_header("View Matches", subtitle="Match Operations" + (" · " + current_season.name if current_season else "")) %}
+    <a href="{{ url_for('admin_panel.match_results') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-clipboard-check" aria-hidden="true"></i><span class="hidden sm:inline">Enter Results</span>
+    </a>
+    <a href="{{ url_for('admin_panel.schedule_matches') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Schedule matches">
+        <i class="ti ti-calendar-plus" aria-hidden="true"></i><span class="hidden sm:inline">Schedule</span>
+    </a>
+{% endcall %}
+
+{# ── KPI band: this page's slice (honest, page-scoped) ── #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Matches</span>
+            <i class="ti ti-soccer-field text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-2 font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ matches.total }}</div>
+        <p class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono">{{ matches.items|length }} on this page</p>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Awaiting Verify</span>
+            <i class="ti ti-checkup-list text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-2 font-mono text-3xl font-bold leading-none {% if ns.awaiting %}text-amber-600 dark:text-amber-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ ns.awaiting }}</div>
+        <p class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono">reported · one or both sides open</p>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Upcoming</span>
+            <i class="ti ti-clock text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-2 font-mono text-3xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ ns.upcoming }}</div>
+        <p class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono">scheduled · not yet played</p>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Reported</span>
+            <i class="ti ti-circle-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-2 font-mono text-3xl font-bold leading-none text-green-600 dark:text-green-400">{{ ns.reported }}</div>
+        <p class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono">scores entered on this page</p>
+    </div>
+</div>
+
+{# ── Filter command bar ── #}
+{% call section_card("Filters", icon="ti-filter") %}
 <form method="GET" class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
     <div>
-        <label for="league_id" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">League / Division</label>
+        <label for="league_id" class="block mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">League / Division</label>
         <select id="league_id" name="league_id" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
             <option value="">All Leagues</option>
             {% for league in leagues %}
@@ -37,7 +96,7 @@
         </select>
     </div>
     <div>
-        <label for="week" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Week</label>
+        <label for="week" class="block mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Week</label>
         <select id="week" name="week" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
             <option value="">All Weeks</option>
             {% for week in weeks %}
@@ -46,7 +105,7 @@
         </select>
     </div>
     <div>
-        <label for="status" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+        <label for="status" class="block mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</label>
         <select id="status" name="status" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
             <option value="">All Statuses</option>
             <option value="upcoming" {% if current_status == 'upcoming' %}selected{% endif %}>Upcoming</option>
@@ -56,11 +115,11 @@
         </select>
     </div>
     <div>
-        <label for="date_from" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">From Date</label>
+        <label for="date_from" class="block mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">From Date</label>
         <input type="date" id="date_from" name="date_from" value="{{ request.args.get('date_from', '') }}" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
     </div>
     <div>
-        <label for="date_to" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">To Date</label>
+        <label for="date_to" class="block mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">To Date</label>
         <input type="date" id="date_to" name="date_to" value="{{ request.args.get('date_to', '') }}" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
     </div>
     <div class="flex items-end gap-2">
@@ -71,11 +130,13 @@
             <i class="ti ti-x" aria-hidden="true"></i>
         </a>
     </div>
-    {% if current_season %}
-    <div class="sm:col-span-2 lg:col-span-6 pt-3 border-t border-gray-200 dark:border-gray-700">
-        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">
-            <i class="ti ti-calendar" aria-hidden="true"></i>{{ current_season.name }}
-        </span>
+    {% if has_filters %}
+    <div class="sm:col-span-2 lg:col-span-6 pt-3 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2">
+        <span class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Active</span>
+        {% if current_status %}<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15"><i class="ti ti-filter" aria-hidden="true"></i>{{ current_status|capitalize }}</span>{% endif %}
+        {% if current_week %}<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15"><i class="ti ti-calendar-week" aria-hidden="true"></i>Week {{ current_week }}</span>{% endif %}
+        {% if request.args.get('date_from') %}<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-arrow-right" aria-hidden="true"></i>from {{ request.args.get('date_from') }}</span>{% endif %}
+        {% if request.args.get('date_to') %}<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-arrow-left" aria-hidden="true"></i>to {{ request.args.get('date_to') }}</span>{% endif %}
     </div>
     {% endif %}
 </form>
@@ -84,51 +145,80 @@
 <div class="mt-5 sm:mt-6">
 {% if matches.items %}
 {% call data_table("All Matches", icon="ti-soccer-field", count=matches.total, filters=False) %}
-    {# md+ table #}
+    {# md+ table — date-grouped, H/A badges, two-sided verification, location sub-line #}
     <table class="hidden md:table w-full text-sm text-left">
         <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
             <tr>
-                {{ data_table_th("Date", key="date", sortable=False) }}
-                {{ data_table_th("Time", key="time", sortable=False, hide="md") }}
-                {{ data_table_th("Home Team", key="home", sortable=False) }}
-                {{ data_table_th("Away Team", key="away", sortable=False) }}
-                {{ data_table_th("Score", key="score", sortable=False) }}
+                {{ data_table_th("Kickoff", key="date", sortable=False) }}
+                {{ data_table_th("Matchup", key="home", sortable=False) }}
+                {{ data_table_th("Score", key="score", sortable=False, align="center") }}
+                {{ data_table_th("Verification", key="verify", sortable=False, hide="md") }}
                 {{ data_table_th("Status", key="status", sortable=False) }}
                 {{ data_table_th("Actions", key="actions", sortable=False, align="right") }}
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% set tbl = namespace(prev=None) %}
             {% for match in matches.items %}
+            {% set day_key = match.date.strftime('%Y-%m-%d') if match.date else 'TBD' %}
+            {% if day_key != tbl.prev %}
+            {% set tbl.prev = day_key %}
+            <tr class="bg-gray-50/70 dark:bg-gray-900/40">
+                <td colspan="6" class="px-3 py-1.5">
+                    <span class="font-mono text-xs font-bold text-ecs-green">{% if match.date %}{{ match.date.strftime('%a · %b %-d, %Y') }}{% else %}Unscheduled{% endif %}</span>
+                </td>
+            </tr>
+            {% endif %}
             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                <td class="px-3 py-3 font-mono text-gray-900 dark:text-white">
-                    {% if match.date %}{{ match.date.strftime('%Y-%m-%d') }}{% else %}<span class="text-gray-400 dark:text-gray-500">TBD</span>{% endif %}
+                <td class="px-3 py-3 align-top">
+                    <div class="font-mono text-sm font-semibold text-gray-900 dark:text-white">{% if match.time %}{{ match.time.strftime('%-I:%M %p') }}{% else %}<span class="text-gray-400 dark:text-gray-500">TBD</span>{% endif %}</div>
+                    {% if match.location %}<div class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[140px]"><i class="ti ti-map-pin text-[10px]" aria-hidden="true"></i> {{ match.location }}</div>{% endif %}
                 </td>
-                <td class="px-3 py-3 font-mono text-gray-500 dark:text-gray-400 hidden lg:table-cell">
-                    {% if match.time %}{{ match.time.strftime('%H:%M') }}{% else %}<span class="text-gray-400 dark:text-gray-500">TBD</span>{% endif %}
-                </td>
-                <td class="px-3 py-3 font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</td>
-                <td class="px-3 py-3 text-gray-700 dark:text-gray-300">{{ match.away_team.name if match.away_team else 'TBD' }}</td>
                 <td class="px-3 py-3">
+                    <div class="flex items-center gap-2">
+                        <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-mono font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15" title="Home">H</span>
+                        <span class="font-medium text-gray-900 dark:text-white truncate">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-mono font-bold bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="Away">A</span>
+                        <span class="text-gray-600 dark:text-gray-300 truncate">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
+                    </div>
+                </td>
+                <td class="px-3 py-3 text-center align-middle">
                     {% if match.home_team_score is not none and match.away_team_score is not none %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
+                        <span class="font-mono text-base font-bold text-gray-900 dark:text-white tabular-nums">{{ match.home_team_score }}<span class="text-gray-300 dark:text-gray-600 mx-0.5">–</span>{{ match.away_team_score }}</span>
                     {% else %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">-</span>
+                        <span class="font-mono text-gray-300 dark:text-gray-600">—</span>
                     {% endif %}
                 </td>
-                <td class="px-3 py-3">
+                <td class="px-3 py-3 align-middle hidden lg:table-cell">
+                    {% if match.home_team_score is not none and match.away_team_score is not none %}
+                        <div class="flex items-center gap-2 text-xs">
+                            <span class="inline-flex items-center gap-1 {% if match.home_team_verified %}text-green-600 dark:text-green-400{% else %}text-amber-600 dark:text-amber-400{% endif %}"><i class="ti {% if match.home_team_verified %}ti-circle-check-filled{% else %}ti-clock{% endif %}" aria-hidden="true"></i><span class="font-mono">H</span></span>
+                            <span class="inline-flex items-center gap-1 {% if match.away_team_verified %}text-green-600 dark:text-green-400{% else %}text-amber-600 dark:text-amber-400{% endif %}"><i class="ti {% if match.away_team_verified %}ti-circle-check-filled{% else %}ti-clock{% endif %}" aria-hidden="true"></i><span class="font-mono">A</span></span>
+                        </div>
+                    {% else %}
+                        <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">—</span>
+                    {% endif %}
+                </td>
+                <td class="px-3 py-3 align-middle">
                     {% if match.date %}
                         {% if match.home_team_score is not none and match.away_team_score is not none %}
-                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check" aria-hidden="true"></i>Completed</span>
+                            {% if match.home_team_verified and match.away_team_verified %}
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-shield-check" aria-hidden="true"></i>Verified</span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock" aria-hidden="true"></i>Awaiting</span>
+                            {% endif %}
                         {% elif match.date >= today_date %}
                             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>Upcoming</span>
                         {% else %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Past</span>
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-history" aria-hidden="true"></i>Not Reported</span>
                         {% endif %}
                     {% else %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">Unscheduled</span>
                     {% endif %}
                 </td>
-                <td class="px-3 py-3">
+                <td class="px-3 py-3 align-middle">
                     <div class="flex items-center justify-end gap-1">
                         <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-match-details" data-match-id="{{ match.id }}" title="View Details" aria-label="View match details">
                             <i class="ti ti-eye" aria-hidden="true"></i>
@@ -146,25 +236,46 @@
         </tbody>
     </table>
 
-    {# mobile cards #}
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+    {# mobile cards — date-grouped dense rows #}
+    <div class="md:hidden">
+        {% set mob = namespace(prev=None) %}
         {% for match in matches.items %}
-        <div class="px-4 py-3.5">
-            <div class="flex items-center justify-between gap-2">
-                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ match.home_team.name if match.home_team else 'TBD' }} <span class="text-gray-400 dark:text-gray-500 font-normal">vs</span> {{ match.away_team.name if match.away_team else 'TBD' }}</span>
+        {% set day_key = match.date.strftime('%Y-%m-%d') if match.date else 'TBD' %}
+        {% if day_key != mob.prev %}
+        {% set mob.prev = day_key %}
+        <div class="px-4 py-2 bg-gray-50/70 dark:bg-gray-900/40 border-y border-gray-200 dark:border-gray-700">
+            <span class="font-mono text-xs font-bold text-ecs-green">{% if match.date %}{{ match.date.strftime('%a · %b %-d, %Y') }}{% else %}Unscheduled{% endif %}</span>
+        </div>
+        {% endif %}
+        <div class="px-4 py-3.5 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="shrink-0 inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-mono font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15">H</span>
+                        <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span class="shrink-0 inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-mono font-bold bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">A</span>
+                        <span class="text-sm text-gray-600 dark:text-gray-300 truncate">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
+                    </div>
+                </div>
                 {% if match.home_team_score is not none and match.away_team_score is not none %}
-                    <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
+                    <span class="shrink-0 font-mono text-base font-bold text-gray-900 dark:text-white tabular-nums">{{ match.home_team_score }}<span class="text-gray-300 dark:text-gray-600 mx-0.5">–</span>{{ match.away_team_score }}</span>
                 {% endif %}
             </div>
             <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-                <span class="font-mono">{% if match.date %}{{ match.date.strftime('%Y-%m-%d') }}{% else %}TBD{% endif %}{% if match.time %} · {{ match.time.strftime('%H:%M') }}{% endif %}</span>
+                <span class="font-mono">{% if match.time %}{{ match.time.strftime('%-I:%M %p') }}{% endif %}{% if match.location %}{% if match.time %} · {% endif %}{{ match.location }}{% endif %}</span>
                 {% if match.date %}
                     {% if match.home_team_score is not none and match.away_team_score is not none %}
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check" aria-hidden="true"></i>Completed</span>
+                        {% if match.home_team_verified and match.away_team_verified %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-shield-check" aria-hidden="true"></i>Verified</span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock" aria-hidden="true"></i>Awaiting</span>
+                        {% endif %}
                     {% elif match.date >= today_date %}
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>Upcoming</span>
                     {% else %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Past</span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-history" aria-hidden="true"></i>Not Reported</span>
                     {% endif %}
                 {% else %}
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">Unscheduled</span>

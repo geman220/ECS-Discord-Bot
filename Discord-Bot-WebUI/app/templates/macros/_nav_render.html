@@ -96,6 +96,78 @@
 </aside>
 {% endmacro %}
 
+{# ============================================================================
+   Shell B (admin) — Console FULL sidebar (w-64). Same role-gated nav_sections,
+   rendered in the console aesthetic (brand header + grouped sections + badges
+   + user footer) per concept-admin-dashboard.html. Used when console_full_sidebar
+   is true (the admin panel) instead of the Classic sidebar. id="sidebar" keeps
+   the top-bar hamburger / mobile drawer working unchanged.
+   ============================================================================ #}
+{% macro console_full_sidebar(nav_sections) %}
+<aside id="sidebar"
+       class="fixed top-0 left-0 z-40 h-screen w-64 -translate-x-full lg:translate-x-0 transition-transform duration-200"
+       aria-label="Admin sidebar">
+  <div class="h-full flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+    {# Brand header #}
+    <div class="flex items-center gap-2.5 h-16 px-4 shrink-0 border-b border-gray-200 dark:border-gray-700">
+      <span class="w-9 h-9 rounded-lg bg-ecs-green flex items-center justify-center text-white shrink-0"><i class="ti ti-shield-half-filled text-xl" aria-hidden="true"></i></span>
+      <div class="leading-tight min-w-0">
+        <div class="font-bold text-sm text-gray-900 dark:text-white truncate">ECS FC Admin</div>
+        <div class="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate">ops cockpit</div>
+      </div>
+      <button data-drawer-hide="sidebar" type="button" class="lg:hidden ml-auto p-2 -mr-2 text-gray-400 hover:text-gray-900 dark:hover:text-white" aria-label="Close menu"><i class="ti ti-x"></i></button>
+    </div>
+    {# Grouped nav #}
+    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 text-sm" aria-label="Primary">
+      {% for section in nav_sections %}
+        <p class="px-3 pt-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{{ section.title }}</p>
+        {% for item in section['items'] %}{{ _console_full_item(item) }}{% endfor %}
+      {% endfor %}
+    </nav>
+    {# User footer #}
+    <div class="border-t border-gray-200 dark:border-gray-700 p-3 flex items-center gap-2.5">
+      <img class="w-8 h-8 rounded-full shrink-0 object-cover" src="{{ (safe_current_user.player.profile_picture_url if safe_current_user.player and safe_current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png')) }}" alt="" />
+      <div class="leading-tight min-w-0">
+        <div class="font-semibold text-sm text-gray-900 dark:text-white truncate">{{ safe_current_user.player.name if safe_current_user.player else safe_current_user.username }}</div>
+        <div class="text-[11px] text-gray-500 dark:text-gray-400 truncate">{{ user_roles[0] if user_roles else 'Admin' }}</div>
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="ml-auto p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Sign out"><i class="ti ti-logout" aria-hidden="true"></i></a>
+    </div>
+  </div>
+</aside>
+{% endmacro %}
+
+{% macro _console_full_item(item) %}
+  {% if item.children %}
+    {% set ddid = 'adm-dd-' + item.label|lower|replace(' ', '-')|replace('&', 'and') %}
+    <button type="button" data-collapse-toggle="{{ ddid }}"
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60">
+      <i class="ti {{ item.icon }} text-base shrink-0 {{ 'text-ecs-green' if item.active else 'text-gray-500 dark:text-gray-400' }}" aria-hidden="true"></i>
+      <span class="flex-1 text-left">{{ item.label }}</span>
+      <i class="ti ti-chevron-down text-sm shrink-0" aria-hidden="true"></i>
+    </button>
+    <ul id="{{ ddid }}" class="{{ '' if item.active else 'hidden' }} mt-0.5 space-y-0.5">
+      {% for child in item.children %}
+      <li><a href="{{ child.url }}"
+             class="flex items-center gap-2 pl-10 pr-3 py-2 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700/60 {{ 'text-ecs-green font-medium' if child.active else 'text-gray-600 dark:text-gray-400' }}">{{ child.label }}</a></li>
+      {% endfor %}
+    </ul>
+  {% elif item.highlight %}
+    <a href="{{ item.url }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700">
+      <i class="ti {{ item.icon }} text-base shrink-0" aria-hidden="true"></i>
+      <span class="flex-1">{{ item.label }}</span>
+      {% if item.badge %}<span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/20">{{ item.badge }}</span>{% endif %}
+    </a>
+  {% else %}
+    <a href="{{ item.url or '#' }}"
+       class="flex items-center gap-3 px-3 py-2.5 rounded-lg {{ 'bg-ecs-green/10 text-ecs-green font-semibold' if item.active else 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60' }}" {% if item.active %}aria-current="page"{% endif %}>
+      <i class="ti {{ item.icon }} text-base shrink-0 {{ 'text-ecs-green' if item.active else 'text-gray-500 dark:text-gray-400' }}" aria-hidden="true"></i>
+      <span class="flex-1">{{ item.label }}</span>
+      {% if item.badge %}<span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/15 text-ecs-green">{{ item.badge }}</span>{% endif %}
+    </a>
+  {% endif %}
+{% endmacro %}
+
 {% macro _console_item(item) %}
   {% if item.children %}
     <li>

@@ -6,14 +6,107 @@
 {% if shell == 'console' %}
 {% import "macros/_modern_kit.html" as kit %}
 <div class="mx-auto px-4 py-6 sm:py-8 max-w-2xl">
-    {{ kit.page_header("Substitute Request", subtitle="ECS Soccer League") }}
 
     {% if error %}
-    {{ kit.alert('danger', error, title='Unable to load request') }}
+    {{ kit.page_header("Substitute Request", subtitle="ECS Soccer League") }}
+    {{ kit.empty_state('ti-alert-circle', 'Unable to load request', error) }}
 
-    {% elif already_responded %}
-    {% call kit.section_card("Your Response", icon="ti-circle-check") %}
-    <div class="px-4 sm:px-5 py-6 text-center">
+    {% else %}
+    {# ---- Page header: eyebrow + status pill ---- #}
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5 sm:mb-6">
+        <div class="min-w-0">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Sub Request</p>
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">
+                {% if already_responded %}Your Response{% else %}You're needed{% endif %}
+            </h1>
+        </div>
+        <div class="shrink-0">
+            {% if already_responded %}
+                {% if response.is_available %}
+                <span class="inline-flex items-center gap-1.5 px-3 min-h-[28px] rounded-full text-xs font-semibold bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/30">
+                    <i class="ti ti-circle-check" aria-hidden="true"></i> Available
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1.5 px-3 min-h-[28px] rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
+                    <i class="ti ti-circle-x" aria-hidden="true"></i> Declined
+                </span>
+                {% endif %}
+            {% else %}
+                <span class="inline-flex items-center gap-1.5 px-3 min-h-[28px] rounded-full text-xs font-semibold bg-ecs-gold-100 dark:bg-ecs-gold-500/10 text-ecs-gold-600 dark:text-ecs-gold-400 border border-ecs-gold-200 dark:border-ecs-gold-500/30">
+                    <i class="ti ti-clock-hour-4" aria-hidden="true"></i> Awaiting reply
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if details %}
+    {# ============ PRIMARY OBJECT: the match callout feature card ============ #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        {# Header bar: who needs the sub #}
+        <div class="flex items-center gap-2 px-4 sm:px-5 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+            <i class="ti ti-shield-half text-ecs-green" aria-hidden="true"></i>
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300 truncate">{{ details.team_name }}</span>
+            <span class="ml-auto text-xs text-gray-400 dark:text-gray-500">needs a sub</span>
+        </div>
+
+        {# Fixture: H / A badges with mono labels #}
+        <div class="px-4 sm:px-5 py-5">
+            <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                <div class="text-right min-w-0">
+                    <span class="inline-flex items-center gap-1 mb-1 px-1.5 rounded font-mono text-[10px] font-bold bg-ecs-green/10 text-ecs-green">H</span>
+                    <p class="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">{{ details.match.home_team }}</p>
+                </div>
+                <span class="font-mono text-xs font-bold text-gray-400 dark:text-gray-500 px-2">VS</span>
+                <div class="text-left min-w-0">
+                    <span class="inline-flex items-center gap-1 mb-1 px-1.5 rounded font-mono text-[10px] font-bold bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">A</span>
+                    <p class="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">{{ details.match.away_team }}</p>
+                </div>
+            </div>
+        </div>
+
+        {# KPI band: date / time / position — big mono figures, divider footers #}
+        <div class="grid grid-cols-1 sm:grid-cols-3 border-t border-gray-200 dark:border-gray-700 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700">
+            <div class="px-4 sm:px-5 py-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Date</span>
+                    <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i>
+                </div>
+                <p class="mt-2 font-mono text-sm font-bold text-gray-900 dark:text-white">{{ details.match.date }}</p>
+            </div>
+            <div class="px-4 sm:px-5 py-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Kickoff</span>
+                    <i class="ti ti-clock text-ecs-green" aria-hidden="true"></i>
+                </div>
+                <p class="mt-2 font-mono text-lg font-bold text-gray-900 dark:text-white leading-none">{{ details.match.time }}</p>
+            </div>
+            <div class="px-4 sm:px-5 py-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Position</span>
+                    <i class="ti ti-shirt text-ecs-green" aria-hidden="true"></i>
+                </div>
+                <p class="mt-2 text-sm font-bold text-gray-900 dark:text-white">{{ details.positions_needed or 'Any position' }}</p>
+            </div>
+        </div>
+
+        {# Location row #}
+        <div class="flex items-center gap-2 px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700">
+            <i class="ti ti-map-pin text-gray-400 dark:text-gray-500 shrink-0" aria-hidden="true"></i>
+            <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ details.match.location }}</span>
+        </div>
+
+        {% if details.notes %}
+        <div class="flex items-start gap-2 px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-500/10">
+            <i class="ti ti-info-circle text-blue-500 dark:text-blue-400 shrink-0 mt-0.5" aria-hidden="true"></i>
+            <p class="text-sm text-blue-800 dark:text-blue-300"><span class="font-semibold">Notes:</span> {{ details.notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if already_responded %}
+    {# ---- Confirmation of an existing response ---- #}
+    <div class="mt-5 rounded-xl border bg-white dark:bg-gray-800 px-4 sm:px-5 py-6 text-center {% if response.is_available %}border-green-200 dark:border-green-500/30{% else %}border-gray-200 dark:border-gray-700{% endif %}">
         {% if response.is_available %}
         <div class="w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-500/10 flex items-center justify-center mb-4">
             <i class="ti ti-check text-3xl text-green-600 dark:text-green-400" aria-hidden="true"></i>
@@ -35,112 +128,77 @@
         </div>
         {% endif %}
     </div>
-    {% endcall %}
-
-    {% else %}
-    {{ kit.alert('info', details.team_name ~ ' is looking for a substitute player.', title='Hi ' ~ details.player_name ~ '!', dismissible=False) }}
-    {% endif %}
-
-    {% if details %}
-    <div class="mt-5">
-    {% call kit.section_card("Match Details", icon="ti-calendar-event") %}
-    <dl class="divide-y divide-gray-200 dark:divide-gray-700">
-        <div class="flex justify-between gap-3 px-4 sm:px-5 py-3">
-            <dt class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2"><i class="ti ti-vs" aria-hidden="true"></i> Match</dt>
-            <dd class="text-sm font-medium text-gray-900 dark:text-white text-right">{{ details.match.home_team }} vs {{ details.match.away_team }}</dd>
-        </div>
-        <div class="flex justify-between gap-3 px-4 sm:px-5 py-3">
-            <dt class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2"><i class="ti ti-users" aria-hidden="true"></i> Team</dt>
-            <dd class="text-sm text-gray-900 dark:text-white text-right">{{ details.team_name }}</dd>
-        </div>
-        <div class="flex justify-between gap-3 px-4 sm:px-5 py-3">
-            <dt class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2"><i class="ti ti-calendar" aria-hidden="true"></i> Date</dt>
-            <dd class="text-sm font-mono text-gray-900 dark:text-white text-right">{{ details.match.date }}</dd>
-        </div>
-        <div class="flex justify-between gap-3 px-4 sm:px-5 py-3">
-            <dt class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2"><i class="ti ti-clock" aria-hidden="true"></i> Time</dt>
-            <dd class="text-sm font-mono text-gray-900 dark:text-white text-right">{{ details.match.time }}</dd>
-        </div>
-        <div class="flex justify-between gap-3 px-4 sm:px-5 py-3">
-            <dt class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2"><i class="ti ti-map-pin" aria-hidden="true"></i> Location</dt>
-            <dd class="text-sm text-gray-900 dark:text-white text-right">{{ details.match.location }}</dd>
-        </div>
-        {% if details.positions_needed %}
-        <div class="flex justify-between gap-3 px-4 sm:px-5 py-3">
-            <dt class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2"><i class="ti ti-shirt" aria-hidden="true"></i> Position</dt>
-            <dd class="text-sm text-gray-900 dark:text-white text-right">{{ details.positions_needed }}</dd>
-        </div>
-        {% endif %}
-    </dl>
-    {% endcall %}
-    </div>
-
-    {% if details.notes %}
-    <div class="mt-5">
-        {{ kit.alert('info', details.notes, title='Notes:', dismissible=False) }}
-    </div>
-    {% endif %}
     {% endif %}
 
     {% if not already_responded and not error %}
-    <div class="mt-5">
-    {% call kit.section_card("Are you available?", icon="ti-question-mark") %}
-    <form action="{{ url_for('substitute_rsvp.submit_rsvp', token=token) }}" method="POST" class="px-4 sm:px-5 py-5">
-        <div class="mb-5">
-            <label for="response_text" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Optional note (e.g., "Might be 5 min late")
-            </label>
-            <textarea id="response_text" name="response_text" rows="2" maxlength="500"
-                      placeholder="Add any notes here..."
-                      class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button type="submit" name="is_available" value="yes"
-                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                <i class="ti ti-check" aria-hidden="true"></i>
-                Yes, I'm Available!
-            </button>
-            <button type="submit" name="is_available" value="no"
-                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                <i class="ti ti-x" aria-hidden="true"></i>
-                No, I Can't Make It
-            </button>
+    {# ============ THE ONE JOB: availability decision (command toolbar) ============ #}
+    <form action="{{ url_for('substitute_rsvp.submit_rsvp', token=token) }}" method="POST" class="mt-5">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+                <i class="ti ti-question-mark text-ecs-green" aria-hidden="true"></i>
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Are you available?</span>
+            </div>
+            <div class="px-4 sm:px-5 py-5">
+                <label for="response_text" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Optional note (e.g., "Might be 5 min late")
+                </label>
+                <textarea id="response_text" name="response_text" rows="2" maxlength="500"
+                          placeholder="Add any notes here..."
+                          class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
+            </div>
+            {# Command toolbar: decisive primary CTA + secondary decline #}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 px-4 sm:px-5 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+                <button type="submit" name="is_available" value="yes"
+                        class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-check" aria-hidden="true"></i>
+                    Yes, I'm Available!
+                </button>
+                <button type="submit" name="is_available" value="no"
+                        class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold text-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-x" aria-hidden="true"></i>
+                    No, I Can't Make It
+                </button>
+            </div>
         </div>
     </form>
-    {% endcall %}
-    </div>
     {% endif %}
+    {% endif %}
+
+    {# ---- App promo (secondary, de-emphasized) ---- #}
+    <div class="mt-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-start gap-4 px-4 sm:px-5 py-5">
+            <div class="w-12 h-12 rounded-xl bg-ecs-green/10 flex items-center justify-center shrink-0">
+                <i class="ti ti-device-mobile text-2xl text-ecs-green" aria-hidden="true"></i>
+            </div>
+            <div class="min-w-0">
+                <h3 class="font-semibold text-gray-900 dark:text-white">Get the ECS FC App</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Respond to sub requests instantly with push notifications. Currently in beta testing.
+                </p>
+                <div class="mt-4 rounded-xl border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 p-4">
+                    <p class="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-1.5">
+                        <i class="ti ti-test-pipe" aria-hidden="true"></i> Request Beta Access
+                    </p>
+                    <p class="text-xs text-blue-700 dark:text-blue-400 mb-2">
+                        Join our Discord server and post in <strong>#app-beta-access</strong> with:
+                    </p>
+                    <ul class="text-xs text-blue-700 dark:text-blue-400 space-y-1 list-disc list-inside mb-3">
+                        <li>Your platform (iOS or Android)</li>
+                        <li>Your email address</li>
+                    </ul>
+                    <a href="https://discord.gg/weareecs" target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-2 min-h-[44px] px-3 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-brand-discord" aria-hidden="true"></i> Join Discord
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <p class="mt-5 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1">
         <i class="ti ti-shield-check" aria-hidden="true"></i>
         ECS Soccer League - Substitute Management
     </p>
-
-    <div class="mt-5">
-    {% call kit.section_card("Get the ECS FC App", icon="ti-device-mobile") %}
-    <div class="px-4 sm:px-5 py-5">
-        <p class="text-sm text-gray-600 dark:text-gray-400">
-            Respond to sub requests instantly with push notifications. Currently in beta testing.
-        </p>
-        <div class="mt-4 rounded-xl border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 p-4">
-            <p class="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-1.5">
-                <i class="ti ti-test-pipe" aria-hidden="true"></i> Request Beta Access
-            </p>
-            <p class="text-xs text-blue-700 dark:text-blue-400 mb-2">
-                Join our Discord server and post in <strong>#app-beta-access</strong> with:
-            </p>
-            <ul class="text-xs text-blue-700 dark:text-blue-400 space-y-1 list-disc list-inside mb-3">
-                <li>Your platform (iOS or Android)</li>
-                <li>Your email address</li>
-            </ul>
-            <a href="https://discord.gg/weareecs" target="_blank" rel="noopener"
-               class="inline-flex items-center gap-2 min-h-[44px] px-3 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                <i class="ti ti-brand-discord" aria-hidden="true"></i> Join Discord
-            </a>
-        </div>
-    </div>
-    {% endcall %}
-    </div>
 </div>
 {% else %}
 <div class="container mx-auto px-4 py-8 max-w-2xl">

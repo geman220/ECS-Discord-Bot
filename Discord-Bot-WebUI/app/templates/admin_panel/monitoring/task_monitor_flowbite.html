@@ -22,235 +22,279 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state, modal %}
-{% set _badge_tone = {
-  'running':   'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  'queued':    'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
-  'failed':    'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  'completed': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-} %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, modal %}
 <div class="space-y-6">
 
-  {{ page_header('Task Monitor', subtitle='Background task monitoring and management') }}
-
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-player-play', 'Running Tasks', running_tasks or 0, tone='success') }}
-    {{ stat_card('ti-clock-pause', 'Queued Tasks', queued_tasks or 0, tone='warning') }}
-    {{ stat_card('ti-check', 'Completed Today', completed_today or 0, tone='info') }}
-    {{ stat_card('ti-alert-circle', 'Failed Tasks', failed_tasks or 0, tone='danger') }}
-  </div>
-
-  <!-- Active Tasks -->
-  {% if active_tasks %}
-  {% call data_table('Active Tasks', icon='ti-activity', count=active_tasks|length, filters=False) %}
-    <!-- md+ table -->
-    <table class="hidden md:table w-full text-sm">
-      <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
-        <tr>
-          {{ data_table_th('Task ID', key='id', sortable=False) }}
-          {{ data_table_th('Name', key='name', sortable=False) }}
-          {{ data_table_th('Status', key='status', sortable=False) }}
-          {{ data_table_th('Started', key='started', sortable=False) }}
-          {{ data_table_th('Duration', key='duration', sortable=False) }}
-          {{ data_table_th('Progress', key='progress', sortable=False) }}
-          {{ data_table_th('Actions', key='actions', sortable=False, align='right') }}
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for task in active_tasks %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-2.5">
-            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">{{ task.id[:8] }}...</code>
-          </td>
-          <td class="px-3 py-2.5">
-            <span class="font-medium text-gray-900 dark:text-white">{{ task.name }}</span>
-            {% if task.description %}
-            <p class="text-xs text-gray-500 dark:text-gray-400">{{ task.description }}</p>
-            {% endif %}
-          </td>
-          <td class="px-3 py-2.5">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ _badge_tone.get(task.status, 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300') }}">
-              {{ task.status|title }}
-            </span>
-          </td>
-          <td class="px-3 py-2.5 font-mono text-xs text-gray-600 dark:text-gray-300">{{ task.started_at.strftime('%H:%M:%S') if task.started_at else 'Not started' }}</td>
-          <td class="px-3 py-2.5 font-mono text-xs text-gray-600 dark:text-gray-300">
-            {% if task.started_at %}
-            {% set duration = (now - task.started_at).total_seconds() %}
-            {{ (duration // 60)|int }}m {{ (duration % 60)|int }}s
-            {% else %}
-            -
-            {% endif %}
-          </td>
-          <td class="px-3 py-2.5">
-            {% if task.progress is not none %}
-            <div class="flex items-center gap-2">
-              <div class="w-24 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                <div class="bg-ecs-green h-2 rounded-full" data-progress-bar style="width: {{ task.progress }}%"></div>
-              </div>
-              <span class="font-mono text-xs text-gray-600 dark:text-gray-300">{{ task.progress }}%</span>
-            </div>
-            {% else %}
-            <span class="text-gray-400 dark:text-gray-500 text-xs">Unknown</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-2.5">
-            <div class="flex items-center justify-end gap-1">
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task-details" data-task-id="{{ task.id }}" title="View Details" aria-label="View Details">
-                <i class="ti ti-eye" aria-hidden="true"></i>
-              </button>
-              {% if task.status in ['running', 'queued'] %}
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="cancel-task" data-task-id="{{ task.id }}" title="Cancel" aria-label="Cancel">
-                <i class="ti ti-x" aria-hidden="true"></i>
-              </button>
-              {% endif %}
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task-logs" data-task-id="{{ task.id }}" title="View Logs" aria-label="View Logs">
-                <i class="ti ti-file-text" aria-hidden="true"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <!-- mobile stacked cards -->
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-      {% for task in active_tasks %}
-      <div data-row-card class="px-4 py-3.5">
-        <div class="flex items-center justify-between gap-2">
-          <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">{{ task.id[:8] }}...</code>
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ _badge_tone.get(task.status, 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300') }}">
-            {{ task.status|title }}
-          </span>
-        </div>
-        <p class="mt-1.5 text-sm font-semibold text-gray-900 dark:text-white">{{ task.name }}</p>
-        {% if task.description %}<p class="text-xs text-gray-500 dark:text-gray-400">{{ task.description }}</p>{% endif %}
-        <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-          <p>Started <span class="font-mono">{{ task.started_at.strftime('%H:%M:%S') if task.started_at else 'Not started' }}</span>
-            {% if task.started_at %}{% set duration = (now - task.started_at).total_seconds() %}· <span class="font-mono">{{ (duration // 60)|int }}m {{ (duration % 60)|int }}s</span>{% endif %}
-          </p>
-          {% if task.progress is not none %}
-          <div class="flex items-center gap-2 pt-1">
-            <div class="flex-1 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-              <div class="bg-ecs-green h-2 rounded-full" data-progress-bar style="width: {{ task.progress }}%"></div>
-            </div>
-            <span class="font-mono">{{ task.progress }}%</span>
-          </div>
-          {% endif %}
-        </div>
-        <div class="mt-2 flex items-center gap-1">
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task-details" data-task-id="{{ task.id }}" title="View Details" aria-label="View Details">
-            <i class="ti ti-eye" aria-hidden="true"></i>
-          </button>
-          {% if task.status in ['running', 'queued'] %}
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="cancel-task" data-task-id="{{ task.id }}" title="Cancel" aria-label="Cancel">
-            <i class="ti ti-x" aria-hidden="true"></i>
-          </button>
-          {% endif %}
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task-logs" data-task-id="{{ task.id }}" title="View Logs" aria-label="View Logs">
-            <i class="ti ti-file-text" aria-hidden="true"></i>
-          </button>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  {% endcall %}
-  {% else %}
-  {% call section_card('Active Tasks', icon='ti-activity') %}
-    {{ empty_state('ti-clock-pause', 'No Active Tasks', 'All background tasks are currently idle.') }}
-  {% endcall %}
-  {% endif %}
-
-  <!-- Refresh action -->
-  <div class="flex justify-end">
-    <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900" data-action="refresh-tasks">
+  {# --- Command header: primary job is watching the live queue; one primary CTA = Refresh --- #}
+  {% call page_header('Task Monitor', subtitle='Celery background workers · live') %}
+    <a href="{{ url_for('admin_panel.task_history') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-history" aria-hidden="true"></i> History
+    </a>
+    <button type="button" data-action="refresh-tasks"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-refresh" aria-hidden="true"></i> Refresh
     </button>
+  {% endcall %}
+
+  {# --- KPI band: live pipeline state. Bespoke tiles w/ divider footers; figures in font-mono. --- #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Running</span>
+        <span class="relative flex h-2.5 w-2.5">
+          {% if (running_tasks or 0) > 0 %}<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>{% endif %}
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 {{ 'bg-green-500' if (running_tasks or 0) > 0 else 'bg-gray-300 dark:bg-gray-600' }}"></span>
+        </span>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ running_tasks or 0 }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">executing on workers now</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Queued</span>
+        <i class="ti ti-clock-pause text-lg text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ queued_tasks or 0 }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">scheduled / waiting</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Completed</span>
+        <i class="ti ti-check text-lg text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ completed_today or 0 }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">last 24 hours</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Failed</span>
+        <i class="ti ti-alert-circle text-lg text-red-600 dark:text-red-400" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none {{ 'text-red-600 dark:text-red-400' if (failed_tasks or 0) > 0 else 'text-gray-900 dark:text-white' }}">{{ failed_tasks or 0 }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">last 24 hours</div>
+    </div>
   </div>
 
-  <!-- Task Queue & History -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <!-- Task Queue -->
-    {% call section_card('Task Queue', icon='ti-list') %}
+  {# --- Zombie alert: real stat from task_monitor.detect_zombie_tasks(), surfaced only when present --- #}
+  {% if (zombie_tasks or 0) > 0 %}
+  <div role="alert" class="flex items-start gap-3 rounded-xl border p-3 sm:p-4 bg-red-50 dark:bg-red-500/10 border-red-300 dark:border-red-500/40">
+    <i class="ti ti-skull text-lg shrink-0 mt-0.5 text-red-600 dark:text-red-400" aria-hidden="true"></i>
+    <div class="flex-1 min-w-0 text-sm text-red-800 dark:text-red-300">
+      <span class="font-semibold font-mono">{{ zombie_tasks }}</span> zombie task{{ 's' if zombie_tasks != 1 else '' }} detected — running past expected lifetime and may be stuck.
+    </div>
+  </div>
+  {% endif %}
+
+  {# --- PRIMARY OBJECT: live active tasks. Real table on md+, dense cards on mobile. --- #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="text-sm font-bold uppercase tracking-wide flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-activity text-ecs-green" aria-hidden="true"></i> Active Tasks
+        {% if active_tasks %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ active_tasks|length }}</span>{% endif %}
+      </h2>
+      <span class="text-xs font-mono text-gray-400 dark:text-gray-500">as of {{ now.strftime('%H:%M:%S') }} UTC</span>
+    </div>
+    {% if active_tasks %}
+    {# Live data wired from the route's celery inspect().active() loop, which now derives
+       per-task Status (Running/Zombie via time_start vs 4h threshold), Started timestamp,
+       Duration (red when zombie/overrun), and Progress (only when the task self-reports
+       progress in its custom-state meta; shown as "—" otherwise — never fabricated). #}
+    <div class="md:overflow-x-auto">
+      <!-- md+ table -->
+      <table class="hidden md:table w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
+          <tr>
+            <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Task</th>
+            <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">ID</th>
+            <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Status</th>
+            <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Started</th>
+            <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Duration</th>
+            <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Progress</th>
+            <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for task in active_tasks %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-2">
+                <span class="relative flex h-2 w-2 shrink-0">
+                  {% if not task.is_zombie %}<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>{% endif %}
+                  <span class="relative inline-flex rounded-full h-2 w-2 {{ 'bg-amber-500' if task.is_zombie else 'bg-green-500' }}"></span>
+                </span>
+                <span class="font-medium text-gray-900 dark:text-white break-all">{{ task.name }}</span>
+              </div>
+              <p class="mt-0.5 ml-4 text-xs text-gray-500 dark:text-gray-400 font-mono break-all">{{ task.worker }}</p>
+            </td>
+            <td class="px-4 py-3">
+              <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">{{ task.task_id[:8] }}…</code>
+            </td>
+            <td class="px-4 py-3 hidden lg:table-cell">
+              {% if task.is_zombie %}
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><i class="ti ti-skull text-[10px]" aria-hidden="true"></i> Zombie</span>
+              {% else %}
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> Running</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 hidden lg:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">{{ task.started_str or '—' }}</td>
+            <td class="px-4 py-3 hidden lg:table-cell font-mono text-xs {{ 'text-red-600 dark:text-red-400' if task.is_zombie else 'text-gray-700 dark:text-gray-300' }}">{{ task.duration_str or '—' }}</td>
+            <td class="px-4 py-3">
+              {% if task.progress is not none %}
+              <div class="flex items-center gap-2">
+                <div class="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div class="{{ 'bg-amber-500' if task.is_zombie else 'bg-blue-500' }} h-2 rounded-full" style="width:{{ task.progress }}%"></div></div>
+                <span class="font-mono text-xs">{{ task.progress }}%</span>
+              </div>
+              {% else %}
+              <span class="text-gray-400 dark:text-gray-500 text-xs">—</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-end gap-1">
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task-details" data-task-id="{{ task.task_id }}" data-modal-target="taskDetailsModal" data-modal-toggle="taskDetailsModal" title="View Details" aria-label="View Details">
+                  <i class="ti ti-eye" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task-logs" data-task-id="{{ task.task_id }}" data-modal-target="taskLogsModal" data-modal-toggle="taskLogsModal" title="View Logs" aria-label="View Logs">
+                  <i class="ti ti-file-text" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="cancel-task" data-task-id="{{ task.task_id }}" title="Cancel" aria-label="Cancel">
+                  <i class="ti ti-x" aria-hidden="true"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <!-- mobile stacked cards -->
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for task in active_tasks %}
+        <div data-row-card class="px-4 py-3.5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="relative flex h-2 w-2 shrink-0">
+                {% if not task.is_zombie %}<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>{% endif %}
+                <span class="relative inline-flex rounded-full h-2 w-2 {{ 'bg-amber-500' if task.is_zombie else 'bg-green-500' }}"></span>
+              </span>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white break-all">{{ task.name }}</span>
+            </div>
+            <code class="shrink-0 font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">{{ task.task_id[:8] }}…</code>
+          </div>
+          <div class="mt-2 flex items-center gap-2 text-xs">
+            {% if task.is_zombie %}
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><i class="ti ti-skull text-[10px]" aria-hidden="true"></i> Zombie</span>
+            {% else %}
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> Running</span>
+            {% endif %}
+            {% if task.duration_str %}<span class="font-mono {{ 'text-red-600 dark:text-red-400' if task.is_zombie else 'text-gray-500 dark:text-gray-400' }}">{{ task.duration_str }}</span>{% endif %}
+          </div>
+          {% if task.progress is not none %}
+          <div class="mt-2 flex items-center gap-2">
+            <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div class="{{ 'bg-amber-500' if task.is_zombie else 'bg-blue-500' }} h-2 rounded-full" style="width:{{ task.progress }}%"></div></div>
+            <span class="font-mono text-xs">{{ task.progress }}%</span>
+          </div>
+          {% endif %}
+          <div class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+            <p>Worker <span class="font-mono break-all">{{ task.worker }}</span></p>
+            <p class="break-all">Args <span class="font-mono">{{ task.args }}</span></p>
+          </div>
+          <div class="mt-2 flex items-center gap-1">
+            <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task-details" data-task-id="{{ task.task_id }}" data-modal-target="taskDetailsModal" data-modal-toggle="taskDetailsModal" title="View Details" aria-label="View Details">
+              <i class="ti ti-eye" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task-logs" data-task-id="{{ task.task_id }}" data-modal-target="taskLogsModal" data-modal-toggle="taskLogsModal" title="View Logs" aria-label="View Logs">
+              <i class="ti ti-file-text" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="cancel-task" data-task-id="{{ task.task_id }}" title="Cancel" aria-label="Cancel">
+              <i class="ti ti-x" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    {{ empty_state('ti-zzz', 'No active tasks', 'All Celery workers are idle right now. Nothing is executing.') }}
+    {% endif %}
+  </section>
+
+  {# --- Two-column: scheduled queue + recent completed --- #}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Scheduled / Queued -->
+    {% call section_card('Scheduled Queue', icon='ti-list') %}
       {% if queued_tasks_list %}
-      <div class="p-4 sm:p-5 space-y-3">
-        {% for task in queued_tasks_list[:5] %}
-        <div class="flex items-start justify-between gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+        {% for task in queued_tasks_list[:8] %}
+        <li class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
           <div class="min-w-0">
-            <span class="font-medium text-gray-900 dark:text-white">{{ task.name }}</span>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Queued <span class="font-mono">{{ task.queued_at.strftime('%H:%M:%S') if task.queued_at else 'Unknown' }}</span></p>
+            <p class="text-sm font-medium text-gray-900 dark:text-white break-all">{{ task.name }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">ETA <span class="font-mono">{{ task.eta }}</span></p>
           </div>
-          <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">Queued</span>
-        </div>
+          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
+            <i class="ti ti-clock-pause text-[12px]" aria-hidden="true"></i> Queued
+          </span>
+        </li>
         {% endfor %}
-        {% if queued_tasks_list|length > 5 %}
-        <p class="text-center text-xs text-gray-500 dark:text-gray-400">{{ queued_tasks_list|length - 5 }} more tasks in queue...</p>
-        {% endif %}
+      </ul>
+      {% if queued_tasks_list|length > 8 %}
+      <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 text-center text-xs text-gray-500 dark:text-gray-400">
+        <span class="font-mono">{{ queued_tasks_list|length - 8 }}</span> more in queue
       </div>
+      {% endif %}
       {% else %}
-      {{ empty_state('ti-list-x', 'No tasks in queue', 'There are no tasks waiting to be processed.') }}
+      {{ empty_state('ti-list-check', 'Queue is empty', 'No tasks are scheduled or waiting to be picked up.') }}
       {% endif %}
     {% endcall %}
 
-    <!-- Recent Completed -->
+    <!-- Recent Completed (last ~10 'completed' TaskExecution rows; honest empty state otherwise) -->
     {% call section_card('Recent Completed', icon='ti-history') %}
-      <div class="px-4 sm:px-5 pt-3 flex justify-end">
-        <a href="{{ url_for('admin_panel.task_history') }}" class="inline-flex items-center gap-1 text-sm font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
-          View All <i class="ti ti-arrow-right text-sm" aria-hidden="true"></i>
-        </a>
-      </div>
       {% if recent_completed %}
-      <div class="p-4 sm:p-5 pt-3 space-y-3">
-        {% for task in recent_completed[:5] %}
-        <div class="flex items-start justify-between gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+        {% for task in recent_completed[:8] %}
+        <li class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
           <div class="min-w-0">
-            <span class="font-medium text-gray-900 dark:text-white">{{ task.name }}</span>
-            <p class="text-xs text-gray-500 dark:text-gray-400">
-              Completed <span class="font-mono">{{ task.completed_at.strftime('%H:%M:%S') if task.completed_at else 'Unknown' }}</span>
-              {% if task.duration %}(<span class="font-mono">{{ task.duration }}s</span>){% endif %}
-            </p>
+            <p class="text-sm font-medium text-gray-900 dark:text-white truncate" title="{{ task.name }}">{{ task.short_name }}</p>
+            {% if task.finished_str %}<p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ task.finished_str }}</p>{% endif %}
           </div>
-          <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ _badge_tone.get(task.status, 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300') }}">
-            {{ task.status|title }}
-          </span>
-        </div>
+          <div class="flex items-center gap-2 shrink-0">
+            {% if task.duration_s is not none %}<span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ '%.1f' % task.duration_s }}s</span>{% endif %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> Done</span>
+          </div>
+        </li>
         {% endfor %}
-      </div>
+      </ul>
       {% else %}
-      {{ empty_state('ti-history-off', 'No recent tasks', 'No background tasks have completed recently.') }}
+      {{ empty_state('ti-history-off', 'No recent completions', 'Completed task history is shown on the full History page.', action={'label': 'Open History', 'url': url_for('admin_panel.task_history'), 'icon': 'ti-arrow-right'}) }}
       {% endif %}
     {% endcall %}
   </div>
 
-  <!-- Task Statistics -->
-  {% call section_card('Task Statistics (Last 24 Hours)', icon='ti-chart-bar') %}
-    <div class="p-4 sm:p-5">
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-        <div class="text-center">
-          <h4 class="font-mono text-2xl font-bold text-green-600 dark:text-green-400">{{ task_stats.completed or 0 }}</h4>
-          <span class="text-xs text-gray-500 dark:text-gray-400">Completed</span>
-        </div>
-        <div class="text-center">
-          <h4 class="font-mono text-2xl font-bold text-red-600 dark:text-red-400">{{ task_stats.failed or 0 }}</h4>
-          <span class="text-xs text-gray-500 dark:text-gray-400">Failed</span>
-        </div>
-        <div class="text-center">
-          <h4 class="font-mono text-2xl font-bold text-blue-600 dark:text-blue-400">{{ task_stats.avg_duration or '0s' }}</h4>
-          <span class="text-xs text-gray-500 dark:text-gray-400">Avg Duration</span>
-        </div>
-        <div class="text-center">
-          <h4 class="font-mono text-2xl font-bold text-amber-600 dark:text-amber-400">{{ task_stats.retries or 0 }}</h4>
-          <span class="text-xs text-gray-500 dark:text-gray-400">Retries</span>
-        </div>
-        <div class="text-center">
-          <h4 class="font-mono text-2xl font-bold text-ecs-green">{{ task_stats.success_rate or '100%' }}</h4>
-          <span class="text-xs text-gray-500 dark:text-gray-400">Success Rate</span>
-        </div>
-        <div class="text-center">
-          <h4 class="font-mono text-2xl font-bold text-gray-600 dark:text-gray-300">{{ task_stats.peak_concurrent or 0 }}</h4>
-          <span class="text-xs text-gray-500 dark:text-gray-400">Peak Concurrent</span>
-        </div>
+  {# --- 24h performance band: real task_stats fields only --- #}
+  {% call section_card('Throughput · Last 24 Hours', icon='ti-chart-bar') %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y sm:divide-y-0 divide-gray-200 dark:divide-gray-700">
+      <div class="px-4 py-5 text-center">
+        <div class="font-mono text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{{ task_stats.completed or 0 }}</div>
+        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Completed</div>
+      </div>
+      <div class="px-4 py-5 text-center">
+        <div class="font-mono text-2xl sm:text-3xl font-bold {{ 'text-red-600 dark:text-red-400' if (task_stats.failed or 0) > 0 else 'text-gray-900 dark:text-white' }}">{{ task_stats.failed or 0 }}</div>
+        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Failed</div>
+      </div>
+      <div class="px-4 py-5 text-center">
+        <div class="font-mono text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{{ task_stats.avg_duration or '0s' }}</div>
+        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Avg Duration</div>
+      </div>
+      <div class="px-4 py-5 text-center">
+        <div class="font-mono text-2xl sm:text-3xl font-bold text-amber-600 dark:text-amber-400">{{ task_stats.retries or 0 }}</div>
+        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Retries</div>
+      </div>
+      <div class="px-4 py-5 text-center">
+        <div class="font-mono text-2xl sm:text-3xl font-bold text-ecs-green">{{ task_stats.success_rate or '100%' }}</div>
+        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Success Rate</div>
+      </div>
+      <div class="px-4 py-5 text-center col-span-2 sm:col-span-1">
+        <div class="font-mono text-2xl sm:text-3xl font-bold text-gray-600 dark:text-gray-300">{{ task_stats.peak_concurrent or 0 }}</div>
+        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Peak Concurrent</div>
       </div>
     </div>
   {% endcall %}

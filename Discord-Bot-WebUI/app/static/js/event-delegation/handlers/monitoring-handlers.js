@@ -17,6 +17,21 @@
 
 import { EventDelegation } from '../core.js';
 
+/**
+ * Escape a plain-text string for safe insertion into Swal `html` markup.
+ * Values read from the DOM via textContent are already decoded, so they must
+ * be re-escaped before being placed back into an HTML string.
+ */
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // ============================================================================
 // SYSTEM MONITORING HANDLERS
 // ============================================================================
@@ -98,52 +113,50 @@ window.EventDelegation.register('emergency-mode', (element, event) => {
  */
 window.EventDelegation.register('load-historical', (element, event) => {
     event.preventDefault();
-    const period = element.dataset.period;
+    const period = element.dataset.period || '24h';
 
-    // Update active button
+    // Update active button (legacy btn-group layout; console layout styles its own
+    // buttons via an inline handler, so this is a no-op there).
     const btnGroup = element.closest('.btn-group');
     if (btnGroup) {
         btnGroup.querySelectorAll('.c-btn, .btn').forEach(btn => btn.classList.remove('active'));
         element.classList.add('active');
     }
 
-    window.Swal.fire({
-        title: 'Loading Data...',
-        text: `Loading ${period} historical data`,
-        allowOutsideClick: false,
-        didOpen: () => {
-            window.Swal.showLoading();
-            setTimeout(() => {
-                window.Swal.close();
-                // Charts would update with new data here
-            }, 1000);
-        }
-    });
+    const historicalEl = document.getElementById('historicalChart');
+    const chart = (historicalEl && window.Chart && typeof window.Chart.getChart === 'function')
+        ? window.Chart.getChart(historicalEl)
+        : null;
+
+    const baseUrl = element.dataset.historicalUrl || '/admin-panel/monitoring/system/performance/historical';
+
+    fetch(`${baseUrl}?period=${encodeURIComponent(period)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data || !data.success) {
+                window.Swal.fire('Error', 'Failed to load historical data.', 'error');
+                return;
+            }
+            if (chart) {
+                // Dataset 0 = Response Time (ms), Dataset 1 = Requests/min (real series).
+                chart.data.labels = data.labels || [];
+                if (chart.data.datasets[0]) {
+                    chart.data.datasets[0].data = data.response_time || [];
+                }
+                if (chart.data.datasets[1]) {
+                    chart.data.datasets[1].data = data.requests || [];
+                }
+                chart.update();
+            }
+        })
+        .catch(() => {
+            window.Swal.fire('Error', 'Failed to load historical data.', 'error');
+        });
 });
 
 // ============================================================================
 // SYSTEM ALERTS HANDLERS
 // ============================================================================
-
-/**
- * Acknowledge an alert
- */
-window.EventDelegation.register('acknowledge-alert', (element, event) => {
-    event.preventDefault();
-    const alertId = element.dataset.alertId;
-
-    window.Swal.fire({
-        title: 'Acknowledge Alert?',
-        text: 'This will mark the alert as acknowledged but keep it active',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Acknowledge'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.Swal.fire('Alert Acknowledged!', 'The alert has been acknowledged.', 'success');
-        }
-    });
-});
 
 /**
  * View alert details
@@ -152,63 +165,53 @@ window.EventDelegation.register('view-alert', (element, event) => {
     event.preventDefault();
     const alertId = element.dataset.alertId;
 
+    // Read the REAL alert fields from the rendered alert card (the same data the
+    // server passed into active_alerts and rendered into the row). The card is the
+    // nearest ancestor that holds the title <h4>, message <p>, and severity pill.
+    const card = element.closest('.relative') || element.closest('[data-row]') || element.parentElement;
+
+    const titleEl = card ? card.querySelector('h4') : null;
+    const messageEl = card ? card.querySelector('p.text-sm') : null;
+    // The severity pill is the first uppercase tier label span (ERROR / WARNING / INFO).
+    const pillEl = card ? card.querySelector('span.uppercase') : null;
+
+    const title = titleEl ? titleEl.textContent.trim() : 'Alert';
+    const message = messageEl ? messageEl.textContent.trim() : '';
+    const severity = pillEl ? pillEl.textContent.trim().toUpperCase() : '';
+
+    // Map severity word -> badge styling (no fabricated severity; falls back to neutral).
+    let badgeClass = 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+    if (severity === 'ERROR' || severity === 'CRITICAL') {
+        badgeClass = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+    } else if (severity === 'WARNING' || severity === 'WARN') {
+        badgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+    }
+
+    const severityRow = severity
+        ? `<strong class="text-gray-900 dark:text-white">Severity:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded ${badgeClass}" data-badge>${escapeHtml(severity)}</span><br>`
+        : '';
+    const messageBlock = message
+        ? `<div class="mb-3">
+                    <strong class="text-gray-900 dark:text-white">Description:</strong><br>
+                    <span class="text-gray-700 dark:text-gray-300">${escapeHtml(message)}</span>
+                </div>`
+        : '';
+
     window.Swal.fire({
-        title: 'Alert Details',
+        title: escapeHtml(title),
         html: `
             <div class="text-start">
                 <div class="mb-3">
-                    <strong class="text-gray-900 dark:text-white">Alert ID:</strong> <span class="text-gray-700 dark:text-gray-300">${alertId}</span><br>
-                    <strong class="text-gray-900 dark:text-white">Component:</strong> <span class="text-gray-700 dark:text-gray-300">System Monitor</span><br>
-                    <strong class="text-gray-900 dark:text-white">Severity:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" data-badge>CRITICAL</span><br>
+                    <strong class="text-gray-900 dark:text-white">Alert ID:</strong> <span class="text-gray-700 dark:text-gray-300">${escapeHtml(alertId || '')}</span><br>
+                    ${severityRow}
                     <strong class="text-gray-900 dark:text-white">Status:</strong> <span class="text-gray-700 dark:text-gray-300">Active</span>
                 </div>
-                <div class="mb-3">
-                    <strong class="text-gray-900 dark:text-white">Description:</strong><br>
-                    <span class="text-gray-700 dark:text-gray-300">CPU usage has exceeded 85% for the past 5 minutes. This may indicate high system load or a runaway process.</span>
-                </div>
-                <div class="mb-3">
-                    <strong class="text-gray-900 dark:text-white">Suggested Actions:</strong><br>
-                    <small class="text-gray-600 dark:text-gray-400">
-                    1. Check running processes with 'top' or 'htop'<br>
-                    2. Identify high CPU processes<br>
-                    3. Consider scaling resources if sustained high usage
-                    </small>
-                </div>
+                ${messageBlock}
             </div>
         `,
         width: '600px',
         confirmButtonText: 'Close'
     });
-});
-
-/**
- * Resolve an alert
- */
-window.EventDelegation.register('resolve-alert', (element, event) => {
-    event.preventDefault();
-    const alertId = element.dataset.alertId;
-
-    window.Swal.fire({
-        title: 'Resolve Alert?',
-        input: 'textarea',
-        inputLabel: 'Resolution Notes (optional)',
-        inputPlaceholder: 'Describe how this alert was resolved...',
-        showCancelButton: true,
-        confirmButtonText: 'Resolve Alert'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.Swal.fire('Alert Resolved!', 'The alert has been marked as resolved.', 'success');
-            location.reload();
-        }
-    });
-});
-
-/**
- * Save alert configuration
- */
-window.EventDelegation.register('save-alert-config', (element, event) => {
-    event.preventDefault();
-    window.Swal.fire('Configuration Saved!', 'Alert settings have been updated.', 'success');
 });
 
 /**
@@ -218,14 +221,40 @@ window.EventDelegation.register('test-notifications', (element, event) => {
     event.preventDefault();
     window.Swal.fire({
         title: 'Send Test Notifications?',
-        text: 'This will send test alerts to all configured notification channels',
+        text: 'This will send a test push notification to the devices registered to your account.',
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: 'Send Test'
     }).then((result) => {
-        if (result.isConfirmed) {
-            window.Swal.fire('Test Sent!', 'Test notifications have been sent to all channels.', 'success');
-        }
+        if (!result.isConfirmed) return;
+
+        const testUrl = element.dataset.testUrl || '/admin-panel/communication/push-notifications/test';
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        window.Swal.fire({
+            title: 'Sending Test...',
+            allowOutsideClick: false,
+            didOpen: () => window.Swal.showLoading()
+        });
+
+        fetch(testUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.Swal.fire('Test Sent!', data.message || 'Test notification sent to your devices.', 'success');
+                } else {
+                    window.Swal.fire('Test Failed', data.message || 'Unable to send test notification.', 'error');
+                }
+            })
+            .catch(() => {
+                window.Swal.fire('Error', 'Unable to send test notification.', 'error');
+            });
     });
 });
 
@@ -271,80 +300,12 @@ window.EventDelegation.register('run-health-check', (element, event) => {
     });
 });
 
-/**
- * Refresh database connections
- */
-window.EventDelegation.register('refresh-connections', (element, event) => {
-    event.preventDefault();
-    window.Swal.fire({
-        title: 'Refresh Connections?',
-        text: 'This will reset all idle database connections.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : '#17a2b8',
-        confirmButtonText: 'Yes, refresh!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.Swal.fire('Success', 'Database connections refreshed!', 'success');
-        }
-    });
-});
-
-/**
- * Flush query cache
- */
-window.EventDelegation.register('flush-query-cache', (element, event) => {
-    event.preventDefault();
-    window.Swal.fire({
-        title: 'Flush Query Cache?',
-        text: 'This will clear all cached query results.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107',
-        confirmButtonText: 'Yes, flush cache!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.Swal.fire('Success', 'Query cache flushed!', 'success');
-        }
-    });
-});
-
-/**
- * Analyze database performance
- */
-window.EventDelegation.register('analyze-performance', (element, event) => {
-    event.preventDefault();
-    window.Swal.fire({
-        title: 'Analyze Performance?',
-        text: 'This will run a comprehensive performance analysis.',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, analyze!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.Swal.fire('Info', 'Performance analysis started. Results will be available shortly.', 'info');
-        }
-    });
-});
-
-/**
- * Optimize database
- */
-window.EventDelegation.register('optimize-database', (element, event) => {
-    event.preventDefault();
-    window.Swal.fire({
-        title: 'Optimize Database?',
-        text: 'This will run database optimization routines. This may take a few minutes.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
-        confirmButtonText: 'Yes, optimize!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.Swal.fire('Success', 'Database optimization completed!', 'success');
-        }
-    });
-});
+// NOTE: refresh-connections, flush-query-cache, analyze-performance and
+// optimize-database were removed. They previously showed hardcoded success
+// toasts with no backend call — there is no route to reset idle DB connections,
+// flush a query cache, run a performance analysis, or optimize the database, so
+// the controls were not wired (no fake success). run-health-check above is the
+// one real database maintenance action.
 
 // ============================================================================
 // TASK HISTORY HANDLERS
@@ -377,65 +338,13 @@ window.EventDelegation.register('view-task', (element, event) => {
         });
 });
 
-/**
- * Retry a failed task
- */
-window.EventDelegation.register('retry-task', (element, event) => {
-    event.preventDefault();
-    const taskId = element.dataset.taskId;
-
-    window.Swal.fire({
-        title: 'Retry Task?',
-        text: 'This will attempt to run the failed task again',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Retry Task'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.Swal.fire('Task Queued!', 'The task has been queued for retry.', 'success');
-        }
-    });
-});
-
-/**
- * Kill a zombie task
- */
-window.EventDelegation.register('kill-task', (element, event) => {
-    event.preventDefault();
-    const taskId = element.dataset.taskId;
-
-    window.Swal.fire({
-        title: 'Kill Zombie Task?',
-        text: 'This will forcefully terminate the zombie task',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Kill Task',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.Swal.fire('Task Killed!', 'The zombie task has been terminated.', 'success');
-        }
-    });
-});
-
-/**
- * Cleanup all zombie tasks
- */
-window.EventDelegation.register('cleanup-zombies', (element, event) => {
-    event.preventDefault();
-    window.Swal.fire({
-        title: 'Cleanup All Zombie Tasks?',
-        text: 'This will terminate all zombie tasks',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Cleanup All',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.Swal.fire('Zombies Cleaned!', 'All zombie tasks have been terminated.', 'success');
-        }
-    });
-});
+// NOTE: retry-task, kill-task and cleanup-zombies were removed. They showed
+// hardcoded success toasts with no backend call. The real, working task-retry
+// path is the console shell's 'retry-execution' handler (POSTs the persisted
+// TaskExecution id to admin_panel.retry_task); the legacy 'retry-task' button
+// only carried a Celery task UUID, which that route cannot act on. There is no
+// backend route to forcibly kill a zombie task or bulk-clean zombies, so those
+// controls were not wired (no fake success).
 
 // ============================================================================
 // TASK MONITOR HANDLERS
@@ -596,96 +505,88 @@ window.EventDelegation.register('export-logs', (element, event) => {
 });
 
 /**
- * Clear old logs
- */
-window.EventDelegation.register('clear-old-logs', (element, event) => {
-    event.preventDefault();
-    window.Swal.fire({
-        title: 'Clear Old Logs?',
-        text: 'This will delete log entries older than 30 days',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Clear Old Logs'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.Swal.fire('Logs Cleared!', 'Old log entries have been removed.', 'success');
-        }
-    });
-});
-
-/**
- * Start live tail
- */
-window.EventDelegation.register('start-tail', (element, event) => {
-    event.preventDefault();
-    const liveTailArea = document.getElementById('liveTailArea');
-    const liveTailContent = document.getElementById('liveTailContent');
-
-    if (liveTailArea) {
-        liveTailArea.classList.remove('u-hidden');
-
-        // Start live tail interval
-        if (!window._liveTailInterval) {
-            window._liveTailInterval = setInterval(() => {
-                if (liveTailContent) {
-                    const timestamp = new Date().toISOString();
-                    liveTailContent.innerHTML += `${timestamp} [INFO] Live log entry example\n`;
-                    liveTailContent.scrollTop = liveTailContent.scrollHeight;
-                }
-            }, 2000);
-        }
-    }
-});
-
-/**
- * Stop live tail
- */
-window.EventDelegation.register('stop-tail', (element, event) => {
-    event.preventDefault();
-    const liveTailArea = document.getElementById('liveTailArea');
-
-    if (window._liveTailInterval) {
-        clearInterval(window._liveTailInterval);
-        window._liveTailInterval = null;
-    }
-
-    if (liveTailArea) {
-        liveTailArea.classList.add('u-hidden');
-    }
-});
-
-/**
  * View log details
  */
 window.EventDelegation.register('view-log-details', (element, event) => {
     event.preventDefault();
-    const logId = element.dataset.logId;
+
+    // Read the REAL log entry fields straight from the row the server rendered.
+    // Each row (table <tr> or mobile card <div>) carries data-row and holds the
+    // timestamp, level badge, source, and message that system_logs() emitted.
+    const row = element.closest('[data-row]');
+
+    let timestamp = '';
+    let level = '';
+    let source = '';
+    let message = '';
+
+    if (row) {
+        // Level: the level badge is a font-mono span (ERROR / WARN / INFO / DEBUG).
+        const levelEl = row.querySelector('span.font-mono');
+        level = levelEl ? levelEl.textContent.trim() : '';
+
+        // Message: the message paragraph. Clone it and drop the "+N more" truncation
+        // indicator span so we show only the real (displayed) message text.
+        const msgEl = row.querySelector('p.font-mono');
+        if (msgEl) {
+            const clone = msgEl.cloneNode(true);
+            clone.querySelectorAll('span').forEach(s => s.remove());
+            message = clone.textContent.trim();
+        }
+
+        // Source + timestamp: table layout has dedicated cells; mobile packs them
+        // into a single footer paragraph ("timestamp · source").
+        const sourceEl = row.querySelector('[title]');
+        const tableTs = row.querySelector('td.font-mono');
+        if (tableTs) {
+            timestamp = tableTs.textContent.trim();
+            source = sourceEl ? sourceEl.getAttribute('title').trim() : (sourceEl ? sourceEl.textContent.trim() : '');
+        } else {
+            // Mobile card: last footer paragraph holds "timestamp · source".
+            const paras = row.querySelectorAll('p');
+            const footer = paras.length ? paras[paras.length - 1].textContent.trim() : '';
+            const parts = footer.split('·');
+            timestamp = (parts[0] || '').trim();
+            source = (parts[1] || '').trim();
+        }
+    }
+
+    let badgeClass = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    const lvlUpper = level.toUpperCase();
+    if (lvlUpper === 'ERROR' || lvlUpper === 'CRITICAL') {
+        badgeClass = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+    } else if (lvlUpper === 'WARNING' || lvlUpper === 'WARN') {
+        badgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300';
+    } else if (lvlUpper === 'INFO') {
+        badgeClass = 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+    }
+
+    const rows = [];
+    if (timestamp) {
+        rows.push(`<strong class="text-gray-900 dark:text-white">Timestamp:</strong> <span class="text-gray-700 dark:text-gray-300">${escapeHtml(timestamp)}</span><br>`);
+    }
+    if (level) {
+        rows.push(`<strong class="text-gray-900 dark:text-white">Level:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded ${badgeClass}" data-badge>${escapeHtml(level)}</span><br>`);
+    }
+    if (source) {
+        rows.push(`<strong class="text-gray-900 dark:text-white">Source:</strong> <span class="text-gray-700 dark:text-gray-300">${escapeHtml(source)}</span>`);
+    }
+
+    const messageBlock = message
+        ? `<div class="mb-3">
+                    <strong class="text-gray-900 dark:text-white">Message:</strong><br>
+                    <pre class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-2 rounded text-sm whitespace-pre-wrap break-words">${escapeHtml(message)}</pre>
+                </div>`
+        : '';
 
     window.Swal.fire({
         title: 'Log Entry Details',
         html: `
             <div class="text-start">
                 <div class="mb-3">
-                    <strong class="text-gray-900 dark:text-white">Log ID:</strong> <span class="text-gray-700 dark:text-gray-300">${logId}</span><br>
-                    <strong class="text-gray-900 dark:text-white">Timestamp:</strong> <span class="text-gray-700 dark:text-gray-300">${new Date().toISOString()}</span><br>
-                    <strong class="text-gray-900 dark:text-white">Level:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" data-badge>ERROR</span><br>
-                    <strong class="text-gray-900 dark:text-white">Component:</strong> <span class="text-gray-700 dark:text-gray-300">app.admin_panel</span>
+                    ${rows.join('\n                    ')}
                 </div>
-                <div class="mb-3">
-                    <strong class="text-gray-900 dark:text-white">Message:</strong><br>
-                    <pre class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-2 rounded text-sm">Sample error message with details about what went wrong in the system.</pre>
-                </div>
-                <div class="mb-3">
-                    <strong class="text-gray-900 dark:text-white">Stack Trace:</strong><br>
-                    <pre class="bg-gray-900 text-gray-100 p-2 rounded text-sm max-h-48 overflow-y-auto">
-Traceback (most recent call last):
-  File "app.py", line 123, in handle_request
-    result = process_data(data)
-  File "handlers.py", line 45, in process_data
-    return transform(data)
-Exception: Sample error occurred
-                    </pre>
-                </div>
+                ${messageBlock}
             </div>
         `,
         width: '800px',

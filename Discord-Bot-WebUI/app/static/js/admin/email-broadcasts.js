@@ -972,7 +972,38 @@ function initEmailBroadcasts() {
         if (statusBadge && campaignId) {
             startProgressPolling(campaignId);
         }
+        initRecipientFilter();
     }
+}
+
+/**
+ * Client-side search + status filtering over the rendered recipients ledger
+ * (modern console branch). Filters both the desktop table rows and the
+ * mobile stacked cards, which share [data-recipient-row] markers.
+ */
+function initRecipientFilter() {
+    const searchInput = document.getElementById('recipientSearch');
+    const statusSelect = document.getElementById('statusFilter');
+    const noMatch = document.getElementById('recipientNoMatch');
+    const rows = Array.from(document.querySelectorAll('[data-recipient-row]'));
+    if ((!searchInput && !statusSelect) || !rows.length) return;
+
+    const apply = () => {
+        const term = (searchInput ? searchInput.value : '').trim().toLowerCase();
+        const status = statusSelect ? statusSelect.value : '';
+        let visible = 0;
+        rows.forEach((row) => {
+            const matchesText = !term || (row.dataset.name || '').includes(term);
+            const matchesStatus = !status || row.dataset.status === status;
+            const show = matchesText && matchesStatus;
+            row.classList.toggle('hidden', !show);
+            if (show) visible += 1;
+        });
+        if (noMatch) noMatch.classList.toggle('hidden', visible !== 0);
+    };
+
+    if (searchInput) searchInput.addEventListener('input', apply);
+    if (statusSelect) statusSelect.addEventListener('change', apply);
 }
 
 /* ========================================================================

@@ -17,117 +17,229 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== MODERN (console) ===================== #}
-{{ page_header("Draft Management", subtitle="Manage draft history and positions") }}
-
-{# KPI band — real data from stats #}
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    {{ stat_card("ti-list-numbers", "Total Draft Picks", stats.total_picks, tone='info') }}
-    {{ stat_card("ti-calendar", "Current Season Picks", stats.current_season_picks, tone='primary') }}
-    {{ stat_card("ti-trophy", "Seasons", stats.seasons_count, tone='gold') }}
-    {{ stat_card("ti-users", "Leagues", stats.leagues_count, tone='neutral') }}
-</div>
-
-{# Quick Actions #}
-{% call section_card("Quick Actions", icon="ti-bolt") %}
-<div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+{% call page_header("Draft Management", subtitle="Draft history & position control") %}
     <a href="{{ url_for('admin_panel.draft_history') }}"
-       class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-history" aria-hidden="true"></i>View Draft History
-    </a>
-    <a href="{{ url_for('admin_panel.draft_history', season=current_season.id if current_season else '') }}"
-       class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-ecs-green text-ecs-green hover:bg-ecs-green/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-calendar" aria-hidden="true"></i>Current Season Draft
+       class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-history text-sm" aria-hidden="true"></i><span class="hidden sm:inline">All History</span>
     </a>
     <button type="button" id="export-btn"
-            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-download" aria-hidden="true"></i>Export Draft Data
+            class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-download text-sm" aria-hidden="true"></i><span class="hidden sm:inline">Export</span>
     </button>
-</div>
 {% endcall %}
 
-{# Season / League selection #}
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 mb-6">
-    {% call section_card("Seasons", icon="ti-calendar") %}
-    {% if seasons %}
-    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-        {% for season in seasons[:5] %}
-        <li>
-            <a href="{{ url_for('admin_panel.draft_history', season=season.id) }}"
-               class="flex items-center justify-between gap-2 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-                <span class="flex items-center gap-2 min-w-0">
-                    <span class="font-medium text-gray-900 dark:text-white truncate">{{ season.name }}</span>
-                    {% if season.is_current %}
-                    <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-                        <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Current
+{# ===== PRIMARY OBJECT: current-season draft (the page's lead job) ===== #}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <i class="ti ti-target-arrow text-ecs-green" aria-hidden="true"></i>
+            <span class="text-xs font-bold uppercase tracking-wide">Current Draft Board</span>
+        </h2>
+        {% if current_season %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+            <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Live Season
+        </span>
+        {% endif %}
+    </div>
+    {% if current_season %}
+    <div class="p-4 sm:p-5">
+        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+            <div class="min-w-0">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{{ current_season.league_type }}{% if current_season.year %} · {{ current_season.year }}{% endif %}</p>
+                <h3 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ current_season.name }}</h3>
+                <div class="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-2">
+                    <span class="flex items-baseline gap-1.5">
+                        <span class="font-mono text-2xl font-bold text-ecs-green leading-none">{{ stats.current_season_picks }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">picks drafted</span>
+                    </span>
+                    {% if current_season.start_date %}
+                    <span class="flex items-baseline gap-1.5">
+                        <span class="font-mono text-sm font-semibold text-gray-700 dark:text-gray-300 leading-none">{{ current_season.start_date.strftime('%b %d, %Y') }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">opened</span>
                     </span>
                     {% endif %}
-                </span>
-                <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-            </a>
-        </li>
-        {% endfor %}
-        {% if seasons|length > 5 %}
-        <li>
-            <a href="{{ url_for('admin_panel.draft_history') }}"
-               class="block px-4 py-3.5 min-h-[44px] text-center text-sm text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-                View all {{ seasons|length }} seasons...
-            </a>
-        </li>
-        {% endif %}
-    </ul>
+                    <span class="flex items-baseline gap-1.5">
+                        <span class="font-mono text-sm font-semibold text-gray-700 dark:text-gray-300 leading-none">#{{ current_season.id }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">season id</span>
+                    </span>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 shrink-0">
+                <a href="{{ url_for('admin_panel.draft_history', season=current_season.id) }}"
+                   class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-clipboard-list" aria-hidden="true"></i>Open Draft Board
+                </a>
+                <a href="{{ url_for('admin_panel.draft_history', season=current_season.id) }}?export=csv"
+                   class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-ecs-green text-ecs-green hover:bg-ecs-green/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-file-spreadsheet" aria-hidden="true"></i>CSV
+                </a>
+            </div>
+        </div>
+    </div>
     {% else %}
-    {{ empty_state("ti-calendar-off", "No seasons", "Draft data will appear here once seasons are configured.") }}
+    {{ empty_state("ti-calendar-off", "No current season", "Set a season as current to surface its draft board here.", action={'label': 'Browse all drafts', 'url': url_for('admin_panel.draft_history'), 'icon': 'ti-history'}) }}
     {% endif %}
-    {% endcall %}
+</section>
 
-    {% call section_card("Leagues", icon="ti-trophy") %}
-    {% if leagues %}
-    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-        {% for league in leagues[:5] %}
-        <li>
-            <a href="{{ url_for('admin_panel.draft_history', league=league.id) }}"
-               class="flex items-center justify-between gap-2 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-                <span class="font-medium text-gray-900 dark:text-white truncate">{{ league.name }}</span>
-                <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-            </a>
-        </li>
-        {% endfor %}
-        {% if leagues|length > 5 %}
-        <li>
-            <a href="{{ url_for('admin_panel.draft_history') }}"
-               class="block px-4 py-3.5 min-h-[44px] text-center text-sm text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-                View all {{ leagues|length }} leagues...
-            </a>
-        </li>
-        {% endif %}
-    </ul>
-    {% else %}
-    {{ empty_state("ti-trophy-off", "No leagues", "Draft data will appear here once leagues are configured.") }}
-    {% endif %}
-    {% endcall %}
+{# ===== KPI band — real data from stats ===== #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    {{ stat_card("ti-list-numbers", "Total Draft Picks", stats.total_picks, sublabel="all seasons", tone='info') }}
+    {{ stat_card("ti-target-arrow", "Current Season Picks", stats.current_season_picks, sublabel="live board", tone='primary') }}
+    {{ stat_card("ti-calendar", "Seasons", stats.seasons_count, sublabel="on record", tone='gold') }}
+    {{ stat_card("ti-trophy", "Leagues", stats.leagues_count, sublabel="distinct", tone='neutral') }}
 </div>
 
-{# Information #}
-{% call section_card("Draft Management Information", icon="ti-info-circle") %}
-<div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
-    <div>
-        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Features</h6>
-        <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-            <li class="flex items-start"><i class="ti ti-check text-ecs-green mr-2 mt-0.5" aria-hidden="true"></i>View draft history by season and league</li>
-            <li class="flex items-start"><i class="ti ti-check text-ecs-green mr-2 mt-0.5" aria-hidden="true"></i>Edit draft pick positions with cascading updates</li>
-            <li class="flex items-start"><i class="ti ti-check text-ecs-green mr-2 mt-0.5" aria-hidden="true"></i>Normalize position gaps automatically</li>
-            <li class="flex items-start"><i class="ti ti-check text-ecs-green mr-2 mt-0.5" aria-hidden="true"></i>Delete and reorder draft picks</li>
-            <li class="flex items-start"><i class="ti ti-check text-ecs-green mr-2 mt-0.5" aria-hidden="true"></i>Export draft data for analysis</li>
+{# ===== Two-column: seasons (real table) + leagues (dense rows) ===== #}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+    {# Seasons — real table with mono IDs, type + year #}
+    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i>
+                <span class="text-xs font-bold uppercase tracking-wide">Seasons</span>
+                {% if seasons %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ seasons|length }}</span>{% endif %}
+            </h2>
+        </div>
+        {% if seasons %}
+        {# md+ table #}
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/40">
+                        <th scope="col" class="px-4 py-2.5 font-semibold w-12">ID</th>
+                        <th scope="col" class="px-3 py-2.5 font-semibold">Season</th>
+                        <th scope="col" class="px-3 py-2.5 font-semibold hidden lg:table-cell">Type</th>
+                        <th scope="col" class="px-3 py-2.5 font-semibold">Status</th>
+                        <th scope="col" class="px-3 py-2.5 font-semibold text-right">Draft</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for season in seasons[:8] %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td class="px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">#{{ season.id }}</td>
+                        <td class="px-3 py-3">
+                            <span class="font-medium text-gray-900 dark:text-white">{{ season.name }}</span>
+                            {% if season.year %}<span class="ml-1.5 font-mono text-xs text-gray-400">{{ season.year }}</span>{% endif %}
+                        </td>
+                        <td class="px-3 py-3 hidden lg:table-cell">
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ season.league_type }}</span>
+                        </td>
+                        <td class="px-3 py-3">
+                            {% if season.is_current %}
+                            <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+                                <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Current
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                                <i class="ti ti-archive text-[12px]" aria-hidden="true"></i>Archived
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-3 text-right">
+                            <a href="{{ url_for('admin_panel.draft_history', season=season.id) }}"
+                               class="inline-flex items-center gap-1 text-xs font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+                                View<i class="ti ti-arrow-right text-sm" aria-hidden="true"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {# mobile cards #}
+        <ul class="md:hidden divide-y divide-gray-200 dark:divide-gray-700" role="list">
+            {% for season in seasons[:8] %}
+            <li>
+                <a href="{{ url_for('admin_panel.draft_history', season=season.id) }}"
+                   class="flex items-center justify-between gap-2 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                    <span class="min-w-0">
+                        <span class="flex items-center gap-2">
+                            <span class="font-medium text-gray-900 dark:text-white truncate">{{ season.name }}</span>
+                            {% if season.is_current %}
+                            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+                                <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Current
+                            </span>
+                            {% endif %}
+                        </span>
+                        <span class="block mt-0.5 text-xs text-gray-500 dark:text-gray-400 font-mono">#{{ season.id }} · {{ season.league_type }}</span>
+                    </span>
+                    <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+                </a>
+            </li>
+            {% endfor %}
         </ul>
+        {% if seasons|length > 8 %}
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-center">
+            <a href="{{ url_for('admin_panel.draft_history') }}"
+               class="inline-flex items-center gap-1 text-sm font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+                View all {{ seasons|length }} seasons<i class="ti ti-arrow-right text-sm" aria-hidden="true"></i>
+            </a>
+        </div>
+        {% endif %}
+        {% else %}
+        {{ empty_state("ti-calendar-off", "No seasons", "Draft data will appear here once seasons are configured.") }}
+        {% endif %}
+    </section>
+
+    {# Leagues — dense rows with team-count mono figure #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <i class="ti ti-trophy text-ecs-green" aria-hidden="true"></i>
+                <span class="text-xs font-bold uppercase tracking-wide">Leagues</span>
+                {% if leagues %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ leagues|length }}</span>{% endif %}
+            </h2>
+        </div>
+        {% if leagues %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+            {% for league in leagues[:8] %}
+            <li>
+                <a href="{{ url_for('admin_panel.draft_history', league=league.id) }}"
+                   class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                    <span class="min-w-0">
+                        <span class="block font-medium text-gray-900 dark:text-white truncate">{{ league.name }}</span>
+                        {% if league.season %}<span class="block mt-0.5 text-xs text-gray-500 dark:text-gray-400 truncate">{{ league.season.name }}</span>{% endif %}
+                    </span>
+                    <span class="shrink-0 inline-flex items-center gap-1.5">
+                        <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ league.teams|length }}<span class="ml-0.5 text-[10px] uppercase">tm</span></span>
+                        <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+                    </span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% if leagues|length > 8 %}
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-center">
+            <a href="{{ url_for('admin_panel.draft_history') }}"
+               class="inline-flex items-center gap-1 text-sm font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+                View all {{ leagues|length }} leagues<i class="ti ti-arrow-right text-sm" aria-hidden="true"></i>
+            </a>
+        </div>
+        {% endif %}
+        {% else %}
+        {{ empty_state("ti-trophy-off", "No leagues", "Draft data will appear here once leagues are configured.") }}
+        {% endif %}
+    </section>
+</div>
+
+{# ===== Reference: position editing modes (capability legend) ===== #}
+{% call section_card("Position Editing Modes", icon="ti-arrows-sort") %}
+<div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+        <p class="flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white"><i class="ti ti-arrow-bar-down text-ecs-green" aria-hidden="true"></i>Cascading</p>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Shifts all subsequent picks down.</p>
     </div>
-    <div>
-        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Position Editing Modes</h6>
-        <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-            <li><span class="font-semibold text-gray-700 dark:text-gray-300">Cascading:</span> Shifts all subsequent picks down</li>
-            <li><span class="font-semibold text-gray-700 dark:text-gray-300">Absolute:</span> Sets exact position without shifting</li>
-            <li><span class="font-semibold text-gray-700 dark:text-gray-300">Smart:</span> Automatically determines best approach</li>
-            <li><span class="font-semibold text-gray-700 dark:text-gray-300">Insert:</span> Inserts at position, shifting others</li>
-        </ul>
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+        <p class="flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white"><i class="ti ti-pin text-ecs-green" aria-hidden="true"></i>Absolute</p>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Sets exact position without shifting.</p>
+    </div>
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+        <p class="flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white"><i class="ti ti-bulb text-ecs-green" aria-hidden="true"></i>Smart</p>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Automatically determines the best approach.</p>
+    </div>
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+        <p class="flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white"><i class="ti ti-row-insert-top text-ecs-green" aria-hidden="true"></i>Insert</p>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Inserts at position, shifting others.</p>
     </div>
 </div>
 {% endcall %}

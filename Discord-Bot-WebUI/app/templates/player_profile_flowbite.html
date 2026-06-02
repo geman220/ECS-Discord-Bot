@@ -8,12 +8,22 @@
 {% if shell == 'console' %}
 {# ======================= MODERN (console) ======================= #}
 <div class="max-w-7xl mx-auto">
+  {# --- Title row --- #}
+  {% set _is_self = is_own_profile %}
+  {% call page_header(_is_self and 'Your profile' or player.name, subtitle=_is_self and 'Everything your coaches and teammates see, all in one place.' or 'Player profile') %}
+    {% if _is_self and (profile_expired or not player.profile_last_updated) %}
+    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+      <i class="ti ti-clock-exclamation text-[12px]" aria-hidden="true"></i> Review due
+    </span>
+    {% endif %}
+  {% endcall %}
+
   {# --- Identity header --- #}
   <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
-    <div class="h-24 sm:h-32 bg-gradient-to-br from-ecs-green via-ecs-green-700 to-ecs-green-900"></div>
-    <div class="px-4 sm:px-6 pb-5">
-      <div class="flex flex-col sm:flex-row sm:items-end gap-4">
-        <div class="relative shrink-0 mx-auto sm:mx-0 -mt-14 sm:-mt-[4.5rem]">
+    <div class="h-1.5 bg-gradient-to-r from-ecs-green to-ecs-green-700"></div>
+    <div class="p-4 sm:p-6">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
+        <div class="relative shrink-0 mx-auto sm:mx-0">
           <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl ring-4 ring-white dark:ring-gray-800 overflow-hidden bg-gray-100 dark:bg-gray-700">
             {% if player.profile_picture_url %}
             <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() if player.updated_at else '0' }}"
@@ -40,6 +50,8 @@
         </div>
         <div class="flex-1 min-w-0 text-center sm:text-left pt-2 sm:pt-0 sm:pb-1">
           <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ player.name }}</h1>
+          {# Player # is backed by player.id; jersey # shown when set; joined date from player.created_at. #}
+          <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">Player #{{ player.id }}{% if player.jersey_number %} &middot; Jersey #{{ player.jersey_number }}{% endif %}{% if player.created_at %} &middot; Joined {{ player.created_at.strftime('%b %Y') }}{% endif %}</p>
           {% if can_view_detailed_profile or is_own_profile or is_admin %}
           <div class="flex flex-wrap justify-center sm:justify-start gap-2 mt-2">
             {% if current_season_teams and current_season_teams|length > 0 %}
@@ -51,6 +63,21 @@
             {% else %}
             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-medium">
               <i class="ti ti-users-off text-sm" aria-hidden="true"></i>No Team
+            </span>
+            {% endif %}
+            {% if player.league %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-medium">
+              <i class="ti ti-trophy text-sm" aria-hidden="true"></i>{{ player.league.name }}
+            </span>
+            {% endif %}
+            {% if player.is_coach %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-ecs-gold-100 text-ecs-gold-700 dark:bg-ecs-gold-400/10 dark:text-ecs-gold-300 text-xs font-medium">
+              <i class="ti ti-whistle text-sm" aria-hidden="true"></i>Coach
+            </span>
+            {% endif %}
+            {% if player.is_ref %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 text-xs font-medium">
+              <i class="ti ti-flag text-sm" aria-hidden="true"></i>Referee
             </span>
             {% endif %}
           </div>
@@ -97,6 +124,29 @@
     </div>
   </section>
 
+  {# --- Profile verification banner (own profile, review due) --- #}
+  {% if is_own_profile and (profile_expired or not player.profile_last_updated) %}
+  <div class="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-4 mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-start gap-3">
+      <i class="ti ti-alert-triangle text-amber-600 dark:text-amber-400 text-lg shrink-0 mt-0.5" aria-hidden="true"></i>
+      <div>
+        <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-300">Time for a quick check-in</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+          {% if player.profile_last_updated %}
+          Last confirmed <span class="font-mono">{{ format_pacific_time(player.profile_last_updated) }}</span> &mdash; please take a look and confirm it's still right.
+          {% else %}
+          Your profile hasn't been verified yet. Take a look and confirm everything's accurate.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+    <button type="button" data-action="verify-profile" data-player-id="{{ player.id }}"
+            class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/40 text-sm font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-shield-check" aria-hidden="true"></i> It's all accurate
+    </button>
+  </div>
+  {% endif %}
+
   {# --- KPI stat strip --- #}
   {% if has_permission('view_player_goals_assists') or has_permission('view_player_cards') %}
   <div class="mb-6">
@@ -137,6 +187,12 @@
           <span class="shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 flex items-center justify-center"><i class="ti ti-shirt-sport" aria-hidden="true"></i></span>
           <div><p class="text-xs text-gray-500 dark:text-gray-400">Jersey Size</p><p class="text-sm font-medium text-gray-900 dark:text-white">{{ player.jersey_size or 'Not set' }}</p></div>
         </div>
+        {% if can_view_contact_info %}
+        <div class="flex items-center gap-3">
+          <span class="shrink-0 w-10 h-10 rounded-lg bg-ecs-gold-100 dark:bg-ecs-gold-400/10 text-ecs-gold-600 dark:text-ecs-gold-400 flex items-center justify-center"><i class="ti ti-cake" aria-hidden="true"></i></span>
+          <div><p class="text-xs text-gray-500 dark:text-gray-400">Date of Birth</p><p class="text-sm font-medium text-gray-900 dark:text-white font-mono">{{ player.date_of_birth.strftime('%b %d, %Y') if player.date_of_birth else 'Not set' }}</p></div>
+        </div>
+        {% endif %}
       </div>
       {% endcall %}
       {% endif %}
@@ -198,6 +254,34 @@
         {% endfor %}
         {% else %}
         {{ empty_state('ti-users-off', 'No team history', 'This player has no recorded team history yet.') }}
+        {% endif %}
+      </div>
+      {% endcall %}
+      {% endif %}
+
+      {% if is_own_profile or is_admin or can_view_detailed_profile %}
+      {% call section_card('Discord', icon='ti-brand-discord') %}
+      <div class="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="shrink-0 w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center"><i class="ti ti-brand-discord" aria-hidden="true"></i></span>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.discord_username or (player.discord_id and 'Linked' or 'Not linked') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">{% if player.discord_id %}Linked &middot; in the ECS server{% else %}Not connected yet{% endif %}</p>
+          </div>
+        </div>
+        {% if player.discord_id %}
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 self-start sm:self-auto">
+          <i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> Connected
+        </span>
+        {% elif is_own_profile and safe_current_user.is_authenticated and player.user and safe_current_user.id == player.user.id %}
+        <a href="{{ url_for('auth.discord_login') }}"
+           class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors self-start sm:self-auto focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          <i class="ti ti-brand-discord" aria-hidden="true"></i> Link Discord
+        </a>
+        {% else %}
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 self-start sm:self-auto">
+          <i class="ti ti-circle text-[7px]" aria-hidden="true"></i> Not linked
+        </span>
         {% endif %}
       </div>
       {% endcall %}
@@ -2262,28 +2346,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Profile verification
-    const verifyBtn = document.querySelector('[data-action="verify-profile"]');
-    if (verifyBtn) {
-        verifyBtn.addEventListener('click', () => {
-            const playerId = verifyBtn.dataset.playerId;
-            Swal.fire({
-                title: 'Verify Profile',
-                text: 'Are you sure your profile information is current and accurate?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#1a472a',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Yes, verify my profile',
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = '/players/' + playerId + '/verify';
-                }
-            });
-        });
-    }
+    // Profile verification is handled centrally by the EventDelegation
+    // 'verify-profile' handler (app/static/js/event-delegation/handlers/profile-verification.js),
+    // which navigates to /players/profile/{playerId}/verify and launches the review wizard.
+    // The previous inline listener was removed to avoid double-binding and a wrong target URL.
 });
 </script>
 {% endblock %}

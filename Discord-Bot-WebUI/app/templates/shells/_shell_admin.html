@@ -1,0 +1,6 @@
+{# Admin shell — Console FULL sidebar (w-64) rendered from the shared role-gated
+   nav_sections. Used when shell=='console' AND console_full_sidebar (the admin
+   panel). Console aesthetic, NOT the Classic sidebar. id="sidebar" so the
+   top-bar hamburger / mobile drawer keep working unchanged. #}
+{% from 'macros/_nav_render.html' import console_full_sidebar %}
+{{ console_full_sidebar(nav_sections) }}

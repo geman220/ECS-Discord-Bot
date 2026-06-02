@@ -22,11 +22,26 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_filter_bar, data_table_row_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
 {% from 'macros/flowbite.html' import pagination_nav %}
 
-{# Page header + export dropdown (id/data-action hooks preserved verbatim for extra_js) #}
-{% call page_header('API Endpoints', subtitle='API endpoint management and testing') %}
+{# ---- real-data derivations (page-level slice = `endpoints`; totals = `pagination.total`) ---- #}
+{% set active_count   = endpoints | selectattr('status', 'equalto', 'active') | list | length %}
+{% set deprecated_cnt = endpoints | selectattr('status', 'equalto', 'deprecated') | list | length %}
+{% set admin_auth     = endpoints | selectattr('authentication', 'equalto', 'admin') | list | length %}
+{% set req_total      = endpoints | sum(attribute='request_count') %}
+{% set avg_resp       = (endpoints | sum(attribute='avg_response_time') / endpoints | length) if endpoints else 0 %}
+{% set has_active_filter = current_filters.filter != 'all' or current_filters.method != 'all' or current_filters.search %}
+
+{# Page header + command toolbar (Export dropdown id/data-action hooks preserved verbatim for extra_js) #}
+{% call page_header('API Endpoints', subtitle='API Management · Surface registry & test console') %}
+<form method="GET" class="relative hidden sm:block">
+    <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+    <input type="search" name="search" value="{{ current_filters.search }}" placeholder="Search paths…"
+           class="input-ecs h-9 pl-9 pr-3 text-sm w-48 lg:w-64" aria-label="Search endpoint paths">
+    {% if current_filters.filter != 'all' %}<input type="hidden" name="filter" value="{{ current_filters.filter }}">{% endif %}
+    {% if current_filters.method != 'all' %}<input type="hidden" name="method" value="{{ current_filters.method }}">{% endif %}
+</form>
 <div class="relative">
     <button type="button" id="exportDropdownBtn"
             class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
@@ -45,17 +60,55 @@
 </div>
 {% endcall %}
 
-{# KPI band — real data from the same expressions as Classic #}
+{# ===== KPI band — bespoke token cards w/ eyebrow + BIG mono figure + divider footer (concept treatment) ===== #}
 {% if endpoints %}
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
-    {{ stat_card('ti-api', 'Total Endpoints', pagination.total, tone='info') }}
-    {{ stat_card('ti-circle-check', 'Active Endpoints', endpoints | selectattr('status', 'equalto', 'active') | list | length, tone='success') }}
-    {{ stat_card('ti-activity', 'Total Requests', "{:,}".format(endpoints | sum(attribute='request_count')), tone='primary') }}
-    {{ stat_card('ti-clock', 'Avg Response', "%.3f"|format(endpoints | sum(attribute='avg_response_time') / endpoints | length) ~ 's', tone='warning') }}
+<div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">Endpoints</span>
+            <i class="ti ti-api text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ pagination.total }}</div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <span>{{ blueprints | length }} blueprints</span>
+            <span class="font-mono">{{ endpoints | length }} on page</span>
+        </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">Active</span>
+            <i class="ti ti-circle-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ active_count }}</div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <span class="inline-flex items-center gap-1"><i class="ti ti-shield-lock text-[12px]" aria-hidden="true"></i>{{ admin_auth }} admin-only</span>
+            {% if deprecated_cnt %}<span class="font-mono text-amber-600 dark:text-amber-400">{{ deprecated_cnt }} deprecated</span>{% else %}<span class="font-mono">0 deprecated</span>{% endif %}
+        </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">Requests</span>
+            <i class="ti ti-activity text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ "{:,}".format(req_total) }}</div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+            across endpoints on this page
+        </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">Avg Response</span>
+            <i class="ti ti-clock text-lg {{ 'text-red-600 dark:text-red-400' if avg_resp > 0.5 else 'text-amber-600 dark:text-amber-400' if avg_resp > 0.2 else 'text-green-600 dark:text-green-400' }} shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none {{ 'text-red-600 dark:text-red-400' if avg_resp > 0.5 else 'text-amber-600 dark:text-amber-400' if avg_resp > 0.2 else 'text-green-600 dark:text-green-400' }}">{{ "%.3f"|format(avg_resp) }}s</div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+            {{ 'over 0.5s budget' if avg_resp > 0.5 else 'within 0.2s target' if avg_resp <= 0.2 else 'within 0.5s budget' }}
+        </div>
+    </div>
 </div>
 {% endif %}
 
-{# Filters — GET form, real blueprint/method options #}
+{# ===== Filter rail — GET form, real blueprint/method options ===== #}
 <form method="GET" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 mb-5 sm:mb-6">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
@@ -99,78 +152,109 @@
     </div>
 </form>
 
-{# Endpoints table (kit data_table → responsive row cards on mobile) #}
+{# ===== Endpoint registry — bespoke section card; dense rows grouped by blueprint (concept date-group treatment) ===== #}
 {% if endpoints %}
-{% call data_table('Endpoints', icon='ti-api', count=pagination.total, filters=false) %}
-    <table class="hidden md:table w-full text-sm text-left">
-        <thead>
-            <tr class="border-b border-gray-200 dark:border-gray-700">
-                {{ data_table_th('Endpoint', key='endpoint', sortable=false) }}
-                {{ data_table_th('Blueprint', key='blueprint', sortable=false, hide='md') }}
-                {{ data_table_th('Methods', key='methods', sortable=false) }}
-                {{ data_table_th('Auth', key='auth', sortable=false, hide='md') }}
-                {{ data_table_th('Requests', key='requests', sortable=false, align='right') }}
-                {{ data_table_th('Avg Response', key='avg', sortable=false, align='right', hide='sm') }}
-                {{ data_table_th('Status', key='status', sortable=false) }}
-                {{ data_table_th('Last Used', key='last_used', sortable=false, hide='md') }}
-                {{ data_table_th('Actions', key='actions', sortable=false, align='right') }}
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-            {% for endpoint in endpoints %}
-            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                <td class="px-3 py-2.5 align-top">
-                    <code class="font-mono text-xs text-blue-600 dark:text-blue-400 break-all">{{ endpoint.path }}</code>
-                    {% if endpoint.description %}
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ endpoint.description }}</p>
-                    {% endif %}
-                </td>
-                <td class="px-3 py-2.5 align-top hidden lg:table-cell">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ endpoint.blueprint }}</span>
-                </td>
-                <td class="px-3 py-2.5 align-top">
-                    <div class="flex flex-wrap gap-1">
-                        {% for method in endpoint.methods %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium {{ 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300' if method == 'GET' else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' if method == 'POST' else 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
-                        {% endfor %}
-                    </div>
-                </td>
-                <td class="px-3 py-2.5 align-top hidden lg:table-cell">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' if endpoint.authentication == 'admin' else 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' if endpoint.authentication == 'required' else 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' }}">{{ endpoint.authentication }}</span>
-                </td>
-                <td class="px-3 py-2.5 align-top text-right font-mono text-gray-900 dark:text-white">{{ "{:,}".format(endpoint.request_count) }}</td>
-                <td class="px-3 py-2.5 align-top text-right hidden md:table-cell">
-                    <span class="font-mono {{ 'text-red-600 dark:text-red-400' if endpoint.avg_response_time > 0.5 else 'text-amber-600 dark:text-amber-400' if endpoint.avg_response_time > 0.2 else 'text-green-600 dark:text-green-400' }}">{{ "%.3f"|format(endpoint.avg_response_time) }}s</span>
-                </td>
-                <td class="px-3 py-2.5 align-top">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' if endpoint.status == 'active' else 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' if endpoint.status == 'deprecated' else 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' }}">{{ endpoint.status }}</span>
-                </td>
-                <td class="px-3 py-2.5 align-top hidden lg:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">{{ endpoint.last_used.strftime('%Y-%m-%d %H:%M') if endpoint.last_used else 'Never' }}</td>
-                <td class="px-3 py-2.5 align-top">
-                    <div class="flex items-center justify-end gap-1">
-                        <button type="button" data-action="view-endpoint-details" data-endpoint-path="{{ endpoint.path[1:] }}" title="View Details" aria-label="View details"
-                                class="inline-flex items-center justify-center min-h-[36px] min-w-[36px] rounded-lg text-cyan-600 hover:bg-cyan-50 dark:text-cyan-400 dark:hover:bg-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                            <i class="ti ti-eye" aria-hidden="true"></i>
-                        </button>
-                        <button type="button" data-action="test-endpoint" data-endpoint-path="{{ endpoint.path }}" data-methods="{{ endpoint.methods | tojson }}" title="Test" aria-label="Test endpoint"
-                                class="inline-flex items-center justify-center min-h-[36px] min-w-[36px] rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                            <i class="ti ti-test-pipe" aria-hidden="true"></i>
-                        </button>
-                        <button type="button" data-action="copy-endpoint" data-endpoint-path="{{ endpoint.path }}" title="Copy Path" aria-label="Copy path"
-                                class="inline-flex items-center justify-center min-h-[36px] min-w-[36px] rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                            <i class="ti ti-copy" aria-hidden="true"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-sm font-bold uppercase tracking-wide flex items-center gap-2 text-gray-900 dark:text-white">
+            <i class="ti ti-api text-ecs-green" aria-hidden="true"></i>Registry
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ pagination.total }}</span>
+        </h2>
+        {% if has_active_filter %}
+        <span class="hidden sm:inline-flex items-center gap-1 text-xs font-mono text-gray-500 dark:text-gray-400">
+            <i class="ti ti-filter-filled text-[12px] text-ecs-green" aria-hidden="true"></i>filtered
+        </span>
+        {% endif %}
+    </div>
 
-    <!-- Mobile stacked cards -->
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+    {# ----- md+ real table with grouped sub-headers per blueprint ----- #}
+    <div class="hidden md:block md:overflow-x-auto">
+        <table class="w-full text-sm text-left">
+            <thead>
+                <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/30">
+                    <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Endpoint</th>
+                    <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Methods</th>
+                    <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Auth</th>
+                    <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Requests</th>
+                    <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Avg</th>
+                    <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Last Used</th>
+                    <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set ns = namespace(bp=None) %}
+                {% for endpoint in endpoints %}
+                {% if endpoint.blueprint != ns.bp %}
+                {% set ns.bp = endpoint.blueprint %}
+                <tr class="bg-gray-50 dark:bg-gray-900/40">
+                    <td colspan="7" class="px-4 py-1.5">
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-xs font-bold uppercase tracking-wide text-ecs-green">{{ endpoint.blueprint }}</span>
+                            <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+                            <span class="font-mono text-xs text-gray-400 dark:text-gray-500">{{ endpoints | selectattr('blueprint', 'equalto', endpoint.blueprint) | list | length }}</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+                <tr class="border-b border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td class="px-4 py-2.5 align-top max-w-md">
+                        <code class="font-mono text-xs text-blue-600 dark:text-blue-400 break-all">{{ endpoint.path }}</code>
+                        {% if endpoint.description %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ endpoint.description }}</p>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-2.5 align-top">
+                        <div class="flex flex-wrap gap-1">
+                            {% for method in endpoint.methods %}
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-bold {{ 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300' if method == 'GET' else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' if method == 'POST' else 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td class="px-3 py-2.5 align-top hidden lg:table-cell">
+                        <span class="inline-flex items-center gap-1 text-xs font-medium {{ 'text-red-600 dark:text-red-400' if endpoint.authentication == 'admin' else 'text-amber-600 dark:text-amber-400' if endpoint.authentication == 'required' else 'text-green-600 dark:text-green-400' }}">
+                            <i class="ti {{ 'ti-shield-lock' if endpoint.authentication == 'admin' else 'ti-lock' if endpoint.authentication == 'required' else 'ti-lock-open' }} text-[13px]" aria-hidden="true"></i>{{ endpoint.authentication }}
+                        </span>
+                    </td>
+                    <td class="px-3 py-2.5 align-top text-right font-mono text-gray-900 dark:text-white tabular-nums">{{ "{:,}".format(endpoint.request_count) }}</td>
+                    <td class="px-3 py-2.5 align-top text-right">
+                        <span class="font-mono tabular-nums {{ 'text-red-600 dark:text-red-400' if endpoint.avg_response_time > 0.5 else 'text-amber-600 dark:text-amber-400' if endpoint.avg_response_time > 0.2 else 'text-green-600 dark:text-green-400' }}">{{ "%.3f"|format(endpoint.avg_response_time) }}s</span>
+                    </td>
+                    <td class="px-3 py-2.5 align-top hidden lg:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">{{ endpoint.last_used.strftime('%Y-%m-%d %H:%M') if endpoint.last_used else 'Never' }}</td>
+                    <td class="px-3 py-2.5 align-top">
+                        <div class="flex items-center justify-end gap-1">
+                            <button type="button" data-action="test-endpoint" data-endpoint-path="{{ endpoint.path }}" data-methods="{{ endpoint.methods | tojson }}" title="Test" aria-label="Test endpoint"
+                                    class="inline-flex items-center gap-1.5 min-h-[36px] px-2.5 rounded-lg text-xs font-semibold bg-ecs-green hover:bg-ecs-green-700 text-white focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                <i class="ti ti-test-pipe" aria-hidden="true"></i><span class="hidden xl:inline">Test</span>
+                            </button>
+                            <button type="button" data-action="view-endpoint-details" data-endpoint-path="{{ endpoint.path[1:] }}" title="View Details" aria-label="View details"
+                                    class="inline-flex items-center justify-center min-h-[36px] min-w-[36px] rounded-lg text-cyan-600 hover:bg-cyan-50 dark:text-cyan-400 dark:hover:bg-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                <i class="ti ti-eye" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" data-action="copy-endpoint" data-endpoint-path="{{ endpoint.path }}" title="Copy Path" aria-label="Copy path"
+                                    class="inline-flex items-center justify-center min-h-[36px] min-w-[36px] rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                <i class="ti ti-copy" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {# ----- mobile stacked dense rows, grouped by blueprint ----- #}
+    <div class="md:hidden">
+        {% set ns2 = namespace(bp=None) %}
         {% for endpoint in endpoints %}
-        <div class="px-4 py-3.5">
+        {% if endpoint.blueprint != ns2.bp %}
+        {% set ns2.bp = endpoint.blueprint %}
+        <div class="flex items-center gap-2 px-4 py-1.5 bg-gray-50 dark:bg-gray-900/40 border-y border-gray-100 dark:border-gray-700/60">
+            <span class="font-mono text-xs font-bold uppercase tracking-wide text-ecs-green">{{ endpoint.blueprint }}</span>
+            <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+            <span class="font-mono text-xs text-gray-400 dark:text-gray-500">{{ endpoints | selectattr('blueprint', 'equalto', endpoint.blueprint) | list | length }}</span>
+        </div>
+        {% endif %}
+        <div class="px-4 py-3.5 border-b border-gray-100 dark:border-gray-700/60">
             <div class="flex items-start justify-between gap-2">
                 <code class="font-mono text-xs text-blue-600 dark:text-blue-400 break-all">{{ endpoint.path }}</code>
                 <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' if endpoint.status == 'active' else 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' if endpoint.status == 'deprecated' else 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' }}">{{ endpoint.status }}</span>
@@ -178,36 +262,37 @@
             {% if endpoint.description %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ endpoint.description }}</p>{% endif %}
             <div class="flex flex-wrap items-center gap-1 mt-2">
                 {% for method in endpoint.methods %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium {{ 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300' if method == 'GET' else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' if method == 'POST' else 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-bold {{ 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300' if method == 'GET' else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' if method == 'POST' else 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
                 {% endfor %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ endpoint.blueprint }}</span>
+                <span class="inline-flex items-center gap-1 text-xs font-medium {{ 'text-red-600 dark:text-red-400' if endpoint.authentication == 'admin' else 'text-amber-600 dark:text-amber-400' if endpoint.authentication == 'required' else 'text-green-600 dark:text-green-400' }}">
+                    <i class="ti {{ 'ti-shield-lock' if endpoint.authentication == 'admin' else 'ti-lock' if endpoint.authentication == 'required' else 'ti-lock-open' }} text-[12px]" aria-hidden="true"></i>{{ endpoint.authentication }}
+                </span>
             </div>
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-500 dark:text-gray-400">
-                <span>Auth: <span class="font-medium text-gray-700 dark:text-gray-300">{{ endpoint.authentication }}</span></span>
-                <span>Requests: <span class="font-mono text-gray-900 dark:text-white">{{ "{:,}".format(endpoint.request_count) }}</span></span>
-                <span>Avg: <span class="font-mono {{ 'text-red-600 dark:text-red-400' if endpoint.avg_response_time > 0.5 else 'text-amber-600 dark:text-amber-400' if endpoint.avg_response_time > 0.2 else 'text-green-600 dark:text-green-400' }}">{{ "%.3f"|format(endpoint.avg_response_time) }}s</span></span>
-                <span>Last: <span class="font-mono">{{ endpoint.last_used.strftime('%Y-%m-%d %H:%M') if endpoint.last_used else 'Never' }}</span></span>
+                <span>Requests <span class="font-mono text-gray-900 dark:text-white">{{ "{:,}".format(endpoint.request_count) }}</span></span>
+                <span>Avg <span class="font-mono {{ 'text-red-600 dark:text-red-400' if endpoint.avg_response_time > 0.5 else 'text-amber-600 dark:text-amber-400' if endpoint.avg_response_time > 0.2 else 'text-green-600 dark:text-green-400' }}">{{ "%.3f"|format(endpoint.avg_response_time) }}s</span></span>
+                <span>Last <span class="font-mono">{{ endpoint.last_used.strftime('%Y-%m-%d %H:%M') if endpoint.last_used else 'Never' }}</span></span>
             </div>
             <div class="flex items-center gap-2 mt-3">
+                <button type="button" data-action="test-endpoint" data-endpoint-path="{{ endpoint.path }}" data-methods="{{ endpoint.methods | tojson }}" aria-label="Test endpoint"
+                        class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-xs font-semibold bg-ecs-green hover:bg-ecs-green-700 text-white focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"><i class="ti ti-test-pipe" aria-hidden="true"></i>Test</button>
                 <button type="button" data-action="view-endpoint-details" data-endpoint-path="{{ endpoint.path[1:] }}" aria-label="View details"
                         class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-xs font-semibold text-cyan-700 bg-cyan-50 dark:text-cyan-300 dark:bg-cyan-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-eye" aria-hidden="true"></i>View</button>
-                <button type="button" data-action="test-endpoint" data-endpoint-path="{{ endpoint.path }}" data-methods="{{ endpoint.methods | tojson }}" aria-label="Test endpoint"
-                        class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-test-pipe" aria-hidden="true"></i>Test</button>
                 <button type="button" data-action="copy-endpoint" data-endpoint-path="{{ endpoint.path }}" aria-label="Copy path"
                         class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-xs font-semibold text-gray-700 bg-gray-100 dark:text-gray-300 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-copy" aria-hidden="true"></i>Copy</button>
             </div>
         </div>
         {% endfor %}
     </div>
-{% endcall %}
 
-{% if pagination.pages > 1 %}
-<div class="mt-4">
-    {{ pagination_nav(pagination, 'admin_panel.api_endpoints', extra_params=current_filters) }}
-</div>
-{% endif %}
+    {% if pagination.pages > 1 %}
+    <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+        {{ pagination_nav(pagination, 'admin_panel.api_endpoints', extra_params=current_filters) }}
+    </div>
+    {% endif %}
+</section>
 {% else %}
-{{ empty_state('ti-api', 'No Endpoints Found', 'No API endpoints match your current filters.') }}
+{{ empty_state('ti-api', 'No Endpoints Found', 'No API endpoints match your current filters.', action={'label': 'Clear filters', 'url': url_for('admin_panel.api_endpoints'), 'icon': 'ti-x'} if has_active_filter else None) }}
 {% endif %}
 
 {% else %}

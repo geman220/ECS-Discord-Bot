@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import data_table, data_table_th, empty_state, page_header, stat_card %}
 {% from "macros/flowbite.html" import modal_form %}
 {% from "macros/_modern_kit.html" import page_header, stat_card, data_table, data_table_th, empty_state %}
 
@@ -6,12 +7,22 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
+{# Derive page-scoped counts from the real users dicts on this page (no fabrication). #}
+{% set ns = namespace(pending=0, active=0, approved=0) %}
+{% for u in users %}
+    {% if not u.is_approved %}{% set ns.pending = ns.pending + 1 %}{% endif %}
+    {% if u.is_approved %}{% set ns.approved = ns.approved + 1 %}{% endif %}
+    {% if u.is_current_player %}{% set ns.active = ns.active + 1 %}{% endif %}
+{% endfor %}
+{# Echo currently-applied filters from the request so the toolbar reads as a live state. #}
+{% set _q = request.args.get('search') %}
+{% set _role = request.args.get('role') %}
+{% set _approved = request.args.get('approved') %}
+{% set _league = request.args.get('league') %}
+{% set _active = request.args.get('active') %}
+{% set _any_filter = _q or _role or _approved or _league or _active %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
     {% call page_header("User Management", subtitle="Roles · player profiles · access control") %}
-        <a href="{{ url_for('user_management.create_user') }}"
-           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-            <i class="ti ti-user-plus" aria-hidden="true"></i> Create User
-        </a>
         <form method="POST" action="{{ url_for('user_management.update_players') }}" class="inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit"
@@ -23,60 +34,88 @@
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
             <i class="ti ti-refresh-alert" aria-hidden="true"></i> <span class="hidden sm:inline">Reset Compliance</span><span class="sm:hidden">Reset</span>
         </button>
+        <a href="{{ url_for('user_management.create_user') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-user-plus" aria-hidden="true"></i> Create User
+        </a>
     {% endcall %}
 
-    <!-- KPIs -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
-        {{ stat_card("ti-users", "Total Users", pagination.total, sublabel="matching filters", tone="primary") }}
-        {{ stat_card("ti-list-numbers", "On This Page", users|length, sublabel="rows shown", tone="info") }}
-        {{ stat_card("ti-file-text", "Page", pagination.page ~ " / " ~ pagination.pages, sublabel="pagination", tone="neutral") }}
+    <!-- KPI band -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+        {% call stat_card("ti-users", "Total Users", pagination.total, sublabel="matching filters", tone="primary") %}
+            Page <span class="font-mono text-gray-700 dark:text-gray-300">{{ pagination.page }}</span> of <span class="font-mono text-gray-700 dark:text-gray-300">{{ pagination.pages }}</span>
+        {% endcall %}
+        {% call stat_card("ti-clock-pause", "Pending Approval", ns.pending, sublabel="on this page", tone="warning") %}
+            Awaiting access review
+        {% endcall %}
+        {% call stat_card("ti-circle-check", "Active Players", ns.active, sublabel="on this page", tone="success") %}
+            Current-season roster
+        {% endcall %}
+        {% call stat_card("ti-list-numbers", "Rows Shown", users|length, sublabel="this view", tone="info") %}
+            <span class="font-mono text-gray-700 dark:text-gray-300">{{ ns.approved }}</span> approved here
+        {% endcall %}
     </div>
 
-    <!-- Filters -->
-    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-5 sm:mb-6">
-        <details open>
-            <summary class="px-4 py-3 cursor-pointer flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
-                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-filter text-ecs-green" aria-hidden="true"></i> Filter Users
-                </h2>
-                <i class="ti ti-chevron-down text-gray-400" aria-hidden="true"></i>
-            </summary>
-            <div class="p-4">
-                <form method="get" action="{{ url_for('user_management.manage_users') }}" id="filterForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div>
-                        {{ filter_form.search.label(class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1") }}
-                        {{ filter_form.search(class="input-ecs h-9 text-sm", placeholder="Search...") }}
+    <!-- Roster console: filter rail + directory table -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
+        <!-- Filter rail -->
+        <aside class="xl:col-span-1">
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden xl:sticky xl:top-20">
+                <div class="px-4 h-12 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-filter text-ecs-green" aria-hidden="true"></i> Filters
+                    </h2>
+                    {% if _any_filter %}
+                    <a href="{{ url_for('user_management.manage_users') }}"
+                       class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-ecs-green inline-flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded px-1">
+                        <i class="ti ti-x" aria-hidden="true"></i> Clear
+                    </a>
+                    {% endif %}
+                </div>
+                <form method="get" action="{{ url_for('user_management.manage_users') }}" id="filterForm" class="p-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4">
+                    <div class="sm:col-span-2 xl:col-span-1">
+                        {{ filter_form.search.label(class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1") }}
+                        {{ filter_form.search(class="input-ecs h-9 text-sm", placeholder="Name, username or email…") }}
                     </div>
                     <div>
-                        {{ filter_form.role.label(class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1") }}
+                        {{ filter_form.role.label(class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1") }}
                         {{ filter_form.role(class="input-ecs h-9 text-sm") }}
                     </div>
                     <div>
-                        {{ filter_form.approved.label(class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1") }}
+                        {{ filter_form.approved.label(class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1") }}
                         {{ filter_form.approved(class="input-ecs h-9 text-sm") }}
                     </div>
                     <div>
-                        {{ filter_form.league.label(class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1") }}
+                        {{ filter_form.league.label(class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1") }}
                         {{ filter_form.league(class="input-ecs h-9 text-sm") }}
                     </div>
                     <div>
-                        {{ filter_form.active.label(class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1") }}
+                        {{ filter_form.active.label(class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1") }}
                         {{ filter_form.active(class="input-ecs h-9 text-sm") }}
                     </div>
                 </form>
-            </div>
-        </details>
-    </section>
+                {% if _any_filter %}
+                <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-1.5">
+                    <span class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mr-1">Active</span>
+                    {% if _q %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"><i class="ti ti-search" aria-hidden="true"></i>{{ _q }}</span>{% endif %}
+                    {% if _role %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green"><i class="ti ti-shield" aria-hidden="true"></i>{{ _role }}</span>{% endif %}
+                    {% if _approved %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"><i class="ti ti-check" aria-hidden="true"></i>{{ 'Approved' if _approved == 'true' else 'Pending' }}</span>{% endif %}
+                    {% if _active %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"><i class="ti ti-ball-football" aria-hidden="true"></i>{{ 'Active' if _active == 'true' else 'Inactive' }}</span>{% endif %}
+                </div>
+                {% endif %}
+            </section>
+        </aside>
 
-    <!-- Users Table -->
-    {% call data_table("User List", icon="ti-list", count=pagination.total, search_placeholder="Filter shown rows…", search_id="dtFilter", filters=False) %}
+        <!-- Directory table -->
+        <div class="xl:col-span-2">
+        {% call data_table("User Directory", icon="ti-address-book", count=pagination.total, search_placeholder="Filter shown rows…", search_id="dtFilter", filters=False) %}
         {% if users %}
         <table class="hidden md:table w-full text-sm">
             <thead class="bg-gray-50 dark:bg-gray-700/50">
                 <tr>
-                    {{ data_table_th("Name", key="name") }}
+                    {{ data_table_th("User", key="name") }}
                     {{ data_table_th("Roles", key="roles", sortable=False, hide="sm") }}
-                    {{ data_table_th("Team", key="team", sortable=False, hide="md") }}
+                    {{ data_table_th("Team / League", key="team", sortable=False, hide="md") }}
                     {{ data_table_th("Status", key="status", sortable=False) }}
                     {{ data_table_th("Actions", sortable=False, align="right") }}
                 </tr>
@@ -85,33 +124,47 @@
                 {% for user in users %}
                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td class="px-3 py-2.5">
-                        <div class="font-semibold text-gray-900 dark:text-white">{{ user.actual_name }}</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">@{{ user.username }}</div>
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg bg-ecs-green/10 text-ecs-green font-bold text-sm uppercase" aria-hidden="true">{{ user.actual_name[:1] if user.actual_name else '?' }}</span>
+                            <div class="min-w-0">
+                                <div class="font-semibold text-gray-900 dark:text-white truncate">{{ user.actual_name }}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">@{{ user.username }} <span class="text-gray-300 dark:text-gray-600">·</span> #{{ user.id }}</div>
+                            </div>
+                        </div>
                     </td>
-                    <td class="px-3 py-2.5 hidden md:table-cell">
-                        {% for role in user.roles %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green mr-1 mb-1">{{ role }}</span>
-                        {% endfor %}
+                    <td class="px-3 py-2.5 hidden md:table-cell align-top">
+                        <div class="flex flex-wrap gap-1">
+                            {% for role in user.roles %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green">{{ role }}</span>
+                            {% else %}
+                            <span class="text-xs text-gray-400 dark:text-gray-500 italic">No roles</span>
+                            {% endfor %}
+                        </div>
                     </td>
-                    <td class="px-3 py-2.5 hidden lg:table-cell">
+                    <td class="px-3 py-2.5 hidden lg:table-cell align-top">
                         <div class="text-gray-900 dark:text-white">{{ user.team if user.team != 'N/A' else 'No Team' }}</div>
                         {% if user.secondary_team %}
                         <div class="text-xs text-gray-500 dark:text-gray-400">+ {{ user.secondary_team }}</div>
                         {% endif %}
-                    </td>
-                    <td class="px-3 py-2.5">
-                        {% if user.is_current_player %}
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300"><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>
-                        {% else %}
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300"><i class="ti ti-circle-minus" aria-hidden="true"></i>Inactive</span>
-                        {% endif %}
-                        {% if user.is_approved %}
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 ml-1"><i class="ti ti-check" aria-hidden="true"></i>Approved</span>
-                        {% else %}
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 ml-1"><i class="ti ti-clock" aria-hidden="true"></i>Pending</span>
+                        {% if user.league and user.league != 'None' %}
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><i class="ti ti-trophy text-[11px]" aria-hidden="true"></i> {{ user.league }}</div>
                         {% endif %}
                     </td>
-                    <td class="px-3 py-2.5 text-right">
+                    <td class="px-3 py-2.5 align-top">
+                        <div class="flex flex-col gap-1 items-start">
+                            {% if user.is_current_player %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300"><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300"><i class="ti ti-circle-minus" aria-hidden="true"></i>Inactive</span>
+                            {% endif %}
+                            {% if user.is_approved %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300"><i class="ti ti-check" aria-hidden="true"></i>Approved</span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300"><i class="ti ti-clock" aria-hidden="true"></i>Pending</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-3 py-2.5 text-right align-top">
                         <div class="flex items-center justify-end gap-1">
                             <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
                                     data-action="edit-user" data-user-id="{{ user.id }}" aria-label="Edit user" title="Edit">
@@ -139,9 +192,12 @@
             {% for user in users %}
             <div class="px-4 py-3.5">
                 <div class="flex items-start justify-between gap-2">
-                    <div class="min-w-0">
-                        <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ user.actual_name }}</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">@{{ user.username }}</div>
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg bg-ecs-green/10 text-ecs-green font-bold text-sm uppercase" aria-hidden="true">{{ user.actual_name[:1] if user.actual_name else '?' }}</span>
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ user.actual_name }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">@{{ user.username }} <span class="text-gray-300 dark:text-gray-600">·</span> #{{ user.id }}</div>
+                        </div>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
                         <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
@@ -178,7 +234,7 @@
                     {% endif %}
                 </div>
                 {% if user.team and user.team != 'N/A' %}
-                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ user.team }}{% if user.secondary_team %} · + {{ user.secondary_team }}{% endif %}</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ user.team }}{% if user.secondary_team %} · + {{ user.secondary_team }}{% endif %}{% if user.league and user.league != 'None' %} · {{ user.league }}{% endif %}</div>
                 {% endif %}
             </div>
             {% endfor %}
@@ -186,10 +242,10 @@
         {% else %}
         {{ empty_state("ti-users-off", "No users found", "No users match the current filters. Try adjusting your search or filter criteria.") }}
         {% endif %}
-    {% endcall %}
+        {% endcall %}
 
-    {% if pagination.pages > 1 %}
-    <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+        {% if pagination.pages > 1 %}
+        <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div class="text-sm text-gray-500 dark:text-gray-400">
             Showing <span class="font-mono">{{ ((pagination.page - 1) * pagination.per_page) + 1 }}</span> to
             <span class="font-mono">{{ pagination.page * pagination.per_page if pagination.page * pagination.per_page < pagination.total else pagination.total }}</span>
@@ -216,7 +272,9 @@
             {% endif %}
         </nav>
     </div>
-    {% endif %}
+        {% endif %}
+        </div><!-- /directory col -->
+    </div><!-- /roster console grid -->
 </div>
 {% else %}
 <div class="container mx-auto px-4 py-8">

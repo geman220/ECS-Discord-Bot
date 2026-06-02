@@ -5,10 +5,26 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import stat_card, section_card, data_table, data_table_th, empty_state %}
+{% from 'macros/_modern_kit.html' import section_card, data_table, data_table_th, empty_state, modal %}
 {% from 'macros/flowbite.html' import badge %}
 {% set status_tone = 'success' if match.status == 'COMPLETED' else 'warning' if match.status == 'SCHEDULED' else 'danger' %}
 {% set roster_count = match.team.players|length %}
+{% set is_done = match.status == 'COMPLETED' %}
+{% set has_score = match.home_score is not none and match.away_score is not none %}
+{# Team-perspective scores: home_score = our score, away_score = opponent's (see score-convention ref). #}
+{% set won = has_score and match.home_score > match.away_score %}
+{% set lost = has_score and match.home_score < match.away_score %}
+{# Goal timeline from real player events (event_type goal/own_goal carry scorer + minute). #}
+{% set goal_events = match.events | selectattr('event_type', 'in', ['goal', 'own_goal']) | list %}
+{# Full event feed — every real recorded event (goals, assists, cards). Match Report
+   surfaces all of these; the console previously dropped assists + cards on the floor. #}
+{% set all_events = match.events | list %}
+{% set assist_events = match.events | selectattr('event_type', 'equalto', 'assist') | list %}
+{% set yellow_events = match.events | selectattr('event_type', 'equalto', 'yellow_card') | list %}
+{% set red_events = match.events | selectattr('event_type', 'equalto', 'red_card') | list %}
+{# Readiness math off the real RSVP summary; pct widths are static-string-safe Tailwind via inline style not allowed,
+   so we bucket into the kit's grid + a tokened proportion bar built from real counts only. #}
+{% set responded = rsvp_summary.yes + rsvp_summary.no + rsvp_summary.maybe %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6" data-page="ecs-fc-match-details">
 
   <nav class="text-sm" aria-label="Breadcrumb">
@@ -21,29 +37,71 @@
     </ol>
   </nav>
 
-  {# ── Fixture hero: identity + status + the reference facts (date/time/venue),
-       consolidated so they read as ONE fixture, not eight competing KPI tiles. ── #}
+  {# ── FIXTURE HERO: the page's one primary object. A versus block (our crest vs
+       opponent), a big mono scoreline when the match is COMPLETED, and a status
+       eyebrow — concept "feature card" treatment, not stacked KPI tiles. ── #}
   <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-11 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+      <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+        <i class="ti ti-soccer-field text-ecs-green" aria-hidden="true"></i> ECS FC External Match
+      </span>
+      <div class="flex items-center gap-2">
+        {% if match.is_home_match %}{{ badge('Home', variant='info', dot=true) }}{% else %}{{ badge('Away', variant='default', dot=true) }}{% endif %}
+        {{ badge(match.status, variant=status_tone, dot=true) }}
+      </div>
+    </div>
+
     <div class="p-4 sm:p-6">
-      <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-        <div class="flex items-start gap-3 sm:gap-4 min-w-0">
-          <div class="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl bg-ecs-green/10 flex items-center justify-center">
-            <i class="ti ti-soccer-field text-2xl text-ecs-green" aria-hidden="true"></i>
+      {# Versus block — our team (named) vs opponent, scoreline in the middle for completed. #}
+      <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-5">
+        <div class="flex flex-col items-center sm:items-end text-center sm:text-right min-w-0">
+          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-ecs-green/10 flex items-center justify-center mb-2">
+            <i class="ti ti-shield-filled text-2xl text-ecs-green" aria-hidden="true"></i>
           </div>
-          <div class="min-w-0">
-            <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">ECS FC External Match</p>
-            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-              {{ match.team.name }} <span class="text-gray-400 dark:text-gray-500 font-bold">vs</span> {{ match.opponent_name }}
-            </h1>
-            <div class="flex flex-wrap items-center gap-2 mt-2">
-              {% if match.is_home_match %}{{ badge('Home', variant='info', dot=true) }}{% else %}{{ badge('Away', variant='default', dot=true) }}{% endif %}
-              {{ badge(match.status, variant=status_tone, dot=true) }}
-            </div>
+          <h1 class="text-base sm:text-xl font-extrabold tracking-tight text-gray-900 dark:text-white leading-tight truncate max-w-full">{{ match.team.name }}</h1>
+          <span class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{% if match.is_home_match %}Home{% else %}Away{% endif %}</span>
+        </div>
+
+        <div class="shrink-0 flex flex-col items-center">
+          {% if is_done and has_score %}
+          <div class="flex items-center gap-2 sm:gap-3">
+            <span class="font-mono text-3xl sm:text-5xl font-bold leading-none {% if won %}text-ecs-green{% elif lost %}text-gray-400 dark:text-gray-500{% else %}text-gray-900 dark:text-white{% endif %}">{{ match.home_score }}</span>
+            <span class="font-mono text-xl sm:text-2xl text-gray-300 dark:text-gray-600">–</span>
+            <span class="font-mono text-3xl sm:text-5xl font-bold leading-none {% if lost %}text-ecs-green{% elif won %}text-gray-400 dark:text-gray-500{% else %}text-gray-900 dark:text-white{% endif %}">{{ match.away_score }}</span>
           </div>
+          <span class="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide
+                       {% if won %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400{% elif lost %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+            {% if won %}<i class="ti ti-trophy text-[11px]" aria-hidden="true"></i> Win{% elif lost %}<i class="ti ti-circle-x text-[11px]" aria-hidden="true"></i> Loss{% else %}<i class="ti ti-equal text-[11px]" aria-hidden="true"></i> Draw{% endif %}
+          </span>
+          {% else %}
+          <span class="font-mono text-2xl sm:text-3xl font-bold text-gray-300 dark:text-gray-600">vs</span>
+          {% if is_done %}<span class="mt-2 text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">No score</span>{% endif %}
+          {% endif %}
+        </div>
+
+        <div class="flex flex-col items-center sm:items-start text-center sm:text-left min-w-0">
+          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center mb-2">
+            <i class="ti ti-shield text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+          </div>
+          <h2 class="text-base sm:text-xl font-extrabold tracking-tight text-gray-900 dark:text-white leading-tight truncate max-w-full">{{ match.opponent_name }}</h2>
+          <span class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{% if match.is_home_match %}Away{% else %}Home{% endif %}</span>
         </div>
       </div>
 
-      {# Fixture facts — compact icon strip, not oversized stat tiles #}
+      {# Goal timeline — real scorers from match.events, only when present. #}
+      {% if goal_events %}
+      <div class="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t border-gray-200 dark:border-gray-700 pt-4">
+        {% for ev in goal_events %}
+        <span class="inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+          {% if ev.event_type == 'own_goal' %}<i class="ti ti-arrow-back-up text-red-500 dark:text-red-400" aria-hidden="true"></i>{% else %}<i class="ti ti-ball-football text-ecs-green" aria-hidden="true"></i>{% endif %}
+          <span class="font-medium">{% if ev.player %}{{ ev.player.name }}{% else %}Own goal{% endif %}</span>
+          {% if ev.minute %}<span class="font-mono text-gray-400 dark:text-gray-500">{{ ev.minute }}'</span>{% endif %}
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# Fixture facts — compact icon strip below the versus block. #}
       <dl class="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 border-t border-gray-200 dark:border-gray-700 pt-5">
         <div class="flex items-start gap-3">
           <i class="ti ti-calendar text-ecs-green text-lg mt-0.5 shrink-0" aria-hidden="true"></i>
@@ -81,7 +139,26 @@
           </div>
         </div>
         {% endif %}
+        {% if match.rsvp_deadline %}
+        <div class="flex items-start gap-3">
+          <i class="ti ti-hourglass text-ecs-green text-lg mt-0.5 shrink-0" aria-hidden="true"></i>
+          <div class="min-w-0">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">RSVP Deadline</dt>
+            <dd class="text-sm font-semibold text-gray-900 dark:text-white">{{ match.rsvp_deadline.strftime('%a, %b %d') }}</dd>
+            <dd class="text-sm font-mono text-gray-500 dark:text-gray-400">{{ match.rsvp_deadline.strftime('%I:%M %p') }}</dd>
+          </div>
+        </div>
+        {% endif %}
       </dl>
+
+      {# Add to calendar — wired to the real per-event .ics download, available to
+         everyone viewing the fixture (not just managers). #}
+      <div class="mt-4 flex">
+        <a href="{{ url_for('calendar_api.calendar_subscriptions.download_single_event', event_type='ecs_fc_match', event_id=match.id) }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-calendar-plus" aria-hidden="true"></i>Add to calendar
+        </a>
+      </div>
 
       {% if match.notes %}
       <div class="mt-4 flex items-start gap-3 rounded-xl border border-blue-200 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 p-3 sm:p-4">
@@ -94,7 +171,7 @@
     </div>
 
     {% if can_manage %}
-    {# Action bar: ONE primary (status-driven next step), the rest subordinate. #}
+    {# Command toolbar: ONE primary (status-driven next step), the rest subordinate. #}
     <div class="flex flex-wrap items-center gap-2 px-4 sm:px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
       <button type="button" class="js-edit-match inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               data-match-id="{{ match.id }}">
@@ -118,21 +195,183 @@
     {% endif %}
   </section>
 
-  {# ── RSVP readiness — the live heartbeat of the page (these ARE the metrics). ── #}
-  <section aria-label="RSVP readiness">
-    <div class="flex items-center justify-between gap-2 mb-3">
+  {# ── MATCH EVENT LOG — the complete real event feed (goals, assists, cards), not
+       just goals. Dense, mono-minute rows in the concept's "event row" treatment:
+       a leading minute chip (mono), a typed icon, the player, and a typed tally in
+       the header bar. Only rendered when real events exist. ── #}
+  {% if all_events %}
+  <section aria-label="Match events" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-11 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-timeline-event text-ecs-green" aria-hidden="true"></i> Match Events
+      </h2>
+      <div class="flex items-center gap-1.5">
+        {% if goal_events %}<span class="inline-flex items-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-300"><i class="ti ti-ball-football text-ecs-green" aria-hidden="true"></i><span class="font-mono font-bold">{{ goal_events|length }}</span></span>{% endif %}
+        {% if assist_events %}<span class="inline-flex items-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-300"><i class="ti ti-arrows-right text-blue-600 dark:text-blue-400" aria-hidden="true"></i><span class="font-mono font-bold">{{ assist_events|length }}</span></span>{% endif %}
+        {% if yellow_events %}<span class="inline-flex items-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-300"><i class="ti ti-square-rounded-filled text-amber-500 dark:text-amber-400" aria-hidden="true"></i><span class="font-mono font-bold">{{ yellow_events|length }}</span></span>{% endif %}
+        {% if red_events %}<span class="inline-flex items-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-300"><i class="ti ti-square-rounded-filled text-red-600 dark:text-red-400" aria-hidden="true"></i><span class="font-mono font-bold">{{ red_events|length }}</span></span>{% endif %}
+      </div>
+    </div>
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+      {% for ev in all_events %}
+      <li class="flex items-center gap-3 px-4 sm:px-5 py-2.5">
+        <span class="shrink-0 w-10 text-right font-mono text-sm font-bold text-gray-400 dark:text-gray-500">
+          {% if ev.minute %}{{ ev.minute }}'{% else %}—{% endif %}
+        </span>
+        <span class="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center
+                     {% if ev.event_type == 'goal' %}bg-ecs-green/10 text-ecs-green
+                     {% elif ev.event_type == 'own_goal' %}bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400
+                     {% elif ev.event_type == 'assist' %}bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400
+                     {% elif ev.event_type == 'yellow_card' %}bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400
+                     {% elif ev.event_type == 'red_card' %}bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400
+                     {% else %}bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400{% endif %}">
+          {% if ev.event_type == 'goal' %}<i class="ti ti-ball-football" aria-hidden="true"></i>
+          {% elif ev.event_type == 'own_goal' %}<i class="ti ti-arrow-back-up" aria-hidden="true"></i>
+          {% elif ev.event_type == 'assist' %}<i class="ti ti-arrows-right" aria-hidden="true"></i>
+          {% elif ev.event_type in ['yellow_card', 'red_card'] %}<i class="ti ti-square-rounded-filled" aria-hidden="true"></i>
+          {% else %}<i class="ti ti-point" aria-hidden="true"></i>{% endif %}
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+            {% if ev.player %}{{ ev.player.name }}{% elif ev.event_type == 'own_goal' %}Own goal{% else %}Unknown player{% endif %}
+            {% if ev.player and ev.player.jersey_number is not none %}<span class="font-mono text-xs text-gray-400 dark:text-gray-500">#{{ ev.player.jersey_number }}</span>{% endif %}
+          </p>
+        </div>
+        <span class="shrink-0 text-xs font-medium uppercase tracking-wide
+                     {% if ev.event_type == 'goal' %}text-ecs-green
+                     {% elif ev.event_type == 'own_goal' %}text-red-600 dark:text-red-400
+                     {% elif ev.event_type == 'assist' %}text-blue-600 dark:text-blue-400
+                     {% elif ev.event_type == 'yellow_card' %}text-amber-600 dark:text-amber-400
+                     {% elif ev.event_type == 'red_card' %}text-red-600 dark:text-red-400
+                     {% else %}text-gray-500 dark:text-gray-400{% endif %}">
+          {% if ev.event_type == 'goal' %}Goal
+          {% elif ev.event_type == 'own_goal' %}Own Goal
+          {% elif ev.event_type == 'assist' %}Assist
+          {% elif ev.event_type == 'yellow_card' %}Yellow
+          {% elif ev.event_type == 'red_card' %}Red
+          {% else %}{{ ev.event_type|replace('_', ' ')|title }}{% endif %}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {# ── Your RSVP — player self-service. Only when the viewer is a player on this
+       team (viewer_is_team_player). Each button is a real form POST to the existing
+       ecs_fc.submit_rsvp endpoint (response yes/maybe/no). Current status + timestamp
+       come from the viewer's own real EcsFcAvailability row (current_user_rsvp). ── #}
+  {% if viewer_is_team_player %}
+  {% set my_resp = current_user_rsvp.response if current_user_rsvp else None %}
+  <section aria-label="Your RSVP" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-11 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-clipboard-check text-ecs-green" aria-hidden="true"></i> Your RSVP
+      </h2>
+      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold
+            {% if my_resp == 'yes' %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400
+            {% elif my_resp == 'maybe' %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400
+            {% elif my_resp == 'no' %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400
+            {% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+        <i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i>
+        {% if my_resp == 'yes' %}Available{% elif my_resp == 'maybe' %}Maybe{% elif my_resp == 'no' %}Can't make it{% else %}No response{% endif %}
+      </span>
+    </div>
+    <div class="p-4 sm:p-5">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+        {% if my_resp %}Tap a different button if your plans change.{% else %}Let your team know if you can make it.{% endif %}
+      </p>
+      <div class="grid grid-cols-3 gap-2 sm:gap-3" role="group" aria-label="Your availability">
+        <form method="POST" action="{{ url_for('ecs_fc.submit_rsvp', match_id=match.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="response" value="yes">
+          <button type="submit" aria-pressed="{{ 'true' if my_resp == 'yes' else 'false' }}"
+                  class="w-full flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green
+                  {% if my_resp == 'yes' %}border-green-500 bg-green-50 dark:bg-green-500/15 text-green-600 dark:text-green-400{% else %}border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %}">
+            <i class="ti ti-circle-check text-lg" aria-hidden="true"></i> Available
+          </button>
+        </form>
+        <form method="POST" action="{{ url_for('ecs_fc.submit_rsvp', match_id=match.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="response" value="maybe">
+          <button type="submit" aria-pressed="{{ 'true' if my_resp == 'maybe' else 'false' }}"
+                  class="w-full flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green
+                  {% if my_resp == 'maybe' %}border-amber-500 bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400{% else %}border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %}">
+            <i class="ti ti-help-circle text-lg" aria-hidden="true"></i> Maybe
+          </button>
+        </form>
+        <form method="POST" action="{{ url_for('ecs_fc.submit_rsvp', match_id=match.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="response" value="no">
+          <button type="submit" aria-pressed="{{ 'true' if my_resp == 'no' else 'false' }}"
+                  class="w-full flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green
+                  {% if my_resp == 'no' %}border-red-500 bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400{% else %}border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %}">
+            <i class="ti ti-circle-x text-lg" aria-hidden="true"></i> Can't make it
+          </button>
+        </form>
+      </div>
+      {% if current_user_rsvp and current_user_rsvp.responded_at %}
+      <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+        <i class="ti ti-clock" aria-hidden="true"></i> You responded
+        <span class="font-mono">{{ current_user_rsvp.responded_at.strftime('%b %-d, %-I:%M %p') }}</span>
+      </p>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# ── RSVP READINESS — the live heartbeat of the page. A bespoke-but-tokened KPI
+       band: a headline mono ratio + a real proportion bar (segment widths driven by
+       real counts via flex-grow, no fabricated %), then four mono tallies. ── #}
+  <section aria-label="RSVP readiness" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-11 border-b border-gray-200 dark:border-gray-700">
       <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
         <i class="ti ti-chart-donut text-ecs-green" aria-hidden="true"></i> Availability
       </h2>
       <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
-        <span class="font-mono font-bold text-green-600 dark:text-green-400">{{ rsvp_summary.yes }}</span> of <span class="font-mono">{{ roster_count }}</span> available
+        <span class="font-mono font-bold text-gray-900 dark:text-white">{{ responded }}</span> of <span class="font-mono">{{ roster_count }}</span> responded
       </span>
     </div>
-    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      {{ stat_card("ti-circle-check", "Available", rsvp_summary.yes, tone='success') }}
-      {{ stat_card("ti-help-circle", "Maybe", rsvp_summary.maybe, tone='gold') }}
-      {{ stat_card("ti-circle-x", "Unavailable", rsvp_summary.no, tone='danger') }}
-      {{ stat_card("ti-clock", "No Response", rsvp_summary.no_response, tone='neutral') }}
+
+    <div class="p-4 sm:p-5">
+      <div class="flex items-end justify-between gap-3 mb-3">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Available</p>
+          <p class="mt-1 flex items-baseline gap-1.5">
+            <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ rsvp_summary.yes }}</span>
+            <span class="font-mono text-sm text-gray-400 dark:text-gray-500">/ {{ roster_count }}</span>
+          </p>
+        </div>
+      </div>
+
+      {# Proportion bar: segment flex weights = real counts; ARIA carries the figure. #}
+      <div class="flex h-2.5 w-full rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700" role="img"
+           aria-label="{{ rsvp_summary.yes }} available, {{ rsvp_summary.maybe }} maybe, {{ rsvp_summary.no }} unavailable, {{ rsvp_summary.no_response }} no response of {{ roster_count }} players">
+        {% if rsvp_summary.yes %}<span class="bg-green-500 dark:bg-green-400" style="flex-grow: {{ rsvp_summary.yes }}"></span>{% endif %}
+        {% if rsvp_summary.maybe %}<span class="bg-amber-400 dark:bg-amber-300" style="flex-grow: {{ rsvp_summary.maybe }}"></span>{% endif %}
+        {% if rsvp_summary.no %}<span class="bg-red-500 dark:bg-red-400" style="flex-grow: {{ rsvp_summary.no }}"></span>{% endif %}
+        {% if rsvp_summary.no_response %}<span class="bg-gray-300 dark:bg-gray-600" style="flex-grow: {{ rsvp_summary.no_response }}"></span>{% endif %}
+      </div>
+
+      {# Tally legend — dense, mono figures with divider footers per concept stat cards. #}
+      <dl class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+          <dt class="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400"><i class="ti ti-circle-check text-green-600 dark:text-green-400" aria-hidden="true"></i> Available</dt>
+          <dd class="mt-1.5 font-mono text-2xl font-bold text-green-600 dark:text-green-400">{{ rsvp_summary.yes }}</dd>
+        </div>
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+          <dt class="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400"><i class="ti ti-help-circle text-amber-600 dark:text-amber-400" aria-hidden="true"></i> Maybe</dt>
+          <dd class="mt-1.5 font-mono text-2xl font-bold text-amber-600 dark:text-amber-400">{{ rsvp_summary.maybe }}</dd>
+        </div>
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+          <dt class="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400"><i class="ti ti-circle-x text-red-600 dark:text-red-400" aria-hidden="true"></i> Unavailable</dt>
+          <dd class="mt-1.5 font-mono text-2xl font-bold text-red-600 dark:text-red-400">{{ rsvp_summary.no }}</dd>
+        </div>
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+          <dt class="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400"><i class="ti ti-clock text-gray-400 dark:text-gray-500" aria-hidden="true"></i> No Response</dt>
+          <dd class="mt-1.5 font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ rsvp_summary.no_response }}</dd>
+        </div>
+      </dl>
     </div>
   </section>
 

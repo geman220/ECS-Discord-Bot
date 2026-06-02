@@ -22,44 +22,92 @@
 
 {% block panel_content %}
 {% if shell == 'console' %}
-{{ page_header("Push Notification History", subtitle="Mobile Features") }}
+{% set sc = stats.status_counts %}
+{% set total_status = (sc.sent or 0) + (sc.failed or 0) + (sc.sending or 0) + (sc.cancelled or 0) %}
+{% set total_status_safe = total_status if total_status > 0 else 1 %}
+
+{# ---- page header + primary command toolbar ---- #}
+{% call page_header("Push Notification History", subtitle="Mobile Features") %}
+  {% if push_notifications %}
+  <button type="button" data-action="export-history"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg
+                 bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-download" aria-hidden="true"></i>Export History
+  </button>
+  {% endif %}
+  <a href="{{ url_for('admin_panel.campaigns_list') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+            border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-semibold
+            text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+            focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-broadcast" aria-hidden="true"></i><span class="hidden sm:inline">New Campaign</span>
+  </a>
+{% endcall %}
 
 <!-- KPI band -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
-  {{ stat_card("ti-send", "Total Sent", stats.total_sent or 0, tone='info') }}
-  {{ stat_card("ti-calendar", "Sent Today", stats.sent_today or 0, tone='success') }}
-  {{ stat_card("ti-calendar-week", "Sent This Week", stats.sent_this_week or 0, tone='primary') }}
-  {{ stat_card("ti-users", "Total Recipients", stats.total_recipients or 0, tone='gold') }}
+  {% call stat_card("ti-send", "Total Sent", stats.total_sent or 0, tone='info') %}
+    <span class="font-mono">{{ stats.sent_today or 0 }}</span> today
+  {% endcall %}
+  {% call stat_card("ti-calendar-week", "This Week", stats.sent_this_week or 0, tone='primary') %}
+    <span class="font-mono">{{ stats.avg_per_day or 0 }}</span> avg/day
+  {% endcall %}
+  {% call stat_card("ti-users", "Total Recipients", stats.total_recipients or 0, tone='gold') %}
+    across all sends
+  {% endcall %}
+  {% call stat_card("ti-circle-check", "Delivered Clean", sc.sent or 0, tone='success') %}
+    <span class="font-mono">{{ ((sc.sent or 0) * 100 // total_status_safe) }}%</span> of activity
+  {% endcall %}
 </div>
 
-<!-- Status Distribution -->
+<!-- Status Distribution: segmented delivery bar -->
 <div class="mb-5 sm:mb-6">
-  {% call section_card("Status Distribution", icon="ti-chart-pie") %}
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-5">
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-      <p class="font-mono text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.status_counts.sent or 0 }}</p>
-      <p class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400"><i class="ti ti-check mr-1" aria-hidden="true"></i>Sent</p>
+  {% call section_card("Delivery Outcomes", icon="ti-chart-bar") %}
+  <div class="p-4 sm:p-5">
+    {% if total_status > 0 %}
+    <div class="flex h-2.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700" role="img"
+         aria-label="Sent {{ sc.sent or 0 }}, In progress {{ sc.sending or 0 }}, Cancelled {{ sc.cancelled or 0 }}, Failed {{ sc.failed or 0 }}">
+      {% if sc.sent %}<div class="h-full bg-green-500 dark:bg-green-400" style="width: {{ (sc.sent * 100 / total_status_safe)|round(2) }}%"></div>{% endif %}
+      {% if sc.sending %}<div class="h-full bg-blue-500 dark:bg-blue-400" style="width: {{ (sc.sending * 100 / total_status_safe)|round(2) }}%"></div>{% endif %}
+      {% if sc.cancelled %}<div class="h-full bg-gray-400 dark:bg-gray-500" style="width: {{ (sc.cancelled * 100 / total_status_safe)|round(2) }}%"></div>{% endif %}
+      {% if sc.failed %}<div class="h-full bg-red-500 dark:bg-red-400" style="width: {{ (sc.failed * 100 / total_status_safe)|round(2) }}%"></div>{% endif %}
     </div>
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-      <p class="font-mono text-2xl font-bold text-red-600 dark:text-red-400">{{ stats.status_counts.failed or 0 }}</p>
-      <p class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400"><i class="ti ti-x mr-1" aria-hidden="true"></i>Failed</p>
-    </div>
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-      <p class="font-mono text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.status_counts.sending or 0 }}</p>
-      <p class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400"><i class="ti ti-loader mr-1" aria-hidden="true"></i>In Progress</p>
-    </div>
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-      <p class="font-mono text-2xl font-bold text-gray-600 dark:text-gray-400">{{ stats.status_counts.cancelled or 0 }}</p>
-      <p class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400"><i class="ti ti-ban mr-1" aria-hidden="true"></i>Cancelled</p>
+    {% endif %}
+    <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <div class="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          <span class="w-2 h-2 rounded-full bg-green-500 dark:bg-green-400" aria-hidden="true"></span><i class="ti ti-check" aria-hidden="true"></i>Sent
+        </div>
+        <p class="mt-2 font-mono text-2xl font-bold text-green-600 dark:text-green-400">{{ sc.sent or 0 }}</p>
+      </div>
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <div class="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          <span class="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400" aria-hidden="true"></span><i class="ti ti-loader" aria-hidden="true"></i>In Progress
+        </div>
+        <p class="mt-2 font-mono text-2xl font-bold text-blue-600 dark:text-blue-400">{{ sc.sending or 0 }}</p>
+      </div>
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <div class="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          <span class="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500" aria-hidden="true"></span><i class="ti ti-ban" aria-hidden="true"></i>Cancelled
+        </div>
+        <p class="mt-2 font-mono text-2xl font-bold text-gray-600 dark:text-gray-400">{{ sc.cancelled or 0 }}</p>
+      </div>
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <div class="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          <span class="w-2 h-2 rounded-full bg-red-500 dark:bg-red-400" aria-hidden="true"></span><i class="ti ti-x" aria-hidden="true"></i>Failed
+        </div>
+        <p class="mt-2 font-mono text-2xl font-bold text-red-600 dark:text-red-400">{{ sc.failed or 0 }}</p>
+      </div>
     </div>
   </div>
   {% endcall %}
 </div>
 
-<!-- Push History Table -->
+<!-- Push History: dense forensic log with date-group dividers -->
 {% if push_notifications %}
 {% set table_footer %}
-  <span>{{ push_notifications|length or 0 }} notifications shown</span>
+  <span><span class="font-mono">{{ push_notifications|length or 0 }}</span> notifications shown · most recent first</span>
   <button type="button" data-action="export-history"
           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                  border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-semibold
@@ -68,26 +116,43 @@
     <i class="ti ti-download" aria-hidden="true"></i>Export History
   </button>
 {% endset %}
-{% call data_table("Push Notification History", icon="ti-history", count=push_notifications|length, search_placeholder="Filter notifications…", search_id="pushHistoryFilter", footer=table_footer) %}
+{% call data_table("Send Log", icon="ti-history", count=push_notifications|length, search_placeholder="Filter notifications…", search_id="pushHistoryFilter", footer=table_footer) %}
   <!-- md+ table -->
   <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
     <thead>
       <tr class="border-b border-gray-200 dark:border-gray-700">
+        {{ data_table_th("Time", key="time") }}
         {{ data_table_th("Notification", key="title") }}
         {{ data_table_th("Source", key="source", hide="sm") }}
-        {{ data_table_th("Recipients", key="recipients", hide="sm") }}
+        {{ data_table_th("Audience", key="recipients", hide="sm") }}
+        {{ data_table_th("Delivery", key="delivery", hide="md") }}
         {{ data_table_th("Status", key="status") }}
-        {{ data_table_th("Sent Date", key="date", hide="md") }}
       </tr>
     </thead>
-    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+    <tbody>
+      {% set ns = namespace(day=None) %}
       {% for notification in push_notifications %}
-      <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-        <td class="px-3 py-3">
+      {% set this_day = notification.created_at.strftime('%Y-%m-%d') if notification.created_at else 'Unknown date' %}
+      {% if this_day != ns.day %}
+        {% set ns.day = this_day %}
+        <tr data-date-group>
+          <td colspan="6" class="px-3 pt-4 pb-1.5">
+            <div class="flex items-center gap-3">
+              <span class="font-mono text-xs font-bold uppercase tracking-wide text-ecs-green">{{ this_day }}</span>
+              <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+            </div>
+          </td>
+        </tr>
+      {% endif %}
+      <tr data-row class="border-b border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+        <td class="px-3 py-3 align-top whitespace-nowrap">
+          <span class="font-mono text-sm text-gray-900 dark:text-white">{{ notification.created_at.strftime('%H:%M') if notification.created_at else '--:--' }}</span>
+        </td>
+        <td class="px-3 py-3 align-top">
           <div class="font-semibold text-gray-900 dark:text-white">{{ notification.title or 'No Title' }}</div>
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ (notification.content or 'No content')[:80] }}{% if (notification.content or '')|length > 80 %}...{% endif %}</p>
         </td>
-        <td class="px-3 py-3 hidden md:table-cell">
+        <td class="px-3 py-3 align-top hidden md:table-cell">
           {% if notification.source == 'campaign' %}
           <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-300">
             <i class="ti ti-broadcast" aria-hidden="true"></i>Campaign
@@ -98,7 +163,7 @@
           </span>
           {% endif %}
         </td>
-        <td class="px-3 py-3 hidden md:table-cell">
+        <td class="px-3 py-3 align-top hidden md:table-cell">
           {% if notification.recipient %}
           <div class="flex items-center gap-2">
             <span class="w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center text-xs font-bold shrink-0">
@@ -107,10 +172,21 @@
             <span class="text-sm text-gray-900 dark:text-white">{{ notification.recipient.username or 'Unknown' }}</span>
           </div>
           {% else %}
-          <span class="text-sm"><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ notification.recipients or 0 }}</span> <span class="text-xs text-gray-500 dark:text-gray-400">recipients</span></span>
+          <span class="inline-flex items-baseline gap-1"><span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ notification.recipients or 0 }}</span><span class="text-xs text-gray-500 dark:text-gray-400">recipients</span></span>
           {% endif %}
         </td>
-        <td class="px-3 py-3">
+        <td class="px-3 py-3 align-top hidden lg:table-cell">
+          {% if notification.source == 'campaign' %}
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+            <span class="inline-flex items-baseline gap-1 text-gray-500 dark:text-gray-400"><i class="ti ti-circle-check text-green-600 dark:text-green-400" aria-hidden="true"></i><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ notification.delivered_count or 0 }}</span>delivered</span>
+            {% if notification.failed_count %}<span class="inline-flex items-baseline gap-1 text-gray-500 dark:text-gray-400"><i class="ti ti-x text-red-600 dark:text-red-400" aria-hidden="true"></i><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ notification.failed_count }}</span>failed</span>{% endif %}
+            <span class="inline-flex items-baseline gap-1 text-gray-500 dark:text-gray-400"><i class="ti ti-click text-blue-600 dark:text-blue-400" aria-hidden="true"></i><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ notification.click_count or 0 }}</span>clicks</span>
+          </div>
+          {% else %}
+          <span class="text-xs font-mono text-gray-400 dark:text-gray-500">— n/a —</span>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 align-top">
           {% if notification.status == 'sent' %}
           <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check" aria-hidden="true"></i>Sent</span>
           {% elif notification.status == 'failed' %}
@@ -123,15 +199,23 @@
           <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"><i class="ti ti-clock" aria-hidden="true"></i>{{ notification.status|capitalize }}</span>
           {% endif %}
         </td>
-        <td class="px-3 py-3 text-sm font-mono hidden lg:table-cell">{{ notification.created_at.strftime('%Y-%m-%d %H:%M') if notification.created_at else 'Unknown' }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
-  <!-- mobile cards -->
-  <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+  <!-- mobile cards with date-group dividers -->
+  <div class="md:hidden">
+    {% set ns_m = namespace(day=None) %}
     {% for notification in push_notifications %}
-    <div data-row class="px-4 py-3.5">
+    {% set this_day = notification.created_at.strftime('%Y-%m-%d') if notification.created_at else 'Unknown date' %}
+    {% if this_day != ns_m.day %}
+      {% set ns_m.day = this_day %}
+      <div class="flex items-center gap-3 px-4 pt-4 pb-1.5 bg-gray-50/60 dark:bg-gray-900/30">
+        <span class="font-mono text-xs font-bold uppercase tracking-wide text-ecs-green">{{ this_day }}</span>
+        <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+      </div>
+    {% endif %}
+    <div data-row class="px-4 py-3.5 border-b border-gray-100 dark:border-gray-700/60">
       <div class="flex items-center justify-between gap-2">
         <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ notification.title or 'No Title' }}</span>
         {% if notification.status == 'sent' %}
@@ -158,8 +242,15 @@
         {% else %}
         <span class="inline-flex items-center gap-1"><i class="ti ti-users" aria-hidden="true"></i><span class="font-mono">{{ notification.recipients or 0 }}</span> recipients</span>
         {% endif %}
-        <span class="inline-flex items-center gap-1 font-mono"><i class="ti ti-clock" aria-hidden="true"></i>{{ notification.created_at.strftime('%Y-%m-%d %H:%M') if notification.created_at else 'Unknown' }}</span>
+        <span class="inline-flex items-center gap-1 font-mono"><i class="ti ti-clock" aria-hidden="true"></i>{{ notification.created_at.strftime('%H:%M') if notification.created_at else '--:--' }}</span>
       </div>
+      {% if notification.source == 'campaign' %}
+      <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+        <span class="inline-flex items-baseline gap-1"><i class="ti ti-circle-check text-green-600 dark:text-green-400" aria-hidden="true"></i><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ notification.delivered_count or 0 }}</span>delivered</span>
+        {% if notification.failed_count %}<span class="inline-flex items-baseline gap-1"><i class="ti ti-x text-red-600 dark:text-red-400" aria-hidden="true"></i><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ notification.failed_count }}</span>failed</span>{% endif %}
+        <span class="inline-flex items-baseline gap-1"><i class="ti ti-click text-blue-600 dark:text-blue-400" aria-hidden="true"></i><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ notification.click_count or 0 }}</span>clicks</span>
+      </div>
+      {% endif %}
     </div>
     {% endfor %}
   </div>

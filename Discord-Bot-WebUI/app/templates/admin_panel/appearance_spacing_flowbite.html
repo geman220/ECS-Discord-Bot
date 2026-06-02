@@ -21,37 +21,239 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, alert %}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
+{#
+  Intent: this page reports the ONE global design token that scales every gap/pad
+  in the app — spacing.scale_multiplier. The classic branch is read-only (the
+  save-spacing endpoint exists but no UI wires it), so the console stays read-only too.
+  Everything below is DERIVED from the two real provided values:
+    spacing.scale_multiplier (current) and default_spacing.scale_multiplier (baseline).
+  Tailwind's spacing unit = 0.25rem (4px); effective step = 4px * multiplier — a real
+  computation off the token, not fabricated data.
+#}
+{% set cur = spacing.scale_multiplier %}
+{% set base = default_spacing.scale_multiplier %}
+{% set is_baseline = (cur == base) %}
+{% set delta_pct = ((cur - base) / base * 100) | round(0, 'common') | int if base else 0 %}
+{% set unit_px = (cur * 4) | round(2) %}
+{% set within_range = (cur >= 0.5 and cur <= 2.0) %}
+{# 20-segment gauge across the allowed 0.5..2.0 track (no inline style — each
+   segment is a static cell; we fill the ones up to the current value). #}
+{% set seg_count = 20 %}
+{% set cur_clamped = 0.5 if cur < 0.5 else (2.0 if cur > 2.0 else cur) %}
+{% set cur_seg = (((cur_clamped - 0.5) / 1.5) * seg_count) | round(0, 'common') | int %}
+{% set base_seg = (((base - 0.5) / 1.5) * seg_count) | round(0, 'common') | int %}
+
 <div class="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 sm:space-y-6">
-    {{ page_header("Spacing", subtitle="Appearance") }}
+    {% call page_header("Spacing scale", subtitle="Appearance / Design tokens") %}
+    {% if is_baseline %}
+    <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-bold uppercase tracking-wide
+                 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+        <i class="ti ti-circle-check" aria-hidden="true"></i> At baseline
+    </span>
+    {% else %}
+    <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-bold uppercase tracking-wide
+                 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+        <i class="ti ti-adjustments-alt" aria-hidden="true"></i> Customized
+    </span>
+    {% endif %}
+    {% endcall %}
 
-    {{ alert('info', 'Adjust the global spacing scale used across the application.', title='Spacing settings.', dismissible=False) }}
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-        {{ stat_card('ti-ruler-2', 'Scale Multiplier', spacing.scale_multiplier, sublabel='current') }}
-        {{ stat_card('ti-ruler', 'Default Scale', default_spacing.scale_multiplier, sublabel='baseline', tone='neutral') }}
+    {# ---- Top KPI band: the four spacing-token facts, derived off the single real token ---- #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Current scale</span>
+                <i class="ti ti-ruler-2 text-lg text-ecs-green" aria-hidden="true"></i>
+            </div>
+            <div class="mt-2 text-xl font-bold font-mono {{ 'text-ecs-green' if not is_baseline else 'text-gray-900 dark:text-white' }}">{{ cur }}&times;</div>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Active spacing multiplier</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Baseline</span>
+                <i class="ti ti-target text-lg text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+            </div>
+            <div class="mt-2 text-xl font-bold font-mono text-gray-900 dark:text-white">{{ base }}&times;</div>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">System default scale</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">vs baseline</span>
+                <i class="ti ti-arrows-diff text-lg text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+            </div>
+            {% if is_baseline %}
+            <div class="mt-2 text-xl font-bold font-mono text-gray-900 dark:text-white">&plusmn;0%</div>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Matches default</p>
+            {% else %}
+            <div class="mt-2 text-xl font-bold font-mono text-amber-600 dark:text-amber-400">{{ '+' if delta_pct > 0 else '' }}{{ delta_pct }}%</div>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Customized from default</p>
+            {% endif %}
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Base unit</span>
+                <i class="ti ti-ruler-measure text-lg text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+            </div>
+            <div class="mt-2 text-xl font-bold font-mono text-gray-900 dark:text-white">{{ unit_px }}px</div>
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500 font-mono">0.25rem &times; {{ cur }}</p>
+        </div>
     </div>
 
-    {% call section_card("Scale Detail", icon="ti-ruler-measure") %}
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-5">
+        {# ---- PRIMARY OBJECT: the live multiplier, as a hero feature card ---- #}
+        <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                    <i class="ti ti-ruler-2 text-ecs-green" aria-hidden="true"></i> Global multiplier
+                </h2>
+                <span class="text-xs font-mono text-gray-500 dark:text-gray-400">range 0.5&ndash;2.0&times;</span>
+            </div>
+            <div class="p-4 sm:p-6">
+                <div class="flex items-end justify-between gap-4 flex-wrap">
+                    <div class="min-w-0">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Current scale</p>
+                        <div class="flex items-end gap-2">
+                            <span class="font-mono text-5xl sm:text-6xl font-bold leading-none {{ 'text-ecs-green' if not is_baseline else 'text-gray-900 dark:text-white' }}">{{ cur }}</span>
+                            <span class="font-mono text-2xl font-bold text-gray-400 dark:text-gray-500 mb-0.5">&times;</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">vs baseline</p>
+                        {% if is_baseline %}
+                        <span class="font-mono text-2xl font-bold text-gray-400 dark:text-gray-500">&plusmn;0%</span>
+                        {% else %}
+                        <span class="font-mono text-2xl font-bold text-amber-600 dark:text-amber-400">{{ '+' if delta_pct > 0 else '' }}{{ delta_pct }}%</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {# ---- Segmented gauge: current value across the allowed 0.5..2.0 track ---- #}
+                <div class="mt-6">
+                    <div class="flex items-center gap-1" role="img"
+                         aria-label="Current scale {{ cur }} times on a track from 0.5 to 2.0; baseline {{ base }} times">
+                        {% for seg in range(seg_count) %}
+                        {% set on = seg < cur_seg %}
+                        {% set is_base = (seg == base_seg) %}
+                        <span class="flex-1 h-3 rounded-sm
+                                     {{ 'bg-ecs-green' if on else 'bg-gray-100 dark:bg-gray-700' }}
+                                     {{ 'ring-2 ring-ecs-gold-500 dark:ring-ecs-gold-400' if is_base else '' }}"
+                              aria-hidden="true"></span>
+                        {% endfor %}
+                    </div>
+                    <div class="flex justify-between mt-2 text-xs font-mono text-gray-400 dark:text-gray-500">
+                        <span>0.5&times; compact</span>
+                        <span class="inline-flex items-center gap-1">
+                            <i class="ti ti-square-rounded-filled text-ecs-gold-500 dark:text-ecs-gold-400 text-[10px]" aria-hidden="true"></i>1.0&times; baseline
+                        </span>
+                        <span>2.0&times; roomy</span>
+                    </div>
+                </div>
+
+                {# ---- Validation state callout (derived from within_range) ---- #}
+                {% if within_range %}
+                <div class="mt-6 rounded-lg border border-green-300 bg-green-50 text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-400 px-3 py-2.5 flex items-center gap-2 text-sm font-medium">
+                    <i class="ti ti-circle-check text-base" aria-hidden="true"></i>
+                    Within allowed range (0.5&ndash;2.0&times;). Safe to apply.
+                </div>
+                {% else %}
+                <div class="mt-6 rounded-lg border border-red-300 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400 px-3 py-2.5 flex items-center gap-2 text-sm font-medium">
+                    <i class="ti ti-alert-octagon text-base" aria-hidden="true"></i>
+                    Outside allowed range (0.5&ndash;2.0&times;). This value will be rejected on save.
+                </div>
+                {% endif %}
+            </div>
+
+            {# ---- Footer KPI band: derived facts off the single token ---- #}
+            <div class="grid grid-cols-2 sm:grid-cols-3 divide-x divide-y sm:divide-y-0 divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700">
+                <div class="p-4">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Baseline</p>
+                    <p class="mt-1 font-mono text-xl font-bold text-gray-900 dark:text-white">{{ base }}&times;</p>
+                </div>
+                <div class="p-4">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Base unit</p>
+                    <p class="mt-1 font-mono text-xl font-bold text-gray-900 dark:text-white">{{ unit_px }}px</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 font-mono">0.25rem &times; {{ cur }}</p>
+                </div>
+                <div class="p-4 col-span-2 sm:col-span-1">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Within limits</p>
+                    <p class="mt-1 font-semibold flex items-center gap-1.5 {{ 'text-green-600 dark:text-green-400' if within_range else 'text-red-600 dark:text-red-400' }}">
+                        <i class="ti {{ 'ti-circle-check' if within_range else 'ti-alert-octagon' }}" aria-hidden="true"></i>
+                        {{ 'Valid' if within_range else 'Out of range' }}
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        {# ---- Scale ramp: real px sizes derived from the multiplier (Tailwind steps).
+               Bar widths are keyed to the FIXED step index (constant proportions, static
+               classes — no inline style); the px figure is the live derived value. ---- #}
+        {% set bar_w = {1: 'w-1.5', 2: 'w-3', 4: 'w-6', 6: 'w-9', 8: 'w-12'} %}
+        {% call section_card("Step preview", icon="ti-ruler-measure") %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+            {% for step in [1, 2, 4, 6, 8] %}
+            {% set rem = (step * 0.25) | round(3) %}
+            {% set px = (step * unit_px) | round(1) %}
+            <li class="flex items-center gap-3 px-4 sm:px-5 py-2.5">
+                <span class="font-mono text-xs text-gray-400 dark:text-gray-500 w-12 shrink-0">{{ rem }}rem</span>
+                <span class="h-2.5 rounded bg-ecs-green/70 dark:bg-ecs-green/60 shrink-0 {{ bar_w[step] }}" aria-hidden="true"></span>
+                <span class="font-mono text-sm font-bold text-gray-900 dark:text-white ml-auto">{{ px }}px</span>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+            Effective pixel sizes at {{ cur }}&times; scale.
+        </div>
+
+        {# ---- Density preview: a static sample card demonstrating scaled padding/gaps.
+               Purely presentational (no data) — mirrors the mock's density demo. ---- #}
+        <div class="px-4 sm:px-5 py-4 border-t border-gray-200 dark:border-gray-700">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Density preview</p>
+            <div class="rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-5 space-y-3">
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 flex items-center gap-3">
+                    <i class="ti ti-user-circle text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                    <div class="min-w-0">
+                        <p class="font-semibold text-sm text-gray-900 dark:text-white">Sample card</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Padding and gaps scale with the multiplier.</p>
+                    </div>
+                    <span class="ml-auto inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                        <i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> Active
+                    </span>
+                </div>
+                <div class="flex gap-2">
+                    <span class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green text-white text-sm font-semibold">Primary</span>
+                    <span class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-900 dark:text-white">Secondary</span>
+                </div>
+            </div>
+        </div>
+        {% endcall %}
+    </div>
+
+    {# ---- Read-only token detail (mirrors the classic dl, richer) ---- #}
+    {% call section_card("Token detail", icon="ti-braces") %}
     <dl class="divide-y divide-gray-200 dark:divide-gray-700">
         <div class="flex items-center justify-between px-4 sm:px-5 py-3 gap-3">
-            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Current scale multiplier</dt>
-            <dd class="font-mono text-sm font-bold text-ecs-green">{{ spacing.scale_multiplier }}</dd>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">spacing.scale_multiplier</dt>
+            <dd class="font-mono text-sm font-bold text-ecs-green">{{ cur }}</dd>
         </div>
         <div class="flex items-center justify-between px-4 sm:px-5 py-3 gap-3">
             <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Default (baseline) scale</dt>
-            <dd class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ default_spacing.scale_multiplier }}</dd>
+            <dd class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ base }}</dd>
+        </div>
+        <div class="flex items-center justify-between px-4 sm:px-5 py-3 gap-3">
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Allowed range</dt>
+            <dd class="font-mono text-sm font-bold text-gray-900 dark:text-white">0.5 &ndash; 2.0</dd>
         </div>
         <div class="flex items-center justify-between px-4 sm:px-5 py-3 gap-3">
             <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Status</dt>
             <dd class="text-sm font-semibold">
-                {% if spacing.scale_multiplier == default_spacing.scale_multiplier %}
+                {% if is_baseline %}
                 <span class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
                     <i class="ti ti-circle-check" aria-hidden="true"></i> At baseline
                 </span>
                 {% else %}
                 <span class="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-                    <i class="ti ti-adjustments-alt" aria-hidden="true"></i> Customized
+                    <i class="ti ti-adjustments-alt" aria-hidden="true"></i> Customized ({{ '+' if delta_pct > 0 else '' }}{{ delta_pct }}%)
                 </span>
                 {% endif %}
             </dd>

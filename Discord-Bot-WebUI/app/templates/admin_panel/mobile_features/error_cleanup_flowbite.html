@@ -27,41 +27,245 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, alert as kit_alert %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state, alert as kit_alert %}
+
+{# --- Resolve real data shapes from app.tasks.mobile_analytics_cleanup ---
+   storage_stats: { record_counts: {mobile_error_analytics, mobile_logs, mobile_error_patterns, total_records},
+                    table_sizes: [{tablename, size, size_bytes, schemaname}], stats_date } | {error, stats_date}
+   preview: { preview_date, total_records_to_delete,
+              mobile_error_analytics|mobile_logs|mobile_error_patterns: {records_to_delete, retention_cutoff, oldest_record} }
+            | {error, preview_date} #}
+{% set stats_err = storage_stats.get('error') if storage_stats else None %}
+{% set prev_err = preview.get('error') if preview else None %}
+{% set counts = (storage_stats.record_counts if storage_stats else None) or {} %}
+{% set sizes = (storage_stats.table_sizes if storage_stats else None) or [] %}
+{% set size_by_table = {} %}
+{% for s in sizes %}{% set _ = size_by_table.update({s.tablename: s}) %}{% endfor %}
+{% set total_records = counts.get('total_records') %}
+{% set total_to_delete = preview.get('total_records_to_delete') if preview else None %}
+{# Per-table rows the breakdown table will iterate — only real, route-provided tables #}
+{% set tables = [
+  {'key': 'mobile_error_analytics', 'label': 'Error analytics', 'icon': 'ti-bug',          'retention': '30 days'},
+  {'key': 'mobile_logs',            'label': 'Mobile logs',     'icon': 'ti-file-text',     'retention': '7 days'},
+  {'key': 'mobile_error_patterns',  'label': 'Error patterns',  'icon': 'ti-fingerprint',   'retention': '60 days'}
+] %}
+
 <div class="space-y-5 sm:space-y-6">
-    {{ page_header("Error Data Cleanup", subtitle="Mobile Features") }}
-
-    {{ kit_alert('warning', 'Review what will be removed before confirming a cleanup operation.', title='Data cleanup.', dismissible=false) }}
-
-    {% call section_card("Storage Statistics", icon="ti-database") %}
-        {% if storage_stats %}
-        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700">
-            {% for key, value in storage_stats.items() %}
-            <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
-                <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ key|replace('_', ' ')|title }}</dt>
-                <dd class="mt-1 text-base font-mono font-semibold text-gray-900 dark:text-white">{{ value }}</dd>
-            </div>
-            {% endfor %}
-        </dl>
-        {% else %}
-        {{ empty_state("ti-database-off", "No storage statistics", "There are no storage statistics available right now.") }}
-        {% endif %}
+    {% call(slot) page_header("Error Data Cleanup", subtitle="Mobile Features · Retention policy") %}
+        <button type="button" data-modal-target="cleanupConfirmModal" data-modal-toggle="cleanupConfirmModal"
+                {% if not total_to_delete %}disabled aria-disabled="true"{% endif %}
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                       bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors
+                       disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-600
+                       focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-trash text-base" aria-hidden="true"></i>
+            <span>Run cleanup</span>
+            {% if total_to_delete %}<span class="font-mono font-bold px-1.5 py-0.5 rounded bg-white/20 text-xs">{{ '{:,}'.format(total_to_delete) }}</span>{% endif %}
+        </button>
     {% endcall %}
 
-    {% call section_card("Cleanup Preview", icon="ti-eye") %}
-        {% if preview %}
-        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700">
-            {% for key, value in preview.items() %}
-            <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
-                <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ key|replace('_', ' ')|title }}</dt>
-                <dd class="mt-1 text-base font-mono font-semibold text-gray-900 dark:text-white">{{ value }}</dd>
+    {% if stats_err or prev_err %}
+        {{ kit_alert('danger', (stats_err or prev_err), title='Unable to read analytics data.', dismissible=false) }}
+    {% else %}
+        {{ kit_alert('warning', 'Cleanup permanently deletes records older than each table’s retention window. This cannot be undone.', title='Destructive operation.', dismissible=false) }}
+    {% endif %}
+
+    {# ---------------- KPI band: real figures only ---------------- #}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {% call(slot) stat_card("ti-database", "Records stored", ('{:,}'.format(total_records) if total_records is not none else '—'), tone='neutral') %}
+            across 3 mobile analytics tables
+        {% endcall %}
+        {% call(slot) stat_card("ti-trash", "Eligible to delete", ('{:,}'.format(total_to_delete) if total_to_delete is not none else '—'), tone=('danger' if total_to_delete else 'success')) %}
+            {% if total_records and total_to_delete %}{{ ((total_to_delete / total_records) * 100) | round(1) }}% of all records{% else %}within retention window{% endif %}
+        {% endcall %}
+        {% call(slot) stat_card("ti-clock-pause", "Records retained", (('{:,}'.format(total_records - total_to_delete)) if (total_records is not none and total_to_delete is not none) else '—'), tone='primary') %}
+            kept after cleanup
+        {% endcall %}
+    </div>
+
+    {# ---------------- Per-table breakdown: real table ---------------- #}
+    {% if storage_stats and not stats_err %}
+    <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <i class="ti ti-table text-ecs-green" aria-hidden="true"></i> Table breakdown
+            </h2>
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ tables|length }}</span>
+        </div>
+
+        {# md+ : real table with mono numerals #}
+        <div class="md:overflow-x-auto">
+            <table class="hidden md:table w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                        <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Table</th>
+                        <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Records</th>
+                        <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">On disk</th>
+                        <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Retention</th>
+                        <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell">Oldest record</th>
+                        <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">To delete</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for t in tables %}
+                    {% set p = (preview.get(t.key) if preview else None) or {} %}
+                    {% set sz = size_by_table.get(t.key) %}
+                    {% set to_del = p.get('records_to_delete') %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <i class="ti {{ t.icon }} text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                                <div class="min-w-0">
+                                    <span class="font-medium text-gray-900 dark:text-white">{{ t.label }}</span>
+                                    <span class="block text-xs font-mono text-gray-400 dark:text-gray-500 truncate">{{ t.key }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-3 py-3 text-right font-mono text-gray-900 dark:text-white">{{ '{:,}'.format(counts.get(t.key)) if counts.get(t.key) is not none else '—' }}</td>
+                        <td class="px-3 py-3 text-right font-mono text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ sz.size if sz else '—' }}</td>
+                        <td class="px-3 py-3 text-left hidden lg:table-cell">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                <i class="ti ti-clock-pause text-[11px]" aria-hidden="true"></i>{{ t.retention }}
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 text-left font-mono text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ (p.get('oldest_record')[:10] if p.get('oldest_record') else '—') }}</td>
+                        <td class="px-4 py-3 text-right">
+                            {% if to_del %}
+                            <span class="inline-flex items-center gap-1 font-mono font-bold text-red-600 dark:text-red-400"><i class="ti ti-arrow-down-right text-xs" aria-hidden="true"></i>{{ '{:,}'.format(to_del) }}</span>
+                            {% else %}
+                            <span class="font-mono text-gray-400 dark:text-gray-500">0</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="border-t-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+                        <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white">Total</td>
+                        <td class="px-3 py-3 text-right font-mono font-bold text-gray-900 dark:text-white">{{ '{:,}'.format(total_records) if total_records is not none else '—' }}</td>
+                        <td class="px-3 py-3 hidden lg:table-cell"></td>
+                        <td class="px-3 py-3 hidden lg:table-cell"></td>
+                        <td class="px-3 py-3 hidden md:table-cell"></td>
+                        <td class="px-4 py-3 text-right font-mono font-bold text-red-600 dark:text-red-400">{{ '{:,}'.format(total_to_delete) if total_to_delete is not none else '—' }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            {# mobile : stacked dense rows #}
+            <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                {% for t in tables %}
+                {% set p = (preview.get(t.key) if preview else None) or {} %}
+                {% set sz = size_by_table.get(t.key) %}
+                {% set to_del = p.get('records_to_delete') %}
+                <div class="px-4 py-3.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                            <i class="ti {{ t.icon }} text-gray-400 dark:text-gray-500" aria-hidden="true"></i>{{ t.label }}
+                        </span>
+                        {% if to_del %}
+                        <span class="inline-flex items-center gap-1 font-mono font-bold text-xs text-red-600 dark:text-red-400"><i class="ti ti-trash text-[11px]" aria-hidden="true"></i>{{ '{:,}'.format(to_del) }}</span>
+                        {% else %}
+                        <span class="font-mono text-xs text-gray-400 dark:text-gray-500">0 to delete</span>
+                        {% endif %}
+                    </div>
+                    <div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                        <span class="font-mono">{{ '{:,}'.format(counts.get(t.key)) if counts.get(t.key) is not none else '—' }} records</span>
+                        {% if sz %}<span class="font-mono">{{ sz.size }}</span>{% endif %}
+                        <span class="inline-flex items-center gap-1"><i class="ti ti-clock-pause text-[11px]" aria-hidden="true"></i>{{ t.retention }}</span>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </dl>
-        {% else %}
-        {{ empty_state("ti-circle-check", "Nothing to clean up", "There is no error analytics data eligible for removal.") }}
+        </div>
+
+        {% if storage_stats.stats_date %}
+        <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+            <span class="inline-flex items-center gap-1.5"><i class="ti ti-clock" aria-hidden="true"></i>Snapshot taken</span>
+            <span class="font-mono">{{ storage_stats.stats_date[:19]|replace('T', ' ') }} UTC</span>
+        </div>
         {% endif %}
+    </section>
+    {% else %}
+    {% call section_card("Table breakdown", icon="ti-table") %}
+        {{ empty_state("ti-database-off", "No storage statistics", "Per-table record counts and sizes are not available right now.") }}
     {% endcall %}
+    {% endif %}
+
+    {# ---------------- Retention policy reference ---------------- #}
+    {% call section_card("Retention policy", icon="ti-shield-check") %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for t in tables %}
+            {% set p = (preview.get(t.key) if preview else None) or {} %}
+            <li class="flex items-center gap-3 px-4 sm:px-5 py-3">
+                <i class="ti {{ t.icon }} text-ecs-green shrink-0" aria-hidden="true"></i>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ t.label }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Records older than <span class="font-semibold text-gray-700 dark:text-gray-300">{{ t.retention }}</span> are removed on cleanup</p>
+                </div>
+                {% if p.get('retention_cutoff') %}
+                <span class="shrink-0 text-right">
+                    <span class="block text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Cutoff</span>
+                    <span class="block font-mono text-xs text-gray-700 dark:text-gray-300">{{ p.get('retention_cutoff')[:10] }}</span>
+                </span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    {% endcall %}
+</div>
+
+{# ---------------- Confirm modal (Flowbite-native; wired by initFlowbite) ---------------- #}
+<div id="cleanupConfirmModal" tabindex="-1" aria-hidden="true" aria-modal="true" role="dialog"
+     aria-labelledby="cleanupConfirmModal-title" data-modal-backdrop="static"
+     class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 justify-center items-end sm:items-center w-full max-h-full">
+  <div class="relative p-0 sm:p-4 w-full sm:max-w-md max-h-full">
+    <div class="relative bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl">
+      <div class="flex items-center justify-between px-5 h-14 border-b border-gray-200 dark:border-gray-700">
+        <h3 id="cleanupConfirmModal-title" class="font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-alert-octagon text-red-600 dark:text-red-400" aria-hidden="true"></i> Confirm cleanup
+        </h3>
+        <button type="button" data-modal-hide="cleanupConfirmModal"
+                class="modal-close-btn p-2 -mr-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center
+                       rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Close modal">
+          <i class="ti ti-x text-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-4">
+        <p class="text-sm text-gray-700 dark:text-gray-300">
+          You are about to permanently delete
+          <span class="font-mono font-bold text-red-600 dark:text-red-400">{{ '{:,}'.format(total_to_delete) if total_to_delete else '0' }}</span>
+          records that fall outside their retention windows. This action cannot be undone.
+        </p>
+        <ul class="space-y-1.5">
+          {% for t in tables %}
+          {% set p = (preview.get(t.key) if preview else None) or {} %}
+          {% if p.get('records_to_delete') %}
+          <li class="flex items-center justify-between text-sm">
+            <span class="text-gray-600 dark:text-gray-400">{{ t.label }}</span>
+            <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ '{:,}'.format(p.get('records_to_delete')) }}</span>
+          </li>
+          {% endif %}
+          {% endfor %}
+        </ul>
+        {# POST endpoint expects JSON {confirmed:true}; submit via the page's admin JS (data-action hook). #}
+        <form method="post" action="{{ url_for('admin_panel.mobile_error_cleanup') }}" data-action="run-error-cleanup" id="cleanupForm">
+          <input type="hidden" name="confirmed" value="true">
+          <div class="flex items-center justify-end gap-2 pt-1">
+            <button type="button" data-modal-hide="cleanupConfirmModal"
+                    class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold
+                           border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700
+                           focus:outline-none focus:ring-2 focus:ring-ecs-green">Cancel</button>
+            <button type="submit"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold
+                           bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-trash text-base" aria-hidden="true"></i> Delete records
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 {% else %}
 <div class="p-4 space-y-6">

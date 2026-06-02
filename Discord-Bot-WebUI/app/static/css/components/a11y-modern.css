@@ -1,0 +1,40 @@
+/* ============================================================================
+   a11y-modern.css — global accessibility baseline for the Modern shell.
+   Closes two ui-ux-pro-max rubric items the Tailwind-utility templates miss
+   (the component .c-* CSS already covers its own classes, but not utilities):
+     §1 focus-states (CRITICAL): visible keyboard focus ring on ALL interactive
+        elements that lack an explicit focus: utility.
+     §7 reduced-motion (MEDIUM): neutralize animation/transition for users who
+        request reduced motion.
+   Keyboard-focus-only + reduced-motion-only, so it does not alter normal
+   (mouse/visual) appearance for Classic users.
+   ============================================================================ */
+
+/* §1 — visible focus ring fallback (uses the brand gold accent token). */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="menuitem"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-accent, #c9a227);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* §7 — respect prefers-reduced-motion globally (covers Tailwind animate-*,
+   transitions, and smooth scroll the component CSS doesn't reach). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

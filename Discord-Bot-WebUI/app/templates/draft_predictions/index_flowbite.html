@@ -6,10 +6,16 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, alert %}
-<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+{# All figures below are derived ONLY from real route data: leagues[].{type,name,team_count,my_predictions}. #}
+{% set total_predictions = leagues | sum(attribute='my_predictions') if leagues else 0 %}
+{% set total_teams = leagues | sum(attribute='team_count') if leagues else 0 %}
+{% set leagues_started = leagues | selectattr('my_predictions', 'gt', 0) | list | length if leagues else 0 %}
+{# Pick the league to "resume": the one with the most predictions already; else the first. Real data only. #}
+{% set resume_league = (leagues | sort(attribute='my_predictions', reverse=true) | first) if leagues else none %}
+<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8 space-y-6">
 
-    {% call page_header("Draft Round Predictions", subtitle="Predict which round you think players will be drafted in") %}
+    {% call page_header("Draft Round Predictions", subtitle=current_season.name if current_season else "Draft board") %}
         {% if is_admin %}
         <a href="{{ url_for('draft_predictions.admin_dashboard') }}"
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
@@ -21,93 +27,189 @@
     {% endcall %}
 
     {% if current_season %}
-    <div class="mb-6">
-        {{ alert('info', 'Make predictions for the upcoming draft', title=current_season.name, dismissible=False) }}
-    </div>
 
-    <!-- League Options -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-        {% if leagues %}
-            {% for league in leagues %}
-            {% set is_premier = league.type == 'Premier' %}
-            {% set accent = 'text-green-600 dark:text-green-400' if is_premier else 'text-blue-600 dark:text-blue-400' %}
-            {% set badge_cls = 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' if is_premier else 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400' %}
-            {% set btn_cls = 'bg-green-600 hover:bg-green-700 focus:ring-green-600' if is_premier else 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-600' %}
-            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 flex flex-col h-full">
-                <div class="flex justify-between items-start gap-3 mb-4">
-                    <div class="min-w-0">
-                        <h3 class="text-base font-bold text-gray-900 dark:text-white mb-0.5 flex items-center gap-2">
-                            <i class="ti ti-shield {{ accent }}" aria-hidden="true"></i>{{ league.type }} League
-                        </h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ league.name }}</p>
+    <!-- ============ COMMAND TOOLBAR — lead with the ONE primary job: open the board and predict ============ -->
+    {% if resume_league %}
+    {% set rl_premier = resume_league.type == 'Premier' %}
+    {% set rl_started = resume_league.my_predictions > 0 %}
+    <section aria-labelledby="dpResumeHead" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+            <div class="min-w-0">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                    {{ 'Pick up where you left off' if rl_started else 'Start your draft board' }}
+                </p>
+                <h2 id="dpResumeHead" class="text-lg sm:text-xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2 min-w-0">
+                    <i class="ti ti-shield {{ 'text-ecs-green' if rl_premier else 'text-blue-600 dark:text-blue-400' }} shrink-0" aria-hidden="true"></i>
+                    <span class="truncate">{{ resume_league.type }} League</span>
+                </h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 font-mono">
+                    <span class="text-gray-900 dark:text-white font-semibold">{{ resume_league.my_predictions }}</span> prediction{{ '' if resume_league.my_predictions == 1 else 's' }}
+                    · <span class="text-gray-900 dark:text-white font-semibold">{{ resume_league.team_count }}</span> team{{ '' if resume_league.team_count == 1 else 's' }} in this draft
+                </p>
+            </div>
+            <a href="{{ url_for('draft_predictions.predict', league_type=resume_league.type) }}"
+               class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg
+                      bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                      focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti {{ 'ti-edit' if rl_started else 'ti-pencil-plus' }}" aria-hidden="true"></i>
+                {% if rl_started %}Resume Predictions{% else %}Start Predicting{% endif %}
+            </a>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- ============ KPI / STATUS BAND (figures derived from real prediction data) ============ -->
+    <section aria-labelledby="dpKpiHead">
+        <h2 id="dpKpiHead" class="sr-only">Your draft prediction progress</h2>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Predictions Made</span>
+                    <i class="ti ti-list-numbers text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ total_predictions }}</div>
+                <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono">across all your leagues</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Leagues Started</span>
+                    <i class="ti ti-shield-half text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 flex items-end gap-1.5 font-mono leading-none text-blue-600 dark:text-blue-400">
+                    <span class="text-3xl sm:text-4xl font-bold">{{ leagues_started }}</span>
+                    <span class="text-lg font-semibold text-gray-400 dark:text-gray-500 mb-0.5">/&nbsp;{{ leagues | length }}</span>
+                </div>
+                <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono">league{{ '' if leagues | length == 1 else 's' }} open to you</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Teams in Draft</span>
+                    <i class="ti ti-users-group text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ total_teams }}</div>
+                <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono">across {{ leagues | length }} league{{ '' if leagues | length == 1 else 's' }}</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Active Season</span>
+                    <i class="ti ti-trophy text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+                </div>
+                <div class="mt-3 text-base sm:text-lg font-bold leading-tight text-gray-900 dark:text-white line-clamp-2">{{ current_season.name }}</div>
+                <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono">predicting the upcoming draft</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ LEAGUE FEATURE CARDS (the primary object: a league board to predict) ============ -->
+    {% if leagues %}
+    <section aria-labelledby="dpLeaguesHead">
+        <div class="flex items-center gap-2 mb-3">
+            <i class="ti ti-clipboard-list text-ecs-green" aria-hidden="true"></i>
+            <h2 id="dpLeaguesHead" class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Your Draft Boards</h2>
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ leagues | length }}</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+        {% for league in leagues %}
+        {% set is_premier = league.type == 'Premier' %}
+        {% set accent = 'text-ecs-green' if is_premier else 'text-blue-600 dark:text-blue-400' %}
+        {% set bar_cls = 'bg-ecs-green/10 dark:bg-ecs-green/15' if is_premier else 'bg-blue-500/10 dark:bg-blue-500/15' %}
+        {% set btn_cls = 'bg-ecs-green hover:bg-ecs-green-700 focus:ring-ecs-green' if is_premier else 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-600' %}
+        {% set started = league.my_predictions > 0 %}
+        <article class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+            <!-- header bar with status pill -->
+            <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 {{ bar_cls }}">
+                <h3 class="font-bold flex items-center gap-2 text-gray-900 dark:text-white min-w-0">
+                    <i class="ti ti-shield {{ accent }} shrink-0" aria-hidden="true"></i>
+                    <span class="truncate">{{ league.type }} League</span>
+                </h3>
+                {% if started %}
+                <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+                    <i class="ti ti-circle-check text-xs" aria-hidden="true"></i> In Progress
+                </span>
+                {% else %}
+                <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                    <i class="ti ti-circle text-xs" aria-hidden="true"></i> Not Started
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="p-4 sm:p-5 flex flex-col flex-grow">
+                <p class="text-sm text-gray-500 dark:text-gray-400 truncate mb-4">{{ league.name }}</p>
+
+                <!-- big mono figures with divider footer -->
+                <div class="grid grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700 mb-5">
+                    <div class="pr-4">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Your Predictions</p>
+                        <p class="font-mono text-3xl font-bold leading-none {{ accent }}">{{ league.my_predictions }}</p>
                     </div>
-                    <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ badge_cls }}">
-                        {{ league.team_count }} Teams
-                    </span>
+                    <div class="pl-4">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Teams</p>
+                        <p class="font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ league.team_count }}</p>
+                    </div>
                 </div>
 
-                <div class="flex-grow mb-5">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Your Predictions</span>
-                        <span class="font-mono text-2xl font-bold {{ accent }}">{{ league.my_predictions }}</span>
-                    </div>
-                    {% if league.my_predictions > 0 %}
-                        <p class="text-sm text-gray-500 dark:text-gray-400 inline-flex items-center gap-1">
-                            <i class="ti ti-check text-green-600 dark:text-green-400" aria-hidden="true"></i>{{ league.my_predictions }} player predictions made
-                        </p>
+                <div class="flex-grow mb-4">
+                    {% if started %}
+                    <p class="text-sm text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
+                        <i class="ti ti-check text-green-600 dark:text-green-400" aria-hidden="true"></i>
+                        <span class="font-mono font-semibold text-gray-700 dark:text-gray-200">{{ league.my_predictions }}</span> player prediction{{ '' if league.my_predictions == 1 else 's' }} on record
+                    </p>
                     {% else %}
-                        <p class="text-sm text-gray-500 dark:text-gray-400 inline-flex items-center gap-1">
-                            <i class="ti ti-info-circle" aria-hidden="true"></i>No predictions yet - get started!
-                        </p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
+                        <i class="ti ti-info-circle" aria-hidden="true"></i> No predictions yet — get started
+                    </p>
                     {% endif %}
                 </div>
 
                 <a href="{{ url_for('draft_predictions.predict', league_type=league.type) }}"
                    class="w-full inline-flex justify-center items-center gap-2 min-h-[44px] px-4 rounded-lg font-semibold text-white transition-colors
                           focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 {{ btn_cls }}">
-                    <i class="ti ti-edit" aria-hidden="true"></i>
-                    {% if league.my_predictions > 0 %}View &amp; Edit Predictions{% else %}Make Predictions{% endif %}
+                    <i class="ti {{ 'ti-edit' if started else 'ti-pencil-plus' }}" aria-hidden="true"></i>
+                    {% if started %}View &amp; Edit Predictions{% else %}Make Predictions{% endif %}
                 </a>
-            </section>
-            {% endfor %}
-        {% else %}
-            <div class="sm:col-span-2">
-                {{ empty_state("ti-trophy", "No Leagues Available", "No Premier or Classic leagues are set up for the current season yet.") }}
             </div>
-        {% endif %}
-    </div>
+        </article>
+        {% endfor %}
+        </div>
+    </section>
+    {% else %}
+    {{ empty_state("ti-trophy", "No Leagues Available", "No Premier or Classic leagues are set up for the current season yet.") }}
+    {% endif %}
+
     {% else %}
     {{ empty_state("ti-calendar-off", "No Active Season", message if message else 'There is no active season at this time.') }}
     {% endif %}
 
-    <!-- Help Section -->
-    <div class="mt-6">
-        {% call section_card("How Draft Predictions Work", icon="ti-help-circle") %}
-        <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
-            <div class="flex items-start gap-3">
-                <span class="shrink-0 w-8 h-8 bg-ecs-green text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">1</span>
+    <!-- ============ HOW IT WORKS (compact numbered steps) ============ -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+            <i class="ti ti-help-circle text-ecs-green" aria-hidden="true"></i>
+            <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">How Draft Predictions Work</h3>
+        </div>
+        <ol class="divide-y divide-gray-200 dark:divide-gray-700 sm:divide-y-0 sm:grid sm:grid-cols-3 sm:divide-x">
+            <li class="flex items-start gap-3 px-4 sm:px-5 py-4">
+                <span class="shrink-0 w-8 h-8 bg-ecs-green text-white rounded-full flex items-center justify-center font-mono text-sm font-bold mt-0.5">1</span>
                 <div>
                     <h4 class="font-semibold text-gray-900 dark:text-white mb-1">Choose Your League</h4>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Select Premier or Classic league based on your team assignment.</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Select Premier or Classic based on your team assignment.</p>
                 </div>
-            </div>
-            <div class="flex items-start gap-3">
-                <span class="shrink-0 w-8 h-8 bg-ecs-green text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">2</span>
+            </li>
+            <li class="flex items-start gap-3 px-4 sm:px-5 py-4">
+                <span class="shrink-0 w-8 h-8 bg-ecs-green text-white rounded-full flex items-center justify-center font-mono text-sm font-bold mt-0.5">2</span>
                 <div>
                     <h4 class="font-semibold text-gray-900 dark:text-white mb-1">Predict Draft Rounds</h4>
                     <p class="text-sm text-gray-500 dark:text-gray-400">For each player, predict which round you think they'll be drafted in.</p>
                 </div>
-            </div>
-            <div class="flex items-start gap-3">
-                <span class="shrink-0 w-8 h-8 bg-ecs-green text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">3</span>
+            </li>
+            <li class="flex items-start gap-3 px-4 sm:px-5 py-4">
+                <span class="shrink-0 w-8 h-8 bg-ecs-green text-white rounded-full flex items-center justify-center font-mono text-sm font-bold mt-0.5">3</span>
                 <div>
                     <h4 class="font-semibold text-gray-900 dark:text-white mb-1">Auto-Save</h4>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Your predictions are saved automatically. Come back anytime to update them.</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Predictions save automatically. Come back anytime to update them.</p>
                 </div>
-            </div>
-        </div>
-        {% endcall %}
-    </div>
+            </li>
+        </ol>
+    </section>
 
 </div>
 {% else %}

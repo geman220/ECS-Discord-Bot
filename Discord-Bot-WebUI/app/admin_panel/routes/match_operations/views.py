@@ -163,30 +163,60 @@ def upcoming_matches():
     try:
         from app.models import Match, Team, Season, League, Schedule
 
+        today = datetime.utcnow().date()
+
+        # Filter parameters from the toolbar
+        league_filter = request.args.get('league_id', type=int)
+        window_filter = request.args.get('window', 'all')  # all | today | week
+
         # Get current season
         current_season = Season.query.filter_by(is_current=True).first()
 
         # Get upcoming matches with team and league information
-        query = Match.query.filter(
-            Match.date >= datetime.utcnow().date()
-        )
+        query = Match.query.filter(Match.date >= today)
 
         # Filter by current season if available
         if current_season:
             query = query.join(Schedule).filter(Schedule.season_id == current_season.id)
 
+        # Apply league filter (filter by team's league)
+        if league_filter:
+            league_team_ids = [t.id for t in Team.query.filter_by(league_id=league_filter).all()]
+            if league_team_ids:
+                query = query.filter(
+                    or_(
+                        Match.home_team_id.in_(league_team_ids),
+                        Match.away_team_id.in_(league_team_ids)
+                    )
+                )
+
+        # Apply time-window filter
+        if window_filter == 'today':
+            query = query.filter(Match.date == today)
+        elif window_filter == 'week':
+            query = query.filter(Match.date <= today + timedelta(days=7))
+
         upcoming = query.order_by(Match.date.asc(), Match.time.asc()).limit(50).all()
 
-        # Get statistics
+        # Leagues for the filter dropdown (current season only, when available)
+        if current_season:
+            leagues = League.query.filter_by(season_id=current_season.id).order_by(League.name).all()
+        else:
+            leagues = League.query.order_by(League.name).all()
+
+        # Get statistics (computed against the loaded result set)
         stats = {
             'total_upcoming': len(upcoming),
-            'this_week': len([m for m in upcoming if m.date <= datetime.utcnow().date() + timedelta(days=7)]),
-            'next_week': len([m for m in upcoming if datetime.utcnow().date() + timedelta(days=7) < m.date <= datetime.utcnow().date() + timedelta(days=14)]),
-            'this_month': len([m for m in upcoming if m.date <= datetime.utcnow().date() + timedelta(days=30)])
+            'today': len([m for m in upcoming if m.date == today]),
+            'this_week': len([m for m in upcoming if m.date <= today + timedelta(days=7)]),
+            'next_week': len([m for m in upcoming if today + timedelta(days=7) < m.date <= today + timedelta(days=14)]),
+            'this_month': len([m for m in upcoming if m.date <= today + timedelta(days=30)])
         }
 
         return render_template('admin_panel/match_operations/upcoming_matches_flowbite.html',
-                               matches=upcoming, stats=stats)
+                               matches=upcoming, stats=stats, leagues=leagues,
+                               today_date=today, current_league_id=league_filter,
+                               current_window=window_filter)
     except Exception as e:
         logger.error(f"Error loading upcoming matches: {e}")
         flash('Upcoming matches unavailable. Verify database connection and date filtering.', 'error')

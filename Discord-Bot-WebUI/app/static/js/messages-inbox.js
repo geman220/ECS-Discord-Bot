@@ -75,6 +75,8 @@ function initMessagesInbox() {
         charCount: inbox.querySelector('[data-char-count]'),
         sendButton: inbox.querySelector('[data-action="send-message"]'),
         searchInput: inbox.querySelector('[data-input="search-conversations"]'),
+        unreadPill: inbox.querySelector('[data-unread-pill]'),
+        unreadCount: inbox.querySelector('[data-unread-count]'),
     };
 
     // Modal elements
@@ -288,8 +290,28 @@ function showLoading(show) {
     }
 }
 
+/**
+ * Compute total unread across all conversations from the real per-conversation
+ * unread_count values returned by the API, and render it into the rail pill.
+ * The pill stays hidden unless the real total is > 0.
+ */
+function updateUnreadPill() {
+    if (!elements.unreadPill || !elements.unreadCount) return;
+
+    const total = conversations.reduce((sum, conv) => {
+        const n = parseInt(conv && conv.unread_count, 10);
+        return sum + (Number.isFinite(n) && n > 0 ? n : 0);
+    }, 0);
+
+    elements.unreadCount.textContent = total;
+    elements.unreadPill.classList.toggle('hidden', total <= 0);
+}
+
 function renderConversations(filteredList = null) {
     const list = filteredList || conversations;
+
+    // Pill always reflects the full conversation set, not the filtered view.
+    updateUnreadPill();
 
     if (elements.emptyState) {
         elements.emptyState.classList.toggle('u-hidden', list.length > 0);
@@ -439,6 +461,11 @@ async function loadMessages(userId) {
             }
 
             updateConversationUnread(userId, 0);
+
+            // Keep in-memory model + rail pill in sync (opening a thread clears its unread).
+            const opened = conversations.find(c => c.user && c.user.id === userId);
+            if (opened) opened.unread_count = 0;
+            updateUnreadPill();
         }
     } catch (error) {
         console.error('[MessagesInbox] Error loading messages:', error);
@@ -665,6 +692,8 @@ async function markAllAsRead() {
         const data = await response.json();
         if (data.success) {
             document.querySelectorAll('.c-messages-conversation__unread').forEach(el => el.remove());
+            conversations.forEach(c => { c.unread_count = 0; });
+            updateUnreadPill();
             updateGlobalBadge(0);
         }
     } catch (error) {
@@ -718,6 +747,13 @@ function incrementConversationUnread(userId) {
             conv.querySelector('.c-messages-conversation__meta').appendChild(badge);
         }
     }
+
+    // Keep in-memory model + rail pill in sync until the next loadConversations() refresh.
+    const model = conversations.find(c => c.user && c.user.id === userId);
+    if (model) {
+        model.unread_count = (parseInt(model.unread_count, 10) || 0) + 1;
+    }
+    updateUnreadPill();
 }
 
 function handleConversationSearch() {
@@ -888,6 +924,7 @@ window.MessagesInbox = {
     setupWebSocket,
     showLoading,
     renderConversations,
+    updateUnreadPill,
     createConversationElement,
     updateChatHeader,
     showChatView,

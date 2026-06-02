@@ -22,181 +22,276 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+{% set total_known = stats.in_server + stats.not_in_server %}
+{% set coverage = ((stats.in_server / total_known * 100) | round | int) if total_known else 0 %}
 
-{{ page_header(current_section, subtitle="Discord Management") }}
+{{ page_header(current_section, subtitle="Discord Management  ·  Membership reconciliation") }}
 
 <div class="space-y-5 sm:space-y-6">
-  {# Stats Overview #}
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-    {{ stat_card("ti-users", "Total Players", stats.total_players, tone='info') }}
-    {{ stat_card("ti-check", "In Server", stats.in_server, tone='success') }}
-    {{ stat_card("ti-x", "Not In Server", stats.not_in_server, tone='danger') }}
-    {{ stat_card("ti-question-mark", "Unknown", stats.unknown_status, tone='warning') }}
+
+  {# ============ KPI band — tiles double as the status filter (segmented, current-aware) ============ #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" role="group" aria-label="Filter by Discord server status">
+    {# Not In Server — the page's primary job: who needs re-inviting #}
+    <a href="{{ url_for('admin_panel.discord_players', status='not_in_server', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
+       aria-current="{{ 'true' if status_filter == 'not_in_server' else 'false' }}"
+       class="group rounded-xl border bg-white dark:bg-gray-800 p-4 sm:p-5 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'not_in_server' %}border-red-400 dark:border-red-500/60 ring-1 ring-red-400/40{% else %}border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-500/40{% endif %}">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">Not In Server</span>
+        <i class="ti ti-user-x text-lg text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-red-600 dark:text-red-400">{{ stats.not_in_server }}</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
+        <i class="ti ti-arrow-right text-sm" aria-hidden="true"></i> Needs re-invite
+      </div>
+    </a>
+
+    {# Unknown — never reconciled #}
+    <a href="{{ url_for('admin_panel.discord_players', status='unknown', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
+       aria-current="{{ 'true' if status_filter == 'unknown' else 'false' }}"
+       class="group rounded-xl border bg-white dark:bg-gray-800 p-4 sm:p-5 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'unknown' %}border-amber-400 dark:border-amber-500/60 ring-1 ring-amber-400/40{% else %}border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-500/40{% endif %}">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">Unknown</span>
+        <i class="ti ti-help-circle text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ stats.unknown_status }}</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        Awaiting first check
+      </div>
+    </a>
+
+    {# In Server #}
+    <a href="{{ url_for('admin_panel.discord_players', status='in_server', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
+       aria-current="{{ 'true' if status_filter == 'in_server' else 'false' }}"
+       class="group rounded-xl border bg-white dark:bg-gray-800 p-4 sm:p-5 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'in_server' %}border-green-400 dark:border-green-500/60 ring-1 ring-green-400/40{% else %}border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-500/40{% endif %}">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">In Server</span>
+        <i class="ti ti-user-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ stats.in_server }}</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        Active members
+      </div>
+    </a>
+
+    {# All / coverage — derived from real stats #}
+    <a href="{{ url_for('admin_panel.discord_players', status='all', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
+       aria-current="{{ 'true' if status_filter == 'all' else 'false' }}"
+       class="group rounded-xl border bg-white dark:bg-gray-800 p-4 sm:p-5 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'all' %}border-ecs-green ring-1 ring-ecs-green/40{% else %}border-gray-200 dark:border-gray-700 hover:border-ecs-green/50{% endif %}">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">All Linked</span>
+        <i class="ti ti-users text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2 flex-wrap">
+        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ stats.total_players }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">w/ Discord ID</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ coverage }}%</span> in-server coverage
+      </div>
+    </a>
   </div>
 
-  {# Filter Controls #}
-  {% call section_card("Filters", icon="ti-filter") %}
-  <div class="p-4 sm:p-5 space-y-4">
-    {# Status filter chips #}
-    <div class="flex flex-wrap items-center justify-between gap-4">
-      <div class="flex flex-wrap gap-2" role="group" aria-label="Filter by server status">
-        <a href="{{ url_for('admin_panel.discord_players', status='not_in_server', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
-           class="inline-flex items-center min-h-[44px] sm:min-h-0 px-4 py-2 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'not_in_server' %}text-white bg-red-600{% else %}text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800{% endif %}">
-          Not In Server
-        </a>
-        <a href="{{ url_for('admin_panel.discord_players', status='unknown', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
-           class="inline-flex items-center min-h-[44px] sm:min-h-0 px-4 py-2 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'unknown' %}text-white bg-amber-500{% else %}text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800{% endif %}">
-          Unknown
-        </a>
-        <a href="{{ url_for('admin_panel.discord_players', status='in_server', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
-           class="inline-flex items-center min-h-[44px] sm:min-h-0 px-4 py-2 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'in_server' %}text-white bg-green-600{% else %}text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800{% endif %}">
-          In Server
-        </a>
-        <a href="{{ url_for('admin_panel.discord_players', status='all', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
-           class="inline-flex items-center min-h-[44px] sm:min-h-0 px-4 py-2 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'all' %}text-white bg-ecs-green{% else %}text-ecs-green bg-ecs-green/10 border border-ecs-green/30 hover:bg-ecs-green/20 dark:text-ecs-green dark:bg-ecs-green/20 dark:border-ecs-green/40{% endif %}">
-          All
-        </a>
-      </div>
-      <div>
-        <label for="perPageSelect" class="sr-only">Players per page</label>
-        <select id="perPageSelect" data-on-change="change-per-page"
-                class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-          <option value="10" {{ 'selected' if per_page == 10 }}>10 per page</option>
-          <option value="20" {{ 'selected' if per_page == 20 }}>20 per page</option>
-          <option value="50" {{ 'selected' if per_page == 50 }}>50 per page</option>
-          <option value="100" {{ 'selected' if per_page == 100 }}>100 per page</option>
-        </select>
-      </div>
-    </div>
-    {# Search, Team filter, Sort row #}
-    <div class="flex flex-wrap items-center gap-3">
+  {# ============ Command toolbar — search + scoping filters + page size ============ #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+    <div class="flex flex-col lg:flex-row lg:items-center gap-3 p-3 sm:p-4">
       <div class="relative flex-1 min-w-[200px]">
         <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
         <label for="playerSearchInput" class="sr-only">Search players</label>
         <input type="text" id="playerSearchInput"
                data-on-input="player-search-debounce"
                value="{{ search_query }}"
-               placeholder="Search by name, Discord ID, or username..."
-               class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 pl-10 pr-3 py-2 text-sm text-gray-900 dark:text-white dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+               placeholder="Search by name, Discord ID, or username…"
+               class="block w-full min-h-[44px] sm:min-h-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 pl-10 pr-3 py-2 text-sm text-gray-900 dark:text-white dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
       </div>
-      <label for="teamFilterSelect" class="sr-only">Filter by team</label>
-      <select id="teamFilterSelect" data-on-change="player-team-filter"
-              class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <option value="">All Teams</option>
-        {% for team in current_teams %}
-        <option value="{{ team.id }}" {{ 'selected' if team_filter == team.id }}>{{ team.name }}</option>
-        {% endfor %}
-      </select>
-      <label for="sortSelect" class="sr-only">Sort players</label>
-      <select id="sortSelect" data-on-change="player-sort-change"
-              class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <option value="last_checked:asc" {{ 'selected' if sort_by == 'last_checked' and sort_dir == 'asc' }}>Last Checked (oldest first)</option>
-        <option value="last_checked:desc" {{ 'selected' if sort_by == 'last_checked' and sort_dir == 'desc' }}>Last Checked (newest first)</option>
-        <option value="name:asc" {{ 'selected' if sort_by == 'name' and sort_dir == 'asc' }}>Name (A-Z)</option>
-        <option value="name:desc" {{ 'selected' if sort_by == 'name' and sort_dir == 'desc' }}>Name (Z-A)</option>
-        <option value="status:asc" {{ 'selected' if sort_by == 'status' and sort_dir == 'asc' }}>Status</option>
-      </select>
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <label for="teamFilterSelect" class="sr-only">Filter by team</label>
+        <select id="teamFilterSelect" data-on-change="player-team-filter"
+                class="min-h-[44px] sm:min-h-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="">All Teams</option>
+          {% for team in current_teams %}
+          <option value="{{ team.id }}" {{ 'selected' if team_filter == team.id }}>{{ team.name }}</option>
+          {% endfor %}
+        </select>
+        <label for="sortSelect" class="sr-only">Sort players</label>
+        <select id="sortSelect" data-on-change="player-sort-change"
+                class="min-h-[44px] sm:min-h-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="last_checked:asc" {{ 'selected' if sort_by == 'last_checked' and sort_dir == 'asc' }}>Last Checked (oldest first)</option>
+          <option value="last_checked:desc" {{ 'selected' if sort_by == 'last_checked' and sort_dir == 'desc' }}>Last Checked (newest first)</option>
+          <option value="name:asc" {{ 'selected' if sort_by == 'name' and sort_dir == 'asc' }}>Name (A-Z)</option>
+          <option value="name:desc" {{ 'selected' if sort_by == 'name' and sort_dir == 'desc' }}>Name (Z-A)</option>
+          <option value="status:asc" {{ 'selected' if sort_by == 'status' and sort_dir == 'asc' }}>Status</option>
+        </select>
+        <span class="hidden lg:block w-px h-6 bg-gray-200 dark:bg-gray-700" aria-hidden="true"></span>
+        <label for="perPageSelect" class="sr-only">Players per page</label>
+        <select id="perPageSelect" data-on-change="change-per-page"
+                class="min-h-[44px] sm:min-h-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="10" {{ 'selected' if per_page == 10 }}>10 / page</option>
+          <option value="20" {{ 'selected' if per_page == 20 }}>20 / page</option>
+          <option value="50" {{ 'selected' if per_page == 50 }}>50 / page</option>
+          <option value="100" {{ 'selected' if per_page == 100 }}>100 / page</option>
+        </select>
+      </div>
     </div>
-  </div>
-  {% endcall %}
+  </section>
 
-  {# Players Table #}
+  {# ============ Players roster ============ #}
   {% if players %}
-  {% set table_footer %}
-    {% if pagination.pages > 1 %}
-    <nav aria-label="Players pagination" class="w-full flex justify-center">
-      <ul class="flex items-center -space-x-px h-8 text-sm">
-        {% if pagination.has_prev %}
-        <li>
-          <a href="{{ url_for('admin_panel.discord_players', status=status_filter, page=pagination.prev_num, per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}" class="flex items-center justify-center px-3 h-8 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
-            <i class="ti ti-chevron-left" aria-hidden="true"></i>
-          </a>
-        </li>
-        {% endif %}
-        {% for p in range(1, pagination.pages + 1) %}
-          {% if p >= pagination.page - 2 and p <= pagination.page + 2 %}
-        <li>
-          <a href="{{ url_for('admin_panel.discord_players', status=status_filter, page=p, per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}" class="flex items-center justify-center px-3 h-8 leading-tight {% if p == pagination.page %}text-white bg-ecs-green border border-ecs-green dark:bg-ecs-green dark:border-ecs-green{% else %}text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white{% endif %}">{{ p }}</a>
-        </li>
-          {% endif %}
-        {% endfor %}
-        {% if pagination.has_next %}
-        <li>
-          <a href="{{ url_for('admin_panel.discord_players', status=status_filter, page=pagination.next_num, per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
-            <i class="ti ti-chevron-right" aria-hidden="true"></i>
-          </a>
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
-    {% endif %}
-  {% endset %}
+  <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-list-details text-ecs-green" aria-hidden="true"></i> Roster
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ pagination.total }}</span>
+      </h2>
+      <span class="hidden sm:inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <i class="ti ti-arrows-sort text-sm" aria-hidden="true"></i>
+        {% if sort_by == 'name' %}Name{% elif sort_by == 'status' %}Status{% else %}Last checked{% endif %}
+        <span class="font-mono">{{ '↑' if sort_dir == 'asc' else '↓' }}</span>
+      </span>
+    </div>
 
-  {% call data_table(current_section, icon="ti-users", count=pagination.total, search_placeholder="Filter players…", search_id="playerDtFilter", footer=table_footer, filters=false) %}
-    <table class="hidden md:table w-full text-sm text-left">
-      <thead class="bg-gray-50 dark:bg-gray-900/40">
-        <tr>
-          {{ data_table_th("Player", key="name", sortable=false) }}
-          {{ data_table_th("Discord", key="discord", sortable=false, hide='sm') }}
-          {{ data_table_th("Status", key="status", sortable=false, hide='sm') }}
-          {{ data_table_th("Teams", key="teams", sortable=false, hide='sm') }}
-          {{ data_table_th("Last Checked", key="last_checked", sortable=false, hide='sm') }}
-          {{ data_table_th("Actions", key="actions", sortable=false, align='right') }}
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for player in players %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-4 py-3 align-top">
-            <div class="font-medium text-gray-900 dark:text-white">{{ player.name }}</div>
-            {% if player.user %}
-            <p class="text-xs text-gray-500 dark:text-gray-400">{{ player.user.email }}</p>
-            {% endif %}
-          </td>
-          <td class="px-4 py-3 align-top hidden md:table-cell">
-            {% if player.discord_username %}
-            <span class="text-blue-600 dark:text-blue-400 font-medium text-sm" title="ID: {{ player.discord_id }}">
-              <i class="ti ti-brand-discord mr-1" aria-hidden="true"></i>{{ player.discord_username }}
-            </span>
-            {% else %}
-            <code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" title="No username available">{{ player.discord_id }}</code>
-            {% endif %}
-          </td>
-          <td class="px-4 py-3 align-top hidden md:table-cell">
-            {% if player.discord_in_server == True %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1" aria-hidden="true"></i>In Server</span>
-            {% elif player.discord_in_server == False %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-x mr-1" aria-hidden="true"></i>Not In Server</span>
-            {% else %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><i class="ti ti-question-mark mr-1" aria-hidden="true"></i>Unknown</span>
-            {% endif %}
-          </td>
-          <td class="px-4 py-3 align-top hidden md:table-cell">
-            {% if player_current_teams.get(player.id) %}
-              {% for team in player_current_teams[player.id][:2] %}
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 mr-1">{{ team.name }}</span>
-              {% endfor %}
-              {% if player_current_teams[player.id]|length > 2 %}
-              <span class="text-xs text-gray-500 dark:text-gray-400">+{{ player_current_teams[player.id]|length - 2 }}</span>
+    <div class="md:overflow-x-auto">
+      <table class="hidden md:table w-full text-sm text-left">
+        <thead class="bg-gray-50 dark:bg-gray-900/40">
+          <tr>
+            <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Player</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Discord</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Teams</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Last Checked</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for player in players %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            {# Player cell: avatar + name + email/username #}
+            <td class="px-4 py-3 align-middle">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 text-xs font-bold uppercase text-gray-600 dark:text-gray-300 overflow-hidden">
+                  {% if player.profile_picture_url %}
+                  <img src="{{ player.profile_picture_url }}" alt="" class="w-full h-full object-cover">
+                  {% else %}
+                  {{ player.name[:2] }}
+                  {% endif %}
+                </span>
+                <div class="min-w-0">
+                  <div class="font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</div>
+                  {% if player.user %}
+                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ player.user.email }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            {# Discord cell #}
+            <td class="px-4 py-3 align-middle hidden lg:table-cell">
+              {% if player.discord_username %}
+              <div class="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium text-sm">
+                <i class="ti ti-brand-discord" aria-hidden="true"></i>{{ player.discord_username }}
+              </div>
               {% endif %}
-            {% else %}
-            <span class="text-xs text-gray-500 dark:text-gray-400">No current teams</span>
-            {% endif %}
-          </td>
-          <td class="px-4 py-3 align-top text-sm hidden md:table-cell">
-            {% if player.discord_last_checked and player.discord_last_checked is not string %}
-            <span class="font-mono text-gray-900 dark:text-white">{{ player.discord_last_checked.strftime('%b %d, %Y %H:%M') }}</span>
-            {% elif player.discord_last_checked %}
-            <span class="font-mono text-gray-900 dark:text-white">{{ player.discord_last_checked }}</span>
-            {% else %}
-            <span class="text-gray-400 dark:text-gray-500">Never</span>
-            {% endif %}
-          </td>
-          <td class="px-4 py-3 align-top text-right">
-            <div class="inline-flex items-center gap-1">
+              <code class="text-[11px] font-mono text-gray-500 dark:text-gray-400" title="Discord ID">{{ player.discord_id }}</code>
+            </td>
+            {# Status cell + roles-sync signal (real data) #}
+            <td class="px-4 py-3 align-middle">
+              {% if player.discord_in_server == True %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"><i class="ti ti-check mr-1" aria-hidden="true"></i>In Server</span>
+              {% elif player.discord_in_server == False %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"><i class="ti ti-x mr-1" aria-hidden="true"></i>Not In Server</span>
+              {% else %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"><i class="ti ti-question-mark mr-1" aria-hidden="true"></i>Unknown</span>
+              {% endif %}
+              {% if player.discord_in_server == True %}
+              <div class="mt-1 inline-flex items-center gap-1 text-[11px] {% if player.discord_roles_synced %}text-gray-500 dark:text-gray-400{% else %}text-amber-600 dark:text-amber-400{% endif %}">
+                <i class="ti {% if player.discord_roles_synced %}ti-shield-check{% else %}ti-shield-x{% endif %}" aria-hidden="true"></i>
+                {{ 'Roles synced' if player.discord_roles_synced else 'Roles out of sync' }}
+              </div>
+              {% endif %}
+            </td>
+            {# Teams cell #}
+            <td class="px-4 py-3 align-middle hidden lg:table-cell">
+              {% if player_current_teams.get(player.id) %}
+                <div class="flex flex-wrap items-center gap-1">
+                {% for team in player_current_teams[player.id][:2] %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ team.name }}</span>
+                {% endfor %}
+                {% if player_current_teams[player.id]|length > 2 %}
+                <span class="font-mono text-xs text-gray-500 dark:text-gray-400">+{{ player_current_teams[player.id]|length - 2 }}</span>
+                {% endif %}
+                </div>
+              {% else %}
+              <span class="text-xs text-gray-400 dark:text-gray-500 italic">No current teams</span>
+              {% endif %}
+            </td>
+            {# Last checked #}
+            <td class="px-4 py-3 align-middle text-sm hidden lg:table-cell">
+              {% if player.discord_last_checked and player.discord_last_checked is not string %}
+              <span class="font-mono text-gray-900 dark:text-white">{{ player.discord_last_checked.strftime('%b %d, %Y') }}</span>
+              <span class="block font-mono text-[11px] text-gray-400 dark:text-gray-500">{{ player.discord_last_checked.strftime('%H:%M') }}</span>
+              {% elif player.discord_last_checked %}
+              <span class="font-mono text-gray-900 dark:text-white">{{ player.discord_last_checked }}</span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500"><i class="ti ti-clock-off" aria-hidden="true"></i>Never</span>
+              {% endif %}
+            </td>
+            {# Actions #}
+            <td class="px-4 py-3 align-middle text-right">
+              <div class="inline-flex items-center gap-1">
+                <button type="button"
+                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        data-action="update-player-roles"
+                        data-player-id="{{ player.id }}"
+                        data-player-name="{{ player.name }}"
+                        title="Update Roles"
+                        aria-label="Update roles">
+                  <i class="ti ti-refresh" aria-hidden="true"></i>
+                </button>
+                <button type="button"
+                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        data-action="edit-player-discord"
+                        data-player-id="{{ player.id }}"
+                        data-player-name="{{ player.name }}"
+                        data-discord-id="{{ player.discord_id or '' }}"
+                        title="Edit Discord ID"
+                        aria-label="Edit Discord ID">
+                  <i class="ti ti-pencil" aria-hidden="true"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {# Mobile stacked cards #}
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for player in players %}
+        <div class="px-4 py-3.5">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 text-xs font-bold uppercase text-gray-600 dark:text-gray-300 overflow-hidden">
+                {% if player.profile_picture_url %}
+                <img src="{{ player.profile_picture_url }}" alt="" class="w-full h-full object-cover">
+                {% else %}
+                {{ player.name[:2] }}
+                {% endif %}
+              </span>
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</p>
+                {% if player.user %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ player.user.email }}</p>
+                {% endif %}
+              </div>
+            </div>
+            <div class="shrink-0 inline-flex items-center gap-1">
               <button type="button"
-                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
                       data-action="update-player-roles"
                       data-player-id="{{ player.id }}"
                       data-player-name="{{ player.name }}"
@@ -205,7 +300,7 @@
                 <i class="ti ti-refresh" aria-hidden="true"></i>
               </button>
               <button type="button"
-                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
                       data-action="edit-player-discord"
                       data-player-id="{{ player.id }}"
                       data-player-name="{{ player.name }}"
@@ -215,87 +310,83 @@
                 <i class="ti ti-pencil" aria-hidden="true"></i>
               </button>
             </div>
-          </td>
-        </tr>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            {% if player.discord_in_server == True %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"><i class="ti ti-check mr-1" aria-hidden="true"></i>In Server</span>
+            {% elif player.discord_in_server == False %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"><i class="ti ti-x mr-1" aria-hidden="true"></i>Not In Server</span>
+            {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"><i class="ti ti-question-mark mr-1" aria-hidden="true"></i>Unknown</span>
+            {% endif %}
+            {% if player.discord_username %}
+            <span class="inline-flex items-center text-blue-600 dark:text-blue-400 font-medium"><i class="ti ti-brand-discord mr-1" aria-hidden="true"></i>{{ player.discord_username }}</span>
+            {% endif %}
+            {% if player.discord_id %}
+            <code class="font-mono text-[11px] text-gray-500 dark:text-gray-400">{{ player.discord_id }}</code>
+            {% endif %}
+          </div>
+          <div class="mt-1.5 flex flex-wrap items-center gap-1 text-xs">
+            {% if player_current_teams.get(player.id) %}
+              {% for team in player_current_teams[player.id][:2] %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ team.name }}</span>
+              {% endfor %}
+              {% if player_current_teams[player.id]|length > 2 %}
+              <span class="font-mono text-gray-500 dark:text-gray-400">+{{ player_current_teams[player.id]|length - 2 }}</span>
+              {% endif %}
+            {% else %}
+            <span class="text-gray-400 dark:text-gray-500 italic">No current teams</span>
+            {% endif %}
+          </div>
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+            Last checked:
+            {% if player.discord_last_checked and player.discord_last_checked is not string %}
+            <span class="font-mono">{{ player.discord_last_checked.strftime('%b %d, %Y %H:%M') }}</span>
+            {% elif player.discord_last_checked %}
+            <span class="font-mono">{{ player.discord_last_checked }}</span>
+            {% else %}
+            Never
+            {% endif %}
+          </p>
+        </div>
         {% endfor %}
-      </tbody>
-    </table>
-
-    {# Mobile stacked cards #}
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-      {% for player in players %}
-      <div class="px-4 py-3.5">
-        <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</p>
-            {% if player.user %}
-            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ player.user.email }}</p>
-            {% endif %}
-          </div>
-          <div class="shrink-0 inline-flex items-center gap-1">
-            <button type="button"
-                    class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                    data-action="update-player-roles"
-                    data-player-id="{{ player.id }}"
-                    data-player-name="{{ player.name }}"
-                    title="Update Roles"
-                    aria-label="Update roles">
-              <i class="ti ti-refresh" aria-hidden="true"></i>
-            </button>
-            <button type="button"
-                    class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                    data-action="edit-player-discord"
-                    data-player-id="{{ player.id }}"
-                    data-player-name="{{ player.name }}"
-                    data-discord-id="{{ player.discord_id or '' }}"
-                    title="Edit Discord ID"
-                    aria-label="Edit Discord ID">
-              <i class="ti ti-pencil" aria-hidden="true"></i>
-            </button>
-          </div>
-        </div>
-        <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-          {% if player.discord_in_server == True %}
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1" aria-hidden="true"></i>In Server</span>
-          {% elif player.discord_in_server == False %}
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-x mr-1" aria-hidden="true"></i>Not In Server</span>
-          {% else %}
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><i class="ti ti-question-mark mr-1" aria-hidden="true"></i>Unknown</span>
-          {% endif %}
-          {% if player.discord_username %}
-          <span class="inline-flex items-center text-blue-600 dark:text-blue-400 font-medium" title="ID: {{ player.discord_id }}"><i class="ti ti-brand-discord mr-1" aria-hidden="true"></i>{{ player.discord_username }}</span>
-          {% elif player.discord_id %}
-          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{{ player.discord_id }}</code>
-          {% endif %}
-        </div>
-        <div class="mt-1.5 flex flex-wrap items-center gap-1 text-xs">
-          {% if player_current_teams.get(player.id) %}
-            {% for team in player_current_teams[player.id][:2] %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ team.name }}</span>
-            {% endfor %}
-            {% if player_current_teams[player.id]|length > 2 %}
-            <span class="text-gray-500 dark:text-gray-400">+{{ player_current_teams[player.id]|length - 2 }}</span>
-            {% endif %}
-          {% else %}
-          <span class="text-gray-500 dark:text-gray-400">No current teams</span>
-          {% endif %}
-        </div>
-        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-          Last checked:
-          {% if player.discord_last_checked and player.discord_last_checked is not string %}
-          <span class="font-mono">{{ player.discord_last_checked.strftime('%b %d, %Y %H:%M') }}</span>
-          {% elif player.discord_last_checked %}
-          <span class="font-mono">{{ player.discord_last_checked }}</span>
-          {% else %}
-          Never
-          {% endif %}
-        </p>
       </div>
-      {% endfor %}
     </div>
-  {% endcall %}
+
+    {# Footer / pagination #}
+    {% if pagination.pages > 1 %}
+    <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+      <span class="font-mono">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+      <nav aria-label="Players pagination">
+        <ul class="flex items-center -space-x-px h-8 text-sm">
+          {% if pagination.has_prev %}
+          <li>
+            <a href="{{ url_for('admin_panel.discord_players', status=status_filter, page=pagination.prev_num, per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}" class="flex items-center justify-center px-3 h-8 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" aria-label="Previous page">
+              <i class="ti ti-chevron-left" aria-hidden="true"></i>
+            </a>
+          </li>
+          {% endif %}
+          {% for p in range(1, pagination.pages + 1) %}
+            {% if p >= pagination.page - 2 and p <= pagination.page + 2 %}
+          <li>
+            <a href="{{ url_for('admin_panel.discord_players', status=status_filter, page=p, per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}" class="flex items-center justify-center px-3 h-8 leading-tight font-mono {% if p == pagination.page %}text-white bg-ecs-green border border-ecs-green dark:bg-ecs-green dark:border-ecs-green{% else %}text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white{% endif %}">{{ p }}</a>
+          </li>
+            {% endif %}
+          {% endfor %}
+          {% if pagination.has_next %}
+          <li>
+            <a href="{{ url_for('admin_panel.discord_players', status=status_filter, page=pagination.next_num, per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" aria-label="Next page">
+              <i class="ti ti-chevron-right" aria-hidden="true"></i>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+  </section>
   {% else %}
-  {{ empty_state("ti-users-minus", "No Players Found", "No players found for this filter.") }}
+  {{ empty_state("ti-users-minus", "No Players Found", "No players match this filter. Try a different status tab or clear your search.") }}
   {% endif %}
 </div>
 {% else %}

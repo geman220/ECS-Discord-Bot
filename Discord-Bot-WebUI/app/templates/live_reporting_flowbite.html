@@ -4,14 +4,31 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, section_card, alert %}
+{% from 'macros/_modern_kit.html' import section_card, empty_state %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
-  {{ page_header("Live Match Reporting", subtitle="Real-time score, events & player shifts") }}
+  {# ── Page header / command bar ───────────────────────────────────────── #}
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5 sm:mb-6">
+    <div class="min-w-0">
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-2">
+        <span class="uppercase tracking-wide">Live Match Console</span>
+        {% if match %}<span class="font-mono text-gray-400 dark:text-gray-500">#{{ match.id }}</span>{% endif %}
+      </p>
+      <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">Match Reporting</h1>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      {% if match %}
+      <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-external-link" aria-hidden="true"></i> Match page
+      </a>
+      {% endif %}
+    </div>
+  </div>
 
-  <div id="notifications" class="mb-4"></div>
+  <div id="notifications" class="mb-4" aria-live="polite"></div>
 
-  <!-- Report Complete Message (Hidden by default) -->
+  {# ── Report-complete confirmation (JS toggles 'hidden') ──────────────── #}
   <div id="reportCompleteMessage" class="hidden mb-6">
     <div class="flex items-start gap-3 rounded-xl border border-green-300 dark:border-green-500/40 bg-green-50 dark:bg-green-500/10 p-4 sm:p-5">
       <span class="shrink-0 w-10 h-10 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 flex items-center justify-center">
@@ -24,79 +41,116 @@
     </div>
   </div>
 
-  <!-- Match Details / Scoreboard -->
-  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
-    <div class="p-5 sm:p-6">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4 items-center">
-        <!-- Home Team -->
+  {# ── PRIMARY OBJECT: live scoreboard feature card ────────────────────── #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+    {# Header bar: live status pill + match meta #}
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center gap-2 min-w-0">
+        <span id="matchStatusBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-500/15 text-green-800 dark:text-green-300">
+          <i class="ti ti-player-play-filled text-[11px]" aria-hidden="true"></i> In Progress
+        </span>
+        <span class="hidden sm:inline text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Scoreboard</span>
+      </div>
+      <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-ecs-green opacity-60"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-ecs-green"></span>
+        </span>
+        <span class="font-mono">live</span>
+      </div>
+    </div>
+
+    {# Scoreline: H / clock / A #}
+    <div class="p-5 sm:p-8">
+      <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-6 sm:gap-4 items-center">
+        <!-- Home -->
         <div class="text-center order-1">
-          <h3 id="homeTeamName" class="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2 truncate">Home Team</h3>
-          <div id="homeScore" class="font-mono text-5xl sm:text-6xl font-bold leading-none text-ecs-green">0</div>
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-ecs-green/10 text-ecs-green text-[11px] font-bold uppercase">H</span>
+            <h3 id="homeTeamName" class="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ match.home_team.name if match else 'Home Team' }}</h3>
+          </div>
+          <div id="homeScore" class="font-mono text-6xl sm:text-7xl font-extrabold leading-none text-gray-900 dark:text-white">0</div>
         </div>
 
-        <!-- Match Status -->
-        <div class="text-center order-3 sm:order-2">
-          <div class="mb-2">
-            <span id="matchStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-500/15 text-green-800 dark:text-green-300">
-              <i class="ti ti-player-play-filled text-[11px]" aria-hidden="true"></i> In Progress
-            </span>
+        <!-- Clock module -->
+        <div class="text-center order-3 sm:order-2 sm:px-6">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">Match Clock</p>
+          <div id="timerDisplay" class="font-mono text-4xl sm:text-5xl font-bold text-ecs-green leading-none">00:00</div>
+          <div class="mt-1 h-px w-16 mx-auto bg-gray-200 dark:bg-gray-700"></div>
+          <div class="mt-2 inline-flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500 font-mono uppercase">
+            <i class="ti ti-vs text-xs" aria-hidden="true"></i> vs
           </div>
-          <div id="timerDisplay" class="font-mono text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3">00:00</div>
-          <div class="flex justify-center gap-2 mb-3">
-            <button id="startStopTimer" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-              <i class="ti ti-player-play" aria-hidden="true"></i> Start Timer
-            </button>
-            <button id="resetTimer" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-              <i class="ti ti-refresh" aria-hidden="true"></i> Reset
-            </button>
-          </div>
-          <label for="periodSelector" class="sr-only">Match period</label>
-          <select id="periodSelector" class="input-ecs w-full text-sm">
-            <option value="first_half">First Half</option>
-            <option value="second_half">Second Half</option>
-            <option value="halftime">Halftime</option>
-            <option value="extra_time_1">Extra Time 1</option>
-            <option value="extra_time_2">Extra Time 2</option>
-            <option value="penalties">Penalties</option>
-            <option value="fulltime">Full Time</option>
-          </select>
         </div>
 
-        <!-- Away Team -->
+        <!-- Away -->
         <div class="text-center order-2 sm:order-3">
-          <h3 id="awayTeamName" class="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2 truncate">Away Team</h3>
-          <div id="awayScore" class="font-mono text-5xl sm:text-6xl font-bold leading-none text-ecs-green">0</div>
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[11px] font-bold uppercase">A</span>
+            <h3 id="awayTeamName" class="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ match.away_team.name if match else 'Away Team' }}</h3>
+          </div>
+          <div id="awayScore" class="font-mono text-6xl sm:text-7xl font-extrabold leading-none text-gray-900 dark:text-white">0</div>
         </div>
       </div>
     </div>
-  </div>
+
+    {# Command toolbar: timer controls + period segmented select #}
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+      <div class="flex items-center gap-2">
+        <button id="startStopTimer" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-player-play" aria-hidden="true"></i> Start Timer
+        </button>
+        <button id="resetTimer" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-refresh" aria-hidden="true"></i> Reset
+        </button>
+      </div>
+      <div class="flex items-center gap-2 sm:ml-auto">
+        <label for="periodSelector" class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 shrink-0">Period</label>
+        <select id="periodSelector" class="input-ecs h-11 sm:h-9 text-sm font-medium min-w-[150px]">
+          <option value="first_half">First Half</option>
+          <option value="second_half">Second Half</option>
+          <option value="halftime">Halftime</option>
+          <option value="extra_time_1">Extra Time 1</option>
+          <option value="extra_time_2">Extra Time 2</option>
+          <option value="penalties">Penalties</option>
+          <option value="fulltime">Full Time</option>
+        </select>
+      </div>
+    </div>
+  </section>
 
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-    <!-- Score Control Panel -->
+    {# ── Score controls + active reporters ──────────────────────────────── #}
     <div class="lg:col-span-3 space-y-6">
       {% call section_card("Score Controls", icon="ti-adjustments") %}
-      <div class="p-4 space-y-4">
+      <div class="p-4 space-y-5">
         <!-- Home Score -->
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Home Score</label>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Home</span>
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded bg-ecs-green/10 text-ecs-green text-[10px] font-bold">H</span>
+          </div>
           <div class="flex items-center gap-2">
             <button id="decreaseHomeScore" aria-label="Decrease home score" class="shrink-0 w-11 h-11 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
               <i class="ti ti-minus" aria-hidden="true"></i>
             </button>
-            <span id="homeScoreDisplay" class="flex-1 text-center font-mono text-2xl font-bold text-gray-900 dark:text-white">0</span>
+            <span id="homeScoreDisplay" class="flex-1 text-center font-mono text-3xl font-bold text-gray-900 dark:text-white">0</span>
             <button id="increaseHomeScore" aria-label="Increase home score" class="shrink-0 w-11 h-11 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
               <i class="ti ti-plus" aria-hidden="true"></i>
             </button>
           </div>
         </div>
+        <div class="h-px bg-gray-200 dark:bg-gray-700"></div>
         <!-- Away Score -->
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Away Score</label>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Away</span>
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[10px] font-bold">A</span>
+          </div>
           <div class="flex items-center gap-2">
             <button id="decreaseAwayScore" aria-label="Decrease away score" class="shrink-0 w-11 h-11 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
               <i class="ti ti-minus" aria-hidden="true"></i>
             </button>
-            <span id="awayScoreDisplay" class="flex-1 text-center font-mono text-2xl font-bold text-gray-900 dark:text-white">0</span>
+            <span id="awayScoreDisplay" class="flex-1 text-center font-mono text-3xl font-bold text-gray-900 dark:text-white">0</span>
             <button id="increaseAwayScore" aria-label="Increase away score" class="shrink-0 w-11 h-11 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
               <i class="ti ti-plus" aria-hidden="true"></i>
             </button>
@@ -106,31 +160,37 @@
       {% endcall %}
 
       <!-- Active Reporters -->
-      {% call section_card("Active Reporters", icon="ti-users") %}
-      <div class="p-4">
-        <ul id="reportersList" class="space-y-2">
-          <li class="text-sm text-gray-500 dark:text-gray-400">Loading reporters...</li>
+      {% call section_card("Active Reporters", icon="ti-broadcast") %}
+      <div class="p-2">
+        <ul id="reportersList" class="space-y-1">
+          <li class="px-2 py-3 text-sm text-gray-500 dark:text-gray-400">Loading reporters...</li>
         </ul>
       </div>
       {% endcall %}
     </div>
 
-    <!-- Event Entry Panel -->
+    {# ── Event entry + events feed ──────────────────────────────────────── #}
     <div class="lg:col-span-5 space-y-6">
       {% call section_card("Add Match Event", icon="ti-plus") %}
       <div class="p-4">
         <form id="addEventForm" class="space-y-4">
-          <div>
-            <label for="eventType" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Event Type</label>
-            <select id="eventType" required class="input-ecs w-full">
-              <option value="">Select Event Type</option>
-              <option value="GOAL">Goal</option>
-              <option value="YELLOW_CARD">Yellow Card</option>
-              <option value="RED_CARD">Red Card</option>
-              <option value="SUBSTITUTION">Substitution</option>
-              <option value="INJURY">Injury</option>
-              <option value="OTHER">Other</option>
-            </select>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="eventType" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Event Type</label>
+              <select id="eventType" required class="input-ecs w-full">
+                <option value="">Select Event Type</option>
+                <option value="GOAL">Goal</option>
+                <option value="YELLOW_CARD">Yellow Card</option>
+                <option value="RED_CARD">Red Card</option>
+                <option value="SUBSTITUTION">Substitution</option>
+                <option value="INJURY">Injury</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="eventMinute" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Minute</label>
+              <input type="number" id="eventMinute" min="0" placeholder="Match minute" class="input-ecs w-full font-mono">
+            </div>
           </div>
 
           <div>
@@ -158,11 +218,6 @@
             </select>
           </div>
 
-          <div>
-            <label for="eventMinute" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Minute</label>
-            <input type="number" id="eventMinute" min="0" placeholder="Match minute" class="input-ecs w-full font-mono">
-          </div>
-
           <button type="submit" class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-plus" aria-hidden="true"></i> Add Event
           </button>
@@ -170,17 +225,19 @@
       </div>
       {% endcall %}
 
-      <!-- Match Events -->
+      <!-- Match Events feed -->
       {% call section_card("Match Events", icon="ti-list-details") %}
-      <div class="p-4">
-        <div id="eventsList" class="space-y-2"></div>
+      <div class="p-3">
+        <div id="eventsList" class="space-y-2">
+          {{ empty_state("ti-timeline-event", "No events yet", "Goals, cards and substitutions you log will appear here in real time.") }}
+        </div>
       </div>
       {% endcall %}
     </div>
 
-    <!-- Player Shifts & Notes Panel -->
+    {# ── Player shifts + notes / submit ─────────────────────────────────── #}
     <div class="lg:col-span-4 space-y-6">
-      {% call section_card("Player Shifts (Your Team Only)", icon="ti-clock") %}
+      {% call section_card("Player Shifts (Your Team Only)", icon="ti-clock-play") %}
       <div class="p-4">
         <div id="playerShiftsContainer">
           <p class="text-sm text-gray-500 dark:text-gray-400">Loading player shifts...</p>
@@ -188,13 +245,17 @@
       </div>
       {% endcall %}
 
-      {% call section_card("Match Notes", icon="ti-notes") %}
+      {% call section_card("Match Notes & Submit", icon="ti-notes") %}
       <div class="p-4 space-y-4">
-        <label for="matchNotes" class="sr-only">Match notes</label>
+        <label for="matchNotes" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Notes</label>
         <textarea id="matchNotes" rows="5" placeholder="Enter any additional notes about the match here..." class="input-ecs w-full"></textarea>
         <button id="submitReportBtn" class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-send" aria-hidden="true"></i> Submit Final Report
         </button>
+        <p class="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+          <i class="ti ti-info-circle mt-0.5 shrink-0" aria-hidden="true"></i>
+          Submitting locks the report for this match and notifies all active reporters.
+        </p>
       </div>
       {% endcall %}
     </div>
@@ -427,7 +488,6 @@
 {% block custom_js %}
 {{ super() }}
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-<script src="{{ url_for('static', filename='custom_js/live_reporting.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const config = {

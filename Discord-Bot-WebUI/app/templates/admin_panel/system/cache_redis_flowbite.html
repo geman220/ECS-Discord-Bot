@@ -22,23 +22,94 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
 {% set _redis_ok = cache_stats.redis_status == 'connected' %}
 {% set _uptime = cache_stats.redis_info.uptime_in_seconds|default(0)|int %}
 {% set _days = _uptime // 86400 %}
 {% set _hours = (_uptime % 86400) // 3600 %}
 {% set _minutes = (_uptime % 3600) // 60 %}
+{% set _clients = cache_stats.redis_info.connected_clients|default(0)|int %}
+{% set _keyspace_total = namespace(v=0) %}
+{% set _expires_total = namespace(v=0) %}
+{% for _dn, _di in (cache_stats.keyspace_stats or {}).items() %}{% set _keyspace_total.v = _keyspace_total.v + (_di.keys|default(0)|int) %}{% set _expires_total.v = _expires_total.v + (_di.expires|default(0)|int) %}{% endfor %}
+{# Derived telemetry — guarded so we only ever render real INFO values #}
+{% set _ri = cache_stats.redis_info %}
+{% set _hits = _ri.keyspace_hits|default(0)|int %}
+{% set _misses = _ri.keyspace_misses|default(0)|int %}
+{% set _frag = _ri.mem_fragmentation_ratio if _ri.mem_fragmentation_ratio is defined else None %}
+{% set _ops_sec = _ri.instantaneous_ops_per_sec if _ri.instantaneous_ops_per_sec is defined else None %}
+{# Tracked-pattern coverage of total keyspace #}
+{% set _tracked = namespace(v=0) %}
+{% for _e in (cache_stats.cache_key_stats or []) %}{% set _tracked.v = _tracked.v + (_e.count|int) %}{% endfor %}
 <div class="space-y-6">
 
-  {{ page_header('Cache & Redis', subtitle='Cache operations and Redis connection management') }}
+  {% call page_header('Cache & Redis', subtitle='System / Live Redis instance') %}
+    <button type="button" data-action="refresh-cache-stats"
+            class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-refresh" aria-hidden="true"></i> Refresh
+    </button>
+    <button type="button" data-action="clear-all-cache"
+            class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-trash" aria-hidden="true"></i> Flush All
+    </button>
+  {% endcall %}
 
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-server', 'Redis Status', (cache_stats.redis_status|default('unknown'))|capitalize, tone=('success' if _redis_ok else 'danger')) }}
-    {{ stat_card('ti-key', 'Total Keys', cache_stats.total_keys|default(0), tone='info') }}
-    {{ stat_card('ti-cpu', 'Memory Usage', cache_stats.memory_usage|default('N/A'), tone='warning') }}
-    {{ stat_card('ti-target-arrow', 'Hit Rate', cache_stats.hit_rate|default('N/A'), tone='primary') }}
-  </div>
+  <!-- ===== PRIMARY OBJECT: Redis instance health hero (feature card) ===== -->
+  <section class="rounded-xl border bg-white dark:bg-gray-800 overflow-hidden
+                  {{ 'border-green-300 dark:border-green-500/40' if _redis_ok else 'border-red-300 dark:border-red-500/40' }}">
+    <div class="flex flex-col lg:flex-row">
+      <!-- Status rail -->
+      <div class="flex flex-col justify-center gap-3 px-5 py-5 lg:w-72 lg:shrink-0 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700
+                  {{ 'bg-green-50 dark:bg-green-500/10' if _redis_ok else 'bg-red-50 dark:bg-red-500/10' }}">
+        <div class="flex items-center gap-4">
+          <span class="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full
+                       {{ 'bg-green-100 dark:bg-green-500/15 text-green-600 dark:text-green-400' if _redis_ok else 'bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400' }}">
+            {% if _redis_ok %}<span class="absolute inline-flex h-full w-full rounded-full bg-green-400/30 animate-ping"></span>{% endif %}
+            <i class="ti {{ 'ti-server-bolt' if _redis_ok else 'ti-server-off' }} text-2xl" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Redis Instance</p>
+            <p class="text-2xl font-extrabold tracking-tight {{ 'text-green-700 dark:text-green-400' if _redis_ok else 'text-red-700 dark:text-red-400' }}">
+              {{ (cache_stats.redis_status|default('unknown'))|capitalize }}
+            </p>
+          </div>
+        </div>
+        <dl class="grid grid-cols-2 gap-x-3 gap-y-1.5 pt-1 text-xs">
+          <dt class="text-gray-500 dark:text-gray-400">Version</dt>
+          <dd class="font-mono text-right text-gray-900 dark:text-white">v{{ _ri.redis_version|default(server_info.redis_version|default('—')) }}</dd>
+          <dt class="text-gray-500 dark:text-gray-400">Uptime</dt>
+          <dd class="font-mono text-right text-gray-900 dark:text-white">{% if _days > 0 %}{{ _days }}d {{ _hours }}h{% elif _hours > 0 %}{{ _hours }}h {{ _minutes }}m{% else %}{{ _minutes }}m{% endif %}</dd>
+          {% if _ops_sec is not none %}
+          <dt class="text-gray-500 dark:text-gray-400">Ops/sec</dt>
+          <dd class="font-mono text-right text-gray-900 dark:text-white">{{ _ops_sec }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+      <!-- Inline KPI strip -->
+      <div class="flex-1 grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-200 dark:divide-gray-700">
+        <div class="px-5 py-4">
+          <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Keys</p>
+          <p class="font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-none mt-1">{{ '{:,}'.format(cache_stats.total_keys|default(0)|int) }}</p>
+          <p class="text-[11px] font-mono text-gray-500 dark:text-gray-400 mt-1.5">{{ '{:,}'.format(_tracked.v) }} tracked</p>
+        </div>
+        <div class="px-5 py-4">
+          <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Hit Rate</p>
+          <p class="font-mono text-2xl sm:text-3xl font-bold text-ecs-green leading-none mt-1">{{ cache_stats.hit_rate|default('N/A') }}</p>
+          <p class="text-[11px] font-mono text-gray-500 dark:text-gray-400 mt-1.5">{{ '{:,}'.format(_hits) }} hits / {{ '{:,}'.format(_misses) }} miss</p>
+        </div>
+        <div class="px-5 py-4">
+          <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Memory</p>
+          <p class="font-mono text-2xl sm:text-3xl font-bold text-amber-600 dark:text-amber-400 leading-none mt-1">{{ cache_stats.memory_usage|default('N/A') }}</p>
+          <p class="text-[11px] font-mono text-gray-500 dark:text-gray-400 mt-1.5">{% if _frag is not none %}frag {{ '%.2f'|format(_frag|float) }}×{% else %}peak {{ _ri.used_memory_peak_human|default('—') }}{% endif %}</p>
+        </div>
+        <div class="px-5 py-4">
+          <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Clients</p>
+          <p class="font-mono text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 leading-none mt-1">{{ _clients }}</p>
+          <p class="text-[11px] font-mono text-gray-500 dark:text-gray-400 mt-1.5">{{ connection_health.overall and 'pool healthy' or 'pool degraded' }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- Tab Navigation (hooks verbatim from Classic JS) -->
   <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700" id="cache-redis-tabs">
@@ -59,230 +130,257 @@
   <!-- ========== TAB 1: Cache Operations ========== -->
   <div id="cache-operations" class="cache-redis-pane space-y-6">
 
-    <!-- Cache Actions -->
-    <div class="flex flex-wrap gap-3">
-      <button type="button" data-action="clear-all-cache"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-        <i class="ti ti-trash" aria-hidden="true"></i> Clear All Cache
-      </button>
-      <button type="button" data-action="clear-user-cache"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-        <i class="ti ti-user-off" aria-hidden="true"></i> Clear User Cache
-      </button>
-      <button type="button" data-action="refresh-cache-stats"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-        <i class="ti ti-refresh" aria-hidden="true"></i> Refresh Stats
-      </button>
+    <!-- Command toolbar -->
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3">
+        <div class="flex items-center gap-2 min-w-0">
+          <i class="ti ti-bolt text-ecs-green text-lg shrink-0" aria-hidden="true"></i>
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-gray-900 dark:text-white">Cache Operations</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">{{ '{:,}'.format(cache_stats.cache_operations_today|default(0)|int) }} commands processed</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" data-action="clear-user-cache"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <i class="ti ti-user-off" aria-hidden="true"></i> Clear User Cache
+          </button>
+          <button type="button" data-action="clear-all-cache"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-trash" aria-hidden="true"></i> Clear All Cache
+          </button>
+          <button type="button" data-action="refresh-cache-stats"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-refresh" aria-hidden="true"></i> Refresh
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- Cache Analytics -->
-    {% call section_card('Cache Analytics', icon='ti-chart-bar') %}
-    <div class="p-4 sm:p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-      <div class="text-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
-        <div class="font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ cache_stats.cache_operations_today|default(0) }}</div>
-        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Operations Today</div>
-      </div>
-      <div class="text-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
-        <div class="font-mono text-2xl font-bold text-ecs-green">{{ cache_stats.hit_rate|default('N/A') }}</div>
-        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Hit Rate</div>
-      </div>
-      <div class="text-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
-        <div class="font-mono text-2xl font-bold text-amber-600 dark:text-amber-400">{{ cache_stats.memory_usage|default('N/A') }}</div>
-        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Memory Used</div>
-      </div>
-      <div class="text-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
-        <div class="font-mono text-2xl font-bold text-blue-600 dark:text-blue-400">{{ cache_stats.redis_info.connected_clients|default('N/A') }}</div>
-        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Connected Clients</div>
-      </div>
-      <div class="text-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
-        <div class="font-mono text-2xl font-bold text-gray-900 dark:text-white">
-          {% if _days > 0 %}{{ _days }}d {{ _hours }}h{% elif _hours > 0 %}{{ _hours }}h {{ _minutes }}m{% else %}{{ _minutes }}m{% endif %}
-        </div>
-        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Uptime</div>
-      </div>
+    <!-- Cache Key Patterns (PRIMARY tabular object) -->
+    {% call section_card('Cache Key Patterns', icon='ti-list-search') %}
+    {% if cache_stats.cache_key_stats %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
+          <tr>
+            <th scope="col" class="px-4 py-2.5 font-semibold">Pattern</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold text-right">Keys</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold text-right hidden sm:table-cell">Avg Size</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold text-right">Total</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold w-1/4 hidden md:table-cell">Share</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% set _max_keys = (cache_stats.cache_key_stats | map(attribute='count') | map('int') | list | max) if cache_stats.cache_key_stats else 1 %}
+          {% for entry in cache_stats.cache_key_stats %}
+          {% set _pct = ((entry.count|int) / (_max_keys if _max_keys > 0 else 1) * 100) | round %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-4 py-3">
+              <code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded">{{ entry.pattern }}</code>
+            </td>
+            <td class="px-4 py-3 font-mono text-right font-semibold text-gray-900 dark:text-white">{{ '{:,}'.format(entry.count|int) }}</td>
+            <td class="px-4 py-3 font-mono text-right text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ '%.0f'|format(entry.avg_size_bytes|float) }} B</td>
+            <td class="px-4 py-3 font-mono text-right text-gray-700 dark:text-gray-300">{{ '%.2f'|format(entry.total_size_mb|float) }} MB</td>
+            <td class="px-4 py-3 hidden md:table-cell">
+              <div class="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                <div class="h-full rounded-full bg-ecs-green" style="width: {{ _pct }}%"></div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+    {% else %}
+    {{ empty_state('ti-list-search', 'No tracked key patterns', 'No keys matched the monitored patterns (ref, rsvp, session, task, user, match). The cache may be cold or recently flushed.') }}
+    {% endif %}
     {% endcall %}
 
     <!-- Keyspace Stats -->
-    {% if cache_stats.keyspace_stats %}
     {% call section_card('Keyspace Statistics', icon='ti-database') %}
+    {% if cache_stats.keyspace_stats %}
     <div class="overflow-x-auto">
-      <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+      <table class="w-full text-sm text-left">
         <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
           <tr>
-            <th scope="col" class="px-4 py-3 font-semibold">Database</th>
-            <th scope="col" class="px-4 py-3 font-semibold">Keys</th>
-            <th scope="col" class="px-4 py-3 font-semibold">Expires</th>
-            <th scope="col" class="px-4 py-3 font-semibold">Avg TTL</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold">Database</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold text-right">Keys</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold text-right">Expires</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold text-right">Avg TTL</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
           {% for db_name, db_info in cache_stats.keyspace_stats.items() %}
           <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
             <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
-              <i class="ti ti-database mr-1 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>{{ db_name }}
+              <i class="ti ti-database mr-1.5 text-blue-600 dark:text-blue-400" aria-hidden="true"></i><span class="font-mono">{{ db_name }}</span>
             </td>
-            <td class="px-4 py-3 font-mono">{{ db_info.keys|default(0) }}</td>
-            <td class="px-4 py-3 font-mono">{{ db_info.expires|default(0) }}</td>
-            <td class="px-4 py-3 font-mono">{{ db_info.avg_ttl|default(0) }}</td>
+            <td class="px-4 py-3 font-mono text-right font-semibold text-gray-900 dark:text-white">{{ '{:,}'.format(db_info.keys|default(0)|int) }}</td>
+            <td class="px-4 py-3 font-mono text-right text-gray-500 dark:text-gray-400">{{ '{:,}'.format(db_info.expires|default(0)|int) }}</td>
+            <td class="px-4 py-3 font-mono text-right text-gray-500 dark:text-gray-400">{{ db_info.avg_ttl|default(0) }}</td>
           </tr>
           {% endfor %}
         </tbody>
-      </table>
-    </div>
-    {% endcall %}
-    {% endif %}
-
-    <!-- Cache Key Patterns -->
-    {% if cache_stats.cache_key_stats %}
-    {% call section_card('Cache Key Patterns', icon='ti-list-search') %}
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-        <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
+        <tfoot class="bg-gray-50 dark:bg-gray-700/50 border-t-2 border-gray-200 dark:border-gray-700">
           <tr>
-            <th scope="col" class="px-4 py-3 font-semibold">Pattern</th>
-            <th scope="col" class="px-4 py-3 font-semibold">Key Count</th>
-            <th scope="col" class="px-4 py-3 font-semibold">Avg Size</th>
-            <th scope="col" class="px-4 py-3 font-semibold">Total Size</th>
+            <td class="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Total</td>
+            <td class="px-4 py-2.5 font-mono text-right font-bold text-gray-900 dark:text-white">{{ '{:,}'.format(_keyspace_total.v) }}</td>
+            <td class="px-4 py-2.5 font-mono text-right font-bold text-gray-700 dark:text-gray-300">{{ '{:,}'.format(_expires_total.v) }}</td>
+            <td></td>
           </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-          {% for entry in cache_stats.cache_key_stats %}
-          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
-              <code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{{ entry.pattern }}</code>
-            </td>
-            <td class="px-4 py-3 font-mono">{{ entry.count }}</td>
-            <td class="px-4 py-3 font-mono">{{ entry.avg_size_bytes }} B</td>
-            <td class="px-4 py-3 font-mono">{{ entry.total_size_mb }} MB</td>
-          </tr>
-          {% endfor %}
-        </tbody>
+        </tfoot>
       </table>
     </div>
-    {% endcall %}
+    {% else %}
+    {{ empty_state('ti-database-off', 'No keyspace data', 'Redis is reporting no populated databases right now.') }}
     {% endif %}
+    {% endcall %}
   </div>
 
   <!-- ========== TAB 2: Connection Pool ========== -->
   <div id="connection-pool" class="cache-redis-pane hidden space-y-6">
 
-    <!-- Connection Health -->
-    {% call section_card('Connection Health', icon='ti-heartbeat') %}
-    <div class="p-4 sm:p-5 space-y-4">
-      <!-- Overall Status -->
-      <div class="flex items-center justify-between p-4 rounded-xl {{ 'bg-green-50 dark:bg-green-500/10' if connection_health.overall else 'bg-red-50 dark:bg-red-500/10' }}">
-        <div class="flex items-center gap-3">
-          <i class="ti {{ 'ti-circle-check text-green-600 dark:text-green-400' if connection_health.overall else 'ti-circle-x text-red-600 dark:text-red-400' }} text-2xl" aria-hidden="true"></i>
-          <div>
-            <div class="font-semibold text-gray-900 dark:text-white">Overall Status</div>
-            <div class="text-sm {{ 'text-green-700 dark:text-green-400' if connection_health.overall else 'text-red-700 dark:text-red-400' }}">
-              {{ 'All connections healthy' if connection_health.overall else 'Connection issues detected' }}
-            </div>
+    <!-- Command toolbar: live diagnostics for the pool -->
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3">
+        <div class="flex items-center gap-2 min-w-0">
+          <i class="ti ti-plug-connected text-ecs-green text-lg shrink-0" aria-hidden="true"></i>
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-gray-900 dark:text-white">Connection Diagnostics</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">Dual-client pool · decoded + raw</p>
           </div>
         </div>
-      </div>
-      <!-- Individual Clients -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
-          <i class="ti {{ 'ti-circle-check text-green-600 dark:text-green-400' if connection_health.decoded_client else 'ti-circle-x text-red-600 dark:text-red-400' }} text-xl" aria-hidden="true"></i>
-          <div>
-            <div class="text-sm font-semibold text-gray-900 dark:text-white">Decoded Client</div>
-            <div class="text-xs {{ 'text-green-700 dark:text-green-400' if connection_health.decoded_client else 'text-red-700 dark:text-red-400' }}">
-              {{ 'Connected' if connection_health.decoded_client else 'Disconnected' }}
-            </div>
-          </div>
-        </div>
-        <div class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
-          <i class="ti {{ 'ti-circle-check text-green-600 dark:text-green-400' if connection_health.raw_client else 'ti-circle-x text-red-600 dark:text-red-400' }} text-xl" aria-hidden="true"></i>
-          <div>
-            <div class="text-sm font-semibold text-gray-900 dark:text-white">Raw Client</div>
-            <div class="text-xs {{ 'text-green-700 dark:text-green-400' if connection_health.raw_client else 'text-red-700 dark:text-red-400' }}">
-              {{ 'Connected' if connection_health.raw_client else 'Disconnected' }}
-            </div>
-          </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="test-btn" type="button"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-plug" aria-hidden="true"></i> Test Connection
+          </button>
+          <button id="cleanup-btn" type="button"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <i class="ti ti-trash" aria-hidden="true"></i> Cleanup Connections
+          </button>
+          <button id="redis-mgmt-refresh-btn" type="button"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-refresh" aria-hidden="true"></i> Refresh
+          </button>
+          <label class="relative inline-flex items-center cursor-pointer ml-1">
+            <input type="checkbox" id="auto-refresh" class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+            <span class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Auto</span>
+          </label>
+          <span id="last-updated" class="text-xs font-mono text-gray-500 dark:text-gray-400"></span>
         </div>
       </div>
     </div>
-    {% endcall %}
 
-    <!-- Pool Statistics -->
-    {% call section_card('Pool Statistics', icon='ti-chart-dots') %}
-    <div class="p-4 sm:p-5">
-      {% if pool_stats %}
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-        {% for key, value in pool_stats.items() %}
-        <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
-          <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ key|replace('_', ' ')|title }}</div>
-          <div class="font-mono text-lg font-semibold text-gray-900 dark:text-white">{{ value }}</div>
+    <!-- Two-column: probes + pool stats (xl:grid-cols-3) -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+      <!-- Connection Health (feature card with probe pills) -->
+      <section class="xl:col-span-1 rounded-xl border bg-white dark:bg-gray-800 overflow-hidden
+                      {{ 'border-green-300 dark:border-green-500/40' if connection_health.overall else 'border-red-300 dark:border-red-500/40' }}">
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+          <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-heartbeat text-ecs-green" aria-hidden="true"></i> Connection Health
+          </h3>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide
+                       {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if connection_health.overall else 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' }}">
+            <i class="ti {{ 'ti-circle-check-filled' if connection_health.overall else 'ti-alert-octagon' }}" aria-hidden="true"></i>
+            {{ 'Healthy' if connection_health.overall else 'Degraded' }}
+          </span>
         </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      {{ empty_state('ti-chart-dots-off', 'No pool statistics', 'Connection pool metrics are unavailable right now.') }}
-      {% endif %}
-    </div>
-    {% endcall %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+          <li class="flex items-center gap-3 px-4 sm:px-5 py-4">
+            <i class="ti {{ 'ti-circle-check text-green-600 dark:text-green-400' if connection_health.decoded_client else 'ti-circle-x text-red-600 dark:text-red-400' }} text-2xl shrink-0" aria-hidden="true"></i>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-semibold text-gray-900 dark:text-white">Decoded Client</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">UTF-8 responses</div>
+            </div>
+            <span class="font-mono text-xs font-bold px-2 py-0.5 rounded
+                         {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if connection_health.decoded_client else 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' }}">
+              {{ 'PONG' if connection_health.decoded_client else 'DOWN' }}
+            </span>
+          </li>
+          <li class="flex items-center gap-3 px-4 sm:px-5 py-4">
+            <i class="ti {{ 'ti-circle-check text-green-600 dark:text-green-400' if connection_health.raw_client else 'ti-circle-x text-red-600 dark:text-red-400' }} text-2xl shrink-0" aria-hidden="true"></i>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-semibold text-gray-900 dark:text-white">Raw Client</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">Bytes responses</div>
+            </div>
+            <span class="font-mono text-xs font-bold px-2 py-0.5 rounded
+                         {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if connection_health.raw_client else 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' }}">
+              {{ 'PONG' if connection_health.raw_client else 'DOWN' }}
+            </span>
+          </li>
+        </ul>
+        <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+          <i class="ti ti-info-circle mr-1" aria-hidden="true"></i>Both clients must answer <span class="font-mono">PING&nbsp;→&nbsp;PONG</span> for a healthy pool.
+        </div>
+      </section>
 
-    <!-- Server Info -->
+      <!-- Pool Statistics -->
+      <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+          <i class="ti ti-chart-dots text-ecs-green" aria-hidden="true"></i>
+          <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Pool Statistics</h3>
+        </div>
+        {% if pool_stats %}
+        <div class="grid grid-cols-2 sm:grid-cols-3 divide-x divide-y divide-gray-200 dark:divide-gray-700">
+          {% for key, value in pool_stats.items() %}
+          <div class="px-4 py-4">
+            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ key|replace('_', ' ')|title }}</p>
+            <p class="font-mono text-2xl font-bold text-gray-900 dark:text-white leading-none mt-1.5">{{ value }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        {{ empty_state('ti-chart-dots-off', 'No pool statistics', 'Connection pool metrics are unavailable right now.') }}
+        {% endif %}
+      </section>
+    </div>
+
+    <!-- Server Info (real INFO key/value, mono values, eyebrow rows) -->
     {% call section_card('Server Information', icon='ti-info-circle') %}
+    {% if server_info.error is defined %}
+    {{ empty_state('ti-server-off', 'Server info unavailable', server_info.error) }}
+    {% else %}
     <div class="overflow-x-auto max-h-96 overflow-y-auto">
-      <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+      <table class="w-full text-sm text-left">
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-          <tr>
-            <td class="px-4 py-3 pr-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">Redis Version</td>
-            <td class="px-4 py-3 font-mono">{{ server_info.redis_version|default('N/A') }}</td>
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-4 py-3 pr-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"><i class="ti ti-tag mr-1.5 text-gray-400" aria-hidden="true"></i>Redis Version</td>
+            <td class="px-4 py-3 font-mono text-gray-900 dark:text-white text-right">{{ server_info.redis_version|default('N/A') }}</td>
           </tr>
-          <tr>
-            <td class="px-4 py-3 pr-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">Uptime (seconds)</td>
-            <td class="px-4 py-3 font-mono">{{ server_info.uptime_in_seconds|default('N/A') }}</td>
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-4 py-3 pr-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"><i class="ti ti-clock mr-1.5 text-gray-400" aria-hidden="true"></i>Uptime (seconds)</td>
+            <td class="px-4 py-3 font-mono text-gray-900 dark:text-white text-right">{{ '{:,}'.format(server_info.uptime_in_seconds|int) if server_info.uptime_in_seconds is defined else 'N/A' }}</td>
           </tr>
-          <tr>
-            <td class="px-4 py-3 pr-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">Connected Clients</td>
-            <td class="px-4 py-3 font-mono">{{ server_info.connected_clients|default('N/A') }}</td>
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-4 py-3 pr-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"><i class="ti ti-users mr-1.5 text-gray-400" aria-hidden="true"></i>Connected Clients</td>
+            <td class="px-4 py-3 font-mono text-gray-900 dark:text-white text-right">{{ server_info.connected_clients|default('N/A') }}</td>
           </tr>
-          <tr>
-            <td class="px-4 py-3 pr-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">Memory Usage</td>
-            <td class="px-4 py-3 font-mono">{{ server_info.used_memory_human|default('N/A') }}</td>
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-4 py-3 pr-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"><i class="ti ti-cpu mr-1.5 text-gray-400" aria-hidden="true"></i>Memory Usage</td>
+            <td class="px-4 py-3 font-mono text-gray-900 dark:text-white text-right">{{ server_info.used_memory_human|default('N/A') }}</td>
           </tr>
-          <tr>
-            <td class="px-4 py-3 pr-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">Total Connections Received</td>
-            <td class="px-4 py-3 font-mono">{{ server_info.total_connections_received|default('N/A') }}</td>
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-4 py-3 pr-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"><i class="ti ti-plug-connected mr-1.5 text-gray-400" aria-hidden="true"></i>Total Connections Received</td>
+            <td class="px-4 py-3 font-mono text-gray-900 dark:text-white text-right">{{ '{:,}'.format(server_info.total_connections_received|int) if server_info.total_connections_received is defined else 'N/A' }}</td>
           </tr>
         </tbody>
       </table>
     </div>
+    {% endif %}
     {% endcall %}
-
-    <!-- Connection Pool Actions (ids verbatim from Classic JS) -->
-    <div class="flex flex-wrap items-center gap-3">
-      <button id="redis-mgmt-refresh-btn" type="button"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-        <i class="ti ti-refresh" aria-hidden="true"></i> Refresh
-      </button>
-      <button id="cleanup-btn" type="button"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-        <i class="ti ti-trash" aria-hidden="true"></i> Cleanup Connections
-      </button>
-      <button id="test-btn" type="button"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-cyan-600 hover:bg-cyan-700 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-        <i class="ti ti-plug" aria-hidden="true"></i> Test Connection
-      </button>
-      <label class="relative inline-flex items-center cursor-pointer ml-2">
-        <input type="checkbox" id="auto-refresh" class="sr-only peer">
-        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
-        <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Auto-refresh</span>
-      </label>
-      <span id="last-updated" class="text-sm font-mono text-gray-500 dark:text-gray-400"></span>
-    </div>
 
     <!-- Connection Test Results -->
     {% call section_card('Connection Test Results', icon='ti-test-pipe') %}
     <div class="p-4 sm:p-5">
       <div id="test-results">
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-          <i class="ti ti-info-circle mr-2" aria-hidden="true"></i>Click "Test Connection" to run connection tests
-        </p>
+        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+          <i class="ti ti-info-circle" aria-hidden="true"></i>Run "Test Connection" to probe the decoded client, raw client, and a write/read round-trip.
+        </div>
       </div>
     </div>
     {% endcall %}

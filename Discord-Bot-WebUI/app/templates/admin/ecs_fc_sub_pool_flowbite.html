@@ -3,165 +3,296 @@
 {% block title %}ECS FC Substitute Pool - Admin{% endblock %}
 
 {% block main_content %}
+{# Aggregate stats for the KPI band (computed from real data passed by the route) #}
+{% set stats = namespace(matches=0, received=0, accepted=0) %}
+{% for entry in sub_pool_entries %}
+    {% set stats.matches = stats.matches + (entry.matches_played or 0) %}
+    {% set stats.received = stats.received + (entry.requests_received or 0) %}
+    {% set stats.accepted = stats.accepted + (entry.requests_accepted or 0) %}
+{% endfor %}
+{% set accept_rate = ((stats.accepted / stats.received) * 100) | round | int if stats.received else 0 %}
+
 <div class="p-4 space-y-6">
     <!-- Page Header -->
-    <div>
-        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
-            <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
-            <span>/</span>
-            <span>ECS FC</span>
-            <span>/</span>
-            <span>Substitute Pool</span>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+                <span>/</span>
+                <span>ECS FC</span>
+                <span>/</span>
+                <span>Substitute Pool</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-users text-green-600"></i>ECS FC Substitute Pool Management
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Manage substitute players for ECS FC matches</p>
         </div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <i class="ti ti-users text-green-600"></i>ECS FC Substitute Pool Management
-        </h1>
-        <p class="text-gray-500 dark:text-gray-400">Manage substitute players for ECS FC matches</p>
+        <a href="{{ url_for('admin.manage_sub_requests') }}"
+           class="self-start sm:self-auto inline-flex items-center gap-1.5 px-3.5 h-9 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <i class="ti ti-clipboard-list"></i> Sub Requests
+        </a>
     </div>
 
-    <!-- Active Substitutes -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h5 class="font-semibold text-gray-900 dark:text-white">Active Substitutes ({{ sub_pool_entries|length }})</h5>
+    <!-- KPI band -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"><i class="ti ti-users"></i></span>
+                <div>
+                    <p class="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">In Pool</p>
+                    <p class="text-xl font-bold font-mono text-gray-900 dark:text-white">{{ sub_pool_entries|length }}</p>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">active substitutes</p>
         </div>
-        <div class="p-4">
-            {% if sub_pool_entries %}
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                        <tr>
-                            <th scope="col" class="px-4 py-3">Player</th>
-                            <th scope="col" class="px-4 py-3">Preferred Positions</th>
-                            <th scope="col" class="px-4 py-3">Notifications</th>
-                            <th scope="col" class="px-4 py-3">Stats</th>
-                            <th scope="col" class="px-4 py-3">Joined</th>
-                            <th scope="col" class="px-4 py-3">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for entry in sub_pool_entries %}
-                        <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-3">
-                                    <img src="{{ entry.player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
-                                         alt="{{ entry.player.name }}"
-                                         class="w-10 h-10 rounded-full object-cover">
-                                    <div>
-                                        <p class="font-medium text-gray-900 dark:text-white">{{ entry.player.name }}</p>
-                                        {% if entry.player.phone %}
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ entry.player.phone }}</p>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-4 py-3">
-                                <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-full">
-                                    {{ entry.preferred_positions or 'Any' }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3">
-                                <!-- Show what contact methods the user has enabled (read-only) -->
-                                <div class="flex flex-wrap gap-1">
-                                    {% if entry.player.is_phone_verified and entry.player.sms_consent_given %}
-                                    <span class="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded" title="SMS verified & consented">SMS</span>
-                                    {% endif %}
-                                    {% if entry.player.discord_id %}
-                                    <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded" title="Discord connected">Discord</span>
-                                    {% endif %}
-                                    {% if entry.player.user and entry.player.user.email %}
-                                    <span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded" title="Email available">Email</span>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td class="px-4 py-3">
-                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ entry.requests_accepted }}/{{ entry.requests_received }} accepted</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ entry.matches_played }} matches played</p>
-                            </td>
-                            <td class="px-4 py-3">
-                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ entry.joined_pool_at.strftime('%m/%d/%Y') }}</p>
-                            </td>
-                            <td class="px-4 py-3">
-                                <button type="button" class="remove-from-pool-btn px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
-                                        data-entry-id="{{ entry.id }}"
-                                        data-player-name="{{ entry.player.name }}">
-                                    Remove
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"><i class="ti ti-user-plus"></i></span>
+                <div>
+                    <p class="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Eligible</p>
+                    <p class="text-xl font-bold font-mono text-gray-900 dark:text-white">{{ eligible_players|length }}</p>
+                </div>
             </div>
-            {% else %}
-            <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-700 dark:text-blue-400 flex items-center gap-2">
-                <i class="ti ti-info-circle"></i>
-                <span>No active substitutes in the pool.</span>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">have Sub role, not added</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"><i class="ti ti-soccer-field"></i></span>
+                <div>
+                    <p class="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Matches</p>
+                    <p class="text-xl font-bold font-mono text-gray-900 dark:text-white">{{ stats.matches }}</p>
+                </div>
             </div>
-            {% endif %}
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">covered by pool</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"><i class="ti ti-percentage"></i></span>
+                <div>
+                    <p class="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Accept Rate</p>
+                    <p class="text-xl font-bold font-mono text-gray-900 dark:text-white">{{ accept_rate }}%</p>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">requests accepted</p>
         </div>
     </div>
 
-    <!-- Add Players to Pool -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h5 class="font-semibold text-gray-900 dark:text-white">Add Players to Substitute Pool</h5>
+    <!-- Filter bar (client-side filtering of the cards below) -->
+    <div class="flex flex-wrap items-center gap-2">
+        <div class="relative flex-1 min-w-[180px]">
+            <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
+            <input type="search" id="subPoolSearch" placeholder="Search players..." aria-label="Search players"
+                   class="w-full h-9 pl-9 pr-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white">
         </div>
-        <div class="p-4">
-            {% if eligible_players %}
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                        <tr>
-                            <th scope="col" class="px-4 py-3">Player</th>
-                            <th scope="col" class="px-4 py-3">Position</th>
-                            <th scope="col" class="px-4 py-3">Phone</th>
-                            <th scope="col" class="px-4 py-3">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for player in eligible_players %}
-                        <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-3">
-                                    <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
-                                         alt="{{ player.name }}"
-                                         class="w-10 h-10 rounded-full object-cover">
-                                    <div>
-                                        <p class="font-medium text-gray-900 dark:text-white">{{ player.name }}</p>
-                                        {% if player.user and player.user.email %}
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ player.user.email }}</p>
+        <select id="subPoolPosition" aria-label="Filter by position"
+                class="h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white w-auto min-w-[140px]">
+            <option value="">All Positions</option>
+            <option value="GK">Goalkeeper</option>
+            <option value="DEF">Defender</option>
+            <option value="MID">Midfielder</option>
+            <option value="FWD">Forward</option>
+        </select>
+        <select id="subPoolChannel" aria-label="Filter by notification channel"
+                class="h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white w-auto min-w-[150px]">
+            <option value="">All Channels</option>
+            <option value="sms">SMS enabled</option>
+            <option value="discord">Discord enabled</option>
+            <option value="email">Email enabled</option>
+        </select>
+    </div>
+
+    <!-- ============ BOARD: pool lanes ============ -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        <!-- IN POOL lane -->
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col">
+            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                <i class="ti ti-users text-green-600"></i>
+                <h2 class="font-semibold text-gray-900 dark:text-white">Active Substitutes</h2>
+                <span class="ml-auto font-mono text-xs px-2 py-0.5 rounded-md bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{{ sub_pool_entries|length }}</span>
+            </div>
+            <div class="p-3 space-y-3" id="activeSubsLane">
+                {% if sub_pool_entries %}
+                    {% for entry in sub_pool_entries %}
+                    {% set p = entry.player %}
+                    {% set positions = entry.preferred_positions or 'Any' %}
+                    {% set has_sms = p.is_phone_verified and p.sms_consent_given %}
+                    {% set has_discord = p.discord_id %}
+                    {% set has_email = p.user and p.user.email %}
+                    {% set entry_accept_rate = ((entry.requests_accepted / entry.requests_received) * 100) | round | int if entry.requests_received else 0 %}
+                    <article class="sub-card rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-3 flex gap-3"
+                             data-name="{{ p.name|lower }}"
+                             data-positions="{{ positions|lower }}"
+                             data-sms="{{ '1' if has_sms else '0' }}"
+                             data-discord="{{ '1' if has_discord else '0' }}"
+                             data-email="{{ '1' if has_email else '0' }}"
+                             data-entry-id="{{ entry.id }}"
+                             data-player-name="{{ p.name }}"
+                             data-phone="{{ p.phone or '' }}"
+                             data-mail="{{ (p.user.email if p.user else '') or '' }}"
+                             data-joined="{{ entry.joined_pool_at.strftime('%b %d, %Y') if entry.joined_pool_at else '' }}"
+                             data-accepted="{{ entry.requests_accepted }}"
+                             data-received="{{ entry.requests_received }}"
+                             data-played="{{ entry.matches_played }}"
+                             data-rate="{{ entry_accept_rate }}"
+                             data-avatar="{{ p.profile_picture_url or url_for('static', filename='img/default_player.png') }}">
+                        <span class="w-1 self-stretch rounded-full shrink-0 bg-green-500" aria-hidden="true"></span>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <img src="{{ p.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
+                                         alt="{{ p.name }}" class="shrink-0 w-10 h-10 rounded-full object-cover">
+                                    <div class="min-w-0">
+                                        <div class="font-semibold truncate text-gray-900 dark:text-white">{{ p.name }}</div>
+                                        {% if p.phone %}
+                                        <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ p.phone }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
-                            </td>
-                            <td class="px-4 py-3">
-                                {% if player.favorite_position %}
-                                <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-full">{{ player.favorite_position }}</span>
-                                {% else %}
-                                <span class="text-gray-400">Not set</span>
+                                <span class="shrink-0 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ positions }}</span>
+                            </div>
+                            <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                                {% if has_sms %}
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" title="SMS verified &amp; consented"><i class="ti ti-message-2 text-xs"></i> SMS</span>
                                 {% endif %}
-                            </td>
-                            <td class="px-4 py-3">
-                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ player.phone or 'Not provided' }}</span>
-                            </td>
-                            <td class="px-4 py-3">
-                                <button type="button" class="add-to-pool-btn inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-                                        data-player-id="{{ player.id }}"
-                                        data-player-name="{{ player.name }}">
-                                    Add to Pool
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                {% if has_discord %}
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" title="Discord connected"><i class="ti ti-brand-discord text-xs"></i> Discord</span>
+                                {% endif %}
+                                {% if has_email %}
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" title="Email available"><i class="ti ti-mail text-xs"></i> Email</span>
+                                {% endif %}
+                            </div>
+                            <div class="mt-2 grid grid-cols-3 gap-2 text-xs">
+                                <div><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ entry.requests_accepted }}/{{ entry.requests_received }}</span> <span class="text-gray-500 dark:text-gray-400">accepted</span></div>
+                                <div><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ entry.matches_played }}</span> <span class="text-gray-500 dark:text-gray-400">played</span></div>
+                                <div class="text-gray-500 dark:text-gray-400 font-mono">{{ entry.joined_pool_at.strftime('%b %d, %Y') if entry.joined_pool_at else '—' }}</div>
+                            </div>
+                            <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+                                <button type="button" class="profile-btn h-8 px-3 inline-flex items-center gap-1 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs font-medium hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"><i class="ti ti-eye"></i> Profile</button>
+                                <button type="button" class="remove-from-pool-btn h-8 px-3 inline-flex items-center gap-1 rounded-lg bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 text-xs font-medium hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                                        data-entry-id="{{ entry.id }}" data-player-name="{{ p.name }}"><i class="ti ti-user-minus"></i> Remove</button>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                    <button type="button" data-lane-toggle="activeSubsLane"
+                            class="lane-show-more hidden w-full h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <i class="ti ti-chevron-down"></i> <span class="lane-show-more-label">Show more substitutes</span>
+                    </button>
+                {% else %}
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                        <i class="ti ti-info-circle"></i>
+                        <span>No active substitutes in the pool.</span>
+                    </div>
+                {% endif %}
             </div>
-            {% else %}
-            <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-700 dark:text-blue-400 flex items-center gap-2">
-                <i class="ti ti-info-circle"></i>
-                <span>All players with 'ECS FC Sub' role are already in the pool.</span>
+        </section>
+
+        <!-- ELIGIBLE lane -->
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col">
+            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                <i class="ti ti-user-plus text-blue-600"></i>
+                <h2 class="font-semibold text-gray-900 dark:text-white">Eligible to Add</h2>
+                <span class="ml-auto font-mono text-xs px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{{ eligible_players|length }}</span>
             </div>
-            {% endif %}
+            <div class="p-3 space-y-3" id="eligibleLane">
+                <p class="text-xs text-gray-500 dark:text-gray-400 px-1">Players with the <span class="font-medium text-gray-900 dark:text-white">ECS FC Sub</span> role who are not yet in the pool.</p>
+                {% if eligible_players %}
+                    {% for player in eligible_players %}
+                    <article class="sub-card rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-3 flex gap-3"
+                             data-name="{{ player.name|lower }}"
+                             data-positions="{{ (player.favorite_position or '')|lower }}"
+                             data-sms="{{ '1' if (player.is_phone_verified and player.sms_consent_given) else '0' }}"
+                             data-discord="{{ '1' if player.discord_id else '0' }}"
+                             data-email="{{ '1' if (player.user and player.user.email) else '0' }}">
+                        <span class="w-1 self-stretch rounded-full shrink-0 bg-blue-500" aria-hidden="true"></span>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
+                                         alt="{{ player.name }}" class="shrink-0 w-10 h-10 rounded-full object-cover">
+                                    <div class="min-w-0">
+                                        <div class="font-semibold truncate text-gray-900 dark:text-white">{{ player.name }}</div>
+                                        {% if player.user and player.user.email %}
+                                        <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ player.user.email }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if player.favorite_position %}
+                                <span class="shrink-0 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position }}</span>
+                                {% else %}
+                                <span class="shrink-0 px-2 py-0.5 rounded-md text-xs font-medium text-gray-400">Not set</span>
+                                {% endif %}
+                            </div>
+                            <div class="mt-2 text-xs text-gray-500 dark:text-gray-400 font-mono"><i class="ti ti-phone text-[11px]"></i> {{ player.phone or 'Not provided' }}</div>
+                            <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+                                <button type="button" class="add-to-pool-btn h-8 px-3 inline-flex items-center gap-1 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 transition-colors"
+                                        data-player-id="{{ player.id }}" data-player-name="{{ player.name }}"><i class="ti ti-user-plus"></i> Add to Pool</button>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                    <button type="button" data-lane-toggle="eligibleLane"
+                            class="lane-show-more hidden w-full h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <i class="ti ti-chevron-down"></i> <span class="lane-show-more-label">Show more eligible</span>
+                    </button>
+                {% else %}
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                        <i class="ti ti-info-circle"></i>
+                        <span>All players with 'ECS FC Sub' role are already in the pool.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<!-- ============ Sub Profile Modal ============ -->
+<div id="profileModal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+    <div class="fixed inset-0 bg-black/60" data-modal-close></div>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl w-full max-w-md relative" role="dialog" aria-label="Substitute profile">
+            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                <i class="ti ti-user text-green-600"></i>
+                <h2 class="font-semibold text-gray-900 dark:text-white">Substitute Profile</h2>
+                <button type="button" data-modal-close class="ml-auto text-gray-400 hover:text-gray-700 dark:hover:text-white" aria-label="Close"><i class="ti ti-x text-xl"></i></button>
+            </div>
+            <div class="p-4 space-y-4">
+                <div class="flex items-center gap-3">
+                    <img id="pm-avatar" src="" alt="" class="w-14 h-14 rounded-full object-cover bg-gray-100 dark:bg-gray-700">
+                    <div>
+                        <div id="pm-name" class="font-semibold text-gray-900 dark:text-white"></div>
+                        <div id="pm-phone" class="text-xs text-gray-500 dark:text-gray-400 font-mono"></div>
+                        <div id="pm-email" class="text-xs text-gray-500 dark:text-gray-400"></div>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs uppercase font-medium text-gray-500 dark:text-gray-400 mb-1.5">Preferred Positions</p>
+                    <span id="pm-positions" class="px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"></span>
+                </div>
+                <div>
+                    <p class="text-xs uppercase font-medium text-gray-500 dark:text-gray-400 mb-1.5">Notification Channels</p>
+                    <div id="pm-channels" class="flex flex-wrap items-center gap-1.5"></div>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 p-3 text-center">
+                        <p id="pm-accepted" class="text-lg font-bold font-mono text-gray-900 dark:text-white"></p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Accepted</p>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 p-3 text-center">
+                        <p id="pm-played" class="text-lg font-bold font-mono text-gray-900 dark:text-white"></p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Played</p>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 p-3 text-center">
+                        <p id="pm-rate" class="text-lg font-bold font-mono text-gray-900 dark:text-white"></p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Accept</p>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-200 dark:border-gray-700">Joined pool <span id="pm-joined" class="font-mono text-gray-900 dark:text-white"></span></div>
+                <button type="button" id="pm-remove" class="w-full h-10 inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 text-sm font-semibold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"><i class="ti ti-user-minus"></i> Remove from Pool</button>
+            </div>
         </div>
     </div>
 </div>
@@ -176,42 +307,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
-    // Remove from pool buttons
+    function removeFromPool(entryId, playerName) {
+        Swal.fire({
+            title: 'Remove from Pool?',
+            text: `Remove ${playerName} from the substitute pool?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, remove',
+            confirmButtonColor: '#dc2626',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/ecs-fc/sub-pool/${entryId}/remove`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                })
+                .then(res => res.json())
+                .then(data => { if (data.success) { location.reload(); } });
+            }
+        });
+    }
+
+    // Remove from pool buttons (card actions)
     document.querySelectorAll('.remove-from-pool-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            const entryId = this.dataset.entryId;
-            const playerName = this.dataset.playerName;
-
-            Swal.fire({
-                title: 'Remove from Pool?',
-                text: `Remove ${playerName} from the substitute pool?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, remove',
-                confirmButtonColor: '#dc2626',
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    fetch(`/ecs-fc/sub-pool/${entryId}/remove`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken
-                        }
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            location.reload();
-                        }
-                    });
-                }
-            });
+            removeFromPool(this.dataset.entryId, this.dataset.playerName);
         });
     });
 
-    // Add to pool buttons - simple confirmation
+    // Add to pool buttons
     document.querySelectorAll('.add-to-pool-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const playerId = this.dataset.playerId;
@@ -230,36 +355,147 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (result.isConfirmed) {
                     const formData = new FormData();
                     formData.append('player_id', playerId);
-
                     fetch('/ecs-fc/sub-pool/add', {
-                        method: 'POST',
-                        body: formData,
-                        headers: { 'X-CSRFToken': csrfToken }
+                        method: 'POST', body: formData, headers: { 'X-CSRFToken': csrfToken }
                     })
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Added!',
+                            Swal.fire({ icon: 'success', title: 'Added!',
                                 text: `${playerName} has been added to the sub pool.`,
-                                background: isDark ? '#1f2937' : '#ffffff',
-                                color: isDark ? '#f3f4f6' : '#111827'
+                                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
                             }).then(() => location.reload());
                         } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: data.message || 'Failed to add player',
-                                background: isDark ? '#1f2937' : '#ffffff',
-                                color: isDark ? '#f3f4f6' : '#111827'
-                            });
+                            Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to add player',
+                                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
                         }
                     });
                 }
             });
         });
     });
+
+    // ---- Profile modal ----
+    const modal = document.getElementById('profileModal');
+    const channelDefs = [
+        { key: 'sms', label: 'SMS', icon: 'ti-message-2', cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+        { key: 'discord', label: 'Discord', icon: 'ti-brand-discord', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+        { key: 'email', label: 'Email', icon: 'ti-mail', cls: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' }
+    ];
+
+    function openProfile(card) {
+        const d = card.dataset;
+        document.getElementById('pm-avatar').src = d.avatar || '';
+        document.getElementById('pm-name').textContent = d.playerName || '';
+        const phoneEl = document.getElementById('pm-phone');
+        phoneEl.textContent = d.phone || '';
+        phoneEl.style.display = d.phone ? '' : 'none';
+        const mailEl = document.getElementById('pm-email');
+        mailEl.textContent = d.mail || '';
+        mailEl.style.display = d.mail ? '' : 'none';
+        document.getElementById('pm-positions').textContent = (d.positions && d.positions !== 'any') ? card.querySelector('.shrink-0.px-2')?.textContent.trim() || d.positions : 'Any';
+        const channelsEl = document.getElementById('pm-channels');
+        channelsEl.innerHTML = '';
+        channelDefs.forEach(c => {
+            if (d[c.key] === '1') {
+                const span = document.createElement('span');
+                span.className = 'inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded ' + c.cls;
+                span.innerHTML = `<i class="ti ${c.icon} text-xs"></i> ${c.label}`;
+                channelsEl.appendChild(span);
+            }
+        });
+        if (!channelsEl.children.length) {
+            channelsEl.innerHTML = '<span class="text-xs text-gray-400">None configured</span>';
+        }
+        document.getElementById('pm-accepted').textContent = `${d.accepted}/${d.received}`;
+        document.getElementById('pm-played').textContent = d.played;
+        document.getElementById('pm-rate').textContent = `${d.rate}%`;
+        document.getElementById('pm-joined').textContent = d.joined || '—';
+        const removeBtn = document.getElementById('pm-remove');
+        removeBtn.onclick = function() { closeModal(); removeFromPool(d.entryId, d.playerName); };
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+
+    document.querySelectorAll('.profile-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            openProfile(this.closest('.sub-card'));
+        });
+    });
+    modal.querySelectorAll('[data-modal-close]').forEach(el => el.addEventListener('click', closeModal));
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
+
+    // ---- Filtering ----
+    const searchEl = document.getElementById('subPoolSearch');
+    const posEl = document.getElementById('subPoolPosition');
+    const chanEl = document.getElementById('subPoolChannel');
+
+    function applyFilters() {
+        const q = (searchEl.value || '').trim().toLowerCase();
+        const pos = (posEl.value || '').toLowerCase();
+        const chan = chanEl.value || '';
+        document.querySelectorAll('.sub-card').forEach(card => {
+            const d = card.dataset;
+            let show = true;
+            if (q && !(d.name || '').includes(q)) show = false;
+            if (pos && !((d.positions || '').includes(pos))) show = false;
+            if (chan && d[chan] !== '1') show = false;
+            card.dataset.filtered = show ? '0' : '1';
+            card.classList.toggle('hidden', !show);
+        });
+        updateLanes();
+    }
+
+    [searchEl, posEl, chanEl].forEach(el => {
+        if (el) { el.addEventListener('input', applyFilters); el.addEventListener('change', applyFilters); }
+    });
+
+    // ---- Lane "Show N more" pagination ----
+    const PAGE = 5;
+    function updateLane(laneId) {
+        const lane = document.getElementById(laneId);
+        if (!lane) return;
+        const toggle = lane.querySelector('.lane-show-more');
+        const cards = Array.from(lane.querySelectorAll('.sub-card')).filter(c => c.dataset.filtered !== '1');
+        const expanded = lane.dataset.expanded === '1';
+        cards.forEach((c, i) => {
+            c.classList.toggle('hidden', !expanded && i >= PAGE);
+        });
+        if (toggle) {
+            const hidden = cards.length - PAGE;
+            if (!expanded && hidden > 0) {
+                toggle.classList.remove('hidden');
+                toggle.classList.add('flex');
+                toggle.querySelector('.lane-show-more-label').textContent =
+                    `Show ${hidden} more ${laneId === 'activeSubsLane' ? 'substitutes' : 'eligible'}`;
+            } else if (expanded && cards.length > PAGE) {
+                toggle.classList.remove('hidden');
+                toggle.classList.add('flex');
+                toggle.querySelector('.lane-show-more-label').textContent = 'Show less';
+            } else {
+                toggle.classList.add('hidden');
+                toggle.classList.remove('flex');
+            }
+        }
+    }
+    function updateLanes() {
+        updateLane('activeSubsLane');
+        updateLane('eligibleLane');
+    }
+    document.querySelectorAll('.lane-show-more').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const lane = document.getElementById(this.dataset.laneToggle);
+            lane.dataset.expanded = lane.dataset.expanded === '1' ? '0' : '1';
+            updateLane(this.dataset.laneToggle);
+        });
+    });
+
+    updateLanes();
 });
 </script>
 {% endblock %}

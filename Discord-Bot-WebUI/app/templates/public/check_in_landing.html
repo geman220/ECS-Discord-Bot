@@ -16,12 +16,35 @@
 
     <div class="px-6 py-6 text-center">
         <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">
-            Open the ECS FC app to check in.
+            You're at the field — open the ECS FC app to check in for today's match.
         </p>
         <p class="text-xs text-gray-500 dark:text-gray-400">
-            If the app didn't open automatically, install it from the App Store
-            or Google Play, then re-scan this code.
+            If the app didn't open automatically, install it below, then re-scan
+            this code. Codes expire after the match window closes.
         </p>
+    </div>
+
+    <!-- App store download buttons (config-driven; safe default to the ECS site) -->
+    <div class="px-6 pb-7">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">Don't have the app?</span>
+            <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <a href="{{ ios_app_store_url }}"
+               class="inline-flex items-center justify-center gap-2 h-10 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+               aria-label="Download on the App Store">
+                <i class="ti ti-brand-apple text-lg" aria-hidden="true"></i>
+                App Store
+            </a>
+            <a href="{{ android_play_store_url }}"
+               class="inline-flex items-center justify-center gap-2 h-10 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+               aria-label="Get it on Google Play">
+                <i class="ti ti-brand-google-play text-lg" aria-hidden="true"></i>
+                Google Play
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}

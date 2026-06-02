@@ -17,146 +17,248 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== MODERN (console) ===================== #}
-{{ page_header("Store Management", subtitle="Products & Orders") }}
+{# --- Derive real status distribution from the recent_orders window (no fabricated fields) --- #}
+{% set recent_n = recent_orders|length %}
+{% set rc_pending = recent_orders|selectattr('status', 'equalto', 'PENDING')|list|length %}
+{% set rc_delivered = recent_orders|selectattr('status', 'equalto', 'DELIVERED')|list|length %}
+{% set rc_inprog = recent_orders|rejectattr('status', 'equalto', 'PENDING')|rejectattr('status', 'equalto', 'DELIVERED')|rejectattr('status', 'equalto', 'CANCELLED')|list|length %}
+{% set rc_cancelled = recent_orders|selectattr('status', 'equalto', 'CANCELLED')|list|length %}
+{% set total_orders = stats.total_orders or 0 %}
+{% set pending = stats.pending_orders or 0 %}
+{% set delivered = stats.completed_orders or 0 %}
+{% set fulfilled = pending == 0 %}
+{% set fulfil_pct = ((delivered / total_orders) * 100) | round | int if total_orders > 0 else 0 %}
+{% call page_header("Store Fulfillment", subtitle="Catalog & Orders") %}
+    <button type="button" data-action="search-orders"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-search text-base" aria-hidden="true"></i><span class="hidden sm:inline">Search Orders</span>
+    </button>
+    <button type="button" data-action="add-new-product"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-plus text-base" aria-hidden="true"></i>Add Product
+    </button>
+{% endcall %}
 
-<!-- KPI band -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
-    {{ stat_card("ti-package", "Total Items", stats.total_items or 0, sublabel="in catalog", tone="info") }}
-    {{ stat_card("ti-shopping-cart", "Total Orders", stats.total_orders or 0, sublabel="all time", tone="success") }}
-    {{ stat_card("ti-clock", "Pending Orders", stats.pending_orders or 0, sublabel="awaiting fulfillment", tone="warning") }}
-    {{ stat_card("ti-currency-dollar", "Total Revenue", "$" ~ (stats.revenue_total or 0), sublabel="gross", tone="primary") }}
-</div>
+<!-- Two-column cockpit: fulfillment feature card (primary job) + KPI band/orders -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
 
-<!-- Management panels -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-5 sm:mb-6">
-    {% call section_card("Product Management", icon="ti-package") %}
-    <div class="p-4 sm:p-5">
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Manage store items, inventory, and product categories</p>
-        <div class="space-y-2">
-            <button type="button" data-action="add-new-product"
-                    class="w-full flex items-center justify-between min-h-[44px] px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
-                    <i class="ti ti-plus text-ecs-green" aria-hidden="true"></i>Add New Product
-                </span>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-            </button>
-            <button type="button" data-action="view-all-products"
-                    class="w-full flex items-center justify-between min-h-[44px] px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
-                    <i class="ti ti-list text-blue-600 dark:text-blue-400" aria-hidden="true"></i>View All Products
-                </span>
-                <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ stats.total_items or 0 }}</span>
-            </button>
-            <button type="button" data-action="manage-categories"
-                    class="w-full flex items-center justify-between min-h-[44px] px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
-                    <i class="ti ti-category text-ecs-green" aria-hidden="true"></i>Product Categories
-                </span>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-            </button>
+    <!-- PRIMARY OBJECT: Fulfillment feature card -->
+    <section class="xl:col-span-1 rounded-xl border bg-white dark:bg-gray-800 overflow-hidden flex flex-col
+                    {% if fulfilled %}border-gray-200 dark:border-gray-700{% else %}border-amber-300 dark:border-amber-500/40{% endif %}">
+        <div class="px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-clipboard-list text-ecs-green" aria-hidden="true"></i>Fulfillment Queue
+            </h2>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide
+                         {% if fulfilled %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400{% else %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400{% endif %}">
+                <i class="ti {% if fulfilled %}ti-circle-check{% else %}ti-alert-triangle-filled{% endif %} text-[12px]" aria-hidden="true"></i>
+                {% if fulfilled %}Clear{% else %}Action needed{% endif %}
+            </span>
         </div>
-    </div>
-    {% endcall %}
+        <div class="p-4 sm:p-5 flex-1 flex flex-col">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Orders awaiting action</p>
+            <div class="mt-1 flex items-end gap-2">
+                <span class="font-mono text-5xl font-bold leading-none {% if fulfilled %}text-green-600 dark:text-green-400{% else %}text-amber-600 dark:text-amber-400{% endif %}">{{ pending }}</span>
+                <span class="font-mono text-sm text-gray-400 dark:text-gray-500 mb-1">/ {{ total_orders }} total</span>
+            </div>
 
-    {% call section_card("Order Management", icon="ti-clipboard-list") %}
-    <div class="p-4 sm:p-5">
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Process orders, manage fulfillment, and track deliveries</p>
-        <div class="space-y-2">
+            <!-- Fulfillment progress (delivered ÷ total) -->
+            <div class="mt-4">
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Fulfilled</span>
+                    <span class="font-mono font-bold text-gray-900 dark:text-white">{{ fulfil_pct }}%</span>
+                </div>
+                <div class="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="progressbar" aria-valuenow="{{ fulfil_pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Orders fulfilled">
+                    <div class="h-full rounded-full bg-green-500 dark:bg-green-400" style="width: {{ fulfil_pct }}%"></div>
+                </div>
+            </div>
+
+            <!-- Lifecycle breakdown -->
+            <div class="mt-5 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                <div class="flex items-center justify-between text-sm">
+                    <span class="flex items-center gap-2 text-gray-600 dark:text-gray-300"><i class="ti ti-clock text-amber-500" aria-hidden="true"></i>Pending</span>
+                    <span class="font-mono font-bold text-gray-900 dark:text-white">{{ pending }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="flex items-center gap-2 text-gray-600 dark:text-gray-300"><i class="ti ti-circle-check text-green-500" aria-hidden="true"></i>Delivered</span>
+                    <span class="font-mono font-bold text-gray-900 dark:text-white">{{ delivered }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="flex items-center gap-2 text-gray-600 dark:text-gray-300"><i class="ti ti-package text-blue-500" aria-hidden="true"></i>Catalog items</span>
+                    <span class="font-mono font-bold text-gray-900 dark:text-white">{{ stats.total_items or 0 }}</span>
+                </div>
+            </div>
+
             <button type="button" data-action="view-pending-orders"
-                    class="w-full flex items-center justify-between min-h-[44px] px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
-                    <i class="ti ti-clock text-amber-600 dark:text-amber-400" aria-hidden="true"></i>Pending Orders
-                </span>
-                <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ stats.pending_orders or 0 }}</span>
-            </button>
-            <button type="button" data-action="view-completed-orders"
-                    class="w-full flex items-center justify-between min-h-[44px] px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
-                    <i class="ti ti-check text-green-600 dark:text-green-400" aria-hidden="true"></i>Completed Orders
-                </span>
-                <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">{{ stats.completed_orders or 0 }}</span>
-            </button>
-            <button type="button" data-action="search-orders"
-                    class="w-full flex items-center justify-between min-h-[44px] px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
-                    <i class="ti ti-search text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Search Orders
-                </span>
-                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+                    class="mt-auto pt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] w-full rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti ti-checks text-base" aria-hidden="true"></i>Process Pending Orders
             </button>
         </div>
-    </div>
-    {% endcall %}
-</div>
+    </section>
 
-<!-- Recent orders -->
-{% if recent_orders %}
-{% call data_table("Recent Orders", icon="ti-history", count=recent_orders|length, filters=False) %}
-    <table class="hidden md:table w-full text-sm text-left">
-        <thead class="bg-gray-50 dark:bg-gray-700/50">
-            <tr>
-                {{ data_table_th("Order ID", key="id", sortable=False) }}
-                {{ data_table_th("Customer", key="customer", sortable=False, hide="sm") }}
-                {{ data_table_th("Items", key="items", sortable=False, hide="sm") }}
-                {{ data_table_th("Total", key="total", sortable=False, hide="sm") }}
-                {{ data_table_th("Status", key="status", sortable=False, hide="sm") }}
-                {{ data_table_th("Date", key="date", sortable=False, hide="sm") }}
-                {{ data_table_th("Actions", sortable=False, align="right") }}
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-            {% for order in recent_orders %}
-            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                <td class="px-3 py-3 font-mono font-semibold text-gray-900 dark:text-white">#{{ order.id }}</td>
-                <td class="px-3 py-3 text-gray-700 dark:text-gray-300 hidden md:table-cell">{{ order.orderer.name or order.orderer.username if order.orderer else 'N/A' }}</td>
-                <td class="px-3 py-3 text-gray-700 dark:text-gray-300 hidden md:table-cell">{{ order.quantity or 1 }} × {{ order.item.name if order.item else 'Unknown Item' }}</td>
-                <td class="px-3 py-3 text-gray-500 dark:text-gray-400 font-mono hidden md:table-cell">N/A</td>
-                <td class="px-3 py-3 hidden md:table-cell">
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {% if order.status == 'completed' %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400{% elif order.status == 'pending' %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">
-                        <i class="ti {% if order.status == 'completed' %}ti-circle-check{% elif order.status == 'pending' %}ti-clock{% else %}ti-circle{% endif %} text-[12px]" aria-hidden="true"></i>
-                        {{ order.status.title() if order.status else 'Unknown' }}
-                    </span>
-                </td>
-                <td class="px-3 py-3 text-gray-500 dark:text-gray-400 font-mono hidden md:table-cell">{{ order.order_date.strftime('%Y-%m-%d') if order.order_date else 'N/A' }}</td>
-                <td class="px-3 py-3 text-right">
-                    <button type="button" onclick="viewOrder('{{ order.id }}')" title="View Order"
-                            class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                            aria-label="View order #{{ order.id }}">
-                        <i class="ti ti-eye" aria-hidden="true"></i>
-                    </button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-        {% for order in recent_orders %}
-        <div class="px-4 py-3.5">
-            <div class="flex items-center justify-between gap-2">
-                <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">#{{ order.id }}</span>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {% if order.status == 'completed' %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400{% elif order.status == 'pending' %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">
-                    <i class="ti {% if order.status == 'completed' %}ti-circle-check{% elif order.status == 'pending' %}ti-clock{% else %}ti-circle{% endif %} text-[12px]" aria-hidden="true"></i>
-                    {{ order.status.title() if order.status else 'Unknown' }}
-                </span>
-            </div>
-            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-                <p>{{ order.orderer.name or order.orderer.username if order.orderer else 'N/A' }}</p>
-                <p>{{ order.quantity or 1 }} × {{ order.item.name if order.item else 'Unknown Item' }}</p>
-                <p class="font-mono">{{ order.order_date.strftime('%Y-%m-%d') if order.order_date else 'N/A' }}</p>
-            </div>
-            <div class="mt-2">
-                <button type="button" onclick="viewOrder('{{ order.id }}')"
-                        class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                        aria-label="View order #{{ order.id }}">
-                    <i class="ti ti-eye" aria-hidden="true"></i>View
+    <!-- Right column: KPI band + catalog toolbar + recent orders -->
+    <div class="xl:col-span-2 space-y-4 sm:space-y-6">
+
+        <!-- KPI band -->
+        {# TODO backend: store_management_overview() hardcodes stats.revenue_total = 0
+           (StoreOrder has no price/total field). A "Total Revenue" KPI tile is intentionally
+           omitted here to avoid showing a fake $0 — add real revenue (sum of item.price * quantity)
+           to the route, then a 5th success-tone stat_card can be added. #}
+        <div class="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+            {% call stat_card("ti-package", "Catalog", stats.total_items or 0, sublabel="products", tone="info") %}
+                <button type="button" data-action="view-all-products" class="inline-flex items-center gap-1 font-medium text-blue-600 dark:text-blue-400 hover:underline focus:outline-none">
+                    Browse <i class="ti ti-arrow-right text-xs" aria-hidden="true"></i>
+                </button>
+            {% endcall %}
+            {% call stat_card("ti-shopping-cart", "Total Orders", total_orders, sublabel="all time", tone="primary") %}
+                <button type="button" data-action="view-all-products" class="inline-flex items-center gap-1 font-medium text-ecs-green hover:underline focus:outline-none">
+                    Catalog <i class="ti ti-arrow-right text-xs" aria-hidden="true"></i>
+                </button>
+            {% endcall %}
+            {% call stat_card("ti-clock", "Pending", pending, sublabel="to fulfill", tone="warning") %}
+                <button type="button" data-action="view-pending-orders" class="inline-flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400 hover:underline focus:outline-none">
+                    Process <i class="ti ti-arrow-right text-xs" aria-hidden="true"></i>
+                </button>
+            {% endcall %}
+            {% call stat_card("ti-circle-check", "Delivered", delivered, sublabel="completed", tone="success") %}
+                <button type="button" data-action="view-completed-orders" class="inline-flex items-center gap-1 font-medium text-green-600 dark:text-green-400 hover:underline focus:outline-none">
+                    History <i class="ti ti-arrow-right text-xs" aria-hidden="true"></i>
+                </button>
+            {% endcall %}
+        </div>
+
+        <!-- Management section panels: Product Management + Order Management -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            {% call section_card("Product Management", icon="ti-package") %}
+            <div class="p-2 sm:p-3 space-y-1">
+                <button type="button" data-action="add-new-product"
+                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <span class="flex items-center gap-2.5"><i class="ti ti-plus text-base text-ecs-green" aria-hidden="true"></i>Add New Product</span>
+                    <i class="ti ti-chevron-right text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                </button>
+                <button type="button" data-action="view-all-products"
+                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <span class="flex items-center gap-2.5"><i class="ti ti-list text-base text-blue-600 dark:text-blue-400" aria-hidden="true"></i>View All Products</span>
+                    <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ stats.total_items or 0 }}</span>
+                </button>
+                <button type="button" data-action="manage-categories"
+                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <span class="flex items-center gap-2.5"><i class="ti ti-category text-base text-ecs-green" aria-hidden="true"></i>Product Categories</span>
+                    <i class="ti ti-chevron-right text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
                 </button>
             </div>
+            {% endcall %}
+            {% call section_card("Order Management", icon="ti-clipboard-list") %}
+            <div class="p-2 sm:p-3 space-y-1">
+                <button type="button" data-action="view-pending-orders"
+                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <span class="flex items-center gap-2.5"><i class="ti ti-clock text-base text-amber-500" aria-hidden="true"></i>Pending Orders</span>
+                    <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ pending }}</span>
+                </button>
+                <button type="button" data-action="view-completed-orders"
+                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <span class="flex items-center gap-2.5"><i class="ti ti-circle-check text-base text-green-500" aria-hidden="true"></i>Completed Orders</span>
+                    <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">{{ delivered }}</span>
+                </button>
+                <button type="button" data-action="search-orders"
+                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <span class="flex items-center gap-2.5"><i class="ti ti-search text-base text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Search Orders</span>
+                    <i class="ti ti-chevron-right text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                </button>
+            </div>
+            {% endcall %}
         </div>
-        {% endfor %}
+
+        <!-- Recent orders table -->
+        {% if recent_orders %}
+        {% call data_table("Recent Orders", icon="ti-history", count=recent_n, filters=False) %}
+            <!-- Status distribution strip (derived from this window) -->
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-700/30 text-xs">
+                <span class="font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Last {{ recent_n }}</span>
+                {% if rc_pending %}<span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400"><i class="ti ti-clock text-[12px]" aria-hidden="true"></i><span class="font-mono font-bold">{{ rc_pending }}</span> pending</span>{% endif %}
+                {% if rc_inprog %}<span class="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400"><i class="ti ti-loader text-[12px]" aria-hidden="true"></i><span class="font-mono font-bold">{{ rc_inprog }}</span> in progress</span>{% endif %}
+                {% if rc_delivered %}<span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400"><i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i><span class="font-mono font-bold">{{ rc_delivered }}</span> delivered</span>{% endif %}
+                {% if rc_cancelled %}<span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400"><i class="ti ti-circle-x text-[12px]" aria-hidden="true"></i><span class="font-mono font-bold">{{ rc_cancelled }}</span> cancelled</span>{% endif %}
+            </div>
+            <table class="hidden md:table w-full text-sm text-left">
+                <thead class="bg-gray-50 dark:bg-gray-700/50">
+                    <tr>
+                        {{ data_table_th("Order", key="id", sortable=False) }}
+                        {{ data_table_th("Customer", key="customer", sortable=False, hide="md") }}
+                        {{ data_table_th("Item", key="items", sortable=False) }}
+                        {{ data_table_th("Status", key="status", sortable=False) }}
+                        {{ data_table_th("Date", key="date", sortable=False, hide="md") }}
+                        {{ data_table_th("", sortable=False, align="right") }}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for order in recent_orders %}
+                    {% set st = (order.status or '')|upper %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {% if st == 'PENDING' %}border-l-2 border-amber-400 dark:border-amber-500{% endif %}">
+                        <td class="px-3 py-3 align-top">
+                            <span class="font-mono font-semibold text-gray-900 dark:text-white">#{{ order.id }}</span>
+                            {% if order.item and order.item.category %}<span class="block text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">{{ order.item.category }}</span>{% endif %}
+                        </td>
+                        <td class="px-3 py-3 align-top text-gray-700 dark:text-gray-300 hidden lg:table-cell">{{ order.orderer.name or order.orderer.username if order.orderer else 'N/A' }}</td>
+                        <td class="px-3 py-3 align-top">
+                            <span class="text-gray-900 dark:text-white"><span class="font-mono">{{ order.quantity or 1 }}×</span> {{ order.item.name if order.item else 'Unknown Item' }}</span>
+                            {% if order.selected_color or order.selected_size %}
+                            <span class="block mt-0.5 flex flex-wrap gap-1">
+                                {% if order.selected_size %}<span class="inline-flex items-center font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_size }}</span>{% endif %}
+                                {% if order.selected_color %}<span class="inline-flex items-center text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_color }}</span>{% endif %}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-3 align-top">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {% if st == 'DELIVERED' %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400{% elif st == 'PENDING' %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400{% elif st in ['PROCESSING', 'ORDERED'] %}bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400{% elif st == 'CANCELLED' %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                                <i class="ti {% if st == 'DELIVERED' %}ti-circle-check{% elif st == 'PENDING' %}ti-clock{% elif st in ['PROCESSING', 'ORDERED'] %}ti-loader{% elif st == 'CANCELLED' %}ti-circle-x{% else %}ti-circle{% endif %} text-[12px]" aria-hidden="true"></i>
+                                {{ order.status.title() if order.status else 'Unknown' }}
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 align-top text-gray-500 dark:text-gray-400 font-mono text-xs hidden lg:table-cell">{{ order.order_date.strftime('%b %d, %Y') if order.order_date else 'N/A' }}</td>
+                        <td class="px-3 py-3 align-top text-right">
+                            <button type="button" onclick="viewOrder('{{ order.id }}')" title="View Order"
+                                    class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                    aria-label="View order #{{ order.id }}">
+                                <i class="ti ti-eye" aria-hidden="true"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                {% for order in recent_orders %}
+                {% set st = (order.status or '')|upper %}
+                <div class="px-4 py-3.5 {% if st == 'PENDING' %}border-l-2 border-amber-400 dark:border-amber-500{% endif %}">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">#{{ order.id }}</span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {% if st == 'DELIVERED' %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400{% elif st == 'PENDING' %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400{% elif st in ['PROCESSING', 'ORDERED'] %}bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400{% elif st == 'CANCELLED' %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                            <i class="ti {% if st == 'DELIVERED' %}ti-circle-check{% elif st == 'PENDING' %}ti-clock{% elif st in ['PROCESSING', 'ORDERED'] %}ti-loader{% elif st == 'CANCELLED' %}ti-circle-x{% else %}ti-circle{% endif %} text-[12px]" aria-hidden="true"></i>
+                            {{ order.status.title() if order.status else 'Unknown' }}
+                        </span>
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+                        <p>{{ order.orderer.name or order.orderer.username if order.orderer else 'N/A' }}</p>
+                        <p class="text-gray-700 dark:text-gray-300"><span class="font-mono">{{ order.quantity or 1 }}×</span> {{ order.item.name if order.item else 'Unknown Item' }}{% if order.selected_size %} · {{ order.selected_size }}{% endif %}{% if order.selected_color %} · {{ order.selected_color }}{% endif %}</p>
+                        <p class="font-mono">{{ order.order_date.strftime('%b %d, %Y') if order.order_date else 'N/A' }}</p>
+                    </div>
+                    <div class="mt-2">
+                        <button type="button" onclick="viewOrder('{{ order.id }}')"
+                                class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                aria-label="View order #{{ order.id }}">
+                            <i class="ti ti-eye" aria-hidden="true"></i>View
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% endcall %}
+        {% else %}
+        {{ empty_state("ti-package-off", "No orders yet", "Add products to your catalog and orders will land here for fulfillment.") }}
+        {% endif %}
     </div>
-{% endcall %}
-{% else %}
-{{ empty_state("ti-package-off", "No orders yet", "Start by adding products to your store, then orders will appear here.") }}
-{% endif %}
+</div>
 {% else %}
 <!-- Stats Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
@@ -437,117 +539,144 @@ document.getElementById('addProductForm')?.addEventListener('submit', async func
     }
 });
 
-function viewAllProducts() {
-    Swal.fire({
-        title: 'All Products',
-        html: `
-            <div class="text-left overflow-x-auto">
-                <table class="w-full text-sm text-left">
-                    <thead class="text-xs uppercase bg-gray-100 dark:bg-gray-700">
-                        <tr><th class="p-2">Name</th><th class="p-2">Category</th><th class="p-2">Price</th><th class="p-2">Stock</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr class="border-b dark:border-gray-700"><td class="p-2">ECS FC Jersey</td><td class="p-2">Jerseys</td><td class="p-2">$45.00</td><td class="p-2">12</td></tr>
-                        <tr class="border-b dark:border-gray-700"><td class="p-2">Team Scarf</td><td class="p-2">Merchandise</td><td class="p-2">$15.00</td><td class="p-2">5</td></tr>
-                        <tr><td class="p-2">ECS FC Mug</td><td class="p-2">Merchandise</td><td class="p-2">$12.00</td><td class="p-2">0</td></tr>
-                    </tbody>
-                </table>
-                <p class="text-xs text-gray-500 mt-3">Note: Product data is loaded from the database when available.</p>
-            </div>
-        `,
-        width: '700px',
-        confirmButtonText: 'Close',
-        confirmButtonColor: '#1a472a',
-        background: isDark ? '#1f2937' : '#ffffff',
-        color: isDark ? '#f3f4f6' : '#111827'
-    });
+const SWAL_BG = { background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' };
+const ITEMS_API_URL = '{{ url_for("admin_panel.store_items_api") }}';
+const ORDERS_API_URL = '{{ url_for("admin_panel.store_orders_api") }}';
+const ITEMS_PAGE_URL = '{{ url_for("admin_panel.store_items") }}';
+const ORDERS_PAGE_URL = '{{ url_for("admin_panel.store_orders") }}';
+const ORDER_DETAILS_BASE = '{{ url_for("admin_panel.order_details", order_id=0) }}';
+const ORDER_STATUS_BASE = '{{ url_for("admin_panel.update_order_status", order_id=0) }}';
+
+function escHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function manageCategories() {
-    Swal.fire({
-        title: 'Product Categories',
-        html: `
-            <div class="text-left">
-                <div class="flex gap-2 mb-4">
-                    <input type="text" id="newCategoryName" placeholder="New category name" class="flex-1 p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
-                    <button onclick="addCategory()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add</button>
-                </div>
-                <div class="space-y-2">
-                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <span><i class="ti ti-hanger mr-2"></i>Jerseys</span>
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded text-xs">3 items</span>
-                    </div>
-                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <span><i class="ti ti-gift mr-2"></i>Merchandise</span>
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded text-xs">8 items</span>
-                    </div>
-                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <span><i class="ti ti-tools mr-2"></i>Equipment</span>
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded text-xs">2 items</span>
-                    </div>
-                </div>
-            </div>
-        `,
-        width: '500px',
-        confirmButtonText: 'Close',
-        confirmButtonColor: '#1a472a',
-        background: isDark ? '#1f2937' : '#ffffff',
-        color: isDark ? '#f3f4f6' : '#111827'
-    });
+async function fetchJson(url) {
+    const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!resp.ok) throw new Error('Request failed: ' + resp.status);
+    return resp.json();
 }
 
-function viewPendingOrders() {
-    Swal.fire({
-        title: 'Pending Orders',
-        html: `
-            <div class="text-left overflow-x-auto">
-                <table class="w-full text-sm text-left">
-                    <thead class="text-xs uppercase bg-gray-100 dark:bg-gray-700">
-                        <tr><th class="p-2">ID</th><th class="p-2">Customer</th><th class="p-2">Items</th><th class="p-2">Actions</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr class="border-b dark:border-gray-700">
-                            <td class="p-2">#1001</td><td class="p-2">John Doe</td><td class="p-2">2 × ECS FC Jersey</td>
-                            <td class="p-2"><button onclick="processOrder('1001')" class="px-2 py-1 bg-green-600 text-white rounded text-xs">Process</button></td>
-                        </tr>
-                        <tr>
-                            <td class="p-2">#1002</td><td class="p-2">Jane Smith</td><td class="p-2">1 × Team Scarf</td>
-                            <td class="p-2"><button onclick="processOrder('1002')" class="px-2 py-1 bg-green-600 text-white rounded text-xs">Process</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        `,
-        width: '600px',
-        confirmButtonText: 'Close',
-        confirmButtonColor: '#1a472a',
-        background: isDark ? '#1f2937' : '#ffffff',
-        color: isDark ? '#f3f4f6' : '#111827'
-    });
+async function viewAllProducts() {
+    Swal.fire({ title: 'All Products', html: '<p class="py-4 text-sm text-gray-500">Loading products...</p>', showConfirmButton: false, width: '700px', didOpen: () => Swal.showLoading(), ...SWAL_BG });
+    try {
+        const items = await fetchJson(ITEMS_API_URL);
+        let body;
+        if (!items.length) {
+            body = '<p class="py-4 text-sm text-gray-500">No active products in the catalog yet.</p>';
+        } else {
+            const rows = items.map(it => `
+                <tr class="border-b dark:border-gray-700">
+                    <td class="p-2">${escHtml(it.name)}</td>
+                    <td class="p-2">${escHtml(it.category) || '—'}</td>
+                    <td class="p-2">${it.price ? '$' + Number(it.price).toFixed(2) : '—'}</td>
+                </tr>`).join('');
+            body = `
+                <div class="text-left overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs uppercase bg-gray-100 dark:bg-gray-700">
+                            <tr><th class="p-2">Name</th><th class="p-2">Category</th><th class="p-2">Price</th></tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        }
+        Swal.fire({ title: 'All Products', html: body, width: '700px', showCancelButton: true, confirmButtonText: 'Manage Products', cancelButtonText: 'Close', confirmButtonColor: '#1a472a', cancelButtonColor: '#6b7280', ...SWAL_BG })
+            .then(r => { if (r.isConfirmed) window.location.href = ITEMS_PAGE_URL; });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load products.', confirmButtonColor: '#1a472a', ...SWAL_BG });
+    }
 }
 
-function viewCompletedOrders() {
-    Swal.fire({
-        title: 'Completed Orders',
-        html: `
-            <div class="text-left overflow-x-auto">
-                <table class="w-full text-sm text-left">
-                    <thead class="text-xs uppercase bg-gray-100 dark:bg-gray-700">
-                        <tr><th class="p-2">ID</th><th class="p-2">Customer</th><th class="p-2">Items</th><th class="p-2">Date</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr class="border-b dark:border-gray-700"><td class="p-2">#0998</td><td class="p-2">Mike Johnson</td><td class="p-2">1 × ECS FC Mug</td><td class="p-2">2025-07-30</td></tr>
-                        <tr><td class="p-2">#0997</td><td class="p-2">Sarah Wilson</td><td class="p-2">3 × Team Scarf</td><td class="p-2">2025-07-29</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        `,
-        width: '600px',
-        confirmButtonText: 'Close',
-        confirmButtonColor: '#1a472a',
-        background: isDark ? '#1f2937' : '#ffffff',
-        color: isDark ? '#f3f4f6' : '#111827'
-    });
+async function manageCategories() {
+    Swal.fire({ title: 'Product Categories', html: '<p class="py-4 text-sm text-gray-500">Loading categories...</p>', showConfirmButton: false, width: '500px', didOpen: () => Swal.showLoading(), ...SWAL_BG });
+    try {
+        const items = await fetchJson(ITEMS_API_URL);
+        const counts = {};
+        items.forEach(it => {
+            const cat = it.category || 'Uncategorized';
+            counts[cat] = (counts[cat] || 0) + 1;
+        });
+        const cats = Object.keys(counts).sort();
+        let body;
+        if (!cats.length) {
+            body = '<p class="py-4 text-sm text-gray-500">No categories yet. Categories are created when you assign one to a product.</p>';
+        } else {
+            const rows = cats.map(cat => {
+                const link = ITEMS_PAGE_URL + '?category=' + encodeURIComponent(cat);
+                const n = counts[cat];
+                return `
+                    <a href="${link}" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                        <span><i class="ti ti-category mr-2"></i>${escHtml(cat)}</span>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded text-xs">${n} item${n === 1 ? '' : 's'}</span>
+                    </a>`;
+            }).join('');
+            body = `<div class="text-left space-y-2">${rows}<p class="text-xs text-gray-500 mt-3">Add a category by assigning it to a product when creating or editing it.</p></div>`;
+        }
+        Swal.fire({ title: 'Product Categories', html: body, width: '500px', confirmButtonText: 'Close', confirmButtonColor: '#1a472a', ...SWAL_BG });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load categories.', confirmButtonColor: '#1a472a', ...SWAL_BG });
+    }
+}
+
+function renderOrdersTable(orders, opts) {
+    opts = opts || {};
+    if (!orders.length) {
+        return `<p class="py-4 text-sm text-gray-500">${escHtml(opts.empty || 'No orders found.')}</p>`;
+    }
+    const rows = orders.map(o => {
+        const item = `${o.quantity || 1} × ${escHtml(o.item_name)}`;
+        const cells = [
+            `<td class="p-2">#${escHtml(o.id)}</td>`,
+            `<td class="p-2">${escHtml(o.orderer_name)}</td>`,
+            `<td class="p-2">${item}</td>`
+        ];
+        if (opts.showDate) {
+            const d = o.order_date ? escHtml(o.order_date.split('T')[0]) : '—';
+            cells.push(`<td class="p-2">${d}</td>`);
+        }
+        if (opts.showProcess) {
+            cells.push(`<td class="p-2"><button type="button" onclick="processOrder('${escHtml(o.id)}')" class="px-2 py-1 bg-green-600 text-white rounded text-xs">Process</button></td>`);
+        }
+        if (opts.showStatus) {
+            cells.push(`<td class="p-2">${escHtml(o.status)}</td>`);
+        }
+        return `<tr class="border-b dark:border-gray-700">${cells.join('')}</tr>`;
+    }).join('');
+    const headers = ['ID', 'Customer', 'Items'];
+    if (opts.showDate) headers.push('Date');
+    if (opts.showProcess) headers.push('Actions');
+    if (opts.showStatus) headers.push('Status');
+    return `
+        <div class="text-left overflow-x-auto">
+            <table class="w-full text-sm text-left">
+                <thead class="text-xs uppercase bg-gray-100 dark:bg-gray-700">
+                    <tr>${headers.map(h => `<th class="p-2">${h}</th>`).join('')}</tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>`;
+}
+
+async function viewPendingOrders() {
+    Swal.fire({ title: 'Pending Orders', html: '<p class="py-4 text-sm text-gray-500">Loading orders...</p>', showConfirmButton: false, width: '600px', didOpen: () => Swal.showLoading(), ...SWAL_BG });
+    try {
+        const orders = await fetchJson(ORDERS_API_URL + '?status=PENDING');
+        Swal.fire({ title: 'Pending Orders', html: renderOrdersTable(orders, { showProcess: true, empty: 'No pending orders.' }), width: '600px', confirmButtonText: 'Close', confirmButtonColor: '#1a472a', ...SWAL_BG });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load pending orders.', confirmButtonColor: '#1a472a', ...SWAL_BG });
+    }
+}
+
+async function viewCompletedOrders() {
+    Swal.fire({ title: 'Completed Orders', html: '<p class="py-4 text-sm text-gray-500">Loading orders...</p>', showConfirmButton: false, width: '600px', didOpen: () => Swal.showLoading(), ...SWAL_BG });
+    try {
+        const orders = await fetchJson(ORDERS_API_URL + '?status=DELIVERED');
+        Swal.fire({ title: 'Completed Orders', html: renderOrdersTable(orders, { showDate: true, empty: 'No completed orders.' }), width: '600px', confirmButtonText: 'Close', confirmButtonColor: '#1a472a', ...SWAL_BG });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load completed orders.', confirmButtonColor: '#1a472a', ...SWAL_BG });
+    }
 }
 
 function searchOrders() {
@@ -555,99 +684,118 @@ function searchOrders() {
         title: 'Search Orders',
         html: `
             <div class="text-left space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Order ID</label>
-                        <input type="text" id="searchOrderId" placeholder="Enter order ID" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Customer Name</label>
-                        <input type="text" id="searchCustomer" placeholder="Enter customer name" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
-                    </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Search (item, customer, color, size)</label>
+                    <input type="text" id="searchTerm" placeholder="Enter search term" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Status</label>
-                        <select id="searchStatus" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
-                            <option value="">All statuses</option>
-                            <option value="pending">Pending</option>
-                            <option value="processing">Processing</option>
-                            <option value="completed">Completed</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Date Range</label>
-                        <select id="searchDateRange" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
-                            <option value="">All dates</option>
-                            <option value="today">Today</option>
-                            <option value="week">This week</option>
-                            <option value="month">This month</option>
-                        </select>
-                    </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Status</label>
+                    <select id="searchStatus" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                        <option value="">All statuses</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="PROCESSING">Processing</option>
+                        <option value="ORDERED">Ordered</option>
+                        <option value="DELIVERED">Delivered</option>
+                        <option value="CANCELLED">Cancelled</option>
+                    </select>
                 </div>
-                <button onclick="performSearch()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Search Orders</button>
+                <button type="button" onclick="performSearch()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Search Orders</button>
                 <div id="searchResults"></div>
             </div>
         `,
         width: '600px',
         showConfirmButton: false,
         showCloseButton: true,
-        background: isDark ? '#1f2937' : '#ffffff',
-        color: isDark ? '#f3f4f6' : '#111827'
+        ...SWAL_BG
     });
 }
 
-function viewOrder(orderId) {
-    Swal.fire({
-        title: `Order #${orderId} Details`,
-        html: `<p>Loading order details...</p>`,
-        icon: 'info',
-        confirmButtonText: 'Close',
-        confirmButtonColor: '#1a472a',
-        background: isDark ? '#1f2937' : '#ffffff',
-        color: isDark ? '#f3f4f6' : '#111827'
-    });
+async function performSearch() {
+    const resultsDiv = document.getElementById('searchResults');
+    if (!resultsDiv) return;
+    const term = (document.getElementById('searchTerm')?.value || '').trim();
+    const status = document.getElementById('searchStatus')?.value || '';
+    resultsDiv.innerHTML = '<p class="py-3 text-sm text-gray-500">Searching...</p>';
+    try {
+        // The orders API filters by status; do client-side text filtering on the result.
+        const url = status ? (ORDERS_API_URL + '?status=' + encodeURIComponent(status)) : ORDERS_API_URL;
+        let orders = await fetchJson(url);
+        if (term) {
+            const t = term.toLowerCase();
+            orders = orders.filter(o =>
+                String(o.id).includes(t) ||
+                (o.item_name || '').toLowerCase().includes(t) ||
+                (o.orderer_name || '').toLowerCase().includes(t) ||
+                (o.selected_color || '').toLowerCase().includes(t) ||
+                (o.selected_size || '').toLowerCase().includes(t)
+            );
+        }
+        const summary = `<div class="mb-2 p-2 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-lg text-sm">Found ${orders.length} matching order${orders.length === 1 ? '' : 's'}.</div>`;
+        resultsDiv.innerHTML = summary + renderOrdersTable(orders, { showStatus: true, empty: 'No orders matched your search.' });
+    } catch (e) {
+        resultsDiv.innerHTML = '<div class="p-3 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-lg text-sm">Search failed. Please try again.</div>';
+    }
+}
+
+async function viewOrder(orderId) {
+    Swal.fire({ title: `Order #${orderId}`, html: '<p class="py-4 text-sm text-gray-500">Loading order details...</p>', showConfirmButton: false, didOpen: () => Swal.showLoading(), ...SWAL_BG });
+    try {
+        const data = await fetchJson(ORDER_DETAILS_BASE.replace('/0/', '/' + orderId + '/'));
+        if (!data.success || !data.order) throw new Error('not found');
+        const o = data.order;
+        const row = (label, val) => val ? `<tr><td class="p-2 font-medium text-gray-500">${label}</td><td class="p-2">${escHtml(val)}</td></tr>` : '';
+        const variant = [o.selected_size, o.selected_color].filter(Boolean).join(' / ');
+        const body = `
+            <div class="text-left">
+                <table class="w-full text-sm">
+                    <tbody>
+                        ${row('Item', o.item_name)}
+                        ${row('Quantity', o.quantity)}
+                        ${row('Variant', variant)}
+                        ${row('Customer', o.orderer_name)}
+                        ${row('Status', o.status)}
+                        ${row('Ordered', o.order_date)}
+                        ${row('Processed', o.processed_date)}
+                        ${row('Delivered', o.delivered_date)}
+                        ${row('Processed by', o.processor_name)}
+                        ${row('Season', o.season_name)}
+                        ${row('Notes', o.notes)}
+                    </tbody>
+                </table>
+            </div>`;
+        Swal.fire({ title: `Order #${orderId}`, html: body, width: '600px', confirmButtonText: 'Close', confirmButtonColor: '#1a472a', ...SWAL_BG });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: `Could not load order #${orderId}.`, confirmButtonColor: '#1a472a', ...SWAL_BG });
+    }
 }
 
 function processOrder(orderId) {
     Swal.fire({
         title: 'Process Order',
-        text: `Mark order #${orderId} as processed?`,
+        text: `Mark order #${orderId} as processing?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#1a472a',
         cancelButtonColor: '#6b7280',
         confirmButtonText: 'Yes, process it!',
-        background: isDark ? '#1f2937' : '#ffffff',
-        color: isDark ? '#f3f4f6' : '#111827'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({ icon: 'success', title: 'Processed!', text: `Order #${orderId} has been processed.`, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+        ...SWAL_BG
+    }).then(async (result) => {
+        if (!result.isConfirmed) return;
+        try {
+            const body = new FormData();
+            body.append('status', 'PROCESSING');
+            const resp = await fetch(ORDER_STATUS_BASE.replace('/0/', '/' + orderId + '/'), {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+                body: body
+            });
+            if (!resp.ok) throw new Error('failed');
+            Swal.fire({ icon: 'success', title: 'Processed!', text: `Order #${orderId} marked as processing.`, confirmButtonColor: '#1a472a', ...SWAL_BG })
+                .then(() => window.location.reload());
+        } catch (e) {
+            Swal.fire({ icon: 'error', title: 'Error', text: `Failed to process order #${orderId}.`, confirmButtonColor: '#1a472a', ...SWAL_BG });
         }
     });
-}
-
-function performSearch() {
-    const resultsDiv = document.getElementById('searchResults');
-    if (resultsDiv) {
-        resultsDiv.innerHTML = '<div class="p-3 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-lg">Search complete. Found 2 matching orders.</div>';
-    }
-}
-
-function addCategory() {
-    const input = document.getElementById('newCategoryName');
-    if (input && input.value) {
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'success',
-            title: 'Category added',
-            showConfirmButton: false,
-            timer: 2000,
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827'
-        });
-    }
 }
 </script>
 {% endblock %}

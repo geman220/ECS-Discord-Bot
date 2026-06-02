@@ -4,48 +4,97 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, section_card, alert %}
+{% from 'macros/_modern_kit.html' import page_header %}
 <div class="max-w-2xl mx-auto">
-  {{ page_header("Discord Account Not Linked", subtitle="Account access") }}
+  {{ page_header("Discord Account Not Linked", subtitle="Sign in / account access") }}
 
-  {% call section_card("What happened", icon="ti-link-off") %}
-  <div class="p-4 sm:p-5 space-y-4">
-    {{ alert('warning', 'is not linked to any account in our system.'|safe,
-             title='Your Discord account ' ~ discord_username ~ ' with email ' ~ discord_email,
-             dismissible=False) }}
-
-    <p class="text-sm text-gray-600 dark:text-gray-300">
-      Please contact your coach on Discord (or any other method) and ask them to update your account with your correct Discord email.
-    </p>
-
-    <p class="text-sm text-gray-600 dark:text-gray-300">
-      If you haven't joined our Discord server yet, please use the button below to join.
-    </p>
-
-    <div>
-      <a href="https://discord.com/invite/weareecs" target="_blank" rel="noopener noreferrer"
-         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg
-                bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-brand-discord" aria-hidden="true"></i>
-        Join Our Discord
-      </a>
+  {# PRIMARY OBJECT — the unlinked Discord identity, rendered as a feature card
+     with a header status bar, status pill, and a mono identity readout. #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="h-1 bg-gradient-to-r from-ecs-gold-500 to-amber-500"></div>
+    <div class="flex items-center justify-between gap-3 px-4 sm:px-5 h-14 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white min-w-0">
+        <i class="ti ti-brand-discord text-[#5865F2] shrink-0" aria-hidden="true"></i>
+        <span class="truncate">Discord identity</span>
+      </h2>
+      <span class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide
+                   bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+        <i class="ti ti-link-off text-[12px]" aria-hidden="true"></i> Not linked
+      </span>
     </div>
 
-    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
-      <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
-        Once your coach has updated your email, use the button below to try logging in again.
+    <div class="p-4 sm:p-5 space-y-4">
+      <p class="text-sm text-gray-600 dark:text-gray-300">
+        We authenticated this Discord account, but it isn&rsquo;t matched to any player in our system. Your coach
+        needs to add the email below to your roster profile before you can sign in.
       </p>
-      <a href="{{ url_for('auth.discord_login') }}"
-         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg
-                bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-brand-discord" aria-hidden="true"></i>
-        My coach updated my email
-      </a>
+
+      {# Identity readout — eyebrow labels + BIG mono figures, divider footers. #}
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-px rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-200 dark:bg-gray-700">
+        <div class="bg-white dark:bg-gray-800 p-4">
+          <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Discord username</dt>
+          <dd class="mt-2 font-mono text-base sm:text-lg font-bold text-gray-900 dark:text-white break-all">{{ discord_username }}</dd>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-4">
+          <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Discord email</dt>
+          <dd class="mt-2 font-mono text-base sm:text-lg font-bold text-ecs-green break-all">{{ discord_email }}</dd>
+        </div>
+      </dl>
     </div>
-  </div>
-  {% endcall %}
+  </section>
+
+  {# RECOVERY SEQUENCE — command-style numbered steps instead of stacked paragraphs. #}
+  <section class="mt-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+      <i class="ti ti-list-check text-ecs-green" aria-hidden="true"></i>
+      <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">How to get linked</h3>
+    </div>
+
+    <ol class="divide-y divide-gray-200 dark:divide-gray-700">
+      <li class="flex gap-3 p-4 sm:p-5">
+        <span class="shrink-0 w-7 h-7 rounded-full bg-ecs-green/10 text-ecs-green font-mono text-sm font-bold flex items-center justify-center" aria-hidden="true">1</span>
+        <div class="flex-1 min-w-0 space-y-3">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white">Make sure you&rsquo;re in our Discord server</p>
+          <p class="text-sm text-gray-600 dark:text-gray-300">If you haven&rsquo;t joined yet, join with the invite below, then come back here.</p>
+          <a href="https://discord.com/invite/weareecs" target="_blank" rel="noopener noreferrer"
+             class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg
+                    bg-[#5865F2] hover:bg-[#4752c4] text-white text-sm font-semibold transition-colors
+                    focus:outline-none focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-brand-discord" aria-hidden="true"></i>
+            Join Our Discord
+            <i class="ti ti-external-link text-sm opacity-80" aria-hidden="true"></i>
+          </a>
+        </div>
+      </li>
+
+      <li class="flex gap-3 p-4 sm:p-5">
+        <span class="shrink-0 w-7 h-7 rounded-full bg-ecs-green/10 text-ecs-green font-mono text-sm font-bold flex items-center justify-center" aria-hidden="true">2</span>
+        <div class="flex-1 min-w-0 space-y-2">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white">Ask your coach to set your Discord email</p>
+          <p class="text-sm text-gray-600 dark:text-gray-300">
+            Message your coach on Discord (or any other way) and ask them to update your roster profile with the
+            <span class="font-mono font-semibold text-ecs-green break-all">{{ discord_email }}</span> address shown above.
+          </p>
+        </div>
+      </li>
+
+      <li class="flex gap-3 p-4 sm:p-5">
+        <span class="shrink-0 w-7 h-7 rounded-full bg-ecs-green/10 text-ecs-green font-mono text-sm font-bold flex items-center justify-center" aria-hidden="true">3</span>
+        <div class="flex-1 min-w-0 space-y-3">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white">Sign in again</p>
+          <p class="text-sm text-gray-600 dark:text-gray-300">Once your coach confirms the update, retry the Discord login.</p>
+          <a href="{{ url_for('auth.discord_login') }}"
+             class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg
+                    bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                    focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-brand-discord" aria-hidden="true"></i>
+            My coach updated my email
+            <i class="ti ti-arrow-right text-sm" aria-hidden="true"></i>
+          </a>
+        </div>
+      </li>
+    </ol>
+  </section>
 </div>
 {% else %}
 <div class="container mx-auto px-4 py-8">

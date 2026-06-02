@@ -30,7 +30,9 @@
 {# ===================== Modern console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
 <div class="max-w-7xl mx-auto space-y-6">
-  {% call page_header(group.name, subtitle=(group.description if group.description else 'Notification Group')) %}
+
+  {# ---- Command bar: breadcrumb-up + primary actions ---- #}
+  {% call page_header('Notification Group', subtitle='Communication · Targeting') %}
     <a href="{{ url_for('admin_panel.notification_groups_list') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
               bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
@@ -40,9 +42,10 @@
     </a>
     <button type="button" id="editGroupBtn"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
-                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-      <i class="ti ti-edit" aria-hidden="true"></i><span>Edit Group</span>
+                   bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
+                   text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-edit" aria-hidden="true"></i><span>Edit</span>
     </button>
     {% if group.is_active %}
     <button type="button" id="deactivateBtn"
@@ -61,45 +64,100 @@
     {% endif %}
   {% endcall %}
 
-  {# Type + status badges #}
-  <div class="flex flex-wrap items-center gap-2">
-    {% if group.is_static %}
-    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
-      <i class="ti ti-list-check" aria-hidden="true"></i>Static Group
-    </span>
-    {% else %}
-    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-      <i class="ti ti-adjustments" aria-hidden="true"></i>Dynamic Group
-    </span>
-    {% endif %}
-    {% if group.is_active %}
-    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-      <i class="ti ti-circle-check" aria-hidden="true"></i>Active
-    </span>
-    {% else %}
-    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-      <i class="ti ti-circle-x" aria-hidden="true"></i>Inactive
-    </span>
-    {% endif %}
-  </div>
-
-  {# KPI strip #}
-  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-    {{ stat_card('ti-users', 'Total Members', member_count, sublabel='in group', tone='info') }}
-    {{ stat_card('ti-category', 'Group Type', group.group_type|title, tone='neutral') }}
-    {{ stat_card('ti-calendar-event', 'Created', (group.created_at.strftime('%Y-%m-%d') if group.created_at else 'Unknown'), tone='neutral') }}
-  </div>
-
-  {# Dynamic criteria (if applicable) #}
-  {% if not group.is_static and group.criteria %}
-  {% call section_card('Dynamic Criteria', icon='ti-filter') %}
-    <div class="px-4 sm:px-5 py-4">
-      <pre class="text-sm font-mono text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ group.criteria | tojson(indent=2) }}</pre>
+  {# ---- Feature card: the group identity (the page's ONE primary object) ---- #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    {# header bar = type accent strip + status pill #}
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-11 border-b border-gray-200 dark:border-gray-700
+                {% if group.is_static %}bg-cyan-50/60 dark:bg-cyan-500/5{% else %}bg-green-50/60 dark:bg-green-500/5{% endif %}">
+      <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide
+                   {% if group.is_static %}text-cyan-700 dark:text-cyan-300{% else %}text-green-700 dark:text-green-300{% endif %}">
+        <i class="ti {% if group.is_static %}ti-list-check{% else %}ti-adjustments{% endif %}" aria-hidden="true"></i>
+        {% if group.is_static %}Static Group{% else %}Dynamic Group{% endif %}
+      </span>
+      {% if group.is_active %}
+      <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+        <i class="ti ti-circle-check" aria-hidden="true"></i>Active
+      </span>
+      {% else %}
+      <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+        <i class="ti ti-circle-x" aria-hidden="true"></i>Inactive
+      </span>
+      {% endif %}
     </div>
+    {# identity body #}
+    <div class="px-4 sm:px-5 py-4 flex items-start gap-4">
+      <span class="flex items-center justify-center w-14 h-14 rounded-xl shrink-0
+                   {% if group.is_static %}bg-cyan-100 dark:bg-cyan-500/15{% else %}bg-green-100 dark:bg-green-500/15{% endif %}">
+        <i class="ti {% if group.is_static %}ti-list-check{% else %}ti-adjustments{% endif %} text-2xl
+                  {% if group.is_static %}text-cyan-600 dark:text-cyan-400{% else %}text-green-600 dark:text-green-400{% endif %}" aria-hidden="true"></i>
+      </span>
+      <div class="min-w-0 flex-1">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 font-mono">ID #{{ group.id }}</p>
+        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ group.name }}</h1>
+        <p class="mt-0.5 text-sm text-gray-600 dark:text-gray-400">
+          {% if group.description %}{{ group.description }}{% else %}<span class="italic text-gray-400 dark:text-gray-500">No description</span>{% endif %}
+        </p>
+        {% if not group.is_static %}
+        <p class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+          <i class="ti ti-filter text-ecs-green" aria-hidden="true"></i>{{ group.get_criteria_summary() }}
+        </p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  {# ---- KPI band: real metrics only ---- #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {% if group.is_static %}
+      {{ stat_card('ti-users', 'Members', member_count, sublabel='in group', tone='info') }}
+    {% else %}
+      {{ stat_card('ti-broadcast', 'Estimated Reach', member_count, sublabel='users matched', tone='info') }}
+    {% endif %}
+    {{ stat_card('ti-category', 'Type', group.group_type|title, tone='neutral') }}
+    {% call stat_card('ti-calendar-plus', 'Created', (group.created_at.strftime('%b %d, %Y') if group.created_at else '—'), tone='neutral') %}
+      {% if group.created_at %}<span class="font-mono">{{ group.created_at.strftime('%H:%M UTC') }}</span>{% else %}Unknown{% endif %}
+    {% endcall %}
+    {% call stat_card('ti-history', 'Updated', (group.updated_at.strftime('%b %d, %Y') if group.updated_at else '—'), tone='neutral') %}
+      {% if group.updated_at %}<span class="font-mono">{{ group.updated_at.strftime('%H:%M UTC') }}</span>{% else %}Never{% endif %}
+    {% endcall %}
+  </div>
+
+  {# ====== DYNAMIC GROUP: criteria is the primary object ====== #}
+  {% if not group.is_static %}
+  {% call section_card('Targeting Criteria', icon='ti-filter') %}
+    {% if group.criteria %}
+    <div class="px-4 sm:px-5 py-4 space-y-4">
+      {# Human summary eyebrow #}
+      <div class="flex items-start gap-2 rounded-lg border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 px-3 py-2.5">
+        <i class="ti ti-target text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+        <p class="text-sm text-blue-800 dark:text-blue-300">{{ group.get_criteria_summary() }}</p>
+      </div>
+      {# Criteria key/value rows from the real JSON #}
+      <dl class="divide-y divide-gray-200 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {% for key, value in group.criteria.items() %}
+        <div class="flex items-start justify-between gap-3 px-3 py-2.5 bg-white dark:bg-gray-800">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 shrink-0">{{ key|replace('_', ' ') }}</dt>
+          <dd class="text-sm font-mono text-gray-900 dark:text-white text-right break-all">
+            {% if value is iterable and value is not string %}{{ value|join(', ') if value else '—' }}{% else %}{{ value if value is not none else '—' }}{% endif %}
+          </dd>
+        </div>
+        {% endfor %}
+      </dl>
+      {# Raw payload (collapsible-feel, mono) #}
+      <details class="group/raw rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <summary class="flex items-center gap-2 px-3 py-2 cursor-pointer text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 select-none">
+          <i class="ti ti-code text-ecs-green" aria-hidden="true"></i>Raw JSON
+        </summary>
+        <pre class="px-3 py-3 text-xs font-mono text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">{{ group.criteria | tojson(indent=2) }}</pre>
+      </details>
+    </div>
+    {% else %}
+      {{ empty_state('ti-filter-off', 'No criteria defined', 'This dynamic group has no targeting rules yet, so it will match no recipients.') }}
+    {% endif %}
   {% endcall %}
   {% endif %}
 
-  {# Members list (static groups) #}
+  {# ====== STATIC GROUP: members list is the primary object ====== #}
   {% if group.is_static %}
     {% if members %}
     {% call data_table('Group Members', icon='ti-users', count=member_count, search_placeholder='Filter members…', search_id='memberFilter', filters=False) %}
@@ -109,8 +167,9 @@
           <tr>
             {{ data_table_th('User', key='user') }}
             {{ data_table_th('Email', key='email', hide='sm') }}
-            {{ data_table_th('Added', key='added', hide='sm') }}
-            {{ data_table_th('Actions', sortable=False, align='right') }}
+            {{ data_table_th('Added By', key='addedby', hide='md') }}
+            {{ data_table_th('Added', key='added', hide='sm', align='right') }}
+            {{ data_table_th('', sortable=False, align='right') }}
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -118,14 +177,17 @@
           <tr data-row class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
             <td class="px-3 py-3 align-middle">
               <div class="flex items-center gap-3">
-                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 shrink-0">
-                  <i class="ti ti-user text-gray-600 dark:text-gray-400" aria-hidden="true"></i>
+                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 shrink-0 font-mono text-xs font-bold text-gray-600 dark:text-gray-300">
+                  {{ membership.user.username[:2]|upper }}
                 </span>
                 <span class="font-semibold text-gray-900 dark:text-white">{{ membership.user.username }}</span>
               </div>
             </td>
             <td class="px-3 py-3 align-middle hidden md:table-cell text-gray-600 dark:text-gray-400">{{ membership.user.email or 'No email' }}</td>
-            <td class="px-3 py-3 align-middle hidden md:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">{{ membership.added_at.strftime('%Y-%m-%d') if membership.added_at else 'Unknown' }}</td>
+            <td class="px-3 py-3 align-middle hidden lg:table-cell text-gray-600 dark:text-gray-400">
+              {% if membership.added_by_user %}{{ membership.added_by_user.username }}{% else %}<span class="text-gray-400 dark:text-gray-500">System</span>{% endif %}
+            </td>
+            <td class="px-3 py-3 align-middle hidden md:table-cell font-mono text-xs text-gray-500 dark:text-gray-400 text-right">{{ membership.added_at.strftime('%Y-%m-%d') if membership.added_at else 'Unknown' }}</td>
             <td class="px-3 py-3 align-middle">
               <div class="flex items-center justify-end">
                 <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-50 rounded dark:text-red-400 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Remove member" aria-label="Remove member" onclick="removeMember({{ membership.user.id }})">
@@ -143,8 +205,8 @@
         <div data-row class="px-4 py-3.5">
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-3 min-w-0">
-              <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 shrink-0">
-                <i class="ti ti-user text-gray-600 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 shrink-0 font-mono text-xs font-bold text-gray-600 dark:text-gray-300">
+                {{ membership.user.username[:2]|upper }}
               </span>
               <div class="min-w-0">
                 <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ membership.user.username }}</div>
@@ -155,7 +217,10 @@
               <i class="ti ti-trash" aria-hidden="true"></i>
             </button>
           </div>
-          <div class="mt-1.5 text-xs font-mono text-gray-500 dark:text-gray-400">Added {{ membership.added_at.strftime('%Y-%m-%d') if membership.added_at else 'Unknown' }}</div>
+          <div class="mt-1.5 flex items-center gap-3 text-xs font-mono text-gray-500 dark:text-gray-400">
+            <span><i class="ti ti-calendar-plus" aria-hidden="true"></i> {{ membership.added_at.strftime('%Y-%m-%d') if membership.added_at else 'Unknown' }}</span>
+            {% if membership.added_by_user %}<span><i class="ti ti-user-plus" aria-hidden="true"></i> {{ membership.added_by_user.username }}</span>{% endif %}
+          </div>
         </div>
         {% endfor %}
       </div>
@@ -183,42 +248,34 @@
     {% endif %}
   {% endif %}
 
-  {# Available targeting options #}
+  {# ---- Targeting palette: available teams/leagues/roles for editing ---- #}
   {% call section_card('Available Targeting Options', icon='ti-database') %}
-    <div class="px-4 sm:px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div>
-        <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Teams ({{ teams|length }})</h4>
-        <div class="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-2">
-          {% for team in teams[:5] %}
-          <div class="text-sm text-gray-600 dark:text-gray-300 py-1">{{ team.name }}</div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700">
+      {% set palette = [
+        {'icon': 'ti-shield-half', 'label': 'Teams',   'items': teams,   'n': teams|length},
+        {'icon': 'ti-trophy',      'label': 'Leagues', 'items': leagues, 'n': leagues|length},
+        {'icon': 'ti-user-shield', 'label': 'Roles',   'items': roles,   'n': roles|length}
+      ] %}
+      {% for col in palette %}
+      <div class="px-4 sm:px-5 py-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <i class="ti {{ col.icon }} text-ecs-green" aria-hidden="true"></i>{{ col.label }}
+          </span>
+          <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ col.n }}</span>
+        </div>
+        <div class="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 divide-y divide-gray-200 dark:divide-gray-700">
+          {% for item in col.items[:5] %}
+          <div class="text-sm text-gray-700 dark:text-gray-300 px-2.5 py-1.5 truncate">{{ item.name }}</div>
           {% endfor %}
-          {% if teams|length > 5 %}
-          <div class="text-sm text-gray-400 dark:text-gray-500 py-1">… and {{ teams|length - 5 }} more</div>
+          {% if col.n > 5 %}
+          <div class="text-xs font-mono text-gray-400 dark:text-gray-500 px-2.5 py-1.5">+ {{ col.n - 5 }} more</div>
+          {% elif col.n == 0 %}
+          <div class="text-xs text-gray-400 dark:text-gray-500 px-2.5 py-1.5 italic">None available</div>
           {% endif %}
         </div>
       </div>
-      <div>
-        <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Leagues ({{ leagues|length }})</h4>
-        <div class="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-2">
-          {% for league in leagues[:5] %}
-          <div class="text-sm text-gray-600 dark:text-gray-300 py-1">{{ league.name }}</div>
-          {% endfor %}
-          {% if leagues|length > 5 %}
-          <div class="text-sm text-gray-400 dark:text-gray-500 py-1">… and {{ leagues|length - 5 }} more</div>
-          {% endif %}
-        </div>
-      </div>
-      <div>
-        <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Roles ({{ roles|length }})</h4>
-        <div class="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-2">
-          {% for role in roles[:5] %}
-          <div class="text-sm text-gray-600 dark:text-gray-300 py-1">{{ role.name }}</div>
-          {% endfor %}
-          {% if roles|length > 5 %}
-          <div class="text-sm text-gray-400 dark:text-gray-500 py-1">… and {{ roles|length - 5 }} more</div>
-          {% endif %}
-        </div>
-      </div>
+      {% endfor %}
     </div>
   {% endcall %}
 </div>

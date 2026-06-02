@@ -6,9 +6,21 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, data_table, data_table_th, data_table_row_card, empty_state as kit_empty_state %}
-<div class="container mx-auto px-4 py-8 max-w-5xl space-y-6">
-    {% call page_header("Help Topics", subtitle="Manage help documentation for users") %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, empty_state as kit_empty_state %}
+{# --- Derive real metrics from the provided `topics` (HelpTopic) list --- #}
+{% set ns = namespace(public=0, restricted=0, roleset=[]) %}
+{% for topic in topics %}
+  {% if topic.allowed_roles %}
+    {% set ns.restricted = ns.restricted + 1 %}
+    {% for r in topic.allowed_roles %}
+      {% if r.name not in ns.roleset %}{% set ns.roleset = ns.roleset + [r.name] %}{% endif %}
+    {% endfor %}
+  {% else %}
+    {% set ns.public = ns.public + 1 %}
+  {% endif %}
+{% endfor %}
+<div class="container mx-auto px-4 py-8 max-w-6xl space-y-6">
+    {% call page_header("Help Topics", subtitle="Knowledge base") %}
         <a href="{{ url_for('help.bulk_upload_help_topics') }}"
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                   bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200
@@ -20,49 +32,80 @@
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-            <i class="ti ti-plus" aria-hidden="true"></i><span>Create New Help Topic</span>
+            <i class="ti ti-plus" aria-hidden="true"></i><span>New Topic</span>
         </a>
     {% endcall %}
 
+    {# ============ KPI BAND (all values derived from real `topics` data) ============ #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {% call stat_card("ti-book", "Total Topics", topics|length, tone='primary') %}
+            articles in the knowledge base
+        {% endcall %}
+        {% call stat_card("ti-world", "Public", ns.public, tone='success') %}
+            visible to everyone
+        {% endcall %}
+        {% call stat_card("ti-lock", "Restricted", ns.restricted, tone='warning') %}
+            gated by role access
+        {% endcall %}
+        {% call stat_card("ti-shield-half", "Roles In Use", ns.roleset|length, tone='info') %}
+            distinct roles referenced
+        {% endcall %}
+    </div>
+
     {% if topics %}
-    {% call data_table("Help Topics", icon="ti-book", count=topics|length, search_placeholder="Filter by title…", search_id="helpTopicsFilter") %}
-        {# md+ : real table #}
+    {% call data_table("All Topics", icon="ti-book", count=topics|length, search_placeholder="Filter by title…", search_id="helpTopicsFilter") %}
+        {# md+ : real table with mono ID + access detail #}
         <table class="hidden md:table w-full text-sm">
             <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
                 <tr>
+                    {{ data_table_th("ID", key="id") }}
                     {{ data_table_th("Title", key="title") }}
                     {{ data_table_th("Access", key="access", sortable=False) }}
+                    {{ data_table_th("Updated", key="updated", hide="md") }}
                     {{ data_table_th("Actions", sortable=False, align="right") }}
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 {% for topic in topics %}
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <td class="px-3 py-3" data-cell="title">
-                        <div class="flex items-center gap-3">
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-row data-title="{{ topic.title|lower }}">
+                    <td class="px-3 py-3 align-middle" data-cell="id">
+                        <span class="font-mono text-xs text-gray-400 dark:text-gray-500">#{{ '%03d' % topic.id }}</span>
+                    </td>
+                    <td class="px-3 py-3 align-middle" data-cell="title">
+                        <div class="flex items-center gap-3 min-w-0">
                             <span class="w-9 h-9 rounded-lg bg-ecs-green/10 flex items-center justify-center shrink-0">
                                 <i class="ti ti-book text-ecs-green" aria-hidden="true"></i>
                             </span>
                             <span class="font-semibold text-gray-900 dark:text-white truncate">{{ topic.title }}</span>
                         </div>
                     </td>
-                    <td class="px-3 py-3" data-cell="access">
-                        {% if topic.roles %}
+                    <td class="px-3 py-3 align-middle" data-cell="access">
+                        {% if topic.allowed_roles %}
                         <div class="flex flex-wrap gap-1">
-                            {% for role in topic.roles[:3] %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+                                <i class="ti ti-lock text-[11px]" aria-hidden="true"></i>Restricted
+                            </span>
+                            {% for role in topic.allowed_roles[:3] %}
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ role.name }}</span>
                             {% endfor %}
-                            {% if topic.roles|length > 3 %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">+{{ topic.roles|length - 3 }} more</span>
+                            {% if topic.allowed_roles|length > 3 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">+{{ topic.allowed_roles|length - 3 }} more</span>
                             {% endif %}
                         </div>
                         {% else %}
-                        <span class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                            <i class="ti ti-world" aria-hidden="true"></i>Public access
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                            <i class="ti ti-world text-[11px]" aria-hidden="true"></i>Public
                         </span>
                         {% endif %}
                     </td>
-                    <td class="px-3 py-3">
+                    <td class="px-3 py-3 align-middle hidden lg:table-cell" data-cell="updated">
+                        {% if topic.updated_at %}
+                        <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ topic.updated_at.strftime('%Y-%m-%d') }}</span>
+                        {% else %}
+                        <span class="font-mono text-xs text-gray-400 dark:text-gray-600">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3 align-middle">
                         <div class="flex items-center justify-end gap-2">
                             <a href="{{ url_for('help.edit_help_topic', topic_id=topic.id) }}"
                                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
@@ -94,25 +137,34 @@
         {# mobile : stacked cards #}
         <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
             {% for topic in topics %}
-            <div class="px-4 py-3.5">
+            <div class="px-4 py-3.5" data-row data-title="{{ topic.title|lower }}">
                 <div class="flex items-start gap-3">
                     <span class="w-9 h-9 rounded-lg bg-ecs-green/10 flex items-center justify-center shrink-0">
                         <i class="ti ti-book text-ecs-green" aria-hidden="true"></i>
                     </span>
                     <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500">#{{ '%03d' % topic.id }}</span>
+                            {% if topic.updated_at %}
+                            <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500">· {{ topic.updated_at.strftime('%Y-%m-%d') }}</span>
+                            {% endif %}
+                        </div>
                         <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ topic.title }}</p>
-                        {% if topic.roles %}
+                        {% if topic.allowed_roles %}
                         <div class="flex flex-wrap gap-1 mt-1.5">
-                            {% for role in topic.roles[:3] %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+                                <i class="ti ti-lock text-[11px]" aria-hidden="true"></i>Restricted
+                            </span>
+                            {% for role in topic.allowed_roles[:3] %}
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ role.name }}</span>
                             {% endfor %}
-                            {% if topic.roles|length > 3 %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">+{{ topic.roles|length - 3 }} more</span>
+                            {% if topic.allowed_roles|length > 3 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">+{{ topic.allowed_roles|length - 3 }} more</span>
                             {% endif %}
                         </div>
                         {% else %}
-                        <span class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            <i class="ti ti-world" aria-hidden="true"></i>Public access
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400 mt-1.5">
+                            <i class="ti ti-world text-[11px]" aria-hidden="true"></i>Public
                         </span>
                         {% endif %}
                     </div>

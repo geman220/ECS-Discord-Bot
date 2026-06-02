@@ -23,166 +23,207 @@
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
-{% from 'macros/flowbite.html' import button, badge %}
+{% from 'macros/flowbite.html' import badge %}
 
-<div class="max-w-7xl mx-auto">
+{# Derive a single health verdict from the four real health-check booleans. #}
+{% set hc_checks = [health_check.connection, health_check.query_test, health_check.table_check, health_check.performance] %}
+{% set hc_passing = hc_checks|select|list|length %}
+{% set is_connected = db_stats.status == 'connected' %}
+{% set pool_max = db_stats.max_connections or 0 %}
+{% set pool_active = db_stats.active_connections or 0 %}
+{% set pool_percentage = (pool_active / pool_max * 100) if pool_max else 0 %}
+
+<div class="max-w-7xl mx-auto space-y-6">
   {{ page_header('Database Monitor', subtitle='System Monitoring') }}
 
-  {# --- KPI band: connection + live perf --- #}
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-    {{ stat_card(
-        'ti-database-' ~ ('check' if db_stats.status == 'connected' else 'x'),
-        'Connection',
-        (db_stats.status|title) or 'Unknown',
-        tone=('success' if db_stats.status == 'connected' else 'danger')) }}
-    {{ stat_card('ti-plug-connected', 'Active Connections', db_stats.active_connections or 0, tone='info') }}
+  {# ---------- PRIMARY OBJECT: the database, as a feature card ---------- #}
+  <section class="rounded-xl border bg-white dark:bg-gray-800 overflow-hidden
+                  {% if is_connected and hc_passing == 4 %}border-green-300 dark:border-green-500/40
+                  {% elif is_connected %}border-amber-300 dark:border-amber-500/40
+                  {% else %}border-red-300 dark:border-red-500/40{% endif %}">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-4 px-4 sm:px-5 py-4 border-b border-gray-200 dark:border-gray-700
+                {% if is_connected and hc_passing == 4 %}bg-green-50 dark:bg-green-500/5
+                {% elif is_connected %}bg-amber-50 dark:bg-amber-500/5
+                {% else %}bg-red-50 dark:bg-red-500/5{% endif %}">
+      <span class="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center
+                   {% if is_connected and hc_passing == 4 %}bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400
+                   {% elif is_connected %}bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400
+                   {% else %}bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400{% endif %}">
+        <i class="ti ti-{{ 'database-check' if is_connected else 'database-x' }} text-2xl" aria-hidden="true"></i>
+      </span>
+      <div class="min-w-0 flex-1">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ db_info.type or 'Database' }}{% if db_info.version and db_info.version != 'Unknown' %} <span class="font-mono">{{ db_info.version }}</span>{% endif %}</p>
+        <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+          {% if is_connected and hc_passing == 4 %}Healthy &amp; Connected
+          {% elif is_connected %}Connected &middot; <span class="text-amber-600 dark:text-amber-400">Attention</span>
+          {% else %}Disconnected{% endif %}
+        </h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          <span class="font-mono">{{ hc_passing }}/4</span> health checks passing
+          {% if db_info.uptime and db_info.uptime != 'Unknown' %}&middot; uptime <span class="font-mono">{{ db_info.uptime }}</span>{% endif %}
+        </p>
+      </div>
+      <div class="shrink-0 flex items-center gap-2">
+        <button type="button" data-action="run-health-check"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
+          <i class="ti ti-refresh" aria-hidden="true"></i>Run Health Check
+        </button>
+      </div>
+    </div>
+    {# inline mini-facts row #}
+    <dl class="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-100 dark:divide-gray-700">
+      <div class="px-4 sm:px-5 py-3">
+        <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Size</dt>
+        <dd class="font-mono text-lg font-bold text-gray-900 dark:text-white">{{ db_info.size or '—' }}</dd>
+      </div>
+      <div class="px-4 sm:px-5 py-3">
+        <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Tables</dt>
+        <dd class="font-mono text-lg font-bold text-gray-900 dark:text-white">{{ db_info.table_count or 0 }}</dd>
+      </div>
+      <div class="px-4 sm:px-5 py-3">
+        <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Timeout</dt>
+        <dd class="font-mono text-lg font-bold text-gray-900 dark:text-white">{{ db_stats.timeout or '—' }}</dd>
+      </div>
+      <div class="px-4 sm:px-5 py-3">
+        <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Failed Conns</dt>
+        <dd class="font-mono text-lg font-bold {% if (db_stats.failed_connections or 0) > 0 %}text-red-600 dark:text-red-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ db_stats.failed_connections or 0 }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  {# ---------- KPI band: live performance ---------- #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-plug-connected', 'Active Connections', pool_active, sublabel='of ' ~ pool_max, tone='info') }}
     {{ stat_card('ti-activity', 'Queries / Sec', db_stats.queries_per_sec or 0, tone='primary') }}
-    {{ stat_card('ti-clock', 'Avg Query Time', db_stats.avg_query_time or '0ms', tone='warning') }}
+    {{ stat_card('ti-clock', 'Avg Query Time', db_stats.avg_query_time or 'N/A', tone='warning') }}
+    {{ stat_card('ti-clock-exclamation', 'Slow Queries 24h', query_stats.slow_queries or 0,
+        tone=('danger' if (query_stats.slow_queries or 0) > 0 else 'success')) }}
   </div>
 
-  {# --- Connection pool + database info --- #}
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+  {# ---------- Connection pool (primary) + query performance ---------- #}
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-2">
-      {% call section_card('Connection Pool Status', icon='ti-pool') %}
-        <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Pool Size</label>
-            {% set pool_percentage = ((db_stats.active_connections or 0) / (db_stats.max_connections or 20) * 100) %}
-            <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700 mb-2 overflow-hidden">
-              <div class="h-4 rounded-full flex items-center justify-center text-xs font-mono font-medium text-white {% if pool_percentage > 80 %}bg-red-600{% elif pool_percentage > 60 %}bg-amber-500{% else %}bg-ecs-green{% endif %} w-[var(--pool-pct)]"
-                   style="--pool-pct: {{ pool_percentage }}%">
-                {{ db_stats.active_connections or 0 }}/{{ db_stats.max_connections or 20 }}
-              </div>
-            </div>
-            <span class="text-sm text-gray-500 dark:text-gray-400 font-mono">{{ pool_percentage|round(1) }}% utilized</span>
-            <div class="flex flex-wrap gap-4 mt-3">
-              <span class="inline-flex items-center text-sm text-gray-600 dark:text-gray-400">
-                <span class="w-2.5 h-2.5 rounded-full bg-ecs-green mr-2" aria-hidden="true"></span>
-                Active: <span class="font-mono ml-1">{{ db_stats.active_connections or 0 }}</span>
-              </span>
-              <span class="inline-flex items-center text-sm text-gray-600 dark:text-gray-400">
-                <span class="w-2.5 h-2.5 rounded-full bg-gray-400 mr-2" aria-hidden="true"></span>
-                Idle: <span class="font-mono ml-1">{{ (db_stats.max_connections or 20) - (db_stats.active_connections or 0) }}</span>
-              </span>
+      {% call section_card('Connection Pool', icon='ti-pool') %}
+        <div class="p-4 sm:p-5">
+          <div class="flex items-end justify-between mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Pool Utilization</span>
+            <span class="font-mono text-2xl font-bold {% if pool_percentage > 80 %}text-red-600 dark:text-red-400{% elif pool_percentage > 60 %}text-amber-600 dark:text-amber-400{% else %}text-ecs-green{% endif %}">{{ pool_percentage|round(1) }}%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700 overflow-hidden" role="progressbar" aria-valuenow="{{ pool_active }}" aria-valuemin="0" aria-valuemax="{{ pool_max }}">
+            <div class="h-4 rounded-full flex items-center justify-center text-xs font-mono font-medium text-white {% if pool_percentage > 80 %}bg-red-600{% elif pool_percentage > 60 %}bg-amber-500{% else %}bg-ecs-green{% endif %} w-[var(--pool-pct)]"
+                 style="--pool-pct: {{ pool_percentage }}%">
+              {{ pool_active }}/{{ pool_max }}
             </div>
           </div>
-          <div>
-            <dl class="space-y-1">
-              <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-                <dt class="text-sm text-gray-600 dark:text-gray-400">Max Connections</dt>
-                <dd>{{ badge(db_stats.max_connections or 20, variant='info') }}</dd>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
+            <div>
+              <div class="flex items-center gap-1.5 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                <span class="w-2.5 h-2.5 rounded-full bg-ecs-green" aria-hidden="true"></span>Active
               </div>
-              <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-                <dt class="text-sm text-gray-600 dark:text-gray-400">Connection Timeout</dt>
-                <dd>{{ badge(db_stats.timeout or '30s', variant='default') }}</dd>
+              <p class="font-mono text-xl font-bold text-gray-900 dark:text-white mt-1">{{ pool_active }}</p>
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                <span class="w-2.5 h-2.5 rounded-full bg-gray-400" aria-hidden="true"></span>Idle
               </div>
-              <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-                <dt class="text-sm text-gray-600 dark:text-gray-400">Pool Overflow</dt>
-                <dd>{{ badge(db_stats.overflow or 5, variant='info') }}</dd>
-              </div>
-              <div class="flex justify-between items-center py-2">
-                <dt class="text-sm text-gray-600 dark:text-gray-400">Failed Connections</dt>
-                <dd>{{ badge(db_stats.failed_connections or 0, variant=('danger' if (db_stats.failed_connections or 0) > 0 else 'success')) }}</dd>
-              </div>
-            </dl>
+              <p class="font-mono text-xl font-bold text-gray-900 dark:text-white mt-1">{{ pool_max - pool_active if pool_max >= pool_active else 0 }}</p>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Max</div>
+              <p class="font-mono text-xl font-bold text-gray-900 dark:text-white mt-1">{{ pool_max }}</p>
+            </div>
+            <div>
+              <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Overflow</div>
+              <p class="font-mono text-xl font-bold text-gray-900 dark:text-white mt-1">{{ db_stats.overflow or 0 }}</p>
+            </div>
           </div>
         </div>
       {% endcall %}
     </div>
 
-    {% call section_card('Database Info', icon='ti-server') %}
-      <dl class="p-4 sm:p-5 space-y-1">
-        <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-          <dt class="text-sm text-gray-600 dark:text-gray-400">Database Type</dt>
-          <dd>{{ badge(db_info.type or 'PostgreSQL', variant='info') }}</dd>
+    {% call section_card('Query Activity (24h)', icon='ti-chart-line') %}
+      <div class="p-4 sm:p-5 space-y-4">
+        <div class="flex items-baseline justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
+          <div>
+            <span class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Queries</span>
+            <p class="font-mono text-3xl font-bold text-ecs-green leading-none mt-1">{{ query_stats.total_queries or 0 }}</p>
+          </div>
+          <i class="ti ti-database text-2xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
         </div>
-        <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-          <dt class="text-sm text-gray-600 dark:text-gray-400">Version</dt>
-          <dd>{{ badge(db_info.version or '13.x', variant='default') }}</dd>
-        </div>
-        <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-          <dt class="text-sm text-gray-600 dark:text-gray-400">Database Size</dt>
-          <dd>{{ badge(db_info.size or '45MB', variant='info') }}</dd>
-        </div>
-        <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-          <dt class="text-sm text-gray-600 dark:text-gray-400">Tables</dt>
-          <dd>{{ badge(db_info.table_count or 12, variant='success') }}</dd>
-        </div>
-        <div class="flex justify-between items-center py-2">
-          <dt class="text-sm text-gray-600 dark:text-gray-400">Uptime</dt>
-          <dd>{{ badge(db_info.uptime or '7d 3h', variant='warning') }}</dd>
-        </div>
-      </dl>
-    {% endcall %}
-  </div>
-
-  {# --- Query performance --- #}
-  <div class="mb-6">
-    {% call section_card('Query Performance', icon='ti-chart-line') %}
-      <div class="flex flex-wrap items-center justify-end gap-2 px-4 sm:px-5 pt-4">
-        <div class="inline-flex rounded-lg shadow-sm" role="group" aria-label="Time range">
-          <button type="button" data-period="1h"
-                  class="px-4 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-medium text-white bg-ecs-green rounded-l-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">1H</button>
-          <button type="button" data-period="24h"
-                  class="px-4 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-medium text-gray-700 bg-white border-t border-b border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">24H</button>
-          <button type="button" data-period="7d"
-                  class="px-4 min-h-[44px] sm:min-h-0 sm:py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">7D</button>
-        </div>
-      </div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-5">
-        <div class="text-center">
-          <p class="font-mono text-2xl sm:text-3xl font-bold text-ecs-green">{{ query_stats.total_queries or 1250 }}</p>
-          <span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Queries</span>
-        </div>
-        <div class="text-center">
-          <p class="font-mono text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{{ query_stats.avg_time or '45ms' }}</p>
-          <span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Avg Response Time</span>
-        </div>
-        <div class="text-center">
-          <p class="font-mono text-2xl sm:text-3xl font-bold text-amber-600 dark:text-amber-400">{{ query_stats.slow_queries or 3 }}</p>
-          <span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Slow Queries (&gt;1s)</span>
-        </div>
-        <div class="text-center">
-          <p class="font-mono text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400">{{ query_stats.failed_queries or 0 }}</p>
-          <span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Failed Queries</span>
-        </div>
+        <dl class="space-y-2.5 text-sm">
+          <div class="flex justify-between items-center">
+            <dt class="text-gray-600 dark:text-gray-400">Avg Response Time</dt>
+            <dd class="font-mono font-bold text-blue-600 dark:text-blue-400">{{ query_stats.avg_time or 'N/A' }}</dd>
+          </div>
+          <div class="flex justify-between items-center">
+            <dt class="text-gray-600 dark:text-gray-400">Slow Queries</dt>
+            <dd class="font-mono font-bold {% if (query_stats.slow_queries or 0) > 0 %}text-amber-600 dark:text-amber-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ query_stats.slow_queries or 0 }}</dd>
+          </div>
+          <div class="flex justify-between items-center">
+            <dt class="text-gray-600 dark:text-gray-400">Failed Queries</dt>
+            <dd class="font-mono font-bold {% if (query_stats.failed_queries or 0) > 0 %}text-red-600 dark:text-red-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ query_stats.failed_queries or 0 }}</dd>
+          </div>
+        </dl>
       </div>
     {% endcall %}
   </div>
 
-  {# --- Slow queries + recent activity --- #}
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+  {# ---------- Health check matrix ---------- #}
+  {% call section_card('Health Check', icon='ti-health-recognition') %}
+    {% set hc_items = [
+      ('Connection', health_check.connection, 'Healthy', 'Failed', None),
+      ('Query Test', health_check.query_test, health_check.query_time or 'N/A', 'Failed', 'mono'),
+      ('Table Integrity', health_check.table_check, 'OK', 'Issues Found', None),
+      ('Performance', health_check.performance, 'Good', 'Degraded', None)
+    ] %}
+    <div class="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-gray-100 dark:divide-gray-700">
+      {% for name, ok, ok_text, fail_text, fmt in hc_items %}
+      <div class="flex items-center gap-3 p-4 sm:p-5">
+        <span class="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center {% if ok %}bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400{% elif name == 'Performance' %}bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400{% endif %}">
+          <i class="ti ti-{{ 'circle-check' if ok else ('alert-triangle' if name == 'Performance' else 'circle-x') }}" aria-hidden="true"></i>
+        </span>
+        <div class="min-w-0">
+          <span class="block text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ name }}</span>
+          <span class="block font-semibold text-gray-900 dark:text-white {% if fmt == 'mono' %}font-mono{% endif %}">{{ ok_text if ok else fail_text }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+      Last run <span class="font-mono">{{ health_check.last_run.strftime('%Y-%m-%d %H:%M:%S') if health_check.last_run else 'Never' }}</span>
+    </div>
+  {% endcall %}
+
+  {# ---------- Slow queries (real table) + recent activity (dense rows) ---------- #}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     {% if slow_queries %}
       {% call data_table('Slow Queries', icon='ti-clock-exclamation', count=slow_queries|length, filters=false) %}
         <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
           <thead>
             <tr class="border-b border-gray-200 dark:border-gray-700">
               {{ data_table_th('Query', sortable=false) }}
-              {{ data_table_th('Duration', sortable=false) }}
-              {{ data_table_th('Table', sortable=false, hide='sm') }}
-              {{ data_table_th('Time', sortable=false) }}
+              {{ data_table_th('Duration', sortable=false, align='right') }}
+              {{ data_table_th('When', sortable=false, align='right') }}
             </tr>
           </thead>
           <tbody>
-            {% for query in slow_queries %}
-            <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-              <td class="px-3 py-2.5">
-                <code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">{{ query.sql[:40] }}...</code>
+            {% for q in slow_queries %}
+            <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 align-top">
+              <td class="px-3 py-3">
+                <code class="block text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded break-all">{{ q.query }}</code>
+                {% if q.note %}<span class="block mt-1 text-xs text-amber-600 dark:text-amber-400"><i class="ti ti-info-circle text-[11px]" aria-hidden="true"></i> {{ q.note }}</span>{% endif %}
               </td>
-              <td class="px-3 py-2.5">
-                {{ badge(query.duration ~ 'ms', variant=('danger' if query.duration > 5000 else 'warning' if query.duration > 1000 else 'default')) }}
-              </td>
-              <td class="px-3 py-2.5 hidden md:table-cell">{{ query.table or 'unknown' }}</td>
-              <td class="px-3 py-2.5 font-mono">{{ query.timestamp.strftime('%H:%M:%S') if query.timestamp else 'Unknown' }}</td>
+              <td class="px-3 py-3 text-right">{{ badge(q.duration, variant='warning') }}</td>
+              <td class="px-3 py-3 text-right font-mono whitespace-nowrap">{{ q.timestamp.strftime('%H:%M:%S') if q.timestamp else '—' }}</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
         <div class="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
-          {% for query in slow_queries %}
-          {% call data_table_row_card(query.sql[:40] ~ '...', badge=badge(query.duration ~ 'ms', variant=('danger' if query.duration > 5000 else 'warning' if query.duration > 1000 else 'default'))) %}
-            <p><span class="text-gray-400">Table:</span> {{ query.table or 'unknown' }}</p>
-            <p class="font-mono"><span class="text-gray-400 font-sans">Time:</span> {{ query.timestamp.strftime('%H:%M:%S') if query.timestamp else 'Unknown' }}</p>
+          {% for q in slow_queries %}
+          {% call data_table_row_card(q.query, badge=badge(q.duration, variant='warning')) %}
+            {% if q.note %}<p class="text-amber-600 dark:text-amber-400">{{ q.note }}</p>{% endif %}
+            <p class="font-mono"><span class="text-gray-400 font-sans">When:</span> {{ q.timestamp.strftime('%H:%M:%S') if q.timestamp else '—' }}</p>
           {% endcall %}
           {% endfor %}
         </div>
@@ -195,91 +236,49 @@
 
     {% call section_card('Recent Activity', icon='ti-activity') %}
       {% if recent_activity %}
-      <div class="p-4 sm:p-5 space-y-3">
+      <ul class="divide-y divide-gray-100 dark:divide-gray-700" role="list">
         {% for activity in recent_activity %}
-        <div class="flex items-start justify-between gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          <div class="flex items-center min-w-0">
-            <i class="ti ti-{% if activity.type == 'SELECT' %}eye text-blue-500 dark:text-blue-400{% elif activity.type == 'INSERT' %}plus text-green-500 dark:text-green-400{% elif activity.type == 'UPDATE' %}edit text-amber-500 dark:text-amber-400{% elif activity.type == 'DELETE' %}trash text-red-500 dark:text-red-400{% else %}database text-gray-500 dark:text-gray-400{% endif %} mr-3 shrink-0" aria-hidden="true"></i>
-            <div class="min-w-0">
-              <span class="font-semibold text-gray-900 dark:text-white">{{ activity.type }}</span>
-              <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ activity.table or 'unknown' }} table</p>
-            </div>
+        <li class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <span class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center {% if activity.type == 'SELECT' %}bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400{% elif activity.type == 'INSERT' %}bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400{% elif activity.type == 'UPDATE' %}bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400{% elif activity.type == 'DELETE' %}bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400{% else %}bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400{% endif %}">
+            <i class="ti ti-{% if activity.type == 'SELECT' %}eye{% elif activity.type == 'INSERT' %}plus{% elif activity.type == 'UPDATE' %}edit{% elif activity.type == 'DELETE' %}trash{% else %}database{% endif %}" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white">
+              <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ activity.type }}</span>
+              <span class="ml-1 truncate">{{ activity.table or 'unknown' }}</span>
+            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ activity.action }}{% if activity.user %} &middot; {{ activity.user }}{% endif %}</p>
           </div>
           <div class="text-right shrink-0">
-            <span class="block text-sm text-gray-500 dark:text-gray-400 font-mono">{{ activity.timestamp.strftime('%H:%M:%S') if activity.timestamp else 'Unknown' }}</span>
-            {{ badge((activity.duration or '0') ~ 'ms', variant='default') }}
+            <span class="block text-xs text-gray-500 dark:text-gray-400 font-mono">{{ activity.timestamp.strftime('%H:%M:%S') if activity.timestamp else '—' }}</span>
+            <span class="text-xs font-mono text-gray-400">{{ activity.duration }}</span>
           </div>
-        </div>
+        </li>
         {% endfor %}
-      </div>
+      </ul>
       {% else %}
         {{ empty_state('ti-database-off', 'No recent activity', 'There is no recent database activity to display.') }}
       {% endif %}
     {% endcall %}
   </div>
 
-  {# --- Health check --- #}
-  <div class="mb-6">
-    {% call section_card('Database Health Check', icon='ti-health-recognition') %}
-      <div class="flex items-center justify-end px-4 sm:px-5 pt-4">
-        <button type="button" data-action="run-health-check"
-                class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-          <i class="ti ti-refresh" aria-hidden="true"></i>Run Check
-        </button>
-      </div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-5">
-        <div class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          <span class="w-3.5 h-3.5 rounded-full {% if health_check.connection %}bg-ecs-green{% else %}bg-red-500{% endif %} mr-3 shrink-0" aria-hidden="true"></span>
-          <div class="min-w-0">
-            <span class="block font-semibold text-gray-900 dark:text-white">Connection Test</span>
-            <span class="text-sm text-gray-500 dark:text-gray-400">{% if health_check.connection %}Healthy{% else %}Failed{% endif %}</span>
-          </div>
-        </div>
-        <div class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          <span class="w-3.5 h-3.5 rounded-full {% if health_check.query_test %}bg-ecs-green{% else %}bg-red-500{% endif %} mr-3 shrink-0" aria-hidden="true"></span>
-          <div class="min-w-0">
-            <span class="block font-semibold text-gray-900 dark:text-white">Query Test</span>
-            <span class="text-sm text-gray-500 dark:text-gray-400 font-mono">{{ health_check.query_time or '25ms' }}</span>
-          </div>
-        </div>
-        <div class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          <span class="w-3.5 h-3.5 rounded-full {% if health_check.table_check %}bg-ecs-green{% else %}bg-red-500{% endif %} mr-3 shrink-0" aria-hidden="true"></span>
-          <div class="min-w-0">
-            <span class="block font-semibold text-gray-900 dark:text-white">Table Integrity</span>
-            <span class="text-sm text-gray-500 dark:text-gray-400">{% if health_check.table_check %}OK{% else %}Issues Found{% endif %}</span>
-          </div>
-        </div>
-        <div class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          <span class="w-3.5 h-3.5 rounded-full {% if health_check.performance %}bg-ecs-green{% else %}bg-amber-500{% endif %} mr-3 shrink-0" aria-hidden="true"></span>
-          <div class="min-w-0">
-            <span class="block font-semibold text-gray-900 dark:text-white">Performance</span>
-            <span class="text-sm text-gray-500 dark:text-gray-400">{% if health_check.performance %}Good{% else %}Degraded{% endif %}</span>
-          </div>
-        </div>
-      </div>
-      <p class="text-sm text-gray-500 dark:text-gray-400 px-4 sm:px-5 pb-4 -mt-1">
-        Last health check: <span class="font-mono">{{ health_check.last_run.strftime('%Y-%m-%d %H:%M:%S') if health_check.last_run else 'Never' }}</span>
-      </p>
-    {% endcall %}
-  </div>
-
-  {# --- Database actions --- #}
-  {% call section_card('Database Actions', icon='ti-tools') %}
+  {# ---------- Command toolbar: maintenance actions ---------- #}
+  {% call section_card('Maintenance', icon='ti-tools') %}
     <div class="flex flex-wrap gap-2 p-4 sm:p-5">
       <button type="button" data-action="refresh-connections"
-              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors">
         <i class="ti ti-refresh" aria-hidden="true"></i>Refresh Connections
       </button>
       <button type="button" data-action="flush-query-cache"
-              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors">
         <i class="ti ti-trash" aria-hidden="true"></i>Flush Query Cache
       </button>
       <button type="button" data-action="analyze-performance"
-              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors">
         <i class="ti ti-chart-line" aria-hidden="true"></i>Analyze Performance
       </button>
       <button type="button" data-action="optimize-database"
-              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
         <i class="ti ti-tool" aria-hidden="true"></i>Optimize Database
       </button>
     </div>

@@ -22,93 +22,375 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
-{% from 'macros/flowbite.html' import button, badge %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
 
-{% call page_header("I-Spy Analytics", subtitle="Comprehensive game statistics and insights") %}
-  {{ badge(analytics_data.active_season, variant="primary") }}
+{% set ov = analytics_data.overview %}
+{% set eng = analytics_data.player_engagement %}
+{% set cats = analytics_data.category_performance %}
+{% set trends = analytics_data.trends %}
+{% set disallowed_shots = ov.total_shots - ov.approved_shots %}
+
+{# ---- Page header + command toolbar (primary job: read the game's health) ---- #}
+{% call page_header("I-Spy Analytics", subtitle="Game telemetry · " ~ analytics_data.active_season) %}
+  <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green/10 text-ecs-green text-xs font-semibold">
+    <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i>{{ analytics_data.active_season }}
+  </span>
+  <a href="{{ url_for('admin_panel.ispy_shots') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-camera" aria-hidden="true"></i> Shots
+  </a>
+  <a href="{{ url_for('admin_panel.ispy_players') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-users" aria-hidden="true"></i> Players
+  </a>
 {% endcall %}
 
-{# Key Metrics #}
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  {{ stat_card("ti-camera", "Total Shots", analytics_data.overview.total_shots, tone='info') }}
-  {{ stat_card("ti-users", "Total Players", analytics_data.overview.total_players, tone='info') }}
-  {{ stat_card("ti-check", "Approved Shots", analytics_data.overview.approved_shots, tone='success') }}
-  {{ stat_card("ti-percentage", "Approval Rate", analytics_data.overview.approval_rate ~ '%', tone='primary') }}
-</div>
+{# ---- KPI / STATUS BAND (mono figures, derived progress, divider footers) ---- #}
+<section aria-labelledby="ispyKpiHead" class="mb-6">
+  <h2 id="ispyKpiHead" class="sr-only">Key I-Spy metrics</h2>
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
 
-{# Trends & Category Performance #}
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-  {% call section_card("Daily Shot Trends · Last 14 days", icon="ti-chart-bar") %}
-    <div class="p-4 sm:p-5">
-      {% if analytics_data.trends %}
-      {% set max_shots = analytics_data.trends|map(attribute='shots')|max or 1 %}
-      <div class="space-y-2">
-        {% for day in analytics_data.trends %}
-        <div class="flex items-center gap-3">
-          <span class="text-xs font-mono text-gray-500 dark:text-gray-400 w-10 flex-shrink-0">{{ day.date }}</span>
-          <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-5 overflow-hidden">
-            <div class="bg-ecs-green h-5 rounded-full flex items-center justify-end pr-2 transition-all" style="width: {{ (day.shots / max_shots * 100)|round(1) }}%; min-width: {% if day.shots > 0 %}1.5rem{% else %}0{% endif %};">
-              {% if day.shots > 0 %}
-              <span class="text-xs font-medium text-white">{{ day.shots }}</span>
-              {% endif %}
-            </div>
-          </div>
-          {% if day.shots == 0 %}
-          <span class="text-xs text-gray-400 dark:text-gray-500 w-6 flex-shrink-0">0</span>
-          {% endif %}
-        </div>
-        {% endfor %}
+    {# Total shots #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Shots</span>
+        <i class="ti ti-camera text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
       </div>
-      {% else %}
-      {{ empty_state("ti-chart-bar", "No trend data", "No shot activity has been recorded in the last 14 days.") }}
-      {% endif %}
+      <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-none">{{ ov.total_shots }}</div>
+      <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-2 font-mono">all-time submissions</p>
     </div>
-  {% endcall %}
 
-  {% call section_card("Category Performance · Shots and approval by category", icon="ti-category") %}
-    <div class="p-4 sm:p-5">
-      {% if analytics_data.category_performance %}
-      <div class="space-y-5">
-        {% for cat in analytics_data.category_performance %}
-        <div>
-          <div class="flex justify-between items-center mb-1">
-            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ cat.display_name }}</span>
-            <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-              <span class="font-mono">{{ cat.approved_shots }}/{{ cat.total_shots }} approved</span>
-              <span class="font-medium font-mono text-gray-700 dark:text-gray-300">{{ cat.avg_points }} avg pts</span>
-            </div>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-            <div class="bg-ecs-green h-2.5 rounded-full transition-all" style="width: {% if cat.total_shots > 0 %}{{ (cat.approved_shots / cat.total_shots * 100)|round(1) }}%{% else %}0%{% endif %};"></div>
-          </div>
-        </div>
-        {% endfor %}
+    {# Approved shots + share of total #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Approved</span>
+        <i class="ti ti-circle-check text-green-600 dark:text-green-400" aria-hidden="true"></i>
       </div>
-      {% else %}
-      {{ empty_state("ti-category", "No category data", "No category performance data is available yet.") }}
-      {% endif %}
+      <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400 leading-none">{{ ov.approved_shots }}</div>
+      <div class="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+        <div class="h-full bg-green-500 dark:bg-green-400" style="width: {{ ov.approval_rate }}%"></div>
+      </div>
+      <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">{{ ov.approval_rate }}% approval rate</p>
     </div>
-  {% endcall %}
-</div>
 
-{# Engagement Metrics #}
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-  {{ stat_card("ti-activity", "Daily Active Players", analytics_data.player_engagement.daily_active, tone='primary') }}
-  {{ stat_card("ti-calendar-stats", "Weekly Active Players", analytics_data.player_engagement.weekly_active, tone='info') }}
-  {{ stat_card("ti-lock", "Players in Jail", analytics_data.player_engagement.players_in_jail, tone='danger') }}
-</div>
+    {# Disallowed (derived: total - approved) #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Not Approved</span>
+        <i class="ti ti-circle-x text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+      </div>
+      <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-amber-600 dark:text-amber-400 leading-none">{{ disallowed_shots }}</div>
+      <div class="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+        <div class="h-full bg-amber-500 dark:bg-amber-400" style="width: {% if ov.total_shots > 0 %}{{ (disallowed_shots / ov.total_shots * 100)|round(1) }}{% else %}0{% endif %}%"></div>
+      </div>
+      <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">pending or disallowed</p>
+    </div>
 
-{# Quick Links #}
-{% call section_card("Quick Links", icon="ti-link") %}
-  <div class="p-4 sm:p-5">
-    <div class="flex flex-wrap gap-3">
-      {{ button("View Players", variant="primary", icon="users", href=url_for('admin_panel.ispy_players')) }}
-      {{ button("View Shots", variant="outline", icon="camera", href=url_for('admin_panel.ispy_shots')) }}
-      {{ button("Back to I-Spy Hub", variant="ghost", icon="arrow-left", href=url_for('admin_panel.ispy_management')) }}
+    {# Total players #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Players</span>
+        <i class="ti ti-users text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+      </div>
+      <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-none">{{ ov.total_players }}</div>
+      <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-2 font-mono">tracked participants</p>
+    </div>
+
+    {# Players in jail #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">In Jail</span>
+        <i class="ti ti-lock text-red-600 dark:text-red-400" aria-hidden="true"></i>
+      </div>
+      <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold {% if eng.players_in_jail > 0 %}text-red-600 dark:text-red-400{% else %}text-gray-900 dark:text-white{% endif %} leading-none">{{ eng.players_in_jail }}</div>
+      <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-2 font-mono">currently restricted</p>
+    </div>
+
+    {# Approval rate — standalone KPI tile with vs-prior-season trend (delta is None when there is no prior season with shots) #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5 col-span-2 sm:col-span-1">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Approval Rate</span>
+        <i class="ti ti-percentage text-ecs-green" aria-hidden="true"></i>
+      </div>
+      <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-ecs-green leading-none">{{ ov.approval_rate }}%</div>
+      {% if ov.approval_rate_delta is not none %}
+      {% if ov.approval_rate_delta > 0 %}
+      <p class="text-[11px] mt-2 font-mono inline-flex items-center gap-1 text-green-600 dark:text-green-400">
+        <i class="ti ti-trending-up" aria-hidden="true"></i>+{{ ov.approval_rate_delta }} pts vs prior season
+      </p>
+      {% elif ov.approval_rate_delta < 0 %}
+      <p class="text-[11px] mt-2 font-mono inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+        <i class="ti ti-trending-down" aria-hidden="true"></i>{{ ov.approval_rate_delta }} pts vs prior season
+      </p>
+      {% else %}
+      <p class="text-[11px] mt-2 font-mono inline-flex items-center gap-1 text-gray-500 dark:text-gray-400">
+        <i class="ti ti-minus" aria-hidden="true"></i>flat vs prior season
+      </p>
+      {% endif %}
+      {% else %}
+      <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-2 font-mono">of all submissions</p>
+      {% endif %}
     </div>
   </div>
-{% endcall %}
+</section>
+
+{# ---- Two-column: category table (primary tabular object) + activity rail ---- #}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+
+  {# Category performance — REAL TABLE with mono numerals + approval bar #}
+  <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-category text-ecs-green" aria-hidden="true"></i> Category Performance
+        {% if cats %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ cats|length }}</span>{% endif %}
+      </h2>
+      {% if cats %}
+      <button type="button" data-action="export-category-data" aria-label="Export category data"
+              class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-download" aria-hidden="true"></i><span class="hidden sm:inline">Export</span>
+      </button>
+      {% endif %}
+    </div>
+    {% if cats %}
+    {# md+ table #}
+    <div class="md:overflow-x-auto">
+      <table class="hidden md:table w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-700">
+            <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Category</th>
+            <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Shots</th>
+            <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Approved</th>
+            <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 w-40">Approval</th>
+            <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Avg Pts</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for cat in cats %}
+          {% set pct = (cat.approved_shots / cat.total_shots * 100)|round(1) if cat.total_shots > 0 else 0 %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-4 py-3">
+              <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ cat.display_name }}</span>
+              <span class="block text-[11px] font-mono text-gray-400 dark:text-gray-500">{{ cat.key }}</span>
+            </td>
+            <td class="px-3 py-3 text-right font-mono text-sm text-gray-900 dark:text-white">{{ cat.total_shots }}</td>
+            <td class="px-3 py-3 text-right font-mono text-sm text-green-600 dark:text-green-400">{{ cat.approved_shots }}</td>
+            <td class="px-3 py-3">
+              <div class="flex items-center gap-2">
+                <div class="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                  <div class="h-full bg-ecs-green" style="width: {{ pct }}%"></div>
+                </div>
+                <span class="font-mono text-xs text-gray-500 dark:text-gray-400 w-10 text-right">{{ pct }}%</span>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-right font-mono text-sm font-semibold text-ecs-gold-500 dark:text-ecs-gold-400">{{ cat.avg_points }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {# mobile stacked cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for cat in cats %}
+      {% set pct = (cat.approved_shots / cat.total_shots * 100)|round(1) if cat.total_shots > 0 else 0 %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ cat.display_name }}</span>
+            <span class="block text-[11px] font-mono text-gray-400 dark:text-gray-500">{{ cat.key }}</span>
+          </div>
+          <span class="font-mono text-sm font-semibold text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0">{{ cat.avg_points }} pts</span>
+        </div>
+        <div class="mt-2 flex items-center gap-2">
+          <div class="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+            <div class="h-full bg-ecs-green" style="width: {{ pct }}%"></div>
+          </div>
+          <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ cat.approved_shots }}/{{ cat.total_shots }} · {{ pct }}%</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state("ti-category", "No category data", "No category performance data is available yet.") }}
+    {% endif %}
+  </section>
+
+  {# Engagement rail — dense bullet rows #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-activity text-ecs-green" aria-hidden="true"></i> Player Engagement
+      </h2>
+    </div>
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+      <li class="flex items-center justify-between gap-3 px-4 py-3.5">
+        <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900 dark:text-white">
+          <i class="ti ti-activity text-ecs-green" aria-hidden="true"></i> Daily Active
+        </span>
+        <span class="font-mono text-xl font-bold text-ecs-green">{{ eng.daily_active }}</span>
+      </li>
+      <li class="flex items-center justify-between gap-3 px-4 py-3.5">
+        <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900 dark:text-white">
+          <i class="ti ti-calendar-stats text-blue-600 dark:text-blue-400" aria-hidden="true"></i> Weekly Active
+        </span>
+        <span class="font-mono text-xl font-bold text-blue-600 dark:text-blue-400">{{ eng.weekly_active }}</span>
+      </li>
+      <li class="flex items-center justify-between gap-3 px-4 py-3.5">
+        <span class="flex items-center gap-2.5 text-sm font-medium text-gray-900 dark:text-white">
+          <i class="ti ti-lock text-red-600 dark:text-red-400" aria-hidden="true"></i> In Jail
+        </span>
+        <span class="font-mono text-xl font-bold {% if eng.players_in_jail > 0 %}text-red-600 dark:text-red-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ eng.players_in_jail }}</span>
+      </li>
+    </ul>
+    <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+      <a href="{{ url_for('admin_panel.ispy_players') }}"
+         class="inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green hover:text-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+        Manage players <i class="ti ti-arrow-right text-sm" aria-hidden="true"></i>
+      </a>
+    </div>
+    {# Coverage mini-bars — active players as a share of total tracked participants #}
+    {% if ov.total_players > 0 %}
+    {% set weekly_pct = (eng.weekly_active / ov.total_players * 100)|round(1) %}
+    {% set daily_pct = (eng.daily_active / ov.total_players * 100)|round(1) %}
+    <div class="px-4 pb-4 pt-1 space-y-3 border-t border-gray-200 dark:border-gray-700">
+      <p class="pt-3 text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Coverage</p>
+      <div>
+        <div class="flex justify-between text-xs mb-1"><span class="text-gray-500 dark:text-gray-400">Weekly active</span><span class="font-mono text-gray-900 dark:text-white">{{ weekly_pct }}%</span></div>
+        <div class="h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden"><div class="h-full bg-blue-500 dark:bg-blue-400 rounded-full" style="width: {{ weekly_pct }}%"></div></div>
+      </div>
+      <div>
+        <div class="flex justify-between text-xs mb-1"><span class="text-gray-500 dark:text-gray-400">Daily active</span><span class="font-mono text-gray-900 dark:text-white">{{ daily_pct }}%</span></div>
+        <div class="h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden"><div class="h-full bg-ecs-green rounded-full" style="width: {{ daily_pct }}%"></div></div>
+      </div>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+{# ---- Hero row: daily shot trends (2/3) + shot status breakdown (1/3) ---- #}
+{% set trend_peak = (trends|map(attribute='shots')|max) if trends else 0 %}
+{% set approved_pct = ov.approval_rate %}
+{% set not_approved_pct = (100 - ov.approval_rate)|round(1) %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+<section class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+    <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+      <i class="ti ti-chart-bar text-ecs-green" aria-hidden="true"></i> Daily Shot Trends
+      {% if trend_peak > 0 %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">peak {{ trend_peak }}</span>{% endif %}
+    </h2>
+    <span class="text-xs font-mono text-gray-500 dark:text-gray-400">last 14 days</span>
+  </div>
+  <div class="p-4 sm:p-5">
+    {% if trends %}
+    {% set max_shots = trends|map(attribute='shots')|max or 1 %}
+    {% set total_window = trends|sum(attribute='shots') %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+      {% for day in trends %}
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-mono text-gray-500 dark:text-gray-400 w-10 flex-shrink-0">{{ day.date }}</span>
+        <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-5 overflow-hidden">
+          <div class="bg-ecs-green h-5 rounded-full flex items-center justify-end pr-2 transition-all" style="width: {{ (day.shots / max_shots * 100)|round(1) }}%; min-width: {% if day.shots > 0 %}1.5rem{% else %}0{% endif %};">
+            {% if day.shots > 0 %}
+            <span class="text-xs font-mono font-medium text-white">{{ day.shots }}</span>
+            {% endif %}
+          </div>
+        </div>
+        {% if day.shots == 0 %}
+        <span class="text-xs font-mono text-gray-400 dark:text-gray-500 w-6 flex-shrink-0">0</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-gray-500 dark:text-gray-400 font-mono">
+      <span><span class="text-gray-900 dark:text-white font-semibold">{{ total_window }}</span> shots in window</span>
+      <span>peak day <span class="text-ecs-green font-semibold">{{ max_shots }}</span></span>
+    </div>
+    {% else %}
+    {{ empty_state("ti-chart-bar", "No trend data", "No shot activity has been recorded in the last 14 days.") }}
+    {% endif %}
+  </div>
+</section>
+
+  {# ---- Shot status breakdown — donut (approved vs not approved) + summary ---- #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-chart-pie text-ecs-green" aria-hidden="true"></i> Shot Status
+      </h2>
+    </div>
+    <div class="p-4 sm:p-5">
+      {% if ov.total_shots > 0 %}
+      <div class="flex items-center justify-center" role="img" aria-label="Shot status: {{ ov.approved_shots }} approved, {{ disallowed_shots }} not approved">
+        <div class="relative h-40 w-40">
+          <svg viewBox="0 0 36 36" class="h-full w-full -rotate-90">
+            <circle cx="18" cy="18" r="15.915" fill="none" class="stroke-gray-100 dark:stroke-gray-700" stroke-width="3.5" />
+            <circle cx="18" cy="18" r="15.915" fill="none" class="stroke-green-500 dark:stroke-green-400" stroke-width="3.5" stroke-dasharray="{{ approved_pct }} {{ (100 - approved_pct)|round(1) }}" />
+            <circle cx="18" cy="18" r="15.915" fill="none" class="stroke-amber-500 dark:stroke-amber-400" stroke-width="3.5" stroke-dasharray="{{ not_approved_pct }} {{ (100 - not_approved_pct)|round(1) }}" stroke-dashoffset="-{{ approved_pct }}" />
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span class="font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ ov.total_shots }}</span>
+            <span class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">total shots</span>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 grid grid-cols-2 gap-2 text-center">
+        <div class="rounded-lg bg-gray-50 dark:bg-gray-700/50 py-2">
+          <p class="font-mono text-xl font-bold text-green-600 dark:text-green-400">{{ ov.approved_shots }}</p>
+          <p class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Approved</p>
+        </div>
+        <div class="rounded-lg bg-gray-50 dark:bg-gray-700/50 py-2">
+          <p class="font-mono text-xl font-bold text-amber-600 dark:text-amber-400">{{ disallowed_shots }}</p>
+          <p class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Not Approved</p>
+        </div>
+      </div>
+      <dl class="mt-4 space-y-2 text-sm border-t border-gray-200 dark:border-gray-700 pt-4">
+        <div class="flex justify-between items-center">
+          <dt class="text-gray-500 dark:text-gray-400">Approval Rate</dt>
+          <dd class="font-mono font-semibold text-green-600 dark:text-green-400">{{ ov.approval_rate }}%</dd>
+        </div>
+        {# Avg points per approved shot — real value from total_points on approved shots. #}
+        <div class="flex justify-between items-center">
+          <dt class="text-gray-500 dark:text-gray-400">Avg Points / Shot</dt>
+          <dd class="font-mono font-semibold text-ecs-gold-500 dark:text-ecs-gold-400">{{ ov.avg_points_per_shot }}</dd>
+        </div>
+        {# NOTE: the mock's "Pending Review" row is intentionally omitted. This game has no
+           pending state — shots are created as 'approved' and later 'disallowed' by moderators
+           (see ispy_helpers create_shot + ISpyShot.status). A pending count would always be 0,
+           so rendering it would be fabricated rather than real data. #}
+      </dl>
+      {% else %}
+      {{ empty_state("ti-chart-pie", "No shots yet", "Shot status will appear once submissions are recorded.") }}
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+{# ---- Quick links — navigation cards ---- #}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mt-6">
+  <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+    <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+      <i class="ti ti-link text-ecs-green" aria-hidden="true"></i> Quick Links
+    </h2>
+  </div>
+  <div class="p-4 sm:p-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <a href="{{ url_for('admin_panel.ispy_players') }}"
+         class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg bg-ecs-green text-white hover:bg-ecs-green-700 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <span class="w-9 h-9 shrink-0 rounded-lg bg-white/20 flex items-center justify-center"><i class="ti ti-users text-lg" aria-hidden="true"></i></span>
+        <span class="min-w-0"><span class="block text-sm font-semibold">View Players</span><span class="block text-xs text-white/80 font-mono">{{ ov.total_players }} tracked</span></span>
+      </a>
+      <a href="{{ url_for('admin_panel.ispy_shots') }}"
+         class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <span class="w-9 h-9 shrink-0 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-camera text-lg" aria-hidden="true"></i></span>
+        <span class="min-w-0"><span class="block text-sm font-semibold">View Shots</span><span class="block text-xs text-gray-500 dark:text-gray-400 font-mono">{{ ov.total_shots }} total</span></span>
+      </a>
+      <a href="{{ url_for('admin_panel.ispy_management') }}"
+         class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white hover:border-ecs-green hover:bg-ecs-green/10 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <span class="w-9 h-9 shrink-0 rounded-lg bg-ecs-green/10 text-ecs-green flex items-center justify-center"><i class="ti ti-arrow-left text-lg" aria-hidden="true"></i></span>
+        <span class="min-w-0"><span class="block text-sm font-semibold">Back to I-Spy Hub</span><span class="block text-xs text-gray-500 dark:text-gray-400 font-mono">Game management</span></span>
+      </a>
+    </div>
+  </div>
+</section>
 
 {% else %}
 <!-- Analytics Header -->
@@ -311,5 +593,59 @@
         </div>
     </div>
 </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if shell == 'console' %}
+<script>
+// Client-side CSV export of the Category Performance table (data already in page context).
+(function () {
+    var CATS = {{ cats|tojson }};
+    function buildCsv(rows) {
+        var header = ['Category', 'Key', 'Total Shots', 'Approved Shots', 'Approval %', 'Avg Points'];
+        var lines = [header];
+        (rows || []).forEach(function (c) {
+            var total = c.total_shots || 0;
+            var approved = c.approved_shots || 0;
+            var pct = total > 0 ? ((approved / total) * 100).toFixed(1) : '0.0';
+            lines.push([c.display_name || '', c.key || '', total, approved, pct, c.avg_points]);
+        });
+        return lines.map(function (row) {
+            return row.map(function (v) {
+                var s = (v === null || v === undefined) ? '' : String(v);
+                if (/[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+                return s;
+            }).join(',');
+        }).join('\r\n');
+    }
+    function exportCategoryData() {
+        var csv = buildCsv(CATS);
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        var stamp = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = 'ispy_category_performance_' + stamp + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+    function register() {
+        if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
+            window.EventDelegation.register('export-category-data', function (element, e) {
+                if (e) e.preventDefault();
+                exportCategoryData();
+            }, { preventDefault: true });
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', register);
+    } else {
+        register();
+    }
+})();
+</script>
 {% endif %}
 {% endblock %}

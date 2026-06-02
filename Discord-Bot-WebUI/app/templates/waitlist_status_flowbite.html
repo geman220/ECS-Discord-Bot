@@ -45,6 +45,20 @@
             </div>
             {% endif %}
 
+            <!-- Position in line -->
+            {% if waitlist_position %}
+            <div class="flex items-center justify-center gap-4 p-4 mb-6 rounded-lg border border-ecs-green/30 bg-ecs-green/5 dark:bg-ecs-green/10">
+                <div class="text-center">
+                    <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Your spot in line</p>
+                    <p class="font-mono text-4xl font-bold leading-none text-ecs-green mt-1">#{{ waitlist_position }}</p>
+                </div>
+                {% if waitlist_total %}
+                <div class="h-10 w-px bg-ecs-green/30"></div>
+                <p class="text-sm text-gray-600 dark:text-gray-300">of <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ waitlist_total }}</span> on the waitlist</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
             <!-- Waitlist Details -->
             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6">
                 <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Waitlist Details</h6>
@@ -53,6 +67,12 @@
                         <span class="text-gray-500 dark:text-gray-400">Joined:</span>
                         <span class="text-gray-900 dark:text-white font-medium">{{ waitlist_date.strftime('%B %d, %Y') if waitlist_date else 'Unknown' }}</span>
                     </div>
+                    {% if confirmation_id %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">Reference:</span>
+                        <span class="text-gray-900 dark:text-white font-mono font-medium">{{ confirmation_id }}</span>
+                    </div>
+                    {% endif %}
                     {% if approval_league %}
                     <div class="flex justify-between">
                         <span class="text-gray-500 dark:text-gray-400">League:</span>

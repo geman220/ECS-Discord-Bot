@@ -23,23 +23,68 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== MODERN (console) ===================== #}
-{{ page_header("Team Rosters", subtitle="Match Operations") }}
+{% set coverage_pct = ((stats.teams_with_players or 0) * 100 // (stats.total_teams or 1)) if (stats.total_teams or 0) else 0 %}
 
-{# KPI band #}
+{# None-safe league grouping (top-level so the toolbar, card groups, and assign modal share it). #}
+{% set teams_with_league = (teams | selectattr('league') | list) if teams else [] %}
+{% set teams_no_league = (teams | rejectattr('league') | list) if teams else [] %}
+{% set league_names = teams_with_league | map(attribute='league.name') | select | unique | list | sort %}
+{# Ordered (label, league_value, group_teams) tuples: leagues first (sorted), then No League. #}
+{% set ns = namespace(groups=[]) %}
+{% for league_name in league_names %}
+    {% set ns.groups = ns.groups + [(league_name, league_name, (teams_with_league | selectattr('league.name', 'equalto', league_name) | list))] %}
+{% endfor %}
+{% if teams_no_league %}
+    {% set ns.groups = ns.groups + [('No League', '', teams_no_league)] %}
+{% endif %}
+
+{# Command header: season eyebrow + primary CTA #}
+{% call(slot) page_header("Team Rosters", subtitle="Match Operations · " ~ (stats.current_season or 'All Seasons')) %}
+    <a href="{{ url_for('admin_panel.match_operations') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium
+              text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Match Operations</span>
+    </a>
+    <a href="{{ url_for('admin_panel.league_management_teams') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg text-sm font-semibold text-white
+              bg-ecs-green hover:bg-ecs-green-700 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-edit" aria-hidden="true"></i>Manage Rosters
+    </a>
+{% endcall %}
+
+{# KPI band — real roster metrics, mono figures with divider footers #}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
-    {{ stat_card("ti-shield-half", "Total Teams", stats.total_teams or 0, tone='primary') }}
-    {{ stat_card("ti-users-check", "With Players", stats.teams_with_players or 0, tone='success') }}
-    {{ stat_card("ti-user", "Total Players", stats.total_players or 0, tone='info') }}
-    {{ stat_card("ti-user-minus", "Unassigned", stats.unassigned_players or 0, tone='warning') }}
+    {% call stat_card("ti-shield-half", "Total Teams", stats.total_teams or 0, tone='primary') %}
+        <span class="font-mono">{{ stats.teams_with_players or 0 }}</span> with rosters · <span class="font-mono">{{ stats.teams_without_players or 0 }}</span> empty
+    {% endcall %}
+    {% call stat_card("ti-users-check", "Roster Coverage", coverage_pct ~ "%", tone='success') %}
+        <div class="h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="img" aria-label="{{ coverage_pct }} percent of teams staffed">
+            <div class="h-full rounded-full bg-green-500 dark:bg-green-400" style="width: {{ coverage_pct }}%"></div>
+        </div>
+        <p class="mt-1.5"><span class="font-mono">{{ stats.teams_with_players or 0 }}</span> / <span class="font-mono">{{ stats.total_teams or 0 }}</span> teams staffed</p>
+    {% endcall %}
+    {% call stat_card("ti-user", "Total Players", stats.total_players or 0, tone='info') %}
+        <span class="font-mono">{{ stats.assigned_players or 0 }}</span> assigned to a team
+    {% endcall %}
+    {% call stat_card("ti-user-minus", "Unassigned", stats.unassigned_players or 0, tone='warning') %}
+        not yet on any roster
+    {% endcall %}
 </div>
 
-{# Teams without players warning #}
+{# Teams without players — feature warning band with action #}
 {% if teams_without_players %}
 <div class="mb-5 sm:mb-6 flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-3 sm:p-4" role="alert">
-    <i class="ti ti-alert-triangle text-lg shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
-    <p class="flex-1 min-w-0 text-sm text-amber-800 dark:text-amber-300">
-        <span class="font-semibold">{{ teams_without_players|length }} teams</span> have no players assigned.
-    </p>
+    <span class="shrink-0 w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center" aria-hidden="true">
+        <i class="ti ti-alert-triangle text-lg text-amber-600 dark:text-amber-400"></i>
+    </span>
+    <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">
+            <span class="font-mono">{{ teams_without_players|length }}</span> teams have no players assigned
+        </p>
+        <p class="text-xs text-amber-700/80 dark:text-amber-400/70 mt-0.5">These rosters are empty for {{ stats.current_season or 'the current season' }}.</p>
+    </div>
     <button type="button"
             class="shrink-0 inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
                    text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/20 hover:bg-amber-200 dark:hover:bg-amber-500/30
@@ -50,106 +95,182 @@
 </div>
 {% endif %}
 
-{% call section_card("Team Rosters", icon="ti-shield-half") %}
-<div class="p-4 sm:p-5">
-    <div class="flex justify-end mb-4">
-        <button type="button"
-                class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg text-sm font-semibold text-white
-                       bg-ecs-green hover:bg-ecs-green-700 transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                data-action="manage-player-assignments">
-            <i class="ti ti-edit mr-1.5" aria-hidden="true"></i>Assign Players
-        </button>
+{# Primary object: team roster feature cards #}
+{% if teams %}
+{# Filter + toolbar (client-side: filters the rendered cards/groups in place) #}
+<div class="mb-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <i class="ti ti-clipboard-list text-ecs-green" aria-hidden="true"></i>
+        <h2 class="font-semibold text-gray-900 dark:text-white">Rosters</h2>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{{ teams|length }}</span>
     </div>
+    <div class="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div class="relative flex-1">
+            <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+            <label for="rosterSearch" class="sr-only">Filter teams</label>
+            <input type="search" id="rosterSearch" data-roster-filter="search" placeholder="Filter teams…"
+                   class="h-9 w-full pl-9 pr-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                   aria-label="Filter teams">
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            {# Season filter is informational: the route renders one season at a time and does not pass a season list. #}
+            {# TODO backend: pass a `seasons` list (id/name/is_current) to enable cross-season switching here. #}
+            <label for="leagueFilter" class="sr-only">Filter by league</label>
+            <select id="leagueFilter" data-roster-filter="league"
+                    class="h-9 px-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    aria-label="Filter by league">
+                <option value="">All Leagues</option>
+                {% for lname in league_names %}
+                <option value="{{ lname }}">{{ lname }}</option>
+                {% endfor %}
+            </select>
+            <label for="rosterStatusFilter" class="sr-only">Filter by roster status</label>
+            <select id="rosterStatusFilter" data-roster-filter="status"
+                    class="h-9 px-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    aria-label="Filter by roster status">
+                <option value="">All Rosters</option>
+                <option value="active">Has Players</option>
+                <option value="empty">Empty</option>
+            </select>
+        </div>
+    </div>
+</div>
 
-    {% if teams %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {% for team in teams %}
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
-            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="flex items-center gap-3">
-                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center" aria-hidden="true">
-                        <span class="text-white font-bold text-lg">{{ team.name[0] if team.name else 'T' }}</span>
-                    </div>
-                    <div class="min-w-0">
-                        <h4 class="font-semibold text-gray-900 dark:text-white truncate">{{ team.name }}</h4>
-                        {% if team.league %}
-                        <span class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ team.league.name }}</span>
-                        {% endif %}
-                    </div>
-                </div>
+{# League-group dividers: one section per league (no-league teams fall under "No League"). #}
+<div data-roster-groups>
+{% for group_label, group_league_value, league_teams in ns.groups %}
+<div class="flex items-center gap-2 mb-3 mt-5 first:mt-0" data-roster-group data-group-league="{{ group_league_value }}">
+    <span class="font-mono text-xs font-bold text-ecs-green uppercase tracking-wide">{{ group_label }}</span>
+    <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+    <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400" data-group-count>{{ league_teams|length }}</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+    {% for team in league_teams %}
+    {% set player_count = team.players|length if team.players else 0 %}
+    {% set coach_count = (team.players|selectattr('is_coach')|list|length) if team.players else 0 %}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col"
+         data-roster-card
+         data-team-name="{{ (team.name or '')|lower }}"
+         data-team-league="{{ team.league.name if team.league else '' }}"
+         data-team-status="{{ 'active' if player_count else 'empty' }}">
+        {# Header bar with status pill #}
+        <div class="px-4 h-14 flex items-center gap-3 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-ecs-green flex items-center justify-center" aria-hidden="true">
+                <span class="text-white font-bold">{{ team.name[0] if team.name else 'T' }}</span>
             </div>
-
-            <div class="p-4 flex-1">
-                {% if team.players %}
-                <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-                    {% for player in team.players[:10] %}
-                    <li class="py-2 flex items-center justify-between gap-2 {% if loop.first %}pt-0{% endif %}">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <div class="flex-shrink-0 w-7 h-7 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center" aria-hidden="true">
-                                <span class="text-white text-xs font-medium">{{ player.display_name[0] if player.display_name else 'P' }}</span>
-                            </div>
-                            <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ player.display_name or 'Unknown Player' }}</span>
-                        </div>
-                        {% if player.user and player.user.is_active %}
-                            <span class="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
-                                <i class="ti ti-check" aria-hidden="true"></i><span class="sr-only">Active</span>
-                            </span>
-                        {% else %}
-                            <span class="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-gray-400 dark:text-gray-500">
-                                <i class="ti ti-minus" aria-hidden="true"></i><span class="sr-only">Inactive</span>
-                            </span>
-                        {% endif %}
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% if team.players|length > 10 %}
-                <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                    … and <span class="font-mono">{{ team.players|length - 10 }}</span> more players
-                </p>
-                {% endif %}
-                {% else %}
-                <div class="text-center py-6">
-                    <i class="ti ti-users text-3xl text-gray-300 dark:text-gray-600 mb-2" aria-hidden="true"></i>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">No players assigned</p>
-                </div>
+            <div class="min-w-0 flex-1">
+                <h3 class="font-semibold text-gray-900 dark:text-white truncate leading-tight">{{ team.name }}</h3>
+                {% if team.league %}
+                <span class="text-xs text-gray-500 dark:text-gray-400 truncate block">{{ team.league.name }}</span>
                 {% endif %}
             </div>
+            {% if player_count %}
+            <span class="shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Active
+            </span>
+            {% else %}
+            <span class="shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+                <i class="ti ti-alert-triangle text-[12px]" aria-hidden="true"></i>Empty
+            </span>
+            {% endif %}
+        </div>
 
-            <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
-                <span class="text-sm text-gray-500 dark:text-gray-400">
-                    <span class="font-mono">{{ team.players|length if team.players else 0 }}</span> players
-                </span>
-                <div class="flex items-center gap-1">
-                    <button type="button"
-                            class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center rounded-lg
-                                   text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors
-                                   focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                            data-action="view-team-roster" data-team-id="{{ team.id }}" aria-label="View roster for {{ team.name }}">
-                        <i class="ti ti-eye" aria-hidden="true"></i>
-                    </button>
-                    <button type="button"
-                            class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center rounded-lg
-                                   text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors
-                                   focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                            data-action="edit-team-roster" data-team-id="{{ team.id }}" aria-label="Edit roster for {{ team.name }}">
-                        <i class="ti ti-edit" aria-hidden="true"></i>
-                    </button>
-                </div>
+        {# Roster summary strip: mono counts #}
+        <div class="grid grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700 border-b border-gray-200 dark:border-gray-700">
+            <div class="px-4 py-2.5">
+                <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Players</p>
+                <p class="font-mono text-lg font-bold text-gray-900 dark:text-white leading-none mt-0.5">{{ player_count }}</p>
+            </div>
+            <div class="px-4 py-2.5">
+                <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Coaches</p>
+                <p class="font-mono text-lg font-bold {{ 'text-ecs-gold-500 dark:text-ecs-gold-400' if coach_count else 'text-gray-400 dark:text-gray-500' }} leading-none mt-0.5">{{ coach_count }}</p>
             </div>
         </div>
-        {% endfor %}
+
+        {# Dense player rows #}
+        <div class="flex-1">
+            {% if team.players %}
+            <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+                {% for player in team.players[:10] %}
+                <li class="px-4 py-2 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        {% if player.jersey_number is not none %}
+                        <span class="shrink-0 w-7 h-7 rounded-md bg-gray-100 dark:bg-gray-700 flex items-center justify-center font-mono text-xs font-bold text-gray-700 dark:text-gray-300" aria-hidden="true">{{ player.jersey_number }}</span>
+                        {% else %}
+                        <span class="shrink-0 w-7 h-7 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-white text-xs font-medium" aria-hidden="true">{{ player.display_name[0] if player.display_name else 'P' }}</span>
+                        {% endif %}
+                        <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ player.display_name or 'Unknown Player' }}</span>
+                        {% if player.is_coach %}
+                        <span class="shrink-0 inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-gold-500/15 text-ecs-gold-600 dark:text-ecs-gold-400" title="Coach">Coach</span>
+                        {% endif %}
+                    </div>
+                    {% if player.user and player.user.is_active %}
+                        <span class="shrink-0 inline-flex items-center text-xs font-medium text-green-600 dark:text-green-400">
+                            <i class="ti ti-check" aria-hidden="true"></i><span class="sr-only">Active</span>
+                        </span>
+                    {% else %}
+                        <span class="shrink-0 inline-flex items-center text-xs font-medium text-gray-400 dark:text-gray-500">
+                            <i class="ti ti-minus" aria-hidden="true"></i><span class="sr-only">Inactive</span>
+                        </span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% if player_count > 10 %}
+            <p class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700">
+                + <span class="font-mono font-semibold">{{ player_count - 10 }}</span> more players
+            </p>
+            {% endif %}
+            {% else %}
+            <div class="flex flex-col items-center justify-center text-center px-4 py-8">
+                <i class="ti ti-users-off text-2xl text-gray-300 dark:text-gray-600 mb-1.5" aria-hidden="true"></i>
+                <p class="text-sm text-gray-500 dark:text-gray-400">No players assigned</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Command footer #}
+        <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-1">
+            <button type="button"
+                    class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg text-sm font-medium
+                           text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors
+                           focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    data-action="view-team-roster" data-team-id="{{ team.id }}" aria-label="View roster for {{ team.name }}">
+                <i class="ti ti-eye" aria-hidden="true"></i><span class="hidden sm:inline">View</span>
+            </button>
+            <button type="button"
+                    class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg text-sm font-medium
+                           text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors
+                           focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    data-action="edit-team-roster" data-team-id="{{ team.id }}" aria-label="Edit roster for {{ team.name }}">
+                <i class="ti ti-edit" aria-hidden="true"></i><span class="hidden sm:inline">Edit</span>
+            </button>
+        </div>
     </div>
-    {% else %}
-    {{ kit_empty_state("ti-users-off", "No Teams Found", "Create teams first to manage player rosters.",
-        action={'label': 'Manage Teams', 'url': url_for('admin_panel.league_management_teams'), 'icon': 'ti-shield-half'}) }}
-    {% endif %}
+    {% endfor %}
 </div>
-{% endcall %}
+{% endfor %}
+</div>
+
+{# Empty state shown by JS when active filters match no teams #}
+<div class="hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" data-roster-no-matches>
+    <div class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16">
+        <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+            <i class="ti ti-search-off text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+        </div>
+        <h3 class="text-base font-semibold text-gray-900 dark:text-white">No teams match your filters</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">Try clearing the search or changing the league / roster status filters.</p>
+    </div>
+</div>
+{% else %}
+{{ kit_empty_state("ti-users-off", "No Teams Found", "Create teams first to manage player rosters.",
+    action={'label': 'Manage Teams', 'url': url_for('admin_panel.league_management_teams'), 'icon': 'ti-shield-half'}) }}
+{% endif %}
 
 <div class="mt-5 sm:mt-6">
-    {{ kit_alert("info", "Manage player assignments to teams. Players can be assigned to multiple teams or moved between teams as needed.", title="Team Rosters", dismissible=false) }}
+    {{ kit_alert("info", "Players can be assigned to multiple teams or moved between teams as needed. Coach and jersey assignments carry over from each player's profile.", title="Managing rosters", dismissible=false) }}
 </div>
+
 {% else %}
 <!-- Statistics Cards -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -344,8 +465,55 @@ document.addEventListener('DOMContentLoaded', function() {
                 const teamId = target.dataset.teamId;
                 window.location.href = `{{ url_for('admin_panel.league_management_teams') }}?team_id=${teamId}`;
                 break;
+            case 'manage-player-assignments':
+                // Roster assignment lives under League Management > Teams.
+                window.location.href = `{{ url_for('admin_panel.league_management_teams') }}`;
+                break;
         }
     });
+
+    // ----- Roster filter toolbar (client-side; console shell only) -----
+    const groupsRoot = document.querySelector('[data-roster-groups]');
+    if (groupsRoot) {
+        const searchInput = document.querySelector('[data-roster-filter="search"]');
+        const leagueSelect = document.querySelector('[data-roster-filter="league"]');
+        const statusSelect = document.querySelector('[data-roster-filter="status"]');
+        const noMatches = document.querySelector('[data-roster-no-matches]');
+
+        function applyRosterFilters() {
+            const q = (searchInput && searchInput.value || '').trim().toLowerCase();
+            const league = leagueSelect && leagueSelect.value || '';
+            const status = statusSelect && statusSelect.value || '';
+            let anyVisible = false;
+
+            groupsRoot.querySelectorAll('[data-roster-group]').forEach(function(divider) {
+                const grid = divider.nextElementSibling;
+                let groupVisible = 0;
+                if (grid) {
+                    grid.querySelectorAll('[data-roster-card]').forEach(function(card) {
+                        const name = card.getAttribute('data-team-name') || '';
+                        const cLeague = card.getAttribute('data-team-league') || '';
+                        const cStatus = card.getAttribute('data-team-status') || '';
+                        const match = (!q || name.indexOf(q) !== -1)
+                            && (!league || cLeague === league)
+                            && (!status || cStatus === status);
+                        card.classList.toggle('hidden', !match);
+                        if (match) { groupVisible++; anyVisible = true; }
+                    });
+                    grid.classList.toggle('hidden', groupVisible === 0);
+                }
+                divider.classList.toggle('hidden', groupVisible === 0);
+                const countEl = divider.querySelector('[data-group-count]');
+                if (countEl) countEl.textContent = groupVisible;
+            });
+
+            if (noMatches) noMatches.classList.toggle('hidden', anyVisible);
+        }
+
+        if (searchInput) searchInput.addEventListener('input', applyRosterFilters);
+        if (leagueSelect) leagueSelect.addEventListener('change', applyRosterFilters);
+        if (statusSelect) statusSelect.addEventListener('change', applyRosterFilters);
+    }
 });
 </script>
 {% endblock %}

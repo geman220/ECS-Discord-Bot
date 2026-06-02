@@ -11,38 +11,13 @@
  * @param {Object} ED - EventDelegation instance
  */
 export function initFeatureTogglesHandlers(ED) {
-    /**
-     * Emergency kill switch for all mobile features
-     */
-    ED.register('emergency-kill-switch', (element, event) => {
-        event.preventDefault();
-        window.Swal.fire({
-            title: 'Emergency Kill Switch',
-            text: 'This will immediately disable ALL mobile features for ALL users!',
-            icon: 'error',
-            showCancelButton: true,
-            confirmButtonText: 'EMERGENCY DISABLE',
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.Swal.fire({
-                    title: 'Disabling All Features...',
-                    text: 'Emergency shutdown in progress',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        window.Swal.showLoading();
-                        setTimeout(() => {
-                            document.querySelectorAll('input[data-feature]').forEach(toggle => {
-                                toggle.checked = false;
-                            });
-                            window.Swal.fire('Emergency Shutdown Complete!', 'All mobile features have been disabled.', 'warning');
-                        }, 3000);
-                    }
-                });
-            }
-        });
-    });
+    // NOTE: The 'emergency-kill-switch' action is intentionally NOT registered here.
+    // feature_toggles_flowbite.html ships its own inline handler that POSTs to the
+    // real admin_panel.mobile_kill_switch route (which persists every toggle to
+    // false via AdminConfig). A second handler here previously only un-checked the
+    // DOM toggles after a setTimeout and showed a fake "Emergency Shutdown Complete"
+    // toast without any backend call — dangerously misleading for an emergency
+    // control and a double-bind with the real inline handler. Removed.
 
     /**
      * Export feature configuration

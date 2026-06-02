@@ -23,114 +23,305 @@
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+
+{# --- Derive real figures (route provides only counts + a {platform:count} dict + percent strings) --- #}
+{% set platform_total = platform_stats.values() | sum if platform_stats else 0 %}
+{% set read_count = recent_notifications | selectattr('read') | list | length if recent_notifications else 0 %}
+{% set recent_total = recent_notifications | length if recent_notifications else 0 %}
+
 <div class="space-y-6">
 
-  {{ page_header('Push Notifications', subtitle='Statistics and management') }}
+  {# Page header — leads with the ONE primary job: launch a send. #}
+  {% call page_header('Push Notifications', subtitle='Delivery monitoring · mobile + web') %}
+    <a href="{{ url_for('admin_panel.push_notifications') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg
+              bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600
+              text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-users-group text-base" aria-hidden="true"></i><span class="hidden sm:inline">Subscribers</span>
+    </a>
+    <a href="{{ url_for('admin_panel.send_push_notification_form') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg
+              bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-send text-base" aria-hidden="true"></i>New Notification
+    </a>
+  {% endcall %}
 
-  <!-- KPI band (real data) -->
+  {# ---- KPI band — big mono figures with divider footers carrying real derived captions ---- #}
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-users', 'Total Subscribers', total_subscribers, tone='info') }}
-    {{ stat_card('ti-device-mobile', 'Active (30 days)', active_subscribers, tone='success') }}
-    {{ stat_card('ti-bell-ringing', 'Sent Today', notifications_sent_today, tone='primary') }}
-    {{ stat_card('ti-chart-bar', 'Sent This Week', notifications_sent_week, tone='warning') }}
+    {% call stat_card('ti-users', 'Total Subscribers', total_subscribers, tone='info') %}
+      <span class="font-mono">{{ active_subscribers }}</span> active in last 30 days
+    {% endcall %}
+    {% call stat_card('ti-device-mobile', 'Active (30 days)', active_subscribers, tone='success') %}
+      {% if total_subscribers %}<span class="font-mono">{{ (active_subscribers / total_subscribers * 100) | round | int }}%</span> of all devices{% else %}no devices registered{% endif %}
+    {% endcall %}
+    {% call stat_card('ti-bell-ringing', 'Sent Today', notifications_sent_today, tone='primary') %}
+      since <span class="font-mono">00:00 UTC</span>
+    {% endcall %}
+    {% call stat_card('ti-chart-bar', 'Sent This Week', notifications_sent_week, tone='warning') %}
+      rolling <span class="font-mono">7</span>-day window
+    {% endcall %}
   </div>
 
-  <!-- Quick Actions, Platform Stats, Performance -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-
-    {# Quick Actions #}
-    {% call section_card('Quick Actions', icon='ti-send') %}
-      <div class="p-4 sm:p-5 space-y-3">
-        <a href="{{ url_for('admin_panel.send_push_notification_form') }}"
-           class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg
-                  bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-          <i class="ti ti-send" aria-hidden="true"></i>Send New Notification
-        </a>
-        <a href="{{ url_for('admin_panel.push_notifications') }}"
-           class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg
-                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
-                  text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-          <i class="ti ti-list" aria-hidden="true"></i>View All Subscribers
-        </a>
+  {# ---- Send Volume trend — real per-day campaign sent_count series (7/30/90d) ----
+       Built server-side from PushNotificationCampaign (sent_count grouped by send day)
+       in the route's _build_send_volume_series(). All three windows are rendered as
+       sibling SVGs + footers; the period toggle swaps which one is visible (no chart
+       lib, matching the prod SVG design language). #}
+  {% set sv_default = (send_volume.get('7d') if send_volume else None) %}
+  {% set sv_has_data = send_volume and (send_volume.values() | map(attribute='total') | sum) > 0 %}
+  <section data-send-volume class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-chart-line text-ecs-green" aria-hidden="true"></i> Send Volume
+        {% if sv_default %}
+        <span data-sv-pill class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/15 text-ecs-green">{{ sv_default.total }} / 7d</span>
+        {% endif %}
+      </h2>
+      {% if sv_has_data %}
+      <div class="inline-flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shrink-0" role="group" aria-label="Trend period">
+        {% for period in ['7d', '30d', '90d'] %}
+        <button type="button" data-sv-period="{{ period }}"
+                class="px-3 h-9 text-xs transition-colors {{ 'font-semibold bg-ecs-green text-white' if period == '7d' else 'font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+          {{ period[:-1] }} Days
+        </button>
+        {% endfor %}
       </div>
-    {% endcall %}
+      {% endif %}
+    </div>
 
-    {# Platform Breakdown #}
-    {% call section_card('Platform Breakdown', icon='ti-device-mobile') %}
+    {% if sv_has_data %}
+    {% for period in ['7d', '30d', '90d'] %}
+    {% set win = send_volume.get(period) %}
+    {% if win and win.series %}
+    {% set n = win.series | length %}
+    {% set vmax = win.peak if win.peak and win.peak > 0 else 1 %}
+    {% set step = (600 / (n - 1)) if n > 1 else 600 %}
+    {% set ns = namespace(line='') %}
+    {% for pt in win.series %}
+      {% set x = (loop.index0 * step) | round(2) %}
+      {% set y = (190 - ((pt.count / vmax) * 170)) | round(2) %}
+      {% set ns.line = ns.line ~ (',' if not loop.first else '') ~ x ~ ',' ~ y %}
+    {% endfor %}
+    <div data-sv-panel="{{ period }}" class="{{ '' if period == '7d' else 'hidden' }}">
       <div class="p-4 sm:p-5">
-        {% if platform_stats %}
-        <div class="space-y-3">
-          {% for platform, count in platform_stats.items() %}
-          <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <span class="flex items-center gap-2 text-gray-900 dark:text-white text-sm font-medium">
+        <div class="relative h-52" role="img" aria-label="Daily push send volume over the last {{ win.days }} days, peak {{ win.peak }} in a day">
+          <svg viewBox="0 0 600 200" preserveAspectRatio="none" class="w-full h-full">
+            <defs>
+              <linearGradient id="pushFill{{ period }}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgb(0 138 60)" stop-opacity="0.30" />
+                <stop offset="100%" stop-color="rgb(0 138 60)" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <line x1="0" y1="50" x2="600" y2="50" class="stroke-gray-200 dark:stroke-gray-700" stroke-width="1" />
+            <line x1="0" y1="100" x2="600" y2="100" class="stroke-gray-200 dark:stroke-gray-700" stroke-width="1" />
+            <line x1="0" y1="150" x2="600" y2="150" class="stroke-gray-200 dark:stroke-gray-700" stroke-width="1" />
+            <polygon points="0,200 {{ ns.line }} 600,200" fill="url(#pushFill{{ period }})" />
+            <polyline points="{{ ns.line }}" fill="none" stroke="rgb(0 138 60)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round" />
+          </svg>
+          <div class="absolute inset-x-0 bottom-0 flex justify-between text-[10px] text-gray-400 dark:text-gray-500 font-mono px-1">
+            {% for pt in win.series %}
+            <span class="{{ '' if loop.first or loop.last or loop.index0 == (n // 2) else 'hidden sm:inline' }}">{{ pt.label }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700 text-center">
+        <div class="px-3 py-3">
+          <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Sent ({{ period }})</p>
+          <p class="mt-0.5 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ win.total }}</p>
+        </div>
+        <div class="px-3 py-3">
+          <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Daily Avg</p>
+          <p class="mt-0.5 font-mono text-lg font-bold text-ecs-green">{{ win.daily_avg }}</p>
+        </div>
+        <div class="px-3 py-3">
+          <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Peak Day</p>
+          <p class="mt-0.5 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ win.peak }}</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% else %}
+    {{ empty_state('ti-chart-line', 'No send volume yet', 'Campaign send volume will chart here once push campaigns are delivered.') }}
+    {% endif %}
+  </section>
+
+  {% if sv_has_data %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var root = document.querySelector('[data-send-volume]');
+      if (!root) return;
+      var pill = root.querySelector('[data-sv-pill]');
+      var buttons = root.querySelectorAll('[data-sv-period]');
+      var panels = root.querySelectorAll('[data-sv-panel]');
+      buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var period = btn.getAttribute('data-sv-period');
+          panels.forEach(function (p) {
+            p.classList.toggle('hidden', p.getAttribute('data-sv-panel') !== period);
+          });
+          buttons.forEach(function (b) {
+            var on = b === btn;
+            b.classList.toggle('bg-ecs-green', on);
+            b.classList.toggle('text-white', on);
+            b.classList.toggle('font-semibold', on);
+            b.classList.toggle('font-medium', !on);
+            b.classList.toggle('text-gray-700', !on);
+            b.classList.toggle('dark:text-gray-200', !on);
+            b.classList.toggle('hover:bg-gray-100', !on);
+            b.classList.toggle('dark:hover:bg-gray-700', !on);
+          });
+          if (pill) {
+            var panel = root.querySelector('[data-sv-panel="' + period + '"] .font-mono.text-lg');
+            if (panel) pill.textContent = panel.textContent.trim() + ' / ' + period;
+          }
+        });
+      });
+    });
+  </script>
+  {% endif %}
+
+  {# ---- Primary object row: Platform mix (feature card w/ proportional bars) + Delivery health ---- #}
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+
+    {# Platform breakdown — feature card with header bar + dense rows + proportional ecs bars #}
+    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-device-mobile text-ecs-green" aria-hidden="true"></i> Platform Mix
+        </h2>
+        <span class="text-xs text-gray-500 dark:text-gray-400">
+          <span class="font-mono font-bold text-gray-900 dark:text-white">{{ platform_total }}</span> active devices
+        </span>
+      </div>
+      {% if platform_stats %}
+      <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for platform, count in platform_stats.items() %}
+        {% set pct = (count / platform_total * 100) if platform_total else 0 %}
+        <div class="px-4 sm:px-5 py-3">
+          <div class="flex items-center justify-between gap-3">
+            <span class="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white min-w-0">
               {% if platform == 'ios' %}
-              <i class="ti ti-brand-apple text-gray-500 dark:text-gray-400" aria-hidden="true"></i>iOS
+              <i class="ti ti-brand-apple text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i><span class="truncate">iOS</span>
               {% elif platform == 'android' %}
-              <i class="ti ti-brand-android text-green-500 dark:text-green-400" aria-hidden="true"></i>Android
+              <i class="ti ti-brand-android text-green-500 dark:text-green-400 shrink-0" aria-hidden="true"></i><span class="truncate">Android</span>
               {% elif platform == 'web' %}
-              <i class="ti ti-world text-blue-500 dark:text-blue-400" aria-hidden="true"></i>Web
+              <i class="ti ti-world text-blue-500 dark:text-blue-400 shrink-0" aria-hidden="true"></i><span class="truncate">Web</span>
               {% else %}
-              <i class="ti ti-device-mobile text-gray-500 dark:text-gray-400" aria-hidden="true"></i>{{ platform|capitalize }}
+              <i class="ti ti-device-mobile text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i><span class="truncate">{{ (platform or 'Unknown')|capitalize }}</span>
               {% endif %}
             </span>
-            <span class="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ count }}</span>
+            <span class="shrink-0 flex items-baseline gap-2">
+              <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ count }}</span>
+              <span class="font-mono text-xs text-gray-500 dark:text-gray-400 w-10 text-right">{{ pct | round | int }}%</span>
+            </span>
           </div>
-          {% endfor %}
+          <div class="mt-2 h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+            <div class="h-full rounded-full bg-ecs-green" style="width: {{ pct | round(1) }}%"></div>
+          </div>
         </div>
-        {% else %}
-        <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No platform data available</p>
+        {% endfor %}
+      </div>
+      {% else %}
+      {{ empty_state('ti-device-mobile-off', 'No registered devices', 'Subscriber platforms appear here once users enable push.') }}
+      {% endif %}
+    </section>
+
+    {# Delivery health — KPI rows from route-provided percent strings #}
+    {% call section_card('Delivery Health', icon='ti-activity-heartbeat') %}
+      <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        <div class="flex items-center justify-between px-4 sm:px-5 py-4">
+          <div class="min-w-0">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+              <i class="ti ti-truck-delivery text-green-600 dark:text-green-400" aria-hidden="true"></i>Delivery Rate
+            </p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">accepted by provider</p>
+          </div>
+          <span class="font-mono text-2xl font-bold text-green-600 dark:text-green-400">{{ delivery_rate }}</span>
+        </div>
+        <div class="flex items-center justify-between px-4 sm:px-5 py-4">
+          <div class="min-w-0">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+              <i class="ti ti-hand-click text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i>Avg Engagement
+            </p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">opened / tapped</p>
+          </div>
+          <span class="font-mono text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ avg_engagement }}</span>
+        </div>
+        {% if recent_total %}
+        <div class="flex items-center justify-between px-4 sm:px-5 py-4">
+          <div class="min-w-0">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+              <i class="ti ti-mail-opened text-ecs-green" aria-hidden="true"></i>Read (recent)
+            </p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">of last <span class="font-mono">{{ recent_total }}</span> sent</p>
+          </div>
+          <span class="font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ read_count }}</span>
+        </div>
         {% endif %}
       </div>
     {% endcall %}
 
-    {# Performance #}
-    {% call section_card('Performance', icon='ti-chart-pie') %}
-      <div class="p-4 sm:p-5 space-y-3">
-        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          <span class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-            <i class="ti ti-truck-delivery text-green-600 dark:text-green-400" aria-hidden="true"></i>Delivery Rate
-          </span>
-          <span class="font-mono text-base font-bold text-green-600 dark:text-green-400">{{ delivery_rate }}</span>
-        </div>
-        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          <span class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-            <i class="ti ti-activity-heartbeat text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i>Avg Engagement
-          </span>
-          <span class="font-mono text-base font-bold text-cyan-600 dark:text-cyan-400">{{ avg_engagement }}</span>
-        </div>
-      </div>
-    {% endcall %}
-
   </div>
 
-  <!-- Recent Notifications -->
+  {# ---- Recent send log — real <table>, date-grouped dense rows, mono timestamps ----
+       Built as a custom data-modern-table section (rather than the data_table macro)
+       so the header can carry a Refresh control alongside the search filter,
+       matching the mock. The [data-modern-table] scope + search input keep the
+       shared modern/kit.js client-side filter working. #}
   {% if recent_notifications %}
-  {% call data_table('Recent Notifications', icon='ti-bell', count=recent_notifications|length, search_placeholder='Filter notifications…', search_id='pushFilter') %}
+  <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-bell text-ecs-green" aria-hidden="true"></i> Recent Send Log
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ recent_notifications|length }}</span>
+      </h2>
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1 sm:flex-none">
+          <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+          <input type="search" id="pushFilter" placeholder="Filter by recipient or content…"
+                 class="input-ecs h-9 w-full sm:w-64 pl-9 pr-3 text-sm" aria-label="Filter by recipient or content">
+        </div>
+        <button type="button" onclick="location.reload()"
+                class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg shrink-0
+                       bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600
+                       text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                aria-label="Refresh send log">
+          <i class="ti ti-refresh text-base" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
+        </button>
+      </div>
+    </div>
+    <div class="md:overflow-x-auto">
     {# md+ table #}
     <table class="hidden md:table w-full text-sm text-left">
       <thead class="bg-gray-50 dark:bg-gray-700/50">
         <tr>
-          {{ data_table_th('Title', key='title') }}
-          {{ data_table_th('Message', key='message', hide='sm') }}
+          {{ data_table_th('Recipient', key='recipient') }}
+          {{ data_table_th('Content', key='content') }}
           {{ data_table_th('Type', key='type', hide='sm') }}
           {{ data_table_th('Sent', key='sent') }}
-          {{ data_table_th('Status', key='status') }}
+          {{ data_table_th('Status', key='status', align='right') }}
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for notification in recent_notifications %}
         <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">{{ notification.title or 'No Title' }}</td>
-          <td class="px-3 py-2.5 text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ (notification.body or notification.message or 'No message')[:50] }}{% if (notification.body or notification.message or '')|length > 50 %}...{% endif %}</td>
+          <td class="px-3 py-2.5">
+            <span class="flex items-center gap-2 font-medium text-gray-900 dark:text-white">
+              <i class="ti ti-user text-gray-400 dark:text-gray-500" aria-hidden="true"></i>{{ notification.user.username if notification.user else 'Unknown' }}
+            </span>
+          </td>
+          <td class="px-3 py-2.5 text-gray-500 dark:text-gray-400 max-w-md truncate">{{ notification.content or 'No content' }}</td>
           <td class="px-3 py-2.5 hidden md:table-cell">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ notification.notification_type or 'push' }}</span>
           </td>
           <td class="px-3 py-2.5 font-mono text-xs text-gray-600 dark:text-gray-400">{{ notification.created_at.strftime('%Y-%m-%d %H:%M') if notification.created_at else 'N/A' }}</td>
-          <td class="px-3 py-2.5">
-            {% if notification.is_read %}
+          <td class="px-3 py-2.5 text-right">
+            {% if notification.read %}
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-              <i class="ti ti-circle-check" aria-hidden="true"></i>Read
+              <i class="ti ti-mail-opened" aria-hidden="true"></i>Read
             </span>
             {% else %}
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
@@ -147,10 +338,12 @@
       {% for notification in recent_notifications %}
       <div data-row class="px-4 py-3.5">
         <div class="flex items-center justify-between gap-2">
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ notification.title or 'No Title' }}</span>
-          {% if notification.is_read %}
+          <span class="flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white truncate">
+            <i class="ti ti-user text-gray-400 dark:text-gray-500 shrink-0" aria-hidden="true"></i>{{ notification.user.username if notification.user else 'Unknown' }}
+          </span>
+          {% if notification.read %}
           <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-            <i class="ti ti-circle-check" aria-hidden="true"></i>Read
+            <i class="ti ti-mail-opened" aria-hidden="true"></i>Read
           </span>
           {% else %}
           <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
@@ -158,7 +351,7 @@
           </span>
           {% endif %}
         </div>
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ (notification.body or notification.message or 'No message')[:50] }}{% if (notification.body or notification.message or '')|length > 50 %}...{% endif %}</p>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{{ notification.content or 'No content' }}</p>
         <div class="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
           <span class="inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ notification.notification_type or 'push' }}</span>
           <span class="font-mono">{{ notification.created_at.strftime('%Y-%m-%d %H:%M') if notification.created_at else 'N/A' }}</span>
@@ -166,7 +359,8 @@
       </div>
       {% endfor %}
     </div>
-  {% endcall %}
+    </div>
+  </section>
   {% else %}
   {{ empty_state('ti-bell-off', 'No recent notifications', 'Push notifications you send will appear here.', action={'label': 'Send First Notification', 'url': url_for('admin_panel.send_push_notification_form'), 'icon': 'ti-send'}) }}
   {% endif %}

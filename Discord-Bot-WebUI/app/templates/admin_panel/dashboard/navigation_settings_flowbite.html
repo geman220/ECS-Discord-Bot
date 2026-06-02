@@ -22,103 +22,176 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+{# Derive real KPI counts from the provided nav_items (no fabrication). #}
+{% set ns_total = nav_items | length %}
+{% set ns_visible = nav_items | selectattr('enabled') | list | length %}
+{% set ns_hidden = ns_total - ns_visible %}
 <div class="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 sm:space-y-6">
-    {% call page_header("Navigation Settings", subtitle="Dashboard") %}
+    {% call page_header("Navigation Visibility", subtitle="Dashboard / Settings") %}
         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">
             <i class="ti ti-shield-lock text-sm" aria-hidden="true"></i> Global Admin Only
         </span>
     {% endcall %}
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
-        <!-- Settings -->
-        <div class="lg:col-span-2 space-y-5 sm:space-y-6">
-            {% call section_card("Sidebar Navigation Settings", icon="ti-menu-2") %}
-            <div class="p-4 sm:p-5">
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                    Control which navigation items appear in the sidebar for non-admin users.
-                    Disabled items will be hidden from the sidebar but the routes will still be accessible if users know the URL.
-                </p>
-
-                <form id="navSettingsForm">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                    {% if nav_items %}
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {% for item in nav_items %}
-                        <div class="p-4 rounded-lg border transition-colors {{ 'border-green-300 dark:border-green-600 bg-green-50/50 dark:bg-green-900/20' if item.enabled else 'border-gray-300 dark:border-gray-600' }}">
-                            <div class="flex items-center justify-between gap-3">
-                                <div class="flex items-start min-w-0">
-                                    <i class="ti ti-{{ item.icon }} text-xl text-ecs-green mr-3 mt-0.5 shrink-0" aria-hidden="true"></i>
-                                    <div class="min-w-0">
-                                        <label class="font-semibold text-gray-900 dark:text-white cursor-pointer" for="{{ item.key }}">
-                                            {{ item.label }}
-                                        </label>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ item.description }}</p>
-                                    </div>
-                                </div>
-                                <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                                    <input type="checkbox" class="sr-only peer nav-toggle"
-                                           id="{{ item.key }}"
-                                           name="{{ item.key }}"
-                                           {% if item.enabled %}checked{% endif %}
-                                           data-setting="{{ item.key }}">
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
-                                </label>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    {{ empty_state('ti-menu-2', 'No navigation items', 'There are no configurable navigation items to display.') }}
-                    {% endif %}
-
-                    <div class="flex flex-wrap items-center justify-between gap-4 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                            <i class="ti ti-info-circle mr-1" aria-hidden="true"></i>
-                            Changes are saved automatically
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <button type="button" id="resetDefaults"
-                                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
-                                <i class="ti ti-restore" aria-hidden="true"></i> Reset to Defaults
-                            </button>
-                            <button type="button" id="saveAll"
-                                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
-                                <i class="ti ti-device-floppy" aria-hidden="true"></i> Save All
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            {% endcall %}
+    {# ============ COMMAND TOOLBAR — page's primary actions ============ #}
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <p class="text-sm text-gray-500 dark:text-gray-400 max-w-2xl">
+            Control which sidebar items non-admin members see. Hidden items disappear from the menu but their
+            routes stay reachable by direct URL. Changes save automatically.
+        </p>
+        <div class="flex items-center gap-2 shrink-0">
+            <button type="button" id="resetDefaults"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors">
+                <i class="ti ti-restore" aria-hidden="true"></i> Reset to Defaults
+            </button>
+            <button type="button" id="saveAll"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i> Save All
+            </button>
         </div>
+    </div>
 
-        <!-- Sidebar -->
-        <div class="space-y-5 sm:space-y-6">
-            {% call section_card("Preview", icon="ti-eye") %}
-            <div class="p-4">
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    Non-admin users will see these navigation items:
-                </p>
-                <ul id="previewList" class="space-y-1">
+    {# ============ KPI BAND — real counts derived from nav_items ============ #}
+    <section aria-label="Navigation visibility summary">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Visible</span>
+                    <i class="ti ti-eye text-green-600 dark:text-green-400" aria-hidden="true"></i>
+                </div>
+                <div class="mt-1 font-mono text-3xl font-bold text-green-600 dark:text-green-400" data-kpi="visible">{{ ns_visible }}</div>
+                <div class="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                    <div class="h-full bg-ecs-green" data-kpi-bar="visible" style="width: {{ (ns_visible / ns_total * 100) | round if ns_total else 0 }}%"></div>
+                </div>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">shown to members</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Hidden</span>
+                    <i class="ti ti-eye-off text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+                </div>
+                <div class="mt-1 font-mono text-3xl font-bold text-amber-600 dark:text-amber-400" data-kpi="hidden">{{ ns_hidden }}</div>
+                <div class="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                    <div class="h-full bg-amber-500" data-kpi-bar="hidden" style="width: {{ (ns_hidden / ns_total * 100) | round if ns_total else 0 }}%"></div>
+                </div>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">URL still reachable</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Configurable</span>
+                    <i class="ti ti-menu-2 text-ecs-green" aria-hidden="true"></i>
+                </div>
+                <div class="mt-1 font-mono text-3xl font-bold text-gray-900 dark:text-white">{{ ns_total }}</div>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-2 font-mono pt-2 border-t border-gray-200 dark:border-gray-700">total nav items</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Recent Changes</span>
+                    <i class="ti ti-history text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+                </div>
+                <div class="mt-1 font-mono text-3xl font-bold text-gray-900 dark:text-white">{{ recent_changes | length if recent_changes else 0 }}</div>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-2 font-mono pt-2 border-t border-gray-200 dark:border-gray-700">logged toggles</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
+        {# ============ PRIMARY OBJECT — the toggle control surface ============ #}
+        <div class="lg:col-span-2">
+            <form id="navSettingsForm" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                        <i class="ti ti-adjustments text-ecs-green" aria-hidden="true"></i> Sidebar Items
+                    </h2>
+                    <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                        <span data-kpi="visible-inline">{{ ns_visible }}</span>/{{ ns_total }} on
+                    </span>
+                </div>
+
+                {% if nav_items %}
+                <ul class="divide-y divide-gray-200 dark:divide-gray-700">
                     {% for item in nav_items %}
-                    <li class="preview-item flex items-center p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50 {{ 'hidden' if not item.enabled }}" data-key="{{ item.key }}">
-                        <i class="ti ti-{{ item.icon }} text-ecs-green mr-2" aria-hidden="true"></i>
-                        <span class="text-sm text-gray-900 dark:text-white">{{ item.label }}</span>
+                    <li class="nav-row flex items-center gap-3 px-4 sm:px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {{ 'opacity-100' if item.enabled else 'opacity-70' }}" data-row-key="{{ item.key }}">
+                        <span class="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center {{ 'bg-green-100 dark:bg-green-500/15 text-ecs-green' if item.enabled else 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500' }}" data-row-icon>
+                            <i class="ti ti-{{ item.icon }} text-lg" aria-hidden="true"></i>
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <label class="block font-semibold text-gray-900 dark:text-white cursor-pointer truncate" for="{{ item.key }}">
+                                {{ item.label }}
+                            </label>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ item.description }}</p>
+                        </div>
+                        <span class="hidden sm:inline-flex items-center gap-1 shrink-0 px-2 py-0.5 rounded text-xs font-semibold {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300' if item.enabled else 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400' }}" data-row-badge>
+                            <i class="ti {{ 'ti-eye' if item.enabled else 'ti-eye-off' }} text-[11px]" aria-hidden="true"></i>
+                            <span data-row-badge-text>{{ 'Visible' if item.enabled else 'Hidden' }}</span>
+                        </span>
+                        <label class="relative inline-flex items-center cursor-pointer shrink-0 min-h-[44px] sm:min-h-0">
+                            <input type="checkbox" class="sr-only peer nav-toggle"
+                                   id="{{ item.key }}"
+                                   name="{{ item.key }}"
+                                   {% if item.enabled %}checked{% endif %}
+                                   data-setting="{{ item.key }}">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                        </label>
                     </li>
                     {% endfor %}
                 </ul>
-            </div>
-            {% endcall %}
+                <div class="flex items-center gap-2 px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-info-circle" aria-hidden="true"></i>
+                    Toggling a row saves immediately and updates the live preview.
+                </div>
+                {% else %}
+                {{ empty_state('ti-menu-2', 'No navigation items', 'There are no configurable navigation items to display.') }}
+                {% endif %}
+            </form>
+        </div>
 
-            {% call section_card("Recent Changes", icon="ti-history") %}
-            {% if recent_changes %}
-            <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-                {% for change in recent_changes[:5] %}
-                <li class="px-4 py-3">
-                    <div class="flex items-center justify-between gap-2">
-                        <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ change.setting }}</span>
+        {# ============ SIDE COLUMN — live preview + activity ============ #}
+        <div class="space-y-5 sm:space-y-6">
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+                    <i class="ti ti-eye text-ecs-green" aria-hidden="true"></i>
+                    <h2 class="font-semibold text-gray-900 dark:text-white">Member Preview</h2>
+                </div>
+                <div class="p-3">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 px-1 mb-2">
+                        How the sidebar looks to a non-admin member:
+                    </p>
+                    <ul id="previewList" class="space-y-0.5">
+                        {% for item in nav_items %}
+                        <li class="preview-item flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 {{ 'hidden' if not item.enabled }}" data-key="{{ item.key }}">
+                            <i class="ti ti-{{ item.icon }} text-ecs-green" aria-hidden="true"></i>
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ item.label }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </section>
+
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                        <i class="ti ti-history text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> Recent Changes
+                    </h2>
+                    {% if recent_changes %}
+                    <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ recent_changes | length }}</span>
+                    {% endif %}
+                </div>
+                {% if recent_changes %}
+                <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for change in recent_changes[:5] %}
+                    <li class="flex items-center gap-3 px-4 py-3">
+                        <span class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center {{ 'bg-green-100 dark:bg-green-500/15 text-green-600 dark:text-green-400' if change.new_value == 'true' else 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500' }}">
+                            <i class="ti {{ 'ti-eye' if change.new_value == 'true' else 'ti-eye-off' }}" aria-hidden="true"></i>
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ change.setting }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                                {{ change.created_at.strftime('%Y-%m-%d %H:%M') if change.created_at else 'N/A' }}
+                            </p>
+                        </div>
                         {% if change.new_value == 'true' %}
                         <span class="inline-flex items-center gap-1 shrink-0 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
                             <i class="ti ti-check text-[11px]" aria-hidden="true"></i> Enabled
@@ -128,17 +201,13 @@
                             <i class="ti ti-x text-[11px]" aria-hidden="true"></i> Disabled
                         </span>
                         {% endif %}
-                    </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">
-                        {{ change.created_at.strftime('%Y-%m-%d %H:%M') if change.created_at else 'N/A' }}
-                    </p>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            {{ empty_state('ti-history', 'No recent changes', 'Navigation visibility changes will appear here.') }}
-            {% endif %}
-            {% endcall %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                {{ empty_state('ti-history', 'No recent changes', 'Navigation visibility changes will appear here.') }}
+                {% endif %}
+            </section>
         </div>
     </div>
 </div>

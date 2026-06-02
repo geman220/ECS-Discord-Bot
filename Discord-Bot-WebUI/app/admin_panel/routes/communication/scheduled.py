@@ -36,9 +36,29 @@ def scheduled_messages():
         pending_messages = ScheduledMessage.query.filter_by(status='PENDING').count()
         sent_messages = ScheduledMessage.query.filter_by(status='SENT').count()
         failed_messages = ScheduledMessage.query.filter_by(status='FAILED').count()
+        total_messages = ScheduledMessage.query.count()
+
+        # The template (both Classic and Modern branches) reads `stats` + `messages`;
+        # provide them here so the KPI band + table render real data instead of empties.
+        pub_league_count = sum(
+            1 for m in scheduled_messages
+            if not getattr(m, 'message_type', None) or getattr(m, 'message_type', None) == 'standard'
+        )
+        stats = {
+            'total': total_messages,
+            'pending': pending_messages,
+            'sent': sent_messages,
+            'failed': failed_messages,
+            'queued': pending_messages,
+            'filtered_count': len(scheduled_messages),
+            'pub_league': pub_league_count,
+            'ecs_fc': len(scheduled_messages) - pub_league_count,
+        }
 
         return render_template('admin_panel/communication/scheduled_messages_flowbite.html',
                              scheduled_messages=scheduled_messages,
+                             messages=scheduled_messages,
+                             stats=stats,
                              pending_messages=pending_messages,
                              sent_messages=sent_messages,
                              failed_messages=failed_messages,
@@ -110,9 +130,13 @@ def create_scheduled_message():
 def scheduled_messages_queue():
     """View scheduled messages queue (pending messages)."""
     try:
-        # Get pending scheduled messages
+        # Get pending scheduled messages. Manual queue_order (set by the
+        # move-up/move-down buttons) takes precedence; rows that have never been
+        # manually ordered (queue_order IS NULL) fall back to chronological order.
         pending_messages = ScheduledMessage.query.filter_by(status='PENDING').order_by(
-            ScheduledMessage.scheduled_send_time.asc()
+            ScheduledMessage.queue_order.asc().nullslast(),
+            ScheduledMessage.scheduled_send_time.asc(),
+            ScheduledMessage.id.asc()
         ).all()
 
         stats = {
@@ -128,6 +152,73 @@ def scheduled_messages_queue():
         logger.error(f"Error loading scheduled messages queue: {e}")
         flash('Queue unavailable. Check database connectivity.', 'error')
         return redirect(url_for('admin_panel.communication_hub'))
+
+
+@admin_panel_bp.route('/communication/scheduled-messages/queue/reorder', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def reorder_message_queue():
+    """Move a pending scheduled message up or down in the queue.
+
+    The pending set is ordered by queue_order (NULLS last) then
+    scheduled_send_time. To make a move durable we first backfill sequential
+    queue_order values across the current pending ordering, then swap the
+    target row's queue_order with its neighbor in the requested direction.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        message_id = data.get('message_id', request.form.get('message_id'))
+        direction = data.get('direction', request.form.get('direction'))
+
+        if not message_id or direction not in ('up', 'down'):
+            return jsonify({'success': False, 'message': 'message_id and direction (up/down) are required.'}), 400
+        message_id = int(message_id)
+
+        # Load the full pending set in current display order.
+        pending = ScheduledMessage.query.filter_by(status='PENDING').order_by(
+            ScheduledMessage.queue_order.asc().nullslast(),
+            ScheduledMessage.scheduled_send_time.asc(),
+            ScheduledMessage.id.asc()
+        ).all()
+
+        # Backfill sequential queue_order so positions are well-defined.
+        for position, msg in enumerate(pending):
+            msg.queue_order = position
+
+        index = next((i for i, m in enumerate(pending) if m.id == message_id), None)
+        if index is None:
+            return jsonify({'success': False, 'message': 'Message is not in the pending queue.'}), 404
+
+        swap_index = index - 1 if direction == 'up' else index + 1
+        if swap_index < 0 or swap_index >= len(pending):
+            # Already at the boundary — no-op, but report it honestly.
+            return jsonify({'success': True, 'message': 'Message is already at the edge of the queue.', 'moved': False})
+
+        a, b = pending[index], pending[swap_index]
+        a.queue_order, b.queue_order = b.queue_order, a.queue_order
+        a.updated_at = datetime.utcnow()
+        b.updated_at = datetime.utcnow()
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='reorder_message_queue',
+            resource_type='scheduled_message',
+            resource_id=str(message_id),
+            new_value=f'Moved {direction} (position {index} -> {swap_index})',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({
+            'success': True,
+            'message': f'Message moved {direction}.',
+            'moved': True,
+            'message_id': message_id,
+            'new_position': swap_index
+        })
+    except Exception as e:
+        logger.error(f"Error reordering message queue: {e}")
+        return jsonify({'success': False, 'message': 'Failed to reorder queue.'}), 500
 
 
 @admin_panel_bp.route('/communication/scheduled-messages/new', methods=['GET', 'POST'])
@@ -424,6 +515,195 @@ def cancel_scheduled_message():
         return redirect(url_for('admin_panel.scheduled_messages'))
 
 
+@admin_panel_bp.route('/communication/scheduled-messages/queue/process', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def process_message_queue():
+    """Manually trigger processing of all due pending scheduled messages."""
+    try:
+        from app.tasks.tasks_core import send_scheduled_messages
+        task = send_scheduled_messages.delay()
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='process_message_queue',
+            resource_type='scheduled_message',
+            resource_id='queue',
+            new_value='Manually triggered scheduled message processing',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({
+            'success': True,
+            'message': 'Queue processing started. Due messages are being sent.',
+            'task_id': task.id
+        })
+    except Exception as e:
+        logger.error(f"Error processing message queue: {e}")
+        return jsonify({'success': False, 'message': 'Failed to start queue processing.'}), 500
+
+
+@admin_panel_bp.route('/communication/scheduled-messages/<int:message_id>/send-now', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def send_scheduled_message_now(message_id):
+    """Immediately queue a pending scheduled message for delivery."""
+    try:
+        message = ScheduledMessage.query.get_or_404(message_id)
+
+        if message.status not in ('PENDING', 'QUEUED'):
+            return jsonify({'success': False, 'message': 'Only pending messages can be sent now.'}), 400
+
+        from app.tasks.tasks_core import send_availability_message_task
+        message.scheduled_send_time = datetime.utcnow()
+        message.status = 'QUEUED'
+        message.updated_at = datetime.utcnow()
+        task = send_availability_message_task.delay(message.id)
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='send_scheduled_message_now',
+            resource_type='scheduled_message',
+            resource_id=str(message_id),
+            new_value='Force-sent scheduled message',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({'success': True, 'message': 'Message queued for immediate delivery.', 'task_id': task.id})
+    except Exception as e:
+        logger.error(f"Error sending scheduled message {message_id} now: {e}")
+        return jsonify({'success': False, 'message': 'Failed to send message.'}), 500
+
+
+@admin_panel_bp.route('/communication/scheduled-messages/queue/bulk', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def bulk_queue_action():
+    """Bulk cancel/delete/send selected pending scheduled messages."""
+    try:
+        data = request.get_json() or {}
+        action = data.get('action')
+        ids = data.get('ids') or []
+        ids = [int(i) for i in ids if str(i).isdigit()]
+
+        if not action or not ids:
+            return jsonify({'success': False, 'message': 'Action and message IDs are required.'}), 400
+
+        messages = ScheduledMessage.query.filter(ScheduledMessage.id.in_(ids)).all()
+        affected = 0
+
+        if action == 'cancel':
+            for m in messages:
+                if m.status in ('PENDING', 'QUEUED'):
+                    m.status = 'CANCELLED'
+                    m.updated_at = datetime.utcnow()
+                    affected += 1
+        elif action == 'delete':
+            for m in messages:
+                db.session.delete(m)
+                affected += 1
+        elif action == 'send':
+            from app.tasks.tasks_core import send_availability_message_task
+            for m in messages:
+                if m.status in ('PENDING', 'QUEUED'):
+                    m.scheduled_send_time = datetime.utcnow()
+                    m.status = 'QUEUED'
+                    m.updated_at = datetime.utcnow()
+                    send_availability_message_task.delay(m.id)
+                    affected += 1
+        else:
+            return jsonify({'success': False, 'message': 'Unknown bulk action.'}), 400
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action=f'bulk_queue_{action}',
+            resource_type='scheduled_message',
+            resource_id=','.join(str(i) for i in ids),
+            new_value=f'Bulk {action} on {affected} message(s)',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({'success': True, 'message': f'{affected} message(s) {action}ed.', 'affected': affected})
+    except Exception as e:
+        logger.error(f"Error performing bulk queue action: {e}")
+        return jsonify({'success': False, 'message': 'Failed to perform bulk action.'}), 500
+
+
+@admin_panel_bp.route('/communication/scheduled-messages/bulk-schedule', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def bulk_schedule_messages():
+    """Bulk-schedule RSVP messages for upcoming matches without one.
+
+    scope: 'sunday' (this coming Sunday), 'week' (next 7 days), 'season' (next 90 days).
+    Reuses the same send-time logic as the schedule_season_availability task.
+    """
+    try:
+        from datetime import timedelta
+        from sqlalchemy.orm import joinedload
+        from app.models import Match
+
+        data = request.get_json() or {}
+        scope = data.get('scope', 'week')
+
+        start_date = datetime.utcnow().date()
+        if scope == 'season':
+            end_date = start_date + timedelta(days=90)
+        elif scope == 'sunday':
+            # The next Sunday (weekday 6) inclusive of today if today is Sunday.
+            days_ahead = (6 - start_date.weekday()) % 7
+            end_date = start_date + timedelta(days=days_ahead)
+            start_date = end_date  # only that Sunday
+        else:  # 'week'
+            end_date = start_date + timedelta(days=7)
+
+        matches = Match.query.options(
+            joinedload(Match.scheduled_messages)
+        ).filter(Match.date.between(start_date, end_date)).all()
+
+        scheduled_count = 0
+        for match in matches:
+            if any(msg for msg in match.scheduled_messages):
+                continue
+            match_date = match.date
+            if match_date.weekday() == 6:  # Sunday match → send the prior Monday
+                send_date = match_date - timedelta(days=6)
+            else:
+                days_since_monday = match_date.weekday()
+                send_date = match_date - timedelta(days=days_since_monday if days_since_monday > 0 else 7)
+            send_time = datetime.combine(send_date, datetime.min.time()) + timedelta(hours=16)
+
+            db.session.add(ScheduledMessage(
+                match_id=match.id,
+                scheduled_send_time=send_time,
+                status='PENDING',
+                created_by=current_user.id,
+                message_metadata={'created_via': 'bulk_schedule', 'scope': scope}
+            ))
+            scheduled_count += 1
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='bulk_schedule_messages',
+            resource_type='scheduled_message',
+            resource_id=scope,
+            new_value=f'Bulk-scheduled {scheduled_count} message(s) for scope {scope}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({
+            'success': True,
+            'message': f'Scheduled {scheduled_count} message(s) for {len(matches)} match(es).',
+            'scheduled_count': scheduled_count
+        })
+    except Exception as e:
+        logger.error(f"Error bulk-scheduling messages: {e}")
+        return jsonify({'success': False, 'message': 'Failed to bulk-schedule messages.'}), 500
+
+
 @admin_panel_bp.route('/communication/scheduled-messages/retry', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -468,3 +748,41 @@ def retry_scheduled_message():
         logger.error(f"Error retrying scheduled message: {e}")
         flash('Failed to retry message. Please try again.', 'error')
         return redirect(url_for('admin_panel.scheduled_messages'))
+
+
+@admin_panel_bp.route('/communication/scheduled-messages/cleanup', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def cleanup_scheduled_message_history():
+    """Delete completed (SENT/FAILED) scheduled-message history older than N days.
+
+    Real, bounded cleanup — only touches terminal-state rows past the cutoff so it
+    never removes pending/queued messages. Returns the real deleted count (JSON)."""
+    from datetime import timedelta
+    try:
+        days = request.get_json(silent=True) or {}
+        days = int(days.get('days', request.form.get('days', 90)))
+    except (TypeError, ValueError):
+        days = 90
+    days = max(1, min(days, 3650))
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    try:
+        deleted = ScheduledMessage.query.filter(
+            ScheduledMessage.status.in_(['SENT', 'FAILED']),
+            ScheduledMessage.created_at < cutoff
+        ).delete(synchronize_session=False)
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='CLEANUP_SCHEDULED_MESSAGE_HISTORY',
+            resource_type='ScheduledMessage',
+            resource_id='bulk',
+            new_value=f'Deleted {deleted} SENT/FAILED messages older than {days} days',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+        logger.info(f"Cleaned up {deleted} scheduled messages older than {days}d by user {current_user.id}")
+        return jsonify({'success': True, 'deleted': deleted, 'days': days})
+    except Exception as e:
+        logger.error(f"Error cleaning up scheduled message history: {e}")
+        return jsonify({'success': False, 'message': 'Cleanup failed'}), 500

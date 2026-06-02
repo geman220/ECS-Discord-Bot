@@ -28,15 +28,41 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
 
-{% set status_tone = {'Open': 'warning', 'In Progress': 'info', 'Closed': 'success'} %}
-{% set priority_tone = {'High': 'danger', 'Medium': 'warning', 'Low': 'neutral'} %}
+{# --- derive real metrics from provided data (no fabrication) --- #}
+{% set reply_count = feedback.replies|length %}
+{% set note_count = feedback.notes|length %}
+{# Lifetime (created -> closed) is derivable from real timestamps. Current age needs `now`,
+   which this route does not provide, so it is never fabricated. #}
+{% set lifetime_days = (feedback.closed_at - feedback.created_at).days if (feedback.closed_at and feedback.created_at) else None %}
+{# updated_at is the canonical "touched" signal the route provides; fall back to created_at. #}
+{% set last_activity = feedback.updated_at or feedback.created_at %}
+{# Free-form client context blob (mobile sends device/app/OS/route/role). Render generically
+   since keys are NOT schema-bound — never assume a specific key exists. #}
+{% set client_ctx = feedback.extra_metadata if feedback.extra_metadata is mapping else None %}
+{% set submitter_name = feedback.user.username if feedback.user else (feedback.name or 'Anonymous') %}
+
+{# status -> hero header bar tone (icon + text + tone, never color-only) #}
+{% set status_map = {
+  'Open':        {'bar': 'bg-amber-500',  'pill': 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400',  'i': 'ti-circle-dot',   'w': 'Open'},
+  'In Progress': {'bar': 'bg-blue-500',   'pill': 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400',     'i': 'ti-progress',     'w': 'In Progress'},
+  'Closed':      {'bar': 'bg-green-600',  'pill': 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400',  'i': 'ti-circle-check', 'w': 'Closed'}
+} %}
+{% set sm = status_map.get(feedback.status, status_map['Open']) %}
 
 {% call page_header("Feedback #" ~ feedback.id, subtitle="Reports / Feedback") %}
+  {% if feedback.status != 'Closed' %}
+  <form action="{{ url_for('admin_panel.close_feedback', feedback_id=feedback.id) }}" method="post" class="js-confirm-form" data-confirm="Close this feedback?">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-circle-check" aria-hidden="true"></i>Close Ticket
+    </button>
+  </form>
+  {% endif %}
   <a href="{{ url_for('admin_panel.feedback_list') }}"
      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-    <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to Feedback
+    <i class="ti ti-arrow-left" aria-hidden="true"></i>Back
   </a>
 {% endcall %}
 
@@ -44,102 +70,131 @@
   <!-- Main Content Column -->
   <div class="lg:col-span-2 space-y-5 sm:space-y-6">
 
-    <!-- Feedback Details -->
-    {% call section_card(feedback.title, icon="ti-message-circle") %}
-    <div class="p-4 sm:p-5 space-y-5">
-      <div class="flex flex-wrap gap-2">
-        {% if feedback.status == 'Open' %}
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
-          <i class="ti ti-circle-dot text-xs" aria-hidden="true"></i>Open
+    <!-- ===== Ticket feature card (primary object) ===== -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <!-- status accent header bar -->
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="inline-block w-2 h-2 rounded-full {{ sm.bar }} shrink-0" aria-hidden="true"></span>
+          <span class="text-[11px] font-mono font-bold tracking-wide text-gray-400 dark:text-gray-500">TICKET</span>
+          <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">#{{ feedback.id }}</span>
+        </div>
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold {{ sm.pill }}">
+          <i class="ti {{ sm.i }} text-xs" aria-hidden="true"></i>{{ sm.w }}
         </span>
-        {% elif feedback.status == 'In Progress' %}
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">
-          <i class="ti ti-progress text-xs" aria-hidden="true"></i>In Progress
-        </span>
-        {% elif feedback.status == 'Closed' %}
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-          <i class="ti ti-circle-check text-xs" aria-hidden="true"></i>Closed
-        </span>
-        {% endif %}
-        {% if feedback.priority == 'High' %}
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400">
-          <i class="ti ti-flag-filled text-xs" aria-hidden="true"></i>High Priority
-        </span>
-        {% elif feedback.priority == 'Medium' %}
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
-          <i class="ti ti-flag text-xs" aria-hidden="true"></i>Medium Priority
-        </span>
-        {% endif %}
-        {% if feedback.source == 'app' %}
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
-          <i class="ti ti-device-mobile text-xs" aria-hidden="true"></i>Mobile App
-        </span>
-        {% else %}
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-          <i class="ti ti-world text-xs" aria-hidden="true"></i>Web
-        </span>
-        {% endif %}
       </div>
 
-      <div>
-        <h6 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Description</h6>
-        <p class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{{ feedback.description or feedback.content or 'No description provided.' }}</p>
-      </div>
+      <div class="p-4 sm:p-5 space-y-5">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Subject</p>
+          <h2 class="text-lg sm:text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">{{ feedback.title }}</h2>
+        </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 text-sm">
-        <div>
-          <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 block">Submitted by</span>
-          <span class="text-gray-900 dark:text-white">{{ feedback.user.username if feedback.user else 'Anonymous' }}</span>
-        </div>
-        <div>
-          <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 block">Created</span>
-          <span class="text-gray-900 dark:text-white font-mono">{{ feedback.created_at.strftime('%b %d, %Y at %I:%M %p') if feedback.created_at else 'N/A' }}</span>
-        </div>
-        <div>
-          <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 block mb-1">Category</span>
+        <!-- classification badges -->
+        <div class="flex flex-wrap gap-2">
+          {% if feedback.priority == 'High' %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400">
+            <i class="ti ti-flag-filled text-xs" aria-hidden="true"></i>High Priority
+          </span>
+          {% elif feedback.priority == 'Medium' %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
+            <i class="ti ti-flag text-xs" aria-hidden="true"></i>Medium Priority
+          </span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+            <i class="ti ti-flag text-xs" aria-hidden="true"></i>Low Priority
+          </span>
+          {% endif %}
           {% if feedback.category == 'Bug' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400">
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400">
             <i class="ti ti-bug text-xs" aria-hidden="true"></i>Bug
           </span>
           {% elif feedback.category == 'Feature' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">
             <i class="ti ti-bulb text-xs" aria-hidden="true"></i>Feature Request
           </span>
           {% else %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
             {{ feedback.category }}
           </span>
           {% endif %}
+          {% if feedback.source == 'app' %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
+            <i class="ti ti-device-mobile text-xs" aria-hidden="true"></i>Mobile App
+          </span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+            <i class="ti ti-world text-xs" aria-hidden="true"></i>Web
+          </span>
+          {% endif %}
         </div>
-        {% if feedback.closed_at %}
-        <div>
-          <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 block">Closed</span>
-          <span class="text-gray-900 dark:text-white font-mono">{{ feedback.closed_at.strftime('%b %d, %Y at %I:%M %p') }}</span>
-        </div>
-        {% endif %}
-      </div>
-    </div>
-    {% endcall %}
 
-    <!-- Replies -->
-    {% call section_card("Replies (" ~ feedback.replies|length ~ ")", icon="ti-messages") %}
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Description</p>
+          <p class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap leading-relaxed">{{ feedback.description or feedback.content or 'No description provided.' }}</p>
+        </div>
+
+        <!-- metadata grid w/ divider footer -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Submitted by</p>
+            <p class="mt-0.5 text-sm font-medium text-gray-900 dark:text-white truncate">{{ submitter_name }}</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Created</p>
+            <p class="mt-0.5 text-sm font-mono text-gray-900 dark:text-white">{{ feedback.created_at.strftime('%b %d, %Y') if feedback.created_at else 'N/A' }}</p>
+            {% if feedback.created_at %}<p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ feedback.created_at.strftime('%I:%M %p') }}</p>{% endif %}
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Replies</p>
+            <p class="mt-0.5 text-sm font-mono font-bold text-gray-900 dark:text-white">{{ reply_count }}</p>
+          </div>
+          {% if feedback.closed_at %}
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Closed</p>
+            <p class="mt-0.5 text-sm font-mono text-gray-900 dark:text-white">{{ feedback.closed_at.strftime('%b %d, %Y') }}</p>
+            <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ feedback.closed_at.strftime('%I:%M %p') }}</p>
+          </div>
+          {% else %}
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Notes</p>
+            <p class="mt-0.5 text-sm font-mono font-bold text-amber-600 dark:text-amber-400">{{ note_count }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Conversation thread ===== -->
+    {% call section_card("Conversation (" ~ reply_count ~ ")", icon="ti-messages") %}
     <div class="p-4 sm:p-5">
       {% if feedback.replies %}
         <div class="space-y-4">
         {% for reply in feedback.replies %}
-        <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-4">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="text-sm font-semibold {{ 'text-ecs-green' if reply.is_admin_reply else 'text-gray-900 dark:text-white' }}">
-              {{ reply.user.username if reply.user else 'System' }}
-            </span>
-            {% if reply.is_admin_reply %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">Admin</span>
-            {% endif %}
-            <span class="text-xs text-gray-500 dark:text-gray-400 font-mono ml-auto">
-              {{ reply.created_at.strftime('%b %d, %Y at %I:%M %p') if reply.created_at else '' }}
-            </span>
+        {% set is_admin = reply.is_admin_reply %}
+        <div class="flex gap-3 {{ 'flex-row-reverse' if is_admin }}">
+          <!-- avatar initial -->
+          <span class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold font-mono
+                       {{ 'bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20' if is_admin else 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300' }}"
+                aria-hidden="true">
+            {{ (reply.user.username[0]|upper) if reply.user and reply.user.username else 'S' }}
+          </span>
+          <div class="min-w-0 max-w-[85%] {{ 'items-end text-right' if is_admin }} flex flex-col">
+            <div class="flex items-center gap-2 {{ 'flex-row-reverse' if is_admin }}">
+              <span class="text-sm font-semibold {{ 'text-ecs-green' if is_admin else 'text-gray-900 dark:text-white' }}">
+                {{ reply.user.username if reply.user else 'System' }}
+              </span>
+              {% if is_admin %}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">Staff</span>
+              {% endif %}
+              <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{{ reply.created_at.strftime('%b %d · %I:%M %p') if reply.created_at else '' }}</span>
+            </div>
+            <div class="mt-1 inline-block rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap text-left
+                        {{ 'rounded-tr-sm bg-ecs-green/5 border border-ecs-green/20 text-gray-800 dark:bg-ecs-green/10 dark:text-gray-100' if is_admin
+                           else 'rounded-tl-sm bg-gray-50 border border-gray-200 text-gray-700 dark:bg-gray-700/40 dark:border-gray-700 dark:text-gray-300' }}">
+              {{ reply.content }}
+            </div>
           </div>
-          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ reply.content }}</p>
         </div>
         {% endfor %}
         </div>
@@ -152,7 +207,7 @@
         <input type="hidden" name="submit_reply" value="1">
         {{ reply_form.hidden_tag() if reply_form }}
         <div class="mb-4">
-          <label for="reply-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Add Reply</label>
+          <label for="reply-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Reply to submitter</label>
           <textarea
             name="content"
             id="reply-content"
@@ -166,59 +221,97 @@
           <i class="ti ti-send" aria-hidden="true"></i>Send Reply
         </button>
       </form>
-      {% endif %}
-    </div>
-    {% endcall %}
-
-    <!-- Internal Notes (Admin Only) -->
-    {% call section_card("Internal Notes (" ~ feedback.notes|length ~ ")", icon="ti-note") %}
-    <div class="p-4 sm:p-5">
-      <p class="text-xs text-amber-700 dark:text-amber-400 mb-4 flex items-center gap-1.5">
-        <i class="ti ti-eye-off" aria-hidden="true"></i>Admin only — not visible to submitter
-      </p>
-      {% if feedback.notes %}
-        <div class="space-y-3 mb-5">
-        {% for note in feedback.notes %}
-        <div class="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5 p-4">
-          <div class="flex flex-wrap justify-between items-start gap-2">
-            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ note.author.username if note.author else 'Unknown' }}</span>
-            <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ note.created_at.strftime('%b %d, %Y at %I:%M %p') if note.created_at else '' }}</span>
-          </div>
-          <p class="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ note.content }}</p>
-        </div>
-        {% endfor %}
-        </div>
       {% else %}
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">No internal notes yet.</p>
+      <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+        <i class="ti ti-lock" aria-hidden="true"></i>This ticket is closed. Reopen it to continue the conversation.
+      </div>
       {% endif %}
-
-      <form method="post">
-        <input type="hidden" name="add_note" value="1">
-        {{ note_form.hidden_tag() if note_form }}
-        <div class="mb-3">
-          <label for="note-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Add Internal Note</label>
-          <textarea
-            name="content"
-            id="note-content"
-            rows="2"
-            required
-            placeholder="Add internal note..."
-            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-          ></textarea>
-        </div>
-        <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/40 dark:hover:bg-amber-500/20 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
-          <i class="ti ti-note" aria-hidden="true"></i>Add Note
-        </button>
-      </form>
     </div>
     {% endcall %}
+
+    <!-- ===== Internal notes (admin only) ===== -->
+    <section class="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 sm:px-5 py-3 border-b border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/5 flex items-center gap-2">
+        <i class="ti ti-lock-cog text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Internal Notes</h3>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ note_count }}</span>
+        <span class="ml-auto inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
+          <i class="ti ti-eye-off" aria-hidden="true"></i>Not visible to submitter
+        </span>
+      </div>
+      <div class="p-4 sm:p-5">
+        {% if feedback.notes %}
+          <div class="space-y-3 mb-5">
+          {% for note in feedback.notes %}
+          <div class="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5 p-4">
+            <div class="flex flex-wrap justify-between items-start gap-2">
+              <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ note.author.username if note.author else 'Unknown' }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ note.created_at.strftime('%b %d, %Y at %I:%M %p') if note.created_at else '' }}</span>
+            </div>
+            <p class="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ note.content }}</p>
+          </div>
+          {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">No internal notes yet.</p>
+        {% endif %}
+
+        <form method="post">
+          <input type="hidden" name="add_note" value="1">
+          {{ note_form.hidden_tag() if note_form }}
+          <div class="mb-3">
+            <label for="note-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Add Internal Note</label>
+            <textarea
+              name="content"
+              id="note-content"
+              rows="2"
+              required
+              placeholder="Add internal note..."
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+            ></textarea>
+          </div>
+          <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/40 dark:hover:bg-amber-500/20 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <i class="ti ti-note" aria-hidden="true"></i>Add Note
+          </button>
+        </form>
+      </div>
+    </section>
   </div>
 
   <!-- Sidebar Column -->
   <div class="space-y-5 sm:space-y-6">
 
-    <!-- Update Status -->
-    {% call section_card("Update Status", icon="ti-settings") %}
+    <!-- ===== At-a-glance KPI band ===== -->
+    <div class="grid grid-cols-2 gap-3">
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Replies</p>
+        <p class="mt-2 font-mono text-2xl font-bold text-ecs-green leading-none">{{ reply_count }}</p>
+      </div>
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Notes</p>
+        <p class="mt-2 font-mono text-2xl font-bold text-amber-600 dark:text-amber-400 leading-none">{{ note_count }}</p>
+      </div>
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        {% if lifetime_days is not none %}
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Lifetime</p>
+        <p class="mt-2 font-mono text-2xl font-bold text-gray-900 dark:text-white leading-none">{{ lifetime_days }}<span class="text-base">d</span></p>
+        {% else %}
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</p>
+        <p class="mt-2 font-mono text-sm font-bold leading-none flex items-center gap-1
+                  {{ 'text-amber-600 dark:text-amber-400' if feedback.status == 'Open' else 'text-blue-600 dark:text-blue-400' if feedback.status == 'In Progress' else 'text-green-600 dark:text-green-400' }}">
+          <i class="ti {{ sm.i }}" aria-hidden="true"></i>{{ sm.w }}
+        </p>
+        {% endif %}
+      </div>
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Last activity</p>
+        <p class="mt-2 font-mono text-sm font-bold text-gray-900 dark:text-white leading-tight">{{ last_activity.strftime('%b %d') if last_activity else '—' }}</p>
+        {% if last_activity %}<p class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ last_activity.strftime('%I:%M %p') }}</p>{% endif %}
+      </div>
+    </div>
+
+    <!-- ===== Triage ===== -->
+    {% call section_card("Triage", icon="ti-adjustments") %}
     <div class="p-4 sm:p-5">
       <form method="post">
         <input type="hidden" name="update_feedback" value="1">
@@ -248,38 +341,63 @@
     </div>
     {% endcall %}
 
-    <!-- Quick Actions -->
-    {% call section_card("Quick Actions", icon="ti-bolt") %}
-    <div class="p-4 sm:p-5 space-y-3">
-      {% if feedback.status != 'Closed' %}
-      <form action="{{ url_for('admin_panel.close_feedback', feedback_id=feedback.id) }}" method="post" class="js-confirm-form" data-confirm="Close this feedback?">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-          <i class="ti ti-check" aria-hidden="true"></i>Close Feedback
-        </button>
-      </form>
+    <!-- ===== Submitter ===== -->
+    {% if feedback.user %}
+    {% call section_card("Submitter", icon="ti-user") %}
+    <div class="p-4 sm:p-5">
+      <div class="flex items-center gap-3">
+        <span class="shrink-0 w-11 h-11 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300 flex items-center justify-center text-sm font-bold font-mono" aria-hidden="true">
+          {{ feedback.user.username[0]|upper if feedback.user.username else '?' }}
+        </span>
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ feedback.user.username }}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ feedback.user.email }}</p>
+        </div>
+      </div>
+      {% if feedback.user.player %}
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
+        <i class="ti ti-ball-football text-ecs-green" aria-hidden="true"></i>{{ feedback.user.player.name }}
+      </div>
       {% endif %}
+    </div>
+    {% endcall %}
+    {% endif %}
+
+    <!-- ===== Client context (real device/app blob from mobile submissions) ===== -->
+    {% if client_ctx %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <i class="ti ti-device-mobile-cog text-ecs-green" aria-hidden="true"></i>
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Client Context</h3>
+        <span class="ml-auto inline-flex items-center gap-1 text-[11px] font-mono text-gray-400 dark:text-gray-500">
+          <i class="ti ti-code" aria-hidden="true"></i>captured at submit
+        </span>
+      </div>
+      <table class="w-full text-sm">
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+          {% for k, v in client_ctx.items() %}
+          <tr>
+            <th scope="row" class="px-4 sm:px-5 py-2 text-left align-top w-2/5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ k|replace('_', ' ') }}</th>
+            <td class="px-4 sm:px-5 py-2 align-top font-mono text-xs text-gray-900 dark:text-white break-all">{{ v if v is not none else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endif %}
+
+    <!-- ===== Danger zone ===== -->
+    {% call section_card("Danger Zone", icon="ti-alert-triangle") %}
+    <div class="p-4 sm:p-5">
       <form action="{{ url_for('admin_panel.delete_feedback', feedback_id=feedback.id) }}" method="post" class="js-confirm-form" data-confirm="Delete this feedback? This cannot be undone.">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-transparent border border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-trash" aria-hidden="true"></i>Delete Feedback
         </button>
       </form>
+      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Permanently removes the ticket, its replies, and notes.</p>
     </div>
     {% endcall %}
-
-    <!-- User Info -->
-    {% if feedback.user %}
-    {% call section_card("Submitted By", icon="ti-user") %}
-    <div class="p-4 sm:p-5">
-      <p class="text-sm font-semibold text-gray-900 dark:text-white mb-1">{{ feedback.user.username }}</p>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">{{ feedback.user.email }}</p>
-      {% if feedback.user.player %}
-      <p class="text-sm text-gray-500 dark:text-gray-400">Player: {{ feedback.user.player.name }}</p>
-      {% endif %}
-    </div>
-    {% endcall %}
-    {% endif %}
   </div>
 </div>
 {% else %}

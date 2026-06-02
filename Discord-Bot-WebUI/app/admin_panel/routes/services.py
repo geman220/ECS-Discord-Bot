@@ -1053,6 +1053,27 @@ def playoff_management():
         # Get real playoff statistics from helper function
         stats = get_playoff_stats()
 
+        # Resolve per-group Manage/Bracket URLs to existing playoff routes.
+        # These point at the real league-scoped playoff routes
+        # (playoff.manage_playoffs / playoff.view_bracket). We resolve them
+        # here (not in the template) so a missing blueprint or null league_id
+        # degrades to None instead of raising during render.
+        for t in stats.get('tournaments', []):
+            league_id = t.get('league_id')
+            manage_url = None
+            bracket_url = None
+            if league_id is not None:
+                try:
+                    manage_url = url_for('playoff.manage_playoffs', league_id=league_id)
+                except Exception:
+                    manage_url = None
+                try:
+                    bracket_url = url_for('playoff.view_bracket', league_id=league_id)
+                except Exception:
+                    bracket_url = None
+            t['manage_url'] = manage_url
+            t['bracket_url'] = bracket_url
+
         return render_template('admin_panel/playoff_management_flowbite.html', stats=stats)
     except Exception as e:
         logger.error(f"Error loading playoff management: {e}")

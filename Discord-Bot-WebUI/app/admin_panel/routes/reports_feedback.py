@@ -248,12 +248,141 @@ def _handle_regular_rsvp_update(session, player, match_id, response):
 # Feedback Management
 # -----------------------------------------------------------
 
-@admin_panel_bp.route('/feedback')
+@admin_panel_bp.route('/feedback', methods=['GET', 'POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def feedback_list():
-    """List all feedback with filtering."""
+    """List all feedback with filtering.
+
+    When ?selected=<id> is present, the page also loads that feedback's full
+    thread (replies + authors, notes + authors) and the triage/reply/note forms
+    so the console shell can render an inline split-pane detail. POSTs for the
+    inline detail (update_feedback / submit_reply / add_note) are handled here
+    and reuse the exact same logic as view_feedback(), redirecting back to the
+    list with ?selected preserved. Nothing here is fabricated — every field
+    comes from the real Feedback / FeedbackReply / Note relationships.
+    """
     session = g.db_session
+
+    # ----- Inline detail: selected feedback (split-pane) -----
+    selected_id = request.args.get('selected', type=int)
+    selected_feedback = None
+    selected_form = None
+    selected_reply_form = None
+    selected_note_form = None
+
+    if selected_id:
+        try:
+            selected_feedback = session.query(Feedback).options(
+                joinedload(Feedback.replies).joinedload(FeedbackReply.user),
+                joinedload(Feedback.user),
+                joinedload(Feedback.notes).joinedload(Note.author)
+            ).get(selected_id)
+        except Exception as e:
+            logger.error(f"Error loading selected feedback {selected_id}: {e}")
+            selected_feedback = None
+
+        if selected_feedback:
+            selected_form = AdminFeedbackForm(obj=selected_feedback)
+            selected_reply_form = FeedbackReplyForm()
+            selected_note_form = NoteForm()
+
+            if request.method == 'POST':
+                redirect_target = url_for('admin_panel.feedback_list', selected=selected_feedback.id)
+
+                if 'update_feedback' in request.form and selected_form.validate():
+                    old_status = selected_feedback.status
+                    selected_form.populate_obj(selected_feedback)
+                    session.commit()
+
+                    AdminAuditLog.log_action(
+                        user_id=current_user.id,
+                        action='feedback_update',
+                        resource_type='feedback',
+                        resource_id=str(selected_feedback.id),
+                        new_value=f'Updated feedback: status={selected_feedback.status}, priority={selected_feedback.priority}',
+                        ip_address=request.remote_addr,
+                        user_agent=request.headers.get('User-Agent')
+                    )
+
+                    if selected_feedback.user_id and old_status != selected_feedback.status and selected_feedback.status != 'Closed':
+                        try:
+                            status_messages = {
+                                'In Progress': f"Your feedback is now being worked on: {selected_feedback.title}",
+                                'Open': f"Your feedback has been reopened: {selected_feedback.title}",
+                            }
+                            orchestrator.send(NotificationPayload(
+                                notification_type=NotificationType.FEEDBACK_STATUS_CHANGE,
+                                title=f"Feedback Update: {selected_feedback.title}",
+                                message=status_messages.get(selected_feedback.status, f"Your feedback status changed to {selected_feedback.status}: {selected_feedback.title}"),
+                                user_ids=[selected_feedback.user_id],
+                                data={'feedback_id': str(selected_feedback.id)},
+                                action_url=url_for('feedback.view_feedback', feedback_id=selected_feedback.id, _external=True),
+                            ))
+                        except Exception as e:
+                            logger.error(f"Failed to send status change notification: {e}")
+
+                    return redirect(redirect_target)
+
+                elif 'submit_reply' in request.form and selected_reply_form.validate():
+                    reply = FeedbackReply(
+                        feedback_id=selected_feedback.id,
+                        user_id=safe_current_user.id,
+                        content=selected_reply_form.content.data,
+                        is_admin_reply=True
+                    )
+                    session.add(reply)
+                    session.commit()
+
+                    AdminAuditLog.log_action(
+                        user_id=current_user.id,
+                        action='feedback_reply',
+                        resource_type='feedback',
+                        resource_id=str(selected_feedback.id),
+                        new_value=f'Admin reply added to feedback #{selected_feedback.id}',
+                        ip_address=request.remote_addr,
+                        user_agent=request.headers.get('User-Agent')
+                    )
+
+                    if selected_feedback.user_id:
+                        try:
+                            orchestrator.send(NotificationPayload(
+                                notification_type=NotificationType.FEEDBACK_REPLY,
+                                title=f"Reply to: {selected_feedback.title}",
+                                message=f"An admin has replied to your feedback: {selected_feedback.title}",
+                                user_ids=[selected_feedback.user_id],
+                                data={'feedback_id': str(selected_feedback.id)},
+                                email_subject=f"New admin reply to your Feedback #{selected_feedback.id}",
+                                email_html_body=render_template('emails/new_reply_admin.html',
+                                                               feedback=selected_feedback,
+                                                               reply=reply),
+                                action_url=url_for('feedback.view_feedback', feedback_id=selected_feedback.id, _external=True),
+                            ))
+                        except Exception as e:
+                            logger.error(f"Failed to send reply notification: {e}")
+
+                    return redirect(redirect_target)
+
+                elif 'add_note' in request.form and selected_note_form.validate():
+                    note = Note(
+                        content=selected_note_form.content.data,
+                        feedback_id=selected_feedback.id,
+                        author_id=safe_current_user.id
+                    )
+                    session.add(note)
+                    session.commit()
+
+                    AdminAuditLog.log_action(
+                        user_id=current_user.id,
+                        action='feedback_note',
+                        resource_type='feedback',
+                        resource_id=str(selected_feedback.id),
+                        new_value=f'Internal note added to feedback #{selected_feedback.id}',
+                        ip_address=request.remote_addr,
+                        user_agent=request.headers.get('User-Agent')
+                    )
+
+                    return redirect(redirect_target)
 
     page = request.args.get('page', 1, type=int)
     per_page = 20
@@ -316,7 +445,11 @@ def feedback_list():
                          source_filter=source_filter,
                          category_filter=category_filter,
                          show_closed=show_closed,
-                         stats=stats)
+                         stats=stats,
+                         selected_feedback=selected_feedback,
+                         selected_form=selected_form,
+                         selected_reply_form=selected_reply_form,
+                         selected_note_form=selected_note_form)
 
 
 @admin_panel_bp.route('/feedback/<int:feedback_id>', methods=['GET', 'POST'])

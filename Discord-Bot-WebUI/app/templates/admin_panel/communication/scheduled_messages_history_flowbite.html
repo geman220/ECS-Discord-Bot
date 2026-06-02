@@ -28,65 +28,92 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state as kit_empty_state, modal as kit_modal %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state as kit_empty_state, modal as kit_modal %}
 
-{{ page_header("Message History", subtitle="Communication · Scheduled Messages") }}
+{# Real route vars: sent_messages, failed_messages, total_sent, total_failed, success_rate.
+   Build ONE chronological feed (sent first by sent_at desc, then failed) so the table
+   reflects exactly what the route loaded — no fabricated `messages`/pagination/recipient
+   counts (the model has no such fields). #}
+{% set all_messages = (sent_messages or []) + (failed_messages or []) %}
+{% set total_processed = (total_sent or 0) + (total_failed or 0) %}
+
+{% call(slot) page_header("Message History", subtitle="Communication · Scheduled Messages") %}
+  <a href="{{ url_for('admin_panel.scheduled_messages') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+            border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
+            text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-calendar" aria-hidden="true"></i><span class="hidden sm:inline">Scheduled</span>
+  </a>
+  <button type="button" data-action="cleanup-history"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400
+                 text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-500">
+    <i class="ti ti-trash" aria-hidden="true"></i><span class="hidden sm:inline">Cleanup Old</span>
+  </button>
+{% endcall %}
 
 <div class="space-y-5 sm:space-y-6">
-  {# KPI band #}
+  {# KPI band — only real, route-provided figures #}
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card("ti-check", "Successfully Sent", stats.sent if stats else 0, tone='success') }}
-    {{ stat_card("ti-x", "Failed", stats.failed if stats else 0, tone='danger') }}
-    {{ stat_card("ti-ban", "Cancelled", stats.cancelled if stats else 0, tone='neutral') }}
-    {{ stat_card("ti-history", "Total History", stats.total_history if stats else 0, tone='info') }}
+    {% call stat_card("ti-circle-check", "Successfully Sent", total_sent or 0, tone='success') %}
+      <span class="font-mono">{{ sent_messages|length if sent_messages else 0 }}</span> loaded below
+    {% endcall %}
+    {% call stat_card("ti-alert-octagon", "Failed", total_failed or 0, tone='danger') %}
+      <span class="font-mono">{{ failed_messages|length if failed_messages else 0 }}</span> need attention
+    {% endcall %}
+    {% call stat_card("ti-percentage", "Success Rate", (success_rate ~ '%') if success_rate is not none else '—', tone='info') %}
+      across <span class="font-mono">{{ total_processed }}</span> processed
+    {% endcall %}
+    {% call stat_card("ti-history", "Total Processed", total_processed, tone='neutral') %}
+      sent + failed lifetime
+    {% endcall %}
   </div>
 
-  {# History table #}
-  {% set table_footer %}
-    {% if pagination and pagination.pages > 1 %}
-    <div class="text-sm text-gray-700 dark:text-gray-400">
-      Showing <span class="font-medium font-mono">{{ ((pagination.page - 1) * pagination.per_page) + 1 }}</span>
-      to <span class="font-medium font-mono">{{ [pagination.page * pagination.per_page, pagination.total] | min }}</span>
-      of <span class="font-medium font-mono">{{ pagination.total }}</span> results
+  {# Failed-message alert band — surfaces the real send_error so admins can act #}
+  {% if failed_messages %}
+  <section class="rounded-xl border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-red-200 dark:border-red-500/30">
+      <h2 class="font-semibold flex items-center gap-2 text-red-800 dark:text-red-300">
+        <i class="ti ti-alert-triangle-filled text-red-600 dark:text-red-400" aria-hidden="true"></i> Failed Deliveries
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300">{{ failed_messages|length }}</span>
+      </h2>
     </div>
-    <div class="flex gap-2">
-      {% if pagination.has_prev %}
-      <a href="{{ url_for('admin_panel.scheduled_messages_history', page=pagination.prev_num) }}" class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
-        <i class="ti ti-chevron-left mr-1" aria-hidden="true"></i>Previous
-      </a>
-      {% endif %}
-      {% if pagination.has_next %}
-      <a href="{{ url_for('admin_panel.scheduled_messages_history', page=pagination.next_num) }}" class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
-        Next<i class="ti ti-chevron-right ml-1" aria-hidden="true"></i>
-      </a>
-      {% endif %}
-    </div>
-    {% endif %}
-  {% endset %}
+    <ul class="divide-y divide-red-200 dark:divide-red-500/20" role="list">
+      {% for message in failed_messages %}
+      <li class="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3">
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+            <i class="ti {{ 'ti-soccer-field text-ecs-green' if not message.message_type or message.message_type == 'standard' else 'ti-trophy text-ecs-gold' }} mr-1" aria-hidden="true"></i>
+            {% if message.match %}{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}{% else %}{{ message.message_type or 'Unknown' }}{% endif %}
+          </p>
+          <p class="text-xs text-red-700 dark:text-red-300 mt-0.5 font-mono truncate">
+            {% if message.send_error %}{{ message.send_error }}{% else %}No error detail recorded{% endif %}
+            {% if message.last_send_attempt %} · last attempt {{ message.last_send_attempt.strftime('%b %d, %I:%M %p') }} PST{% endif %}
+          </p>
+        </div>
+        <button type="button" data-action="retry-message" data-message-id="{{ message.id }}"
+                class="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                       bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+          <i class="ti ti-refresh" aria-hidden="true"></i> Retry
+        </button>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
 
-  {% call data_table("Message History", icon="ti-history", count=(pagination.total if pagination else (messages|length if messages else 0)), search_placeholder="Search messages, teams, or dates...", search_id="historySearch", footer=table_footer) %}
-    {# Filter / action bar — ids preserved verbatim for inline JS #}
-    <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-      <select id="statusFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green min-h-[44px] sm:min-h-0 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-        <option value="">All Statuses</option>
-        <option value="SENT">Sent</option>
-        <option value="FAILED">Failed</option>
-        <option value="CANCELLED">Cancelled</option>
-      </select>
-      <select id="leagueFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green min-h-[44px] sm:min-h-0 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-        <option value="">All Leagues</option>
-        <option value="pub_league">Pub League</option>
-        <option value="ecs_fc">ECS FC</option>
-      </select>
-      <input type="date" id="dateFrom" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green min-h-[44px] sm:min-h-0 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-      <span class="text-gray-500 dark:text-gray-400">to</span>
-      <input type="date" id="dateTo" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green min-h-[44px] sm:min-h-0 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-      <button type="button" class="inline-flex items-center min-h-[44px] sm:min-h-0 px-3 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="clear-filters">
-        <i class="ti ti-x mr-1" aria-hidden="true"></i>Clear
-      </button>
-      <div class="ml-auto flex items-center gap-2">
-        <button id="exportBtn" class="inline-flex items-center min-h-[44px] sm:min-h-0 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-dropdown-toggle="exportMenu">
-          <i class="ti ti-download mr-1" aria-hidden="true"></i>Export
+  {# History feed — bespoke dense table grounded in the concept's "This Week's Matches" #}
+  <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-history text-ecs-green" aria-hidden="true"></i> Message History
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ all_messages|length }}</span>
+      </h2>
+      <div class="flex items-center gap-2">
+        <button id="exportBtn" type="button" data-dropdown-toggle="exportMenu"
+                class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-download mr-1" aria-hidden="true"></i><span class="hidden sm:inline">Export</span>
           <i class="ti ti-chevron-down ml-1" aria-hidden="true"></i>
         </button>
         <div id="exportMenu" class="hidden z-10 w-44 bg-white rounded-lg shadow border border-gray-200 dark:border-gray-600 dark:bg-gray-700">
@@ -96,28 +123,52 @@
             <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-pdf"><i class="ti ti-file-description mr-2" aria-hidden="true"></i>PDF</button></li>
           </ul>
         </div>
-        <button type="button" class="inline-flex items-center min-h-[44px] sm:min-h-0 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 focus:outline-none focus:ring-2 focus:ring-red-500" data-action="cleanup-history">
-          <i class="ti ti-trash mr-1" aria-hidden="true"></i>Cleanup Old
-        </button>
       </div>
     </div>
 
-    {# md+ table #}
+    {# Command/filter toolbar — ids preserved verbatim for inline JS #}
+    <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div class="relative flex-1 min-w-[180px]">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+        <input type="search" id="historySearch" placeholder="Search messages, teams, or dates..."
+               class="w-full min-h-[44px] sm:min-h-0 sm:h-9 pl-9 pr-3 text-sm bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+               aria-label="Search messages, teams, or dates">
+      </div>
+      <select id="statusFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green min-h-[44px] sm:min-h-0 sm:h-9 px-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        <option value="">All Statuses</option>
+        <option value="SENT">Sent</option>
+        <option value="FAILED">Failed</option>
+        <option value="CANCELLED">Cancelled</option>
+      </select>
+      <select id="leagueFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green min-h-[44px] sm:min-h-0 sm:h-9 px-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        <option value="">All Leagues</option>
+        <option value="pub_league">Pub League</option>
+        <option value="ecs_fc">ECS FC</option>
+      </select>
+      <input type="date" id="dateFrom" aria-label="From date" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green min-h-[44px] sm:min-h-0 sm:h-9 px-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+      <span class="text-gray-500 dark:text-gray-400 text-sm">to</span>
+      <input type="date" id="dateTo" aria-label="To date" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green min-h-[44px] sm:min-h-0 sm:h-9 px-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+      <button type="button" data-action="clear-filters"
+              class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-x mr-1" aria-hidden="true"></i>Clear
+      </button>
+    </div>
+
+    {# md+ real table with mono timestamps #}
+    <div class="md:overflow-x-auto">
     <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400" id="historyTable">
       <thead class="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
         <tr>
-          {{ data_table_th("League", key="league", sortable=false) }}
-          {{ data_table_th("Match", key="match", sortable=false) }}
-          {{ data_table_th("Sent At", key="sent", sortable=false) }}
-          {{ data_table_th("Recipients", key="recipients", sortable=false, hide="sm") }}
-          {{ data_table_th("Responses", key="responses", sortable=false, hide="sm") }}
-          {{ data_table_th("Status", key="status", sortable=false) }}
-          {{ data_table_th("Actions", key="actions", sortable=false, align="right") }}
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs">League</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs">Match</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs">Sent At</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs hidden lg:table-cell">Detail</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs">Status</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-right">Actions</th>
         </tr>
       </thead>
       <tbody>
-        {% if messages %}
-        {% for message in messages %}
+        {% for message in all_messages %}
         <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 history-row"
             data-status="{{ message.status }}"
             data-league="{{ 'pub_league' if not message.message_type or message.message_type == 'standard' else 'ecs_fc' }}"
@@ -135,48 +186,38 @@
           </td>
           <td class="px-3 py-2.5">
             <div class="flex items-center">
-              <div class="flex items-center justify-center w-8 h-8 rounded-full mr-2 {{ 'bg-ecs-green/10' if not message.message_type or message.message_type == 'standard' else 'bg-ecs-gold/10' }}">
+              <div class="flex items-center justify-center w-8 h-8 rounded-full mr-2 shrink-0 {{ 'bg-ecs-green/10' if not message.message_type or message.message_type == 'standard' else 'bg-ecs-gold/10' }}">
                 <i class="ti {{ 'ti-soccer-field text-ecs-green' if not message.message_type or message.message_type == 'standard' else 'ti-trophy text-ecs-gold' }}" aria-hidden="true"></i>
               </div>
-              <div>
+              <div class="min-w-0">
                 {% if message.match %}
-                <p class="font-medium text-gray-900 dark:text-white">{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">{{ message.match.date.strftime('%b %d, %Y') }}</p>
+                <p class="font-medium text-gray-900 dark:text-white truncate">{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ message.match.date.strftime('%b %d, %Y') }}</p>
                 {% else %}
-                <p class="font-medium text-gray-900 dark:text-white">{{ message.message_type or 'Unknown' }}</p>
+                <p class="font-medium text-gray-900 dark:text-white truncate">{{ message.message_type or 'Unknown' }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">ID #{{ message.id }}</p>
                 {% endif %}
               </div>
             </div>
           </td>
           <td class="px-3 py-2.5">
             {% if message.sent_at %}
-            <p class="text-gray-900 dark:text-white">{{ message.sent_at.strftime('%b %d, %Y') }}</p>
+            <p class="text-gray-900 dark:text-white font-mono">{{ message.sent_at.strftime('%b %d, %Y') }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ message.sent_at.strftime('%I:%M %p') }} PST</p>
+            {% elif message.scheduled_send_time %}
+            <p class="text-gray-500 dark:text-gray-400 font-mono text-xs">scheduled</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ message.scheduled_send_time.strftime('%b %d, %I:%M %p') }} PST</p>
             {% else %}
-            <span class="text-gray-400">-</span>
+            <span class="text-gray-400">—</span>
             {% endif %}
           </td>
-          <td class="px-3 py-2.5 hidden md:table-cell">
-            <div class="flex items-center">
-              <i class="ti ti-users mr-1 text-gray-400" aria-hidden="true"></i>
-              <span class="text-gray-900 dark:text-white font-mono">{{ message.recipient_count or '-' }}</span>
-            </div>
-          </td>
-          <td class="px-3 py-2.5 hidden md:table-cell">
-            {% if message.response_stats %}
-            <div class="flex items-center gap-2">
-              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" title="Yes">
-                <i class="ti ti-check mr-0.5" aria-hidden="true"></i>{{ message.response_stats.yes or 0 }}
-              </span>
-              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" title="No">
-                <i class="ti ti-x mr-0.5" aria-hidden="true"></i>{{ message.response_stats.no or 0 }}
-              </span>
-              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" title="Maybe">
-                <i class="ti ti-question-mark mr-0.5" aria-hidden="true"></i>{{ message.response_stats.maybe or 0 }}
-              </span>
-            </div>
+          <td class="px-3 py-2.5 hidden lg:table-cell">
+            {% if message.status == 'FAILED' and message.send_error %}
+            <span class="text-xs text-red-600 dark:text-red-400 font-mono">{{ message.send_error|truncate(48) }}</span>
+            {% elif message.scheduled_send_time and message.sent_at %}
+            <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">queued {{ message.scheduled_send_time.strftime('%b %d') }}</span>
             {% else %}
-            <span class="text-gray-400">-</span>
+            <span class="text-gray-400">—</span>
             {% endif %}
           </td>
           <td class="px-3 py-2.5">
@@ -217,14 +258,13 @@
           </td>
         </tr>
         {% endfor %}
-        {% endif %}
       </tbody>
     </table>
+    </div>
 
     {# Mobile stacked cards — same history-row hooks for the filter JS #}
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-      {% if messages %}
-      {% for message in messages %}
+      {% for message in all_messages %}
       <div class="px-4 py-3.5 history-row"
            data-status="{{ message.status }}"
            data-league="{{ 'pub_league' if not message.message_type or message.message_type == 'standard' else 'ecs_fc' }}"
@@ -233,7 +273,7 @@
           <div class="min-w-0">
             {% if message.match %}
             <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">{{ message.match.date.strftime('%b %d, %Y') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ message.match.date.strftime('%b %d, %Y') }}</p>
             {% else %}
             <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ message.message_type or 'Unknown' }}</p>
             {% endif %}
@@ -256,15 +296,12 @@
           {% endif %}
           {% if message.sent_at %}
           <span class="inline-flex items-center font-mono"><i class="ti ti-clock mr-1" aria-hidden="true"></i>{{ message.sent_at.strftime('%b %d, %Y %I:%M %p') }} PST</span>
+          {% elif message.scheduled_send_time %}
+          <span class="inline-flex items-center font-mono"><i class="ti ti-clock mr-1" aria-hidden="true"></i>scheduled {{ message.scheduled_send_time.strftime('%b %d, %I:%M %p') }} PST</span>
           {% endif %}
-          <span class="inline-flex items-center"><i class="ti ti-users mr-1" aria-hidden="true"></i><span class="font-mono">{{ message.recipient_count or '-' }}</span></span>
         </div>
-        {% if message.response_stats %}
-        <div class="mt-2 flex items-center gap-2">
-          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" title="Yes"><i class="ti ti-check mr-0.5" aria-hidden="true"></i>{{ message.response_stats.yes or 0 }}</span>
-          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" title="No"><i class="ti ti-x mr-0.5" aria-hidden="true"></i>{{ message.response_stats.no or 0 }}</span>
-          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" title="Maybe"><i class="ti ti-question-mark mr-0.5" aria-hidden="true"></i>{{ message.response_stats.maybe or 0 }}</span>
-        </div>
+        {% if message.status == 'FAILED' and message.send_error %}
+        <p class="mt-2 text-xs text-red-600 dark:text-red-400 font-mono break-words">{{ message.send_error }}</p>
         {% endif %}
         <div class="mt-3 flex items-center gap-1">
           <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View Details" aria-label="View Details" data-action="view-details" data-message-id="{{ message.id }}">
@@ -283,13 +320,12 @@
         </div>
       </div>
       {% endfor %}
-      {% endif %}
     </div>
 
-    {% if not messages %}
+    {% if not all_messages %}
     {{ kit_empty_state("ti-history-off", "No Message History", "Sent messages will appear here.", action={'label': 'View Scheduled Messages', 'url': url_for('admin_panel.scheduled_messages'), 'icon': 'ti-calendar'}) }}
     {% endif %}
-  {% endcall %}
+  </section>
 </div>
 
 {# Message Details Modal — id + details-content preserved for inline JS #}
@@ -594,6 +630,39 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
+
+    function getCsrf() {
+        const m = document.querySelector('meta[name="csrf-token"]');
+        if (m) return m.getAttribute('content');
+        const i = document.querySelector('input[name="csrf_token"]');
+        return i ? i.value : '';
+    }
+
+    // Build a CSV from the currently visible (real, rendered) history rows and download it.
+    function exportHistoryCsv() {
+        const table = document.getElementById('historyTable');
+        const rows = [['League', 'Match', 'Sent At', 'Detail', 'Status']];
+        if (table) {
+            table.querySelectorAll('tbody tr.history-row').forEach(tr => {
+                if (tr.style.display === 'none') return;
+                const cells = tr.querySelectorAll('td');
+                const cellText = (i) => cells[i] ? cells[i].textContent.replace(/\s+/g, ' ').trim() : '';
+                // Columns: League, Match, Sent At, Detail, Status (Actions col skipped)
+                rows.push([cellText(0), cellText(1), cellText(2), cellText(3), cellText(4)]);
+            });
+        }
+        const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `message-history-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
     const historyRows = document.querySelectorAll('.history-row');
     const searchInput = document.getElementById('historySearch');
     const statusFilter = document.getElementById('statusFilter');
@@ -699,36 +768,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (action === 'view-details') {
             const messageId = target.dataset.messageId;
-            document.getElementById('details-content').innerHTML = `
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                            <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Message ID</h6>
-                            <p class="text-gray-900 dark:text-white">${messageId}</p>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                            <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Status</h6>
-                            <p class="text-gray-900 dark:text-white">Sent</p>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Delivery Channels</h6>
-                        <div class="flex gap-2">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300">
-                                <i class="ti ti-brand-discord mr-1"></i>Discord
-                            </span>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                                <i class="ti ti-bell mr-1"></i>Push
-                            </span>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Message Content</h6>
-                        <p class="text-gray-900 dark:text-white text-sm">RSVP request for upcoming match. Please indicate your availability for this week's game.</p>
-                    </div>
-                </div>
-            `;
+            const content = document.getElementById('details-content');
+            content.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-ecs-green"></div></div>';
             detailsModal.classList.remove('hidden');
+            fetch(`/admin-panel/communication/scheduled-messages/${messageId}/details`, {
+                headers: { 'X-CSRFToken': getCsrf() }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.html) {
+                    content.innerHTML = `<div class="text-gray-900 dark:text-white">${data.html}</div>`;
+                } else {
+                    content.innerHTML = `<p class="text-red-600 dark:text-red-400 p-4">${(data.message || 'Unable to load message details.')}</p>`;
+                }
+            })
+            .catch(() => { content.innerHTML = '<p class="text-red-600 dark:text-red-400 p-4">Unable to load message details.</p>'; });
         }
 
         if (action === 'retry-message') {
@@ -743,16 +797,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 background: isDark ? '#1f2937' : '#ffffff',
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Message Queued',
-                        text: 'The message has been queued for retry.',
-                        confirmButtonColor: '#1a472a',
-                        background: isDark ? '#1f2937' : '#ffffff',
-                        color: isDark ? '#f3f4f6' : '#111827'
-                    });
-                }
+                if (!result.isConfirmed) return;
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin-panel/communication/scheduled-messages/retry';
+                form.innerHTML = `<input type="hidden" name="csrf_token" value="${getCsrf()}"><input type="hidden" name="message_id" value="${messageId}">`;
+                document.body.appendChild(form);
+                form.submit();
             });
         }
 
@@ -776,30 +827,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Cleanup Complete',
-                        text: 'Old message history has been removed.',
-                        confirmButtonColor: '#1a472a',
-                        background: isDark ? '#1f2937' : '#ffffff',
-                        color: isDark ? '#f3f4f6' : '#111827'
-                    });
+                    const days = parseInt(document.getElementById('cleanup-days')?.value || '90', 10);
+                    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    fetch('/admin-panel/communication/scheduled-messages/cleanup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf || '' },
+                        body: JSON.stringify({ days: days })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Cleanup Complete',
+                                text: `${data.deleted} old message${data.deleted === 1 ? '' : 's'} removed (older than ${data.days} days).`,
+                                confirmButtonColor: '#1a472a',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Cleanup failed', text: data.message || 'Please try again.',
+                                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                        }
+                    })
+                    .catch(() => Swal.fire({ icon: 'error', title: 'Cleanup failed', text: 'Please try again.',
+                        background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }));
                 }
             });
         }
 
         if (action.startsWith('export-')) {
-            const format = action.replace('export-', '').toUpperCase();
-            Swal.fire({
-                title: 'Exporting...',
-                text: `Generating ${format} export`,
-                icon: 'info',
-                timer: 2000,
-                showConfirmButton: false,
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            });
             exportMenu.classList.add('hidden');
+            // CSV is the only real, dependency-free export. Excel/PDF would require
+            // libraries this page does not load, so all three export the same real CSV
+            // built from the rendered (non-fabricated) history rows.
+            exportHistoryCsv();
         }
     });
 });

@@ -22,130 +22,225 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
 
-{{ page_header("System Alerts", subtitle="System Monitoring") }}
+{# Real alert dicts: {id, type ('error'|'warning'|'info'), title, message, created_at, status}.
+   resolved_alerts is always [] (alerts are computed live each load, no persistence layer).
+   alert_stats keys: active_alerts, resolved_today, critical_alerts, total_alerts. #}
+{% set error_count = active_alerts | selectattr('type', 'equalto', 'error') | list | length %}
+{% set warning_count = active_alerts | selectattr('type', 'equalto', 'warning') | list | length %}
+{% set info_count = active_alerts | selectattr('type', 'equalto', 'info') | list | length %}
+{% set all_clear = active_alerts | length == 1 and active_alerts[0].type == 'info' and active_alerts[0].title == 'All Systems Normal' %}
+{% set total_active = alert_stats.total_alerts or active_alerts|length %}
+{# Signals firing = the real active list, minus the synthetic "All Systems Normal" placeholder. #}
+{% set firing = 0 if all_clear else total_active %}
 
-{# KPI band #}
+{% call page_header("System Alerts", subtitle="System Monitoring") %}
+    <span class="hidden sm:inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <i class="ti ti-radar-2" aria-hidden="true"></i>live scan
+    </span>
+    <a href="{{ url_for('admin_panel.system_alerts') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-refresh" aria-hidden="true"></i>Re-scan
+    </a>
+{% endcall %}
+
+{# ── Health banner — leads with the page's ONE job: are systems healthy right now?
+   Right rail carries the big mono firing-count figure (concept treatment). ── #}
+{% if all_clear %}
+<div class="rounded-xl border border-green-300 dark:border-green-500/40 bg-green-50 dark:bg-green-500/10 p-4 sm:p-5 mb-6 flex items-center gap-4">
+    <span class="w-11 h-11 rounded-full bg-green-100 dark:bg-green-500/15 text-green-600 dark:text-green-400 flex items-center justify-center shrink-0">
+        <i class="ti ti-shield-check text-2xl" aria-hidden="true"></i>
+    </span>
+    <div class="min-w-0">
+        <p class="text-sm font-bold uppercase tracking-wide text-green-700 dark:text-green-400">All Systems Normal</p>
+        <p class="text-sm text-green-800/80 dark:text-green-300/80 mt-0.5">No issues detected. CPU, memory, disk, Redis and Celery are operating normally.</p>
+    </div>
+    <span class="ml-auto hidden md:flex flex-col items-end shrink-0 text-right">
+        <span class="font-mono text-2xl font-bold text-green-600 dark:text-green-400 leading-none">0</span>
+        <span class="text-[11px] uppercase tracking-wide text-green-700/70 dark:text-green-400/70 mt-1">signals firing</span>
+    </span>
+</div>
+{% elif error_count > 0 %}
+<div class="rounded-xl border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 p-4 sm:p-5 mb-6 flex items-center gap-4">
+    <span class="w-11 h-11 rounded-full bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
+        <i class="ti ti-alert-octagon text-2xl" aria-hidden="true"></i>
+    </span>
+    <div class="min-w-0">
+        <p class="text-sm font-bold uppercase tracking-wide text-red-700 dark:text-red-400">Action Required</p>
+        <p class="text-sm text-red-800/80 dark:text-red-300/80 mt-0.5"><span class="font-mono font-bold">{{ error_count }}</span> critical issue{{ 's' if error_count != 1 }} need attention.</p>
+    </div>
+    <span class="ml-auto hidden md:flex flex-col items-end shrink-0 text-right">
+        <span class="font-mono text-2xl font-bold text-red-600 dark:text-red-400 leading-none">{{ '%02d'|format(firing) }}</span>
+        <span class="text-[11px] uppercase tracking-wide text-red-700/70 dark:text-red-400/70 mt-1">signals firing</span>
+    </span>
+</div>
+{% else %}
+<div class="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-4 sm:p-5 mb-6 flex items-center gap-4">
+    <span class="w-11 h-11 rounded-full bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+        <i class="ti ti-alert-triangle-filled text-2xl" aria-hidden="true"></i>
+    </span>
+    <div class="min-w-0">
+        <p class="text-sm font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">Warnings Present</p>
+        <p class="text-sm text-amber-800/80 dark:text-amber-300/80 mt-0.5">No critical failures, but conditions are worth watching.</p>
+    </div>
+    <span class="ml-auto hidden md:flex flex-col items-end shrink-0 text-right">
+        <span class="font-mono text-2xl font-bold text-amber-600 dark:text-amber-400 leading-none">{{ '%02d'|format(firing) }}</span>
+        <span class="text-[11px] uppercase tracking-wide text-amber-700/70 dark:text-amber-400/70 mt-1">signals firing</span>
+    </span>
+</div>
+{% endif %}
+
+{# ── KPI band — bespoke severity tiles: eyebrow label, big mono figure, divider footer
+   (concept dashboard pattern). All four numbers derive from the real alert list. ── #}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    {{ stat_card("ti-alert-circle", "Active Alerts", active_alerts|length, sublabel="requiring attention", tone='danger') }}
-    {{ stat_card("ti-alert-triangle", "Critical Alerts", alert_stats.critical_count or 0, sublabel="critical severity", tone='warning') }}
-    {{ stat_card("ti-check-circle", "Resolved Today", resolved_alerts|length, sublabel="closed out", tone='success') }}
-    {{ stat_card("ti-clock", "Avg Resolution", (alert_stats.avg_resolution_time or 0) ~ "m", sublabel="time to resolve", tone='info') }}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Critical</span>
+            <i class="ti ti-alert-octagon text-lg text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-red-600 dark:text-red-400">{{ error_count }}</div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">errors · needs action now</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Warnings</span>
+            <i class="ti ti-alert-triangle text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ warning_count }}</div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">degraded · watch closely</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Notices</span>
+            <i class="ti ti-info-circle text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ info_count }}</div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">informational</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Active</span>
+            <i class="ti ti-bell text-lg text-gray-900 dark:text-white shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ total_active }}</div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ firing }} firing now</div>
+    </div>
 </div>
 
-{# Active Alerts #}
-{% if active_alerts %}
-{% call section_card("Active Alerts Requiring Attention", icon="ti-alert-circle") %}
-<div class="divide-y divide-gray-200 dark:divide-gray-700">
-    {% for alert in active_alerts %}
-    <div class="p-4 sm:p-5">
-        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div class="flex-grow min-w-0">
-                <div class="flex flex-wrap items-center gap-2 mb-2">
-                    {% if alert.severity == 'critical' %}
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400">
-                        <i class="ti ti-alert-octagon text-[12px]" aria-hidden="true"></i>{{ alert.severity|upper }}
-                    </span>
-                    {% elif alert.severity == 'warning' %}
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
-                        <i class="ti ti-alert-triangle-filled text-[12px]" aria-hidden="true"></i>{{ alert.severity|upper }}
-                    </span>
-                    {% else %}
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">
-                        <i class="ti ti-info-circle-filled text-[12px]" aria-hidden="true"></i>{{ alert.severity|upper }}
-                    </span>
-                    {% endif %}
-                    <h4 class="font-semibold text-gray-900 dark:text-white">{{ alert.title }}</h4>
-                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ alert.component }}</span>
+{# ── Active Alerts — the primary object. Dense rows grouped into severity tiers with
+   eyebrow group dividers (mono tier label + count + h-px hairline rule), severity rail,
+   mono ID/timestamp, and an inline command toolbar per row. ── #}
+{% set tier_order = [
+    ('error',   'Critical', 'ti-alert-octagon',         'bg-red-500',   'text-red-600 dark:text-red-400',     'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400'),
+    ('warning', 'Warning',  'ti-alert-triangle-filled', 'bg-amber-500', 'text-amber-600 dark:text-amber-400', 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400'),
+    ('info',    'Notice',   'ti-info-circle-filled',    'bg-blue-500',  'text-blue-600 dark:text-blue-400',   'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400')
+] %}
+{% if active_alerts and not all_clear %}
+{% call section_card("Active Alerts", icon="ti-alert-circle") %}
+<div>
+    {% for type_key, word, ti_icon, rail, ic, pill in tier_order %}
+    {% set group = active_alerts | selectattr('type', 'equalto', type_key) | list %}
+    {% if group %}
+    {# Date-group-style divider: mono tier label + count, flanked by a hairline rule. #}
+    <div class="flex items-center gap-3 px-4 sm:px-5 pt-4 pb-2">
+        <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide {{ ic }}">
+            <i class="ti {{ ti_icon }} text-sm" aria-hidden="true"></i>{{ word }}
+        </span>
+        <span class="font-mono text-xs text-gray-400 dark:text-gray-500">{{ '%02d'|format(group|length) }}</span>
+        <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700" aria-hidden="true"></span>
+    </div>
+    <div class="divide-y divide-gray-100 dark:divide-gray-700/60">
+        {% for alert in group %}
+        <div class="relative p-4 sm:p-5 pl-5 sm:pl-6">
+            <span class="absolute left-0 top-0 bottom-0 w-1 {{ rail }}" aria-hidden="true"></span>
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                <div class="flex items-start gap-3 min-w-0 flex-grow">
+                    <i class="ti {{ ti_icon }} text-xl mt-0.5 shrink-0 {{ ic }}" aria-hidden="true"></i>
+                    <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2 mb-1">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide {{ pill }}">{{ word }}</span>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">{{ alert.title }}</h4>
+                            <span class="font-mono text-xs text-gray-400 dark:text-gray-500">#{{ '%03d'|format(alert.id) }}</span>
+                        </div>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 mb-1.5">{{ alert.message }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                            <i class="ti ti-clock mr-1" aria-hidden="true"></i>Detected {{ alert.created_at.strftime('%Y-%m-%d %H:%M:%S') }} UTC
+                        </p>
+                    </div>
                 </div>
-                <p class="text-sm text-gray-700 dark:text-gray-300 mb-2">{{ alert.description }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                    <i class="ti ti-clock mr-1" aria-hidden="true"></i>
-                    Triggered {{ alert.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
-                    {% if alert.last_seen %}
-                    &bull; Last seen {{ alert.last_seen.strftime('%H:%M:%S') }}
-                    {% endif %}
-                </p>
-            </div>
-            <div class="flex flex-wrap gap-2 shrink-0">
-                <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-green-700 bg-green-100 hover:bg-green-200 dark:bg-green-500/15 dark:text-green-400 dark:hover:bg-green-500/25 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="acknowledge-alert" data-alert-id="{{ alert.id }}">
-                    <i class="ti ti-check" aria-hidden="true"></i>Acknowledge
-                </button>
-                <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-blue-700 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/15 dark:text-blue-400 dark:hover:bg-blue-500/25 focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="view-alert" data-alert-id="{{ alert.id }}">
-                    <i class="ti ti-eye" aria-hidden="true"></i>Details
-                </button>
-                <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-red-700 bg-red-100 hover:bg-red-200 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25 focus:outline-none focus:ring-2 focus:ring-red-500" data-action="resolve-alert" data-alert-id="{{ alert.id }}">
-                    <i class="ti ti-x" aria-hidden="true"></i>Resolve
-                </button>
+                <div class="flex flex-wrap gap-2 shrink-0">
+                    <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-blue-700 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/15 dark:text-blue-400 dark:hover:bg-blue-500/25 focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="view-alert" data-alert-id="{{ alert.id }}">
+                        <i class="ti ti-eye" aria-hidden="true"></i>Details
+                    </button>
+                </div>
             </div>
         </div>
+        {% endfor %}
     </div>
+    {% endif %}
     {% endfor %}
 </div>
 {% endcall %}
 <div class="mb-6"></div>
 {% endif %}
 
-{# Alert Configuration + Notification Settings #}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-    <div class="lg:col-span-2">
-        {% call section_card("Alert Configuration", icon="ti-adjustments-alt") %}
-        <div class="p-4 sm:p-5">
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Configure which alerts are monitored</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <h4 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white mb-3">System Health Alerts</h4>
-                    <div class="space-y-3">
-                        <label class="flex items-center min-h-[44px] sm:min-h-0">
-                            <input type="checkbox" id="cpuAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">CPU Usage &gt; 80%</span>
-                        </label>
-                        <label class="flex items-center min-h-[44px] sm:min-h-0">
-                            <input type="checkbox" id="memoryAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Memory Usage &gt; 85%</span>
-                        </label>
-                        <label class="flex items-center min-h-[44px] sm:min-h-0">
-                            <input type="checkbox" id="diskAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Disk Usage &gt; 90%</span>
-                        </label>
-                        <label class="flex items-center min-h-[44px] sm:min-h-0">
-                            <input type="checkbox" id="dbAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Database Connection Issues</span>
-                        </label>
-                    </div>
-                </div>
-                <div>
-                    <h4 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white mb-3">Application Alerts</h4>
-                    <div class="space-y-3">
-                        <label class="flex items-center min-h-[44px] sm:min-h-0">
-                            <input type="checkbox" id="errorRateAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Error Rate &gt; 5%</span>
-                        </label>
-                        <label class="flex items-center min-h-[44px] sm:min-h-0">
-                            <input type="checkbox" id="responseTimeAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Response Time &gt; 2s</span>
-                        </label>
-                        <label class="flex items-center min-h-[44px] sm:min-h-0">
-                            <input type="checkbox" id="discordAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Discord Bot Offline</span>
-                        </label>
-                        <label class="flex items-center min-h-[44px] sm:min-h-0">
-                            <input type="checkbox" id="taskAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Background Task Failures</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg text-white bg-ecs-green hover:bg-ecs-green-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="save-alert-config">
-                    <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Configuration
-                </button>
-            </div>
-        </div>
-        {% endcall %}
-    </div>
+{# ── Monitored Signals — the surface this page watches, as a real dense table.
+   Status per source is DERIVED from the active_alerts that are actually firing
+   (matched on the alert's real title); a source with no firing alert reads Normal.
+   No fabricated metrics — the reading column shows the real alert message or a
+   "within thresholds" baseline. ── #}
+{% set source_defs = [
+    ('CPU',        'ti-cpu',           ['Critical CPU Usage', 'High CPU Usage']),
+    ('Memory',     'ti-device-sd-card',['Critical Memory Usage', 'High Memory Usage']),
+    ('Disk',       'ti-database',      ['Disk Space Critical', 'Disk Space Low']),
+    ('Redis',      'ti-server-bolt',   ['Redis Unavailable', 'Redis Connection Error', 'Redis High Memory']),
+    ('Celery',     'ti-subtask',       ['Celery Workers Down', 'Celery Status Unknown']),
+    ('Approvals',  'ti-user-check',    ['Pending Approvals'])
+] %}
+{% call section_card("Monitored Signals", icon="ti-radar") %}
+<div class="overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+                <th scope="col" class="px-4 sm:px-5 py-2.5 font-semibold">Source</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Status</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold hidden sm:table-cell">Current Reading</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            {% for name, ti_icon, titles in source_defs %}
+            {% set match = (active_alerts | selectattr('title', 'in', titles) | list | first) if not all_clear else none %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                <td class="px-4 sm:px-5 py-3">
+                    <span class="inline-flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                        <i class="ti {{ ti_icon }} text-gray-400 dark:text-gray-500" aria-hidden="true"></i>{{ name }}
+                    </span>
+                </td>
+                <td class="px-4 py-3">
+                    {% if match and match.type == 'error' %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-alert-octagon text-[12px]" aria-hidden="true"></i>Critical</span>
+                    {% elif match and match.type == 'warning' %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-alert-triangle-filled text-[12px]" aria-hidden="true"></i>Warning</span>
+                    {% elif match %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-info-circle-filled text-[12px]" aria-hidden="true"></i>Notice</span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Normal</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 hidden sm:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">
+                    {{ match.message if match else 'Within thresholds' }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endcall %}
+<div class="mb-6"></div>
 
+{# Notification Settings #}
+<div class="mb-6">
     {% call section_card("Notification Settings", icon="ti-bell") %}
     <div class="p-4 sm:p-5">
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Alert delivery options</p>
@@ -186,82 +281,23 @@
     {% endcall %}
 </div>
 
-{# Alert History #}
+{# Alert History — alerts are evaluated live each load (no persistence layer),
+   so resolved_alerts is always empty. Surface that honestly instead of a table
+   of fields the source data never carries. #}
+{% call section_card("Alert History", icon="ti-history") %}
 {% if resolved_alerts %}
-{% call data_table("Alert History", icon="ti-history", count=resolved_alerts|length, filters=false) %}
-<table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
-    <thead class="border-b border-gray-200 dark:border-gray-700">
-        <tr>
-            {{ data_table_th("Alert", key="alert", sortable=false) }}
-            {{ data_table_th("Severity", key="severity", sortable=false) }}
-            {{ data_table_th("Component", key="component", sortable=false, hide='sm') }}
-            {{ data_table_th("Triggered", key="triggered", sortable=false, hide='sm') }}
-            {{ data_table_th("Resolved", key="resolved", sortable=false, hide='md') }}
-            {{ data_table_th("Duration", key="duration", sortable=false) }}
-            {{ data_table_th("Resolved By", key="resolved_by", sortable=false, hide='md') }}
-        </tr>
-    </thead>
-    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for alert in resolved_alerts %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <td class="px-3 py-3">
-                <p class="font-medium text-gray-900 dark:text-white">{{ alert.title }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">{{ alert.description[:50] }}...</p>
-            </td>
-            <td class="px-3 py-3">
-                {% if alert.severity == 'critical' %}
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-alert-octagon text-[12px]" aria-hidden="true"></i>{{ alert.severity|upper }}</span>
-                {% elif alert.severity == 'warning' %}
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-alert-triangle-filled text-[12px]" aria-hidden="true"></i>{{ alert.severity|upper }}</span>
-                {% else %}
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-info-circle-filled text-[12px]" aria-hidden="true"></i>{{ alert.severity|upper }}</span>
-                {% endif %}
-            </td>
-            <td class="px-3 py-3 text-xs hidden md:table-cell">{{ alert.component }}</td>
-            <td class="px-3 py-3 text-xs font-mono hidden md:table-cell">{{ alert.created_at.strftime('%m/%d %H:%M') }}</td>
-            <td class="px-3 py-3 text-xs font-mono hidden lg:table-cell">{{ alert.resolved_at.strftime('%m/%d %H:%M') if alert.resolved_at else '-' }}</td>
-            <td class="px-3 py-3 text-xs font-mono">
-                {% if alert.resolved_at and alert.created_at %}
-                    {% set duration = (alert.resolved_at - alert.created_at).total_seconds() / 60 %}
-                    {{ "%.0f"|format(duration) }}m
-                {% else %}
-                    -
-                {% endif %}
-            </td>
-            <td class="px-3 py-3 text-xs hidden lg:table-cell">{{ alert.resolved_by.username if alert.resolved_by else 'System' }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-<div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+<div class="divide-y divide-gray-200 dark:divide-gray-700">
     {% for alert in resolved_alerts %}
-    <div class="px-4 py-3.5">
-        <div class="flex items-center justify-between gap-2">
-            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ alert.title }}</span>
-            {% if alert.severity == 'critical' %}
-            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-alert-octagon text-[11px]" aria-hidden="true"></i>{{ alert.severity|upper }}</span>
-            {% elif alert.severity == 'warning' %}
-            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-alert-triangle-filled text-[11px]" aria-hidden="true"></i>{{ alert.severity|upper }}</span>
-            {% else %}
-            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-info-circle-filled text-[11px]" aria-hidden="true"></i>{{ alert.severity|upper }}</span>
-            {% endif %}
-        </div>
-        <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-            <p>{{ alert.component }}</p>
-            <p class="font-mono">Triggered {{ alert.created_at.strftime('%m/%d %H:%M') }}
-                {% if alert.resolved_at and alert.created_at %}
-                    &bull; {{ "%.0f"|format((alert.resolved_at - alert.created_at).total_seconds() / 60) }}m
-                {% endif %}
-            </p>
-            <p>Resolved by {{ alert.resolved_by.username if alert.resolved_by else 'System' }}</p>
-        </div>
+    <div class="px-4 py-3.5 flex items-center justify-between gap-2">
+        <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ alert.title }}</span>
+        <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ alert.created_at.strftime('%m/%d %H:%M') }}</span>
     </div>
     {% endfor %}
 </div>
-{% endcall %}
 {% else %}
-{{ empty_state("ti-circle-check", "No Recent Alerts", "All systems are running normally.") }}
+{{ empty_state("ti-history-off", "No Resolved History", "Alerts are evaluated in real time from current system conditions, so there is no persisted history to show. Resolved items disappear once the underlying condition clears.") }}
 {% endif %}
+{% endcall %}
 
 {% else %}
 <!-- Alert Statistics -->
@@ -506,116 +542,10 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const isDark = document.documentElement.classList.contains('dark');
-
-    document.addEventListener('click', function(e) {
-        const target = e.target.closest('[data-action]');
-        if (!target) return;
-
-        const action = target.dataset.action;
-        const alertId = target.dataset.alertId;
-
-        switch(action) {
-            case 'acknowledge-alert':
-                acknowledgeAlert(alertId);
-                break;
-            case 'view-alert':
-                viewAlertDetails(alertId);
-                break;
-            case 'resolve-alert':
-                resolveAlert(alertId);
-                break;
-            case 'save-alert-config':
-                saveAlertConfig();
-                break;
-            case 'test-notifications':
-                testNotifications();
-                break;
-        }
-    });
-
-    function acknowledgeAlert(alertId) {
-        Swal.fire({
-            title: 'Acknowledge Alert?',
-            text: 'This will mark the alert as acknowledged.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, Acknowledge',
-            confirmButtonColor: '#1a472a',
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'Acknowledged!',
-                    text: 'Alert has been acknowledged.',
-                    icon: 'success',
-                    confirmButtonColor: '#1a472a',
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827'
-                });
-            }
-        });
-    }
-
-    function resolveAlert(alertId) {
-        Swal.fire({
-            title: 'Resolve Alert?',
-            text: 'This will mark the alert as resolved.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, Resolve',
-            confirmButtonColor: '#1a472a',
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'Resolved!',
-                    text: 'Alert has been resolved.',
-                    icon: 'success',
-                    confirmButtonColor: '#1a472a',
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827'
-                }).then(() => location.reload());
-            }
-        });
-    }
-
-    function viewAlertDetails(alertId) {
-        Swal.fire({
-            title: 'Alert Details',
-            text: 'Loading alert details...',
-            icon: 'info',
-            confirmButtonColor: '#1a472a',
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827'
-        });
-    }
-
-    function saveAlertConfig() {
-        Swal.fire({
-            title: 'Configuration Saved!',
-            text: 'Alert configuration has been updated.',
-            icon: 'success',
-            confirmButtonColor: '#1a472a',
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827'
-        });
-    }
-
-    function testNotifications() {
-        Swal.fire({
-            title: 'Test Notification Sent',
-            text: 'A test notification has been sent to all enabled channels.',
-            icon: 'success',
-            confirmButtonColor: '#1a472a',
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827'
-        });
-    }
-});
-</script>
+{# Alert actions are handled by the shared global event-delegation handlers in
+   monitoring-handlers.js (view-alert reads the rendered card; test-notifications
+   POSTs to the real push-notification test endpoint). No inline stub handlers:
+   acknowledge/resolve/save-config controls in the legacy shell have no backend
+   persistence layer (alerts are recomputed live each load, with ephemeral IDs),
+   so there is nothing honest for them to call. #}
 {% endblock %}

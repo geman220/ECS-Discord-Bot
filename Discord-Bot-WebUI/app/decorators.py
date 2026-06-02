@@ -58,6 +58,74 @@ from app.alert_helpers import show_success, show_error, show_warning, show_info
 logger = logging.getLogger(__name__)
 
 
+def _json_truncate(value, limit=4000):
+    """JSON-encode args/kwargs for storage; never raise. Returns None on failure."""
+    if value is None:
+        return None
+    try:
+        import json as _json
+        return _json.dumps(value, default=str)[:limit]
+    except Exception:
+        try:
+            return str(value)[:limit]
+        except Exception:
+            return None
+
+
+def _record_task_execution(task_name, task_id, started_at, status, result=None,
+                           error=None, args=None, kwargs=None):
+    """
+    Best-effort persistence of one Celery task execution to the task_executions
+    table (TaskExecution model). Powers the admin Task History page.
+
+    Wrapped in its own short-lived session so it never touches the task's own
+    transaction, and fully swallowed on any error — recording must NEVER break a
+    task. If the table hasn't been created yet (migration not run), this no-ops.
+
+    ``args`` / ``kwargs`` are the task's invocation arguments; they are JSON-encoded
+    (truncated) so a failed execution can be re-enqueued from the Retry action.
+    """
+    try:
+        from datetime import datetime as _dt
+        finished_at = _dt.utcnow()
+        duration_ms = None
+        if started_at is not None:
+            try:
+                duration_ms = (finished_at - started_at).total_seconds() * 1000.0
+            except Exception:
+                duration_ms = None
+
+        # Identify the worker (hostname) without raising if unavailable.
+        worker = None
+        try:
+            import socket
+            worker = socket.gethostname()
+        except Exception:
+            worker = None
+
+        args_json = _json_truncate(list(args) if args else None)
+        kwargs_json = _json_truncate(dict(kwargs) if kwargs else None)
+
+        from app.models.api_logs import TaskExecution
+        from app.core.session_manager import managed_session as _managed_session
+        with _managed_session() as _session:
+            _session.add(TaskExecution(
+                task_id=(str(task_id)[:155] if task_id else None),
+                name=(task_name or 'unknown')[:255],
+                status=(status or 'completed')[:20],
+                started_at=started_at,
+                finished_at=finished_at,
+                duration_ms=duration_ms,
+                result=(str(result)[:2000] if result is not None else None),
+                error=(str(error)[:2000] if error is not None else None),
+                worker=(worker[:255] if worker else None),
+                args=args_json,
+                kwargs=kwargs_json,
+            ))
+    except Exception as _rec_err:  # pragma: no cover - defensive
+        logger.debug(f"TaskExecution recording skipped for {task_name}: {_rec_err}")
+
+
 # ------------------------------------------------------------------
 # Helper / Utility Functions
 # ------------------------------------------------------------------
@@ -458,6 +526,10 @@ def celery_task(func=None, **task_kwargs):
                 # Create a unique session ID for tracking
                 import uuid
                 session_id = str(uuid.uuid4())
+
+                # Capture start time for best-effort TaskExecution history recording.
+                from datetime import datetime as _task_dt
+                _task_started_at = _task_dt.utcnow()
                 
                 # Get stack trace for debugging orphaned sessions
                 import traceback
@@ -538,7 +610,13 @@ def celery_task(func=None, **task_kwargs):
                                     if data is None:
                                         logger.warning(f"Extract function returned None for task {f.__name__} - skipping execution")
                                         register_session_end(session_id, 'committed')
-                                        return {'success': False, 'message': 'Required entity not found'}
+                                        _early_result = {'success': False, 'message': 'Required entity not found'}
+                                        _record_task_execution(
+                                            task_name, getattr(self.request, 'id', None),
+                                            _task_started_at, 'completed', result=_early_result,
+                                            args=args, kwargs=kwargs
+                                        )
+                                        return _early_result
                                     
                                     # ROOT CAUSE FIX: Expunge all SQLAlchemy objects from session before data leaves scope
                                     # This prevents detached object references from holding onto session memory
@@ -553,6 +631,11 @@ def celery_task(func=None, **task_kwargs):
                                 # Legacy pattern: function implements two-phase internally
                                 result = f(self, session, *args, **kwargs)
                                 register_session_end(session_id, 'committed')
+                                _record_task_execution(
+                                    task_name, getattr(self.request, 'id', None),
+                                    _task_started_at, 'completed', result=result,
+                                    args=args, kwargs=kwargs
+                                )
                                 return result
                         
                         # Session is now closed, run async execution
@@ -572,6 +655,11 @@ def celery_task(func=None, **task_kwargs):
                                 result = async_to_sync(execute_func(data))
                             except Exception as e:
                                 logger.error(f"Error in async execute function for task {f.__name__}: {e}", exc_info=True)
+                                _record_task_execution(
+                                    task_name, getattr(self.request, 'id', None),
+                                    _task_started_at, 'failed', error=e,
+                                    args=args, kwargs=kwargs
+                                )
                                 return {'success': False, 'message': f'Async execution failed: {str(e)}', 'error': str(e)}
                         else:
                             # Fallback: call original function with data
@@ -579,6 +667,11 @@ def celery_task(func=None, **task_kwargs):
                                 result = async_to_sync(f(data))
                             except Exception as e:
                                 logger.error(f"Error in fallback async execution for task {f.__name__}: {e}", exc_info=True)
+                                _record_task_execution(
+                                    task_name, getattr(self.request, 'id', None),
+                                    _task_started_at, 'failed', error=e,
+                                    args=args, kwargs=kwargs
+                                )
                                 return {'success': False, 'message': f'Fallback execution failed: {str(e)}', 'error': str(e)}
                         
                         # Check if task requires a final database update
@@ -614,8 +707,14 @@ def celery_task(func=None, **task_kwargs):
                                 except Exception as e:
                                     logger.error(f"Error in final database update for {task_name}: {e}")
                                     # Don't fail the task if final update fails
-                        
+
                         register_session_end(session_id, 'committed')
+                        # Best-effort: record this two-phase async execution for Task History.
+                        _record_task_execution(
+                            task_name, getattr(self.request, 'id', None),
+                            _task_started_at, 'completed', result=result,
+                            args=args, kwargs=kwargs
+                        )
                         return result
                     
                     else:
@@ -628,12 +727,25 @@ def celery_task(func=None, **task_kwargs):
                             else:
                                 # Sync function - call normally with session
                                 result = f(self, session, *args, **kwargs)
-                            
+
                             register_session_end(session_id, 'committed')
+                            # Best-effort: record this execution for Task History.
+                            _record_task_execution(
+                                task_name, getattr(self.request, 'id', None),
+                                _task_started_at, 'completed', result=result,
+                                args=args, kwargs=kwargs
+                            )
                             return result
                 except Exception as e:
                     # Record error in session tracking (rollback happens automatically in managed_session)
                     register_session_end(session_id, 'error-rollback')
+
+                    # Best-effort: record the failed execution for Task History.
+                    _record_task_execution(
+                        task_name, getattr(getattr(self, 'request', None), 'id', None),
+                        _task_started_at, 'failed', error=e,
+                        args=args, kwargs=kwargs
+                    )
 
                     # Check for PGBouncer/connection errors that should trigger retry
                     error_str = str(e).lower()

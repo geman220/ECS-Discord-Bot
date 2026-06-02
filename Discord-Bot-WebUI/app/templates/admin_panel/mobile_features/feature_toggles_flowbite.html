@@ -22,51 +22,132 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state, alert as kit_alert %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
 {% set _groups = [
-    {'key': 'core',         'title': 'Core Mobile Features',     'icon': 'ti-device-mobile', 'tone': 'primary'},
-    {'key': 'privacy',      'title': 'Location & Privacy',       'icon': 'ti-shield-lock',   'tone': 'info'},
-    {'key': 'experimental', 'title': 'Experimental Features',    'icon': 'ti-flask',         'tone': 'warning'}
+    {'key': 'core',         'title': 'Core Mobile Features',  'icon': 'ti-device-mobile', 'accent': 'text-ecs-green'},
+    {'key': 'privacy',      'title': 'Location & Privacy',    'icon': 'ti-shield-lock',   'accent': 'text-blue-600 dark:text-blue-400'},
+    {'key': 'experimental', 'title': 'Experimental Features', 'icon': 'ti-flask',         'accent': 'text-amber-600 dark:text-amber-400'}
 ] %}
-{% set _core_count = grouped.get('core', []) | selectattr('enabled') | list | length %}
-{% set _priv_count = grouped.get('privacy', []) | selectattr('enabled') | list | length %}
-{% set _exp_count = grouped.get('experimental', []) | selectattr('enabled') | list | length %}
-{% set _total = (grouped.get('core', []) | length) + (grouped.get('privacy', []) | length) + (grouped.get('experimental', []) | length) %}
-{% set _on = _core_count + _priv_count + _exp_count %}
-<div class="space-y-6">
+{% set _core = grouped.get('core', []) %}
+{% set _priv = grouped.get('privacy', []) %}
+{% set _exp  = grouped.get('experimental', []) %}
+{% set _core_on = _core | selectattr('enabled') | list | length %}
+{% set _priv_on = _priv | selectattr('enabled') | list | length %}
+{% set _exp_on  = _exp  | selectattr('enabled') | list | length %}
+{% set _total = (_core | length) + (_priv | length) + (_exp | length) %}
+{% set _on = _core_on + _priv_on + _exp_on %}
+{% set _off = _total - _on %}
+{% set _pct = ((_on / _total) * 100) | round | int if _total else 0 %}
+<div class="space-y-5 sm:space-y-6">
 
-  {{ page_header('Feature Toggles', subtitle='Mobile app feature management') }}
+  {{ page_header('Feature Toggles', subtitle='Mobile app · runtime feature flags') }}
 
-  {{ kit_alert('info', 'Changes take effect immediately when the app fetches its configuration.', title='Feature Toggle Management') }}
-
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-toggle-right', 'Enabled', _on, sublabel='of ' ~ _total, tone='success') }}
-    {{ stat_card('ti-device-mobile', 'Core', _core_count, sublabel='of ' ~ (grouped.get('core', []) | length), tone='primary') }}
-    {{ stat_card('ti-shield-lock', 'Privacy', _priv_count, sublabel='of ' ~ (grouped.get('privacy', []) | length), tone='info') }}
-    {{ stat_card('ti-flask', 'Experimental', _exp_count, sublabel='of ' ~ (grouped.get('experimental', []) | length), tone='warning') }}
-  </div>
+  <!-- ============ CONTROL SUMMARY (feature-card hero, real data) ============ -->
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-adjustments-bolt text-ecs-green" aria-hidden="true"></i> Feature Configuration
+      </h2>
+      <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-green-500" aria-hidden="true"></span> Live
+      </span>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3">
+      <!-- Primary figure: enabled coverage -->
+      <div class="p-5 sm:p-6 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Features Enabled</p>
+        <div class="mt-2 flex items-end gap-2">
+          <span class="font-mono text-4xl sm:text-5xl font-bold leading-none text-gray-900 dark:text-white">{{ _on }}</span>
+          <span class="font-mono text-lg text-gray-400 dark:text-gray-500 mb-0.5">/ {{ _total }}</span>
+        </div>
+        <div class="mt-3 h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <div class="h-full bg-ecs-green rounded-full" style="width: {{ _pct }}%"></div>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-mono">{{ _pct }}% on · {{ _off }} disabled</p>
+      </div>
+      <!-- Per-category breakdown -->
+      <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700">
+        <div class="p-5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Core</span>
+            <i class="ti ti-device-mobile text-ecs-green" aria-hidden="true"></i>
+          </div>
+          <div class="mt-2 font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ _core_on }}<span class="text-base text-gray-400 dark:text-gray-500">/{{ _core | length }}</span></div>
+          <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">enabled</p>
+        </div>
+        <div class="p-5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Privacy</span>
+            <i class="ti ti-shield-lock text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+          </div>
+          <div class="mt-2 font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ _priv_on }}<span class="text-base text-gray-400 dark:text-gray-500">/{{ _priv | length }}</span></div>
+          <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">enabled</p>
+        </div>
+        <div class="p-5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Experimental</span>
+            <i class="ti ti-flask text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+          </div>
+          <div class="mt-2 font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ _exp_on }}<span class="text-base text-gray-400 dark:text-gray-500">/{{ _exp | length }}</span></div>
+          <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">in beta</p>
+        </div>
+      </div>
+    </div>
+    <!-- Command toolbar -->
+    <div class="flex flex-wrap items-center gap-2 px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+      <i class="ti ti-info-circle text-gray-400 shrink-0" aria-hidden="true"></i>
+      <span class="text-xs text-gray-500 dark:text-gray-400 flex-1 min-w-[180px]">Changes take effect immediately when the app fetches its configuration.</span>
+      <a href="{{ url_for('admin_panel.export_feature_config') }}"
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
+                text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
+                hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
+                focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-download" aria-hidden="true"></i>Export Config
+      </a>
+    </div>
+  </section>
 
   {% if _total == 0 %}
-    {% call section_card('Features', icon='ti-toggle-left') %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
       {{ empty_state('ti-toggle-left', 'No features configured', 'There are no mobile feature toggles to manage right now.') }}
-    {% endcall %}
+    </section>
   {% else %}
     {% for g in _groups %}
       {% set _feats = grouped.get(g.key, []) %}
       {% if _feats %}
-      {% call section_card(g.title, icon=g.icon) %}
-        {% if g.key == 'experimental' %}
-        <div class="px-4 sm:px-5 pt-4">
-          {{ kit_alert('warning', 'These features are in beta and may not be stable.', dismissible=false) }}
+      {% set _g_on = _feats | selectattr('enabled') | list | length %}
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <!-- Group header: icon + mono count badge (date-group divider style) -->
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700
+                    {% if g.key == 'experimental' %}bg-amber-50 dark:bg-amber-500/10{% endif %}">
+          <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti {{ g.icon }} {{ g.accent }}" aria-hidden="true"></i> {{ g.title }}
+          </h3>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ _g_on }}/{{ _feats | length }} on</span>
         </div>
+        {% if g.key == 'experimental' %}
+        <p class="px-4 sm:px-5 py-2.5 text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/30 flex items-center gap-2">
+          <i class="ti ti-alert-triangle shrink-0" aria-hidden="true"></i> These features are in beta and may not be stable.
+        </p>
         {% endif %}
         <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
           {% for f in _feats %}
-          <li class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5">
-            <div class="min-w-0">
-              <h6 class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ f.label }}</h6>
+          <li class="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white">{{ f.label }}</h6>
+                {% if f.enabled %}
+                <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                  <i class="ti ti-circle-check text-xs" aria-hidden="true"></i> On
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                  <i class="ti ti-circle text-xs" aria-hidden="true"></i> Off
+                </span>
+                {% endif %}
+              </div>
               {% if f.description %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ f.description }}</p>{% endif %}
+              <p class="text-[11px] font-mono text-gray-400 dark:text-gray-500 mt-1 truncate">{{ f.key }}</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer shrink-0 min-h-[44px]">
               <span class="sr-only">Toggle {{ f.label }}</span>
@@ -76,30 +157,31 @@
           </li>
           {% endfor %}
         </ul>
-      {% endcall %}
+      </section>
       {% endif %}
     {% endfor %}
   {% endif %}
 
-  <!-- Actions -->
-  {% call section_card('Actions', icon='ti-bolt') %}
-    <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <button type="button" data-action="emergency-kill-switch"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold
-                     text-red-600 dark:text-red-400 bg-white dark:bg-gray-800 border border-red-600 dark:border-red-500
-                     hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white transition-colors
-                     focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-alert-triangle" aria-hidden="true"></i>Emergency Kill Switch
-      </button>
-      <a href="{{ url_for('admin_panel.export_feature_config') }}"
-         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold
-                text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
-                focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-download" aria-hidden="true"></i>Export Config
-      </a>
+  <!-- ============ DANGER ZONE ============ -->
+  <section class="rounded-xl border-2 border-red-300 dark:border-red-500/40 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10">
+      <i class="ti ti-alert-octagon text-red-600 dark:text-red-400" aria-hidden="true"></i>
+      <h3 class="text-sm font-bold uppercase tracking-wide text-red-700 dark:text-red-400">Danger Zone</h3>
     </div>
-  {% endcall %}
+    <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-gray-900 dark:text-white">Emergency Kill Switch</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Immediately disables ALL {{ _total }} mobile features. Use only in emergencies.</p>
+      </div>
+      <button type="button" data-action="emergency-kill-switch"
+              class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                     text-white bg-red-600 border border-red-600 dark:bg-red-600 dark:border-red-500
+                     hover:bg-red-700 dark:hover:bg-red-700 transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-alert-triangle" aria-hidden="true"></i>Disable All Features
+      </button>
+    </div>
+  </section>
 </div>
 {% else %}
 {# ===================== Classic (unchanged) ===================== #}

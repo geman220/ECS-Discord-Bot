@@ -1,0 +1,56 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Reports{% endblock %}
+{% block panel_description %}Pull data from the database and export it to Excel{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Reports</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% set reports = [
+    {'title': 'Player Stats', 'icon': 'ti-soccer-field', 'url': url_for('admin_panel.player_stats_report'),
+     'desc': 'Goals, assists, and cards per player. Export career totals or a season-by-season breakdown (per-league rows preserved).'},
+    {'title': 'Attendance & Reliability', 'icon': 'ti-calendar-check', 'url': url_for('admin_panel.attendance_report'),
+     'desc': 'RSVP response rate, attendance rate, and reliability score for every player.'},
+    {'title': 'Player Movement', 'icon': 'ti-arrows-up-down', 'url': url_for('admin_panel.movement_report'),
+     'desc': 'Track players promoted from Classic to Premier (or dropped back) across seasons.'},
+    {'title': 'Retention & Churn', 'icon': 'ti-users-group', 'url': url_for('admin_panel.retention_report'),
+     'desc': 'New vs. returning vs. lapsed players, season over season, with retention percentages.'},
+    {'title': 'Roster History', 'icon': 'ti-history', 'url': url_for('admin_panel.roster_history_report'),
+     'desc': 'Each player\'s full team-by-season timeline.'},
+    {'title': 'Leaderboards', 'icon': 'ti-trophy', 'url': url_for('admin_panel.leaderboards_report'),
+     'desc': 'Top scorers, assists, and discipline (cards) for a given season/league or all-time.'},
+    {'title': 'Kit / Jersey Size', 'icon': 'ti-shirt-sport', 'url': url_for('admin_panel.jersey_report'),
+     'desc': 'Jersey-size counts per team/league — what you need before ordering kit.'},
+    {'title': 'Team Standings', 'icon': 'ti-table', 'url': url_for('admin_panel.standings_report'),
+     'desc': 'W/D/L, goals for/against, goal difference, and points by season and league.'},
+    {'title': 'Discipline', 'icon': 'ti-cards', 'url': url_for('admin_panel.discipline_report'),
+     'desc': 'Yellow and red cards per player, broken down by reason (foul, dissent, etc.).'},
+    {'title': 'Contactability', 'icon': 'ti-address-book', 'url': url_for('admin_panel.contactability_report'),
+     'desc': 'SMS / phone / Discord reachability and profile freshness — comms readiness.'}
+] %}
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for r in reports %}
+    <a href="{{ r.url }}"
+       class="group flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:shadow-lg transition-all">
+        <div class="flex items-center gap-3 mb-3">
+            <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-ecs-green/10 text-ecs-green group-hover:bg-ecs-green group-hover:text-white transition-colors">
+                <i class="ti {{ r.icon }} text-xl"></i>
+            </span>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ r.title }}</h3>
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 flex-1">{{ r.desc }}</p>
+        <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-ecs-green">
+            Open report <i class="ti ti-arrow-right"></i>
+        </span>
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}

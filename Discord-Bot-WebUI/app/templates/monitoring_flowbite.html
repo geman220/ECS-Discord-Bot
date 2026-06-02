@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import empty_state, modal, page_header, skeleton %}
 {% from "macros/flowbite.html" import modal_info %}
 {% from "macros/_modern_kit.html" import page_header, stat_card, section_card, modal, empty_state, skeleton %}
 {% block title %}System Monitoring{% endblock %}
@@ -6,10 +7,18 @@
 {% block main_content %}
 {% if shell == 'console' %}
 <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
-    {% call page_header("System Monitoring", subtitle="Real-time system health and performance metrics") %}
-        <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+    {# Command toolbar header — eyebrow + title + live refresh state + primary CTA #}
+    {% call page_header("System Monitoring", subtitle="Infrastructure / Celery + Redis") %}
+        <div class="flex items-center gap-2 px-2.5 h-9 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
+            <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-ecs-green opacity-60"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-ecs-green"></span>
+            </span>
+            <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 hidden sm:inline">Live</span>
+            <span class="h-4 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block"></span>
             <div class="animate-spin rounded-full h-4 w-4 border-2 border-ecs-green border-t-transparent hidden" id="refreshSpinner"></div>
-            <span class="hidden sm:inline">Updated <span id="lastUpdated" class="font-mono font-medium text-gray-900 dark:text-white">--</span></span>
+            <span class="text-[11px] text-gray-500 dark:text-gray-400 hidden sm:inline">Updated</span>
+            <span id="lastUpdated" class="font-mono text-xs font-medium text-gray-900 dark:text-white">--</span>
         </div>
         <button type="button" id="refreshAllBtn"
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
@@ -20,40 +29,44 @@
         </button>
     {% endcall %}
 
-    {# System Health Status Bar #}
-    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 mb-5 sm:mb-6">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div class="flex items-center gap-3 min-w-0">
-                <span class="w-11 h-11 rounded-lg bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 flex items-center justify-center shrink-0">
-                    <i class="ti ti-shield-check text-2xl" aria-hidden="true"></i>
-                </span>
-                <div class="min-w-0">
-                    <h2 class="text-base font-bold text-gray-900 dark:text-white truncate" id="overallHealthStatus">System Status</h2>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate" id="overallHealthMessage">Checking system health...</p>
-                </div>
+    {# Status spine — primary object: a feature card carrying the overall verdict +
+       a KPI band footer (eyebrow labels, big mono figures, vertical dividers). #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-5 sm:mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4 p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700">
+            <span class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 flex items-center justify-center shrink-0">
+                <i class="ti ti-shield-check text-2xl" aria-hidden="true"></i>
+            </span>
+            <div class="min-w-0 flex-1">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Overall health</p>
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white truncate" id="overallHealthStatus">System Status</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 truncate" id="overallHealthMessage">Checking system health...</p>
             </div>
-            <div class="grid grid-cols-3 gap-4 sm:gap-6 shrink-0">
-                <div class="text-center">
-                    <div class="font-mono text-xl sm:text-2xl font-bold text-gray-900 dark:text-white" id="totalActiveWorkers">--</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Active Workers</div>
-                </div>
-                <div class="text-center">
-                    <div class="font-mono text-xl sm:text-2xl font-bold text-gray-900 dark:text-white" id="totalQueuedTasks">--</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Queued Tasks</div>
-                </div>
-                <div class="text-center">
-                    <div class="font-mono text-xl sm:text-2xl font-bold text-gray-900 dark:text-white" id="systemUptime">--</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">Uptime</div>
-                </div>
-            </div>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-300 shrink-0 self-start sm:self-center">
+                <i class="ti ti-circle-check" aria-hidden="true"></i> Operational
+            </span>
         </div>
+        <dl class="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700">
+            <div class="px-4 py-4 sm:py-5 text-center">
+                <dt class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Active Workers</dt>
+                <dd class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-ecs-green" id="totalActiveWorkers">--</dd>
+            </div>
+            <div class="px-4 py-4 sm:py-5 text-center">
+                <dt class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Queued Tasks</dt>
+                <dd class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400" id="totalQueuedTasks">--</dd>
+            </div>
+            <div class="px-4 py-4 sm:py-5 text-center">
+                <dt class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Uptime</dt>
+                <dd class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white" id="systemUptime">--</dd>
+            </div>
+        </dl>
     </section>
 
-    {# Key Metrics — bespoke tiles (not stat_card) because each hosts live JS-target
-       id'd value + indicator + action that the inline dashboard script writes into #}
+    {# KPI band — bespoke-but-tokened tiles (not stat_card) because each hosts live
+       JS-target id'd value + indicator + action that the inline dashboard writes into.
+       Footer divider rows carry the per-metric indicator/trend, concept-style. #}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5 sm:mb-6">
         {# Queue Status #}
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 flex flex-col">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Queue Status</span>
                 <i class="ti ti-list-check text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
@@ -63,16 +76,18 @@
                 <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">total tasks</span>
             </div>
             <div id="queueHealthIndicator" class="flex flex-wrap gap-1 mt-3"></div>
-            <button type="button" id="showQueueDetailsBtn"
-                    class="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-ecs-green hover:text-ecs-green-700
-                           focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
-                <i class="ti ti-list-details" aria-hidden="true"></i>
-                View Queue Details
-            </button>
+            <div class="mt-auto pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" id="showQueueDetailsBtn"
+                        class="inline-flex items-center gap-1 text-sm font-semibold text-ecs-green hover:text-ecs-green-700
+                               focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+                    <i class="ti ti-list-details" aria-hidden="true"></i>
+                    View Queue Details
+                </button>
+            </div>
         </div>
 
         {# Worker Health #}
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 flex flex-col">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Worker Health</span>
                 <i class="ti ti-cpu text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
@@ -82,14 +97,16 @@
                 <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">active</span>
             </div>
             <div id="workerHealthIndicator" class="flex flex-wrap gap-1 mt-3"></div>
-            <span class="mt-3 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1" id="workerTrend">
-                <i class="ti ti-trending-up text-green-600 dark:text-green-400" aria-hidden="true"></i>
-                All systems operational
-            </span>
+            <div class="mt-auto pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
+                <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1" id="workerTrend">
+                    <i class="ti ti-trending-up text-green-600 dark:text-green-400" aria-hidden="true"></i>
+                    All systems operational
+                </span>
+            </div>
         </div>
 
         {# Redis Status #}
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 flex flex-col">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Redis Status</span>
                 <i class="ti ti-database text-lg text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
@@ -101,14 +118,16 @@
             <div id="redisHealthIndicator" class="flex flex-wrap gap-1 mt-3">
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">Connected</span>
             </div>
-            <span class="mt-3 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1" id="redisTrend">
-                <i class="ti ti-trending-up text-green-600 dark:text-green-400" aria-hidden="true"></i>
-                Performance optimal
-            </span>
+            <div class="mt-auto pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
+                <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1" id="redisTrend">
+                    <i class="ti ti-trending-up text-green-600 dark:text-green-400" aria-hidden="true"></i>
+                    Performance optimal
+                </span>
+            </div>
         </div>
 
         {# Task Performance #}
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 flex flex-col">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Task Performance</span>
                 <i class="ti ti-chart-line text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
@@ -118,23 +137,30 @@
                 <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">success rate</span>
             </div>
             <div id="taskHealthIndicator" class="flex flex-wrap gap-1 mt-3"></div>
-            <span class="mt-3 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1" id="taskTrend">
-                <i class="ti ti-trending-up text-green-600 dark:text-green-400" aria-hidden="true"></i>
-                Processing normally
-            </span>
+            <div class="mt-auto pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
+                <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1" id="taskTrend">
+                    <i class="ti ti-trending-up text-green-600 dark:text-green-400" aria-hidden="true"></i>
+                    Processing normally
+                </span>
+            </div>
         </div>
     </div>
 
-    {# Detailed Views #}
+    {# Detailed Views — Queue Overview feature card + System Alerts dense panel #}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6 mb-5 sm:mb-6">
-        <div class="lg:col-span-2">
-            {% call section_card("Queue Overview", icon="ti-stack-2") %}
-                <p class="px-4 sm:px-5 pt-3 text-xs text-gray-500 dark:text-gray-400">Real-time queue monitoring and health status</p>
-                <div class="p-4 sm:p-5" id="queueStatusContainer">
-                    {{ skeleton(rows=3) }}
+        <section class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-stack-2 text-ecs-green" aria-hidden="true"></i> Queue Overview
+                    </h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Real-time queue monitoring and health status</p>
                 </div>
-            {% endcall %}
-        </div>
+            </div>
+            <div class="p-4 sm:p-5" id="queueStatusContainer">
+                {{ skeleton(rows=3) }}
+            </div>
+        </section>
 
         <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
             <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
@@ -149,7 +175,7 @@
         </section>
     </div>
 
-    {# Task Information #}
+    {# Task Information — Active Tasks + Worker Status feature cards w/ count pills + per-panel refresh #}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
         <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
             <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
@@ -167,7 +193,7 @@
                 </div>
             </div>
             <div id="activeTasksList">
-                {{ empty_state("ti-list-check", "No active tasks", "Tasks will appear here when running") }}
+                {{ empty_state("ti-list-check", "No active tasks", "Match thread &amp; live-reporting tasks appear here when scheduled") }}
             </div>
         </section>
 

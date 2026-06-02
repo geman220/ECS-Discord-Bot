@@ -24,37 +24,114 @@
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
 
-{% call page_header("I-Spy Seasons", subtitle="Create and manage game seasons") %}
+{# Derive aggregate KPIs from REAL season_stats (no fabrication) #}
+{% set ns = namespace(shots=0, players=0) %}
+{% for s in seasons %}
+  {% set ns.shots = ns.shots + season_stats[s.id].total_shots %}
+  {% set ns.players = ns.players + season_stats[s.id].active_players %}
+{% endfor %}
+
+{% call page_header("I-Spy Seasons", subtitle="Game seasons / lifecycle control") %}
 <a href="{{ url_for('admin_panel.create_ispy_season') }}"
    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
   <i class="ti ti-plus" aria-hidden="true"></i>Create Season
 </a>
 {% endcall %}
 
-<div class="grid grid-cols-2 gap-4 mb-6">
-  {{ stat_card("ti-calendar", "Total Seasons", stats.total_seasons, sublabel="all time", tone="primary") }}
-  {{ stat_card("ti-player-play", "Active Seasons", stats.active_seasons, sublabel="currently running", tone="success") }}
+{# ----- KPI band: real totals + cross-season aggregates ----- #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Seasons</span>
+      <i class="ti ti-calendar text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-2">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ stats.total_seasons }}</span>
+    </div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">all time</div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active</span>
+      <i class="ti ti-player-play text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-2">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none {{ 'text-green-600 dark:text-green-400' if stats.active_seasons else 'text-gray-400 dark:text-gray-500' }}">{{ stats.active_seasons }}</span>
+    </div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">currently running</div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Shots</span>
+      <i class="ti ti-camera text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-2">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ ns.shots }}</span>
+    </div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">across all seasons</div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Players</span>
+      <i class="ti ti-users text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3 flex items-end gap-2">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ ns.players }}</span>
+    </div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">across all seasons</div>
+  </div>
 </div>
 
+{# ----- Primary object: the live season as a rich feature card ----- #}
 {% if active_season %}
-<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+<section class="rounded-xl border border-ecs-green/40 dark:border-ecs-green/40 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+  <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-11 border-b border-gray-200 dark:border-gray-700 bg-ecs-green/5 dark:bg-ecs-green/10">
+    <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-ecs-green">
+      <span class="relative flex h-2 w-2">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-60"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+      </span>
+      Currently Active
+    </span>
+    <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500">#{{ active_season.id }}</span>
+  </div>
   <div class="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
     <div class="flex items-center gap-4 min-w-0">
       <span class="flex items-center justify-center w-12 h-12 rounded-lg bg-ecs-green text-white shrink-0">
         <i class="ti ti-player-play text-2xl" aria-hidden="true"></i>
       </span>
       <div class="min-w-0">
-        <p class="text-xs font-bold uppercase tracking-wide text-ecs-green mb-0.5">Currently Active</p>
         <h3 class="text-lg font-bold text-gray-900 dark:text-white truncate">{{ active_season.name }}</h3>
         <p class="text-sm text-gray-500 dark:text-gray-400 font-mono">
           {{ active_season.start_date.strftime('%b %d, %Y') }} &ndash; {{ active_season.end_date.strftime('%b %d, %Y') }}
         </p>
       </div>
     </div>
-    <a href="{{ url_for('admin_panel.edit_ispy_season', season_id=active_season.id) }}"
-       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-ecs-green text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green shrink-0">
-      <i class="ti ti-edit" aria-hidden="true"></i>Edit
-    </a>
+    <div class="flex items-center gap-2 shrink-0">
+      <a href="{{ url_for('admin_panel.edit_ispy_season', season_id=active_season.id) }}"
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-ecs-green text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-edit" aria-hidden="true"></i>Edit
+      </a>
+      <button type="button" data-action="deactivate-season" data-id="{{ active_season.id }}"
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-yellow-600 dark:text-yellow-400 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-player-pause" aria-hidden="true"></i>Deactivate
+      </button>
+    </div>
+  </div>
+  {# real per-season metric footer #}
+  <div class="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700">
+    <div class="px-4 sm:px-5 py-3">
+      <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Shots</p>
+      <p class="mt-0.5 font-mono text-xl font-bold text-gray-900 dark:text-white">{{ season_stats[active_season.id].total_shots }}</p>
+    </div>
+    <div class="px-4 sm:px-5 py-3">
+      <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Players</p>
+      <p class="mt-0.5 font-mono text-xl font-bold text-gray-900 dark:text-white">{{ season_stats[active_season.id].active_players }}</p>
+    </div>
+    <div class="px-4 sm:px-5 py-3">
+      <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Approval</p>
+      <p class="mt-0.5 font-mono text-xl font-bold text-ecs-green">{{ season_stats[active_season.id].approval_rate }}%</p>
+    </div>
   </div>
 </section>
 {% endif %}

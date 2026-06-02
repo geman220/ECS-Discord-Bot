@@ -11,6 +11,23 @@
  * @param {Object} ED - EventDelegation instance
  */
 export function initMobileUsersHandlers(ED) {
+    const BASE = '/admin-panel/mobile-features';
+
+    function csrf() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
+
+    function postForm(url, params) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrf()
+            },
+            body: new URLSearchParams(params).toString()
+        }).then(r => r.json());
+    }
+
     /**
      * View mobile user details
      */
@@ -24,7 +41,7 @@ export function initMobileUsersHandlers(ED) {
         }
 
         try {
-            const response = await fetch(`/admin-panel/mobile/user-details?user_id=${userId}`);
+            const response = await fetch(`${BASE}/user/details?user_id=${userId}`);
             const data = await response.json();
 
             if (data.success) {
@@ -114,6 +131,8 @@ export function initMobileUsersHandlers(ED) {
             showCancelButton: true,
             confirmButtonText: 'Send Notification',
             width: '500px',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: () => !window.Swal.isLoading(),
             preConfirm: () => {
                 const title = document.getElementById('notificationTitle').value;
                 const message = document.getElementById('notificationMessage').value;
@@ -123,56 +142,107 @@ export function initMobileUsersHandlers(ED) {
                     return false;
                 }
 
-                return {
-                    title: title,
-                    message: message,
-                    highPriority: document.getElementById('highPriority').checked
-                };
+                return postForm(`${BASE}/user/send-notification`, {
+                    user_id: userId, title, message
+                })
+                    .then(data => {
+                        if (!data.success) {
+                            window.Swal.showValidationMessage(data.message || 'Failed to send notification');
+                        }
+                        return data;
+                    })
+                    .catch(() => window.Swal.showValidationMessage('Failed to send notification'));
             }
         }).then((result) => {
-            if (result.isConfirmed) {
-                window.Swal.fire('Notification Sent!', 'Push notification has been sent to the user.', 'success');
+            if (result.isConfirmed && result.value && result.value.success) {
+                window.Swal.fire('Notification Sent!', result.value.message || 'Push notification has been sent to the user.', 'success');
             }
         });
     });
 
     /**
-     * Manage devices for a user
+     * Escape HTML to prevent XSS when injecting API data into the DOM.
      */
-    ED.register('manage-devices', (element, event) => {
+    function escapeHtml(str) {
+        return String(str ?? '').replace(/[&<>"']/g, (c) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
+    /**
+     * Render the real device-token list for the device-management modal.
+     */
+    function renderDeviceTokens(tokens) {
+        if (!tokens || tokens.length === 0) {
+            return '<p class="text-gray-500 dark:text-gray-400 p-3">No registered devices found for this user.</p>';
+        }
+        return `
+            <div class="divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg">
+                ${tokens.map(token => {
+                    const platform = escapeHtml(token.platform || 'Unknown');
+                    const created = token.created_at ? new Date(token.created_at).toLocaleDateString() : 'Unknown';
+                    const updated = token.updated_at ? new Date(token.updated_at).toLocaleDateString() : 'Unknown';
+                    const tokenPreview = escapeHtml(token.token || '');
+                    const statusBadge = token.is_active
+                        ? '<span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>'
+                        : '<span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Inactive</span>';
+                    const actionBtn = token.is_active
+                        ? `<button class="text-yellow-600 bg-transparent border border-yellow-600 hover:bg-yellow-600 hover:text-white focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-xs p-1.5" data-action="deactivate-device" data-token-id="${escapeHtml(token.id)}" aria-label="Deactivate device"><i class="ti ti-ban"></i></button>`
+                        : '';
+                    return `
+                        <div class="flex justify-between items-center p-3">
+                            <div>
+                                <strong class="text-gray-900 dark:text-white">${platform}</strong> ${statusBadge}<br>
+                                <small class="text-gray-500 dark:text-gray-400">Token: ${tokenPreview} - Registered: ${escapeHtml(created)} - Updated: ${escapeHtml(updated)}</small>
+                            </div>
+                            <div>${actionBtn}</div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Manage devices for a user (real device tokens from the API).
+     */
+    ED.register('manage-devices', async (element, event) => {
         event.preventDefault();
         const userId = element.dataset.userId;
 
+        if (!userId) {
+            window.Swal.fire('Error', 'User ID not available', 'error');
+            return;
+        }
+
         window.Swal.fire({
             title: 'Device Management',
-            html: `
-                <div class="text-start">
-                    <p class="text-gray-500 dark:text-gray-400">Loading device information...</p>
-                    <div class="divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg">
-                        <div class="flex justify-between items-center p-3">
-                            <div>
-                                <strong class="text-gray-900 dark:text-white">iPhone 12 Pro</strong><br>
-                                <small class="text-gray-500 dark:text-gray-400">iOS 17.2 - Last active: 2 hours ago</small>
-                            </div>
-                            <div>
-                                <button class="text-yellow-600 bg-transparent border border-yellow-600 hover:bg-yellow-600 hover:text-white focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-xs p-1.5" data-action="deactivate-device" data-token-id="token123" aria-label="Block"><i class="ti ti-ban"></i></button>
-                            </div>
-                        </div>
-                        <div class="flex justify-between items-center p-3">
-                            <div>
-                                <strong class="text-gray-900 dark:text-white">Samsung Galaxy S23</strong><br>
-                                <small class="text-gray-500 dark:text-gray-400">Android 14 - Last active: 1 day ago</small>
-                            </div>
-                            <div>
-                                <button class="text-yellow-600 bg-transparent border border-yellow-600 hover:bg-yellow-600 hover:text-white focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-xs p-1.5" data-action="deactivate-device" data-token-id="token456" aria-label="Block"><i class="ti ti-ban"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `,
+            html: '<p class="text-gray-500 dark:text-gray-400 p-3">Loading device information...</p>',
             width: '600px',
-            confirmButtonText: 'Close'
+            confirmButtonText: 'Close',
+            didOpen: () => window.Swal.showLoading()
         });
+
+        try {
+            const response = await fetch(`${BASE}/user/details?user_id=${encodeURIComponent(userId)}`);
+            const data = await response.json();
+
+            if (!data.success) {
+                window.Swal.fire('Error', data.message || 'Failed to load device information', 'error');
+                return;
+            }
+
+            const tokens = (data.user && data.user.device_tokens) || [];
+            window.Swal.fire({
+                title: 'Device Management',
+                html: `<div class="text-start">${renderDeviceTokens(tokens)}</div>`,
+                width: '600px',
+                confirmButtonText: 'Close'
+            });
+        } catch (error) {
+            console.error('Error fetching device information:', error);
+            window.Swal.fire('Error', 'Failed to load device information', 'error');
+        }
     });
 
     /**
@@ -181,8 +251,8 @@ export function initMobileUsersHandlers(ED) {
     ED.register('deactivate-device', (element, event) => {
         event.preventDefault();
         const tokenId = element.dataset.tokenId;
-        const deactivateUrl = element.dataset.deactivateUrl || '/admin-panel/mobile/deactivate-device';
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const deactivateUrl = element.dataset.deactivateUrl || `${BASE}/device-token/deactivate`;
+        const csrfToken = csrf();
 
         window.Swal.fire({
             title: 'Deactivate Device?',
@@ -252,6 +322,8 @@ export function initMobileUsersHandlers(ED) {
             showCancelButton: true,
             confirmButtonText: 'Send to All Selected',
             width: '500px',
+            showLoaderOnConfirm: true,
+            allowOutsideClick: () => !window.Swal.isLoading(),
             preConfirm: () => {
                 const title = document.getElementById('bulkNotificationTitle').value;
                 const message = document.getElementById('bulkNotificationMessage').value;
@@ -261,15 +333,20 @@ export function initMobileUsersHandlers(ED) {
                     return false;
                 }
 
-                return {
-                    title: title,
-                    message: message,
-                    schedule: document.getElementById('sendSchedule').value
-                };
+                return postForm(`${BASE}/user/send-bulk-notification`, {
+                    user_ids: selectedUsers.join(','), title, message
+                })
+                    .then(data => {
+                        if (!data.success) {
+                            window.Swal.showValidationMessage(data.message || 'Failed to send notification');
+                        }
+                        return data;
+                    })
+                    .catch(() => window.Swal.showValidationMessage('Failed to send notification'));
             }
         }).then((result) => {
-            if (result.isConfirmed) {
-                window.Swal.fire('Bulk Notification Sent!', `Notification sent to ${selectedUsers.length} users.`, 'success');
+            if (result.isConfirmed && result.value && result.value.success) {
+                window.Swal.fire('Bulk Notification Sent!', result.value.message || `Notification sent to ${selectedUsers.length} users.`, 'success');
             }
         });
     });
@@ -289,7 +366,11 @@ export function initMobileUsersHandlers(ED) {
             confirmButtonText: 'Export Data'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.Swal.fire('Export Started!', 'User data export is being prepared for download.', 'success');
+                let url = `${BASE}/user/export`;
+                if (selectedUsers.length > 0) {
+                    url += `?user_ids=${encodeURIComponent(selectedUsers.join(','))}`;
+                }
+                window.location.href = url;
             }
         });
     });
@@ -339,6 +420,28 @@ export function initMobileUsersHandlers(ED) {
     /**
      * Bulk deactivate devices
      */
+    /**
+     * Shared runner for bulk device actions on selected users.
+     */
+    function runBulkDeviceAction(action, successTitle) {
+        const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
+        if (selectedUsers.length === 0) {
+            window.Swal.fire('No Users Selected', 'Please select users first.', 'warning');
+            return;
+        }
+        postForm(`${BASE}/user/bulk-device-action`, {
+            user_ids: selectedUsers.join(','), device_action: action
+        })
+            .then(data => {
+                if (data.success) {
+                    window.Swal.fire(successTitle, data.message || 'Done.', 'success');
+                } else {
+                    window.Swal.fire('Error', data.message || 'Action failed', 'error');
+                }
+            })
+            .catch(() => window.Swal.fire('Error', 'Action failed', 'error'));
+    }
+
     ED.register('bulk-deactivate-devices', (element, event) => {
         event.preventDefault();
         window.Swal.fire({
@@ -350,7 +453,7 @@ export function initMobileUsersHandlers(ED) {
             confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.Swal.fire('Devices Deactivated!', 'All devices for selected users have been deactivated.', 'success');
+                runBulkDeviceAction('deactivate', 'Devices Deactivated!');
             }
         });
     });
@@ -368,7 +471,7 @@ export function initMobileUsersHandlers(ED) {
             confirmButtonText: 'Reactivate All'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.Swal.fire('Devices Reactivated!', 'All devices for selected users have been reactivated.', 'success');
+                runBulkDeviceAction('reactivate', 'Devices Reactivated!');
             }
         });
     });
@@ -386,7 +489,7 @@ export function initMobileUsersHandlers(ED) {
             confirmButtonText: 'Cleanup Devices'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.Swal.fire('Cleanup Complete!', 'Inactive devices have been removed.', 'success');
+                runBulkDeviceAction('cleanup', 'Cleanup Complete!');
             }
         });
     });

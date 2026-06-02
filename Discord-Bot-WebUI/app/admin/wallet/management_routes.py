@@ -15,10 +15,10 @@ Handles pass lifecycle management:
 import csv
 import io
 import logging
-from datetime import datetime
+from datetime import datetime, date
 from flask import render_template, request, jsonify, flash, redirect, url_for, send_file
 from flask_login import login_required
-from sqlalchemy import and_, or_, desc
+from sqlalchemy import and_, or_, desc, func, cast, Date
 from sqlalchemy.orm import joinedload
 
 from app.core import db
@@ -225,6 +225,7 @@ def wallet_players():
 
         team_filter = request.args.get('team')
         status_filter = request.args.get('status', 'all')
+        search_query = (request.args.get('q') or '').strip()
 
         query = Player.query.join(User)
 
@@ -243,6 +244,13 @@ def wallet_players():
         elif status_filter == 'inactive':
             query = query.filter(Player.is_current_player == False)
 
+        if search_query:
+            # Free-text search: match player name (case-insensitive) or exact ID.
+            search_filters = [Player.name.ilike(f'%{search_query}%')]
+            if search_query.isdigit():
+                search_filters.append(Player.id == int(search_query))
+            query = query.filter(or_(*search_filters))
+
         players = query.paginate(
             page=page,
             per_page=per_page,
@@ -250,6 +258,33 @@ def wallet_players():
         )
 
         teams = Team.query.all()
+
+        # KPI aggregates for the page header. These cover ALL players (the
+        # unfiltered base this page manages) so the tiles reflect the full
+        # roster, not the current page/filter view.
+        #
+        # Eligible criteria mirror the existing 'eligible' status filter and
+        # the per-row template badge (is_current_player AND primary_team
+        # assigned) — the documented baseline used throughout this page. This
+        # is a subset of generate_pass._is_player_eligible (which also requires
+        # an authenticated user); we use the team-based baseline for parity
+        # with what the table renders.
+        total_players = Player.query.count()
+        eligible_players = Player.query.filter(
+            and_(
+                Player.is_current_player == True,
+                Player.primary_team_id.isnot(None)
+            )
+        ).count()
+        passes_issued = WalletPass.query.filter(
+            WalletPass.status == PassStatus.ACTIVE.value
+        ).count()
+        wallet_stats = {
+            'total': total_players,
+            'eligible': eligible_players,
+            'not_eligible': total_players - eligible_players,
+            'passes_issued': passes_issued,
+        }
 
         def url_for_other_page(page):
             args = request.args.copy()
@@ -262,8 +297,10 @@ def wallet_players():
             teams=teams,
             current_filters={
                 'team': team_filter,
-                'status': status_filter
+                'status': status_filter,
+                'q': search_query
             },
+            wallet_stats=wallet_stats,
             url_for_other_page=url_for_other_page
         )
 
@@ -916,10 +953,32 @@ def checkins_list():
             desc(WalletPassCheckin.checked_in_at)
         ).paginate(page=page, per_page=per_page, error_out=False)
 
+        # Session stat tiles: aggregate counts across ALL check-ins (not just
+        # the current page) so the KPI tiles reflect real totals.
+        stats_base = WalletPassCheckin.query
+        total_checkins = stats_base.count()
+        today_checkins = stats_base.filter(
+            cast(WalletPassCheckin.checked_in_at, Date) == date.today()
+        ).count()
+        qr_scans = stats_base.filter(
+            WalletPassCheckin.check_in_type == 'qr_scan'
+        ).count()
+        nfc_taps = stats_base.filter(
+            WalletPassCheckin.check_in_type == 'nfc_tap'
+        ).count()
+
+        checkin_stats = {
+            'total': total_checkins,
+            'today': today_checkins,
+            'qr_scans': qr_scans,
+            'nfc_taps': nfc_taps,
+        }
+
         return render_template(
             'admin/wallet_checkins_flowbite.html',
             checkins=checkins,
-            pass_type_filter=pass_type
+            pass_type_filter=pass_type,
+            checkin_stats=checkin_stats
         )
 
     except Exception as e:

@@ -30,6 +30,7 @@ def manage_leagues():
     """Manage leagues."""
     try:
         from app.models import League, Team, Match, Season
+        from app.models.stats import Standings
 
         # Get all leagues
         leagues = League.query.order_by(League.name.asc()).all()
@@ -67,6 +68,34 @@ def manage_leagues():
 
             # Set league status (all leagues are considered active)
             league.status = 'active'
+
+            # Per-league top-3 standings snapshot. Standings are keyed by team+season,
+            # so join through this league's teams filtered to the league's season,
+            # ordered by points (then goal difference) desc, limited to 3.
+            league.top_standings = []
+            if league.team_count > 0:
+                top = (
+                    Standings.query
+                    .join(Team, Standings.team_id == Team.id)
+                    .filter(
+                        Team.league_id == league.id,
+                        Standings.season_id == league.season_id,
+                    )
+                    .order_by(
+                        Standings.points.desc(),
+                        Standings.goal_difference.desc(),
+                    )
+                    .limit(3)
+                    .all()
+                )
+                league.top_standings = [
+                    {
+                        'team_name': s.team.name if s.team else 'Unknown',
+                        'played': s.played or 0,
+                        'points': s.points or 0,
+                    }
+                    for s in top
+                ]
 
         return render_template('admin_panel/match_operations/manage_leagues_flowbite.html',
                                leagues=leagues, stats=stats)
@@ -302,6 +331,32 @@ def delete_league(league_id):
         'success': True,
         'message': f'League "{league_name}" deleted successfully'
     })
+
+
+@admin_panel_bp.route('/match-operations/leagues/seasons-list')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def leagues_seasons_list():
+    """Return seasons as JSON for the Create/Edit League season selector."""
+    try:
+        from app.models import Season
+
+        seasons = Season.query.order_by(Season.is_current.desc(), Season.name.asc()).all()
+        return jsonify({
+            'success': True,
+            'seasons': [
+                {
+                    'id': s.id,
+                    'name': s.name,
+                    'league_type': s.league_type,
+                    'is_current': bool(s.is_current)
+                }
+                for s in seasons
+            ]
+        })
+    except Exception as e:
+        logger.error(f"Error listing seasons: {e}")
+        return jsonify({'success': False, 'message': 'Failed to load seasons'}), 500
 
 
 @admin_panel_bp.route('/match-operations/leagues/<int:league_id>/details')

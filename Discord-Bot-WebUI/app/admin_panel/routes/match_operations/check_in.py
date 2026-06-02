@@ -37,6 +37,7 @@ from app.check_in.service import (
     perform_check_in, get_match, build_match_label, get_match_kickoff,
     is_coach_of_match, has_admin_role, build_roster_view,
 )
+from app.check_in.constants import TOKEN_EXPIRY_HOURS_AFTER_KICKOFF
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,19 @@ _ADMIN_ROLES = ['Global Admin', 'Pub League Admin', 'ECS FC Admin']
 def _public_check_in_url(token: str) -> str:
     """Build the absolute /check-in/<token> URL that the QR encodes."""
     return f"{request.host_url.rstrip('/')}/check-in/{token}"
+
+
+def _token_expiry_for_match(match) -> 'datetime | None':
+    """Compute the hard-expiry for a token created for `match`.
+
+    kickoff + TOKEN_EXPIRY_HOURS_AFTER_KICKOFF. Returns None when the match has
+    no resolvable kickoff (date/time missing) so the token simply never expires
+    rather than blowing up token creation.
+    """
+    kickoff = get_match_kickoff(match)
+    if kickoff is None:
+        return None
+    return kickoff + timedelta(hours=TOKEN_EXPIRY_HOURS_AFTER_KICKOFF)
 
 
 def _can_view_match(session_db, match, league_type: str) -> bool:
@@ -91,6 +105,59 @@ def _list_upcoming_matches(session_db, days: int = 14):
     ).order_by(EcsFcMatch.match_date, EcsFcMatch.match_time).all()
     for m in ecs_matches:
         yield ('ecs_fc', m)
+
+
+def _build_switcher_options(session_db, current_league_type: str, current_match_id: int,
+                            days: int = 14):
+    """Build the #matchSwitcher option list for the detail page.
+
+    Returns a list of dicts {league_type, match_id, label, kickoff, detail_url,
+    is_current} sorted by kickoff, always including the currently-viewed match
+    (even if it falls outside the listing horizon). Crash-safe: any failure
+    yields a single-option list for the current match so the page still renders.
+    """
+    options = []
+    seen = set()
+    try:
+        for league_type, m in _list_upcoming_matches(session_db, days=days):
+            key = (league_type, m.id)
+            if key in seen:
+                continue
+            seen.add(key)
+            options.append({
+                'league_type': league_type,
+                'match_id': m.id,
+                'label': build_match_label(m),
+                'kickoff': get_match_kickoff(m),
+                'detail_url': url_for(
+                    'admin_panel.match_check_in_detail',
+                    league_type=league_type, match_id=m.id
+                ),
+                'is_current': (league_type == current_league_type and m.id == current_match_id),
+            })
+    except Exception as e:
+        logger.warning(f"Failed to build match switcher options: {e}")
+        options = []
+
+    # Ensure the currently-viewed match is always present (it may be older than
+    # the horizon, or listing may have failed entirely).
+    if not any(o['is_current'] for o in options):
+        current = get_match(session_db, current_league_type, current_match_id)
+        if current is not None:
+            options.append({
+                'league_type': current_league_type,
+                'match_id': current_match_id,
+                'label': build_match_label(current),
+                'kickoff': get_match_kickoff(current),
+                'detail_url': url_for(
+                    'admin_panel.match_check_in_detail',
+                    league_type=current_league_type, match_id=current_match_id
+                ),
+                'is_current': True,
+            })
+
+    options.sort(key=lambda o: (o['kickoff'] is None, o['kickoff'] or datetime.min))
+    return options
 
 
 def _attendance_count(session_db, league_type: str, match_id: int) -> int:
@@ -205,6 +272,7 @@ def match_check_in_generate_bulk():
                 match_id=match.id,
                 league_type=league_type,
                 created_by_user_id=current_user.id,
+                expires_at=_token_expiry_for_match(match),
             )
             session_db.add(ct)
             created += 1
@@ -244,6 +312,13 @@ def match_check_in_detail(league_type: str, match_id: int):
 
         token = MatchCheckInToken.find_active_for_match(league_type, match.id)
 
+        # Match switcher options — the other scheduled matches the admin can hop
+        # between without going back to the queue. Defensive: if listing fails
+        # we just render a single-option switcher (current match only).
+        switcher_matches = _build_switcher_options(
+            session_db, current_league_type=league_type, current_match_id=match.id
+        )
+
         # Pre-render the roster server-side; JS refreshes via /api/roster.
         roster_view = build_roster_view(session_db, match, league_type, include_all=False)
         full_roster_view = build_roster_view(session_db, match, league_type, include_all=True)
@@ -270,6 +345,7 @@ def match_check_in_detail(league_type: str, match_id: int):
                 'admin_panel.match_check_in_export_csv',
                 league_type=league_type, match_id=match.id
             ),
+            'switcher_matches': switcher_matches,
         }
 
     return render_template('admin_panel/match_operations/check_in/detail.html', **ctx)
@@ -311,6 +387,7 @@ def match_check_in_generate_token(league_type: str, match_id: int):
                 match_id=match.id,
                 league_type=league_type,
                 created_by_user_id=current_user.id,
+                expires_at=_token_expiry_for_match(match),
             )
             session_db.add(ct)
             created = True

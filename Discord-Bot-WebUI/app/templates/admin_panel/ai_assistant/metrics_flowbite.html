@@ -16,99 +16,149 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, section_card, skeleton %}
+{% from 'macros/_modern_kit.html' import page_header, skeleton %}
 <div class="space-y-6">
-    {{ page_header('AI Assistant', subtitle='Usage metrics, budget tracking, and configuration') }}
-
-    {# Stats Cards (loaded via JS — IDs/structure preserved for extra_js) #}
-    <div id="ai-metrics-stats" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {% for i in range(5) %}
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 animate-pulse">
-            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
-            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {% call section_card('Provider Usage', icon='ti-server-cog') %}
-        <div id="ai-metrics-providers" class="space-y-3 p-4 sm:p-5">
-            {{ skeleton(3) }}
-        </div>
-        {% endcall %}
-
-        {% call section_card('Top Questions', icon='ti-message-question') %}
-        <div id="ai-metrics-questions" class="space-y-2 p-4 sm:p-5">
-            {{ skeleton(3) }}
-        </div>
-        {% endcall %}
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {% call section_card('Top Users', icon='ti-users') %}
-        <div id="ai-metrics-users" class="space-y-2 p-4 sm:p-5">
-            {{ skeleton(3) }}
-        </div>
-        {% endcall %}
-
-        {% call section_card('Provider Health', icon='ti-heartbeat') %}
-        <div id="ai-metrics-circuit" class="space-y-3 p-4 sm:p-5">
-            {{ skeleton(2) }}
-        </div>
-        {% endcall %}
-    </div>
-
-    {% call section_card('Poorly Rated Responses', icon='ti-thumb-down') %}
-    <div id="ai-metrics-poorly-rated" class="space-y-2 p-4 sm:p-5">
-        {{ skeleton(3) }}
-    </div>
+    {% call page_header('AI Assistant', subtitle='Usage · spend · provider health') %}
+        <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-mono font-medium text-gray-600 dark:text-gray-300">
+            <i class="ti ti-calendar-stats text-ecs-green" aria-hidden="true"></i> 30-day window
+        </span>
+        <a href="{{ url_for('ai_assistant.admin_metrics') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
+        </a>
     {% endcall %}
 
-    {% call section_card('Configuration', icon='ti-settings') %}
-    <div class="space-y-6 p-4 sm:p-5">
-        {# Admin Controls #}
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">AI Assistant</label>
-                <button type="button" id="ai-toggle-btn" data-action="ai-config-toggle-enabled"
-                        class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 text-sm font-medium rounded-lg border transition-colors
-                               focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                    <i class="ti ti-power" aria-hidden="true"></i><span>Loading...</span>
+    {# ===== HERO: KPI BAND — spend/usage at a glance (#ai-metrics-stats is JS-owned) ===== #}
+    <section aria-labelledby="aiKpiHead">
+        <h2 id="aiKpiHead" class="sr-only">AI usage and spend metrics</h2>
+        <div id="ai-metrics-stats" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            {% for i in range(5) %}
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 animate-pulse" aria-hidden="true">
+                <div class="flex items-center justify-between">
+                    <div class="h-3 w-20 rounded bg-gray-200 dark:bg-gray-700"></div>
+                    <div class="h-4 w-4 rounded bg-gray-200 dark:bg-gray-700"></div>
+                </div>
+                <div class="mt-3 h-8 w-16 rounded bg-gray-200 dark:bg-gray-700"></div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# ===== Provider mix + health (two-column feature cards with header bars) ===== #}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <section class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-xs font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-server-cog text-ecs-green" aria-hidden="true"></i> Provider Usage
+                </h3>
+                <span class="text-[11px] font-mono text-gray-400 dark:text-gray-500">requests / 30d</span>
+            </div>
+            <div id="ai-metrics-providers" class="p-4 sm:p-5 space-y-3">
+                {{ skeleton(2) }}
+            </div>
+        </section>
+
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-xs font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-heartbeat text-ecs-green" aria-hidden="true"></i> Provider Health
+                </h3>
+            </div>
+            <div id="ai-metrics-circuit" class="p-4 sm:p-5 space-y-3">
+                {{ skeleton(2) }}
+            </div>
+        </section>
+    </div>
+
+    {# ===== Top questions + top users (dense lists) ===== #}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-xs font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-message-question text-ecs-green" aria-hidden="true"></i> Top Questions
+                </h3>
+            </div>
+            <div id="ai-metrics-questions" class="p-4 sm:p-5 space-y-2">
+                {{ skeleton(3) }}
+            </div>
+        </section>
+
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-xs font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-users text-ecs-green" aria-hidden="true"></i> Top Users
+                </h3>
+            </div>
+            <div id="ai-metrics-users" class="p-4 sm:p-5 space-y-2">
+                {{ skeleton(3) }}
+            </div>
+        </section>
+    </div>
+
+    {# ===== Poorly rated responses — review queue (full-width table region) ===== #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-xs font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-thumb-down text-red-600 dark:text-red-400" aria-hidden="true"></i> Poorly Rated Responses
+            </h3>
+            <span class="text-[11px] font-mono text-gray-400 dark:text-gray-500">thumbs-down · review queue</span>
+        </div>
+        <div id="ai-metrics-poorly-rated" class="p-4 sm:p-5 space-y-2">
+            {{ skeleton(3) }}
+        </div>
+    </section>
+
+    {# ===== Configuration — command panel (controls + read-only telemetry) ===== #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-xs font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-settings text-ecs-green" aria-hidden="true"></i> Configuration
+            </h3>
+        </div>
+        <div class="p-4 sm:p-5 space-y-6">
+            {# Admin Controls #}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">AI Assistant</label>
+                    <button type="button" id="ai-toggle-btn" data-action="ai-config-toggle-enabled"
+                            class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 text-sm font-medium rounded-lg border transition-colors
+                                   focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        <i class="ti ti-power" aria-hidden="true"></i><span>Loading...</span>
+                    </button>
+                </div>
+                <div>
+                    <label for="ai-provider-select" class="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Primary Provider</label>
+                    <select id="ai-provider-select" data-action="ai-config-change-provider"
+                            class="input-ecs h-11 w-full text-sm">
+                        <option value="claude">Claude (Anthropic)</option>
+                        <option value="openai">GPT (OpenAI)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="ai-budget-input" class="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Monthly Budget (USD)</label>
+                    <input type="number" id="ai-budget-input" step="0.01" min="0" value="50.00"
+                           class="input-ecs h-11 w-full text-sm font-mono">
+                </div>
+                <div>
+                    <label for="ai-rate-input" class="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Rate Limit (per user/day)</label>
+                    <input type="number" id="ai-rate-input" min="1" max="1000" value="100"
+                           class="input-ecs h-11 w-full text-sm font-mono">
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button type="button" id="ai-save-config-btn" data-action="ai-config-save"
+                        class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 transition-colors
+                               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Settings
                 </button>
             </div>
-            <div>
-                <label for="ai-provider-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary Provider</label>
-                <select id="ai-provider-select" data-action="ai-config-change-provider"
-                        class="input-ecs h-11 w-full text-sm">
-                    <option value="claude">Claude (Anthropic)</option>
-                    <option value="openai">GPT (OpenAI)</option>
-                </select>
-            </div>
-            <div>
-                <label for="ai-budget-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monthly Budget (USD)</label>
-                <input type="number" id="ai-budget-input" step="0.01" min="0" value="50.00"
-                       class="input-ecs h-11 w-full text-sm">
-            </div>
-            <div>
-                <label for="ai-rate-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rate Limit (per user/day)</label>
-                <input type="number" id="ai-rate-input" min="1" max="1000" value="100"
-                       class="input-ecs h-11 w-full text-sm">
-            </div>
-        </div>
-        <div class="flex justify-end">
-            <button type="button" id="ai-save-config-btn" data-action="ai-config-save"
-                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Settings
-            </button>
-        </div>
 
-        {# Read-only Stats (loaded via JS) #}
-        <div id="ai-metrics-config" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Loading metrics...</p>
+            {# Read-only telemetry (loaded via JS) #}
+            <div id="ai-metrics-config" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Loading metrics...</p>
+            </div>
         </div>
-    </div>
-    {% endcall %}
+    </section>
 </div>
 {% else %}
 <div class="space-y-6">

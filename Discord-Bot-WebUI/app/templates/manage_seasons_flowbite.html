@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import empty_state, modal, page_header, stat_card %}
 {% from "macros/flowbite.html" import modal %}
 {% from "macros/_modern_kit.html" import page_header, section_card, empty_state, modal as kit_modal %}
 {% from "macros/flowbite.html" import input as fb_input, button as fb_button %}
@@ -7,145 +8,386 @@
 {% block main_content %}
 {% if shell == 'console' %}
 {# ===================== MODERN (console) ===================== #}
+{# Real data: pub_league_seasons / ecs_fc_seasons -> Season(id, name, is_current,
+   start_date, end_date, year[derived], leagues[->name, teams]). No fabricated fields. #}
+{% set pl_current = (pub_league_seasons | selectattr('is_current') | list | first) %}
+{% set fc_current = (ecs_fc_seasons | selectattr('is_current') | list | first) %}
+{% set pl_total = pub_league_seasons | length %}
+{% set fc_total = ecs_fc_seasons | length %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-    {{ page_header("Season Management", subtitle="Pub League & ECS FC") }}
+    {{ page_header("Season Management", subtitle="Competition lifecycle / Pub League + ECS FC") }}
 
-    <!-- Tab Navigation -->
+    <!-- KPI band -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        {{ stat_card("ti-trophy", "Active Season", (pl_current.year if pl_current and pl_current.year else (pl_current.name.split(' ')[0] if pl_current else "—")), sublabel=("Pub League — " ~ pl_current.name if pl_current else "none set"), tone="primary") }}
+        {{ stat_card("ti-ball-football", "Active ECS FC", (fc_current.year if fc_current and fc_current.year else (fc_current.name.split(' ')[0] if fc_current else "—")), sublabel=("ECS FC — " ~ fc_current.name if fc_current else "none set"), tone="gold") }}
+        {{ stat_card("ti-calendar-stats", "Pub League Seasons", pl_total, sublabel="on record", tone="info") }}
+        {{ stat_card("ti-calendar-stats", "ECS FC Seasons", fc_total, sublabel="on record", tone="neutral") }}
+    </div>
+
+    <!-- Segmented control (tabs) -->
     <div class="mb-6">
-        <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700">
-            <button type="button" id="pub-league-tab"
-                    class="season-tab min-h-[44px] px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 border-ecs-green text-ecs-green bg-ecs-green/10"
+        <div class="inline-flex rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 p-1" role="tablist" aria-label="Season type">
+            <button type="button" id="pub-league-tab" role="tab" aria-selected="true"
+                    class="season-tab inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 text-sm font-semibold rounded-lg border-ecs-green text-ecs-green bg-ecs-green/10 transition-colors"
                     data-tab="pub-league">
-                Pub League Seasons
+                <i class="ti ti-beer" aria-hidden="true"></i> Pub League
+                <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-ecs-green/15">{{ pl_total }}</span>
             </button>
-            <button type="button" id="ecs-fc-tab"
-                    class="season-tab min-h-[44px] px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            <button type="button" id="ecs-fc-tab" role="tab" aria-selected="false"
+                    class="season-tab inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 text-sm font-semibold rounded-lg border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                     data-tab="ecs-fc">
-                ECS FC Seasons
+                <i class="ti ti-ball-football" aria-hidden="true"></i> ECS FC
+                <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ fc_total }}</span>
             </button>
         </div>
     </div>
 
     <!-- Pub League Tab Content -->
-    <div id="pub-league-content" class="season-content space-y-6">
-        {% call section_card("Create Pub League Season", icon="ti-plus") %}
-        <div class="p-4 sm:p-5">
-            <form method="POST" action="{{ url_for('publeague.season.manage_seasons') }}" id="pubLeagueSeasonForm" class="flex flex-col sm:flex-row sm:items-end gap-3">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="flex-1 min-w-0">
-                    {{ fb_input("season_name", label="Season Name", placeholder="Enter season name YYYY Season (e.g., 2024 Spring)", required=true) }}
-                </div>
-                {{ fb_button("Create Pub League Season", icon="ti-plus", type="submit", class_="shrink-0 min-h-[44px]") }}
-            </form>
-        </div>
-        {% endcall %}
+    <div id="pub-league-content" class="season-content space-y-6" role="tabpanel" aria-labelledby="pub-league-tab">
 
-        {% call section_card("Existing Pub League Seasons", icon="ti-list") %}
-        {% if pub_league_seasons %}
-        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-            {% for season in pub_league_seasons %}
-            <li class="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div class="min-w-0">
-                    <span class="font-semibold text-gray-900 dark:text-white">Pub League - {{ season.name }}</span>
-                    {% if season.is_current %}
-                    <span class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400">
-                        <i class="ti ti-star-filled text-[11px]" aria-hidden="true"></i> Current Season
-                    </span>
+        {# ---- Active season feature card ---- #}
+        {% if pl_current %}
+        {% set pl_div = pl_current.leagues | length %}
+        {% set pl_teams = pl_current.leagues | map(attribute='teams') | map('length') | sum %}
+        <section class="rounded-xl border border-ecs-green/40 dark:border-ecs-green/40 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 bg-ecs-green/5 dark:bg-ecs-green/10">
+                <i class="ti ti-star-filled text-ecs-green" aria-hidden="true"></i>
+                <span class="text-xs font-bold uppercase tracking-wide text-ecs-green">Current Pub League Season</span>
+                <span class="ml-auto font-mono text-xs text-gray-400 dark:text-gray-500">#{{ pl_current.id }}</span>
+            </div>
+            <div class="p-4 sm:p-5 flex flex-col xl:flex-row xl:items-center gap-5">
+                <div class="min-w-0 flex-1">
+                    <h2 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ pl_current.name }}</h2>
+                    <div class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
+                        <span class="inline-flex items-center gap-1.5"><i class="ti ti-layers-subtract text-base" aria-hidden="true"></i><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ pl_div }}</span> divisions</span>
+                        <span class="inline-flex items-center gap-1.5"><i class="ti ti-shield-half text-base" aria-hidden="true"></i><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ pl_teams }}</span> teams</span>
+                        {% if pl_current.start_date %}<span class="inline-flex items-center gap-1.5 font-mono"><i class="ti ti-calendar-event text-base" aria-hidden="true"></i>{{ pl_current.start_date.strftime('%b %d, %Y') }}{% if pl_current.end_date %} &rarr; {{ pl_current.end_date.strftime('%b %d, %Y') }}{% endif %}</span>{% endif %}
+                    </div>
+                    {% if pl_current.leagues %}
+                    <div class="mt-3 flex flex-wrap gap-1.5">
+                        {% for lg in pl_current.leagues %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            {{ lg.name }} <span class="font-mono text-gray-400 dark:text-gray-500">{{ lg.teams | length }}</span>
+                        </span>
+                        {% endfor %}
+                    </div>
                     {% endif %}
                 </div>
-                <div class="flex flex-wrap gap-2">
-                    <a href="{{ url_for('publeague.manage_teams', season_id=season.id) }}"
-                       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                        <i class="ti ti-users" aria-hidden="true"></i>
-                        Manage Teams
-                    </a>
-                    {% if not season.is_current %}
-                    <form method="POST" action="{{ url_for('publeague.season.set_current_season', season_id=season.id) }}" class="inline">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit"
-                                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-ecs-gold-500 hover:bg-ecs-gold-600 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-gold-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                            <i class="ti ti-star" aria-hidden="true"></i>
-                            Set Current
-                        </button>
-                    </form>
-                    {% endif %}
-                    <button type="button"
-                            class="delete-season-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                            data-season-id="{{ season.id }}"
-                            data-season-name="{{ season.name }}"
-                            data-season-type="Pub League">
-                        <i class="ti ti-trash" aria-hidden="true"></i>
-                        Delete
-                    </button>
-                </div>
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        {{ empty_state("ti-calendar-off", "No Pub League seasons", "No Pub League seasons have been created yet.") }}
+                <a href="{{ url_for('publeague.manage_teams', season_id=pl_current.id) }}"
+                   class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-users" aria-hidden="true"></i> Manage Teams
+                </a>
+            </div>
+        </section>
         {% endif %}
-        {% endcall %}
+
+        {# ---- Create + roster command card ---- #}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <i class="ti ti-calendar-plus text-ecs-green" aria-hidden="true"></i>
+                <span class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">New Pub League Season</span>
+                <span class="ml-auto text-xs text-gray-400 dark:text-gray-500 hidden sm:inline">Creates Premier + Classic divisions</span>
+            </div>
+            <div class="p-4 sm:p-5">
+                <form method="POST" action="{{ url_for('publeague.season.manage_seasons') }}" id="pubLeagueSeasonForm" class="flex flex-col sm:flex-row sm:items-end gap-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="flex-1 min-w-0">
+                        {{ fb_input("season_name", label="Season Name", placeholder="Enter season name YYYY Season (e.g., 2024 Spring)", required=true) }}
+                    </div>
+                    {{ fb_button("Create Season", icon="ti-plus", type="submit", class_="shrink-0 min-h-[44px]") }}
+                </form>
+            </div>
+        </section>
+
+        {# ---- Seasons table ---- #}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <i class="ti ti-list text-ecs-green" aria-hidden="true"></i>
+                <span class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">All Pub League Seasons</span>
+                <span class="ml-auto font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ pl_total }}</span>
+            </div>
+            {% if pub_league_seasons %}
+            {# md+ : real table with mono figures #}
+            <table class="hidden md:table w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                        <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Season</th>
+                        <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Divisions</th>
+                        <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Teams</th>
+                        <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Dates</th>
+                        <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+                        <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for season in pub_league_seasons %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {% if season.is_current %}bg-ecs-green/[0.03] dark:bg-ecs-green/[0.06]{% endif %}">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2 min-w-0">
+                                {% if season.is_current %}<i class="ti ti-star-filled text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>{% endif %}
+                                <span class="font-semibold text-gray-900 dark:text-white truncate">{{ season.name }}</span>
+                                <span class="font-mono text-xs text-gray-400 dark:text-gray-500 shrink-0">#{{ season.id }}</span>
+                            </div>
+                        </td>
+                        <td class="px-3 py-3 text-right font-mono text-gray-900 dark:text-white">{{ season.leagues | length }}</td>
+                        <td class="px-3 py-3 text-right font-mono text-gray-900 dark:text-white hidden lg:table-cell">{{ season.leagues | map(attribute='teams') | map('length') | sum }}</td>
+                        <td class="px-3 py-3 font-mono text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell whitespace-nowrap">{% if season.start_date %}{{ season.start_date.strftime('%b %Y') }}{% if season.end_date %} &rarr; {{ season.end_date.strftime('%b %Y') }}{% endif %}{% else %}&mdash;{% endif %}</td>
+                        <td class="px-3 py-3">
+                            {% if season.is_current %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15">
+                                <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i> Current
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                                <i class="ti ti-archive text-[11px]" aria-hidden="true"></i> Archived
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <a href="{{ url_for('publeague.manage_teams', season_id=season.id) }}"
+                                   class="inline-flex items-center justify-center gap-1.5 h-9 px-3 text-sm font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                    <i class="ti ti-users" aria-hidden="true"></i><span class="hidden xl:inline">Teams</span>
+                                </a>
+                                {% if not season.is_current %}
+                                <form method="POST" action="{{ url_for('publeague.season.set_current_season', season_id=season.id) }}" class="inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit"
+                                            class="inline-flex items-center justify-center gap-1.5 h-9 px-3 text-sm font-semibold rounded-lg bg-ecs-gold-500 hover:bg-ecs-gold-600 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-gold-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                        <i class="ti ti-star" aria-hidden="true"></i><span class="hidden xl:inline">Set Current</span>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <button type="button"
+                                        class="delete-season-btn inline-flex items-center justify-center h-9 w-9 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                                        data-season-id="{{ season.id }}"
+                                        data-season-name="{{ season.name }}"
+                                        data-season-type="Pub League"
+                                        aria-label="Delete {{ season.name }}">
+                                    <i class="ti ti-trash" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {# mobile : dense rows #}
+            <ul class="md:hidden divide-y divide-gray-200 dark:divide-gray-700" role="list">
+                {% for season in pub_league_seasons %}
+                <li class="p-4 {% if season.is_current %}bg-ecs-green/[0.03] dark:bg-ecs-green/[0.06]{% endif %}">
+                    <div class="flex items-center gap-2 min-w-0">
+                        {% if season.is_current %}<i class="ti ti-star-filled text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>{% endif %}
+                        <span class="font-semibold text-gray-900 dark:text-white truncate">{{ season.name }}</span>
+                        <span class="font-mono text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-auto">#{{ season.id }}</span>
+                    </div>
+                    <div class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        <span><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ season.leagues | length }}</span> divisions</span>
+                        <span><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ season.leagues | map(attribute='teams') | map('length') | sum }}</span> teams</span>
+                        {% if season.is_current %}<span class="text-ecs-green font-semibold">Current</span>{% else %}<span>Archived</span>{% endif %}
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <a href="{{ url_for('publeague.manage_teams', season_id=season.id) }}"
+                           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 text-sm font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            <i class="ti ti-users" aria-hidden="true"></i> Manage Teams
+                        </a>
+                        {% if not season.is_current %}
+                        <form method="POST" action="{{ url_for('publeague.season.set_current_season', season_id=season.id) }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit"
+                                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 text-sm font-semibold rounded-lg bg-ecs-gold-500 hover:bg-ecs-gold-600 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-gold-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                <i class="ti ti-star" aria-hidden="true"></i> Set Current
+                            </button>
+                        </form>
+                        {% endif %}
+                        <button type="button"
+                                class="delete-season-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                data-season-id="{{ season.id }}"
+                                data-season-name="{{ season.name }}"
+                                data-season-type="Pub League">
+                            <i class="ti ti-trash" aria-hidden="true"></i> Delete
+                        </button>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            {{ empty_state("ti-calendar-off", "No Pub League seasons", "No Pub League seasons have been created yet. Use the form above to create one.") }}
+            {% endif %}
+        </section>
     </div>
 
     <!-- ECS FC Tab Content -->
-    <div id="ecs-fc-content" class="season-content space-y-6 hidden">
-        {% call section_card("Create ECS FC Season", icon="ti-plus") %}
-        <div class="p-4 sm:p-5">
-            <form method="POST" action="{{ url_for('publeague.season.manage_seasons') }}" id="ecsSeasonForm" class="flex flex-col sm:flex-row sm:items-end gap-3">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="flex-1 min-w-0">
-                    {{ fb_input("ecs_fc_season_name", label="Season Name", placeholder="Enter ECS FC season name YYYY Season (e.g., 2024 Spring)", required=true) }}
-                </div>
-                {{ fb_button("Create ECS FC Season", icon="ti-plus", type="submit", class_="shrink-0 min-h-[44px]") }}
-            </form>
-        </div>
-        {% endcall %}
+    <div id="ecs-fc-content" class="season-content space-y-6 hidden" role="tabpanel" aria-labelledby="ecs-fc-tab">
 
-        {% call section_card("Existing ECS FC Seasons", icon="ti-list") %}
-        {% if ecs_fc_seasons %}
-        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-            {% for season in ecs_fc_seasons %}
-            <li class="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div class="min-w-0">
-                    <span class="font-semibold text-gray-900 dark:text-white">ECS FC - {{ season.name }}</span>
-                    {% if season.is_current %}
-                    <span class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400">
-                        <i class="ti ti-star-filled text-[11px]" aria-hidden="true"></i> Current Season
-                    </span>
+        {# ---- Active season feature card ---- #}
+        {% if fc_current %}
+        {% set fc_div = fc_current.leagues | length %}
+        {% set fc_teams = fc_current.leagues | map(attribute='teams') | map('length') | sum %}
+        <section class="rounded-xl border border-ecs-gold-500/40 dark:border-ecs-gold-400/40 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 bg-ecs-gold-500/5 dark:bg-ecs-gold-400/10">
+                <i class="ti ti-star-filled text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+                <span class="text-xs font-bold uppercase tracking-wide text-ecs-gold-600 dark:text-ecs-gold-400">Current ECS FC Season</span>
+                <span class="ml-auto font-mono text-xs text-gray-400 dark:text-gray-500">#{{ fc_current.id }}</span>
+            </div>
+            <div class="p-4 sm:p-5 flex flex-col xl:flex-row xl:items-center gap-5">
+                <div class="min-w-0 flex-1">
+                    <h2 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ fc_current.name }}</h2>
+                    <div class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
+                        <span class="inline-flex items-center gap-1.5"><i class="ti ti-layers-subtract text-base" aria-hidden="true"></i><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ fc_div }}</span> divisions</span>
+                        <span class="inline-flex items-center gap-1.5"><i class="ti ti-shield-half text-base" aria-hidden="true"></i><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ fc_teams }}</span> teams</span>
+                        {% if fc_current.start_date %}<span class="inline-flex items-center gap-1.5 font-mono"><i class="ti ti-calendar-event text-base" aria-hidden="true"></i>{{ fc_current.start_date.strftime('%b %d, %Y') }}{% if fc_current.end_date %} &rarr; {{ fc_current.end_date.strftime('%b %d, %Y') }}{% endif %}</span>{% endif %}
+                    </div>
+                    {% if fc_current.leagues %}
+                    <div class="mt-3 flex flex-wrap gap-1.5">
+                        {% for lg in fc_current.leagues %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            {{ lg.name }} <span class="font-mono text-gray-400 dark:text-gray-500">{{ lg.teams | length }}</span>
+                        </span>
+                        {% endfor %}
+                    </div>
                     {% endif %}
                 </div>
-                <div class="flex flex-wrap gap-2">
-                    <a href="{{ url_for('publeague.manage_teams', season_id=season.id) }}"
-                       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                        <i class="ti ti-users" aria-hidden="true"></i>
-                        Manage Teams
-                    </a>
-                    {% if not season.is_current %}
-                    <form method="POST" action="{{ url_for('publeague.season.set_current_season', season_id=season.id) }}" class="inline">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit"
-                                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-ecs-gold-500 hover:bg-ecs-gold-600 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-gold-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                            <i class="ti ti-star" aria-hidden="true"></i>
-                            Set Current
-                        </button>
-                    </form>
-                    {% endif %}
-                    <button type="button"
-                            class="delete-season-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                            data-season-id="{{ season.id }}"
-                            data-season-name="{{ season.name }}"
-                            data-season-type="ECS FC">
-                        <i class="ti ti-trash" aria-hidden="true"></i>
-                        Delete
-                    </button>
-                </div>
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        {{ empty_state("ti-calendar-off", "No ECS FC seasons", "No ECS FC seasons have been created yet.") }}
+                <a href="{{ url_for('publeague.manage_teams', season_id=fc_current.id) }}"
+                   class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-users" aria-hidden="true"></i> Manage Teams
+                </a>
+            </div>
+        </section>
         {% endif %}
-        {% endcall %}
+
+        {# ---- Create command card ---- #}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <i class="ti ti-calendar-plus text-ecs-green" aria-hidden="true"></i>
+                <span class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">New ECS FC Season</span>
+            </div>
+            <div class="p-4 sm:p-5">
+                <form method="POST" action="{{ url_for('publeague.season.manage_seasons') }}" id="ecsSeasonForm" class="flex flex-col sm:flex-row sm:items-end gap-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="flex-1 min-w-0">
+                        {{ fb_input("ecs_fc_season_name", label="Season Name", placeholder="Enter ECS FC season name YYYY Season (e.g., 2024 Spring)", required=true) }}
+                    </div>
+                    {{ fb_button("Create Season", icon="ti-plus", type="submit", class_="shrink-0 min-h-[44px]") }}
+                </form>
+            </div>
+        </section>
+
+        {# ---- Seasons table ---- #}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <i class="ti ti-list text-ecs-green" aria-hidden="true"></i>
+                <span class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">All ECS FC Seasons</span>
+                <span class="ml-auto font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ fc_total }}</span>
+            </div>
+            {% if ecs_fc_seasons %}
+            <table class="hidden md:table w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                        <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Season</th>
+                        <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Divisions</th>
+                        <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Teams</th>
+                        <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Dates</th>
+                        <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+                        <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for season in ecs_fc_seasons %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {% if season.is_current %}bg-ecs-green/[0.03] dark:bg-ecs-green/[0.06]{% endif %}">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2 min-w-0">
+                                {% if season.is_current %}<i class="ti ti-star-filled text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>{% endif %}
+                                <span class="font-semibold text-gray-900 dark:text-white truncate">{{ season.name }}</span>
+                                <span class="font-mono text-xs text-gray-400 dark:text-gray-500 shrink-0">#{{ season.id }}</span>
+                            </div>
+                        </td>
+                        <td class="px-3 py-3 text-right font-mono text-gray-900 dark:text-white">{{ season.leagues | length }}</td>
+                        <td class="px-3 py-3 text-right font-mono text-gray-900 dark:text-white hidden lg:table-cell">{{ season.leagues | map(attribute='teams') | map('length') | sum }}</td>
+                        <td class="px-3 py-3 font-mono text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell whitespace-nowrap">{% if season.start_date %}{{ season.start_date.strftime('%b %Y') }}{% if season.end_date %} &rarr; {{ season.end_date.strftime('%b %Y') }}{% endif %}{% else %}&mdash;{% endif %}</td>
+                        <td class="px-3 py-3">
+                            {% if season.is_current %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15">
+                                <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i> Current
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                                <i class="ti ti-archive text-[11px]" aria-hidden="true"></i> Archived
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <a href="{{ url_for('publeague.manage_teams', season_id=season.id) }}"
+                                   class="inline-flex items-center justify-center gap-1.5 h-9 px-3 text-sm font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                    <i class="ti ti-users" aria-hidden="true"></i><span class="hidden xl:inline">Teams</span>
+                                </a>
+                                {% if not season.is_current %}
+                                <form method="POST" action="{{ url_for('publeague.season.set_current_season', season_id=season.id) }}" class="inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit"
+                                            class="inline-flex items-center justify-center gap-1.5 h-9 px-3 text-sm font-semibold rounded-lg bg-ecs-gold-500 hover:bg-ecs-gold-600 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-gold-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                        <i class="ti ti-star" aria-hidden="true"></i><span class="hidden xl:inline">Set Current</span>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <button type="button"
+                                        class="delete-season-btn inline-flex items-center justify-center h-9 w-9 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                                        data-season-id="{{ season.id }}"
+                                        data-season-name="{{ season.name }}"
+                                        data-season-type="ECS FC"
+                                        aria-label="Delete {{ season.name }}">
+                                    <i class="ti ti-trash" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <ul class="md:hidden divide-y divide-gray-200 dark:divide-gray-700" role="list">
+                {% for season in ecs_fc_seasons %}
+                <li class="p-4 {% if season.is_current %}bg-ecs-green/[0.03] dark:bg-ecs-green/[0.06]{% endif %}">
+                    <div class="flex items-center gap-2 min-w-0">
+                        {% if season.is_current %}<i class="ti ti-star-filled text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>{% endif %}
+                        <span class="font-semibold text-gray-900 dark:text-white truncate">{{ season.name }}</span>
+                        <span class="font-mono text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-auto">#{{ season.id }}</span>
+                    </div>
+                    <div class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        <span><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ season.leagues | length }}</span> divisions</span>
+                        <span><span class="font-mono font-semibold text-gray-900 dark:text-white">{{ season.leagues | map(attribute='teams') | map('length') | sum }}</span> teams</span>
+                        {% if season.is_current %}<span class="text-ecs-green font-semibold">Current</span>{% else %}<span>Archived</span>{% endif %}
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <a href="{{ url_for('publeague.manage_teams', season_id=season.id) }}"
+                           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 text-sm font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            <i class="ti ti-users" aria-hidden="true"></i> Manage Teams
+                        </a>
+                        {% if not season.is_current %}
+                        <form method="POST" action="{{ url_for('publeague.season.set_current_season', season_id=season.id) }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit"
+                                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 text-sm font-semibold rounded-lg bg-ecs-gold-500 hover:bg-ecs-gold-600 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-gold-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                <i class="ti ti-star" aria-hidden="true"></i> Set Current
+                            </button>
+                        </form>
+                        {% endif %}
+                        <button type="button"
+                                class="delete-season-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                data-season-id="{{ season.id }}"
+                                data-season-name="{{ season.name }}"
+                                data-season-type="ECS FC">
+                            <i class="ti ti-trash" aria-hidden="true"></i> Delete
+                        </button>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            {{ empty_state("ti-calendar-off", "No ECS FC seasons", "No ECS FC seasons have been created yet. Use the form above to create one.") }}
+            {% endif %}
+        </section>
     </div>
 
     <!-- Hidden form for season deletion -->

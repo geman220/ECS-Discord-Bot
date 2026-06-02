@@ -224,6 +224,64 @@ def normalize_csv_columns(row):
     return normalized
 
 
+# Internal field names the import understands (used to validate a user-supplied
+# column override so we never honor a fabricated target field).
+VALID_IMPORT_FIELDS = {
+    'date', 'time', 'opponent', 'location', 'field', 'home_or_away',
+    'home_shirt_color', 'away_shirt_color', 'notes', 'latitude', 'longitude',
+}
+
+
+def normalize_csv_columns_with_map(row, column_map):
+    """
+    Normalize a CSV row using a user-supplied header->internal-field override.
+
+    `column_map` is a dict of {csv_header: internal_field_name}. Headers mapped to
+    an empty/None value (or to an unknown field) are dropped. The Step-2 UI sends a
+    selection for EVERY detected header, so when a map is supplied it is fully
+    authoritative: a header set to "Ignore" really is ignored (no alias fallback for
+    that header). Any header NOT present in the map falls back to default alias
+    detection so partial maps still behave sanely.
+
+    Returns a dict with normalized internal keys and stripped string values,
+    matching the shape normalize_csv_columns produces.
+    """
+    if not column_map:
+        return normalize_csv_columns(row)
+
+    # Case-insensitive lookup of the original (stripped) header -> value
+    by_header = {}
+    for k, v in row.items():
+        if k is None:
+            continue
+        by_header[k.strip()] = (v.strip() if v else '')
+
+    mapped_headers = {h.strip() for h in column_map.keys() if h is not None}
+
+    normalized = {}
+
+    # Headers the user did NOT include in the map fall back to alias detection.
+    if not mapped_headers.issuperset(by_header.keys()):
+        unmapped_row = {k: v for k, v in row.items()
+                        if k is not None and k.strip() not in mapped_headers}
+        if unmapped_row:
+            normalized.update(normalize_csv_columns(unmapped_row))
+
+    # Explicit user selections are authoritative (later wins on conflicts).
+    for header, field in column_map.items():
+        if header is None:
+            continue
+        header = header.strip()
+        field = (field or '').strip()
+        if header not in by_header:
+            continue
+        if not field or field not in VALID_IMPORT_FIELDS:
+            continue  # "Ignore" -> drop this column entirely
+        normalized[field] = by_header[header]
+
+    return normalized
+
+
 def parse_home_away(value):
     """
     Parse home/away indicator from various formats.
@@ -372,12 +430,91 @@ def ecs_fc_team_schedule(team_id):
             ExternalOpponent.is_active == True
         ).order_by(ExternalOpponent.name).all()
 
+        # --- Month calendar grid (defensive; never 500 on bad params/empty data) ---
+        import calendar as _calendar
+        today = datetime.now().date()
+        try:
+            cal_year = request.args.get('year', type=int) or today.year
+            cal_month = request.args.get('month', type=int) or today.month
+            # Clamp month into valid range; wrap defensively
+            if cal_month < 1 or cal_month > 12:
+                cal_month = today.month
+            if cal_year < 1900 or cal_year > 2999:
+                cal_year = today.year
+        except Exception:
+            cal_year, cal_month = today.year, today.month
+
+        calendar_weeks = []
+        calendar_label = ''
+        prev_month = prev_year = next_month = next_year = None
+        next_match_id = None
+        try:
+            # Matches for the visible month, grouped by day-of-month.
+            month_matches = session.query(EcsFcMatch).filter(
+                EcsFcMatch.team_id == team_id,
+                EcsFcMatch.match_date.isnot(None)
+            ).all()
+            matches_by_day = {}
+            for m in month_matches:
+                if m.match_date and m.match_date.year == cal_year and m.match_date.month == cal_month:
+                    matches_by_day.setdefault(m.match_date.day, []).append(m)
+            for day_list in matches_by_day.values():
+                day_list.sort(key=lambda mm: mm.match_time or datetime.min.time())
+
+            # Next upcoming match (for the "next match" highlight in the grid)
+            next_upcoming = session.query(EcsFcMatch).filter(
+                EcsFcMatch.team_id == team_id,
+                EcsFcMatch.match_date >= today
+            ).order_by(EcsFcMatch.match_date, EcsFcMatch.match_time).first()
+            if next_upcoming:
+                next_match_id = next_upcoming.id
+
+            # Build the weeks x days grid (Sunday-first to match the mock).
+            cal = _calendar.Calendar(firstweekday=6)  # 6 = Sunday
+            for week in cal.monthdatescalendar(cal_year, cal_month):
+                week_cells = []
+                for day_date in week:
+                    in_month = (day_date.month == cal_month and day_date.year == cal_year)
+                    day_matches = matches_by_day.get(day_date.day, []) if in_month else []
+                    week_cells.append({
+                        'date': day_date,
+                        'day': day_date.day,
+                        'in_month': in_month,
+                        'is_today': day_date == today,
+                        'matches': day_matches,
+                    })
+                calendar_weeks.append(week_cells)
+
+            calendar_label = datetime(cal_year, cal_month, 1).strftime('%B %Y')
+
+            # Prev / next month targets
+            if cal_month == 1:
+                prev_month, prev_year = 12, cal_year - 1
+            else:
+                prev_month, prev_year = cal_month - 1, cal_year
+            if cal_month == 12:
+                next_month, next_year = 1, cal_year + 1
+            else:
+                next_month, next_year = cal_month + 1, cal_year
+        except Exception as cal_err:
+            logger.error(f"Error building team schedule calendar: {cal_err}", exc_info=True)
+            calendar_weeks = []
+
         return render_template(
             'admin_panel/ecs_fc/team_schedule_flowbite.html',
             team=team,
             matches=matches,
             opponents=opponents,
-            show_past=show_past
+            show_past=show_past,
+            calendar_weeks=calendar_weeks,
+            calendar_label=calendar_label,
+            cal_year=cal_year,
+            cal_month=cal_month,
+            prev_month=prev_month,
+            prev_year=prev_year,
+            next_month=next_month,
+            next_year=next_year,
+            next_match_id=next_match_id,
         )
     except Exception as e:
         logger.error(f"Error loading team schedule: {e}")
@@ -781,6 +918,165 @@ def ecs_fc_opponent_delete(opponent_id):
 # CSV Import Routes
 # -----------------------------------------------------------
 
+# Internal field metadata shared by the preview wizard. These mirror the
+# fields the single-shot commit path (ecs_fc_import) already understands via
+# normalize_csv_columns(). 'required' = needed for every row, 'cond' = needed
+# for non-bye rows only, 'optional' = enrichment.
+IMPORT_FIELD_SPECS = [
+    ('date', 'Date', 'required'),
+    ('time', 'Time', 'cond'),
+    ('opponent', 'Opponent', 'required'),
+    ('location', 'Location', 'optional'),
+    ('field', 'Field', 'optional'),
+    ('home_or_away', 'Home or away', 'optional'),
+    ('home_shirt_color', 'Shirt color', 'optional'),
+    ('away_shirt_color', 'Opponent shirt color', 'optional'),
+    ('notes', 'Notes', 'optional'),
+    ('latitude', 'Latitude', 'optional'),
+    ('longitude', 'Longitude', 'optional'),
+]
+
+
+@admin_panel_bp.route('/ecs-fc/import/preview', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+def ecs_fc_import_preview():
+    """
+    Parse an uploaded schedule CSV WITHOUT committing and return a structured
+    preview: detected headers, a suggested header->field mapping, sample values,
+    parsed row count, and per-row validation (valid / bye / needs-review).
+
+    This reuses the exact parse helpers the commit path (ecs_fc_import) uses
+    (normalize_csv_columns, parse_flexible_date, parse_flexible_time,
+    is_bye_week, parse_home_away) so the preview matches the real import.
+    """
+    try:
+        team_id = request.form.get('team_id', type=int)
+        if not team_id or not validate_ecs_fc_coach_access(team_id, current_user):
+            return jsonify({'success': False, 'message': 'Access denied or no team selected'}), 403
+
+        csv_file = request.files.get('csv_file')
+        if not csv_file:
+            return jsonify({'success': False, 'message': 'No file uploaded'}), 400
+
+        try:
+            raw = csv_file.stream.read().decode('UTF-8')
+        except UnicodeDecodeError:
+            return jsonify({'success': False, 'message': 'File must be UTF-8 encoded CSV'}), 400
+
+        stream = io.StringIO(raw)
+        reader = csv.DictReader(stream)
+        headers = [h.strip() for h in (reader.fieldnames or []) if h is not None]
+
+        if not headers:
+            return jsonify({'success': False, 'message': 'CSV has no header row'}), 400
+
+        # Build a suggested mapping: detected-header -> internal field name.
+        # Reuse normalize_csv_columns' alias logic by running it over a synthetic
+        # row keyed by header name so the suggestion exactly matches import behavior.
+        synthetic_row = {h: h for h in headers}
+        normalized_keys = normalize_csv_columns(synthetic_row)
+        # normalized_keys maps internal_name -> original header value (which == header here)
+        header_to_field = {}
+        for internal_name, original_header in normalized_keys.items():
+            header_to_field[original_header.strip()] = internal_name
+
+        field_label = {key: label for key, label, _ in IMPORT_FIELD_SPECS}
+        suggested_mapping = []
+        for h in headers:
+            field = header_to_field.get(h.strip())
+            suggested_mapping.append({
+                'header': h,
+                'field': field,
+                'field_label': field_label.get(field) if field else None,
+            })
+
+        # Parse each row using the same helpers as the commit path.
+        rows = []
+        counts = {'valid': 0, 'bye': 0, 'needs_review': 0}
+        sample_values = {}  # internal_field -> first non-empty sample seen
+
+        for row_num, row in enumerate(reader, start=2):
+            normalized = normalize_csv_columns(row)
+
+            for field, value in normalized.items():
+                if value and field not in sample_values:
+                    sample_values[field] = value
+
+            opponent_name = (normalized.get('opponent', '') or '').strip() or ''
+            issues = []
+            status = 'valid'
+
+            if is_bye_week(opponent_name):
+                status = 'bye'
+                date_val = None
+                try:
+                    date_val = parse_flexible_date(normalized.get('date', ''))
+                except ValueError as e:
+                    issues.append(str(e))
+                    status = 'needs_review'
+                if not date_val and status != 'needs_review':
+                    issues.append('Bye week must have a date')
+                    status = 'needs_review'
+            else:
+                if not opponent_name:
+                    issues.append('Missing opponent')
+                    status = 'needs_review'
+
+                # Date (required for non-bye rows)
+                date_val = None
+                date_errored = False
+                try:
+                    date_val = parse_flexible_date(normalized.get('date', ''))
+                except ValueError as e:
+                    issues.append(str(e))
+                    date_errored = True
+                    status = 'needs_review'
+                if not date_val and not date_errored:
+                    issues.append('Missing or invalid date')
+                    status = 'needs_review'
+
+                # Time (required for non-bye rows)
+                time_val = None
+                time_errored = False
+                try:
+                    time_val = parse_flexible_time(normalized.get('time', ''))
+                except ValueError as e:
+                    issues.append(str(e))
+                    time_errored = True
+                    status = 'needs_review'
+                if not time_val and not time_errored:
+                    issues.append('Missing or invalid time')
+                    status = 'needs_review'
+
+            rows.append({
+                'row': row_num,
+                'opponent': opponent_name or '(none)',
+                'date': normalized.get('date', ''),
+                'time': normalized.get('time', ''),
+                'location': normalized.get('location', ''),
+                'home_or_away': 'Home' if parse_home_away(normalized.get('home_or_away', '')) else 'Away',
+                'status': status,
+                'issues': issues,
+            })
+
+            counts[status if status in counts else 'needs_review'] += 1
+
+        return jsonify({
+            'success': True,
+            'headers': headers,
+            'suggested_mapping': suggested_mapping,
+            'sample_values': sample_values,
+            'row_count': len(rows),
+            'counts': counts,
+            'rows': rows,
+        })
+
+    except Exception as e:
+        logger.error(f"Error generating import preview: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Unable to parse CSV file'}), 400
+
+
 @admin_panel_bp.route('/ecs-fc/import', methods=['GET', 'POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
@@ -801,6 +1097,20 @@ def ecs_fc_import():
                 flash('No file uploaded', 'error')
                 return redirect(url_for('admin_panel.ecs_fc_import'))
 
+            # Optional user-supplied column override (from Step-2 "Maps To" selects).
+            # JSON object: {csv_header: internal_field_name}. Invalid/missing => default detection.
+            column_map = {}
+            raw_map = request.form.get('column_map')
+            if raw_map:
+                try:
+                    import json as _json
+                    parsed_map = _json.loads(raw_map)
+                    if isinstance(parsed_map, dict):
+                        column_map = {str(k): str(v) for k, v in parsed_map.items()}
+                except Exception:
+                    logger.warning("Ignoring invalid column_map payload on ECS FC import")
+                    column_map = {}
+
             # Parse CSV
             stream = io.StringIO(csv_file.stream.read().decode('UTF-8'))
             reader = csv.DictReader(stream)
@@ -810,8 +1120,8 @@ def ecs_fc_import():
 
             for row_num, row in enumerate(reader, start=2):  # Start at 2 to account for header
                 try:
-                    # Normalize column names using helper function
-                    normalized = normalize_csv_columns(row)
+                    # Normalize column names, honoring the user's Step-2 overrides.
+                    normalized = normalize_csv_columns_with_map(row, column_map)
 
                     # Get opponent name
                     opponent_name = normalized.get('opponent', '').strip() or 'Unknown'
@@ -1148,6 +1458,88 @@ def ecs_fc_sub_requests():
                 'total_contacted': len(responses),
             })
 
+        # --- ECS FC Sub Pool side panel (reuse same data source as the
+        # admin sub-pool page: active EcsFcSubPool rows with player loaded). ---
+        from app.models import Player
+        pool_members = []
+        try:
+            pool_entries = session.query(EcsFcSubPool).options(
+                joinedload(EcsFcSubPool.player)
+            ).filter(EcsFcSubPool.is_active == True).all()
+
+            # Most recent sub response per player, to surface availability + "responded X ago"
+            latest_resp_by_player = {}
+            try:
+                recent_responses = session.query(EcsFcSubResponse).filter(
+                    EcsFcSubResponse.responded_at.isnot(None)
+                ).order_by(EcsFcSubResponse.responded_at.desc()).all()
+                for r in recent_responses:
+                    if r.player_id not in latest_resp_by_player:
+                        latest_resp_by_player[r.player_id] = r
+            except Exception as resp_err:
+                logger.warning(f"Could not load recent sub responses: {resp_err}")
+
+            for entry in pool_entries:
+                player = entry.player
+                if not player:
+                    continue
+                latest = latest_resp_by_player.get(entry.player_id)
+                if latest is not None and latest.is_available is True:
+                    avail_status = 'available'
+                elif latest is not None and latest.is_available is False:
+                    avail_status = 'unavailable'
+                else:
+                    avail_status = 'pending'
+                pool_members.append({
+                    'player_id': entry.player_id,
+                    'name': player.name or 'Unknown',
+                    'positions': entry.preferred_positions or player.favorite_position or '',
+                    'last_responded_at': latest.responded_at if latest else entry.last_active_at,
+                    'availability': avail_status,
+                })
+            # Stable ordering: available first, then pending, then unavailable; then name
+            _order = {'available': 0, 'pending': 1, 'unavailable': 2}
+            pool_members.sort(key=lambda m: (_order.get(m['availability'], 3), m['name'].lower()))
+        except Exception as pool_err:
+            logger.error(f"Error building ECS FC sub pool panel: {pool_err}", exc_info=True)
+            pool_members = []
+
+        # --- Upcoming ECS FC matches with open-request counts ---
+        upcoming_matches = []
+        try:
+            today = datetime.now().date()
+            match_query = session.query(EcsFcMatch).options(
+                joinedload(EcsFcMatch.team)
+            ).filter(EcsFcMatch.match_date >= today)
+            if team_filter:
+                match_query = match_query.filter(EcsFcMatch.team_id == team_filter)
+            matches = match_query.order_by(
+                EcsFcMatch.match_date, EcsFcMatch.match_time
+            ).limit(20).all()
+
+            for m in matches:
+                # Latest active sub request for this match (if any)
+                req = session.query(EcsFcSubRequest).filter(
+                    EcsFcSubRequest.match_id == m.id,
+                    EcsFcSubRequest.status.in_(['OPEN', 'FILLED'])
+                ).order_by(EcsFcSubRequest.created_at.desc()).first()
+
+                req_info = None
+                if req:
+                    assigned = session.query(EcsFcSubAssignment).filter(
+                        EcsFcSubAssignment.request_id == req.id
+                    ).count()
+                    req_info = {
+                        'status': req.status,
+                        'assigned': assigned,
+                        'needed': req.substitutes_needed or 1,
+                        'match_id': m.id,
+                    }
+                upcoming_matches.append({'match': m, 'request': req_info})
+        except Exception as match_err:
+            logger.error(f"Error building upcoming ECS FC matches: {match_err}", exc_info=True)
+            upcoming_matches = []
+
         # Stats
         all_requests = session.query(EcsFcSubRequest).all()
         stats = {
@@ -1155,7 +1547,8 @@ def ecs_fc_sub_requests():
             'open': sum(1 for r in all_requests if r.status == 'OPEN'),
             'filled': sum(1 for r in all_requests if r.status == 'FILLED'),
             'cancelled': sum(1 for r in all_requests if r.status == 'CANCELLED'),
-            'pool_size': session.query(EcsFcSubPool).filter_by(is_active=True).count(),
+            'pool_size': len(pool_members),
+            'upcoming_matches': len(upcoming_matches),
         }
 
         return render_template(
@@ -1166,6 +1559,8 @@ def ecs_fc_sub_requests():
             status_filter=status_filter,
             team_filter=team_filter,
             is_admin=is_admin,
+            pool_members=pool_members,
+            upcoming_matches=upcoming_matches,
         )
     except Exception as e:
         logger.error(f"Error loading ECS FC sub requests: {e}", exc_info=True)
@@ -1179,3 +1574,172 @@ def ecs_fc_sub_requests():
 def ecs_fc_sub_pool():
     """Redirect to substitute pools dashboard filtered to ECS FC."""
     return redirect(url_for('admin_panel.substitute_pools', context='ecs-fc'))
+
+
+@admin_panel_bp.route('/ecs-fc/sub-requests/contact', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+def ecs_fc_contact_subs():
+    """
+    Board-level "Contact Substitutes" endpoint for the ECS FC sub-requests page.
+
+    Accepts a target match plus recipient-type (all/gender/position/specific) and
+    notification channel selections, creates a real EcsFcSubRequest, resolves the
+    matching active pool members, and sends notifications by REUSING the exact
+    helpers the per-match flow (app.ecs_fc_routes.create_sub_request) uses:
+      - EcsFcSubResponse rows + generate_token()
+      - _send_sub_request_notification() for the per-channel send
+    so this board action and the per-match action stay byte-for-byte consistent.
+    """
+    import os
+    from app.models import Player
+    from app.models.substitutes import EcsFcSubRequest, EcsFcSubResponse, EcsFcSubPool
+    # Reuse the same notification helper the per-match create flow uses.
+    from app.ecs_fc_routes import _send_sub_request_notification
+
+    session = g.db_session
+
+    try:
+        data = request.get_json(silent=True) or {}
+
+        match_id = data.get('match_id')
+        try:
+            match_id = int(match_id) if match_id is not None else None
+        except (TypeError, ValueError):
+            match_id = None
+
+        if not match_id:
+            return jsonify({'success': False, 'message': 'A match must be selected to contact subs'}), 400
+
+        match = session.query(EcsFcMatch).options(
+            joinedload(EcsFcMatch.team)
+        ).get(match_id)
+        if not match:
+            return jsonify({'success': False, 'message': 'Match not found'}), 404
+
+        if not validate_ecs_fc_coach_access(match.team_id, current_user):
+            return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+        # Filter / channel selections (mirror create_sub_request's contract)
+        recipient_type = data.get('recipient_type', 'all')
+        gender_filter = data.get('gender')
+        position_filters = data.get('positions', []) or []
+        specific_player_ids = data.get('player_ids', []) or []
+        channels = data.get('channels', ['email', 'discord']) or []
+        # Defensive: only allow known channels through
+        channels = [c for c in channels if c in ('sms', 'email', 'push', 'discord')]
+        if not channels:
+            return jsonify({'success': False, 'message': 'Select at least one notification channel'}), 400
+
+        custom_message = (data.get('message') or '').strip()
+        try:
+            subs_needed = int(data.get('subs_needed', 1))
+        except (TypeError, ValueError):
+            subs_needed = 1
+        subs_needed = max(1, min(subs_needed, 10))
+
+        # Create the sub request record (same model/fields as create_sub_request)
+        sub_request = EcsFcSubRequest(
+            match_id=match.id,
+            team_id=match.team_id,
+            requested_by=current_user.id,
+            positions_needed=','.join(position_filters) if position_filters else None,
+            notes=custom_message,
+            substitutes_needed=subs_needed,
+            status='OPEN'
+        )
+        session.add(sub_request)
+        session.flush()
+
+        # Resolve eligible subs from the active ECS FC pool, applying the same
+        # filter rules as create_sub_request.
+        pool_members = session.query(EcsFcSubPool).options(
+            joinedload(EcsFcSubPool.player).joinedload(Player.user)
+        ).filter(EcsFcSubPool.is_active == True).all()
+
+        eligible_players = []
+        for pool_entry in pool_members:
+            player = pool_entry.player
+            if not player or not player.user or not player.user.is_approved:
+                continue
+
+            if recipient_type == 'specific':
+                if player.id not in specific_player_ids:
+                    continue
+            elif recipient_type == 'gender' and gender_filter:
+                pronouns = (player.pronouns or '').lower()
+                if gender_filter == 'male' and 'he' not in pronouns:
+                    continue
+                if gender_filter == 'female' and 'she' not in pronouns:
+                    continue
+            elif recipient_type == 'position' and position_filters:
+                player_positions = [p.strip() for p in (pool_entry.preferred_positions or '').upper().split(',')]
+                if not any(p in position_filters for p in player_positions):
+                    continue
+
+            eligible_players.append((player, pool_entry))
+
+        if not eligible_players:
+            session.rollback()
+            return jsonify({
+                'success': False,
+                'message': 'No eligible subs found matching the selected criteria'
+            }), 400
+
+        base_url = os.getenv('BASE_URL', 'https://portal.ecsfc.com')
+        notifications_sent = 0
+
+        for player, pool_entry in eligible_players:
+            response = EcsFcSubResponse(
+                request_id=sub_request.id,
+                player_id=player.id,
+                is_available=None,
+                notification_sent_at=datetime.utcnow(),
+                notification_methods=','.join(channels)
+            )
+            response.generate_token()
+            session.add(response)
+            session.flush()
+
+            rsvp_url = f"{base_url}/ecs-fc/sub-response/{response.rsvp_token}"
+
+            try:
+                send_result = _send_sub_request_notification(
+                    player=player,
+                    pool_entry=pool_entry,
+                    match=match,
+                    custom_message=custom_message,
+                    channels=channels,
+                    rsvp_url=rsvp_url,
+                    rsvp_token=response.rsvp_token,
+                    request_id=sub_request.id
+                )
+            except Exception as send_err:
+                logger.error(f"Contact subs: notification failed for player {player.id}: {send_err}", exc_info=True)
+                send_result = False
+
+            if send_result:
+                notifications_sent += 1
+                pool_entry.requests_received = (pool_entry.requests_received or 0) + 1
+                pool_entry.last_active_at = datetime.utcnow()
+
+        session.commit()
+
+        logger.info(
+            f"ECS FC board contact: sub request {sub_request.id} for match {match.id} "
+            f"by user {current_user.id}, {notifications_sent}/{len(eligible_players)} sent"
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Contacted {notifications_sent} sub{"s" if notifications_sent != 1 else ""} '
+                       f'for {match.team.name if match.team else "ECS FC"} vs {match.opponent_name}',
+            'request_id': sub_request.id,
+            'eligible_count': len(eligible_players),
+            'notifications_sent': notifications_sent
+        })
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error in board-level contact subs: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500

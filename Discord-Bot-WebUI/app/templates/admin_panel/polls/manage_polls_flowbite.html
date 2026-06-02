@@ -16,48 +16,209 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, data_table, data_table_th, empty_state %}
 
+{# --- Derive everything from REAL route data: polls[].{title,question,status,created_at,closed_at,total_responses,response_counts{yes,no,maybe},id} --- #}
 {% set visible_polls = polls | rejectattr('status', 'equalto', 'DELETED') | list if polls else [] %}
-{% set active_count = visible_polls | selectattr('status', 'equalto', 'ACTIVE') | list | length %}
-{% set closed_count = visible_polls | selectattr('status', 'equalto', 'CLOSED') | list | length %}
+{% set active_polls = visible_polls | selectattr('status', 'equalto', 'ACTIVE') | list %}
+{% set closed_polls = visible_polls | selectattr('status', 'equalto', 'CLOSED') | list %}
+{% set total_responses = visible_polls | sum(attribute='total_responses') %}
+{% set ns = namespace(yes=0, no=0, maybe=0) %}
+{% for p in visible_polls %}
+  {% set ns.yes = ns.yes + p.response_counts.yes %}
+  {% set ns.no = ns.no + p.response_counts.no %}
+  {% set ns.maybe = ns.maybe + p.response_counts.maybe %}
+{% endfor %}
 
-{% call page_header("League Polls", subtitle="Administration") %}
+{% call page_header("League Polls", subtitle="Administration · Pub League") %}
   <a href="{{ url_for('admin.create_poll') }}"
      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
     <i class="ti ti-plus" aria-hidden="true"></i>Create New Poll
   </a>
 {% endcall %}
 
+{% if visible_polls %}
 <div class="space-y-5 sm:space-y-6">
-  <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-    {{ stat_card("ti-chart-dots", "Total Polls", visible_polls | length, tone='primary') }}
-    {{ stat_card("ti-circle-check", "Active", active_count, tone='success') }}
-    {{ stat_card("ti-lock", "Closed", closed_count, tone='gold') }}
+
+  {# ============ KPI BAND — real aggregates across non-deleted polls ============ #}
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active Polls</span>
+      <div class="mt-1.5 font-mono text-3xl font-bold leading-none text-ecs-green">{{ active_polls | length }}</div>
+      <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 font-mono">collecting responses now</p>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Closed</span>
+      <div class="mt-1.5 font-mono text-3xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ closed_polls | length }}</div>
+      <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 font-mono">{{ visible_polls | length }} total on record</p>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Responses</span>
+      <div class="mt-1.5 font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ total_responses }}</div>
+      <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 font-mono">across all polls</p>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 col-span-2 sm:col-span-1">
+      <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Available</span>
+      <div class="mt-1.5 flex items-baseline gap-1.5">
+        <span class="font-mono text-3xl font-bold leading-none text-green-600 dark:text-green-400">{{ ns.yes }}</span>
+        <span class="text-[11px] text-gray-500 dark:text-gray-400 font-mono">/ {{ ns.no }} out · {{ ns.maybe }} maybe</span>
+      </div>
+      <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 font-mono">net availability signal</p>
+    </div>
   </div>
 
-  {% if visible_polls %}
-  {% call data_table("Polls", icon="ti-chart-dots", count=visible_polls | length, search_placeholder="Filter polls…", search_id="pollFilter") %}
+  {# ============ ACTIVE POLLS — feature cards (the primary object) ============ #}
+  {% if active_polls %}
+  <section aria-labelledby="activeHead">
+    <div class="flex items-center justify-between gap-2 mb-3">
+      <h2 id="activeHead" class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-broadcast text-ecs-green" aria-hidden="true"></i>Live Polls
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">{{ active_polls | length }}</span>
+      </h2>
+    </div>
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      {% for poll in active_polls %}
+      {% set yes = poll.response_counts.yes %}
+      {% set no = poll.response_counts.no %}
+      {% set maybe = poll.response_counts.maybe %}
+      {% set tot = poll.total_responses %}
+      <article class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+        {# header bar — live status + leading signal derived from real counts #}
+        <div class="flex items-center justify-between gap-2 px-4 h-11 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-green-600 dark:text-green-400">
+            <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i>Active
+          </span>
+          {% if tot > 0 %}
+            {% if yes >= no and yes >= maybe %}
+            <span class="inline-flex items-center gap-1 text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+              <i class="ti ti-trending-up text-[12px]" aria-hidden="true"></i>Leaning Yes · {{ (yes / tot * 100)|round }}%
+            </span>
+            {% elif no >= yes and no >= maybe %}
+            <span class="inline-flex items-center gap-1 text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">
+              <i class="ti ti-trending-down text-[12px]" aria-hidden="true"></i>Leaning No · {{ (no / tot * 100)|round }}%
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+              <i class="ti ti-help-circle text-[12px]" aria-hidden="true"></i>Undecided · {{ (maybe / tot * 100)|round }}%
+            </span>
+            {% endif %}
+          {% else %}
+          <span class="font-mono text-[11px] text-gray-500 dark:text-gray-400">opened {{ poll.created_at.strftime('%b %d') }}</span>
+          {% endif %}
+        </div>
+        {# body #}
+        <div class="p-4 sm:p-5 flex-1">
+          <h3 class="text-base font-bold text-gray-900 dark:text-white leading-snug">{{ poll.title }}</h3>
+          <p class="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-2" title="{{ poll.question }}">{{ poll.question }}</p>
+
+          <div class="mt-4 flex items-end justify-between gap-3">
+            <div class="flex items-end gap-3">
+              <span class="font-mono text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ tot }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">response{{ '' if tot == 1 else 's' }}</span>
+            </div>
+            <span class="font-mono text-[11px] text-gray-500 dark:text-gray-400 mb-1 whitespace-nowrap">opened {{ poll.created_at.strftime('%b %d') }}</span>
+          </div>
+
+          {% if tot > 0 %}
+          <div class="mt-3 flex w-full h-2.5 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700" role="img"
+               aria-label="Available {{ yes }}, Not available {{ no }}, Maybe {{ maybe }}">
+            <div class="bg-green-500" style="width: {{ (yes / tot * 100)|round(1) }}%"></div>
+            <div class="bg-red-500" style="width: {{ (no / tot * 100)|round(1) }}%"></div>
+            <div class="bg-amber-500" style="width: {{ (maybe / tot * 100)|round(1) }}%"></div>
+          </div>
+          <div class="mt-3 grid grid-cols-3 gap-2">
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2">
+              <div class="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-green-600 dark:text-green-400">
+                <i class="ti ti-check text-[12px]" aria-hidden="true"></i>Yes
+              </div>
+              <div class="mt-0.5 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ yes }}</div>
+              <div class="font-mono text-[11px] text-gray-500 dark:text-gray-400">{{ (yes / tot * 100)|round }}%</div>
+            </div>
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2">
+              <div class="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
+                <i class="ti ti-x text-[12px]" aria-hidden="true"></i>No
+              </div>
+              <div class="mt-0.5 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ no }}</div>
+              <div class="font-mono text-[11px] text-gray-500 dark:text-gray-400">{{ (no / tot * 100)|round }}%</div>
+            </div>
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2">
+              <div class="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                <i class="ti ti-help text-[12px]" aria-hidden="true"></i>Maybe
+              </div>
+              <div class="mt-0.5 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ maybe }}</div>
+              <div class="font-mono text-[11px] text-gray-500 dark:text-gray-400">{{ (maybe / tot * 100)|round }}%</div>
+            </div>
+          </div>
+          {% else %}
+          <div class="mt-3 flex items-center gap-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">
+            <i class="ti ti-hourglass-low" aria-hidden="true"></i>No responses yet — waiting on the league.
+          </div>
+          {% endif %}
+        </div>
+        {# command footer #}
+        <div class="flex items-center gap-1.5 px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+          <a href="{{ url_for('admin.poll_results', poll_id=poll.id) }}"
+             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+             aria-label="View results for {{ poll.title }}">
+            <i class="ti ti-chart-bar" aria-hidden="true"></i>View Results
+          </a>
+          <form method="POST" action="{{ url_for('admin.close_poll', poll_id=poll.id) }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-amber-300 dark:border-amber-500/40 bg-white dark:bg-gray-800 text-amber-600 dark:text-amber-400 text-xs font-semibold hover:bg-amber-50 dark:hover:bg-amber-900/20 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    aria-label="Close poll {{ poll.title }}" data-action="close-poll">
+              <i class="ti ti-lock" aria-hidden="true"></i>Close
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('admin.delete_poll', poll_id=poll.id) }}" class="inline ml-auto">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    title="Delete poll" aria-label="Delete poll {{ poll.title }}" data-action="delete-poll">
+              <i class="ti ti-trash" aria-hidden="true"></i>
+            </button>
+          </form>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# ============ FULL ARCHIVE — dense real table ============ #}
+  {% call data_table("All Polls", icon="ti-list-details", count=visible_polls | length, search_placeholder="Filter polls…", search_id="pollFilter") %}
     {# md+ table #}
     <table class="hidden md:table w-full text-sm text-left">
       <thead class="bg-gray-50 dark:bg-gray-900/40">
         <tr>
-          {{ data_table_th("Title", key="title") }}
-          {{ data_table_th("Question", key="question", sortable=False, hide="sm") }}
+          {{ data_table_th("Poll", key="title") }}
           {{ data_table_th("Status", key="status") }}
           {{ data_table_th("Created", key="created", hide="sm") }}
-          {{ data_table_th("Responses", key="responses") }}
+          {{ data_table_th("Responses", key="responses", align="right") }}
+          {{ data_table_th("Breakdown", sortable=False, hide="md") }}
           {{ data_table_th("Actions", sortable=False, align="right") }}
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% set grp = namespace(month='') %}
         {% for poll in visible_polls %}
-        <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-2.5 align-top" data-cell="title">
-            <p class="font-semibold text-gray-900 dark:text-white">{{ poll.title }}</p>
+        {% set yes = poll.response_counts.yes %}
+        {% set no = poll.response_counts.no %}
+        {% set maybe = poll.response_counts.maybe %}
+        {% set tot = poll.total_responses %}
+        {% set this_month = poll.created_at.strftime('%B %Y') %}
+        {% if this_month != grp.month %}
+        {% set grp.month = this_month %}
+        <tr data-group-row aria-hidden="true">
+          <td colspan="6" class="px-3 pt-3 pb-1.5 bg-gray-50/60 dark:bg-gray-900/30">
+            <span class="font-mono text-[11px] font-bold uppercase tracking-wide text-ecs-green">{{ this_month }}</span>
           </td>
-          <td class="px-3 py-2.5 align-top hidden md:table-cell">
-            <p class="text-gray-600 dark:text-gray-300 truncate max-w-xs" title="{{ poll.question }}">{{ poll.question }}</p>
+        </tr>
+        {% endif %}
+        <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-2.5 align-top max-w-xs" data-cell="title">
+            <p class="font-semibold text-gray-900 dark:text-white truncate" title="{{ poll.title }}">{{ poll.title }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 truncate" title="{{ poll.question }}">{{ poll.question }}</p>
           </td>
           <td class="px-3 py-2.5 align-top" data-cell="status">
             {% if poll.status == 'ACTIVE' %}
@@ -70,24 +231,28 @@
             </span>
             {% endif %}
           </td>
-          <td class="px-3 py-2.5 align-top hidden md:table-cell text-xs font-mono text-gray-500 dark:text-gray-400">
+          <td class="px-3 py-2.5 align-top hidden md:table-cell text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap">
             {{ poll.created_at.strftime('%Y-%m-%d %H:%M') }}
           </td>
-          <td class="px-3 py-2.5 align-top" data-cell="responses">
-            <div class="flex items-center gap-2">
-              <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ poll.total_responses }}</span>
-              {% if poll.total_responses > 0 %}
-              <div class="flex w-24 h-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600" role="img"
-                   aria-label="Yes {{ poll.response_counts.yes }}, No {{ poll.response_counts.no }}, Maybe {{ poll.response_counts.maybe }}">
-                <div class="bg-green-500" data-bar="yes" style="width: {{ (poll.response_counts.yes / poll.total_responses * 100)|round(1) }}%"></div>
-                <div class="bg-red-500" data-bar="no" style="width: {{ (poll.response_counts.no / poll.total_responses * 100)|round(1) }}%"></div>
-                <div class="bg-amber-500" data-bar="maybe" style="width: {{ (poll.response_counts.maybe / poll.total_responses * 100)|round(1) }}%"></div>
-              </div>
-              {% endif %}
+          <td class="px-3 py-2.5 align-top text-right" data-cell="responses">
+            <span class="font-mono font-bold text-base text-gray-900 dark:text-white">{{ tot }}</span>
+          </td>
+          <td class="px-3 py-2.5 align-top hidden lg:table-cell">
+            {% if tot > 0 %}
+            <div class="flex w-28 h-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600" role="img"
+                 aria-label="Yes {{ yes }}, No {{ no }}, Maybe {{ maybe }}">
+              <div class="bg-green-500" data-bar="yes" style="width: {{ (yes / tot * 100)|round(1) }}%"></div>
+              <div class="bg-red-500" data-bar="no" style="width: {{ (no / tot * 100)|round(1) }}%"></div>
+              <div class="bg-amber-500" data-bar="maybe" style="width: {{ (maybe / tot * 100)|round(1) }}%"></div>
             </div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">
-              Y: {{ poll.response_counts.yes }} | N: {{ poll.response_counts.no }} | M: {{ poll.response_counts.maybe }}
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">
+              <span class="text-green-600 dark:text-green-400">{{ yes }}</span> ·
+              <span class="text-red-600 dark:text-red-400">{{ no }}</span> ·
+              <span class="text-amber-600 dark:text-amber-400">{{ maybe }}</span>
             </p>
+            {% else %}
+            <span class="text-[11px] text-gray-400 dark:text-gray-500 font-mono">—</span>
+            {% endif %}
           </td>
           <td class="px-3 py-2.5 align-top">
             <div class="flex items-center justify-end gap-1">
@@ -124,6 +289,10 @@
     {# mobile stacked cards #}
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
       {% for poll in visible_polls %}
+      {% set yes = poll.response_counts.yes %}
+      {% set no = poll.response_counts.no %}
+      {% set maybe = poll.response_counts.maybe %}
+      {% set tot = poll.total_responses %}
       <div data-row-card class="px-4 py-3.5">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
@@ -141,19 +310,19 @@
           {% endif %}
         </div>
         <div class="mt-2 flex items-center gap-2">
-          <span class="font-mono font-semibold text-sm text-gray-900 dark:text-white">{{ poll.total_responses }}</span>
+          <span class="font-mono font-bold text-sm text-gray-900 dark:text-white">{{ tot }}</span>
           <span class="text-xs text-gray-500 dark:text-gray-400">responses</span>
-          {% if poll.total_responses > 0 %}
+          {% if tot > 0 %}
           <div class="flex w-24 h-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600" role="img"
-               aria-label="Yes {{ poll.response_counts.yes }}, No {{ poll.response_counts.no }}, Maybe {{ poll.response_counts.maybe }}">
-            <div class="bg-green-500" style="width: {{ (poll.response_counts.yes / poll.total_responses * 100)|round(1) }}%"></div>
-            <div class="bg-red-500" style="width: {{ (poll.response_counts.no / poll.total_responses * 100)|round(1) }}%"></div>
-            <div class="bg-amber-500" style="width: {{ (poll.response_counts.maybe / poll.total_responses * 100)|round(1) }}%"></div>
+               aria-label="Yes {{ yes }}, No {{ no }}, Maybe {{ maybe }}">
+            <div class="bg-green-500" style="width: {{ (yes / tot * 100)|round(1) }}%"></div>
+            <div class="bg-red-500" style="width: {{ (no / tot * 100)|round(1) }}%"></div>
+            <div class="bg-amber-500" style="width: {{ (maybe / tot * 100)|round(1) }}%"></div>
           </div>
           {% endif %}
         </div>
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">
-          Y: {{ poll.response_counts.yes }} | N: {{ poll.response_counts.no }} | M: {{ poll.response_counts.maybe }} · {{ poll.created_at.strftime('%Y-%m-%d %H:%M') }}
+          Y: {{ yes }} | N: {{ no }} | M: {{ maybe }} · {{ poll.created_at.strftime('%Y-%m-%d %H:%M') }}
         </p>
         <div class="mt-3 flex items-center gap-1">
           <a href="{{ url_for('admin.poll_results', poll_id=poll.id) }}"
@@ -184,10 +353,10 @@
       {% endfor %}
     </div>
   {% endcall %}
-  {% else %}
-  {{ empty_state("ti-chart-dots", "No Polls Yet", "Create your first league poll to get started!", action={'label': 'Create Poll', 'url': url_for('admin.create_poll'), 'icon': 'ti-plus'}) }}
-  {% endif %}
 </div>
+{% else %}
+{{ empty_state("ti-chart-dots", "No Polls Yet", "Create your first league poll to get started!", action={'label': 'Create Poll', 'url': url_for('admin.create_poll'), 'icon': 'ti-plus'}) }}
+{% endif %}
 
 {% else %}
 {# ===================== Classic (unchanged) ===================== #}

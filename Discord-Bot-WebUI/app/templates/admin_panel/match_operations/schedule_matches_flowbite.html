@@ -22,71 +22,71 @@
 
 {% block panel_content %}
 {% if shell == 'console' %}
-{{ page_header('Schedule Matches', subtitle='Match Operations' ~ (' · ' ~ current_season.name if current_season else '')) }}
-
-{# Filter by league #}
-{% call section_card('Filter by League', icon='ti-filter') %}
-<form method="GET" class="flex flex-wrap items-end gap-4 p-4 sm:p-5">
-    <div class="flex-1 min-w-[200px]">
-        <label for="league_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">League / Division</label>
-        <select id="league_id" name="league_id" class="input-ecs h-10 text-sm w-full">
-            <option value="">All Leagues (Premier, Classic, ECS FC)</option>
-            {% for league in leagues %}
-            <option value="{{ league.id }}" {% if current_league_id == league.id %}selected{% endif %}>{{ league.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="flex gap-2">
-        <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-search" aria-hidden="true"></i>Filter
-        </button>
-        <a href="{{ url_for('admin_panel.schedule_matches') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-x" aria-hidden="true"></i>Clear
-        </a>
-    </div>
-</form>
+{# Command header: primary job is clearing the unscheduled queue. Quick Schedule All is the one primary CTA. #}
+{% call page_header('Schedule Matches', subtitle='Match Operations' ~ (' · ' ~ current_season.name if current_season else '')) %}
+    <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="create-new-match">
+        <i class="ti ti-plus" aria-hidden="true"></i><span class="hidden sm:inline">New Match</span>
+    </button>
+    <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed" data-action="quick-schedule" {% if not unscheduled_matches %}disabled{% endif %}>
+        <i class="ti ti-calendar-bolt" aria-hidden="true"></i>Quick Schedule All
+    </button>
 {% endcall %}
 
-{# KPI band #}
-<div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mt-5 sm:mt-6 mb-5 sm:mb-6">
-    {{ stat_card('ti-users', 'Available Teams', teams|length, sublabel='teams', tone='primary') }}
+{# KPI band — real counts from the route #}
+<div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-5 sm:mb-6">
+    {{ stat_card('ti-clock', 'Unscheduled', unscheduled_matches|length, sublabel='awaiting times', tone='warning') }}
     {{ stat_card('ti-flag', 'Active Leagues', leagues|length, sublabel='in season', tone='success') }}
-    {{ stat_card('ti-clock', 'Unscheduled Matches', unscheduled_matches|length, sublabel='awaiting times', tone='warning') }}
+    {{ stat_card('ti-shield-half', 'Available Teams', teams|length, sublabel='eligible', tone='primary') }}
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    {# Unscheduled Matches table #}
-    <div class="lg:col-span-2">
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    {# Primary object: the unscheduled-match queue #}
+    <div class="xl:col-span-2">
         {% if unscheduled_matches %}
-        {% call data_table('Unscheduled Matches', icon='ti-calendar-question', count=unscheduled_matches|length, search_placeholder='Filter matches…', search_id='matchFilter') %}
+        {% call data_table('Unscheduled Matches', icon='ti-calendar-question', count=unscheduled_matches|length, search_placeholder='Filter by team…', search_id='matchFilter') %}
+            {# Group dense rows by league with a mono ecs-green divider, mirroring the concept date-group treatment #}
+            {% set ns = namespace(current_league=None) %}
             <table class="w-full text-sm">
-                <thead>
-                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                <thead class="sr-only">
+                    <tr>
                         {{ data_table_th('Home Team', key='home') }}
                         {{ data_table_th('Away Team', key='away') }}
-                        {{ data_table_th('League', key='league', hide='sm') }}
                         {{ data_table_th('Actions', sortable=False, align='right') }}
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody>
                     {% for match in unscheduled_matches %}
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-row>
-                        <td class="px-3 py-3 font-medium text-gray-900 dark:text-white">
-                            {{ match.home_team.name if match.home_team else 'TBD' }}
+                    {% set league_name = match.home_team.league.name if (match.home_team and match.home_team.league) else 'Unassigned League' %}
+                    {% if league_name != ns.current_league %}
+                    {% set ns.current_league = league_name %}
+                    <tr>
+                        <td colspan="3" class="px-3 pt-4 pb-1.5">
+                            <div class="flex items-center gap-3">
+                                <span class="font-mono text-xs font-bold uppercase tracking-wider text-ecs-green shrink-0">{{ league_name }}</span>
+                                <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+                            </div>
                         </td>
-                        <td class="px-3 py-3 text-gray-700 dark:text-gray-300">
-                            {{ match.away_team.name if match.away_team else 'TBD' }}
-                        </td>
-                        <td class="px-3 py-3 hidden md:table-cell">
-                            {% if match.home_team and match.home_team.league %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                                {{ match.home_team.league.name }}
+                    </tr>
+                    {% endif %}
+                    <tr class="border-t border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-row>
+                        {# Column 1 = home name only, column 2 = away name only. The page JS scrapes td:first-child / td:nth-child(2)
+                           textContent to populate the modal, so the H/A markers use aria-only icons (no stray text in textContent). #}
+                        <td class="px-3 py-3 align-middle">
+                            <span class="inline-flex items-center gap-2">
+                                <i class="ti ti-home text-sm text-ecs-green shrink-0" aria-hidden="true" title="Home"></i>
+                                <span class="font-semibold text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
                             </span>
-                            {% else %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">N/A</span>
-                            {% endif %}
                         </td>
-                        <td class="px-3 py-3 text-right">
+                        <td class="px-3 py-3 align-middle">
+                            <span class="inline-flex items-center gap-2">
+                                <i class="ti ti-plane text-sm text-gray-400 shrink-0 hidden md:inline" aria-hidden="true" title="Away"></i>
+                                <span class="text-gray-700 dark:text-gray-300">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 text-right align-middle">
+                            <span class="hidden lg:inline-flex items-center gap-1.5 mr-2 text-xs font-mono text-amber-600 dark:text-amber-400 align-middle">
+                                <i class="ti ti-clock-off text-sm" aria-hidden="true"></i>no time
+                            </span>
                             <button type="button" class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="schedule-match" data-match-id="{{ match.id }}">
                                 <i class="ti ti-calendar-plus" aria-hidden="true"></i>Schedule
                             </button>
@@ -95,27 +95,61 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {# Footer hint mirrors the mock: total queued + nudge toward Quick Schedule All #}
+            <div class="px-3 py-3 border-t border-gray-100 dark:border-gray-700/60 text-xs text-gray-500 dark:text-gray-400">
+                Showing <span class="font-mono">{{ unscheduled_matches|length }}</span> match{{ '' if unscheduled_matches|length == 1 else 'es' }} awaiting a date and time. Use <span class="text-ecs-green font-medium">Quick Schedule All</span> to auto-assign default slots.
+            </div>
         {% endcall %}
         {% else %}
-        {{ kit_empty_state('ti-calendar-check', 'All Matches Scheduled', 'There are no unscheduled matches for the current season.') }}
+        {# Inline empty state (not kit_empty_state) so the CTA is a button that opens the
+           Create Match modal — admin_panel.create_match is POST-only, so a plain <a href> 405s. #}
+        <div class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16">
+          <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+            <i class="ti ti-calendar-check text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+          </div>
+          <h3 class="text-base font-semibold text-gray-900 dark:text-white">Queue Cleared</h3>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">Every match for the current season has a date and time. Create a new match to add one to the schedule.</p>
+          <button type="button" data-action="create-new-match"
+                  class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-plus" aria-hidden="true"></i>Create New Match
+          </button>
+        </div>
         {% endif %}
     </div>
 
-    {# Sidebar #}
+    {# Sidebar: filter + league capacity #}
     <div class="space-y-6">
-        {% call section_card('Quick Actions', icon='ti-bolt') %}
-        <div class="p-4 sm:p-5">
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Use quick schedule to automatically assign dates and times to unscheduled matches.
-            </p>
-            <div class="space-y-2">
-                <button type="button" class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed" data-action="quick-schedule" {% if not unscheduled_matches %}disabled{% endif %}>
-                    <i class="ti ti-calendar-plus" aria-hidden="true"></i>Quick Schedule All
-                </button>
-                <button type="button" class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="create-new-match">
-                    <i class="ti ti-plus" aria-hidden="true"></i>Create New Match
-                </button>
+        {% call section_card('Filter by League', icon='ti-filter') %}
+        <form method="GET" class="p-4 sm:p-5 space-y-3">
+            <div>
+                <label for="league_id" class="block mb-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">League / Division</label>
+                <select id="league_id" name="league_id" class="input-ecs h-10 text-sm w-full">
+                    <option value="">All Leagues (Premier, Classic, ECS FC)</option>
+                    {% for league in leagues %}
+                    <option value="{{ league.id }}" {% if current_league_id == league.id %}selected{% endif %}>{{ league.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-search" aria-hidden="true"></i>Filter
+                </button>
+                <a href="{{ url_for('admin_panel.schedule_matches') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-x" aria-hidden="true"></i><span class="sr-only">Clear filter</span>
+                </a>
+            </div>
+        </form>
+        {% endcall %}
+
+        {% call section_card('Quick Actions', icon='ti-bolt') %}
+        <div class="p-4 sm:p-5 space-y-3">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Use quick schedule to automatically assign dates and times to unscheduled matches based on default scheduling rules.</p>
+            <button type="button" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed" data-action="quick-schedule" {% if not unscheduled_matches %}disabled{% endif %}>
+                <i class="ti ti-calendar-bolt" aria-hidden="true"></i>Quick Schedule All
+            </button>
+            <button type="button" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="create-new-match">
+                <i class="ti ti-plus" aria-hidden="true"></i>Create New Match
+            </button>
         </div>
         {% endcall %}
 
@@ -123,10 +157,10 @@
         {% if leagues %}
         <ul class="divide-y divide-gray-200 dark:divide-gray-700">
             {% for league in leagues %}
-            <li class="px-4 sm:px-5 py-3 flex items-center justify-between">
-                <span class="text-gray-900 dark:text-white font-medium">{{ league.name }}</span>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
-                    {{ league.teams|length if league.teams else 0 }} teams
+            <li class="px-4 sm:px-5 py-3 flex items-center justify-between gap-3">
+                <span class="text-gray-900 dark:text-white font-medium truncate">{{ league.name }}</span>
+                <span class="inline-flex items-center gap-1 shrink-0 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
+                    <span class="font-bold">{{ league.teams|length if league.teams else 0 }}</span> teams
                 </span>
             </li>
             {% endfor %}
@@ -154,6 +188,38 @@
     <div>
         <label for="scheduleTime" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Time</label>
         <input type="time" id="scheduleTime" name="time" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+    </div>
+{% endcall %}
+
+{# Create Match Modal — wired by page JS to admin_panel.create_match (POST JSON).
+   Teams are populated from SCHEDULE_CONFIG.teamsData; away list is constrained to the
+   home team's league because the backend requires both teams in the same league. #}
+{% call modal_form('createMatchModal', 'Create New Match', form_id='createMatchForm', submit_text='Create Match', submit_color='primary', loading_text='Creating...') %}
+    <div>
+        <label for="createHomeTeam" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Home Team</label>
+        <select id="createHomeTeam" name="home_team_id" required class="input-ecs h-10 text-sm w-full">
+            <option value="">Select home team</option>
+        </select>
+    </div>
+    <div>
+        <label for="createAwayTeam" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Away Team</label>
+        <select id="createAwayTeam" name="away_team_id" required class="input-ecs h-10 text-sm w-full">
+            <option value="">Select home team first</option>
+        </select>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="createDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Date <span class="text-gray-400 font-normal">(optional)</span></label>
+            <input type="date" id="createDate" name="date" class="input-ecs h-10 text-sm w-full">
+        </div>
+        <div>
+            <label for="createTime" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Time <span class="text-gray-400 font-normal">(optional)</span></label>
+            <input type="time" id="createTime" name="time" class="input-ecs h-10 text-sm w-full">
+        </div>
+    </div>
+    <div>
+        <label for="createLocation" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Location <span class="text-gray-400 font-normal">(optional)</span></label>
+        <input type="text" id="createLocation" name="location" placeholder="TBD" class="input-ecs h-10 text-sm w-full">
     </div>
 {% endcall %}
 {% else %}
@@ -349,7 +415,7 @@ window.SCHEDULE_CONFIG = {
     createMatchUrl: '{{ url_for("admin_panel.create_match") }}',
     teamsData: [
         {% for team in teams %}
-        { id: {{ team.id }}, name: "{{ team.name }}" }{% if not loop.last %},{% endif %}
+        { id: {{ team.id }}, name: "{{ team.name|e }}", leagueId: {{ team.league_id if team.league_id else 'null' }}, leagueName: "{{ team.league.name|e if team.league else '' }}" }{% if not loop.last %},{% endif %}
         {% endfor %}
     ]
 };
@@ -460,10 +526,102 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
 
             case 'create-new-match':
-                window.location.href = window.SCHEDULE_CONFIG.createMatchUrl;
+                openCreateMatchModal();
                 break;
         }
     });
+
+    // ----- Create Match modal (admin_panel.create_match is POST-only JSON) -----
+    const createMatchForm = document.getElementById('createMatchForm');
+    const homeSelect = document.getElementById('createHomeTeam');
+    const awaySelect = document.getElementById('createAwayTeam');
+
+    function populateHomeTeams() {
+        if (!homeSelect) return;
+        const teams = (window.SCHEDULE_CONFIG && window.SCHEDULE_CONFIG.teamsData) || [];
+        homeSelect.innerHTML = '<option value="">Select home team</option>';
+        teams.forEach(function(t) {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = t.leagueName ? `${t.name} (${t.leagueName})` : t.name;
+            opt.dataset.leagueId = (t.leagueId == null ? '' : t.leagueId);
+            homeSelect.appendChild(opt);
+        });
+    }
+
+    function populateAwayTeams() {
+        if (!homeSelect || !awaySelect) return;
+        const teams = (window.SCHEDULE_CONFIG && window.SCHEDULE_CONFIG.teamsData) || [];
+        const homeId = homeSelect.value;
+        const homeTeam = teams.find(t => String(t.id) === String(homeId));
+        awaySelect.innerHTML = '';
+        if (!homeTeam) {
+            awaySelect.innerHTML = '<option value="">Select home team first</option>';
+            return;
+        }
+        // Backend requires both teams in the same league; constrain the away list accordingly.
+        const eligible = teams.filter(t => String(t.id) !== String(homeId) && String(t.leagueId) === String(homeTeam.leagueId));
+        awaySelect.innerHTML = '<option value="">Select away team</option>';
+        eligible.forEach(function(t) {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = t.name;
+            awaySelect.appendChild(opt);
+        });
+    }
+
+    if (homeSelect) {
+        populateHomeTeams();
+        homeSelect.addEventListener('change', populateAwayTeams);
+    }
+
+    function openCreateMatchModal() {
+        const modalEl = document.getElementById('createMatchModal');
+        if (!modalEl) { window.location.href = window.SCHEDULE_CONFIG.createMatchUrl; return; }
+        if (createMatchForm) createMatchForm.reset();
+        populateHomeTeams();
+        populateAwayTeams();
+        openModal('createMatchModal');
+    }
+
+    if (createMatchForm) {
+        createMatchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const payload = {
+                home_team_id: homeSelect.value,
+                away_team_id: awaySelect.value,
+                date: document.getElementById('createDate').value || null,
+                time: document.getElementById('createTime').value || null,
+                location: document.getElementById('createLocation').value || 'TBD'
+            };
+            if (!payload.home_team_id || !payload.away_team_id) {
+                Swal.fire({ title: 'Missing teams', text: 'Select both a home and away team.', icon: 'warning',
+                    background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                return;
+            }
+            fetch(window.SCHEDULE_CONFIG.createMatchUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json().then(data => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                closeModal('createMatchModal');
+                if (ok && data.success) {
+                    Swal.fire({ title: 'Success!', text: data.message || 'Match created.', icon: 'success', confirmButtonColor: '#1a472a',
+                        background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                } else {
+                    Swal.fire({ title: 'Error', text: (data && data.message) || 'Failed to create match', icon: 'error',
+                        background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                }
+            })
+            .catch(() => {
+                closeModal('createMatchModal');
+                Swal.fire({ title: 'Error', text: 'Failed to create match', icon: 'error',
+                    background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            });
+        });
+    }
 
     // Form submission
     scheduleForm.addEventListener('submit', function(e) {

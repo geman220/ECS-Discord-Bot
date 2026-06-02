@@ -22,7 +22,14 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table_th %}
+{% from 'macros/_modern_kit.html' import page_header %}
+
+{# ---- Derived, real-data-only metrics (no fabrication) ---- #}
+{% set total_teams = teams|length %}
+{% set with_discord = teams|selectattr('discord_channel_id')|list|length %}
+{% set without_discord = total_teams - with_discord %}
+{% set discord_pct = ((with_discord / total_teams) * 100)|round|int if total_teams else 0 %}
+{% set total_players = teams|map(attribute='players')|map('length')|sum %}
 
 {% call page_header('Teams', subtitle='League Management') %}
   <a href="{{ url_for('admin_panel.team_rosters') }}"
@@ -40,17 +47,78 @@
   </button>
 {% endcall %}
 
-<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
-  {{ stat_card('ti-users-group', 'Total Teams', stats.total_teams, tone='primary') }}
-  {{ stat_card('ti-brand-discord', 'With Discord', stats.teams_with_discord, tone='info') }}
-  {{ stat_card('ti-trophy', 'League Types', stats.teams_by_league_type|length, tone='gold') }}
+{# ---- KPI band: bespoke tokened tiles w/ divider footers (concept dashboard) ---- #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">Total Teams</span>
+      <i class="ti ti-users-group text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ total_teams }}</div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate">
+      {% if current_season_id or current_league_type %}filtered view{% else %}across all seasons{% endif %}
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">Discord Linked</span>
+      <i class="ti ti-brand-discord text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-2 flex items-end gap-1.5">
+      <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ with_discord }}</span>
+      <span class="font-mono text-sm text-gray-400 dark:text-gray-500 mb-0.5">/ {{ total_teams }}</span>
+    </div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+      <div class="h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="img" aria-label="{{ discord_pct }} percent of teams linked to Discord">
+        <div class="h-full rounded-full bg-blue-500 dark:bg-blue-400" style="width: {{ discord_pct }}%"></div>
+      </div>
+      <p class="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate">{{ discord_pct }}% coverage</p>
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">Unlinked</span>
+      <i class="ti ti-plug-connected-x text-lg {% if without_discord %}text-amber-600 dark:text-amber-400{% else %}text-gray-400 dark:text-gray-500{% endif %} shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none {% if without_discord %}text-amber-600 dark:text-amber-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ without_discord }}</div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate">
+      {% if without_discord %}need a channel{% else %}all teams linked{% endif %}
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">Rostered Players</span>
+      <i class="ti ti-user text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ total_players }}</div>
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate">
+      across {{ total_teams }} team{{ '' if total_teams == 1 else 's' }}
+    </div>
+  </div>
 </div>
 
+{# ---- League-type breakdown chips (real stats.teams_by_league_type dict) ---- #}
+{% if stats.teams_by_league_type %}
+<div class="flex flex-wrap items-center gap-2 mb-5 sm:mb-6">
+  <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">By League Type</span>
+  {% for lt, ct in stats.teams_by_league_type.items() %}
+  <span class="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-medium text-gray-700 dark:text-gray-300">
+    <i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400 text-sm" aria-hidden="true"></i>{{ lt }}
+    <span class="font-mono font-bold text-gray-900 dark:text-white">{{ ct }}</span>
+  </span>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# ---- Teams roster: real table grouped by league (date-group-divider treatment) ---- #}
 <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
   <div class="flex flex-col gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between">
     <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
-      <i class="ti ti-users-group text-ecs-green" aria-hidden="true"></i> Teams
-      <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ teams|length }}</span>
+      <i class="ti ti-users-group text-ecs-green" aria-hidden="true"></i> All Teams
+      <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total_teams }}</span>
     </h2>
     <div class="flex flex-wrap items-center gap-2">
       <select id="seasonFilter" onchange="applyFilters()" aria-label="Filter by season" class="input-ecs h-9 text-sm w-auto">
@@ -70,64 +138,59 @@
   </div>
 
   {% if teams %}
-  <div class="relative flex-1 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+  <div class="relative px-4 py-3 border-b border-gray-200 dark:border-gray-700">
     <i class="ti ti-search absolute left-7 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
     <input type="search" id="dtFilter" placeholder="Filter teams…" class="input-ecs h-9 pl-9 pr-3 text-sm w-full" aria-label="Filter teams">
   </div>
 
-  {# Desktop table (md+) #}
-  <div class="md:overflow-x-auto">
-    <table class="hidden md:table w-full text-sm">
-      <thead>
-        <tr class="border-b border-gray-200 dark:border-gray-700">
-          {{ data_table_th('Team Name', key='name', active=True, dir='asc') }}
-          {{ data_table_th('League', key='league', hide='sm') }}
-          {{ data_table_th('Season', key='season', hide='sm') }}
-          {{ data_table_th('Discord', key='discord', hide='sm') }}
-          {{ data_table_th('Actions', sortable=False, align='right') }}
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-        {% for team in teams %}
-        <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-3" data-cell="name">
+  {# Group teams by their league so the grid reads as a real league hierarchy. #}
+  {% set teams_by_league = teams|groupby('league.name') %}
+
+  {# Card grid grouped by league (concept "pl-teams" layout): monogram tile, Record + Roster
+     stat tiles, and a Discord linked/unlinked footer pill on every card. #}
+  <div class="p-4 space-y-5 sm:space-y-6" data-modern-cards>
+    {% for league_name, league_teams in teams_by_league %}
+    {# League group divider: mono ecs-green label + count, concept "date-group" treatment #}
+    <div data-group-header class="flex items-center gap-2">
+      <span class="font-mono text-xs font-bold text-ecs-green uppercase tracking-wide truncate">{{ league_name or 'No League' }}</span>
+      <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+      <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 shrink-0">{{ league_teams|length }}</span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+      {% for team in league_teams %}
+      {# Monogram: initials from up to two words of the team name (presentation-only). #}
+      {% set words = (team.name or '').split() %}
+      {% set initials = (words[0][0] ~ words[1][0]) if words|length > 1 else (team.name[:2] if team.name else 'T') %}
+      <div data-row-card class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+        <div class="p-4 flex items-start gap-3">
+          {# Avatar monogram tile #}
+          <div class="w-12 h-12 shrink-0 rounded-lg flex items-center justify-center font-mono font-bold text-lg
+                      {% if team.discord_channel_id %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400{% endif %}"
+               aria-hidden="true">{{ initials|upper }}</div>
+          <div class="min-w-0 flex-1">
             <a href="{{ url_for('admin_panel.league_management_team_detail', team_id=team.id) }}"
-               class="font-semibold text-ecs-green hover:underline">{{ team.name }}</a>
-          </td>
-          <td class="px-3 py-3 hidden md:table-cell" data-cell="league">
-            {% if team.league %}
-            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">{{ team.league.name }}</span>
-            {% else %}
-            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">N/A</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-3 hidden md:table-cell" data-cell="season">
-            {% if team.league and team.league.season %}
-            <span class="text-gray-700 dark:text-gray-300">{{ team.league.season.name }}</span>
-            {% if team.league.season.is_current %}
-            <span class="ml-1 inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">Current</span>
-            {% endif %}
-            {% else %}
-            <span class="text-gray-400 dark:text-gray-500">N/A</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-3 hidden md:table-cell" data-cell="discord">
-            {% if team.discord_channel_id %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-              <i class="ti ti-check" aria-hidden="true"></i>Connected
-            </span>
-            {% else %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-              <i class="ti ti-x" aria-hidden="true"></i>Not Set
-            </span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-3 text-right">
+               class="font-semibold text-ecs-green hover:underline truncate block" data-cell="name">{{ team.name }}</a>
+            {# hidden filter target so search still matches league text in card layout #}
+            <span class="sr-only" data-cell="league">{{ team.league.name if team.league else '' }}</span>
+            <div class="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+              {% if team.league and team.league.season %}
+              <span data-cell="season">{{ team.league.season.name }}</span>
+              {% if team.league.season.is_current %}
+              <span aria-hidden="true">·</span>
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">Current</span>
+              {% endif %}
+              {% else %}
+              <span data-cell="season">No season</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="relative shrink-0">
             <button id="dropdownBtn{{ team.id }}" data-dropdown-toggle="dropdown{{ team.id }}"
-                    class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center
+                    class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:w-9 sm:h-9 inline-flex items-center justify-center
                            text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg
                            focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                    aria-label="Team actions">
+                    aria-label="Team actions for {{ team.name }}">
               <i class="ti ti-dots-vertical" aria-hidden="true"></i>
             </button>
             <div id="dropdown{{ team.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600 text-left">
@@ -154,45 +217,41 @@
                 </a>
               </div>
             </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    {# Mobile stacked cards (<md) #}
-    <div class="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
-      {% for team in teams %}
-      <div data-row-card class="px-4 py-3.5">
-        <div class="flex items-center justify-between gap-2">
-          <a href="{{ url_for('admin_panel.league_management_team_detail', team_id=team.id) }}"
-             class="text-sm font-semibold text-ecs-green hover:underline truncate" data-cell="name">{{ team.name }}</a>
-          <button id="dropdownBtnM{{ team.id }}" data-dropdown-toggle="dropdown{{ team.id }}"
-                  class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center shrink-0
-                         text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg
-                         focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                  aria-label="Team actions">
-            <i class="ti ti-dots-vertical" aria-hidden="true"></i>
-          </button>
+          </div>
         </div>
-        <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
-          {% if team.league %}
-          <span class="inline-flex items-center px-2 py-0.5 font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300" data-cell="league">{{ team.league.name }}</span>
-          {% else %}
-          <span class="inline-flex items-center px-2 py-0.5 font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300" data-cell="league">N/A</span>
-          {% endif %}
-          {% if team.league and team.league.season %}
-          <span class="inline-flex items-center px-2 py-0.5 font-medium rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" data-cell="season">{{ team.league.season.name }}{% if team.league.season.is_current %} · Current{% endif %}</span>
-          {% endif %}
+
+        {# Stat tiles: Record (W-L-D) + Roster, matching the concept's two-tile grid. #}
+        <div class="px-4 pb-3 grid grid-cols-2 gap-2">
+          {% set standing = team_standings.get(team.id) if team_standings else None %}
+          <div class="rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 px-3 py-2">
+            <span class="block text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Record</span>
+            {% if standing %}
+            <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ standing.wins }}-{{ standing.losses }}-{{ standing.draws }} <span class="text-gray-500 dark:text-gray-400 text-xs font-sans">W-L-D</span></span>
+            <span class="block font-mono text-[11px] text-ecs-green">{{ standing.points }} <span class="text-gray-500 dark:text-gray-400 font-sans">pts</span></span>
+            {% else %}
+            <span class="font-mono text-sm font-semibold text-gray-400 dark:text-gray-500">— <span class="text-xs">W-L-D</span></span>
+            {% endif %}
+          </div>
+          <div class="rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 px-3 py-2">
+            <span class="block text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Roster</span>
+            <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ team.players|length }} <span class="text-gray-500 dark:text-gray-400 text-xs font-sans">players</span></span>
+          </div>
+        </div>
+
+        {# Footer: Discord linked/unlinked pill + View link. #}
+        <div class="mt-auto px-4 py-2.5 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
           {% if team.discord_channel_id %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400" data-cell="discord"><i class="ti ti-check" aria-hidden="true"></i>Discord</span>
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400" data-cell="discord"><i class="ti ti-brand-discord text-sm" aria-hidden="true"></i> Linked</span>
           {% else %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300" data-cell="discord"><i class="ti ti-x" aria-hidden="true"></i>No Discord</span>
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400" data-cell="discord"><i class="ti ti-plug-connected-x text-sm" aria-hidden="true"></i> Unlinked</span>
           {% endif %}
+          <a href="{{ url_for('admin_panel.league_management_team_detail', team_id=team.id) }}"
+             class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white inline-flex items-center gap-1">View <i class="ti ti-arrow-right" aria-hidden="true"></i></a>
         </div>
       </div>
       {% endfor %}
     </div>
+    {% endfor %}
   </div>
   {% else %}
   <div class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16">

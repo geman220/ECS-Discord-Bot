@@ -27,9 +27,14 @@
                 {% if duplicates %}
                 <div class="space-y-4 mb-6">
                     {% for dup in duplicates %}
+                    {% set _parts = (dup.name or '?').split() %}
+                    {% set _initials = ((_parts[0][0] ~ (_parts[-1][0] if _parts|length > 1 else '')) if _parts else '?')|upper %}
+                    {% set _conf_tone = 'green' if dup.confidence >= 0.85 else ('amber' if dup.confidence >= 0.7 else 'gray') %}
                     <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-ecs-green-400 dark:hover:border-ecs-green-500 transition-colors cursor-pointer" data-player-id="{{ dup.id }}">
                         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                            <div class="flex-1">
+                            <div class="flex-1 flex items-start gap-3">
+                                <span class="shrink-0 w-11 h-11 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center font-bold text-sm" aria-hidden="true">{{ _initials }}</span>
+                                <div class="min-w-0">
                                 <h6 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{{ dup.name }}</h6>
                                 <div class="space-y-1 text-sm">
                                     <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
@@ -40,10 +45,15 @@
                                         <i class="ti ti-target"></i>
                                         <span>Match reason: {{ dup.reason.replace('_', ' ').title() }}</span>
                                     </div>
-                                    <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                        <i class="ti ti-percentage"></i>
-                                        <span>Confidence: {{ (dup.confidence * 100)|round }}%</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold
+                                            {% if _conf_tone == 'green' %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400
+                                            {% elif _conf_tone == 'amber' %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400
+                                            {% else %}bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-300{% endif %}">
+                                            <i class="ti ti-percentage"></i>{{ (dup.confidence * 100)|round }}% match
+                                        </span>
                                     </div>
+                                </div>
                                 </div>
                             </div>
                             <button type="button"
@@ -105,5 +115,4 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="{{ url_for('static', filename='custom_js/check-duplicate.js') }}"></script>
 {% endblock %}

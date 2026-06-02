@@ -24,83 +24,140 @@
 {% if shell == 'console' %}
 {# ===================== MODERN (console) ===================== #}
 {% set status_map = {
-  'fully_linked':     {'kind': 'success', 'title': 'Fully Linked',     'msg': 'All ' ~ order.total_passes ~ ' passes have been assigned.'},
-  'not_started':      {'kind': 'info',    'title': 'Not Started',      'msg': "The customer hasn't clicked the linking wizard yet."},
-  'pending':          {'kind': 'warning', 'title': 'Pending',          'msg': 'Customer has accessed the wizard but no passes assigned yet.'},
-  'partially_linked': {'kind': 'warning', 'title': 'Partially Linked', 'msg': order.linked_passes ~ ' of ' ~ order.total_passes ~ ' passes assigned.'},
-  'cancelled':        {'kind': 'danger',  'title': 'Cancelled',        'msg': 'This order has been cancelled.'}
+  'fully_linked':     {'kind': 'success', 'title': 'Fully Linked',     'msg': 'All ' ~ order.total_passes ~ ' passes have been assigned.', 'pill': 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400', 'dot': 'bg-green-500', 'icon': 'ti-circle-check'},
+  'not_started':      {'kind': 'info',    'title': 'Not Started',      'msg': "The customer hasn't clicked the linking wizard yet.", 'pill': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300', 'dot': 'bg-gray-400', 'icon': 'ti-clock-pause'},
+  'pending':          {'kind': 'warning', 'title': 'Pending',          'msg': 'Customer has accessed the wizard but no passes assigned yet.', 'pill': 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400', 'dot': 'bg-amber-500', 'icon': 'ti-clock-hour-4'},
+  'partially_linked': {'kind': 'warning', 'title': 'Partially Linked', 'msg': order.linked_passes ~ ' of ' ~ order.total_passes ~ ' passes assigned.', 'pill': 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400', 'dot': 'bg-amber-500', 'icon': 'ti-progress'},
+  'cancelled':        {'kind': 'danger',  'title': 'Cancelled',        'msg': 'This order has been cancelled.', 'pill': 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400', 'dot': 'bg-red-500', 'icon': 'ti-ban'}
 } %}
+{% set st = status_map.get(order.status, {'title': order.status|replace('_', ' ')|title, 'pill': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300', 'dot': 'bg-gray-400', 'icon': 'ti-circle'}) %}
+{% set unlinked = order.total_passes - order.linked_passes %}
+{% set pct = ((order.linked_passes / order.total_passes) * 100) | round | int if order.total_passes else 0 %}
+{# Map progress to a token-only Tailwind width bucket (no inline styles in console). #}
+{% set width_buckets = [
+  (0, 'w-0'), (8, 'w-[8%]'), (17, 'w-[17%]'), (25, 'w-1/4'), (33, 'w-1/3'),
+  (42, 'w-[42%]'), (50, 'w-1/2'), (58, 'w-[58%]'), (67, 'w-2/3'), (75, 'w-3/4'),
+  (83, 'w-[83%]'), (92, 'w-[92%]'), (100, 'w-full')
+] %}
+{% set ns = namespace(width='w-0', best=1000) %}
+{% for threshold, cls in width_buckets %}
+  {% if (pct - threshold) | abs < ns.best %}{% set ns.width = cls %}{% set ns.best = (pct - threshold) | abs %}{% endif %}
+{% endfor %}
+{% set pending_claims = (claims | selectattr('status', 'equalto', 'pending') | list | length) if claims else 0 %}
+
 {{ page_header('Order #' ~ order.woo_order_id, subtitle=(order.customer_name or order.customer_email or 'Pub League Order')) }}
 
+{# ── Command toolbar ── #}
 <div class="flex flex-wrap items-center gap-2 mb-6">
+  <a href="{{ url_for('pub_league_orders_admin.orders_list') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-arrow-left text-base" aria-hidden="true"></i> Back
+  </a>
+  <div class="flex-1"></div>
   <button type="button" id="refreshOrderBtn"
-          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
     <i class="ti ti-refresh text-base" aria-hidden="true"></i> Refresh from WooCommerce
   </button>
   <button type="button" id="deleteOrderBtn"
-          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-    <i class="ti ti-trash text-base" aria-hidden="true"></i> Delete Order
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-red-700 dark:text-red-400 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-500/40 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-trash text-base" aria-hidden="true"></i> Delete
   </button>
-  <a href="{{ url_for('pub_league_orders_admin.orders_list') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-    <i class="ti ti-arrow-left text-base" aria-hidden="true"></i> Back to Orders
-  </a>
 </div>
 
-{% if order.status in status_map %}
-{% set st = status_map[order.status] %}
-<div class="mb-6">{{ alert(st.kind, st.msg, title=st.title, dismissible=False) }}</div>
-{% endif %}
+{# ── Fulfillment hero: the order's ONE job is getting every pass linked ── #}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+    <div class="flex items-center gap-3 min-w-0">
+      <span class="w-11 h-11 rounded-xl bg-ecs-green/10 text-ecs-green flex items-center justify-center shrink-0">
+        <i class="ti ti-shopping-cart text-xl" aria-hidden="true"></i>
+      </span>
+      <div class="min-w-0">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Pub League Order</p>
+        <h2 class="font-mono text-lg font-bold text-gray-900 dark:text-white leading-tight">#{{ order.woo_order_id }}</h2>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      {% if order.season_name %}
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-ecs-gold-500/15 text-ecs-gold-600 dark:text-ecs-gold-400">
+        <i class="ti ti-calendar-event text-sm" aria-hidden="true"></i> {{ order.season_name }}
+      </span>
+      {% endif %}
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold {{ st.pill }}">
+        <span class="w-1.5 h-1.5 rounded-full {{ st.dot }}" aria-hidden="true"></span> {{ st.title }}
+      </span>
+    </div>
+  </div>
+  {# KPI band #}
+  <div class="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-200 dark:divide-gray-700">
+    <div class="p-4 sm:p-5">
+      <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Passes</p>
+      <p class="mt-2 font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ order.total_passes }}</p>
+    </div>
+    <div class="p-4 sm:p-5">
+      <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Linked</p>
+      <p class="mt-2 font-mono text-3xl font-bold leading-none text-green-600 dark:text-green-400">{{ order.linked_passes }}</p>
+    </div>
+    <div class="p-4 sm:p-5">
+      <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Unlinked</p>
+      <p class="mt-2 font-mono text-3xl font-bold leading-none {{ 'text-amber-600 dark:text-amber-400' if unlinked else 'text-gray-400 dark:text-gray-500' }}">{{ unlinked }}</p>
+    </div>
+    <div class="p-4 sm:p-5">
+      <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Pending Claims</p>
+      <p class="mt-2 font-mono text-3xl font-bold leading-none {{ 'text-blue-600 dark:text-blue-400' if pending_claims else 'text-gray-400 dark:text-gray-500' }}">{{ pending_claims }}</p>
+    </div>
+  </div>
+  {# Linking progress bar #}
+  <div class="px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Linking Progress</span>
+      <span class="font-mono text-sm font-bold {{ 'text-green-600 dark:text-green-400' if pct == 100 else 'text-gray-900 dark:text-white' }}">{{ order.linked_passes }}/{{ order.total_passes }} · {{ pct }}%</span>
+    </div>
+    <div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+      <div class="h-full rounded-full transition-all {{ ns.width }} {{ 'bg-green-500' if pct == 100 else 'bg-ecs-green' }}"></div>
+    </div>
+    {% if order.status in status_map %}
+    <p class="mt-2.5 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+      <i class="ti {{ st.icon }} text-sm mt-0.5 shrink-0" aria-hidden="true"></i>
+      <span><span class="font-semibold text-gray-700 dark:text-gray-300">{{ st.title }}.</span> {{ st.msg }}</span>
+    </p>
+    {% endif %}
+  </div>
+</section>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
   <div class="lg:col-span-2 space-y-6">
-    {# Order Information #}
+    {# Customer & order identity — spec grid #}
     {% call section_card('Order Information', icon='ti-info-circle') %}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 p-4 sm:p-5">
-      <dl class="space-y-3 text-sm">
-        <div class="flex justify-between gap-3">
-          <dt class="text-gray-500 dark:text-gray-400">WooCommerce Order</dt>
-          <dd class="font-mono font-medium text-gray-900 dark:text-white">#{{ order.woo_order_id }}</dd>
-        </div>
-        <div class="flex justify-between gap-3">
-          <dt class="text-gray-500 dark:text-gray-400">Customer Name</dt>
-          <dd class="font-medium text-gray-900 dark:text-white text-right">{{ order.customer_name or '-' }}</dd>
-        </div>
-        <div class="flex justify-between gap-3">
-          <dt class="text-gray-500 dark:text-gray-400">Customer Email</dt>
-          <dd class="text-gray-900 dark:text-white text-right break-all">{{ order.customer_email or '-' }}</dd>
-        </div>
-        <div class="flex justify-between gap-3 items-center">
-          <dt class="text-gray-500 dark:text-gray-400">Season</dt>
-          <dd>
-            {% if order.season_name %}{{ badge(order.season_name, variant='warning') }}
-            {% else %}<span class="text-gray-400 dark:text-gray-500">-</span>{% endif %}
-          </dd>
-        </div>
-      </dl>
-      <dl class="space-y-3 text-sm">
-        <div class="flex justify-between gap-3">
-          <dt class="text-gray-500 dark:text-gray-400">Passes</dt>
-          <dd class="font-mono font-medium {{ 'text-green-600 dark:text-green-400' if order.linked_passes == order.total_passes else 'text-gray-900 dark:text-white' }}">{{ order.linked_passes }}/{{ order.total_passes }} linked</dd>
-        </div>
-        <div class="flex justify-between gap-3">
-          <dt class="text-gray-500 dark:text-gray-400">Created</dt>
-          <dd class="text-gray-900 dark:text-white font-mono text-right">{{ order.created_at.strftime('%b %d, %Y %H:%M') if order.created_at else '-' }}</dd>
-        </div>
-        <div class="flex justify-between gap-3">
-          <dt class="text-gray-500 dark:text-gray-400">Updated</dt>
-          <dd class="text-gray-900 dark:text-white font-mono text-right">{{ order.updated_at.strftime('%b %d, %Y %H:%M') if order.updated_at else '-' }}</dd>
-        </div>
-        <div class="flex justify-between gap-3">
-          <dt class="text-gray-500 dark:text-gray-400">Expires</dt>
-          <dd class="text-gray-900 dark:text-white font-mono text-right">{{ order.expires_at.strftime('%b %d, %Y') if order.expires_at else '-' }}</dd>
-        </div>
-      </dl>
-    </div>
+    <dl class="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-x divide-gray-200 dark:divide-gray-700">
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 text-sm sm:border-b sm:border-gray-200 sm:dark:border-gray-700">
+        <dt class="text-gray-500 dark:text-gray-400">Customer Name</dt>
+        <dd class="font-medium text-gray-900 dark:text-white text-right truncate">{{ order.customer_name or '-' }}</dd>
+      </div>
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 text-sm sm:border-b sm:border-gray-200 sm:dark:border-gray-700">
+        <dt class="text-gray-500 dark:text-gray-400">Customer Email</dt>
+        <dd class="text-gray-900 dark:text-white text-right break-all">{{ order.customer_email or '-' }}</dd>
+      </div>
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 text-sm">
+        <dt class="text-gray-500 dark:text-gray-400">Created</dt>
+        <dd class="font-mono text-gray-900 dark:text-white text-right">{{ order.created_at.strftime('%b %d, %Y %H:%M') if order.created_at else '-' }}</dd>
+      </div>
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 text-sm">
+        <dt class="text-gray-500 dark:text-gray-400">Updated</dt>
+        <dd class="font-mono text-gray-900 dark:text-white text-right">{{ order.updated_at.strftime('%b %d, %Y %H:%M') if order.updated_at else '-' }}</dd>
+      </div>
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 text-sm sm:border-t sm:border-gray-200 sm:dark:border-gray-700">
+        <dt class="text-gray-500 dark:text-gray-400">Token Expires</dt>
+        <dd class="font-mono text-gray-900 dark:text-white text-right">{{ order.expires_at.strftime('%b %d, %Y') if order.expires_at else '-' }}</dd>
+      </div>
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 text-sm sm:border-t sm:border-gray-200 sm:dark:border-gray-700">
+        <dt class="text-gray-500 dark:text-gray-400">WooCommerce</dt>
+        <dd class="font-mono font-medium text-gray-900 dark:text-white text-right">#{{ order.woo_order_id }}</dd>
+      </div>
+    </dl>
     {% endcall %}
 
     {# Line Items #}
-    {% call section_card('Line Items (Passes) · ' ~ order.total_passes ~ ' total', icon='ti-ticket') %}
+    {% call section_card('Passes · ' ~ order.linked_passes ~ ' / ' ~ order.total_passes ~ ' linked', icon='ti-ticket') %}
     {# md+ table #}
     <table class="hidden md:table w-full text-sm text-left">
       <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
@@ -116,20 +173,25 @@
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for item in line_items %}
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-4 py-3"><span class="font-medium text-gray-900 dark:text-white text-xs">{{ item.product_name[:50] }}{% if item.product_name|length > 50 %}...{% endif %}</span></td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-2.5">
+              <span class="font-mono text-xs text-gray-400 dark:text-gray-500 tabular-nums">#{{ item.id }}</span>
+              <span class="font-medium text-gray-900 dark:text-white text-xs">{{ item.product_name[:50] }}{% if item.product_name|length > 50 %}...{% endif %}</span>
+            </div>
+          </td>
           <td class="px-4 py-3">
             {% if item.division %}{{ badge(item.division, variant=('warning' if item.division == 'Classic' else 'primary')) }}
             {% else %}<span class="text-gray-400 dark:text-gray-500">-</span>{% endif %}
           </td>
           <td class="px-4 py-3">
-            {% if item.jersey_size %}<span class="font-medium text-gray-900 dark:text-white">{{ item.jersey_size }}</span>
+            {% if item.jersey_size %}<span class="font-mono font-semibold text-gray-900 dark:text-white">{{ item.jersey_size }}</span>
             {% else %}<span class="text-gray-400 dark:text-gray-500">-</span>{% endif %}
           </td>
           <td class="px-4 py-3">
-            {% if item.status == 'unassigned' %}{{ badge('Unassigned', variant='default') }}
-            {% elif item.status == 'assigned' %}{{ badge('Assigned', variant='info') }}
-            {% elif item.status == 'claimed' %}{{ badge('Claimed', variant='info') }}
-            {% elif item.status == 'pass_created' %}{{ badge('Pass Created', variant='success') }}
+            {% if item.status == 'unassigned' %}<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><span class="w-1.5 h-1.5 rounded-full bg-gray-400" aria-hidden="true"></span>Unassigned</span>
+            {% elif item.status == 'assigned' %}<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400"><span class="w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden="true"></span>Assigned</span>
+            {% elif item.status == 'claimed' %}<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400"><span class="w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden="true"></span>Claimed</span>
+            {% elif item.status == 'pass_created' %}<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><span class="w-1.5 h-1.5 rounded-full bg-green-500" aria-hidden="true"></span>Pass Created</span>
             {% else %}{{ badge(item.status, variant='default') }}{% endif %}
           </td>
           <td class="px-4 py-3">
@@ -139,16 +201,20 @@
             {% else %}<span class="text-gray-400 dark:text-gray-500">-</span>{% endif %}
           </td>
           <td class="px-4 py-3 text-right">
-            <div class="flex justify-end gap-2">
-              <button type="button" class="text-xs font-medium text-gray-600 dark:text-gray-400 hover:underline edit-line-item-btn" data-line-item-id="{{ item.id }}" data-division="{{ item.division or '' }}" data-jersey-size="{{ item.jersey_size or '' }}" title="Edit">Edit</button>
+            <div class="flex items-center justify-end gap-2">
+              <button type="button" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-8 w-8 sm:w-auto sm:px-2 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green edit-line-item-btn" data-line-item-id="{{ item.id }}" data-division="{{ item.division or '' }}" data-jersey-size="{{ item.jersey_size or '' }}" title="Edit" aria-label="Edit line item"><i class="ti ti-pencil text-sm" aria-hidden="true"></i></button>
               {% if item.status == 'unassigned' %}
-              <button type="button" class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline manual-link-btn" data-line-item-id="{{ item.id }}">Assign</button>
+              <button type="button" class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-1 dark:focus:ring-offset-gray-800 manual-link-btn" data-line-item-id="{{ item.id }}"><i class="ti ti-user-plus text-sm" aria-hidden="true"></i> Assign</button>
               {% else %}
-              <button type="button" class="text-xs font-medium text-orange-600 dark:text-orange-400 hover:underline unassign-btn" data-line-item-id="{{ item.id }}" data-player-name="{{ item.assigned_player.name if item.assigned_player else '' }}">Unassign</button>
-              {% if item.wallet_pass_id %}<a href="{{ url_for('wallet_admin.pass_detail', pass_id=item.wallet_pass_id) }}" class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">View Pass</a>{% endif %}
+              <button type="button" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-8 px-2 rounded-lg text-xs font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 unassign-btn" data-line-item-id="{{ item.id }}" data-player-name="{{ item.assigned_player.name if item.assigned_player else '' }}">Unassign</button>
+              {% if item.wallet_pass_id %}<a href="{{ url_for('wallet_admin.pass_detail', pass_id=item.wallet_pass_id) }}" class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"><i class="ti ti-wallet text-sm" aria-hidden="true"></i> Pass</a>{% endif %}
               {% endif %}
             </div>
           </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">No line items found for this order.</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -207,10 +273,10 @@
             {% if claim.recipient_email %}<br><span class="text-xs text-gray-500 dark:text-gray-400">{{ claim.recipient_email }}</span>{% endif %}
           </td>
           <td class="px-4 py-3">
-            {% if claim.status == 'pending' %}{{ badge('Pending', variant='warning') }}
-            {% elif claim.status == 'claimed' %}{{ badge('Claimed', variant='success') }}
-            {% elif claim.status == 'expired' %}{{ badge('Expired', variant='default') }}
-            {% elif claim.status == 'cancelled' %}{{ badge('Cancelled', variant='danger') }}
+            {% if claim.status == 'pending' %}<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><span class="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>Pending</span>
+            {% elif claim.status == 'claimed' %}<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><span class="w-1.5 h-1.5 rounded-full bg-green-500" aria-hidden="true"></span>Claimed</span>
+            {% elif claim.status == 'expired' %}<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><span class="w-1.5 h-1.5 rounded-full bg-gray-400" aria-hidden="true"></span>Expired</span>
+            {% elif claim.status == 'cancelled' %}<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400"><span class="w-1.5 h-1.5 rounded-full bg-red-500" aria-hidden="true"></span>Cancelled</span>
             {% else %}{{ badge(claim.status, variant='default') }}{% endif %}
           </td>
           <td class="px-4 py-3"><span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ claim.created_at.strftime('%b %d, %Y') if claim.created_at else '-' }}</span></td>
@@ -266,34 +332,120 @@
 
   {# Sidebar #}
   <div class="space-y-6">
-    <div class="grid grid-cols-2 gap-4">
-      {{ stat_card('ti-ticket', 'Total Passes', order.total_passes, tone='neutral') }}
-      {{ stat_card('ti-link', 'Linked', order.linked_passes, tone='success') }}
-      {{ stat_card('ti-unlink', 'Unlinked', order.total_passes - order.linked_passes, tone='warning') }}
-      {% if claims %}
-      {{ stat_card('ti-clock', 'Pending Claims', claims|selectattr('status', 'equalto', 'pending')|list|length, tone='info') }}
+    {# Latest Pass Preview — the most recently created wallet pass for this order #}
+    {% set ns_pass = namespace(item=none, latest=none) %}
+    {% for item in line_items %}
+      {% if item.wallet_pass and item.status == 'pass_created' %}
+        {% set ref = item.pass_created_at or item.assigned_at %}
+        {% if ns_pass.item is none or (ns_pass.latest is none) or (ref and ns_pass.latest and ref > ns_pass.latest) %}
+          {% set ns_pass.item = item %}{% set ns_pass.latest = ref %}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+    {% if ns_pass.item %}
+    {% set wp = ns_pass.item.wallet_pass %}
+    {% set claimant = (ns_pass.item.assigned_player.name if ns_pass.item.assigned_player else wp.member_name) %}
+    {% call section_card('Latest Pass Preview', icon='ti-wallet') %}
+    <div class="p-4">
+      <div class="rounded-xl bg-gradient-to-br from-ecs-green to-[#0b3d1e] text-white p-4 shadow-lg">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white/15"><i class="ti ti-ball-football text-base" aria-hidden="true"></i></span>
+            <span class="text-xs font-semibold uppercase tracking-wide opacity-90">Pub League</span>
+          </div>
+          {% if wp.status == 'active' %}
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white/20"><span class="w-1.5 h-1.5 rounded-full bg-white" aria-hidden="true"></span> Active</span>
+          {% else %}
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white/20"><span class="w-1.5 h-1.5 rounded-full bg-white/70" aria-hidden="true"></span> {{ wp.status|title }}</span>
+          {% endif %}
+        </div>
+        <p class="mt-5 text-xl font-bold leading-tight truncate">{{ claimant or '-' }}</p>
+        <p class="text-xs opacity-90 truncate">
+          {%- set parts = [] -%}
+          {%- if ns_pass.item.division %}{% set parts = parts + [ns_pass.item.division] %}{% endif -%}
+          {%- if order.season_name %}{% set parts = parts + [order.season_name] %}{% endif -%}
+          {%- if ns_pass.item.product_name %}{% set parts = parts + [ns_pass.item.product_name[:40]] %}{% endif -%}
+          {{ parts | join(' · ') }}
+        </p>
+        <div class="mt-4 flex items-end justify-between gap-3">
+          <div class="space-y-1 min-w-0">
+            <p class="text-[10px] uppercase tracking-wide opacity-75">Pass ID</p>
+            <p class="font-mono text-xs truncate">{{ wp.serial_number }}</p>
+          </div>
+          {% if not (wp.pass_type and wp.pass_type.suppress_barcode) %}
+          <div class="w-14 h-14 rounded-md bg-white p-1.5 shrink-0" aria-hidden="true">
+            <div class="w-full h-full grid grid-cols-4 grid-rows-4 gap-0.5">
+              <span class="bg-black"></span><span></span><span class="bg-black"></span><span class="bg-black"></span>
+              <span></span><span class="bg-black"></span><span class="bg-black"></span><span></span>
+              <span class="bg-black"></span><span class="bg-black"></span><span></span><span class="bg-black"></span>
+              <span class="bg-black"></span><span></span><span class="bg-black"></span><span></span>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% if ns_pass.item.wallet_pass_id %}
+      <a href="{{ url_for('wallet_admin.pass_detail', pass_id=ns_pass.item.wallet_pass_id) }}"
+         class="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">
+        <i class="ti ti-external-link text-sm" aria-hidden="true"></i> View full pass
+      </a>
       {% endif %}
     </div>
+    {% endcall %}
+    {% endif %}
+
+    {# Pass breakdown by division — derived from real line items #}
+    {% set premier_items = line_items | selectattr('division', 'equalto', 'Premier') | list %}
+    {% set classic_items = line_items | selectattr('division', 'equalto', 'Classic') | list %}
+    {% set unassigned_items = line_items | selectattr('status', 'equalto', 'unassigned') | list %}
+    {% call section_card('Pass Breakdown', icon='ti-layout-grid') %}
+    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+      <div class="flex items-center justify-between px-4 sm:px-5 py-3">
+        <span class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span class="w-2 h-2 rounded-full bg-purple-500" aria-hidden="true"></span> Premier
+        </span>
+        <span class="font-mono text-sm font-bold text-gray-900 dark:text-white tabular-nums">{{ premier_items | length }}</span>
+      </div>
+      <div class="flex items-center justify-between px-4 sm:px-5 py-3">
+        <span class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span class="w-2 h-2 rounded-full bg-amber-500" aria-hidden="true"></span> Classic
+        </span>
+        <span class="font-mono text-sm font-bold text-gray-900 dark:text-white tabular-nums">{{ classic_items | length }}</span>
+      </div>
+      <div class="flex items-center justify-between px-4 sm:px-5 py-3 bg-gray-50/60 dark:bg-gray-700/30">
+        <span class="inline-flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+          <i class="ti ti-unlink text-amber-500 text-sm" aria-hidden="true"></i> Awaiting Assignment
+        </span>
+        <span class="font-mono text-sm font-bold {{ 'text-amber-600 dark:text-amber-400' if unassigned_items else 'text-green-600 dark:text-green-400' }} tabular-nums">{{ unassigned_items | length }}</span>
+      </div>
+    </div>
+    {% endcall %}
 
     {% if order.primary_user %}
     {% call section_card('Primary Claimant', icon='ti-user') %}
     <div class="flex items-center gap-3 p-4 sm:p-5">
-      <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-        <span class="text-blue-600 dark:text-blue-400 font-semibold">{{ order.primary_user.username[0].upper() if order.primary_user.username else '?' }}</span>
+      <div class="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+        <span class="text-blue-600 dark:text-blue-400 font-bold text-lg">{{ order.primary_user.username[0].upper() if order.primary_user.username else '?' }}</span>
       </div>
       <div class="min-w-0">
-        <p class="font-medium text-gray-900 dark:text-white truncate">{{ order.primary_user.username }}</p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ order.primary_user.email if order.primary_user.email else '-' }}</p>
+        <p class="font-semibold text-gray-900 dark:text-white truncate">{{ order.primary_user.username }}</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 truncate break-all">{{ order.primary_user.email if order.primary_user.email else '-' }}</p>
       </div>
     </div>
     {% endcall %}
     {% endif %}
 
     {% call section_card('System Info', icon='ti-key') %}
-    <div class="space-y-3 text-sm p-4 sm:p-5">
-      <div><span class="text-gray-500 dark:text-gray-400">Order ID:</span> <code class="ml-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{ order.id }}</code></div>
-      <div><span class="text-gray-500 dark:text-gray-400">Token:</span> <code class="ml-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded break-all">{{ order.verification_token[:16] }}...</code></div>
-    </div>
+    <dl class="divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+        <dt class="text-gray-500 dark:text-gray-400">Order ID</dt>
+        <dd><code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-white">{{ order.id }}</code></dd>
+      </div>
+      <div class="flex items-start justify-between gap-3 px-4 sm:px-5 py-3">
+        <dt class="text-gray-500 dark:text-gray-400 shrink-0">Token</dt>
+        <dd><code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded break-all text-gray-900 dark:text-white">{{ order.verification_token[:16] }}…</code></dd>
+      </div>
+    </dl>
     {% endcall %}
   </div>
 </div>

@@ -34,109 +34,228 @@
 
 {% block panel_content %}
 {% if shell == 'console' %}
-{{ page_header(player.name, subtitle=league_type ~ " · " ~ season.name ~ " · Coach Draft Predictions") }}
 
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5 sm:mb-6">
-  {# Player identity card #}
-  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 flex items-center gap-4">
-    <div class="shrink-0 w-14 h-14 rounded-full bg-ecs-green/10 flex items-center justify-center overflow-hidden">
-      {% if player.profile_picture_url %}
-      <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}" class="w-14 h-14 rounded-full object-cover">
-      {% else %}
-      <span class="text-lg font-bold text-ecs-green">{{ player.name[:2]|upper }}</span>
-      {% endif %}
-    </div>
-    <div class="min-w-0">
-      <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ player.name }}</p>
-      <div class="flex flex-wrap gap-1.5 mt-1.5">
-        {% if player.favorite_position %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position }}</span>
+{# ===== Derived consensus signals — ALL from real prediction rows, nothing fabricated ===== #}
+{% set consensus = ("%.1f"|format(stats.avg_round)) if stats.avg_round else None %}
+{% set spread = (stats.max_round - stats.min_round) if (stats.max_round is not none and stats.min_round is not none) else None %}
+{% set rounds = predictions | map(attribute='0') | map(attribute='predicted_round') | list %}
+{# modal (most-predicted) round, computed across the observed range #}
+{% set ns = namespace(modal_round=stats.min_round, modal_n=-1) %}
+{% if stats.min_round is not none %}
+  {% for r in range(stats.min_round, stats.max_round + 1) %}
+    {% set c = rounds | select('eq', r) | list | length %}
+    {% if c > ns.modal_n %}{% set ns.modal_n = c %}{% set ns.modal_round = r %}{% endif %}
+  {% endfor %}
+{% endif %}
+{# average coach confidence across rows that supplied one (real confidence_level only) #}
+{% set conf_vals = predictions | map(attribute='0') | selectattr('confidence_level') | map(attribute='confidence_level') | list %}
+{% set avg_conf = ("%.1f"|format((conf_vals | sum) / (conf_vals | length))) if conf_vals else None %}
+{# agreement read derived from spread: tighter range = stronger agreement #}
+{% if spread is none %}{% set agree = {'word': '—', 'tone': 'neutral', 'icon': 'ti-minus'} %}
+{% elif spread <= 1 %}{% set agree = {'word': 'Strong', 'tone': 'success', 'icon': 'ti-consolidate'} %}
+{% elif spread <= 3 %}{% set agree = {'word': 'Moderate', 'tone': 'info', 'icon': 'ti-arrows-shuffle'} %}
+{% else %}{% set agree = {'word': 'Split', 'tone': 'warning', 'icon': 'ti-arrows-split-2'} %}{% endif %}
+
+{# ===== Command toolbar / page header ===== #}
+{% call page_header(player.name, subtitle="Coach Draft Predictions · " ~ league_type ~ " · " ~ season.name) %}
+  <a href="{{ url_for('draft_predictions.admin_view_league', league_type=league_type, season_id=season.id) }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg
+            border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
+            text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+            focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-arrow-left" aria-hidden="true"></i><span>{{ league_type }} board</span>
+  </a>
+{% endcall %}
+
+{# ===== Primary object: player feature card — identity + the ONE headline (consensus round) ===== #}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-5 sm:mb-6">
+  <div class="px-4 sm:px-5 h-10 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/30">
+    <i class="ti ti-user-star text-ecs-green" aria-hidden="true"></i>
+    <span class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Draft prospect</span>
+    <span class="ml-auto inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold {{ 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' if league_type == 'Premier' else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' }}">{{ league_type }}</span>
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-5">
+    {# identity #}
+    <div class="lg:col-span-3 p-4 sm:p-5 flex items-center gap-4 min-w-0">
+      <div class="shrink-0 w-16 h-16 rounded-full bg-ecs-green/10 flex items-center justify-center overflow-hidden ring-2 ring-ecs-green/20">
+        {% if player.profile_picture_url %}
+        <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}" class="w-16 h-16 rounded-full object-cover">
+        {% else %}
+        <span class="text-xl font-bold text-ecs-green">{{ player.name[:2]|upper }}</span>
         {% endif %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' if league_type == 'Premier' else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' }}">{{ league_type }}</span>
+      </div>
+      <div class="min-w-0">
+        <p class="text-lg font-bold text-gray-900 dark:text-white truncate">{{ player.name }}</p>
+        <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+          {% if player.favorite_position %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ player.favorite_position }}</span>
+          {% endif %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 font-mono"><i class="ti ti-users text-[11px]" aria-hidden="true"></i>{{ stats.count }} vote{{ '' if stats.count == 1 else 's' }}</span>
+          {% set agree_tone = {'success':'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300','info':'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300','warning':'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300','neutral':'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'} %}
+          {% if stats.count %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold {{ agree_tone[agree.tone] }}"><i class="ti {{ agree.icon }} text-[11px]" aria-hidden="true"></i>{{ agree.word }} agreement</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {# consensus headline — the big mono figure #}
+    <div class="lg:col-span-2 p-4 sm:p-5 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 bg-gray-50/40 dark:bg-gray-900/20 flex items-center">
+      <div class="w-full">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Consensus round</p>
+        <div class="mt-1 flex items-end gap-2 flex-wrap">
+          <span class="font-mono text-5xl font-extrabold leading-none text-ecs-green">{{ consensus or "—" }}</span>
+          {% if stats.min_round is not none %}
+          <span class="text-xs text-gray-500 dark:text-gray-400 mb-1.5 font-mono">R{{ stats.min_round }}&ndash;R{{ stats.max_round }}{% if spread is not none %} · ±{{ spread }} spread{% endif %}</span>
+          {% endif %}
+        </div>
+        {% if stats.count %}
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+          <span class="inline-flex items-center gap-1"><i class="ti ti-flame text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>Most picked <span class="font-mono font-bold text-gray-700 dark:text-gray-200 ml-0.5">R{{ ns.modal_round }}</span> <span class="font-mono">×{{ ns.modal_n }}</span></span>
+          {% if avg_conf %}<span class="inline-flex items-center gap-1"><i class="ti ti-gauge" aria-hidden="true"></i>Conf <span class="font-mono font-bold text-gray-700 dark:text-gray-200 ml-0.5">{{ avg_conf }}</span>/5</span>{% endif %}
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
-  {% call stat_card("ti-chart-bar", "Average Round", ("%.1f"|format(stats.avg_round)) if stats.avg_round else "-", sublabel="across coaches", tone="info") %}{% endcall %}
-  {% call stat_card("ti-users", "Total Votes", stats.count, sublabel="coach predictions", tone="primary") %}{% endcall %}
-</div>
+</section>
 
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5 sm:mb-6">
-  {% call stat_card("ti-arrow-up", "Highest (Earliest)", stats.min_round or "-", sublabel="best-case round", tone="success") %}{% endcall %}
-  {% call stat_card("ti-arrow-down", "Lowest (Latest)", stats.max_round or "-", sublabel="worst-case round", tone="warning") %}{% endcall %}
+{# ===== KPI band — non-redundant metrics, each a real or derived datum ===== #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5 sm:mb-6">
+  {% call stat_card("ti-flame", "Most Picked", ("R" ~ ns.modal_round) if stats.count else "—", sublabel=("×" ~ ns.modal_n ~ " coaches") if stats.count else "no votes", tone="gold") %}{% endcall %}
+  {% call stat_card("ti-arrows-vertical", "Spread", ("±" ~ spread) if spread is not none else "—", sublabel="R" ~ (stats.min_round or "—")|string ~ "–R" ~ (stats.max_round or "—")|string if stats.min_round is not none else "single range", tone="warning") %}{% endcall %}
+  {% call stat_card("ti-gauge", "Avg Confidence", (avg_conf ~ "/5") if avg_conf else "—", sublabel=(conf_vals|length ~ " of " ~ stats.count ~ " rated") if stats.count else "—", tone="info") %}{% endcall %}
+  {% call stat_card("ti-users", "Coaches In", stats.count, sublabel="predictions cast", tone="primary") %}{% endcall %}
 </div>
 
 {% if predictions %}
-{% call data_table("Coach Predictions", icon="ti-list", count=predictions|length, search_placeholder="Filter coaches…", search_id="coachPredFilter", filters=False) %}
-  <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
-    <thead>
-      <tr class="border-b border-gray-200 dark:border-gray-700">
-        {{ data_table_th("Coach", key="coach", sortable=False) }}
-        {{ data_table_th("Predicted Round", key="round", sortable=False) }}
-        {{ data_table_th("Confidence", key="confidence", sortable=False, hide="sm") }}
-        {{ data_table_th("Notes", key="notes", sortable=False, hide="md") }}
-        {{ data_table_th("Submitted", key="submitted", sortable=False, hide="sm") }}
-        {{ data_table_th("Actions", key="actions", sortable=False, align="right") }}
-      </tr>
-    </thead>
-    <tbody>
-      {% for prediction, coach in predictions %}
-      <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-        <td class="px-3 py-3">
-          <div class="flex items-center gap-3">
-            <div class="shrink-0 w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center">
-              <span class="text-xs font-medium text-ecs-green">{{ coach.username[:2]|upper }}</span>
-            </div>
-            <div class="min-w-0">
-              <p class="font-medium text-gray-900 dark:text-white truncate">{{ coach.username }}</p>
-              {% if coach.email %}
-              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ coach.email }}</p>
-              {% endif %}
-            </div>
-          </div>
-        </td>
-        <td class="px-3 py-3">
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono {{ 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' if prediction.predicted_round <= 5 else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' if prediction.predicted_round <= 10 else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' }}">
-            Round {{ prediction.predicted_round }}
-          </span>
-        </td>
-        <td class="px-3 py-3 hidden md:table-cell">
-          {% if prediction.confidence_level %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium font-mono bg-ecs-green/10 text-ecs-green dark:text-ecs-green">{{ prediction.confidence_level }}/5</span>
-          {% else %}
-          <span class="text-gray-400">-</span>
-          {% endif %}
-        </td>
-        <td class="px-3 py-3 hidden lg:table-cell text-gray-500 dark:text-gray-400 max-w-xs truncate">
-          {{ prediction.notes or '-' }}
-        </td>
-        <td class="px-3 py-3 hidden md:table-cell text-xs text-gray-500 dark:text-gray-400 font-mono">
-          {{ prediction.updated_at.strftime('%b %d, %Y %I:%M %p') }}
-        </td>
-        <td class="px-3 py-3 text-right">
-          <a href="{{ url_for('draft_predictions.admin_coach_detail', coach_id=coach.id, season_id=season.id, league_type=league_type) }}"
-             class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green"
-             aria-label="View coach {{ coach.username }}">
-            <i class="ti ti-user" aria-hidden="true"></i>
-          </a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
 
-  {# Mobile stacked cards #}
-  <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-    {% for prediction, coach in predictions %}
-    {% set round_badge %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium font-mono {{ 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' if prediction.predicted_round <= 5 else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' if prediction.predicted_round <= 10 else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' }}">Round {{ prediction.predicted_round }}</span>{% endset %}
-    {% call data_table_row_card(coach.username, url=url_for('draft_predictions.admin_coach_detail', coach_id=coach.id, season_id=season.id, league_type=league_type), badge=round_badge) %}
-      {% if coach.email %}<p class="truncate">{{ coach.email }}</p>{% endif %}
-      <p>Confidence: {% if prediction.confidence_level %}<span class="font-mono">{{ prediction.confidence_level }}/5</span>{% else %}-{% endif %}</p>
-      <p class="font-mono">{{ prediction.updated_at.strftime('%b %d, %Y %I:%M %p') }}</p>
-      {% if prediction.notes %}<p class="truncate">Notes: {{ prediction.notes }}</p>{% endif %}
-    {% endcall %}
-    {% endfor %}
+  {# ===== Round-distribution histogram: derived purely from real predicted_round values ===== #}
+  {% set lo = stats.min_round %}
+  {% set hi = stats.max_round %}
+  {% set counts = [] %}
+  {% for r in range(lo, hi + 1) %}
+    {% set c = rounds | select('eq', r) | list | length %}
+    {% set _ = counts.append({'round': r, 'n': c}) %}
+  {% endfor %}
+  {% set peak = (counts | map(attribute='n') | max) or 1 %}
+  <section class="xl:col-span-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden self-start">
+    <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-chart-histogram text-ecs-green" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Round consensus</h2>
+      <span class="ml-auto text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ stats.count }}</span>
+    </div>
+    <div class="p-4 space-y-2.5">
+      {% for b in counts %}
+      {% set pct = (b.n / peak * 100) | round(0, 'floor') | int %}
+      {% set is_modal = (b.round == ns.modal_round and b.n > 0) %}
+      <div class="flex items-center gap-3">
+        <span class="shrink-0 w-12 text-xs font-mono text-right {{ 'font-bold text-ecs-green' if is_modal else 'text-gray-500 dark:text-gray-400' }}">R{{ b.round }}</span>
+        <div class="flex-1 h-6 rounded bg-gray-100 dark:bg-gray-700/60 overflow-hidden relative">
+          {% if b.n %}
+          <div class="h-full rounded {{ 'bg-green-500/80 dark:bg-green-500/60' if b.round <= 5 else 'bg-blue-500/80 dark:bg-blue-500/60' if b.round <= 10 else 'bg-amber-500/80 dark:bg-amber-500/60' }}"
+               style="width: {{ pct if pct >= 8 else 8 }}%"></div>
+          {% endif %}
+        </div>
+        <span class="shrink-0 w-6 text-xs font-mono font-bold text-right {{ 'text-ecs-green' if is_modal else 'text-gray-700 dark:text-gray-200' }}">{{ b.n }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
+      <span class="inline-flex items-center gap-1"><i class="ti ti-flame text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>Peak <span class="font-mono">R{{ ns.modal_round }}</span></span>
+      <span class="font-mono">avg {{ consensus or "—" }}</span>
+    </div>
+  </section>
+
+  {# ===== Per-coach predictions table — real mono numerals, pick + edited signals ===== #}
+  <div class="xl:col-span-2 min-w-0">
+  {% call data_table("Coach Predictions", icon="ti-list", count=predictions|length, search_placeholder="Filter coaches…", search_id="coachPredFilter", filters=False) %}
+    <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          {{ data_table_th("Coach", key="coach", sortable=False) }}
+          {{ data_table_th("Round", key="round", sortable=False) }}
+          {{ data_table_th("Pick", key="pick", sortable=False, hide="md") }}
+          {{ data_table_th("Confidence", key="confidence", sortable=False, hide="sm") }}
+          {{ data_table_th("Notes", key="notes", sortable=False, hide="md") }}
+          {{ data_table_th("Submitted", key="submitted", sortable=False, hide="sm") }}
+          {{ data_table_th("Actions", key="actions", sortable=False, align="right") }}
+        </tr>
+      </thead>
+      <tbody>
+        {% for prediction, coach in predictions %}
+        <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3">
+            <div class="flex items-center gap-3">
+              <div class="shrink-0 w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center">
+                <span class="text-xs font-medium text-ecs-green">{{ coach.username[:2]|upper }}</span>
+              </div>
+              <div class="min-w-0">
+                <p class="font-medium text-gray-900 dark:text-white truncate">{{ coach.username }}</p>
+                {% if coach.email %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ coach.email }}</p>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+          <td class="px-3 py-3">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium font-mono {{ 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' if prediction.predicted_round <= 5 else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' if prediction.predicted_round <= 10 else 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' }}">
+              R{{ prediction.predicted_round }}
+            </span>
+          </td>
+          <td class="px-3 py-3 hidden lg:table-cell font-mono text-gray-700 dark:text-gray-200">
+            {% if prediction.predicted_pick_number %}#{{ prediction.predicted_pick_number }}{% else %}<span class="text-gray-400">—</span>{% endif %}
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell">
+            {% if prediction.confidence_level %}
+            <span class="inline-flex items-center gap-0.5" aria-label="Confidence {{ prediction.confidence_level }} of 5">
+              {% for i in range(1, 6) %}
+              <i class="ti {{ 'ti-circle-filled text-ecs-green' if i <= prediction.confidence_level else 'ti-circle text-gray-300 dark:text-gray-600' }} text-[10px]" aria-hidden="true"></i>
+              {% endfor %}
+              <span class="ml-1 text-xs font-mono text-gray-500 dark:text-gray-400">{{ prediction.confidence_level }}/5</span>
+            </span>
+            {% else %}
+            <span class="text-gray-400">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 hidden lg:table-cell text-gray-500 dark:text-gray-400 max-w-xs truncate">
+            {{ prediction.notes or '—' }}
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell text-xs font-mono">
+            <span class="text-gray-500 dark:text-gray-400">{{ prediction.updated_at.strftime('%b %d, %Y %I:%M %p') }}</span>
+            {% if prediction.updated_at != prediction.created_at %}
+            <span class="block text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">edited</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 text-right">
+            <a href="{{ url_for('draft_predictions.admin_coach_detail', coach_id=coach.id, season_id=season.id, league_type=league_type) }}"
+               class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+               aria-label="View coach {{ coach.username }}">
+              <i class="ti ti-user" aria-hidden="true"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# Mobile stacked cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for prediction, coach in predictions %}
+      {% set round_badge %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium font-mono {{ 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' if prediction.predicted_round <= 5 else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' if prediction.predicted_round <= 10 else 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' }}">R{{ prediction.predicted_round }}</span>{% endset %}
+      {% call data_table_row_card(coach.username, url=url_for('draft_predictions.admin_coach_detail', coach_id=coach.id, season_id=season.id, league_type=league_type), badge=round_badge) %}
+        {% if coach.email %}<p class="truncate">{{ coach.email }}</p>{% endif %}
+        <p>
+          {% if prediction.predicted_pick_number %}Pick <span class="font-mono">#{{ prediction.predicted_pick_number }}</span> · {% endif %}Confidence: {% if prediction.confidence_level %}<span class="font-mono">{{ prediction.confidence_level }}/5</span>{% else %}—{% endif %}
+        </p>
+        <p class="font-mono">{{ prediction.updated_at.strftime('%b %d, %Y %I:%M %p') }}{% if prediction.updated_at != prediction.created_at %} · edited{% endif %}</p>
+        {% if prediction.notes %}<p class="truncate">Notes: {{ prediction.notes }}</p>{% endif %}
+      {% endcall %}
+      {% endfor %}
+    </div>
+  {% endcall %}
   </div>
-{% endcall %}
+</div>
 {% else %}
 {{ empty_state("ti-list-check", "No Predictions", "No coaches have predicted for this player yet.") }}
 {% endif %}

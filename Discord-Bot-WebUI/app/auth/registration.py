@@ -281,6 +281,12 @@ def register_with_discord():
             db_session.add(player)
         db_session.flush()
 
+        # Persist liability waiver / terms acceptance (audit trail). The Discord
+        # registration form requires the terms_agreement checkbox; record when it
+        # was accepted so we have a timestamped record per player.
+        if request.form.get('terms_agreement') and not player.terms_accepted_at:
+            player.terms_accepted_at = datetime.utcnow()
+
         # Check for and process quick profile claim code
         claim_code = request.form.get('claim_code', '').strip().upper()
         if claim_code:

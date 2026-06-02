@@ -815,14 +815,25 @@ def _estimate_api_calls_today():
 
 
 def _calculate_avg_response_time():
-    """Calculate average response time for external services."""
+    """Average request response time over the last 24h, from real request logs.
+
+    Computed from APIRequestLog.response_time_ms (the same table that backs the
+    System Performance page). Returns a formatted 'NNms' string, or 'N/A' when no
+    requests have been logged yet — never a fabricated estimate."""
     try:
-        # This would ideally be based on stored metrics
-        # For now, return a reasonable estimate
-        return "180ms"
+        from datetime import datetime, timedelta
+        from app.models.api_logs import APIRequestLog
+        from sqlalchemy import func
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+        avg_ms = db.session.query(func.avg(APIRequestLog.response_time_ms)).filter(
+            APIRequestLog.timestamp >= cutoff
+        ).scalar()
+        if avg_ms is None:
+            return "N/A"
+        return f"{int(round(avg_ms))}ms"
     except Exception as e:
         logger.error(f"Error calculating response time: {e}")
-        return "Unknown"
+        return "N/A"
 
 
 def _get_system_performance_metrics():
@@ -898,68 +909,92 @@ def is_admin_panel_feature_enabled(feature_key):
     return AdminConfig.get_setting(feature_key, default=True)
 
 
+def _playoff_round_label(round_number):
+    """
+    Map a numeric playoff_round to a human-friendly stage label.
+
+    The Match.playoff_round column is just an integer (1, 2, ...). There is no
+    Tournament model that defines named rounds, so we infer a sensible label
+    from the round number. Higher round numbers are later stages.
+    """
+    labels = {
+        1: 'Round 1',
+        2: 'Quarterfinals',
+        3: 'Semifinals',
+        4: 'Final',
+    }
+    if round_number is None:
+        return 'Playoffs'
+    return labels.get(round_number, f'Round {round_number}')
+
+
 def get_playoff_stats():
     """
     Get real playoff statistics from the database.
 
+    Aggregates flagged playoff matches (Match.is_playoff_game) and also groups
+    them per league/season so the UI can render a "Current Playoffs" view with
+    real per-group counts, current stage (from the max playoff_round that still
+    has unreported matches), and a progress bar. No Tournament model exists, so
+    the league+season is treated as the grouping key. Only real Match fields
+    are used; nothing is fabricated.
+
     Returns:
-        dict: Playoff statistics including active, completed, upcoming matches and teams
+        dict: Aggregate ints (active_playoffs, completed_playoffs,
+            upcoming_matches, playoff_teams) plus a `tournaments` list of
+            per-group dicts.
     """
+    empty = {
+        'active_playoffs': 0,
+        'completed_playoffs': 0,
+        'upcoming_matches': 0,
+        'playoff_teams': 0,
+        'tournaments': [],
+    }
     try:
         from app.models.matches import Match
         from app.models.core import Season
         from datetime import datetime, timedelta
 
-        # Get current season for context
+        # Get current season for context (presence gates the rest, matching
+        # prior behavior). If there is no current season, there is nothing to show.
         current_season = Season.query.filter_by(
             is_current=True
         ).first()
 
         if not current_season:
-            # No current season, return zeros
-            return {
-                'active_playoffs': 0,
-                'completed_playoffs': 0,
-                'upcoming_matches': 0,
-                'playoff_teams': 0
-            }
+            return dict(empty)
 
-        # Query all playoff matches
-        playoff_matches = Match.query.filter(
-            Match.is_playoff_game == True
-        ).all()
+        # Query all playoff matches, eager-loading the team->league->season chain
+        # so per-group naming does not trigger N+1 queries.
+        from sqlalchemy.orm import joinedload
+        playoff_matches = (
+            Match.query
+            .options(
+                joinedload(Match.home_team),
+                joinedload(Match.away_team),
+            )
+            .filter(Match.is_playoff_game == True)  # noqa: E712
+            .all()
+        )
 
         if not playoff_matches:
-            return {
-                'active_playoffs': 0,
-                'completed_playoffs': 0,
-                'upcoming_matches': 0,
-                'playoff_teams': 0
-            }
+            return dict(empty)
 
         today = datetime.utcnow().date()
         next_week = today + timedelta(days=7)
 
-        # Active playoffs (scheduled but not yet played - no scores)
-        active_playoffs = len([
-            m for m in playoff_matches
-            if m.home_team_score is None and m.away_team_score is None
-        ])
+        def _reported(m):
+            return m.home_team_score is not None and m.away_team_score is not None
 
-        # Completed playoffs (have scores)
-        completed_playoffs = len([
-            m for m in playoff_matches
-            if m.home_team_score is not None and m.away_team_score is not None
-        ])
-
-        # Upcoming matches (within next 7 days, not yet played)
+        # Aggregate counts (unchanged semantics).
+        active_playoffs = len([m for m in playoff_matches if not _reported(m)])
+        completed_playoffs = len([m for m in playoff_matches if _reported(m)])
         upcoming_matches = len([
             m for m in playoff_matches
-            if m.date and m.date >= today and m.date <= next_week
-            and m.home_team_score is None
+            if m.date and today <= m.date <= next_week and m.home_team_score is None
         ])
 
-        # Count unique teams in playoffs
         playoff_team_ids = set()
         for match in playoff_matches:
             if match.home_team_id:
@@ -967,17 +1002,126 @@ def get_playoff_stats():
             if match.away_team_id:
                 playoff_team_ids.add(match.away_team_id)
 
+        # Group playoff matches by league so each group can be presented as a
+        # "tournament" card. We key on the home team's league_id; matches whose
+        # team/league can't be resolved fall into an "Unassigned" bucket.
+        groups = {}
+        for m in playoff_matches:
+            league = None
+            team = m.home_team or m.away_team
+            if team is not None:
+                league = getattr(team, 'league', None)
+            league_id = getattr(league, 'id', None)
+            key = league_id if league_id is not None else 'unassigned'
+
+            grp = groups.get(key)
+            if grp is None:
+                if league is not None:
+                    season = getattr(league, 'season', None)
+                    season_name = getattr(season, 'name', None)
+                    name = league.name
+                    if season_name:
+                        name = f"{league.name} · {season_name}"
+                else:
+                    name = 'Unassigned Playoffs'
+                grp = {
+                    'league_id': league_id,
+                    'name': name,
+                    'team_ids': set(),
+                    'completed': 0,
+                    'remaining': 0,
+                    'total': 0,
+                    'max_open_round': None,
+                    'max_round': None,
+                }
+                groups[key] = grp
+
+            grp['total'] += 1
+            if m.home_team_id:
+                grp['team_ids'].add(m.home_team_id)
+            if m.away_team_id:
+                grp['team_ids'].add(m.away_team_id)
+
+            rnd = m.playoff_round
+            if rnd is not None:
+                grp['max_round'] = rnd if grp['max_round'] is None else max(grp['max_round'], rnd)
+
+            if _reported(m):
+                grp['completed'] += 1
+            else:
+                grp['remaining'] += 1
+                # Current stage = the highest round that still has unreported matches.
+                if rnd is not None:
+                    grp['max_open_round'] = (
+                        rnd if grp['max_open_round'] is None else max(grp['max_open_round'], rnd)
+                    )
+
+        # Resolve a real per-league "format" label from stored season config.
+        # SeasonConfiguration.playoff_weeks is the only stored structural fact
+        # about the playoff format (there is no Tournament / bracket-type model),
+        # so we surface that rather than inventing single/double-elimination.
+        # Looked up once per league_id present in the groups.
+        from app.models.matches import SeasonConfiguration
+        league_ids = [
+            grp['league_id'] for grp in groups.values()
+            if grp.get('league_id') is not None
+        ]
+        playoff_weeks_by_league = {}
+        if league_ids:
+            try:
+                configs = (
+                    SeasonConfiguration.query
+                    .filter(SeasonConfiguration.league_id.in_(league_ids))
+                    .all()
+                )
+                for cfg in configs:
+                    if cfg.playoff_weeks is not None:
+                        playoff_weeks_by_league[cfg.league_id] = cfg.playoff_weeks
+            except Exception as cfg_err:
+                # Missing table / column should never 500 this page.
+                logger.warning(f"Could not load SeasonConfiguration for playoff format: {cfg_err}")
+
+        tournaments = []
+        for grp in groups.values():
+            total = grp['total']
+            completed = grp['completed']
+            pct = (completed * 100 // total) if total > 0 else 0
+            # Prefer the highest round with open matches for the "current stage";
+            # if everything is reported fall back to the highest round overall.
+            stage_round = grp['max_open_round'] if grp['max_open_round'] is not None else grp['max_round']
+
+            # Real format label, only if the season config actually stores it.
+            # Falls back to the number of distinct playoff rounds actually
+            # scheduled (max_round) when no SeasonConfiguration row exists.
+            weeks = playoff_weeks_by_league.get(grp['league_id'])
+            if weeks is None and grp['max_round'] is not None:
+                weeks = grp['max_round']
+            format_label = None
+            if weeks:
+                format_label = f"{weeks} playoff {'week' if weeks == 1 else 'weeks'}"
+
+            tournaments.append({
+                'league_id': grp['league_id'],
+                'name': grp['name'],
+                'team_count': len(grp['team_ids']),
+                'completed': completed,
+                'remaining': grp['remaining'],
+                'total': total,
+                'progress_pct': pct,
+                'stage': _playoff_round_label(stage_round),
+                'format_label': format_label,
+            })
+
+        # Stable, readable ordering: most matches first, then name.
+        tournaments.sort(key=lambda t: (-t['total'], t['name']))
+
         return {
             'active_playoffs': active_playoffs,
             'completed_playoffs': completed_playoffs,
             'upcoming_matches': upcoming_matches,
-            'playoff_teams': len(playoff_team_ids)
+            'playoff_teams': len(playoff_team_ids),
+            'tournaments': tournaments,
         }
     except Exception as e:
         logger.error(f"Error getting playoff stats: {e}")
-        return {
-            'active_playoffs': 0,
-            'completed_playoffs': 0,
-            'upcoming_matches': 0,
-            'playoff_teams': 0
-        }
+        return dict(empty)

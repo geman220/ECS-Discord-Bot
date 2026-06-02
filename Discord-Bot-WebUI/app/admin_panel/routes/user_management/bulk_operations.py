@@ -38,9 +38,79 @@ logger = logging.getLogger(__name__)
 @admin_panel_bp.route('/users/bulk-operations')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def bulk_operations():
-    """Bulk operations - redirects to comprehensive users page."""
-    return redirect(url_for('admin_panel.users_comprehensive'))
+    """
+    Bulk operations console.
+
+    Renders the bulk operations page with the real data needed to drive the
+    three bulk workflows (approval, role assignment, waitlist processing):
+    the live pending-approval queue, the waitlist queue, and the full role
+    list. The modals are populated server-side so each "Process" button posts
+    real selections to the existing bulk endpoints.
+    """
+    try:
+        # Pending users awaiting approval (drives the Bulk Approval modal)
+        pending_users = db.session.query(User).options(
+            joinedload(User.player),
+            joinedload(User.roles)
+        ).filter(
+            User.approval_status == 'pending'
+        ).order_by(User.created_at.desc()).all()
+
+        # Waitlist users (drives the Bulk Waitlist modal)
+        waitlist_users = db.session.query(User).options(
+            joinedload(User.player),
+            joinedload(User.roles)
+        ).join(User.roles).filter(
+            Role.name == 'pl-waitlist'
+        ).order_by(User.created_at.desc()).all()
+
+        # All assignable roles (drives the Bulk Role Assignment modal)
+        all_roles = db.session.query(Role).order_by(Role.name).all()
+
+        # Role distribution: members per role
+        role_stats = {}
+        for role in all_roles:
+            try:
+                role_stats[role.name] = len(role.users)
+            except Exception:
+                role_stats[role.name] = 0
+
+        # Recent bulk operations from the audit log
+        recent_bulk_ops = []
+        try:
+            recent_bulk_ops = db.session.query(AdminAuditLog).options(
+                joinedload(AdminAuditLog.user)
+            ).filter(
+                AdminAuditLog.action.in_([
+                    'bulk_approve_users', 'bulk_assign_roles', 'bulk_process_waitlist'
+                ])
+            ).order_by(AdminAuditLog.timestamp.desc()).limit(20).all()
+        except Exception as e:
+            logger.warning(f"Could not load recent bulk operations: {e}")
+            recent_bulk_ops = []
+
+        bulk_stats = {
+            'pending_users': len(pending_users),
+            'waitlist_users': len(waitlist_users),
+            'total_roles': len(all_roles),
+            'recent_operations': len(recent_bulk_ops),
+        }
+
+        return render_template(
+            'admin_panel/users/bulk_operations_flowbite.html',
+            bulk_stats=bulk_stats,
+            role_stats=role_stats,
+            recent_bulk_ops=recent_bulk_ops,
+            pending_users=pending_users,
+            waitlist_users=waitlist_users,
+            all_roles=all_roles,
+        )
+    except Exception as e:
+        logger.error(f"Error loading bulk operations page: {e}")
+        flash('Bulk operations unavailable. Check database connectivity.', 'error')
+        return redirect(url_for('admin_panel.users_comprehensive'))
 
 
 @admin_panel_bp.route('/users/bulk-operations/approve', methods=['POST'])

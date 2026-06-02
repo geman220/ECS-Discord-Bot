@@ -387,11 +387,18 @@ def refresh_token():
 
         if not user:
             logger.warning(f"Token refresh attempted for non-existent user: {current_user_id}")
-            return jsonify({"msg": "User not found"}), 404
+            # Machine-readable `code` so the mobile client can treat this as a
+            # terminal session-end (route to login) vs. an infrastructure 404
+            # (misroute/deploy blip) which it should retry. See auth alignment
+            # doc 2026-06-02: the bare HTTP status alone is ambiguous.
+            return jsonify({"msg": "User not found", "code": "USER_NOT_FOUND"}), 404
 
         if not user.is_approved:
             logger.warning(f"Token refresh attempted for unapproved user: {current_user_id}")
-            return jsonify({"msg": "Account not approved"}), 403
+            # Terminal-but-distinct: client should show an "account pending /
+            # not active" screen, not "log in again" (re-login also fails the
+            # is_approved gate). Distinguished from a transient 403 by `code`.
+            return jsonify({"msg": "Account not approved", "code": "ACCOUNT_NOT_APPROVED"}), 403
 
         # Update session last_activity
         if session_id:

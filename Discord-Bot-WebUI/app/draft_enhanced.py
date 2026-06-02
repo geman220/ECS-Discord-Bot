@@ -1205,7 +1205,20 @@ def draft_league(league_name: str):
     
     # Get draft analytics
     analytics = DraftService.get_draft_analytics(db_league_name)
-    
+
+    # On-the-clock draft state. The live draft board is coach-facing, so we force the
+    # Modern ('console') board for everyone allowed here (Coach + Admin) — Classic stays
+    # byte-identical and simply isn't served on this focused draft route. The bar only
+    # renders when a DraftSession exists (otherwise the board is unchanged).
+    draft_clock_state = None
+    try:
+        from app import draft_clock
+        _ds = draft_clock.get_session(db.session, current_league.season_id, current_league.id)
+        if _ds:
+            draft_clock_state = draft_clock.build_state(db.session, _ds)
+    except Exception as _clk_err:
+        logger.warning(f"draft clock state load failed: {_clk_err}")
+
     return render_template(
         'draft_enhanced_flowbite.html',
         title=f'{db_league_name} League Draft',
@@ -1216,6 +1229,9 @@ def draft_league(league_name: str):
         drafted_players_by_team=drafted_by_team,
         analytics=analytics,
         current_season_id=current_league.season_id,
+        current_league_id=current_league.id,
+        draft_clock_state=draft_clock_state,
+        shell='console',  # coaches see the Modern draft board (on-the-clock lives here)
         # ECS FC multi-team support
         is_ecs_fc_league=is_ecs_fc,
         ecs_fc_multi_team_players=ecs_fc_multi_team_players

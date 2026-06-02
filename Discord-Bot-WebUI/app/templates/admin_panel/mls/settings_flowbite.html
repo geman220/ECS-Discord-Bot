@@ -22,126 +22,269 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, section_card %}
+{% from 'macros/_modern_kit.html' import page_header %}
 
-{{ page_header("MLS Settings", subtitle="MLS Management") }}
+{# RBAC: route enforces @role_required(['Global Admin','Discord Admin']); no in-template guards in Classic. #}
 
-<form id="mls-settings-form" class="space-y-5 sm:space-y-6 max-w-3xl">
+{% call(slot) page_header("MLS Settings", subtitle="MLS Management · Live Reporting") %}
+  <a href="{{ url_for('admin_panel.mls_overview') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg
+            border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium
+            hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Overview</span>
+  </a>
+  <button type="submit" form="mls-settings-form" id="save-settings-btn"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-5 rounded-lg
+                 bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900
+                 disabled:opacity-50 disabled:cursor-not-allowed">
+    <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Settings
+  </button>
+{% endcall %}
 
-  {% call section_card("Scheduling Settings", icon="ti-calendar-event") %}
-  <div class="p-4 sm:p-5 space-y-6">
-    <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Configure when match threads and live reporting are scheduled.</p>
-
-    <div>
-      <label for="thread_creation_hours" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-        Thread Creation (hours before match)
-      </label>
-      <div class="flex flex-wrap items-center gap-3">
-        <input type="number" id="thread_creation_hours" name="mls_thread_creation_hours_before"
-               value="{{ settings.thread_creation_hours_before }}" min="1" max="168"
-               class="w-32 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <span class="text-sm text-gray-500 dark:text-gray-400">hours before kickoff (1-168)</span>
-      </div>
-      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-        <i class="ti ti-info-circle" aria-hidden="true"></i>Discord match thread will be created this many hours before the match starts
-      </p>
-    </div>
-
-    <div>
-      <label for="live_reporting_minutes" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-        Live Reporting Start (minutes before match)
-      </label>
-      <div class="flex flex-wrap items-center gap-3">
-        <input type="number" id="live_reporting_minutes" name="mls_live_reporting_minutes_before"
-               value="{{ settings.live_reporting_minutes_before }}" min="0" max="60"
-               class="w-32 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <span class="text-sm text-gray-500 dark:text-gray-400">minutes before kickoff (0-60)</span>
-      </div>
-      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-        <i class="ti ti-info-circle" aria-hidden="true"></i>Live reporting will begin this many minutes before the scheduled kickoff
-      </p>
-    </div>
+{# ===== Current configuration — KPI band (real, live AdminConfig values) ===== #}
+<section aria-labelledby="cfg-snapshot" class="mb-5 sm:mb-6">
+  <div class="flex items-center gap-2 mb-3">
+    <i class="ti ti-gauge text-ecs-green" aria-hidden="true"></i>
+    <h2 id="cfg-snapshot" class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Active Configuration</h2>
   </div>
-  {% endcall %}
+  <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
 
-  {% call section_card("Live Reporting Settings", icon="ti-broadcast") %}
-  <div class="p-4 sm:p-5 space-y-6">
-    <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Configure live reporting behavior and timeouts.</p>
-
-    <div>
-      <label for="reporting_timeout" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-        Match Timeout (hours)
-      </label>
-      <div class="flex flex-wrap items-center gap-3">
-        <input type="number" id="reporting_timeout" name="mls_live_reporting_timeout_hours"
-               value="{{ settings.live_reporting_timeout_hours }}" min="1" max="6"
-               class="w-32 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <span class="text-sm text-gray-500 dark:text-gray-400">hours (1-6)</span>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Thread Lead</span>
+        <i class="ti ti-message-circle-plus text-base text-ecs-green shrink-0" aria-hidden="true"></i>
       </div>
-      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-        <i class="ti ti-info-circle" aria-hidden="true"></i>Fallback timeout if ESPN doesn't report match as final (matches typically last 2 hours)
-      </p>
+      <div class="mt-3 flex items-end gap-1.5 flex-wrap">
+        <span class="font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ settings.thread_creation_hours_before }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">hrs</span>
+      </div>
+      <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400">before kickoff</p>
     </div>
 
-    <div>
-      <label for="max_session_duration" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-        Maximum Session Duration (hours)
-      </label>
-      <div class="flex flex-wrap items-center gap-3">
-        <input type="number" id="max_session_duration" name="mls_max_session_duration_hours"
-               value="{{ settings.max_session_duration_hours }}" min="2" max="8"
-               class="w-32 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <span class="text-sm text-gray-500 dark:text-gray-400">hours (2-8)</span>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Report Start</span>
+        <i class="ti ti-broadcast text-base text-ecs-green shrink-0" aria-hidden="true"></i>
       </div>
-      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-        <i class="ti ti-info-circle" aria-hidden="true"></i>Maximum time a live reporting session can run before being marked as stale
-      </p>
+      <div class="mt-3 flex items-end gap-1.5 flex-wrap">
+        <span class="font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ settings.live_reporting_minutes_before }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">min</span>
+      </div>
+      <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400">before kickoff</p>
     </div>
 
-    <div>
-      <label for="no_update_timeout" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-        No Update Timeout (minutes)
-      </label>
-      <div class="flex flex-wrap items-center gap-3">
-        <input type="number" id="no_update_timeout" name="mls_no_update_timeout_minutes"
-               value="{{ settings.no_update_timeout_minutes }}" min="10" max="120"
-               class="w-32 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <span class="text-sm text-gray-500 dark:text-gray-400">minutes (10-120)</span>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Match Timeout</span>
+        <i class="ti ti-clock-stop text-base text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
       </div>
-      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-        <i class="ti ti-info-circle" aria-hidden="true"></i>Session will be marked stale if no updates received within this time
-      </p>
+      <div class="mt-3 flex items-end gap-1.5 flex-wrap">
+        <span class="font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ settings.live_reporting_timeout_hours }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">hrs</span>
+      </div>
+      <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400">ESPN fallback</p>
     </div>
+
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Max Session</span>
+        <i class="ti ti-hourglass-high text-base text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-1.5 flex-wrap">
+        <span class="font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ settings.max_session_duration_hours }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">hrs</span>
+      </div>
+      <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400">hard cap</p>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 col-span-2 sm:col-span-1">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">No-Update</span>
+        <i class="ti ti-zzz text-base text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-1.5 flex-wrap">
+        <span class="font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ settings.no_update_timeout_minutes }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">min</span>
+      </div>
+      <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400">stale threshold</p>
+    </div>
+
   </div>
-  {% endcall %}
+</section>
 
-  {% call section_card("Supported Competitions", icon="ti-trophy") %}
-  <div class="p-4 sm:p-5">
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">ESPN competition codes currently supported.</p>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {% for code, name in competition_mappings.items() %}
-      <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
-        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/15 shrink-0">
-          <i class="ti ti-tournament text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+<form id="mls-settings-form" class="space-y-5 sm:space-y-6">
+
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
+
+    {# ===== Scheduling — feature card ===== #}
+    <section class="xl:col-span-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-ecs-green/10 text-ecs-green shrink-0">
+          <i class="ti ti-calendar-event" aria-hidden="true"></i>
         </span>
         <div class="min-w-0">
+          <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white leading-tight">Scheduling</h3>
+          <p class="text-[11px] text-gray-500 dark:text-gray-400">When threads &amp; reporting fire</p>
+        </div>
+      </div>
+      <div class="p-4 sm:p-5 space-y-5">
+
+        <div>
+          <label for="thread_creation_hours" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Thread Creation Lead
+          </label>
+          <div class="flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-full max-w-[16rem]">
+            <input type="number" id="thread_creation_hours" name="mls_thread_creation_hours_before"
+                   value="{{ settings.thread_creation_hours_before }}" min="1" max="168"
+                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
+            <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">hours</span>
+          </div>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+            <i class="ti ti-info-circle mt-0.5 shrink-0" aria-hidden="true"></i><span>Discord match thread is created this many hours before kickoff. Range <span class="font-mono">1–168</span>.</span>
+          </p>
+        </div>
+
+        <div>
+          <label for="live_reporting_minutes" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Live Reporting Start
+          </label>
+          <div class="flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-full max-w-[16rem]">
+            <input type="number" id="live_reporting_minutes" name="mls_live_reporting_minutes_before"
+                   value="{{ settings.live_reporting_minutes_before }}" min="0" max="60"
+                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
+            <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">mins</span>
+          </div>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+            <i class="ti ti-info-circle mt-0.5 shrink-0" aria-hidden="true"></i><span>Reporting begins this many minutes before the scheduled kickoff. Range <span class="font-mono">0–60</span>.</span>
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    {# ===== Live Reporting timeouts — feature card ===== #}
+    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">
+          <i class="ti ti-broadcast" aria-hidden="true"></i>
+        </span>
+        <div class="min-w-0">
+          <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white leading-tight">Live Reporting Timeouts</h3>
+          <p class="text-[11px] text-gray-500 dark:text-gray-400">Safety limits for the reporting session</p>
+        </div>
+      </div>
+      <div class="divide-y divide-gray-200 dark:divide-gray-700">
+
+        <div class="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div class="flex-1 min-w-0">
+            <label for="reporting_timeout" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Match Timeout</label>
+            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Fallback if ESPN never reports the match as final (matches usually last ~2h).</p>
+          </div>
+          <div class="shrink-0 flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-40">
+            <input type="number" id="reporting_timeout" name="mls_live_reporting_timeout_hours"
+                   value="{{ settings.live_reporting_timeout_hours }}" min="1" max="6"
+                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
+            <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">hrs</span>
+          </div>
+          <span class="shrink-0 hidden sm:inline-flex items-center text-[11px] font-mono text-gray-400 dark:text-gray-500">1–6</span>
+        </div>
+
+        <div class="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div class="flex-1 min-w-0">
+            <label for="max_session_duration" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Maximum Session Duration</label>
+            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Hard cap before a live reporting session is marked stale.</p>
+          </div>
+          <div class="shrink-0 flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-40">
+            <input type="number" id="max_session_duration" name="mls_max_session_duration_hours"
+                   value="{{ settings.max_session_duration_hours }}" min="2" max="8"
+                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
+            <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">hrs</span>
+          </div>
+          <span class="shrink-0 hidden sm:inline-flex items-center text-[11px] font-mono text-gray-400 dark:text-gray-500">2–8</span>
+        </div>
+
+        <div class="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div class="flex-1 min-w-0">
+            <label for="no_update_timeout" class="block text-sm font-medium text-gray-700 dark:text-gray-300">No-Update Timeout</label>
+            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Session is marked stale if no updates arrive within this window.</p>
+          </div>
+          <div class="shrink-0 flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-40">
+            <input type="number" id="no_update_timeout" name="mls_no_update_timeout_minutes"
+                   value="{{ settings.no_update_timeout_minutes }}" min="10" max="120"
+                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
+            <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">mins</span>
+          </div>
+          <span class="shrink-0 hidden sm:inline-flex items-center text-[11px] font-mono text-gray-400 dark:text-gray-500">10–120</span>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  {# ===== Supported Competitions — reference table (read-only) ===== #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> Supported Competitions
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ competition_mappings|length }}</span>
+      </h2>
+      <span class="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+        <i class="ti ti-lock" aria-hidden="true"></i> read-only
+      </span>
+    </div>
+
+    {# md+ : real table with mono ESPN codes #}
+    <div class="md:overflow-x-auto">
+      <table class="hidden md:table w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-700 text-left">
+            <th scope="col" class="px-4 sm:px-5 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Competition</th>
+            <th scope="col" class="px-4 sm:px-5 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">ESPN League Code</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for name, code in competition_mappings.items() %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-4 sm:px-5 py-3">
+              <span class="inline-flex items-center gap-2.5">
+                <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 shrink-0">
+                  <i class="ti ti-tournament text-sm" aria-hidden="true"></i>
+                </span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ name }}</span>
+              </span>
+            </td>
+            <td class="px-4 sm:px-5 py-3">
+              <span class="font-mono text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ code }}</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# mobile : stacked rows #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for name, code in competition_mappings.items() %}
+      <div class="flex items-center gap-3 px-4 py-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 shrink-0">
+          <i class="ti ti-tournament text-sm" aria-hidden="true"></i>
+        </span>
+        <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ name }}</p>
           <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ code }}</p>
         </div>
       </div>
       {% endfor %}
     </div>
-  </div>
-  {% endcall %}
+  </section>
 
-  <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-    <a href="{{ url_for('admin_panel.mls_overview') }}"
-       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
-              border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium
-              hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-      <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to Overview
-    </a>
-    <button type="submit" id="save-settings-btn"
+  {# Footer save bar (mirrors the header CTA; same id is in the header button, so keep this one without the id to avoid duplicates). #}
+  <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
+    <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+      <i class="ti ti-shield-lock" aria-hidden="true"></i>Changes apply to all future MLS match threads and reporting sessions.
+    </p>
+    <button type="submit"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-5 rounded-lg
                    bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
                    focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900

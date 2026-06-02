@@ -22,199 +22,520 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state, alert %}
-{% from 'macros/flowbite.html' import input, select %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
 
-{{ page_header("Task History", subtitle="Background task execution history") }}
+{# --- derived figures from REAL route data (24h primary window, 7d context) --- #}
+{% set completed_24h = history_data.completed_24h or 0 %}
+{% set failed_24h = history_data.failed_24h or 0 %}
+{% set total_24h = history_data.total_tasks_24h or 0 %}
+{% set zombies = history_data.current_zombies or (zombie_tasks|length) or 0 %}
+{% set total_7d = history_data.total_tasks_7d or 0 %}
+{% set completed_7d = history_data.completed_7d or 0 %}
+{% set failed_7d = history_data.failed_7d or 0 %}
+{% set success_rate = ((completed_24h / total_24h) * 100) | round(0, 'floor') | int if total_24h else 0 %}
+{% set fail_rate = ((failed_24h / total_24h) * 100) | round(0, 'floor') | int if total_24h else 0 %}
+{% set success_rate_7d = ((completed_7d / total_7d) * 100) | round(0, 'floor') | int if total_7d else 0 %}
+{% set breakdown = history_data.task_breakdown or {} %}
+{# health verdict from real figures — drives the hero pill (icon+text+tone, never color-only) #}
+{% if zombies %}
+  {% set health = {'tone': 'amber', 'icon': 'ti-ghost', 'word': 'Zombies present', 'desc': zombies ~ ' task' ~ ('s' if zombies != 1 else '') ~ ' stuck > 4h'} %}
+{% elif failed_24h %}
+  {% set health = {'tone': 'red', 'icon': 'ti-alert-octagon', 'word': 'Failures in window', 'desc': failed_24h ~ ' failed of ' ~ total_24h ~ ' in 24h'} %}
+{% elif total_24h %}
+  {% set health = {'tone': 'green', 'icon': 'ti-circle-check', 'word': 'All clear', 'desc': total_24h ~ ' executions · no failures · no zombies'} %}
+{% else %}
+  {% set health = {'tone': 'gray', 'icon': 'ti-zzz', 'word': 'Idle', 'desc': 'No background tasks in the last 24h'} %}
+{% endif %}
+{% set health_skin = {
+  'green': 'border-green-300 dark:border-green-500/40 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
+  'amber': 'border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300',
+  'red':   'border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300',
+  'gray':  'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40 text-gray-600 dark:text-gray-300'
+} %}
+
+{% call page_header("Task History", subtitle="Background task execution · last 24 hours") %}
+  <a href="{{ url_for('admin_panel.task_monitoring_page') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+            border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
+            text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+            focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-activity" aria-hidden="true"></i>Live Monitor
+  </a>
+  <a href="{{ url_for('admin_panel.task_history') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+            border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
+            text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+            focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-refresh" aria-hidden="true"></i>Refresh
+  </a>
+  {% if zombies %}
+  <button type="button" data-action="cleanup-zombies"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors
+                 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-trash" aria-hidden="true"></i>Cleanup Zombies
+    <span class="font-mono font-bold px-1.5 py-0.5 rounded bg-white/20">{{ zombies }}</span>
+  </button>
+  {% endif %}
+{% endcall %}
 
 <div class="space-y-5 sm:space-y-6">
 
-  <!-- Task Statistics -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-    {{ stat_card("ti-check", "Completed Tasks", history_data.completed or 0, tone="success") }}
-    {{ stat_card("ti-x", "Failed Tasks", history_data.failed or 0, tone="danger") }}
-    {{ stat_card("ti-ghost", "Zombie Tasks", zombie_tasks|length or 0, tone="warning") }}
-    {{ stat_card("ti-list-check", "Total Tasks", history_data.total or 0, tone="info") }}
-  </div>
-
-  <!-- Zombie Tasks Alert -->
-  {% if zombie_tasks %}
-  <div class="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-3 sm:p-4">
-    <i class="ti ti-alert-triangle text-lg shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
-    <div class="flex-1 min-w-0 text-sm text-amber-800 dark:text-amber-300">
-      <span class="font-semibold">{{ zombie_tasks|length }} Zombie Tasks Detected!</span>
-      These tasks may be stuck or have lost their worker processes.
+  <!-- HERO: primary object — reliability of the worker fleet over the 24h window.
+       Big mono success-rate figure + breakdown bar + at-a-glance health verdict. -->
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-3">
+      <!-- Left: the ONE number that matters -->
+      <div class="p-5 sm:p-6 lg:border-r border-b lg:border-b-0 border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Success rate · 24h</span>
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-2 py-1 rounded-lg border {{ health_skin[health.tone] }}">
+            <i class="ti {{ health.icon }} text-[13px]" aria-hidden="true"></i>{{ health.word }}
+          </span>
+        </div>
+        <div class="mt-3 flex items-end gap-2 flex-wrap">
+          <span class="font-mono text-5xl sm:text-6xl font-bold leading-none {% if not total_24h %}text-gray-400 dark:text-gray-500{% elif failed_24h or zombies %}text-amber-600 dark:text-amber-400{% else %}text-ecs-green{% endif %}">{{ success_rate }}<span class="text-2xl sm:text-3xl align-top">%</span></span>
+        </div>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ health.desc }}</p>
+        <!-- stacked completed/failed/other bar from real counts -->
+        {% if total_24h %}
+        {% set other_24h = total_24h - completed_24h - failed_24h %}
+        <div class="mt-4 h-2.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden flex" role="img"
+             aria-label="{{ completed_24h }} completed, {{ failed_24h }} failed, {{ other_24h if other_24h > 0 else 0 }} other of {{ total_24h }} total">
+          {% if completed_24h %}<div class="h-full bg-green-500 dark:bg-green-400" style="width: {{ (completed_24h / total_24h * 100) | round(2) }}%"></div>{% endif %}
+          {% if failed_24h %}<div class="h-full bg-red-500 dark:bg-red-400" style="width: {{ (failed_24h / total_24h * 100) | round(2) }}%"></div>{% endif %}
+          {% if other_24h > 0 %}<div class="h-full bg-gray-400 dark:bg-gray-500" style="width: {{ (other_24h / total_24h * 100) | round(2) }}%"></div>{% endif %}
+        </div>
+        <div class="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+          <span class="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-300"><span class="w-2.5 h-2.5 rounded-sm bg-green-500 dark:bg-green-400"></span>Completed <span class="font-mono font-semibold">{{ completed_24h }}</span></span>
+          <span class="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-300"><span class="w-2.5 h-2.5 rounded-sm bg-red-500 dark:bg-red-400"></span>Failed <span class="font-mono font-semibold">{{ failed_24h }}</span></span>
+          {% if other_24h > 0 %}<span class="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-300"><span class="w-2.5 h-2.5 rounded-sm bg-gray-400 dark:bg-gray-500"></span>Running/Pending <span class="font-mono font-semibold">{{ other_24h }}</span></span>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      <!-- Right: KPI grid with eyebrow labels + 7d context divider footers -->
+      <div class="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-200 dark:divide-gray-700">
+        <div class="p-4 sm:p-5">
+          <div class="flex items-center justify-between"><span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Total · 24h</span><i class="ti ti-list-check text-ecs-green text-base" aria-hidden="true"></i></div>
+          <div class="mt-2 font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ total_24h }}</div>
+          <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono">{{ total_7d }} in 7d</div>
+        </div>
+        <div class="p-4 sm:p-5">
+          <div class="flex items-center justify-between"><span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Completed</span><i class="ti ti-circle-check text-green-600 dark:text-green-400 text-base" aria-hidden="true"></i></div>
+          <div class="mt-2 font-mono text-3xl font-bold leading-none text-green-600 dark:text-green-400">{{ completed_24h }}</div>
+          <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono">{{ success_rate_7d }}% · 7d</div>
+        </div>
+        <div class="p-4 sm:p-5">
+          <div class="flex items-center justify-between"><span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Failed</span><i class="ti ti-alert-octagon {% if failed_24h %}text-red-600 dark:text-red-400{% else %}text-gray-400 dark:text-gray-500{% endif %} text-base" aria-hidden="true"></i></div>
+          <div class="mt-2 font-mono text-3xl font-bold leading-none {% if failed_24h %}text-red-600 dark:text-red-400{% else %}text-gray-400 dark:text-gray-500{% endif %}">{{ failed_24h }}</div>
+          <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono">{{ failed_7d }} in 7d</div>
+        </div>
+        <div class="p-4 sm:p-5">
+          <div class="flex items-center justify-between"><span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Zombies</span><i class="ti ti-ghost {% if zombies %}text-amber-600 dark:text-amber-400{% else %}text-gray-400 dark:text-gray-500{% endif %} text-base" aria-hidden="true"></i></div>
+          <div class="mt-2 font-mono text-3xl font-bold leading-none {% if zombies %}text-amber-600 dark:text-amber-400{% else %}text-gray-400 dark:text-gray-500{% endif %}">{{ zombies }}</div>
+          <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400">{% if zombies %}stuck &gt; 4h{% else %}none now{% endif %}</div>
+        </div>
+      </div>
     </div>
-    <button type="button" data-action="cleanup-zombies"
-            class="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
-                   bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-      <i class="ti ti-trash" aria-hidden="true"></i>Cleanup Zombies
-    </button>
-  </div>
+  </section>
+
+  <!-- Zombie tasks: dense rows on real zombie_tasks data (task_id / task_name / runtime / start_time) -->
+  {% if zombie_tasks %}
+  <section class="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 sm:px-5 h-auto sm:h-12 py-3 sm:py-0 border-b border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300 flex items-center gap-2">
+        <i class="ti ti-ghost" aria-hidden="true"></i>Zombie Tasks
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 dark:bg-amber-500/25 dark:text-amber-200">{{ zombie_tasks|length }}</span>
+      </h2>
+      <span class="text-xs text-amber-700 dark:text-amber-400">Stuck or orphaned worker processes — terminate individually or in bulk.</span>
+    </div>
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+      {% for z in zombie_tasks %}
+      {% set rt = z.runtime | default(0) | float %}
+      {% set rt_h = (rt // 3600) | int %}
+      {% set rt_m = ((rt % 3600) // 60) | int %}
+      <li class="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+        <span class="hidden sm:flex shrink-0 w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 items-center justify-center" aria-hidden="true">
+          <i class="ti ti-ghost text-lg"></i>
+        </span>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ z.task_name or 'unknown task' }}</p>
+          <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+            <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-700 dark:text-gray-300">{{ (z.task_id or '')[:12] or '—' }}</code>
+            {% if z.start_time %}<span>started <span class="font-mono">{{ z.start_time[:19] | replace('T', ' ') }}</span></span>{% endif %}
+          </div>
+        </div>
+        <div class="flex items-center justify-between sm:justify-end gap-4 shrink-0">
+          <div class="text-right">
+            <div class="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Runtime</div>
+            <div class="font-mono text-sm font-bold text-amber-600 dark:text-amber-400">{{ rt_h }}h {{ '%02d' % rt_m }}m</div>
+          </div>
+          <button type="button" data-action="kill-task" data-task-id="{{ z.task_id }}" aria-label="Kill zombie task" title="Kill task"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                         border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 bg-white dark:bg-gray-800
+                         hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-skull" aria-hidden="true"></i>Kill
+          </button>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
   {% endif %}
 
-  <!-- Filters -->
-  {% call section_card("Filter Tasks", icon="ti-filter") %}
-  <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 p-4 sm:p-5">
-    <div>
-      {{ select("status", label="Status", options=[
-        ('', 'All Statuses'),
-        ('completed', 'Completed'),
-        ('failed', 'Failed'),
-        ('zombie', 'Zombie')
-      ], selected=request.args.get('status', '')) }}
+  <!-- Filter Tasks: server-side filters on the persisted TaskExecution table.
+       GET form re-submits the page; values reflect the active filters. -->
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-filter text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Filter Tasks</h2>
     </div>
-    <div>
-      {{ select("task_type", label="Task Type", options=[
-        ('', 'All Types'),
-        ('notification', 'Notification'),
-        ('match_update', 'Match Update'),
-        ('data_sync', 'Data Sync')
-      ], selected=request.args.get('task_type', '')) }}
-    </div>
-    <div>
-      {{ input("date_from", label="From Date", type="date", value=request.args.get('date_from', '')) }}
-    </div>
-    <div>
-      {{ input("date_to", label="To Date", type="date", value=request.args.get('date_to', '')) }}
-    </div>
-    <div class="sm:col-span-2 md:col-span-2 flex items-end">
-      <button type="submit"
-              class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
-                     bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-search" aria-hidden="true"></i>Filter
-      </button>
-    </div>
-  </form>
-  {% endcall %}
+    <form method="GET" class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div>
+        <label for="f-status" class="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Status</label>
+        <select id="f-status" name="status" class="w-full h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+          <option value="">All Statuses</option>
+          <option value="completed" {{ 'selected' if exec_filters.status == 'completed' }}>Completed</option>
+          <option value="failed" {{ 'selected' if exec_filters.status == 'failed' }}>Failed</option>
+        </select>
+      </div>
+      <div>
+        <label for="f-type" class="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Task Name Contains</label>
+        <input id="f-type" type="text" name="task_type" value="{{ exec_filters.task_type }}" placeholder="e.g. notification" class="w-full h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+      </div>
+      <div>
+        <label for="f-from" class="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">From Date</label>
+        <input id="f-from" type="date" name="date_from" value="{{ exec_filters.date_from }}" class="w-full h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+      </div>
+      <div>
+        <label for="f-to" class="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">To Date</label>
+        <input id="f-to" type="date" name="date_to" value="{{ exec_filters.date_to }}" class="w-full h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+      </div>
+      <div class="flex items-end gap-2">
+        <button type="submit" class="flex-1 h-9 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+          <i class="ti ti-search" aria-hidden="true"></i> Filter
+        </button>
+      </div>
+    </form>
+  </section>
 
-  <!-- Task Execution History -->
-  {% if history_data.tasks %}
-  {% call data_table("Task Execution History", icon="ti-history", count=history_data.tasks|length, search_placeholder="Filter tasks…", search_id="taskHistoryFilter") %}
+  <!-- Task Execution History: per-run rows from the persisted TaskExecution table. -->
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-history text-ecs-green" aria-hidden="true"></i>
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Task Execution History</h2>
+      <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 ml-auto">{{ executions|length }} shown</span>
+    </div>
+    {% if executions %}
     <!-- md+ table -->
+    <div class="overflow-x-auto">
+      <table class="hidden md:table w-full text-sm text-left">
+        <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
+          <tr>
+            <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Task</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Started</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell text-right">Duration</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden xl:table-cell">Result</th>
+            <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for ex in executions %}
+          {% set failed = ex.status == 'failed' %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {% if failed %}bg-red-50/40 dark:bg-red-500/5{% endif %}">
+            <td class="px-4 py-3">
+              <div class="font-medium text-gray-900 dark:text-white truncate max-w-[18rem]" title="{{ ex.name }}">{{ ex.short_name }}</div>
+              {% if ex.task_id %}<code class="font-mono text-[11px] text-gray-400 dark:text-gray-500 break-all">{{ ex.task_id[:12] }}</code>{% endif %}
+            </td>
+            <td class="px-4 py-3">
+              {% if failed %}
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> Failed</span>
+              {% else %}
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> Completed</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 hidden lg:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">{{ ex.started_at.strftime('%Y-%m-%d %H:%M:%S') if ex.started_at else '—' }}</td>
+            <td class="px-4 py-3 hidden lg:table-cell font-mono text-xs text-right text-gray-700 dark:text-gray-300">{% if ex.duration_s is not none %}{{ '%.1f' % ex.duration_s }}s{% else %}—{% endif %}</td>
+            <td class="px-4 py-3 hidden xl:table-cell text-xs {{ 'text-red-600 dark:text-red-400' if failed else 'text-gray-500 dark:text-gray-400' }} truncate max-w-[18rem]">{{ (ex.error if failed else ex.result) or '—' }}</td>
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-end gap-1">
+                <button type="button" class="p-2 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg" data-action="view-task-execution" data-modal-target="taskDetailsModal" data-modal-toggle="taskDetailsModal"
+                  data-task-id="{{ ex.task_id }}" data-task-name="{{ ex.name }}" data-task-status="{{ ex.status }}"
+                  data-task-started="{{ ex.started_at.strftime('%Y-%m-%d %H:%M:%S') if ex.started_at else '' }}"
+                  data-task-duration="{% if ex.duration_s is not none %}{{ '%.1f' % ex.duration_s }}s{% endif %}"
+                  data-task-worker="{{ ex.worker or '' }}"
+                  data-task-result="{{ (ex.error if failed else ex.result) or '' }}"
+                  aria-label="View task"><i class="ti ti-eye" aria-hidden="true"></i></button>
+                {% if failed %}
+                <button type="button" class="p-2 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg"
+                  data-action="retry-execution" data-execution-id="{{ ex.id }}" data-task-name="{{ ex.short_name }}"
+                  aria-label="Retry task" title="Retry task"><i class="ti ti-refresh" aria-hidden="true"></i></button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <!-- mobile cards -->
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for ex in executions %}
+      {% set failed = ex.status == 'failed' %}
+      <div data-row-card class="px-4 py-3.5 {% if failed %}bg-red-50/40 dark:bg-red-500/5{% endif %}">
+        <div class="flex items-center justify-between gap-2">
+          {% if failed %}
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> Failed</span>
+          {% else %}
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> Completed</span>
+          {% endif %}
+          {% if ex.task_id %}<code class="shrink-0 font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">{{ ex.task_id[:8] }}</code>{% endif %}
+        </div>
+        <p class="mt-1.5 text-sm font-semibold text-gray-900 dark:text-white break-all">{{ ex.short_name }}</p>
+        {% if (ex.error if failed else ex.result) %}<p class="mt-0.5 text-xs {{ 'text-red-600 dark:text-red-400' if failed else 'text-gray-500 dark:text-gray-400' }}">{{ (ex.error if failed else ex.result) }}</p>{% endif %}
+        <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+          {% if ex.started_at %}<span class="font-mono">{{ ex.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>{% endif %}
+          {% if ex.duration_s is not none %}<span class="font-mono">{{ '%.1f' % ex.duration_s }}s</span>{% endif %}
+        </div>
+        {% if failed %}
+        <div class="mt-2.5">
+          <button type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+            data-action="retry-execution" data-execution-id="{{ ex.id }}" data-task-name="{{ ex.short_name }}">
+            <i class="ti ti-refresh" aria-hidden="true"></i> Retry
+          </button>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+      <span>Showing <span class="font-mono">{{ executions|length }}</span> of <span class="font-mono">{{ exec_total }}</span></span>
+      <div class="flex items-center gap-1">
+        {% if exec_page > 1 %}
+        <a href="{{ url_for('admin_panel.task_history', page=exec_page-1, status=exec_filters.status, task_type=exec_filters.task_type, date_from=exec_filters.date_from, date_to=exec_filters.date_to) }}" class="h-8 px-2.5 inline-flex items-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 font-medium hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-chevron-left" aria-hidden="true"></i> Prev</a>
+        {% else %}
+        <span class="h-8 px-2.5 inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 font-medium opacity-40 cursor-not-allowed"><i class="ti ti-chevron-left" aria-hidden="true"></i> Prev</span>
+        {% endif %}
+        <span class="px-2 font-mono">{{ exec_page }} / {{ exec_pages }}</span>
+        {% if exec_page < exec_pages %}
+        <a href="{{ url_for('admin_panel.task_history', page=exec_page+1, status=exec_filters.status, task_type=exec_filters.task_type, date_from=exec_filters.date_from, date_to=exec_filters.date_to) }}" class="h-8 px-2.5 inline-flex items-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 font-medium hover:bg-gray-50 dark:hover:bg-gray-700">Next <i class="ti ti-chevron-right" aria-hidden="true"></i></a>
+        {% else %}
+        <span class="h-8 px-2.5 inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 font-medium opacity-40 cursor-not-allowed">Next <i class="ti ti-chevron-right" aria-hidden="true"></i></span>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    {{ empty_state("ti-history-off", "No Execution Records", "No task executions have been recorded yet. Rows accumulate as background tasks run (requires the task_executions table).") }}
+    {% endif %}
+  </section>
+
+  <!-- Task breakdown: real per-task-name table (history_data.task_breakdown), the actual tabular data.
+       Reliability bar per row (completed/total), failures highlighted, runtime profile. -->
+  {% if breakdown %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-chart-bar text-ecs-green" aria-hidden="true"></i>Breakdown by Task
+      </h2>
+      <span class="text-xs text-gray-500 dark:text-gray-400">last 24h · <span class="font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ breakdown|length }}</span> task type{{ 's' if breakdown|length != 1 else '' }}</span>
+    </div>
+
+    <!-- md+ table with mono numerals -->
     <table class="hidden md:table w-full text-sm text-left">
       <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
         <tr>
-          {{ data_table_th("Task ID", key="id") }}
-          {{ data_table_th("Type", key="type") }}
-          {{ data_table_th("Status", key="status") }}
-          {{ data_table_th("Started", key="started", hide="sm") }}
-          {{ data_table_th("Duration", key="duration", hide="sm") }}
-          {{ data_table_th("Result", key="result", sortable=False, hide="md") }}
-          {{ data_table_th("Actions", sortable=False, align="right") }}
+          <th scope="col" class="px-4 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Task</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 w-44 hidden xl:table-cell">Reliability</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Total</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Done</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Failed</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right hidden lg:table-cell">Running</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right hidden lg:table-cell">Avg</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right hidden lg:table-cell">Longest</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for task in history_data.tasks %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-2.5">
-            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-700 dark:text-gray-300">{{ task.id[:8] }}</code>
+        {% for name, s in breakdown.items() %}
+        {% set s_total = s.total or 0 %}
+        {% set s_done = s.completed or 0 %}
+        {% set s_rel = (s_done / s_total * 100) | round(0, 'floor') | int if s_total else 0 %}
+        {% set short_name = name.rsplit('.', 1)[-1] if '.' in name else name %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {% if s.failed %}bg-red-50/40 dark:bg-red-500/5{% endif %}">
+          <td class="px-4 py-2.5 align-middle">
+            <div class="font-semibold text-sm text-gray-900 dark:text-white truncate max-w-[18rem]" title="{{ name }}">{{ short_name }}</div>
+            <code class="font-mono text-[11px] text-gray-400 dark:text-gray-500 break-all">{{ name }}</code>
           </td>
-          <td class="px-3 py-2.5">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ task.type or 'Unknown' }}</span>
-          </td>
-          <td class="px-3 py-2.5">
-            {% if task.status == 'completed' %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i>Completed</span>
-            {% elif task.status == 'failed' %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-alert-octagon" aria-hidden="true"></i>Failed</span>
-            {% elif task.status == 'zombie' %}
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-ghost" aria-hidden="true"></i>Zombie</span>
-            {% else %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ task.status|title }}</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-2.5 hidden md:table-cell text-gray-700 dark:text-gray-300">
-            {% if task.started_at %}
-            <span class="font-mono text-xs">{{ task.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
-            {% else %}
-            <span class="text-gray-400 dark:text-gray-500">Unknown</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-2.5 hidden md:table-cell text-gray-700 dark:text-gray-300">
-            {% if task.duration %}
-            <span class="font-mono text-xs">{{ task.duration }}s</span>
-            {% else %}
-            <span class="text-gray-400 dark:text-gray-500">-</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-2.5 hidden lg:table-cell">
-            {% if task.result %}
-            <span class="text-sm text-gray-500 dark:text-gray-400">{{ task.result[:50] }}...</span>
-            {% else %}
-            <span class="text-gray-400 dark:text-gray-500">-</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-2.5">
-            <div class="flex items-center justify-end gap-1">
-              <button type="button" class="inline-flex items-center justify-center w-9 h-9 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task" data-task-id="{{ task.id }}" aria-label="View task" title="View">
-                <i class="ti ti-eye" aria-hidden="true"></i>
-              </button>
-              {% if task.status == 'failed' %}
-              <button type="button" class="inline-flex items-center justify-center w-9 h-9 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="retry-task" data-task-id="{{ task.id }}" aria-label="Retry task" title="Retry">
-                <i class="ti ti-refresh" aria-hidden="true"></i>
-              </button>
-              {% endif %}
-              {% if task.status == 'zombie' %}
-              <button type="button" class="inline-flex items-center justify-center w-9 h-9 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="kill-task" data-task-id="{{ task.id }}" aria-label="Kill task" title="Kill">
-                <i class="ti ti-x" aria-hidden="true"></i>
-              </button>
-              {% endif %}
+          <td class="px-3 py-2.5 align-middle hidden xl:table-cell">
+            <div class="flex items-center gap-2">
+              <div class="w-20 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                <div class="h-full {% if s.failed %}bg-amber-500 dark:bg-amber-400{% else %}bg-green-500 dark:bg-green-400{% endif %}" style="width: {{ s_rel }}%"></div>
+              </div>
+              <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ s_rel }}%</span>
             </div>
           </td>
+          <td class="px-3 py-2.5 text-right font-mono text-gray-900 dark:text-white font-semibold align-middle">{{ s_total }}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-green-600 dark:text-green-400 align-middle">{{ s_done }}</td>
+          <td class="px-3 py-2.5 text-right font-mono align-middle {% if s.failed %}text-red-600 dark:text-red-400 font-semibold{% else %}text-gray-400 dark:text-gray-500{% endif %}">{{ s.failed or 0 }}</td>
+          <td class="px-3 py-2.5 text-right font-mono hidden lg:table-cell align-middle {% if s.running %}text-amber-600 dark:text-amber-400{% else %}text-gray-400 dark:text-gray-500{% endif %}">{{ s.running or 0 }}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-xs text-gray-600 dark:text-gray-400 hidden lg:table-cell align-middle">{% if s.avg_runtime %}{{ '%.1f' % s.avg_runtime }}s{% else %}—{% endif %}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-xs text-gray-600 dark:text-gray-400 hidden lg:table-cell align-middle">{% if s.longest_runtime %}{{ '%.1f' % s.longest_runtime }}s{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
+      <tfoot class="bg-gray-50 dark:bg-gray-700/40 border-t-2 border-gray-200 dark:border-gray-700">
+        <tr>
+          <td class="px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">All tasks · 24h</td>
+          <td class="px-3 py-2.5 hidden xl:table-cell">
+            <div class="flex items-center gap-2">
+              <div class="w-20 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                <div class="h-full {% if failed_24h %}bg-amber-500 dark:bg-amber-400{% else %}bg-green-500 dark:bg-green-400{% endif %}" style="width: {{ success_rate }}%"></div>
+              </div>
+              <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ success_rate }}%</span>
+            </div>
+          </td>
+          <td class="px-3 py-2.5 text-right font-mono font-bold text-gray-900 dark:text-white">{{ total_24h }}</td>
+          <td class="px-3 py-2.5 text-right font-mono font-bold text-green-600 dark:text-green-400">{{ completed_24h }}</td>
+          <td class="px-3 py-2.5 text-right font-mono font-bold {% if failed_24h %}text-red-600 dark:text-red-400{% else %}text-gray-400 dark:text-gray-500{% endif %}">{{ failed_24h }}</td>
+          <td class="px-3 py-2.5 hidden lg:table-cell"></td>
+          <td class="px-3 py-2.5 hidden lg:table-cell"></td>
+          <td class="px-3 py-2.5 hidden lg:table-cell"></td>
+        </tr>
+      </tfoot>
     </table>
 
     <!-- mobile cards -->
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-      {% for task in history_data.tasks %}
-      <div data-row-card class="px-4 py-3.5">
-        <div class="flex items-center justify-between gap-2">
-          <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-700 dark:text-gray-300">{{ task.id[:8] }}</code>
-          {% if task.status == 'completed' %}
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i>Completed</span>
-          {% elif task.status == 'failed' %}
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-alert-octagon" aria-hidden="true"></i>Failed</span>
-          {% elif task.status == 'zombie' %}
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-ghost" aria-hidden="true"></i>Zombie</span>
-          {% else %}
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ task.status|title }}</span>
-          {% endif %}
+      {% for name, s in breakdown.items() %}
+      {% set s_total = s.total or 0 %}
+      {% set s_done = s.completed or 0 %}
+      {% set s_rel = (s_done / s_total * 100) | round(0, 'floor') | int if s_total else 0 %}
+      {% set short_name = name.rsplit('.', 1)[-1] if '.' in name else name %}
+      <div data-row-card class="px-4 py-3.5 {% if s.failed %}bg-red-50/40 dark:bg-red-500/5{% endif %}">
+        <div class="font-semibold text-sm text-gray-900 dark:text-white truncate">{{ short_name }}</div>
+        <code class="font-mono text-[11px] text-gray-400 dark:text-gray-500 break-all">{{ name }}</code>
+        <div class="mt-2 flex items-center gap-2">
+          <div class="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+            <div class="h-full {% if s.failed %}bg-amber-500 dark:bg-amber-400{% else %}bg-green-500 dark:bg-green-400{% endif %}" style="width: {{ s_rel }}%"></div>
+          </div>
+          <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ s_rel }}%</span>
         </div>
-        <div class="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-          <div><span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ task.type or 'Unknown' }}</span></div>
-          {% if task.started_at %}<div>Started <span class="font-mono">{{ task.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</span></div>{% endif %}
-          {% if task.duration %}<div>Duration <span class="font-mono">{{ task.duration }}s</span></div>{% endif %}
-          {% if task.result %}<div class="truncate">{{ task.result[:50] }}...</div>{% endif %}
+        <div class="mt-2 grid grid-cols-3 gap-2 text-center">
+          <div><div class="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Total</div><div class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ s_total }}</div></div>
+          <div><div class="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Done</div><div class="font-mono text-sm font-bold text-green-600 dark:text-green-400">{{ s_done }}</div></div>
+          <div><div class="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Failed</div><div class="font-mono text-sm font-bold {% if s.failed %}text-red-600 dark:text-red-400{% else %}text-gray-400 dark:text-gray-500{% endif %}">{{ s.failed or 0 }}</div></div>
         </div>
-        <div class="mt-2 flex items-center gap-1">
-          <button type="button" class="inline-flex items-center justify-center w-11 h-11 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task" data-task-id="{{ task.id }}" aria-label="View task" title="View">
-            <i class="ti ti-eye" aria-hidden="true"></i>
-          </button>
-          {% if task.status == 'failed' %}
-          <button type="button" class="inline-flex items-center justify-center w-11 h-11 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="retry-task" data-task-id="{{ task.id }}" aria-label="Retry task" title="Retry">
-            <i class="ti ti-refresh" aria-hidden="true"></i>
-          </button>
-          {% endif %}
-          {% if task.status == 'zombie' %}
-          <button type="button" class="inline-flex items-center justify-center w-11 h-11 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="kill-task" data-task-id="{{ task.id }}" aria-label="Kill task" title="Kill">
-            <i class="ti ti-x" aria-hidden="true"></i>
-          </button>
-          {% endif %}
+        {% if s.avg_runtime or s.longest_runtime %}
+        <div class="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+          {% if s.avg_runtime %}<span>avg <span class="font-mono">{{ '%.1f' % s.avg_runtime }}s</span></span>{% endif %}
+          {% if s.longest_runtime %}<span>max <span class="font-mono">{{ '%.1f' % s.longest_runtime }}s</span></span>{% endif %}
         </div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
-  {% endcall %}
-  {% else %}
-  {{ empty_state("ti-history-off", "No Task History", "No background tasks have been executed recently.") }}
+  </section>
+  {% elif not zombie_tasks %}
+  {{ empty_state("ti-history-off", "No Task Activity", "No background tasks have executed in the last 24 hours.") }}
   {% endif %}
 
 </div>
+
+<!-- Task Details Modal (populated from row data-attributes by inline JS below) -->
+<div id="taskDetailsModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 items-center justify-center p-4 bg-black/50">
+  <div class="w-full max-w-2xl rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+      <i class="ti ti-info-circle text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Task Details</h2>
+      <button type="button" class="ml-auto p-2 inline-flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" data-action="close-modal" data-modal-target="taskDetailsModal" aria-label="Close"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="p-5">
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        <div><dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Task ID</dt><dd id="te-task-id" class="font-mono mt-0.5 break-all text-gray-900 dark:text-white">—</dd></div>
+        <div><dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Name</dt><dd id="te-name" class="font-medium mt-0.5 break-all text-gray-900 dark:text-white">—</dd></div>
+        <div><dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</dt><dd id="te-status" class="mt-0.5 text-gray-900 dark:text-white">—</dd></div>
+        <div><dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Worker</dt><dd id="te-worker" class="font-mono mt-0.5 text-gray-900 dark:text-white">—</dd></div>
+        <div><dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Started</dt><dd id="te-started" class="font-mono mt-0.5 text-gray-900 dark:text-white">—</dd></div>
+        <div><dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Duration</dt><dd id="te-duration" class="font-mono mt-0.5 text-gray-900 dark:text-white">—</dd></div>
+        <div class="sm:col-span-2"><dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Result / Traceback</dt><dd id="te-result" class="font-mono text-xs mt-0.5 break-all bg-gray-50 dark:bg-gray-700/40 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300">—</dd></div>
+      </dl>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Inline handler: open the Task Details modal from a row's data-* attributes.
+  // Wrapped in DOMContentLoaded since main-entry.js (which owns EventDelegation) is deferred.
+  document.addEventListener('DOMContentLoaded', function () {
+    var modal = document.getElementById('taskDetailsModal');
+    if (!modal) return;
+    function openModal() { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+    function closeModal() { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+    function setText(id, val) { var el = document.getElementById(id); if (el) el.textContent = val && val.length ? val : '—'; }
+
+    document.querySelectorAll('[data-action="view-task-execution"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setText('te-task-id', btn.getAttribute('data-task-id'));
+        setText('te-name', btn.getAttribute('data-task-name'));
+        setText('te-worker', btn.getAttribute('data-task-worker'));
+        setText('te-started', btn.getAttribute('data-task-started'));
+        setText('te-duration', btn.getAttribute('data-task-duration'));
+        setText('te-result', btn.getAttribute('data-task-result'));
+        var status = (btn.getAttribute('data-task-status') || '').toLowerCase();
+        var statusEl = document.getElementById('te-status');
+        if (statusEl) {
+          var failed = status === 'failed';
+          statusEl.innerHTML = '<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold ' +
+            (failed ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300') +
+            '"><i class="ti ti-circle-filled text-[7px]"></i> ' + (failed ? 'Failed' : 'Completed') + '</span>';
+        }
+        openModal();
+      });
+    });
+    modal.querySelectorAll('[data-action="close-modal"]').forEach(function (btn) {
+      btn.addEventListener('click', closeModal);
+    });
+    modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+
+    // Retry a failed execution: POST execution_id to the retry route, which
+    // re-enqueues the task via Celery send_task using its stored args/kwargs.
+    var retryUrl = "{{ url_for('admin_panel.retry_task') }}";
+    function csrf() { var m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : ''; }
+    document.querySelectorAll('[data-action="retry-execution"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var execId = btn.getAttribute('data-execution-id');
+        var name = btn.getAttribute('data-task-name') || 'this task';
+        if (!execId) return;
+        var doRetry = function () {
+          var body = new URLSearchParams(); body.append('execution_id', execId);
+          fetch(retryUrl, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf(), 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString()
+          })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+            .then(function (res) {
+              var d = res.d || {};
+              if (res.ok && d.success) {
+                if (window.Swal) { window.Swal.fire('Task Re-enqueued', d.message || 'Task queued for retry.', 'success'); }
+              } else {
+                if (window.Swal) { window.Swal.fire('Retry Failed', (d && d.message) || 'Could not re-enqueue task.', 'error'); }
+              }
+            })
+            .catch(function () { if (window.Swal) { window.Swal.fire('Retry Failed', 'Network error while re-enqueueing task.', 'error'); } });
+        };
+        if (window.Swal) {
+          window.Swal.fire({
+            title: 'Retry task?',
+            text: 'Re-enqueue ' + name + ' with its original arguments.',
+            icon: 'question', showCancelButton: true, confirmButtonText: 'Retry'
+          }).then(function (r) { if (r.isConfirmed) doRetry(); });
+        } else { doRetry(); }
+      });
+    });
+  });
+</script>
 {% else %}
 <!-- Task Statistics -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

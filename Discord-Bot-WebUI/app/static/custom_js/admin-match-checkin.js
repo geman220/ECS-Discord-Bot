@@ -149,8 +149,16 @@ function _renderRoster(scope) {
     const checkedInEl = document.getElementById('rosterCheckedIn');
     if (!notYetEl || !checkedInEl) return;
 
-    const notYet = list.filter(e => !e.checked_in);
-    const checkedIn = list.filter(e => e.checked_in);
+    const term = (state.filter || '').trim().toLowerCase();
+    const matchesTerm = (e) => {
+        if (!term) return true;
+        const name = (e.player_name || '').toLowerCase();
+        const jersey = e.jersey_number != null ? String(e.jersey_number).toLowerCase() : '';
+        return name.includes(term) || jersey.includes(term);
+    };
+
+    const notYet = list.filter(e => !e.checked_in && matchesTerm(e));
+    const checkedIn = list.filter(e => e.checked_in && matchesTerm(e));
 
     document.getElementById('notYetCount').textContent = String(notYet.length);
     document.getElementById('checkedInCount').textContent = String(checkedIn.length);
@@ -384,11 +392,21 @@ function initDetailPage() {
 
     _detailState = {
         scope: 'yes',
+        filter: '',
         rosterYes: cfg.initialRosterYes || [],
         rosterFull: cfg.initialRosterFull || [],
     };
     _renderRoster('yes');
     _startAutoRefresh();
+
+    const searchEl = document.getElementById('rosterSearch');
+    if (searchEl) {
+        searchEl.addEventListener('input', () => {
+            if (!_detailState) return;
+            _detailState.filter = searchEl.value || '';
+            _renderRoster(_detailState.scope);
+        });
+    }
 
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) _refreshRoster();

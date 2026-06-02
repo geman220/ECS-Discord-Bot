@@ -16,200 +16,296 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state, alert %}
+{% set active_n = stats.active_playoffs or 0 %}
+{% set completed_n = stats.completed_playoffs or 0 %}
+{% set upcoming_n = stats.upcoming_matches or 0 %}
+{% set teams_n = stats.playoff_teams or 0 %}
+{% set total_n = active_n + completed_n %}
+{% set pct = (completed_n * 100 // total_n) if total_n > 0 else 0 %}
 <div class="space-y-6">
 
-  {{ page_header('Playoff Management', subtitle='Create and manage playoff tournaments') }}
+  <!-- ============ HERO: the page's ONE job = stand up / steer a tournament ============ -->
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="h-1 bg-ecs-green"></div>
+    <div class="p-4 sm:p-6 flex flex-col lg:flex-row lg:items-center gap-5 lg:gap-8">
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Postseason · brackets · seeding</p>
+        <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Playoff Management</h1>
+        <p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400 max-w-xl">
+          {% if total_n > 0 %}
+          {{ total_n }} playoff {{ 'match' if total_n == 1 else 'matches' }} flagged this season across {{ teams_n }} qualified {{ 'team' if teams_n == 1 else 'teams' }}.
+          {% else %}
+          No playoff matches are flagged for the current season yet. Use the bracket generator to seed teams and generate a bracket.
+          {% endif %}
+        </p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          {% if active_n > 0 %}
+          <a href="#" data-action="view-active"
+             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-tournament" aria-hidden="true"></i>Manage Active
+          </a>
+          {% endif %}
+          <a href="#" data-action="bracket-gen"
+             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-sitemap" aria-hidden="true"></i>Bracket Generator
+          </a>
+        </div>
+      </div>
+      <!-- Headline figure: live matches awaiting scores -->
+      <div class="shrink-0 lg:w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Live now</span>
+          <i class="ti ti-tournament text-lg text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+        </div>
+        <div class="mt-1 flex items-end gap-2">
+          <span class="font-mono text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ active_n }}</span>
+          <span class="mb-1 text-xs text-gray-500 dark:text-gray-400">awaiting scores</span>
+        </div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between text-[11px] font-mono text-gray-500 dark:text-gray-400 mb-1">
+            <span>{{ pct }}% reported</span>
+            <span>{{ completed_n }}/{{ total_n }}</span>
+          </div>
+          <div class="w-full h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" role="progressbar" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Playoff matches reported">
+            <div class="h-full bg-ecs-green rounded-full" style="width: {{ pct }}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <!-- Playoff Overview Stats -->
-  <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {{ stat_card('ti-tournament', 'Active Playoffs', stats.active_playoffs or 0, sublabel='in progress', tone='info') }}
-    {{ stat_card('ti-trophy', 'Completed Playoffs', stats.completed_playoffs or 0, sublabel='finished', tone='success') }}
-    {{ stat_card('ti-calendar', 'Upcoming Matches', stats.upcoming_matches or 0, sublabel='scheduled', tone='warning') }}
-    {{ stat_card('ti-users', 'Playoff Teams', stats.playoff_teams or 0, sublabel='qualified', tone='primary') }}
-  </div>
+  <!-- ============ KPI BAND ============ -->
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-gray-200 dark:divide-gray-700">
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Active</span>
+          <i class="ti ti-tournament text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ active_n }}</div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] font-mono text-gray-500 dark:text-gray-400">awaiting scores</div>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Completed</span>
+          <i class="ti ti-trophy text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ completed_n }}</div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] font-mono text-gray-500 dark:text-gray-400">results recorded</div>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Upcoming</span>
+          <i class="ti ti-calendar text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ upcoming_n }}</div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] font-mono text-gray-500 dark:text-gray-400">next 7 days</div>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Teams</span>
+          <i class="ti ti-users text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ teams_n }}</div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] font-mono text-gray-500 dark:text-gray-400">qualified entrants</div>
+      </div>
+    </div>
+  </section>
 
-  <!-- Management Actions -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    {% call section_card('Create & Manage', icon='ti-plus') %}
-    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-      <li>
-        <button type="button" data-action="create-playoff"
-                class="w-full flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-          <span class="flex items-center gap-3 min-w-0">
-            <i class="ti ti-plus text-ecs-green shrink-0" aria-hidden="true"></i>
-            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Create New Playoff</span>
-          </span>
-          <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-        </button>
-      </li>
-      <li>
-        <a href="#" data-action="view-active"
-           class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-          <span class="flex items-center gap-3 min-w-0">
-            <i class="ti ti-tournament text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
-            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Active Playoffs</span>
-          </span>
-          <span class="shrink-0 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ stats.active_playoffs or 0 }}</span>
-        </a>
-      </li>
-      <li>
+  <!-- ============ PRIMARY OBJECT + OPERATIONS ============ -->
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+    <!-- Tournament status (primary, spans 2) -->
+    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-tournament text-ecs-green" aria-hidden="true"></i> Tournament Status
+        </h2>
+        {% if active_n > 0 %}
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ active_n }} live</span>
+        {% endif %}
+      </div>
+      {% if active_n > 0 or completed_n > 0 %}
+      <div class="p-4 sm:p-5 space-y-5">
+        <!-- Bracket progress derived from real match counts -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Playoff Match Progress</span>
+            <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ completed_n }}<span class="text-gray-400">/</span>{{ total_n }}</span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" role="progressbar" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Playoff match progress">
+            <div class="h-full bg-ecs-green rounded-full" style="width: {{ pct }}%"></div>
+          </div>
+          <p class="mt-1.5 text-[11px] font-mono text-gray-500 dark:text-gray-400">{{ pct }}% of bracketed matches reported</p>
+        </div>
+        <!-- Three-up mono breakdown, all from real stats -->
+        <div class="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700 rounded-xl border border-gray-200 dark:border-gray-700">
+          <div class="px-3 py-4 text-center">
+            <div class="font-mono text-2xl font-bold text-blue-600 dark:text-blue-400">{{ active_n }}</div>
+            <div class="mt-1 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Remaining</div>
+          </div>
+          <div class="px-3 py-4 text-center">
+            <div class="font-mono text-2xl font-bold text-amber-600 dark:text-amber-400">{{ upcoming_n }}</div>
+            <div class="mt-1 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">This Week</div>
+          </div>
+          <div class="px-3 py-4 text-center">
+            <div class="font-mono text-2xl font-bold text-green-600 dark:text-green-400">{{ completed_n }}</div>
+            <div class="mt-1 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Decided</div>
+          </div>
+        </div>
+        <!-- Current Playoffs: one card per league/season group, all from real Match data -->
+        {% if stats.tournaments %}
+        <div class="space-y-3">
+          <h3 class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Current Playoffs</h3>
+          {% for t in stats.tournaments %}
+          <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <div class="min-w-0">
+                <h4 class="font-semibold text-gray-900 dark:text-white truncate">{{ t.name }}</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">{% if t.format_label %}{{ t.format_label }} · {% endif %}{{ t.team_count }} {{ 'team' if t.team_count == 1 else 'teams' }} · {{ t.total }} {{ 'match' if t.total == 1 else 'matches' }}</p>
+              </div>
+              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 shrink-0">
+                <i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> {{ t.stage }}
+              </span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center mb-3">
+              <div><p class="font-mono text-lg font-bold text-gray-900 dark:text-white">{{ t.team_count }}</p><p class="text-[11px] text-gray-500 dark:text-gray-400">Teams</p></div>
+              <div><p class="font-mono text-lg font-bold text-gray-900 dark:text-white">{{ t.completed }}</p><p class="text-[11px] text-gray-500 dark:text-gray-400">Completed</p></div>
+              <div><p class="font-mono text-lg font-bold text-gray-900 dark:text-white">{{ t.remaining }}</p><p class="text-[11px] text-gray-500 dark:text-gray-400">Remaining</p></div>
+            </div>
+            <div class="w-full h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden mb-3" role="progressbar" aria-valuenow="{{ t.progress_pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ t.name }} progress">
+              <div class="h-full bg-ecs-green rounded-full" style="width: {{ t.progress_pct }}%"></div>
+            </div>
+            <div class="flex gap-2">
+              {% if t.manage_url %}
+              <a href="{{ t.manage_url }}"
+                 class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti ti-settings" aria-hidden="true"></i>Manage
+              </a>
+              {% endif %}
+              {% if t.bracket_url %}
+              <a href="{{ t.bracket_url }}"
+                 class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-500/25 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti ti-tournament" aria-hidden="true"></i>Bracket
+              </a>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <!-- Command toolbar -->
+        <div class="flex flex-wrap gap-2">
+          <a href="#" data-action="view-active"
+             class="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-tournament" aria-hidden="true"></i>Manage Active
+          </a>
+          <a href="#" data-action="view-brackets"
+             class="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-sitemap" aria-hidden="true"></i>View Brackets
+          </a>
+          <a href="#" data-action="update-results"
+             class="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-edit" aria-hidden="true"></i>Update Results
+          </a>
+        </div>
+      </div>
+      {% else %}
+      <div class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16">
+        <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+          <i class="ti ti-tournament text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+        </div>
+        <h3 class="text-base font-semibold text-gray-900 dark:text-white">No playoffs yet</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">No playoff matches are flagged in the current season. Use the bracket generator to start seeding teams and generating a bracket.</p>
         <a href="#" data-action="bracket-gen"
-           class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-          <span class="flex items-center gap-3 min-w-0">
-            <i class="ti ti-sitemap text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
-            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Bracket Generator</span>
-          </span>
-          <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+                class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-sitemap" aria-hidden="true"></i>Open Bracket Generator
         </a>
-      </li>
-      <li>
-        <a href="#" data-action="seed-teams"
-           class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-          <span class="flex items-center gap-3 min-w-0">
-            <i class="ti ti-sort-ascending text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
-            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Seed Teams</span>
-          </span>
-          <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-        </a>
-      </li>
-    </ul>
-    {% endcall %}
+      </div>
+      {% endif %}
+    </section>
 
-    {% call section_card('Results & Reports', icon='ti-chart-dots') %}
-    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-      <li>
-        <a href="#" data-action="update-results"
-           class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-          <span class="flex items-center gap-3 min-w-0">
-            <i class="ti ti-edit text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
-            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Update Match Results</span>
-          </span>
-          <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-        </a>
-      </li>
-      <li>
-        <a href="#" data-action="view-brackets"
-           class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-          <span class="flex items-center gap-3 min-w-0">
-            <i class="ti ti-tournament text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
-            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">View Brackets</span>
-          </span>
-          <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-        </a>
-      </li>
-      <li>
-        <a href="#" data-action="playoff-history"
-           class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-          <span class="flex items-center gap-3 min-w-0">
-            <i class="ti ti-history text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
-            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Playoff History</span>
-          </span>
-          <span class="shrink-0 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">{{ stats.completed_playoffs or 0 }}</span>
-        </a>
-      </li>
-      <li>
-        <a href="#" data-action="generate-reports"
-           class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
-          <span class="flex items-center gap-3 min-w-0">
-            <i class="ti ti-file-report text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
-            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Generate Reports</span>
-          </span>
-          <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-        </a>
-      </li>
-    </ul>
-    {% endcall %}
+    <!-- Operations rail -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <i class="ti ti-adjustments text-ecs-green" aria-hidden="true"></i>
+        <h2 class="font-semibold text-gray-900 dark:text-white">Operations</h2>
+      </div>
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+        <li>
+          <a href="#" data-action="view-active"
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+            <span class="flex items-center gap-3 min-w-0">
+              <i class="ti ti-tournament text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Active Playoffs</span>
+            </span>
+            <span class="shrink-0 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ active_n }}</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" data-action="bracket-gen"
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+            <span class="flex items-center gap-3 min-w-0">
+              <i class="ti ti-sitemap text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Bracket Generator</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+          </a>
+        </li>
+        <li>
+          <a href="#" data-action="seed-teams"
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+            <span class="flex items-center gap-3 min-w-0">
+              <i class="ti ti-sort-ascending text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Seed Teams</span>
+            </span>
+            <span class="shrink-0 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ teams_n }}</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" data-action="update-results"
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+            <span class="flex items-center gap-3 min-w-0">
+              <i class="ti ti-edit text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Update Match Results</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+          </a>
+        </li>
+        <li>
+          <a href="#" data-action="view-brackets"
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+            <span class="flex items-center gap-3 min-w-0">
+              <i class="ti ti-tournament text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">View Brackets</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+          </a>
+        </li>
+        <li>
+          <a href="#" data-action="playoff-history"
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+            <span class="flex items-center gap-3 min-w-0">
+              <i class="ti ti-history text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Playoff History</span>
+            </span>
+            <span class="shrink-0 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">{{ completed_n }}</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" data-action="generate-reports"
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+            <span class="flex items-center gap-3 min-w-0">
+              <i class="ti ti-file-report text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Generate Reports</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+          </a>
+        </li>
+      </ul>
+    </section>
   </div>
 
-  <!-- Current Playoffs -->
-  {% if stats.active_playoffs and stats.active_playoffs > 0 %}
-  {% call section_card('Current Playoffs', icon='ti-tournament') %}
-  <div class="p-4 sm:p-5">
-    {{ alert('info', stats.active_playoffs ~ ' active playoff tournament(s) in progress. Use Active Playoffs above to manage them.', title='In progress.', dismissible=False) }}
-    <div class="mt-4">
-      <button type="button" data-action="create-playoff"
-              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-plus" aria-hidden="true"></i>New Playoff
-      </button>
-    </div>
-  </div>
-  {% endcall %}
-  {% else %}
-  {{ empty_state('ti-tournament', 'No Active Playoffs', 'Create your first playoff tournament to get started with bracket management.', action={'label': 'Create First Playoff', 'url': '#', 'icon': 'ti-plus'}) }}
-  {% endif %}
-
-  <!-- Playoff Templates -->
-  {% call section_card('Playoff Templates', icon='ti-layout-grid') %}
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-5">
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-5 text-center">
-      <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-blue-100 dark:bg-blue-500/15 mb-4">
-        <i class="ti ti-tournament text-3xl text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
-      </div>
-      <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Single Elimination</h6>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">8, 16, or 32 team bracket</p>
-      <button type="button" data-action="use-template" data-template="single-elim"
-              class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        Use Template
-      </button>
-    </div>
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-5 text-center">
-      <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-500/15 mb-4">
-        <i class="ti ti-repeat text-3xl text-green-600 dark:text-green-400" aria-hidden="true"></i>
-      </div>
-      <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Double Elimination</h6>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Winners &amp; losers brackets</p>
-      <button type="button" data-action="use-template" data-template="double-elim"
-              class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        Use Template
-      </button>
-    </div>
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-5 text-center">
-      <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-cyan-100 dark:bg-cyan-500/15 mb-4">
-        <i class="ti ti-users text-3xl text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i>
-      </div>
-      <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Round Robin</h6>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Every team plays each other</p>
-      <button type="button" data-action="use-template" data-template="round-robin"
-              class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        Use Template
-      </button>
-    </div>
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-5 text-center">
-      <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-amber-100 dark:bg-amber-500/15 mb-4">
-        <i class="ti ti-crown text-3xl text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
-      </div>
-      <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Swiss System</h6>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Pair teams by performance</p>
-      <button type="button" data-action="use-template" data-template="swiss"
-              class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        Use Template
-      </button>
-    </div>
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-5 text-center">
-      <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-red-100 dark:bg-red-500/15 mb-4">
-        <i class="ti ti-layers text-3xl text-red-600 dark:text-red-400" aria-hidden="true"></i>
-      </div>
-      <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Group Stage</h6>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Groups then knockout</p>
-      <button type="button" data-action="use-template" data-template="group-stage"
-              class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        Use Template
-      </button>
-    </div>
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-5 text-center">
-      <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
-        <i class="ti ti-settings text-3xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-      </div>
-      <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Custom Format</h6>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Design your own format</p>
-      <button type="button" data-action="use-template" data-template="custom"
-              class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        Create Custom
-      </button>
-    </div>
-  </div>
-  {% endcall %}
 
 </div>
 {% else %}

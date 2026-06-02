@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import modal %}
 {% from "macros/flowbite.html" import modal %}
 
 {% block title %}{{ league.name }} Management{% endblock %}
@@ -6,58 +7,101 @@
 {% block main_content %}
 {% if shell == 'console' %}
 {% import "macros/_modern_kit.html" as kit %}
+{# --- Derive real KPIs from existing_weeks (no fabricated data) --- #}
+{% set ns = namespace(total_matches=0, reported=0, next_week_num=0, next_date=none) %}
+{% for week_num, week_data in existing_weeks.items() %}
+  {% set ns.total_matches = ns.total_matches + (week_data.matches | length) %}
+  {% for match in week_data.matches %}
+    {% if match.reported %}{% set ns.reported = ns.reported + 1 %}{% endif %}
+  {% endfor %}
+{% endfor %}
+{% set scheduled = ns.total_matches - ns.reported %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-    {{ kit.page_header(league.name ~ " Management", subtitle=season.name ~ " · Add weeks, manage matches, and modify schedule") }}
 
-    {# Quick actions — toolbar. JS hooks (data-action) copied verbatim. #}
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div class="flex flex-wrap items-center gap-2">
-            <button type="button"
-                    class="js-add-week inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-4 rounded-lg
-                           bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-                    data-action="add-week">
-                <i class="ti ti-plus" aria-hidden="true"></i> Add New Week
-            </button>
-            <a href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=season.id) }}"
-               class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-4 rounded-lg
-                      border border-ecs-green text-ecs-green hover:bg-ecs-green hover:text-white text-sm font-semibold transition-colors
-                      focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-                <i class="ti ti-calendar-event" aria-hidden="true"></i> View Full Season
-            </a>
-            <button type="button"
-                    class="js-toggle-bulk inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-4 rounded-lg
-                           border border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white text-sm font-semibold transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-                    data-action="toggle-bulk">
-                <i class="ti ti-edit" aria-hidden="true"></i> Bulk Edit Mode
-            </button>
-        </div>
+    {# Page header with primary CTA + back link in the header slot. #}
+    {% call kit.page_header(league.name ~ " Management", subtitle="SEASON · " ~ season.name) %}
         <a href="{{ url_for('auto_schedule.schedule_manager') }}"
-           class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-4 rounded-lg
+           class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-3.5 rounded-lg
                   border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors
                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-            <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Season Builder
+            <i class="ti ti-arrow-left" aria-hidden="true"></i> <span class="hidden sm:inline">Season Builder</span>
         </a>
+        <button type="button"
+                class="js-add-week inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-4 rounded-lg
+                       bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                data-action="add-week">
+            <i class="ti ti-plus" aria-hidden="true"></i> Add New Week
+        </button>
+    {% endcall %}
+
+    {# ===== KPI band — all figures computed from real existing_weeks data ===== #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        {% call kit.stat_card("ti-calendar-week", "Weeks", existing_weeks | length, sublabel="scheduled", tone="primary") %}
+            {{ season.name }}
+        {% endcall %}
+        {% call kit.stat_card("ti-soccer-field", "Matches", ns.total_matches, sublabel="total", tone="neutral") %}
+            across all weeks
+        {% endcall %}
+        {% call kit.stat_card("ti-circle-check", "Reported", ns.reported, sublabel="of " ~ ns.total_matches, tone="success") %}
+            {% if ns.total_matches %}{{ (ns.reported * 100 // ns.total_matches) }}% complete{% else %}no matches yet{% endif %}
+        {% endcall %}
+        {% call kit.stat_card("ti-clock", "Awaiting", scheduled, sublabel="unreported", tone="warning") %}
+            results not yet entered
+        {% endcall %}
     </div>
 
-    {# Current schedule — one section_card per week, each holding a responsive table → cards. #}
+    {# ===== Command toolbar — secondary schedule actions. JS hooks verbatim. ===== #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 mb-6
+                flex flex-wrap items-center gap-2">
+        <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mr-1">
+            <i class="ti ti-tool mr-1" aria-hidden="true"></i>Schedule tools
+        </span>
+        <a href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=season.id) }}"
+           class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-3.5 rounded-lg
+                  border border-ecs-green text-ecs-green hover:bg-ecs-green hover:text-white text-sm font-semibold transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-calendar-event" aria-hidden="true"></i> View Full Season
+        </a>
+        <button type="button"
+                class="js-toggle-bulk inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-3.5 rounded-lg
+                       border border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white text-sm font-semibold transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                data-action="toggle-bulk">
+            <i class="ti ti-edit" aria-hidden="true"></i> Bulk Edit Mode
+        </button>
+    </div>
+
+    {# ===== Schedule — one feature card per week, header bar + dense match table ===== #}
     {% if existing_weeks %}
     <div class="space-y-5">
         {% for week_num, week_data in existing_weeks.items() %}
+        {% set week_reported = week_data.matches | selectattr('reported') | list | length %}
         <section class="week-section rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden" id="week-{{ week_num }}">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex flex-wrap items-center gap-2">
-                    <i class="ti ti-calendar-week text-ecs-green" aria-hidden="true"></i>
-                    Week {{ week_num }}
-                    <span class="font-mono normal-case font-medium text-gray-500 dark:text-gray-400">{{ week_data.date.strftime('%B %d, %Y') }}</span>
-                    {% if week_data.week_type != 'REGULAR' %}
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-ecs-gold-50 text-ecs-gold-700 dark:bg-ecs-gold-400/10 dark:text-ecs-gold-400">
-                        <i class="ti ti-star text-[11px]" aria-hidden="true"></i>{{ week_data.week_type }}
-                    </span>
-                    {% endif %}
-                </h3>
-                <div class="flex gap-2 shrink-0">
+            {# Header bar: big mono week number + date eyebrow + status pill + kebab actions #}
+            <div class="flex items-center gap-3 px-4 sm:px-5 py-3.5 border-b border-gray-200 dark:border-gray-700">
+                <div class="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/15 text-ecs-green">
+                    <span class="text-[10px] font-semibold uppercase tracking-wide leading-none">Wk</span>
+                    <span class="font-mono text-xl font-bold leading-none mt-0.5">{{ week_num }}</span>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Week {{ week_num }}</h3>
+                        {% if week_data.week_type != 'REGULAR' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-ecs-gold-50 text-ecs-gold-700 dark:bg-ecs-gold-400/10 dark:text-ecs-gold-400">
+                            <i class="ti ti-star text-[11px]" aria-hidden="true"></i>{{ week_data.week_type }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <p class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        <span class="font-mono">{{ week_data.date.strftime('%b %d, %Y') }}</span>
+                        <span class="hidden sm:inline">·</span>
+                        <span><span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ week_data.matches | length }}</span> matches</span>
+                        <span class="hidden sm:inline">·</span>
+                        <span><span class="font-mono font-semibold text-green-600 dark:text-green-400">{{ week_reported }}</span> reported</span>
+                    </p>
+                </div>
+                <div class="flex gap-1 shrink-0">
                     <button type="button"
                             class="js-edit-week inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 rounded-lg
                                    text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30
@@ -75,14 +119,13 @@
                 </div>
             </div>
 
-            {# md+ : real table #}
+            {# md+ : real table with mono time + matchup column #}
             <table class="hidden md:table w-full text-sm">
                 <thead>
-                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                    <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/30">
                         {{ kit.data_table_th("Time", key="time", sortable=False) }}
                         {{ kit.data_table_th("Field", key="field", sortable=False) }}
-                        {{ kit.data_table_th("Home Team", key="home", sortable=False) }}
-                        {{ kit.data_table_th("Away Team", key="away", sortable=False) }}
+                        {{ kit.data_table_th("Matchup", key="matchup", sortable=False) }}
                         {{ kit.data_table_th("Status", key="status", sortable=False) }}
                         {{ kit.data_table_th("Actions", key="actions", sortable=False, align="right") }}
                     </tr>
@@ -90,15 +133,25 @@
                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                     {% for match in week_data.matches %}
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <td class="px-3 py-3 text-gray-900 dark:text-white whitespace-nowrap">
-                            <i class="ti ti-clock mr-1 text-gray-400" aria-hidden="true"></i>
-                            <span class="font-mono">{{ match.time.strftime('%I:%M %p') }}</span>
+                        <td class="px-3 py-3 whitespace-nowrap">
+                            <span class="inline-flex items-center gap-1.5 font-mono text-gray-900 dark:text-white">
+                                <i class="ti ti-clock text-gray-400" aria-hidden="true"></i>{{ match.time.strftime('%I:%M %p') }}
+                            </span>
                         </td>
                         <td class="px-3 py-3">
-                            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">{{ match.location }}</span>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                                <i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ match.location }}
+                            </span>
                         </td>
-                        <td class="px-3 py-3 text-gray-900 dark:text-white">{{ match.home_team.name }}</td>
-                        <td class="px-3 py-3 text-gray-900 dark:text-white">{{ match.away_team.name }}</td>
+                        <td class="px-3 py-3">
+                            <div class="flex items-center gap-2 text-gray-900 dark:text-white">
+                                <span class="font-medium truncate">{{ match.home_team.name }}</span>
+                                <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold font-mono bg-ecs-green/10 text-ecs-green" title="Home">H</span>
+                                <span class="text-gray-300 dark:text-gray-600">vs</span>
+                                <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold font-mono bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="Away">A</span>
+                                <span class="font-medium truncate">{{ match.away_team.name }}</span>
+                            </div>
+                        </td>
                         <td class="px-3 py-3">
                             {% if match.reported %}
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">

@@ -3,15 +3,34 @@
 
 {% block title %}Dashboard{% endblock %}
 
+{% block extra_css %}
+{{ super() }}
+{# Shepherd.js tour styling — the onboarding tour (custom_js/tour.js) needs this
+   or its popup renders unstyled (close-icon/buttons collapse into the body). #}
+<link rel="stylesheet" href="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.css') }}">
+{% endblock %}
+
 {% block main_content %}
 {% if shell == 'console' %}
 {# ===================== Modern member home (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, stat_card %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, stat_card, modal %}
 {# Compute at-a-glance totals across the member's teams (real data only). #}
-{% set ns = namespace(upcoming=0, recent=0) %}
+{% set ns = namespace(upcoming=0, recent=0, next_match=none, next_date=none, next_team=none) %}
 {% if player and user_team %}
     {% for t in user_team %}
-        {% for date, matches in team_matches.get(t.id, {}).get('next', {}).items() %}{% set ns.upcoming = ns.upcoming + (matches|length) %}{% endfor %}
+        {% for date, matches in team_matches.get(t.id, {}).get('next', {}).items() %}
+            {% set ns.upcoming = ns.upcoming + (matches|length) %}
+            {# Derive the single soonest real (non-BYE) match across all teams for the feature card. #}
+            {% for md in matches %}
+                {% if md['week_type'] != 'BYE' %}
+                    {% if ns.next_match is none or date < ns.next_date or (date == ns.next_date and md['time'] < ns.next_match['time']) %}
+                        {% set ns.next_match = md %}
+                        {% set ns.next_date = date %}
+                        {% set ns.next_team = t %}
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
         {% for date, matches in team_matches.get(t.id, {}).get('prev', {}).items() %}{% set ns.recent = ns.recent + (matches|length) %}{% endfor %}
     {% endfor %}
 {% endif %}
@@ -45,17 +64,59 @@
 
     {# ---- At-a-glance KPI band (real data; only when the member has a profile) ---- #}
     {% if player and not show_onboarding %}
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-        {{ stat_card("ti-shield-half", "My Teams", user_team|length if user_team else 0,
-                     sublabel="active rosters" if user_team and user_team|length != 1 else "active roster",
-                     tone="primary") }}
-        {{ stat_card("ti-calendar-event", "Upcoming", ns.upcoming,
-                     sublabel="matches to RSVP" if ns.upcoming != 1 else "match to RSVP",
-                     tone="info") }}
-        {{ stat_card("ti-history", "Recent", ns.recent,
-                     sublabel="results" if ns.recent != 1 else "result",
-                     tone="neutral") }}
-    </div>
+    <section class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+        {# Teams — mono figure + footer roster meta #}
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5" data-tour="teams">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">My Teams</span>
+                <i class="ti ti-shield-half text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 flex items-end gap-2">
+                <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ user_team|length if user_team else 0 }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ "active rosters" if user_team and user_team|length != 1 else "active roster" }}</span>
+            </div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 truncate">
+                <i class="ti ti-circle-filled text-ecs-green text-[8px]" aria-hidden="true"></i>
+                {% if user_team and user_team|length > 0 %}{{ user_team[0].name }}{% if user_team|length > 1 %} +{{ user_team|length - 1 }} more{% endif %}{% else %}No team assigned{% endif %}
+            </div>
+        </div>
+
+        {# Upcoming #}
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Upcoming</span>
+                <i class="ti ti-calendar-event text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 flex items-end gap-2">
+                <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ ns.upcoming }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ "matches to RSVP" if ns.upcoming != 1 else "match to RSVP" }}</span>
+            </div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <i class="ti ti-clock text-[12px]" aria-hidden="true"></i> Next 30 days
+            </div>
+        </div>
+
+        {# Next match — mono day figure + footer location #}
+        <div class="col-span-2 sm:col-span-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Next Match</span>
+                <i class="ti ti-flag-3 text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 flex items-end gap-2">
+                {% if ns.next_match %}
+                <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ ns.next_date.strftime('%a') }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-mono">{{ ns.next_date.strftime('%b %d') }} · {{ ns.next_match['time'].strftime('%I:%M %p') }}</span>
+                {% else %}
+                <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-400 dark:text-gray-500">—</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">none scheduled</span>
+                {% endif %}
+            </div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 truncate">
+                <i class="ti ti-map-pin text-[12px]" aria-hidden="true"></i>
+                {% if ns.next_match %}{{ ns.next_match['location'] }}{% else %}Awaiting schedule{% endif %}
+            </div>
+        </div>
+    </section>
     {% endif %}
 
     {% if not show_onboarding %}
@@ -69,9 +130,12 @@
             <div class="flex-1 min-w-0" id="announcementsCarousel">
                 {% for announcement in announcements %}
                 <div class="announcement-slide {% if not loop.first %}hidden{% endif %}" data-slide="{{ loop.index0 }}">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-ecs-gold-600 dark:text-ecs-gold-400">Announcement</span>
+                        <span class="text-[10px] text-gray-400 dark:text-gray-500 font-mono">{{ announcement.created_at.strftime('%B %d, %Y') }}</span>
+                    </div>
                     <h5 class="font-semibold text-gray-900 dark:text-white">{{ announcement.title }}</h5>
                     <p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{{ announcement.content }}</p>
-                    <small class="text-xs text-gray-400 dark:text-gray-500 font-mono">{{ announcement.created_at.strftime('%B %d, %Y') }}</small>
                 </div>
                 {% endfor %}
             </div>
@@ -82,6 +146,107 @@
                 <i class="ti ti-chevron-right text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
             </button>
             {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# ---- Your Next Match FEATURE card (real soonest non-BYE match) ---- #}
+    {% if player and ns.next_match %}
+    {% set fm = ns.next_match %}
+    {% set ft = ns.next_team %}
+    {% set fm_is_home = (fm['home_team_id'] == ft.id) %}
+    {% set fm_opp = fm['opponent_name'] if fm_is_home else fm['home_team_name'] %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden" data-tour="next-match">
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2 bg-gray-50 dark:bg-gray-700/50">
+            <div class="flex items-center gap-2">
+                <i class="ti ti-flame text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">Your Next Match</span>
+            </div>
+            {% if ft.league %}
+            <span class="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400">{{ ft.league.name }}</span>
+            {% endif %}
+        </div>
+
+        <div class="p-4 sm:p-6 flex flex-col lg:flex-row lg:items-center gap-5">
+            {# matchup #}
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-3">
+                    {% if fm['week_type'] in ['FUN', 'TST', 'BONUS', 'PLAYOFF'] %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400">
+                        <i class="ti ti-confetti text-[12px]" aria-hidden="true"></i>
+                        {% if fm['week_type'] == 'FUN' %}Fun Week{% elif fm['week_type'] == 'TST' %}TST Week{% elif fm['week_type'] == 'BONUS' %}Bonus Week{% else %}Playoff{% endif %}
+                    </span>
+                    {% elif fm_is_home %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400">
+                        <i class="ti ti-home text-[12px]" aria-hidden="true"></i> Home
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                        <i class="ti ti-plane text-[12px]" aria-hidden="true"></i> Away
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-11 h-11 rounded-xl bg-ecs-green/10 dark:bg-ecs-green/20 text-ecs-green flex items-center justify-center shrink-0">
+                            <i class="ti ti-shield-half text-2xl" aria-hidden="true"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-base sm:text-lg font-bold leading-tight truncate text-gray-900 dark:text-white">{{ ft.name }}</div>
+                            <div class="text-[11px] text-gray-500 dark:text-gray-400">{{ "Home" if fm_is_home else "Away" }}</div>
+                        </div>
+                    </div>
+                    <span class="font-mono text-sm font-bold text-gray-400 dark:text-gray-500 px-1">vs</span>
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 flex items-center justify-center shrink-0 border border-gray-200 dark:border-gray-600">
+                            <i class="ti ti-shield text-2xl" aria-hidden="true"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-base sm:text-lg font-bold leading-tight truncate text-gray-900 dark:text-white">{{ fm_opp }}</div>
+                            <div class="text-[11px] text-gray-500 dark:text-gray-400">{{ "Away" if fm_is_home else "Home" }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-x-5 gap-y-2 mt-4 text-sm text-gray-500 dark:text-gray-400">
+                    <span class="flex items-center gap-1.5"><i class="ti ti-calendar text-base" aria-hidden="true"></i> {{ ns.next_date.strftime('%a, %b %d, %Y') }}</span>
+                    <span class="flex items-center gap-1.5"><i class="ti ti-clock text-base" aria-hidden="true"></i> <span class="font-mono">{{ fm['time'].strftime('%I:%M %p') }}</span></span>
+                    <span class="flex items-center gap-1.5"><i class="ti ti-map-pin text-base" aria-hidden="true"></i> {{ fm['location'] }}</span>
+                </div>
+            </div>
+
+            {# divider + rsvp/actions #}
+            <div class="hidden lg:block lg:w-px lg:h-24 bg-gray-200 dark:bg-gray-700 lg:mx-1 shrink-0"></div>
+            <div class="shrink-0 flex flex-col gap-3 lg:w-56">
+                <div class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Your RSVP</div>
+                <div class="flex rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden w-full" data-rsvp-controls data-match-id="{{ fm['match_id'] }}" {% if fm.get('is_ecs_fc') %}data-is-ecs-fc="true"{% endif %}>
+                    <label class="rsvp-option cursor-pointer flex-1">
+                        <input type="radio" class="rsvp-input sr-only" name="response-{{ fm['match_id'] }}" value="yes">
+                        <span class="h-11 flex items-center justify-center gap-1.5 text-sm font-medium text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors" title="I can play"><i class="ti ti-check" aria-hidden="true"></i> Yes</span>
+                    </label>
+                    <label class="rsvp-option cursor-pointer flex-1 border-l border-r border-gray-200 dark:border-gray-600">
+                        <input type="radio" class="rsvp-input sr-only" name="response-{{ fm['match_id'] }}" value="maybe">
+                        <span class="h-11 flex items-center justify-center gap-1.5 text-sm font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors" title="Maybe"><i class="ti ti-question-mark" aria-hidden="true"></i> Maybe</span>
+                    </label>
+                    <label class="rsvp-option cursor-pointer flex-1">
+                        <input type="radio" class="rsvp-input sr-only" name="response-{{ fm['match_id'] }}" value="no">
+                        <span class="h-11 flex items-center justify-center gap-1.5 text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" title="Can't play"><i class="ti ti-x" aria-hidden="true"></i> No</span>
+                    </label>
+                </div>
+                {% if has_permission('view_match_page') %}
+                {% if fm.get('is_ecs_fc') %}
+                <a href="{{ url_for('ecs_fc.match_details', match_id=fm['match_id']) }}"
+                   class="inline-flex items-center justify-center gap-2 h-11 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-arrow-right" aria-hidden="true"></i> Match Details
+                </a>
+                {% else %}
+                <a href="{{ url_for('match_pages.view_match', match_id=fm['match_id']) }}"
+                   class="inline-flex items-center justify-center gap-2 h-11 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-arrow-right" aria-hidden="true"></i> Match Details
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
         </div>
     </section>
     {% endif %}
@@ -107,44 +272,42 @@
     {% endif %}
 
     {% if player %}
-    {# ---- Upcoming Matches (primary task: RSVP) ---- #}
-    <section>
-        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
-            <div class="min-w-0">
-                <p class="text-xs font-medium text-ecs-green dark:text-ecs-gold-400 uppercase tracking-wide mb-0.5">Tap to RSVP</p>
-                <h2 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-calendar-event text-ecs-green" aria-hidden="true"></i>Upcoming Matches
-                </h2>
+    {# ===== TWO-COLUMN DASHBOARD: Upcoming (dense rows, date-group dividers) + Recent (W/D/L form pills) ===== #}
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+        {# ---- UPCOMING MATCHES (primary task: RSVP) — feature card w/ dense rows ---- #}
+        <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col" data-tour="matches">
+            <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-calendar-event text-ecs-green" aria-hidden="true"></i>
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Upcoming Matches</h2>
+                    <span class="text-[10px] font-medium text-ecs-green dark:text-ecs-gold-400 uppercase tracking-wide">· Tap to RSVP</span>
+                </div>
+                {% if user_team and user_team|length > 0 %}
+                <div class="flex flex-wrap gap-1.5 p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 self-start sm:self-auto" id="match-tabs" role="tablist">
+                    {% for t in user_team %}
+                    <button class="team-tab px-3 h-8 rounded-md text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if loop.first %}bg-ecs-green text-white{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white{% endif %}"
+                            data-tab="team-{{ t.id }}" role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                        {{ t.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
-            {% if user_team and user_team|length > 0 %}
-            <div class="flex flex-wrap gap-2" id="match-tabs" role="tablist">
+
+            <div id="match-tab-content" class="flex-1">
+                {% if user_team and user_team|length > 0 %}
                 {% for t in user_team %}
-                <button class="team-tab px-3 py-1.5 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if loop.first %}bg-ecs-green text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600{% endif %}"
-                        data-tab="team-{{ t.id }}" role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
-                    {{ t.name }}
-                </button>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
+                <div class="team-content {% if not loop.first %}hidden{% endif %}" data-content="team-{{ t.id }}">
+                    {% set team_next_matches = team_matches.get(t.id, {}).get('next', {}) %}
 
-        <div id="match-tab-content">
-            {% if user_team and user_team|length > 0 %}
-            {% for t in user_team %}
-            <div class="team-content {% if not loop.first %}hidden{% endif %}" data-content="team-{{ t.id }}">
-                {% set team_next_matches = team_matches.get(t.id, {}).get('next', {}) %}
-
-                {% if team_next_matches|length > 0 %}
-                {% for date, matches in team_next_matches.items() | sort %}
-                <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 mb-4 overflow-hidden">
-                    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between gap-2">
-                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="ti ti-calendar-event text-ecs-green dark:text-ecs-gold-400" aria-hidden="true"></i>
-                            {{ date.strftime('%A, %B %d, %Y') }}
-                        </h3>
-                        {% if t.league %}
-                        <span class="shrink-0 px-2 py-0.5 text-xs font-medium rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400">{{ t.league.name }}</span>
-                        {% endif %}
+                    {% if team_next_matches|length > 0 %}
+                    {% for date, matches in team_next_matches.items() | sort %}
+                    {# date-group divider: mono primary date + h-px rule + league/week eyebrow #}
+                    <div class="px-4 sm:px-5 pt-4 pb-1 flex items-center gap-2">
+                        <span class="font-mono text-[11px] font-semibold text-ecs-green dark:text-ecs-gold-400 uppercase">{{ date.strftime('%a · %b %d') }}</span>
+                        <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+                        {% if t.league %}<span class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">{{ t.league.name }}</span>{% endif %}
                     </div>
                     <div class="divide-y divide-gray-200 dark:divide-gray-700">
                         {% for match_data in matches %}
@@ -159,149 +322,143 @@
                             {% set opponent_name = home_team_name %}
                         {% endif %}
 
-                        <div class="p-4">
-                            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                                <div class="flex items-start gap-3">
-                                    {% if match_data['week_type'] == 'BYE' %}
-                                    <div class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
-                                        <i class="ti ti-moon" aria-hidden="true"></i>
+                        <div class="px-4 sm:px-5 py-3.5 flex flex-col lg:flex-row lg:items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <div class="flex items-start gap-3 flex-1 min-w-0">
+                                {% if match_data['week_type'] == 'BYE' %}
+                                <span class="shrink-0 w-7 h-7 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center mt-0.5">
+                                    <i class="ti ti-moon text-sm" aria-hidden="true"></i>
+                                </span>
+                                {% elif match_data['week_type'] in ['FUN', 'TST', 'BONUS', 'PLAYOFF'] %}
+                                <span class="shrink-0 w-7 h-7 rounded-md bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400 flex items-center justify-center mt-0.5">
+                                    <i class="ti ti-confetti text-sm" aria-hidden="true"></i>
+                                </span>
+                                {% else %}
+                                <span class="shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-[11px] font-bold font-mono mt-0.5 {% if is_home %}bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400{% else %}bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300{% endif %}">
+                                    {% if is_home %}H{% else %}A{% endif %}
+                                </span>
+                                {% endif %}
+                                <div class="min-w-0">
+                                    <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                        {% if match_data['week_type'] in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400">
+                                            {% if match_data['week_type'] == 'FUN' %}Fun Week
+                                            {% elif match_data['week_type'] == 'TST' %}TST Week
+                                            {% elif match_data['week_type'] == 'BYE' %}Bye Week
+                                            {% elif match_data['week_type'] == 'BONUS' %}Bonus Week
+                                            {% elif match_data['week_type'] == 'PLAYOFF' %}Playoff Week
+                                            {% endif %}
+                                        </span>
+                                        {% elif is_home %}
+                                        <span class="text-ecs-green dark:text-ecs-gold-400">{{ t.name }}</span> <span class="text-gray-400 dark:text-gray-500 font-normal">vs</span> {{ opponent_name }}
+                                        {% else %}
+                                        {{ opponent_name }} <span class="text-gray-400 dark:text-gray-500 font-normal">vs</span> <span class="text-ecs-green dark:text-ecs-gold-400">{{ t.name }}</span>
+                                        {% endif %}
                                     </div>
-                                    {% else %}
-                                    <div class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold font-mono {% if is_home %}bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400{% else %}bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300{% endif %}">
-                                        {% if is_home %}H{% else %}A{% endif %}
-                                    </div>
-                                    {% endif %}
-                                    <div>
-                                        <h4 class="font-semibold text-gray-900 dark:text-white">
-                                            {% if match_data['week_type'] in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
-                                            <span class="px-2 py-0.5 text-xs rounded bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400 mr-2">
-                                                {% if match_data['week_type'] == 'FUN' %}Fun Week
-                                                {% elif match_data['week_type'] == 'TST' %}TST Week
-                                                {% elif match_data['week_type'] == 'BYE' %}Bye Week
-                                                {% elif match_data['week_type'] == 'BONUS' %}Bonus Week
-                                                {% elif match_data['week_type'] == 'PLAYOFF' %}Playoff Week
-                                                {% endif %}
-                                            </span>
-                                            {% else %}
-                                            {% if is_home %}
-                                            <span class="text-ecs-green dark:text-ecs-gold-400">{{ t.name }}</span> vs {{ opponent_name }}
-                                            {% else %}
-                                            {{ opponent_name }} vs <span class="text-ecs-green dark:text-ecs-gold-400">{{ t.name }}</span>
-                                            {% endif %}
-                                            {% endif %}
-                                        </h4>
-                                        <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            {% if match_data['week_type'] == 'BYE' %}
-                                            <span class="flex items-center gap-1"><i class="ti ti-calendar-off" aria-hidden="true"></i>No game scheduled - week off</span>
-                                            {% else %}
-                                            <span class="flex items-center gap-1"><i class="ti ti-clock" aria-hidden="true"></i><span class="font-mono">{{ match_data['time'].strftime('%I:%M %p') }}</span></span>
-                                            <span class="flex items-center gap-1"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ match_data['location'] }}</span>
-                                            {% endif %}
-                                        </div>
+                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        {% if match_data['week_type'] == 'BYE' %}
+                                        <span class="flex items-center gap-1"><i class="ti ti-calendar-off" aria-hidden="true"></i>No game scheduled — week off</span>
+                                        {% else %}
+                                        <span class="flex items-center gap-1"><i class="ti ti-clock" aria-hidden="true"></i><span class="font-mono">{{ match_data['time'].strftime('%I:%M %p') }}</span></span>
+                                        <span class="flex items-center gap-1 truncate"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ match_data['location'] }}</span>
+                                        {% endif %}
                                     </div>
                                 </div>
+                            </div>
 
-                                <div class="flex flex-wrap items-center gap-2">
-                                    {% if match_data['week_type'] != 'BYE' %}
-                                    <!-- RSVP Controls -->
-                                    <div class="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600" data-rsvp-controls data-match-id="{{ match_data['match_id'] }}" {% if match_data.get('is_ecs_fc') %}data-is-ecs-fc="true"{% endif %}>
-                                        <label class="rsvp-option cursor-pointer">
-                                            <input type="radio" class="rsvp-input sr-only" name="response-{{ match_data['match_id'] }}" value="yes">
-                                            <span class="px-3 py-2 flex items-center justify-center hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors" title="I can play">
-                                                <i class="ti ti-check text-green-600 dark:text-green-400" aria-hidden="true"></i>
-                                            </span>
-                                        </label>
-                                        <label class="rsvp-option cursor-pointer border-l border-r border-gray-200 dark:border-gray-600">
-                                            <input type="radio" class="rsvp-input sr-only" name="response-{{ match_data['match_id'] }}" value="maybe">
-                                            <span class="px-3 py-2 flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors" title="Maybe">
-                                                <i class="ti ti-question-mark text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
-                                            </span>
-                                        </label>
-                                        <label class="rsvp-option cursor-pointer">
-                                            <input type="radio" class="rsvp-input sr-only" name="response-{{ match_data['match_id'] }}" value="no">
-                                            <span class="px-3 py-2 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" title="Can't play">
-                                                <i class="ti ti-x text-red-600 dark:text-red-400" aria-hidden="true"></i>
-                                            </span>
-                                        </label>
-                                    </div>
-
-                                    {% if has_permission('view_match_page') %}
-                                    {% if match_data.get('is_ecs_fc') %}
-                                    <a href="{{ url_for('ecs_fc.match_details', match_id=match_data['match_id']) }}"
-                                       class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                                        Details
-                                    </a>
-                                    {% else %}
-                                    <a href="{{ url_for('match_pages.view_match', match_id=match_data['match_id']) }}"
-                                       class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                                        Details
-                                    </a>
-                                    {% endif %}
-                                    {% endif %}
-
-                                    {% if has_permission('report_match') %}
-                                    {% if match_data.get('is_ecs_fc') %}
-                                    <button class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green edit-match-btn"
-                                            data-action="edit-match-report" data-match-id="ecs_{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" data-is-ecs-fc="true">
-                                        <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}" aria-hidden="true"></i>
-                                        <span class="hidden sm:inline ml-1">{% if match_data['reported'] %}Edit{% else %}Report{% endif %}</span>
-                                    </button>
-                                    {% else %}
-                                    <button class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green edit-match-btn"
-                                            data-action="edit-match-report" data-match-id="{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}">
-                                        <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}" aria-hidden="true"></i>
-                                        <span class="hidden sm:inline ml-1">{% if match_data['reported'] %}Edit{% else %}Report{% endif %}</span>
-                                    </button>
-                                    {% endif %}
-                                    {% endif %}
-                                    {% endif %}{# end BYE check for RSVP/details/report #}
+                            <div class="flex flex-wrap items-center gap-2 shrink-0 pl-10 lg:pl-0">
+                                {% if match_data['week_type'] != 'BYE' %}
+                                <!-- RSVP Controls -->
+                                <div class="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600" data-rsvp-controls data-match-id="{{ match_data['match_id'] }}" {% if match_data.get('is_ecs_fc') %}data-is-ecs-fc="true"{% endif %}>
+                                    <label class="rsvp-option cursor-pointer">
+                                        <input type="radio" class="rsvp-input sr-only" name="response-{{ match_data['match_id'] }}" value="yes">
+                                        <span class="px-3 py-2 flex items-center justify-center hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors" title="I can play">
+                                            <i class="ti ti-check text-green-600 dark:text-green-400" aria-hidden="true"></i>
+                                        </span>
+                                    </label>
+                                    <label class="rsvp-option cursor-pointer border-l border-r border-gray-200 dark:border-gray-600">
+                                        <input type="radio" class="rsvp-input sr-only" name="response-{{ match_data['match_id'] }}" value="maybe">
+                                        <span class="px-3 py-2 flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors" title="Maybe">
+                                            <i class="ti ti-question-mark text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+                                        </span>
+                                    </label>
+                                    <label class="rsvp-option cursor-pointer">
+                                        <input type="radio" class="rsvp-input sr-only" name="response-{{ match_data['match_id'] }}" value="no">
+                                        <span class="px-3 py-2 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" title="Can't play">
+                                            <i class="ti ti-x text-red-600 dark:text-red-400" aria-hidden="true"></i>
+                                        </span>
+                                    </label>
                                 </div>
+
+                                {% if has_permission('view_match_page') %}
+                                {% if match_data.get('is_ecs_fc') %}
+                                <a href="{{ url_for('ecs_fc.match_details', match_id=match_data['match_id']) }}"
+                                   class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                    Details
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('match_pages.view_match', match_id=match_data['match_id']) }}"
+                                   class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                    Details
+                                </a>
+                                {% endif %}
+                                {% endif %}
+
+                                {% if has_permission('report_match') %}
+                                {% if match_data.get('is_ecs_fc') %}
+                                <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green edit-match-btn"
+                                        data-action="edit-match-report" data-match-id="ecs_{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" data-is-ecs-fc="true" title="{% if match_data['reported'] %}Edit result{% else %}Report result{% endif %}">
+                                    <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}" aria-hidden="true"></i>
+                                </button>
+                                {% else %}
+                                <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green edit-match-btn"
+                                        data-action="edit-match-report" data-match-id="{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" title="{% if match_data['reported'] %}Edit result{% else %}Report result{% endif %}">
+                                    <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}" aria-hidden="true"></i>
+                                </button>
+                                {% endif %}
+                                {% endif %}
+                                {% endif %}{# end BYE check for RSVP/details/report #}
                             </div>
                         </div>
                         {% endfor %}
                     </div>
+                    {% endfor %}
+                    {% else %}
+                    {{ empty_state("ti-calendar-off", "No Upcoming Matches", "There are no upcoming matches scheduled for " ~ t.name ~ ".") }}
+                    {% endif %}
                 </div>
                 {% endfor %}
                 {% else %}
-                {{ empty_state("ti-calendar-off", "No Upcoming Matches", "There are no upcoming matches scheduled for " ~ t.name ~ ".") }}
+                {{ empty_state("ti-shield-off", "No Upcoming Matches", "You are not currently assigned to any teams.") }}
                 {% endif %}
             </div>
-            {% endfor %}
-            {% else %}
-            {{ empty_state("ti-shield-off", "No Upcoming Matches", "You are not currently assigned to any teams.") }}
-            {% endif %}
-        </div>
-    </section>
+        </section>
 
-    {# ---- Recent Matches (subordinate: history) ---- #}
-    <section class="pt-2">
-        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
-            <div class="min-w-0">
-                <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">History</p>
-                <h2 class="text-base font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    <i class="ti ti-history text-gray-400 dark:text-gray-500" aria-hidden="true"></i>Recent Matches
-                </h2>
+        {# ---- RECENT MATCHES (history) — W/D/L result rows w/ mono scores ---- #}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+            <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-history text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Recent Matches</h2>
+                </div>
+                {% if user_team and user_team|length > 0 %}
+                <div class="flex flex-wrap gap-1.5 p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 self-start sm:self-auto" id="recent-match-tabs" role="tablist">
+                    {% for t in user_team %}
+                    <button class="recent-team-tab px-3 h-8 rounded-md text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if loop.first %}bg-ecs-green text-white{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white{% endif %}"
+                            data-tab="recent-team-{{ t.id }}" role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                        {{ t.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
-            {% if user_team and user_team|length > 0 %}
-            <div class="flex flex-wrap gap-2" id="recent-match-tabs" role="tablist">
+
+            <div id="recent-match-tab-content" class="flex-1">
+                {% if user_team and user_team|length > 0 %}
                 {% for t in user_team %}
-                <button class="recent-team-tab px-3 py-1.5 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if loop.first %}bg-ecs-green text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600{% endif %}"
-                        data-tab="recent-team-{{ t.id }}" role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
-                    {{ t.name }}
-                </button>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
+                <div class="recent-team-content {% if not loop.first %}hidden{% endif %}" data-content="recent-team-{{ t.id }}">
+                    {% set team_prev_matches = team_matches.get(t.id, {}).get('prev', {}) %}
 
-        <div id="recent-match-tab-content">
-            {% if user_team and user_team|length > 0 %}
-            {% for t in user_team %}
-            <div class="recent-team-content {% if not loop.first %}hidden{% endif %}" data-content="recent-team-{{ t.id }}">
-                {% set team_prev_matches = team_matches.get(t.id, {}).get('prev', {}) %}
-
-                {% if team_prev_matches|length > 0 %}
-                <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                    {% if team_prev_matches|length > 0 %}
                     <div class="divide-y divide-gray-200 dark:divide-gray-700">
                         {% for date, matches in team_prev_matches.items() | sort(reverse=true) %}
                         {% for match_data in matches %}
@@ -315,62 +472,70 @@
                             {% set is_home = false %}
                             {% set opponent_name = home_team_name %}
                         {% endif %}
+                        {# Derive real scores + result from the match object (team-perspective). #}
+                        {% if match_data.get('is_ecs_fc') %}
+                            {% set my_score = match.home_score %}
+                            {% set opp_score = match.away_score %}
+                        {% elif is_home %}
+                            {% set my_score = match.home_team_score %}
+                            {% set opp_score = match.away_team_score %}
+                        {% else %}
+                            {% set my_score = match.away_team_score %}
+                            {% set opp_score = match.home_team_score %}
+                        {% endif %}
+                        {% set has_score = (my_score is not none and opp_score is not none) %}
 
-                        <div class="p-4">
-                            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                                <div class="flex items-start gap-3">
-                                    {% if match_data.get('week_type') == 'BYE' %}
-                                    <div class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
-                                        <i class="ti ti-moon" aria-hidden="true"></i>
-                                    </div>
+                        <div class="px-4 sm:px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <div class="flex items-center justify-between gap-2 mb-1.5">
+                                {% if match_data.get('week_type') == 'BYE' %}
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Bye</span>
+                                {% elif has_score %}
+                                    {% if my_score > opp_score %}
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono uppercase bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">W {{ my_score }}–{{ opp_score }}</span>
+                                    {% elif my_score < opp_score %}
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono uppercase bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">L {{ my_score }}–{{ opp_score }}</span>
                                     {% else %}
-                                    <div class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold font-mono {% if is_home %}bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400{% else %}bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300{% endif %}">
-                                        {% if is_home %}H{% else %}A{% endif %}
-                                    </div>
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono uppercase bg-ecs-gold/15 text-ecs-gold-600 dark:text-ecs-gold-400">D {{ my_score }}–{{ opp_score }}</span>
                                     {% endif %}
-                                    <div>
-                                        <h4 class="font-semibold text-gray-900 dark:text-white">
-                                            {% if match_data.get('week_type') == 'BYE' %}
-                                            <span class="px-2 py-0.5 text-xs rounded bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">Bye Week</span>
-                                            {% elif is_home %}
-                                            <span class="text-ecs-green dark:text-ecs-gold-400">{{ t.name }}</span> vs {{ opponent_name }}
-                                            {% else %}
-                                            {{ opponent_name }} vs <span class="text-ecs-green dark:text-ecs-gold-400">{{ t.name }}</span>
-                                            {% endif %}
-                                        </h4>
-                                        <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            <span class="font-mono">{{ date.strftime('%a, %b %d') }} · {{ match_data['time'].strftime('%I:%M %p') }}</span><span>· {{ match_data['location'] }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="flex flex-wrap items-center gap-2">
+                                {% else %}
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">No result</span>
+                                {% endif %}
+                                <span class="text-[11px] text-gray-500 dark:text-gray-400 font-mono">{{ date.strftime('%a, %b %d') }}</span>
+                            </div>
+                            <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                {% if match_data.get('week_type') == 'BYE' %}
+                                <span class="text-gray-600 dark:text-gray-300">Bye Week</span>
+                                {% elif is_home %}
+                                <span class="text-ecs-green dark:text-ecs-gold-400">{{ t.name }}</span> <span class="text-gray-400 dark:text-gray-500 font-normal">vs</span> {{ opponent_name }}
+                                {% else %}
+                                {{ opponent_name }} <span class="text-gray-400 dark:text-gray-500 font-normal">vs</span> <span class="text-ecs-green dark:text-ecs-gold-400">{{ t.name }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="flex items-center justify-between gap-2 mt-1.5">
+                                <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 truncate min-w-0">
+                                    <i class="ti ti-map-pin" aria-hidden="true"></i><span class="truncate">{{ match_data['location'] }}</span>
+                                </span>
+                                <div class="flex items-center gap-2 shrink-0">
                                     {% if has_permission('view_match_page') %}
                                     {% if match_data.get('is_ecs_fc') %}
                                     <a href="{{ url_for('ecs_fc.match_details', match_id=match_data['match_id']) }}"
-                                       class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                                        Details
-                                    </a>
+                                       class="text-xs font-semibold text-ecs-green dark:text-ecs-gold-400 hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">Details</a>
                                     {% else %}
                                     <a href="{{ url_for('match_pages.view_match', match_id=match_data['match_id']) }}"
-                                       class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                                        Details
-                                    </a>
+                                       class="text-xs font-semibold text-ecs-green dark:text-ecs-gold-400 hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">Details</a>
                                     {% endif %}
                                     {% endif %}
 
                                     {% if has_permission('report_match') %}
                                     {% if match_data.get('is_ecs_fc') %}
-                                    <button class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green edit-match-btn"
-                                            data-action="edit-match-report" data-match-id="ecs_{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" data-is-ecs-fc="true">
+                                    <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-8 sm:w-8 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green edit-match-btn"
+                                            data-action="edit-match-report" data-match-id="ecs_{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" data-is-ecs-fc="true" title="{% if match_data['reported'] %}Edit result{% else %}Report result{% endif %}">
                                         <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}" aria-hidden="true"></i>
-                                        <span class="hidden sm:inline ml-1">{% if match_data['reported'] %}Edit{% else %}Report{% endif %}</span>
                                     </button>
                                     {% else %}
-                                    <button class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green edit-match-btn"
-                                            data-action="edit-match-report" data-match-id="{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}">
+                                    <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-8 sm:w-8 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green edit-match-btn"
+                                            data-action="edit-match-report" data-match-id="{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" title="{% if match_data['reported'] %}Edit result{% else %}Report result{% endif %}">
                                         <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}" aria-hidden="true"></i>
-                                        <span class="hidden sm:inline ml-1">{% if match_data['reported'] %}Edit{% else %}Report{% endif %}</span>
                                     </button>
                                     {% endif %}
                                     {% endif %}
@@ -380,17 +545,17 @@
                         {% endfor %}
                         {% endfor %}
                     </div>
+                    {% else %}
+                    {{ empty_state("ti-ball-football-off", "No Recent Matches", "There are no recent matches for " ~ t.name ~ ".") }}
+                    {% endif %}
                 </div>
+                {% endfor %}
                 {% else %}
-                {{ empty_state("ti-ball-football-off", "No Recent Matches", "There are no recent matches for " ~ t.name ~ ".") }}
+                {{ empty_state("ti-shield-off", "No Recent Matches", "You are not currently assigned to any teams.") }}
                 {% endif %}
             </div>
-            {% endfor %}
-            {% else %}
-            {{ empty_state("ti-shield-off", "No Recent Matches", "You are not currently assigned to any teams.") }}
-            {% endif %}
-        </div>
-    </section>
+        </section>
+    </div>
     {% endif %}
 </div>
 {% else %}
@@ -890,12 +1055,9 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
 });
 </script>
-<script src="{{ url_for('static', filename='custom_js/tour.js') }}"></script>
-<script src="{{ url_for('static', filename='custom_js/home.js') }}"></script>
 {% if show_onboarding or session.get('force_onboarding') %}
 {# onboarding.js is already bundled via main-entry.js/Vite - no separate script tag needed #}
 {% endif %}
 {% if player %}
-<script src="{{ url_for('static', filename='custom_js/rsvp.js') }}"></script>
 {% endif %}
 {% endblock %}

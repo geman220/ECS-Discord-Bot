@@ -28,87 +28,226 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, section_card, alert as kit_alert %}
-{% from 'macros/flowbite.html' import input %}
-<div class="max-w-3xl mx-auto space-y-6">
+{% from 'macros/_modern_kit.html' import page_header, section_card, stat_card, alert as kit_alert, empty_state %}
 
-  {{ page_header(
-      ('Edit Season: ' ~ season.name) if season else 'Create New Season',
-      subtitle='I-Spy / Seasons') }}
+{# ---- Real derived data (model/route-provided only) ---- #}
+{% set shot_count = season.shots.count() if season else 0 %}
+{% set span_days = ((season.end_date - season.start_date).days + 1) if season and season.start_date and season.end_date else None %}
+{% set active_cats = categories if categories else [] %}
 
-  <!-- Season Form -->
-  <form id="seasonForm" novalidate class="space-y-6">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="max-w-6xl mx-auto space-y-5 sm:space-y-6">
 
-    <!-- Basic Information -->
-    {% call section_card('Basic Information', icon='ti-info-circle') %}
-      <div class="p-4 sm:p-5">
-        {{ input('name', label='Season Name', required=true,
-                 value=(season.name if season else ''),
-                 placeholder='e.g., Spring 2024 Season') }}
+  {# ---- Command header: identity + status + primary CTA ---- #}
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div class="min-w-0">
+      <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+        I-Spy / Seasons / {% if season %}Edit{% else %}Create{% endif %}
+      </p>
+      <div class="flex items-center gap-3 flex-wrap">
+        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">
+          {% if season %}{{ season.name }}{% else %}Create New Season{% endif %}
+        </h1>
+        {% if season %}
+          {% if season.is_active %}
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide
+                       bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+            <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i>Active
+          </span>
+          {% else %}
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide
+                       bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+            <i class="ti ti-circle text-[8px]" aria-hidden="true"></i>Inactive
+          </span>
+          {% endif %}
+          <span class="font-mono text-xs text-gray-400 dark:text-gray-500">#{{ season.id }}</span>
+        {% endif %}
       </div>
-    {% endcall %}
-
-    <!-- Date Range -->
-    {% call section_card('Date Range', icon='ti-calendar-event') %}
-      <div class="p-4 sm:p-5 space-y-3">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {{ input('start_date', label='Start Date', type='date', required=true,
-                   value=(season.start_date.strftime('%Y-%m-%d') if season and season.start_date else '')) }}
-          {{ input('end_date', label='End Date', type='date', required=true,
-                   value=(season.end_date.strftime('%Y-%m-%d') if season and season.end_date else '')) }}
-        </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
-          <i class="ti ti-info-circle mt-0.5 shrink-0" aria-hidden="true"></i>
-          <span>The season will automatically activate on the start date and deactivate on the end date.</span>
-        </p>
-      </div>
-    {% endcall %}
-
-    <!-- Season Status -->
-    {% call section_card('Season Status', icon='ti-settings') %}
-      <div class="p-4 sm:p-5 space-y-3">
-        <div class="flex items-center">
-          <input type="checkbox" id="is_active" name="is_active"
-            {{ 'checked' if season and season.is_active else '' }}
-            class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-          <label for="is_active" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-            Set as Active Season
-          </label>
-        </div>
-        {{ kit_alert('warning', 'Activating this season will deactivate any other currently active season. Only one season can be active at a time.', dismissible=false) }}
-      </div>
-    {% endcall %}
-
-    <!-- Form Actions -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
       <a href="{{ url_for('admin_panel.ispy_seasons') }}"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] h-11 px-4 rounded-lg text-sm font-semibold
                 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50
                 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600
                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to Seasons
+        <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Back to Seasons</span>
       </a>
-      <div class="flex items-center gap-3">
-        {% if season %}
-        <button type="button" id="deleteSeason"
-          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
-                 text-red-600 bg-white border border-red-300 hover:bg-red-50
-                 dark:bg-gray-700 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-900/20
-                 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-          <i class="ti ti-trash" aria-hidden="true"></i>Delete Season
-        </button>
-        {% endif %}
-        <button type="submit" id="submitBtn"
-          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-6 rounded-lg text-sm font-semibold
-                 text-white bg-ecs-green hover:bg-ecs-green-700
-                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-          <i class="ti ti-{% if season %}check{% else %}plus{% endif %}" aria-hidden="true"></i>
-          {% if season %}Save Changes{% else %}Create Season{% endif %}
-        </button>
-      </div>
+      <button type="submit" form="seasonForm" id="submitBtn"
+        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] h-11 px-5 rounded-lg text-sm font-semibold
+               text-white bg-ecs-green hover:bg-ecs-green-700
+               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-{% if season %}check{% else %}plus{% endif %}" aria-hidden="true"></i>
+        {% if season %}Save Changes{% else %}Create Season{% endif %}
+      </button>
     </div>
-  </form>
+  </div>
+
+  {# ---- KPI band: only real data when editing an existing season ---- #}
+  {% if season %}
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+    {{ stat_card('ti-camera', 'Shots Submitted', shot_count, sublabel='this season', tone='primary') }}
+    {{ stat_card('ti-calendar-stats', 'Season Length', span_days if span_days is not none else '—',
+                 sublabel='days' if span_days is not none else 'dates not set', tone='gold') }}
+    {{ stat_card('ti-tag', 'Active Categories', active_cats|length, sublabel='venue types', tone='info') }}
+  </div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6 items-start">
+    {# ===================== Primary column: the form (the one job) ===================== #}
+    <div class="xl:col-span-2 space-y-5 sm:space-y-6">
+      <form id="seasonForm" novalidate class="space-y-5 sm:space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {# ---- Basic Information ---- #}
+        {% call section_card('Basic Information', icon='ti-info-circle') %}
+          <div class="p-4 sm:p-5">
+            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              Season Name <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="name" name="name" required
+                   value="{{ season.name if season else '' }}"
+                   placeholder="e.g., Spring 2024 Season"
+                   class="w-full min-h-[44px] rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-gray-900 dark:text-white placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Shown to players when they submit I-Spy shots.</p>
+          </div>
+        {% endcall %}
+
+        {# ---- Date Range ---- #}
+        {% call section_card('Date Range', icon='ti-calendar-event') %}
+          <div class="p-4 sm:p-5 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Start Date <span class="text-red-500">*</span>
+                </label>
+                <input type="date" id="start_date" name="start_date" required
+                       value="{{ season.start_date.strftime('%Y-%m-%d') if season and season.start_date else '' }}"
+                       class="w-full min-h-[44px] rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+              </div>
+              <div>
+                <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  End Date <span class="text-red-500">*</span>
+                </label>
+                <input type="date" id="end_date" name="end_date" required
+                       value="{{ season.end_date.strftime('%Y-%m-%d') if season and season.end_date else '' }}"
+                       class="w-full min-h-[44px] rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+              </div>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+              <i class="ti ti-info-circle mt-0.5 shrink-0" aria-hidden="true"></i>
+              <span>The season will automatically activate on the start date and deactivate on the end date.</span>
+            </p>
+          </div>
+        {% endcall %}
+
+        {# ---- Season Status ---- #}
+        {% call section_card('Season Status', icon='ti-settings') %}
+          <div class="p-4 sm:p-5 space-y-4">
+            <label for="is_active"
+                   class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors">
+              <input type="checkbox" id="is_active" name="is_active"
+                {{ 'checked' if season and season.is_active else '' }}
+                class="mt-0.5 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+              <span class="min-w-0">
+                <span class="block text-sm font-semibold text-gray-900 dark:text-white">Set as Active Season</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">Players' submissions count toward whichever season is active.</span>
+              </span>
+            </label>
+            {{ kit_alert('warning', 'Activating this season will deactivate any other currently active season. Only one season can be active at a time.', dismissible=false) }}
+          </div>
+        {% endcall %}
+      </form>
+    </div>
+
+    {# ===================== Context rail (xl:col-span-1) — real data only ===================== #}
+    <div class="space-y-5 sm:space-y-6">
+      {% if season %}
+      {# ---- Season record metadata (dense detail rows) ---- #}
+      {% call section_card('Season Record', icon='ti-database') %}
+        <dl class="divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+          <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3">
+            <dt class="text-gray-500 dark:text-gray-400">Season ID</dt>
+            <dd class="font-mono font-semibold text-gray-900 dark:text-white">#{{ season.id }}</dd>
+          </div>
+          <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3">
+            <dt class="text-gray-500 dark:text-gray-400">Status</dt>
+            <dd>
+              {% if season.is_active %}
+              <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-green-600 dark:text-green-400">
+                <i class="ti ti-circle-check" aria-hidden="true"></i>Active
+              </span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                <i class="ti ti-circle" aria-hidden="true"></i>Inactive
+              </span>
+              {% endif %}
+            </dd>
+          </div>
+          <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3">
+            <dt class="text-gray-500 dark:text-gray-400">Created</dt>
+            <dd class="font-mono text-gray-900 dark:text-white">{{ season.created_at.strftime('%Y-%m-%d') if season.created_at else '—' }}</dd>
+          </div>
+          <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3">
+            <dt class="text-gray-500 dark:text-gray-400">Window</dt>
+            <dd class="font-mono text-right text-gray-900 dark:text-white">
+              {{ season.start_date.strftime('%Y-%m-%d') if season.start_date else '—' }}
+              <span class="text-gray-400">→</span>
+              {{ season.end_date.strftime('%Y-%m-%d') if season.end_date else '—' }}
+            </dd>
+          </div>
+        </dl>
+      {% endcall %}
+      {% else %}
+      {# ---- Create-mode helper card ---- #}
+      {% call section_card('What is a Season?', icon='ti-help-circle') %}
+        <div class="p-4 sm:p-5 text-sm text-gray-600 dark:text-gray-300 space-y-2">
+          <p>A season groups every I-Spy shot players submit within its date window. Scoring and leaderboards reset between seasons.</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">Marking a season active retires the previous one automatically — only one runs at a time.</p>
+        </div>
+      {% endcall %}
+      {% endif %}
+
+      {# ---- Venue categories that apply (real route-provided list) ---- #}
+      {% call section_card('Venue Categories', icon='ti-tag') %}
+        {% if active_cats %}
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            Shots this season can be tagged with <span class="font-mono font-semibold text-gray-700 dark:text-gray-200">{{ active_cats|length }}</span> active venue {{ 'category' if active_cats|length == 1 else 'categories' }}.
+          </p>
+        </div>
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+          {% for cat in active_cats %}
+          <li class="flex items-center justify-between gap-2 px-4 sm:px-5 py-2.5">
+            <span class="text-sm font-medium text-gray-900 dark:text-white truncate">
+              <i class="ti ti-map-pin text-ecs-green mr-1.5" aria-hidden="true"></i>{{ cat.display_name }}
+            </span>
+            <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 shrink-0">{{ cat.key }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        {{ empty_state('ti-tag-off', 'No active categories', 'Set up venue categories so players can tag where their I-Spy shots were taken.') }}
+        {% endif %}
+      {% endcall %}
+
+      {# ---- Danger zone (edit only) — JS hook id preserved verbatim ---- #}
+      {% if season %}
+      {% call section_card('Danger Zone', icon='ti-alert-triangle') %}
+        <div class="p-4 sm:p-5 space-y-3">
+          <p class="text-sm text-gray-600 dark:text-gray-300">
+            Deleting this season permanently removes it and all associated shot data. This cannot be undone.
+          </p>
+          <button type="button" id="deleteSeason"
+            class="inline-flex items-center justify-center gap-1.5 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                   text-red-600 bg-white border border-red-300 hover:bg-red-50
+                   dark:bg-gray-700 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-900/20
+                   focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-trash" aria-hidden="true"></i>Delete Season
+          </button>
+        </div>
+      {% endcall %}
+      {% endif %}
+    </div>
+  </div>
 </div>
 {% else %}
 <div class="max-w-3xl mx-auto">

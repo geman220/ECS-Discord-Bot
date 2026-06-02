@@ -160,6 +160,76 @@ class DraftOrderHistory(db.Model):
         return f"<DraftOrderHistory: #{self.draft_position} {self.player_id} to {self.team_id} in S{self.season_id}>"
 
 
+class DraftSession(db.Model):
+    """Live 'on the clock' draft state for one (season, league).
+
+    Additive to the existing free-form draft: when a row exists and status is
+    'active', picks must respect the team pick order (see DraftPickSlot) and the
+    clock advances after each pick. When no row exists, the draft behaves exactly
+    as before (any player -> any team, no turns).
+    """
+    __tablename__ = 'draft_session'
+
+    id = db.Column(db.Integer, primary_key=True)
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id', ondelete='CASCADE'), nullable=False)
+    league_id = db.Column(db.Integer, db.ForeignKey('league.id', ondelete='CASCADE'), nullable=False)
+
+    # format / rules
+    format = db.Column(db.String(10), nullable=False, default='snake')      # 'snake' | 'linear'
+    seconds_per_pick = db.Column(db.Integer, nullable=False, default=90)     # 0 = untimed; adjustable live
+    timeout_action = db.Column(db.String(10), nullable=False, default='alert')  # alert | skip | pause
+    lock_to_clock = db.Column(db.Boolean, nullable=False, default=True)      # only current team may be assigned
+    rounds = db.Column(db.Integer, nullable=False, default=0)                # roster-size target (picks per team)
+
+    # live state
+    status = db.Column(db.String(12), nullable=False, default='setup')      # setup|active|paused|complete
+    current_overall_pick = db.Column(db.Integer, nullable=True)             # 1..(teams*rounds)
+    current_round = db.Column(db.Integer, nullable=True)
+    current_team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='SET NULL'), nullable=True)
+    pick_deadline = db.Column(db.DateTime, nullable=True)                   # server-authoritative clock
+    pause_remaining_seconds = db.Column(db.Integer, nullable=True)         # set while paused
+    alerts_sent = db.Column(db.Integer, nullable=False, default=0)          # escalation counter for the current pick
+
+    started_at = db.Column(db.DateTime, nullable=True)
+    started_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    season = db.relationship('Season', backref=db.backref('draft_sessions', lazy='dynamic', passive_deletes=True), passive_deletes=True)
+    league = db.relationship('League', backref=db.backref('draft_sessions', lazy='dynamic', passive_deletes=True), passive_deletes=True)
+    current_team = db.relationship('Team', foreign_keys=[current_team_id])
+    slots = db.relationship('DraftPickSlot', backref='draft_session', cascade='all, delete-orphan',
+                            order_by='DraftPickSlot.slot', passive_deletes=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('season_id', 'league_id', name='uq_draft_session_season_league'),
+    )
+
+    def __repr__(self):
+        return f"<DraftSession S{self.season_id}/L{self.league_id} {self.status} pick={self.current_overall_pick}>"
+
+
+class DraftPickSlot(db.Model):
+    """One team's position in the draft pick order (round-1 order; snake derives later rounds)."""
+    __tablename__ = 'draft_pick_slot'
+
+    id = db.Column(db.Integer, primary_key=True)
+    draft_session_id = db.Column(db.Integer, db.ForeignKey('draft_session.id', ondelete='CASCADE'), nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), nullable=False)
+    slot = db.Column(db.Integer, nullable=False)  # 1..N
+
+    team = db.relationship('Team')
+
+    __table_args__ = (
+        db.UniqueConstraint('draft_session_id', 'team_id', name='uq_draft_slot_session_team'),
+        db.UniqueConstraint('draft_session_id', 'slot', name='uq_draft_slot_session_slot'),
+    )
+
+    def __repr__(self):
+        return f"<DraftPickSlot session={self.draft_session_id} slot={self.slot} team={self.team_id}>"
+
+
 class MessageCategory(db.Model):
     """Model representing categories for configurable messages."""
     __tablename__ = 'message_categories'

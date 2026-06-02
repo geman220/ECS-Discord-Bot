@@ -1,6 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert %}
-{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, stat_card %}
 
 {% block admin_title %}Import Schedule{% endblock %}
 {% block panel_description %}Import matches from CSV file{% endblock %}
@@ -22,161 +22,521 @@
 
 {% block panel_content %}
 {% if shell == 'console' %}
-<div class="max-w-4xl mx-auto">
-    {{ page_header("Import Schedule", subtitle="ECS FC Hub") }}
+{# ============================ MODERN (console) ============================ #}
+{% set spec_cols = [
+    ('Date', 'required', 'Yes', 'M/D/YYYY, MM/DD/YYYY, or YYYY-MM-DD', '1/7/2026'),
+    ('Time', 'cond', 'Required*', 'H:MM AM/PM or HH:MM', '8:00 PM'),
+    ('Opponent', 'required', 'Yes', 'Text or "Bye"', 'Ice Crushers'),
+    ('Location', 'optional', 'Optional', 'Text', 'Miller Playfield'),
+    ('Home or away', 'optional', 'Optional', 'Home/Away or Y/N', 'Away'),
+    ('Shirt color', 'optional', 'Optional', "Text (your team's color)", 'Black'),
+    ('Opponent shirt color', 'optional', 'Optional', "Text (opponent's color)", 'White'),
+    ('Notes', 'optional', 'Optional', 'Text', '60/40 Koed for this match')
+] %}
+{% set req_count = spec_cols | selectattr('1', 'equalto', 'required') | list | length %}
+{% set opt_count = spec_cols | selectattr('1', 'equalto', 'optional') | list | length %}
+{# Internal target fields the import understands (key + label) — mirrors IMPORT_FIELD_SPECS
+   in app/admin_panel/routes/ecs_fc_management.py. Drives the editable Step-2 "Maps To" selects. #}
+{% set field_options = [
+    ('date', 'Date'),
+    ('time', 'Time'),
+    ('opponent', 'Opponent'),
+    ('location', 'Location'),
+    ('field', 'Field'),
+    ('home_or_away', 'Home or away'),
+    ('home_shirt_color', 'Shirt color'),
+    ('away_shirt_color', 'Opponent shirt color'),
+    ('notes', 'Notes'),
+    ('latitude', 'Latitude'),
+    ('longitude', 'Longitude')
+] %}
+{% set pill = {
+    'required': 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400',
+    'cond':     'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+    'optional': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+} %}
 
-    <form method="post" enctype="multipart/form-data" class="space-y-5">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="max-w-5xl mx-auto" data-page="ecs-fc-import"
+     data-preview-url="{{ url_for('admin_panel.ecs_fc_import_preview') }}"
+     data-field-options='{{ field_options | tojson }}'>
+    {{ page_header("Import Schedule", subtitle="ECS FC Hub / Bulk Tools") }}
 
-        {% call section_card("Upload Schedule", icon="ti-file-import") %}
-        <div class="p-4 sm:p-5 space-y-5">
-            {# Team Selection #}
-            <div>
-                <label for="team_id" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Team <span class="text-red-500">*</span>
-                </label>
-                <select name="team_id" id="team_id" required
-                        class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                    <option value="">Select Team...</option>
-                    {% for team in teams %}
-                    <option value="{{ team.id }}" {% if preselect_team_id == team.id %}selected{% endif %}>
-                        {{ team.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            {# File Upload #}
-            <div>
-                <label for="csv_file" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    CSV File <span class="text-red-500">*</span>
-                </label>
-                <input type="file" name="csv_file" id="csv_file" accept=".csv" required
-                       class="block w-full text-sm text-gray-900 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green file:mr-3 file:border-0 file:bg-gray-100 dark:file:bg-gray-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-gray-700 dark:file:text-gray-200">
-                <p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">Upload a CSV file with match schedule</p>
-            </div>
-        </div>
-        {% endcall %}
-
-        {% call section_card("Expected CSV Format", icon="ti-info-circle") %}
-        <div class="p-4 sm:p-5">
-            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">Your CSV should have the following columns (header row required). Multiple date/time formats are supported:</p>
-
-            {# Desktop table #}
-            <div class="hidden md:block overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
-                        <tr>
-                            <th scope="col" class="px-4 py-2.5 font-semibold">Column</th>
-                            <th scope="col" class="px-4 py-2.5 font-semibold">Required</th>
-                            <th scope="col" class="px-4 py-2.5 font-semibold">Format</th>
-                            <th scope="col" class="px-4 py-2.5 font-semibold">Example</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                        <tr class="bg-white dark:bg-gray-800">
-                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Opponent</code></td>
-                            <td class="px-4 py-2">{{ badge("Yes", variant="danger", size="sm") }}</td>
-                            <td class="px-4 py-2">Text or "Bye"</td>
-                            <td class="px-4 py-2">Ice Crushers</td>
-                        </tr>
-                        <tr class="bg-white dark:bg-gray-800">
-                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Date</code></td>
-                            <td class="px-4 py-2">{{ badge("Yes", variant="danger", size="sm") }}</td>
-                            <td class="px-4 py-2">M/D/YYYY, MM/DD/YYYY, or YYYY-MM-DD</td>
-                            <td class="px-4 py-2">1/7/2026</td>
-                        </tr>
-                        <tr class="bg-white dark:bg-gray-800">
-                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Time</code></td>
-                            <td class="px-4 py-2">{{ badge("Required*", variant="warning", size="sm") }}</td>
-                            <td class="px-4 py-2">H:MM AM/PM or HH:MM</td>
-                            <td class="px-4 py-2">8:00 PM</td>
-                        </tr>
-                        <tr class="bg-white dark:bg-gray-800">
-                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Location</code></td>
-                            <td class="px-4 py-2">{{ badge("Optional", variant="default", size="sm") }}</td>
-                            <td class="px-4 py-2">Text</td>
-                            <td class="px-4 py-2">Miller Playfield</td>
-                        </tr>
-                        <tr class="bg-white dark:bg-gray-800">
-                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Home or away</code></td>
-                            <td class="px-4 py-2">{{ badge("Optional", variant="default", size="sm") }}</td>
-                            <td class="px-4 py-2">Home/Away or Y/N</td>
-                            <td class="px-4 py-2">Away</td>
-                        </tr>
-                        <tr class="bg-white dark:bg-gray-800">
-                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Shirt color</code></td>
-                            <td class="px-4 py-2">{{ badge("Optional", variant="default", size="sm") }}</td>
-                            <td class="px-4 py-2">Text (your team's color)</td>
-                            <td class="px-4 py-2">Black</td>
-                        </tr>
-                        <tr class="bg-white dark:bg-gray-800">
-                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Opponent shirt color</code></td>
-                            <td class="px-4 py-2">{{ badge("Optional", variant="default", size="sm") }}</td>
-                            <td class="px-4 py-2">Text (opponent's color)</td>
-                            <td class="px-4 py-2">White</td>
-                        </tr>
-                        <tr class="bg-white dark:bg-gray-800">
-                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Notes</code></td>
-                            <td class="px-4 py-2">{{ badge("Optional", variant="default", size="sm") }}</td>
-                            <td class="px-4 py-2">Text</td>
-                            <td class="px-4 py-2">60/40 Koed for this match</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            {# Mobile cards #}
-            <div class="md:hidden space-y-2">
-                {% set cols = [
-                    ('Opponent', 'danger', 'Yes', 'Text or "Bye"', 'Ice Crushers'),
-                    ('Date', 'danger', 'Yes', 'M/D/YYYY, MM/DD/YYYY, or YYYY-MM-DD', '1/7/2026'),
-                    ('Time', 'warning', 'Required*', 'H:MM AM/PM or HH:MM', '8:00 PM'),
-                    ('Location', 'default', 'Optional', 'Text', 'Miller Playfield'),
-                    ('Home or away', 'default', 'Optional', 'Home/Away or Y/N', 'Away'),
-                    ('Shirt color', 'default', 'Optional', "Text (your team's color)", 'Black'),
-                    ('Opponent shirt color', 'default', 'Optional', "Text (opponent's color)", 'White'),
-                    ('Notes', 'default', 'Optional', 'Text', '60/40 Koed for this match')
-                ] %}
-                {% for name, variant, req, fmt, example in cols %}
-                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-                    <div class="flex items-center justify-between gap-2">
-                        <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">{{ name }}</code>
-                        {{ badge(req, variant=variant, size="sm") }}
-                    </div>
-                    <dl class="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-                        <div><span class="font-medium text-gray-700 dark:text-gray-300">Format:</span> {{ fmt }}</div>
-                        <div><span class="font-medium text-gray-700 dark:text-gray-300">Example:</span> {{ example }}</div>
-                    </dl>
+    {# ---- Wizard stepper: Upload -> Map Columns -> Preview & Confirm ---- #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 mb-5">
+        <ol class="flex flex-col sm:flex-row sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700">
+            {% for n, label in [('1', 'Upload & Destination'), ('2', 'Map Columns'), ('3', 'Preview & Confirm')] %}
+            <li class="flex items-center gap-3 px-4 py-3 flex-1" data-step-indicator="{{ n }}">
+                <span data-step-dot class="flex-none h-7 w-7 inline-flex items-center justify-center rounded-full font-mono text-sm font-semibold
+                    bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400">{{ n }}</span>
+                <div class="min-w-0">
+                    <div data-step-eyebrow class="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">Step {{ n }}</div>
+                    <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ label }}</div>
                 </div>
-                {% endfor %}
+            </li>
+            {% endfor %}
+        </ol>
+    </div>
+
+    <form id="ecsfcImportForm" method="post" enctype="multipart/form-data" class="space-y-5">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {# Populated from the editable Step-2 "Maps To" selects right before commit. #}
+        <input type="hidden" name="column_map" id="ecsfcColumnMap" value="">
+
+        {# KPI band: what this importer maps #}
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            {{ stat_card("ti-columns-3", "CSV Columns", spec_cols | length, sublabel="recognized", tone="neutral") }}
+            {{ stat_card("ti-asterisk", "Required", req_count, sublabel="must be present", tone="danger") }}
+            {{ stat_card("ti-circle-dashed", "Optional", opt_count, sublabel="enrich the match", tone="neutral") }}
+            {{ stat_card("ti-shield-half", "Target Teams", teams | length, sublabel="you can import to", tone="primary") }}
+        </div>
+
+        {# ============================ STEP 1: Upload & Destination ============================ #}
+        <div data-step-panel="1" class="space-y-5">
+        {# PRIMARY OBJECT — the upload feature card: team target + file drop, one job. #}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+                <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                    <i class="ti ti-file-import text-ecs-green" aria-hidden="true"></i> Upload Schedule
+                </h2>
+                <span class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">.csv only</span>
             </div>
 
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-4 mb-4">* Time is optional for Bye weeks only</p>
+            {% if teams %}
+            <div class="grid grid-cols-1 lg:grid-cols-5">
+                {# Step 1 — destination team #}
+                <div class="lg:col-span-2 p-4 sm:p-5 lg:border-r border-gray-200 dark:border-gray-700">
+                    <p class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">
+                        <span class="font-mono text-ecs-green">01</span> &middot; Destination
+                    </p>
+                    <label for="team_id" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Team <span class="text-red-500">*</span>
+                    </label>
+                    <select name="team_id" id="team_id" required
+                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 min-h-[44px] text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        <option value="">Select Team...</option>
+                        {% for team in teams %}
+                        <option value="{{ team.id }}" {% if preselect_team_id == team.id %}selected{% endif %}>
+                            {{ team.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Every row in the file is imported as a match for this team.</p>
+                </div>
 
-            {{ alert("info", "Set opponent to \"Bye\" to create a bye week entry (time and location not required).", title="Bye Weeks:", dismissible=false) }}
+                {# Step 2 — the file #}
+                <div class="lg:col-span-3 p-4 sm:p-5 border-t lg:border-t-0 border-gray-200 dark:border-gray-700">
+                    <p class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">
+                        <span class="font-mono text-ecs-green">02</span> &middot; Schedule File
+                    </p>
+                    <label for="csv_file" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        CSV File <span class="text-red-500">*</span>
+                    </label>
+                    <div class="rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40 p-4">
+                        <div class="flex items-center gap-2 mb-3 text-gray-500 dark:text-gray-400">
+                            <i class="ti ti-cloud-upload text-xl text-ecs-green" aria-hidden="true"></i>
+                            <span class="text-sm">Choose a header-row CSV exported from your league.</span>
+                        </div>
+                        <input type="file" name="csv_file" id="csv_file" accept=".csv" required
+                               class="block w-full text-sm text-gray-900 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green file:mr-3 file:border-0 file:bg-ecs-green file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-white">
+                    </div>
+                    <p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">First row must be column headers. Multiple date/time formats are supported.</p>
+                </div>
+            </div>
+            {% else %}
+            {{ empty_state("ti-shield-off", "No ECS FC teams available",
+                "There are no teams you can import a schedule into yet. Create a team from the ECS FC Hub first.",
+                action={'label': 'ECS FC Hub', 'url': url_for('admin_panel.ecs_fc_dashboard'), 'icon': 'ti-arrow-left'}) }}
+            {% endif %}
+        </section>
 
-            <p class="text-sm font-medium text-gray-900 dark:text-white mt-4 mb-2">Example CSV (your league's format):</p>
-            <pre class="bg-gray-900 dark:bg-gray-950 text-gray-100 p-3 rounded-lg font-mono text-xs overflow-x-auto">Date,Time,Location,Home or away,Opponent,Shirt color,Opponent shirt color,Notes
+        {% if teams %}
+        {# Two-column reference: spec table (wide) + worked example + bye rule (narrow) #}
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+            {# Column spec — a real table, mono codes, form-pill required markers #}
+            <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                        <i class="ti ti-table-options text-ecs-green" aria-hidden="true"></i> Column Reference
+                    </h2>
+                    <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ spec_cols | length }}</span>
+                </div>
+
+                {# Desktop table #}
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
+                            <tr>
+                                <th scope="col" class="px-4 py-2.5 font-semibold">Column</th>
+                                <th scope="col" class="px-4 py-2.5 font-semibold">Req.</th>
+                                <th scope="col" class="px-4 py-2.5 font-semibold">Format</th>
+                                <th scope="col" class="px-4 py-2.5 font-semibold">Example</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for name, kind, req, fmt, example in spec_cols %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="px-4 py-2.5"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">{{ name }}</code></td>
+                                <td class="px-4 py-2.5"><span class="inline-flex text-xs font-bold px-1.5 py-0.5 rounded {{ pill[kind] }}">{{ req }}</span></td>
+                                <td class="px-4 py-2.5 text-gray-600 dark:text-gray-300">{{ fmt }}</td>
+                                <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400">{{ example }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {# Mobile dense rows #}
+                <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for name, kind, req, fmt, example in spec_cols %}
+                    <div class="px-4 py-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">{{ name }}</code>
+                            <span class="inline-flex text-xs font-bold px-1.5 py-0.5 rounded {{ pill[kind] }}">{{ req }}</span>
+                        </div>
+                        <dl class="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+                            <div><span class="font-medium text-gray-700 dark:text-gray-300">Format:</span> {{ fmt }}</div>
+                            <div><span class="font-medium text-gray-700 dark:text-gray-300">Example:</span> <span class="font-mono">{{ example }}</span></div>
+                        </dl>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="px-4 py-2.5 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                    <span class="font-mono text-amber-600 dark:text-amber-400">*</span> Time is optional for <span class="font-medium text-gray-700 dark:text-gray-300">Bye</span> weeks only.
+                </div>
+            </section>
+
+            {# Worked example + bye rule #}
+            <div class="space-y-5">
+                {{ alert(message="Set the Opponent to \"Bye\" to create a bye-week entry. Time and location are not required for byes.", variant="info", title="Bye weeks:", dismissible=false) }}
+
+                <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                    <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                        <i class="ti ti-code text-ecs-green" aria-hidden="true"></i>
+                        <h2 class="font-semibold text-gray-900 dark:text-white">Example CSV</h2>
+                    </div>
+                    <pre class="bg-gray-900 dark:bg-gray-950 text-gray-100 p-3 font-mono text-xs overflow-x-auto leading-relaxed">Date,Time,Location,Home or away,Opponent,Shirt color,Opponent shirt color,Notes
 1/7/2026,8:00 PM,Miller Playfield,Away,Ice Crushers,Black,White,
 1/14/2026,8:00 PM,Loyal Heights Playfield,Home,Midfield Crisis,White,Black,60/40 Koed for this match
 1/21/2026,7:15 PM,Marymoor Park #3,Away,Landsharks,Black,White,
 3/4/2026,,,Bye,,,</pre>
+                </section>
+            </div>
         </div>
-        {% endcall %}
 
-        {# Submit #}
-        <div class="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
-            <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}"
-               class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-                <i class="ti ti-arrow-left" aria-hidden="true"></i>Cancel
-            </a>
-            <button type="submit"
-                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-                <i class="ti ti-upload" aria-hidden="true"></i>Import Matches
-            </button>
+        </div>{# /step-panel 1 #}
+
+        {# ============================ STEP 2: Map Columns ============================ #}
+        <div data-step-panel="2" class="hidden space-y-5">
+            <section class="rounded-xl border border-ecs-green/40 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                    <i class="ti ti-table-options text-ecs-green" aria-hidden="true"></i>
+                    <h2 class="font-semibold text-gray-900 dark:text-white">Map Columns</h2>
+                    <span data-detected-count class="ml-auto text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">0 detected</span>
+                </div>
+                <div class="p-4 sm:p-5 space-y-3">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">We matched your file's header row to the schedule fields below. Adjust any "Maps To" selection to override the match, or set it to <span class="font-medium">Ignore</span> to skip a column. Your selections are honored on import.</p>
+                    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
+                                <tr>
+                                    <th class="px-4 py-2.5 font-semibold">Your CSV Header</th>
+                                    <th class="px-4 py-2.5 font-semibold">Maps To</th>
+                                    <th class="px-4 py-2.5 font-semibold hidden lg:table-cell">Sample Value</th>
+                                    <th class="px-4 py-2.5 font-semibold">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody data-mapping-body class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {# Rows injected from /ecs-fc/import/preview #}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400"><span class="font-mono text-amber-600 dark:text-amber-400">*</span> Time is required for all rows <span class="font-medium">except Bye weeks</span>.</p>
+                </div>
+            </section>
+        </div>{# /step-panel 2 #}
+
+        {# ============================ STEP 3: Preview & Confirm ============================ #}
+        <div data-step-panel="3" class="hidden space-y-5">
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                    <i class="ti ti-eye text-ecs-green" aria-hidden="true"></i>
+                    <h2 class="font-semibold text-gray-900 dark:text-white">Preview &amp; Confirm</h2>
+                    <span data-row-count class="ml-auto text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">0 rows</span>
+                </div>
+                <div class="p-4 sm:p-5 space-y-4">
+                    <div class="flex flex-wrap gap-2 text-xs">
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check text-[12px]"></i><span data-count-valid>0</span> valid</span>
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-semibold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-calendar-off text-[12px]"></i><span data-count-bye>0</span> bye week</span>
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-alert-triangle text-[12px]"></i><span data-count-review>0</span> needs review</span>
+                    </div>
+                    <div data-review-warning class="hidden rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-700 dark:text-amber-300">
+                        <i class="ti ti-alert-triangle mr-1"></i>Rows flagged "needs review" will be skipped on import. Fix your CSV and re-upload to include them.
+                    </div>
+                    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
+                                <tr>
+                                    <th class="px-3 py-2.5 font-semibold">Row</th>
+                                    <th class="px-3 py-2.5 font-semibold">Opponent</th>
+                                    <th class="px-3 py-2.5 font-semibold hidden sm:table-cell">Date</th>
+                                    <th class="px-3 py-2.5 font-semibold hidden md:table-cell">Time</th>
+                                    <th class="px-3 py-2.5 font-semibold hidden lg:table-cell">Location</th>
+                                    <th class="px-3 py-2.5 font-semibold">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody data-preview-body class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {# Rows injected from /ecs-fc/import/preview #}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>{# /step-panel 3 #}
+
+        {# Command toolbar — step-aware navigation + the final commit CTA #}
+        <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+            <div class="flex items-center gap-2">
+                <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}"
+                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    <i class="ti ti-arrow-left" aria-hidden="true"></i>Cancel
+                </a>
+                <button type="button" data-step-back
+                        class="hidden inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">
+                    <i class="ti ti-arrow-left" aria-hidden="true"></i>Back
+                </button>
+            </div>
+            <div class="flex items-center gap-2">
+                <p data-preview-error class="hidden text-sm text-red-600 dark:text-red-400"></p>
+                {# Step 1 -> 2/3: parse-only preview (no commit) #}
+                <button type="button" data-step-preview
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    <i class="ti ti-eye" aria-hidden="true"></i>Preview Schedule
+                </button>
+                {# Step 3: final commit — posts the same form to the existing single-shot import route #}
+                <button type="submit" data-step-commit
+                        class="hidden inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    <i class="ti ti-upload" aria-hidden="true"></i>Import Matches
+                </button>
+            </div>
         </div>
+        {% endif %}
     </form>
+
+    {# ---- Import wizard controller (console branch only; self-contained inline module) ---- #}
+    <script>
+    (function () {
+        var root = document.querySelector('[data-page="ecs-fc-import"]');
+        if (!root) return;
+        var form = document.getElementById('ecsfcImportForm');
+        if (!form) return;  // teams empty -> form/CTA not rendered
+
+        var previewUrl = root.getAttribute('data-preview-url');
+        var fileInput = form.querySelector('#csv_file');
+        var teamSelect = form.querySelector('#team_id');
+
+        var btnPreview = root.querySelector('[data-step-preview]');
+        var btnCommit  = root.querySelector('[data-step-commit]');
+        var btnBack    = root.querySelector('[data-step-back]');
+        var errEl      = root.querySelector('[data-preview-error]');
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function showError(msg) {
+            if (!errEl) return;
+            if (msg) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+            else { errEl.textContent = ''; errEl.classList.add('hidden'); }
+        }
+
+        function setStep(step) {
+            root.querySelectorAll('[data-step-panel]').forEach(function (p) {
+                p.classList.toggle('hidden', p.getAttribute('data-step-panel') !== String(step));
+            });
+            // Stepper indicators
+            root.querySelectorAll('[data-step-indicator]').forEach(function (li) {
+                var n = parseInt(li.getAttribute('data-step-indicator'), 10);
+                var dot = li.querySelector('[data-step-dot]');
+                var eyebrow = li.querySelector('[data-step-eyebrow]');
+                if (!dot) return;
+                dot.className = 'flex-none h-7 w-7 inline-flex items-center justify-center rounded-full font-mono text-sm font-semibold';
+                if (n < step) {
+                    dot.className += ' bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400';
+                    dot.innerHTML = '<i class="ti ti-check text-base"></i>';
+                    if (eyebrow) eyebrow.textContent = 'Step ' + n;
+                } else if (n === step) {
+                    dot.className += ' bg-ecs-green text-white';
+                    dot.textContent = String(n);
+                    if (eyebrow) eyebrow.textContent = 'Step ' + n + ' · Current';
+                } else {
+                    dot.className += ' bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400';
+                    dot.textContent = String(n);
+                    if (eyebrow) eyebrow.textContent = 'Step ' + n;
+                }
+            });
+            // Footer buttons
+            if (btnPreview) {
+                btnPreview.classList.toggle('hidden', step === 3);
+                btnPreview.innerHTML = (step === 2)
+                    ? '<i class="ti ti-arrow-right"></i>Continue to Preview'
+                    : '<i class="ti ti-eye"></i>Preview Schedule';
+            }
+            if (btnCommit)  btnCommit.classList.toggle('hidden', step !== 3);
+            if (btnBack)    btnBack.classList.toggle('hidden', step === 1);
+            root._step = step;
+        }
+
+        // Valid target fields (key + label) for the editable "Maps To" selects.
+        var FIELD_OPTIONS = [];
+        try { FIELD_OPTIONS = JSON.parse(root.getAttribute('data-field-options') || '[]'); } catch (e) { FIELD_OPTIONS = []; }
+
+        function fieldSelect(header, selectedField) {
+            // Build a real <select> so the user can override the suggested mapping.
+            var opts = '<option value="">&mdash; Ignore &mdash;</option>';
+            FIELD_OPTIONS.forEach(function (pair) {
+                var key = pair[0], label = pair[1];
+                var sel = (key === selectedField) ? ' selected' : '';
+                opts += '<option value="' + esc(key) + '"' + sel + '>' + esc(label) + '</option>';
+            });
+            return '<select data-map-select data-header="' + esc(header) + '" '
+                + 'class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2.5 py-1.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">'
+                + opts + '</select>';
+        }
+
+        function statusBadge(mapped) {
+            return mapped
+                ? '<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-filled text-[7px]"></i>Mapped</span>'
+                : '<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-circle-dashed text-[11px]"></i>Ignored</span>';
+        }
+
+        function renderMapping(data) {
+            var body = root.querySelector('[data-mapping-body]');
+            var detected = root.querySelector('[data-detected-count]');
+            if (detected) detected.textContent = (data.headers ? data.headers.length : 0) + ' detected';
+            if (!body) return;
+            // Stash sample values so a status cell can update live when the select changes.
+            root._sampleValues = data.sample_values || {};
+            var html = '';
+            (data.suggested_mapping || []).forEach(function (m) {
+                var sample = (data.sample_values && m.field) ? (data.sample_values[m.field] || '') : '';
+                var mapped = !!m.field;
+                html += '<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">'
+                    + '<td class="px-4 py-2.5"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">' + esc(m.header) + '</code></td>'
+                    + '<td class="px-4 py-2.5">' + fieldSelect(m.header, m.field || '') + '</td>'
+                    + '<td class="px-4 py-2.5 hidden lg:table-cell font-mono text-xs text-gray-500 dark:text-gray-400" data-sample-cell>' + esc(sample) + '</td>'
+                    + '<td class="px-4 py-2.5" data-status-cell>' + statusBadge(mapped) + '</td>'
+                    + '</tr>';
+            });
+            body.innerHTML = html;
+
+            // Live status + sample updates as the user re-maps a column.
+            body.querySelectorAll('[data-map-select]').forEach(function (sel) {
+                sel.addEventListener('change', function () {
+                    var tr = sel.closest('tr');
+                    if (!tr) return;
+                    var statusCell = tr.querySelector('[data-status-cell]');
+                    var sampleCell = tr.querySelector('[data-sample-cell]');
+                    var val = sel.value;
+                    if (statusCell) statusCell.innerHTML = statusBadge(!!val);
+                    if (sampleCell) sampleCell.textContent = (val && root._sampleValues[val]) ? root._sampleValues[val] : '';
+                });
+            });
+        }
+
+        // Collect the user's "Maps To" selections into the hidden column_map input.
+        function collectColumnMap() {
+            var mapInput = document.getElementById('ecsfcColumnMap');
+            if (!mapInput) return;
+            var map = {};
+            root.querySelectorAll('[data-map-select]').forEach(function (sel) {
+                var header = sel.getAttribute('data-header');
+                if (header == null) return;
+                map[header] = sel.value || '';  // '' => ignore on import
+            });
+            mapInput.value = JSON.stringify(map);
+        }
+
+        function renderPreview(data) {
+            var body = root.querySelector('[data-preview-body]');
+            var counts = data.counts || {valid: 0, bye: 0, needs_review: 0};
+            var setText = function (sel, val) { var el = root.querySelector(sel); if (el) el.textContent = val; };
+            setText('[data-row-count]', (data.row_count || 0) + ' rows');
+            setText('[data-count-valid]', counts.valid || 0);
+            setText('[data-count-bye]', counts.bye || 0);
+            setText('[data-count-review]', counts.needs_review || 0);
+            var warn = root.querySelector('[data-review-warning]');
+            if (warn) warn.classList.toggle('hidden', (counts.needs_review || 0) === 0);
+            if (!body) return;
+            var badge = {
+                valid: '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check text-[11px]"></i>Valid</span>',
+                bye: '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-calendar-off text-[11px]"></i>Bye</span>',
+                needs_review: '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-alert-triangle text-[11px]"></i>Review</span>'
+            };
+            var html = '';
+            (data.rows || []).forEach(function (r) {
+                var issues = (r.issues && r.issues.length)
+                    ? '<div class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">' + esc(r.issues.join('; ')) + '</div>' : '';
+                html += '<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">'
+                    + '<td class="px-3 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 align-top">' + esc(r.row) + '</td>'
+                    + '<td class="px-3 py-2.5 align-top"><span class="text-gray-900 dark:text-white">' + esc(r.opponent) + '</span>' + issues + '</td>'
+                    + '<td class="px-3 py-2.5 hidden sm:table-cell font-mono text-xs text-gray-500 dark:text-gray-400 align-top">' + esc(r.date) + '</td>'
+                    + '<td class="px-3 py-2.5 hidden md:table-cell font-mono text-xs text-gray-500 dark:text-gray-400 align-top">' + esc(r.time) + '</td>'
+                    + '<td class="px-3 py-2.5 hidden lg:table-cell text-gray-500 dark:text-gray-400 align-top">' + esc(r.location) + '</td>'
+                    + '<td class="px-3 py-2.5 align-top">' + (badge[r.status] || badge.needs_review) + '</td>'
+                    + '</tr>';
+            });
+            body.innerHTML = html;
+        }
+
+        function runPreview() {
+            showError('');
+            if (teamSelect && !teamSelect.value) { showError('Select a destination team first.'); return; }
+            if (!fileInput || !fileInput.files || !fileInput.files.length) { showError('Choose a CSV file first.'); return; }
+
+            var fd = new FormData();
+            fd.append('team_id', teamSelect ? teamSelect.value : '');
+            fd.append('csv_file', fileInput.files[0]);
+            var csrf = form.querySelector('input[name=csrf_token]');
+            var headers = {'X-Requested-With': 'XMLHttpRequest'};
+            if (csrf) headers['X-CSRFToken'] = csrf.value;
+
+            var orig = btnPreview ? btnPreview.innerHTML : '';
+            if (btnPreview) { btnPreview.disabled = true; btnPreview.innerHTML = '<i class="ti ti-loader animate-spin"></i>Parsing...'; }
+
+            fetch(previewUrl, {method: 'POST', headers: headers, body: fd, credentials: 'same-origin'})
+                .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, body: j}; }); })
+                .then(function (res) {
+                    if (!res.ok || !res.body || !res.body.success) {
+                        showError((res.body && res.body.message) ? res.body.message : 'Unable to parse CSV.');
+                        return;
+                    }
+                    renderMapping(res.body);
+                    renderPreview(res.body);
+                    setStep(2);
+                })
+                .catch(function () { showError('Network error while parsing CSV.'); })
+                .finally(function () { if (btnPreview) { btnPreview.disabled = false; btnPreview.innerHTML = orig; } });
+        }
+
+        if (btnPreview) btnPreview.addEventListener('click', function () {
+            if (root._step === 2) { setStep(3); return; }  // step 2 -> 3 (already parsed)
+            runPreview();
+        });
+        if (btnBack) btnBack.addEventListener('click', function () {
+            setStep(Math.max(1, (root._step || 1) - 1));
+        });
+        // Re-uploading invalidates a prior preview; bounce back to step 1.
+        if (fileInput) fileInput.addEventListener('change', function () { setStep(1); showError(''); });
+
+        // Final commit: honor the user's Step-2 "Maps To" overrides.
+        form.addEventListener('submit', function () { collectColumnMap(); });
+
+        setStep(1);
+    })();
+    </script>
 </div>
 {% else %}
 <div class="max-w-4xl mx-auto">

@@ -111,6 +111,49 @@ def manage_substitute_pools():
         return redirect(url_for('admin.index'))
 
 
+def _build_request_chart_data(league_type: str, session):
+    """
+    Build real per-month substitute request counts for the trailing 6 months
+    for the given league type. Returns (labels, data) where labels are short
+    month names (e.g. 'Jan') and data are integer request counts sourced from
+    the substitute_requests table.
+    """
+    now = datetime.utcnow()
+    # Compute the first day of the month 5 months ago (6 buckets including current).
+    year = now.year
+    month = now.month - 5
+    while month <= 0:
+        month += 12
+        year -= 1
+    window_start = datetime(year, month, 1)
+
+    rows = session.query(
+        func.date_trunc('month', SubstituteRequest.created_at).label('month'),
+        func.count(SubstituteRequest.id).label('cnt')
+    ).filter(
+        SubstituteRequest.league_type == league_type,
+        SubstituteRequest.created_at >= window_start
+    ).group_by('month').all()
+
+    counts_by_month = {}
+    for row in rows:
+        if row.month is not None:
+            counts_by_month[(row.month.year, row.month.month)] = int(row.cnt)
+
+    labels = []
+    data = []
+    y, m = window_start.year, window_start.month
+    for _ in range(6):
+        labels.append(datetime(y, m, 1).strftime('%b'))
+        data.append(counts_by_month.get((y, m), 0))
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+
+    return labels, data
+
+
 @substitute_pool_bp.route('/admin/substitute-pools/<league_type>')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
@@ -167,14 +210,20 @@ def manage_league_pool(league_type: str):
             'total_requests_sent': sum(pool.requests_received for pool in active_pools),
             'total_matches_played': sum(pool.matches_played for pool in active_pools)
         }
-        
+
+        # Build real per-month substitute request counts for the last 6 months
+        # (for this league type) to drive the Analytics chart.
+        chart_labels, chart_data = _build_request_chart_data(league_type, session)
+
         return render_template('admin/league_substitute_pool_flowbite.html',
                              league_type=league_type,
                              league_config=LEAGUE_TYPES[league_type],
                              active_pools=active_pools,
                              available_players=available_players,
                              recent_activity=recent_activity,
-                             stats=stats)
+                             stats=stats,
+                             chart_labels=chart_labels,
+                             chart_data=chart_data)
         
     except Exception as e:
         logger.error(f"Error loading league pool for {league_type}: {e}", exc_info=True)

@@ -45,22 +45,71 @@
 
 <div class="space-y-5 sm:space-y-6">
 
-  {# KPI band — tri-state pool model #}
+  {# ── Feature card: the pool itself, leading with the ONE job ─────────────── #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="h-1.5 bg-ecs-green/80 dark:bg-ecs-green/60" aria-hidden="true"></div>
+    <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
+      <div class="flex items-center gap-4 min-w-0 flex-1">
+        <div class="flex items-center justify-center w-14 h-14 rounded-xl bg-ecs-green/10 dark:bg-ecs-green/15 text-ecs-green shrink-0">
+          <i class="{{ league_config.icon }} text-2xl" aria-hidden="true"></i>
+        </div>
+        <div class="min-w-0">
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Substitute Pool</p>
+          <h2 class="text-lg sm:text-xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ league_config.name }}</h2>
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs">
+            <span class="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-300">
+              <span class="w-2 h-2 rounded-full bg-green-500" aria-hidden="true"></span>
+              <span class="font-mono font-bold text-gray-900 dark:text-white">{{ stats.total_active }}</span> assignable now
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-300">
+              <span class="w-2 h-2 rounded-full bg-amber-500" aria-hidden="true"></span>
+              <span class="font-mono font-bold text-gray-900 dark:text-white">{{ stats.total_on_break }}</span> on break
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-300">
+              <i class="ti ti-user-check text-sm text-gray-400" aria-hidden="true"></i>
+              <span class="font-mono font-bold text-gray-900 dark:text-white">{{ stats.total_eligible }}</span> eligible roster
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        {% if stats.total_pending %}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30">
+          <i class="ti ti-clock" aria-hidden="true"></i><span class="font-mono">{{ stats.total_pending }}</span> pending
+        </span>
+        {% endif %}
+        <button type="button"
+                class="js-add-player inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                data-action="add-player">
+          <i class="ti ti-user-plus" aria-hidden="true"></i><span class="hidden sm:inline">Add Player</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  {# KPI band — tri-state pool model, divider footers #}
   <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-    {{ stat_card("ti-users", "Active in Pool", stats.total_active, sublabel="approved · assignable", tone="success") }}
-    {{ stat_card("ti-zzz", "On Break", stats.total_on_break, sublabel="approved · paused", tone="warning") }}
-    {{ stat_card("ti-clock", "Pending", stats.total_pending, sublabel="awaiting approval", tone="neutral") }}
-    {{ stat_card("ti-send", "Requests", stats.total_requests_sent, sublabel="sent", tone="info") }}
-    {{ stat_card("ti-ball-football", "Matches", stats.total_matches_played, sublabel="played", tone="info") }}
+    {% call stat_card("ti-users", "Active in Pool", stats.total_active, tone="success") %}approved · assignable{% endcall %}
+    {% call stat_card("ti-zzz", "On Break", stats.total_on_break, tone="warning") %}approved · paused{% endcall %}
+    {% call stat_card("ti-clock", "Pending", stats.total_pending, tone="neutral") %}awaiting approval{% endcall %}
+    {% call stat_card("ti-send", "Requests", stats.total_requests_sent, tone="info") %}sent to active pool{% endcall %}
+    {% call stat_card("ti-ball-football", "Matches", stats.total_matches_played, tone="info") %}covered by subs{% endcall %}
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
     {# Pool member sections (tri-state) #}
     <div class="lg:col-span-2 space-y-5 sm:space-y-6">
 
-      {# Pending Approval #}
+      {# Pending Approval — action-queue treatment (severity = icon + amber rail) #}
       {% if pending_pools %}
-      {% call section_card("Pending Approval", icon="ti-clock") %}
+      <section class="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10">
+          <h3 class="text-sm font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300 flex items-center gap-2">
+            <i class="ti ti-clock-exclamation" aria-hidden="true"></i>Pending Approval
+          </h3>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">{{ pending_pools|length }}</span>
+        </div>
+        <div>
         {# Desktop table #}
         <table class="hidden md:table w-full text-sm text-left">
           <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
@@ -124,11 +173,12 @@
           </div>
           {% endfor %}
         </div>
-      {% endcall %}
+        </div>
+      </section>
       {% endif %}
 
-      {# Active in Pool #}
-      {% call section_card("Active in Pool", icon="ti-users") %}
+      {# Active in Pool — primary roster table #}
+      {% call section_card("Active in Pool · " ~ active_pools|length, icon="ti-users") %}
         {% if active_pools %}
         {# Desktop table #}
         <table class="hidden md:table w-full text-sm text-left">
@@ -219,13 +269,24 @@
           {% endfor %}
         </div>
         {% else %}
-        {{ empty_state("ti-users-group", "No Active Substitutes", "Add players to this substitute pool to get started.", action={'label': 'Add First Player', 'url': '#', 'icon': 'ti-user-plus'}) }}
+        <div class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16">
+          <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+            <i class="ti ti-users-group text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+          </div>
+          <h3 class="text-base font-semibold text-gray-900 dark:text-white">No Active Substitutes</h3>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">Add players to this substitute pool so they can be assigned when a roster spot opens up.</p>
+          <button type="button"
+                  class="js-add-player mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                  data-action="add-player">
+            <i class="ti ti-user-plus" aria-hidden="true"></i>Add First Player
+          </button>
+        </div>
         {% endif %}
       {% endcall %}
 
       {# Approved · On Break #}
       {% if on_break_pools %}
-      {% call section_card("Approved · On Break", icon="ti-zzz") %}
+      {% call section_card("Approved · On Break · " ~ on_break_pools|length, icon="ti-zzz") %}
         {# Desktop table #}
         <table class="hidden md:table w-full text-sm text-left">
           <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
@@ -297,7 +358,7 @@
     {# Sidebar #}
     <div class="space-y-5 sm:space-y-6">
       {# Available Players #}
-      {% call section_card("Available to Add", icon="ti-user-check") %}
+      {% call section_card("Available to Add · " ~ available_players|length, icon="ti-user-check") %}
         {% if available_players %}
         <div class="divide-y divide-gray-200 dark:divide-gray-700 max-h-64 overflow-y-auto">
           {% for player in available_players[:10] %}
@@ -332,27 +393,34 @@
         {% endif %}
       {% endcall %}
 
-      {# Recent Activity #}
+      {# Recent Activity — timeline feed (action-typed node + mono timestamp) #}
       {% call section_card("Recent Activity", icon="ti-history") %}
         {% if recent_activity %}
-        <div class="divide-y divide-gray-200 dark:divide-gray-700 max-h-64 overflow-y-auto">
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700 max-h-72 overflow-y-auto" role="list">
           {% for activity in recent_activity %}
-          <div class="px-4 py-3">
-            <div class="flex justify-between items-center gap-2 mb-1">
-              <span class="text-xs font-mono text-gray-500 dark:text-gray-400">
-                {{ activity.performed_at.strftime('%m/%d %H:%M') if activity.performed_at else '' }}
-              </span>
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {% if activity.action == 'ADDED' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% elif activity.action == 'REMOVED' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% endif %}">
-                {{ activity.action }}
-              </span>
+          {% if activity.action == 'ADDED' %}
+            {% set act_icon = 'ti-user-plus' %}{% set act_cls = 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' %}
+          {% elif activity.action == 'REMOVED' %}
+            {% set act_icon = 'ti-user-minus' %}{% set act_cls = 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' %}
+          {% else %}
+            {% set act_icon = 'ti-arrows-exchange' %}{% set act_cls = 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400' %}
+          {% endif %}
+          <li class="px-4 py-3 flex items-start gap-3">
+            <span class="mt-0.5 shrink-0 flex items-center justify-center w-7 h-7 rounded-full {{ act_cls }}">
+              <i class="ti {{ act_icon }} text-sm" aria-hidden="true"></i>
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline justify-between gap-2">
+                <span class="font-medium text-gray-900 dark:text-white text-sm truncate">{{ activity.player.name if activity.player else 'Unknown' }}</span>
+                <span class="shrink-0 text-[11px] font-mono text-gray-400 dark:text-gray-500">{{ activity.performed_at.strftime('%m/%d %H:%M') if activity.performed_at else '' }}</span>
+              </div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <span class="font-semibold uppercase tracking-wide">{{ activity.action|lower }}</span>{% if activity.performer %} · by {{ activity.performer.username }}{% endif %}
+              </div>
             </div>
-            <div class="font-medium text-gray-900 dark:text-white text-sm">{{ activity.player.name if activity.player else 'Unknown' }}</div>
-            {% if activity.performer %}
-            <span class="text-xs text-gray-500 dark:text-gray-400">by {{ activity.performer.username }}</span>
-            {% endif %}
-          </div>
+          </li>
           {% endfor %}
-        </div>
+        </ul>
         {% else %}
         <div class="px-6 py-6 text-center">
           <p class="text-sm text-gray-500 dark:text-gray-400">No recent activity</p>

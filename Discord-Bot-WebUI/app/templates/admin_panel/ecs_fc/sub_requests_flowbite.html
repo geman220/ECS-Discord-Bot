@@ -23,26 +23,78 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# =========================== MODERN (console) =========================== #}
-{{ page_header("ECS FC Sub Requests", subtitle="ECS FC Hub") }}
+{# Derive the actionable slice once: OPEN requests with an available sub ready to assign. #}
+{% set ready_to_assign = requests_data | selectattr('request.status', 'equalto', 'OPEN') | selectattr('available', 'greaterthan', 0) | list %}
+{% set seats_open = namespace(n=0) %}
+{% for item in requests_data if item.request.status == 'OPEN' %}{% set seats_open.n = seats_open.n + (item.request.substitutes_needed or 1) %}{% endfor %}
 
-{# KPI band: 2-up on mobile -> 5-up on lg (sm: step included) #}
-<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-5 sm:mb-6">
-  {{ stat_card("ti-clipboard-list", "Total",     stats.total,     tone="info") }}
-  {{ stat_card("ti-clock",          "Open",      stats.open,      tone="warning") }}
-  {{ stat_card("ti-check",          "Filled",    stats.filled,    tone="success") }}
-  {{ stat_card("ti-x",              "Cancelled", stats.cancelled, tone="danger") }}
-  {{ stat_card("ti-users",          "Pool Size", stats.pool_size, tone="primary") }}
+{{ page_header("Substitute Requests", subtitle="ECS FC Hub") }}
+
+{# ---- Command toolbar: primary job (assign-ready) framed left, pool action right ---- #}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 mb-5 sm:mb-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div class="flex items-center gap-3 min-w-0">
+      <span class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl
+                   {% if ready_to_assign %}bg-ecs-green/10 text-ecs-green{% else %}bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500{% endif %}">
+        <i class="ti ti-user-check text-xl" aria-hidden="true"></i>
+      </span>
+      <div class="min-w-0">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Ready to assign</p>
+        {% if ready_to_assign %}
+        <p class="text-sm font-semibold text-gray-900 dark:text-white">
+          <span class="font-mono text-ecs-green">{{ ready_to_assign|length }}</span>
+          request{{ 's' if ready_to_assign|length != 1 else '' }} have an available sub waiting on you
+        </p>
+        {% else %}
+        <p class="text-sm font-semibold text-gray-900 dark:text-white">No requests are waiting on an assignment</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="shrink-0 flex items-center gap-2">
+      {% if upcoming_matches %}
+      <button type="button" data-contact-subs
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                     bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-send" aria-hidden="true"></i><span>Contact Subs</span>
+      </button>
+      {% endif %}
+      <a href="{{ url_for('admin_panel.substitute_pools', context='ecs-fc') }}"
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300
+                text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-users" aria-hidden="true"></i><span>Manage Pool</span>
+      </a>
+    </div>
+  </div>
 </div>
 
-{# Filters + Manage Pool action — GET form, verbatim onchange/this.form.submit hooks #}
+{# ---- KPI band: 2-up mobile -> 6-up lg (sm: step included), mono figures, divider footers ---- #}
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-5 sm:mb-6">
+  {% call stat_card("ti-clock", "Open", stats.open, tone="warning") %}{{ seats_open.n }} seat{{ 's' if seats_open.n != 1 else '' }} to fill{% endcall %}
+  {% call stat_card("ti-check", "Filled", stats.filled, tone="success") %}assignments complete{% endcall %}
+  {% call stat_card("ti-x", "Cancelled", stats.cancelled, tone="danger") %}requests withdrawn{% endcall %}
+  {% call stat_card("ti-clipboard-list", "Total", stats.total, tone="info") %}all-time requests{% endcall %}
+  {% call stat_card("ti-users", "Sub Pool", stats.pool_size, tone="primary") %}active subs available{% endcall %}
+  {% call stat_card("ti-calendar", "Upcoming Matches", stats.upcoming_matches, tone="info") %}next 20 scheduled{% endcall %}
+</div>
+
+{# ---- Filter command bar: segmented status control + team select (verbatim GET hooks) ---- #}
 <form method="get" class="flex flex-wrap items-center gap-2 mb-5 sm:mb-6">
-  <select name="status" onchange="this.form.submit()" aria-label="Filter by status"
-          class="input-ecs h-9 text-sm w-auto min-w-[150px]">
-    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
-    <option value="open" {% if status_filter == 'open' %}selected{% endif %}>Open</option>
-    <option value="filled" {% if status_filter == 'filled' %}selected{% endif %}>Filled</option>
-    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
-  </select>
+  {# Segmented status control: each chip is a submit-on-change radio, mirrors the <select name="status"> hook #}
+  <div role="group" aria-label="Filter by status"
+       class="inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+    {% for opt, lbl in [('all','All'), ('open','Open'), ('filled','Filled'), ('cancelled','Cancelled')] %}
+    <label class="cursor-pointer">
+      <input type="radio" name="status" value="{{ opt }}" onchange="this.form.submit()"
+             class="sr-only peer" {% if status_filter == opt %}checked{% endif %}>
+      <span class="inline-flex items-center h-8 px-3 rounded-md text-xs font-semibold transition-colors
+                   text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white
+                   peer-checked:bg-white peer-checked:text-gray-900 peer-checked:shadow-sm
+                   dark:peer-checked:bg-gray-700 dark:peer-checked:text-white">{{ lbl }}</span>
+    </label>
+    {% endfor %}
+  </div>
   <select name="team_id" onchange="this.form.submit()" aria-label="Filter by team"
           class="input-ecs h-9 text-sm w-auto min-w-[150px]">
     <option value="">All Teams</option>
@@ -50,26 +102,35 @@
     <option value="{{ team.id }}" {% if team_filter == team.id %}selected{% endif %}>{{ team.name }}</option>
     {% endfor %}
   </select>
-  <a href="{{ url_for('admin_panel.substitute_pools', context='ecs-fc') }}"
-     class="ml-auto inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
-            bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300
-            text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-    <i class="ti ti-users" aria-hidden="true"></i><span>Manage Pool</span>
+  {# Explicit Apply (no-JS fallback) + Clear reset — mirrors the mock toolbar buttons #}
+  <button type="submit"
+          class="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-search" aria-hidden="true"></i>Apply
+  </button>
+  {% if status_filter != 'all' or team_filter %}
+  <a href="{{ url_for('admin_panel.ecs_fc_sub_requests') }}"
+     class="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium transition-colors">
+    <i class="ti ti-x" aria-hidden="true"></i>Clear
   </a>
+  {% endif %}
 </form>
 
+{# ===== Board: open requests (left, 2 cols) ↔ ECS FC sub pool (right) ===== #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 mb-5 sm:mb-6">
+
+{# LEFT: substitute requests board #}
+<div class="lg:col-span-2">
 {% if requests_data %}
 {% call data_table("Substitute Requests", icon="ti-clipboard-list", count=requests_data|length, filters=false) %}
-  {# md+ table #}
+  {# md+ table — status accent rail on each row, fill-progress meter, mono figures #}
   <table class="hidden md:table w-full text-sm text-left">
     <thead class="bg-gray-50 dark:bg-gray-700/40">
       <tr>
         {{ data_table_th("Match",     sortable=false) }}
-        {{ data_table_th("Team",      sortable=false, hide='sm') }}
-        {{ data_table_th("Status",    sortable=false, hide='sm') }}
-        {{ data_table_th("Needed",    sortable=false, hide='sm') }}
+        {{ data_table_th("Team",      sortable=false, hide='md') }}
+        {{ data_table_th("Status",    sortable=false) }}
+        {{ data_table_th("Fill",      sortable=false) }}
         {{ data_table_th("Responses", sortable=false, hide='sm') }}
-        {{ data_table_th("Assigned",  sortable=false, hide='sm') }}
         {{ data_table_th("Created",   sortable=false, hide='md') }}
         {{ data_table_th("Actions",   sortable=false, align='right') }}
       </tr>
@@ -77,23 +138,32 @@
     <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
       {% for item in requests_data %}
       {% set req = item.request %}
-      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+      {% set needed = req.substitutes_needed or 1 %}
+      {% set complete = item.assigned >= needed %}
+      {% set rail = 'bg-amber-400 dark:bg-amber-500' if req.status == 'OPEN' else ('bg-green-500' if req.status == 'FILLED' else ('bg-red-400 dark:bg-red-500' if req.status == 'CANCELLED' else 'bg-gray-300 dark:bg-gray-600')) %}
+      <tr class="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
         <td class="px-3 py-3 align-top">
-          {% if req.match %}
-          <div class="font-semibold text-gray-900 dark:text-white">vs {{ req.match.opponent_name or 'TBD' }}</div>
-          <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">
-            {{ req.match.match_date.strftime('%b %d, %Y') if req.match.match_date else 'TBD' }}
-            {% if req.match.match_time %}at {{ req.match.match_time.strftime('%I:%M %p').lstrip('0') }}{% endif %}
+          <div class="flex gap-3">
+            <span class="mt-0.5 w-1 self-stretch rounded-full shrink-0 {{ rail }}" aria-hidden="true"></span>
+            <div class="min-w-0">
+              {% if req.match %}
+              <div class="font-semibold text-gray-900 dark:text-white truncate">vs {{ req.match.opponent_name or 'TBD' }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                {{ req.match.match_date.strftime('%b %d, %Y') if req.match.match_date else 'TBD' }}{% if req.match.match_time %} &middot; {{ req.match.match_time.strftime('%I:%M %p').lstrip('0') }}{% endif %}
+              </div>
+              {% if req.match.location %}<div class="text-xs text-gray-400 dark:text-gray-500 truncate"><i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i> {{ req.match.location }}</div>{% endif %}
+              {% else %}
+              <span class="text-gray-400 dark:text-gray-500">No match</span>
+              {% endif %}
+              {% if req.positions_needed %}<div class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"><span class="font-medium">Positions:</span> {{ req.positions_needed }}</div>{% endif %}
+              {% if req.notes %}<div class="mt-0.5 text-xs text-gray-400 dark:text-gray-500 line-clamp-2"><i class="ti ti-note text-[11px]" aria-hidden="true"></i> {{ req.notes }}</div>{% endif %}
+            </div>
           </div>
-          <div class="text-xs text-gray-400 dark:text-gray-500">{{ req.match.location or '' }}</div>
-          {% else %}
-          <span class="text-gray-400 dark:text-gray-500">No match</span>
-          {% endif %}
         </td>
-        <td class="px-3 py-3 align-top hidden md:table-cell">
+        <td class="px-3 py-3 align-top hidden lg:table-cell">
           <span class="font-medium text-gray-900 dark:text-white">{{ req.team.name if req.team else 'Unknown' }}</span>
         </td>
-        <td class="px-3 py-3 align-top hidden md:table-cell">
+        <td class="px-3 py-3 align-top">
           {% if req.status == 'OPEN' %}
           <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock text-[12px]" aria-hidden="true"></i>Open</span>
           {% elif req.status == 'FILLED' %}
@@ -104,38 +174,33 @@
           <span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ req.status }}</span>
           {% endif %}
         </td>
-        <td class="px-3 py-3 align-top hidden md:table-cell">
-          <span class="font-mono font-medium text-gray-900 dark:text-white">{{ req.substitutes_needed or 1 }}</span>
-          {% if req.positions_needed %}
-          <div class="text-xs text-gray-500 dark:text-gray-400">{{ req.positions_needed }}</div>
-          {% endif %}
+        <td class="px-3 py-3 align-top">
+          <div class="font-mono text-sm font-semibold {% if complete %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">
+            {{ item.assigned }}<span class="text-gray-400 dark:text-gray-500">/{{ needed }}</span>
+          </div>
+          <div class="mt-1 h-1.5 w-20 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" role="presentation">
+            <div class="h-full rounded-full {% if complete %}bg-green-500{% else %}bg-ecs-green{% endif %}"
+                 style="width: {{ ((item.assigned / needed * 100) if needed else 0) | round | int }}%"></div>
+          </div>
         </td>
         <td class="px-3 py-3 align-top hidden md:table-cell">
           <div class="flex items-center gap-1.5 flex-wrap">
             {% if item.available > 0 %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check text-xs" aria-hidden="true"></i>{{ item.available }}</span>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300" title="Available"><i class="ti ti-check text-xs" aria-hidden="true"></i>{{ item.available }}</span>
             {% endif %}
             {% if item.unavailable > 0 %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"><i class="ti ti-x text-xs" aria-hidden="true"></i>{{ item.unavailable }}</span>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300" title="Unavailable"><i class="ti ti-x text-xs" aria-hidden="true"></i>{{ item.unavailable }}</span>
             {% endif %}
             {% if item.pending > 0 %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-clock text-xs" aria-hidden="true"></i>{{ item.pending }}</span>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300" title="Awaiting response"><i class="ti ti-clock text-xs" aria-hidden="true"></i>{{ item.pending }}</span>
             {% endif %}
             {% if item.total_contacted == 0 %}
             <span class="text-xs text-gray-400 dark:text-gray-500">No contacts</span>
             {% endif %}
           </div>
           {% if item.available > 0 and req.status == 'OPEN' %}
-          <button type="button" onclick="openAssignModal({{ req.id }})"
-                  class="mt-1.5 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-user-check" aria-hidden="true"></i>Assign
-          </button>
+          <div class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-user-check text-[11px]" aria-hidden="true"></i>{{ item.available }} ready to assign</div>
           {% endif %}
-        </td>
-        <td class="px-3 py-3 align-top hidden md:table-cell">
-          <span class="font-mono font-medium {% if item.assigned >= (req.substitutes_needed or 1) %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">
-            {{ item.assigned }} / {{ req.substitutes_needed or 1 }}
-          </span>
         </td>
         <td class="px-3 py-3 align-top hidden lg:table-cell">
           <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ req.created_at.strftime('%b %d, %Y') if req.created_at else '' }}</div>
@@ -143,14 +208,27 @@
         </td>
         <td class="px-3 py-3 align-top text-right">
           <div class="flex items-center justify-end gap-1.5 flex-wrap">
+            {% if item.available > 0 and req.status == 'OPEN' %}
+            <button type="button" onclick="openAssignModal({{ req.id }})"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-user-check" aria-hidden="true"></i>Assign
+            </button>
+            {% endif %}
             {% if req.match %}
+            <button type="button" data-contact-subs
+                    data-match-id="{{ req.match.id }}"
+                    data-match-label="{{ (req.team.name if req.team else 'ECS FC') ~ ' vs ' ~ (req.match.opponent_name or 'TBD') }}"
+                    title="Contact substitutes"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-ecs-green bg-ecs-green/10 hover:bg-ecs-green/20 dark:bg-ecs-green/15 dark:hover:bg-ecs-green/25 transition-colors">
+              <i class="ti ti-send" aria-hidden="true"></i>Contact
+            </button>
             <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=req.match.id) }}" title="View RSVP & manage subs"
                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:hover:bg-blue-500/25 transition-colors">
               <i class="ti ti-eye" aria-hidden="true"></i>View
             </a>
             {% endif %}
             {% if req.status in ('OPEN', 'FILLED') %}
-            <button type="button" onclick="openEditModal({{ req.id }}, {{ req.substitutes_needed or 1 }}, '{{ req.positions_needed|default('', true)|e }}', '{{ req.notes|default('', true)|e }}', '{{ req.status }}')"
+            <button type="button" onclick="openEditModal({{ req.id }}, {{ needed }}, '{{ req.positions_needed|default('', true)|e }}', '{{ req.notes|default('', true)|e }}', '{{ req.status }}')"
                     class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/25 transition-colors">
               <i class="ti ti-pencil" aria-hidden="true"></i>Edit
             </button>
@@ -170,11 +248,16 @@
     </tbody>
   </table>
 
-  {# mobile stacked cards #}
+  {# mobile stacked cards — leading status rail + fill meter mirror the desktop table #}
   <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
     {% for item in requests_data %}
     {% set req = item.request %}
-    <div class="px-4 py-3.5">
+    {% set needed = req.substitutes_needed or 1 %}
+    {% set complete = item.assigned >= needed %}
+    {% set rail = 'bg-amber-400 dark:bg-amber-500' if req.status == 'OPEN' else ('bg-green-500' if req.status == 'FILLED' else ('bg-red-400 dark:bg-red-500' if req.status == 'CANCELLED' else 'bg-gray-300 dark:bg-gray-600')) %}
+    <div class="px-4 py-3.5 flex gap-3">
+      <span class="w-1 self-stretch rounded-full shrink-0 {{ rail }}" aria-hidden="true"></span>
+      <div class="min-w-0 flex-1">
       <div class="flex items-start justify-between gap-2">
         <div class="min-w-0">
           {% if req.match %}
@@ -198,12 +281,37 @@
         <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ req.status }}</span>
         {% endif %}
       </div>
-      <div class="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
-        <span>Needed <span class="font-mono font-medium text-gray-900 dark:text-white">{{ req.substitutes_needed or 1 }}</span></span>
-        <span>Assigned <span class="font-mono font-medium {% if item.assigned >= (req.substitutes_needed or 1) %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ item.assigned }} / {{ req.substitutes_needed or 1 }}</span></span>
-        {% if item.available > 0 %}<span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400"><i class="ti ti-check" aria-hidden="true"></i>{{ item.available }}</span>{% endif %}
-        {% if item.pending > 0 %}<span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400"><i class="ti ti-clock" aria-hidden="true"></i>{{ item.pending }}</span>{% endif %}
+      {# Position tags + "ready to assign" badge — sourced from req.positions_needed and item.available #}
+      {% if req.positions_needed or (item.available > 0 and req.status == 'OPEN') %}
+      <div class="mt-2 flex flex-wrap items-center gap-1.5">
+        {% if req.positions_needed %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ req.positions_needed }}</span>
+        {% endif %}
+        {% if item.available > 0 and req.status == 'OPEN' %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-user-check text-[11px]" aria-hidden="true"></i>{{ item.available }} ready to assign</span>
+        {% endif %}
       </div>
+      {% endif %}
+      <div class="mt-2 flex items-center gap-3 flex-wrap">
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-xs font-semibold {% if complete %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ item.assigned }}<span class="text-gray-400 dark:text-gray-500">/{{ needed }}</span></span>
+          <div class="h-1.5 w-16 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+            <div class="h-full rounded-full {% if complete %}bg-green-500{% else %}bg-ecs-green{% endif %}" style="width: {{ ((item.assigned / needed * 100) if needed else 0) | round | int }}%"></div>
+          </div>
+        </div>
+      </div>
+      {# 3-up response grid: Available / Pending / Unavailable — mirrors the mock request card #}
+      {% if item.total_contacted > 0 %}
+      <div class="mt-2 grid grid-cols-3 gap-1.5">
+        <div class="rounded-lg bg-green-100 dark:bg-green-500/15 px-2 py-1.5 text-center"><span class="block font-mono text-base font-bold text-green-700 dark:text-green-300">{{ item.available }}</span><span class="block text-[10px] uppercase tracking-wide text-green-600/80 dark:text-green-400/80">Available</span></div>
+        <div class="rounded-lg bg-amber-100 dark:bg-amber-500/15 px-2 py-1.5 text-center"><span class="block font-mono text-base font-bold text-amber-700 dark:text-amber-300">{{ item.pending }}</span><span class="block text-[10px] uppercase tracking-wide text-amber-600/80 dark:text-amber-400/80">Pending</span></div>
+        <div class="rounded-lg bg-red-100 dark:bg-red-500/15 px-2 py-1.5 text-center"><span class="block font-mono text-base font-bold text-red-700 dark:text-red-300">{{ item.unavailable }}</span><span class="block text-[10px] uppercase tracking-wide text-red-600/80 dark:text-red-400/80">Unavail.</span></div>
+      </div>
+      {% endif %}
+      {# Inline notes — surfaces req.notes coaches add when opening the request #}
+      {% if req.notes %}
+      <div class="mt-2 text-xs text-gray-500 dark:text-gray-400"><span class="text-[11px] font-medium uppercase tracking-wide">Notes</span><p class="mt-0.5 whitespace-pre-line">{{ req.notes }}</p></div>
+      {% endif %}
       <div class="mt-3 flex items-center gap-1.5 flex-wrap">
         {% if item.available > 0 and req.status == 'OPEN' %}
         <button type="button" onclick="openAssignModal({{ req.id }})"
@@ -212,6 +320,12 @@
         </button>
         {% endif %}
         {% if req.match %}
+        <button type="button" data-contact-subs
+                data-match-id="{{ req.match.id }}"
+                data-match-label="{{ (req.team.name if req.team else 'ECS FC') ~ ' vs ' ~ (req.match.opponent_name or 'TBD') }}"
+                class="inline-flex items-center gap-1 min-h-[44px] px-3 text-xs font-medium rounded-lg text-ecs-green bg-ecs-green/10 hover:bg-ecs-green/20 dark:bg-ecs-green/15 dark:hover:bg-ecs-green/25 transition-colors">
+          <i class="ti ti-send" aria-hidden="true"></i>Contact
+        </button>
         <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=req.match.id) }}"
            class="inline-flex items-center gap-1 min-h-[44px] px-3 text-xs font-medium rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:hover:bg-blue-500/25 transition-colors">
           <i class="ti ti-eye" aria-hidden="true"></i>View
@@ -232,6 +346,7 @@
         </form>
         {% endif %}
       </div>
+      </div>
     </div>
     {% endfor %}
   </div>
@@ -239,6 +354,346 @@
 {% else %}
 {{ empty_state("ti-clipboard-off", "No substitute requests found", "Requests are created from the match RSVP status page when a team needs subs") }}
 {% endif %}
+</div>{# /left column #}
+
+{# RIGHT: ECS FC Sub Pool panel — active pool members (reuses EcsFcSubPool data source) #}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col overflow-hidden">
+  <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+    <i class="ti ti-user-check text-blue-500" aria-hidden="true"></i>
+    <h2 class="font-semibold text-gray-900 dark:text-white">ECS FC Sub Pool</h2>
+    <span class="ml-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ pool_members | length }}</span>
+  </div>
+  {% if pool_members %}
+  <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+    <label for="poolSearch" class="sr-only">Search sub pool</label>
+    <div class="relative">
+      <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
+      <input id="poolSearch" type="text" placeholder="Search subs by name or position…"
+             class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    </div>
+  </div>
+  <ul class="divide-y divide-gray-200 dark:divide-gray-700 max-h-[28rem] overflow-y-auto" data-pool-list>
+    {% for m in pool_members %}
+    {% set initials = (m.name.split()|map('first')|join)[:2]|upper if m.name else '?' %}
+    <li class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        data-pool-member data-pool-search="{{ (m.name ~ ' ' ~ m.positions)|lower }}">
+      <span class="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-xs font-mono font-bold text-gray-500 dark:text-gray-300">{{ initials }}</span>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ m.name }}<span class="ml-1.5 text-[10px] font-mono text-gray-400 dark:text-gray-500" title="Player ID (for Contact Subs · Specific)">#{{ m.player_id }}</span></p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+          {% if m.positions %}{{ m.positions }}{% else %}No position set{% endif %}
+          {% if m.last_responded_at %} &middot; <span class="font-mono">{{ m.last_responded_at.strftime('%b %d') }}</span>{% endif %}
+        </p>
+      </div>
+      {% if m.availability == 'available' %}
+      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i>Available</span>
+      {% elif m.availability == 'unavailable' %}
+      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i>Unavailable</span>
+      {% else %}
+      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i>Pending</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="px-4 py-8 text-center">
+    <i class="ti ti-users-off text-3xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No active subs in the ECS FC pool yet</p>
+  </div>
+  {% endif %}
+  <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 mt-auto">
+    <a href="{{ url_for('admin_panel.substitute_pools', context='ecs-fc') }}"
+       class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+      <i class="ti ti-users" aria-hidden="true"></i>Manage sub pool
+    </a>
+  </div>
+</section>
+</div>{# /board grid #}
+
+{# ===== Upcoming ECS FC Matches: real EcsFcMatch rows with open-request counts ===== #}
+{% if upcoming_matches %}
+{% set ns = namespace(last_date=None) %}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-5 sm:mb-6">
+  <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+    <i class="ti ti-calendar text-gray-400" aria-hidden="true"></i>
+    <h2 class="font-semibold text-gray-900 dark:text-white">Upcoming ECS FC Matches</h2>
+    <span class="ml-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ upcoming_matches | length }}</span>
+    <div class="ml-auto">
+      <label for="subMatchFilter" class="sr-only">Filter matches</label>
+      <input id="subMatchFilter" type="text" placeholder="Filter matches…"
+             class="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-900 dark:text-white w-40 sm:w-56 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    </div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm text-left">
+      <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
+        <tr>
+          <th class="px-3 py-2.5 font-semibold">Date</th>
+          <th class="px-3 py-2.5 font-semibold hidden md:table-cell">Team</th>
+          <th class="px-3 py-2.5 font-semibold">Match</th>
+          <th class="px-3 py-2.5 font-semibold hidden lg:table-cell">Sub Requests</th>
+          <th class="px-3 py-2.5 font-semibold text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700" data-match-rows>
+        {% for um in upcoming_matches %}
+        {% set m = um.match %}
+        {% set req = um.request %}
+        {% if m.match_date != ns.last_date %}
+        {% set ns.last_date = m.match_date %}
+        <tr class="bg-gray-50 dark:bg-gray-900/40"><td colspan="5" class="px-3 py-1.5"><span class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide font-mono text-ecs-green"><i class="ti ti-calendar-event text-[12px]" aria-hidden="true"></i>{{ m.match_date.strftime('%A, %b %d') }}</span></td></tr>
+        {% endif %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            data-match-search="{{ (m.team.name ~ ' ' ~ m.opponent_name)|lower }}">
+          <td class="px-3 py-3 align-top">
+            <span class="block text-[10px] font-medium uppercase tracking-wide text-ecs-green">{{ m.match_date.strftime('%a') }}</span>
+            <span class="font-mono text-gray-900 dark:text-white">{{ m.match_date.strftime('%m/%d') }}</span><br>
+            <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ m.match_time.strftime('%I:%M %p').lstrip('0') if m.match_time else '' }}</span>
+          </td>
+          <td class="px-3 py-3 align-top hidden md:table-cell"><span class="font-medium text-gray-900 dark:text-white">{{ m.team.name if m.team else 'Unknown' }}</span></td>
+          <td class="px-3 py-3 align-top">
+            <span class="flex items-center gap-1.5"><span class="w-5 h-5 inline-flex items-center justify-center rounded font-mono text-[10px] font-bold bg-ecs-green/15 text-ecs-green">FC</span><span class="font-medium text-gray-900 dark:text-white">{{ m.team.name if m.team else 'ECS FC' }}</span></span>
+            <span class="flex items-center gap-1.5 mt-1"><span class="w-5 h-5 inline-flex items-center justify-center rounded font-mono text-[10px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">vs</span><span class="font-medium text-gray-700 dark:text-gray-300">{{ m.opponent_name or 'TBD' }}</span></span>
+          </td>
+          <td class="px-3 py-3 align-top hidden lg:table-cell">
+            {% if req %}
+              {% if req.status == 'FILLED' or req.assigned >= req.needed %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">Filled: <span class="font-mono ml-1">{{ req.assigned }}/{{ req.needed }}</span></span>
+              {% else %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">Open: <span class="font-mono ml-1">{{ req.assigned }}/{{ req.needed }}</span></span>
+              {% endif %}
+            {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">No requests</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 align-top text-right">
+            {# Manage subs / RSVP for this match — where the real Contact & Assign flow lives #}
+            <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=m.id) }}"
+               class="inline-flex items-center gap-1 min-h-[36px] px-3 rounded-lg border border-ecs-green text-ecs-green text-sm font-medium hover:bg-ecs-green hover:text-white whitespace-nowrap transition-colors">
+              <i class="ti ti-users" aria-hidden="true"></i>Manage Subs
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{# Live filters for the pool panel + upcoming matches table (client-side only, no fetch). #}
+<script>
+(function () {
+  var ps = document.getElementById('poolSearch');
+  if (ps) ps.addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase();
+    document.querySelectorAll('[data-pool-member]').forEach(function (li) {
+      li.classList.toggle('hidden', q && li.getAttribute('data-pool-search').indexOf(q) === -1);
+    });
+  });
+  var mf = document.getElementById('subMatchFilter');
+  if (mf) mf.addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase();
+    document.querySelectorAll('[data-match-rows] tr[data-match-search]').forEach(function (tr) {
+      tr.classList.toggle('hidden', q && tr.getAttribute('data-match-search').indexOf(q) === -1);
+    });
+  });
+})();
+</script>
+
+{# ===== Contact Substitutes modal — board-level contact flow ===== #}
+{# Posts to admin_panel.ecs_fc_contact_subs, which reuses the same notification
+   helper (_send_sub_request_notification) the per-match create flow uses. #}
+<div id="contactSubsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 p-4">
+  <div class="w-full max-w-2xl rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+      <i class="ti ti-send text-ecs-green" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Contact Substitutes</h2>
+      <button type="button" data-contact-close aria-label="Close" class="ml-auto h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-x text-xl"></i></button>
+    </div>
+    <div class="p-4 space-y-4">
+      <div>
+        <label for="contactMatchSelect" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Match</label>
+        <select id="contactMatchSelect" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="">Select a match…</option>
+          {% for um in upcoming_matches %}
+          {% set m = um.match %}
+          <option value="{{ m.id }}">{{ (m.team.name if m.team else 'ECS FC') }} vs {{ m.opponent_name or 'TBD' }}{% if m.match_date %} · {{ m.match_date.strftime('%a %m/%d') }}{% endif %}{% if m.match_time %} {{ m.match_time.strftime('%I:%M %p').lstrip('0') }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <p class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Who do you want to contact?</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="contactRecipientGroup">
+          <label class="flex items-center justify-center px-3 py-2.5 rounded-lg border-2 border-ecs-green bg-ecs-green/10 text-gray-900 dark:text-white text-sm font-medium cursor-pointer"><input type="radio" name="contact_recipient_type" value="all" checked class="sr-only">All Subs</label>
+          <label class="flex items-center justify-center px-3 py-2.5 rounded-lg border-2 border-transparent bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium cursor-pointer"><input type="radio" name="contact_recipient_type" value="gender" class="sr-only">By Gender</label>
+          <label class="flex items-center justify-center px-3 py-2.5 rounded-lg border-2 border-transparent bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium cursor-pointer"><input type="radio" name="contact_recipient_type" value="position" class="sr-only">By Position</label>
+          <label class="flex items-center justify-center px-3 py-2.5 rounded-lg border-2 border-transparent bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium cursor-pointer"><input type="radio" name="contact_recipient_type" value="specific" class="sr-only">Specific</label>
+        </div>
+      </div>
+      <div id="contactGenderWrap" class="hidden">
+        <label for="contactGender" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Gender</label>
+        <select id="contactGender" class="w-full sm:w-48 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="male">Men</option>
+          <option value="female">Women</option>
+        </select>
+      </div>
+      <div id="contactPositionWrap" class="hidden">
+        <label for="contactPositions" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Positions (comma-separated)</label>
+        <input id="contactPositions" type="text" placeholder="e.g. GK, DEF, MID" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+      </div>
+      <div id="contactSpecificWrap" class="hidden">
+        <label for="contactPlayerIds" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Player IDs (comma-separated)</label>
+        <input id="contactPlayerIds" type="text" placeholder="e.g. 102, 233" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Player IDs are shown in the sub pool on this page.</p>
+      </div>
+      <div>
+        <label for="contactSubsNeeded" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">How many subs do you need?</label>
+        <div class="flex items-center gap-2">
+          <input id="contactSubsNeeded" type="number" min="1" max="10" value="1" class="w-20 text-center rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <span class="text-sm text-gray-500 dark:text-gray-400">sub(s)</span>
+        </div>
+      </div>
+      <div>
+        <p class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Notification Channels</p>
+        <div class="flex flex-wrap gap-4 text-sm text-gray-700 dark:text-gray-300">
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="email" checked class="contact-channel w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green"><i class="ti ti-mail" aria-hidden="true"></i>Email</label>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="sms" class="contact-channel w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green"><i class="ti ti-device-mobile" aria-hidden="true"></i>SMS</label>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="discord" checked class="contact-channel w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green"><i class="ti ti-brand-discord" aria-hidden="true"></i>Discord</label>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="push" class="contact-channel w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green"><i class="ti ti-bell" aria-hidden="true"></i>Push</label>
+        </div>
+        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">SMS only reaches subs who verified a phone and opted in.</p>
+      </div>
+      <div>
+        <label for="contactMessage" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Message (optional)</label>
+        <textarea id="contactMessage" rows="3" placeholder="Add a personal message…" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
+      </div>
+      <div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-sm text-blue-700 dark:text-blue-300"><i class="ti ti-users mr-1" aria-hidden="true"></i>This contacts matching subs in the ECS FC pool and opens a new sub request for the selected match.</div>
+      <p id="contactError" class="hidden text-sm text-red-600 dark:text-red-400"></p>
+      <div class="flex justify-end gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+        <button type="button" data-contact-close class="h-9 px-3 inline-flex items-center rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancel</button>
+        <button type="button" id="contactSendBtn" class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-send" aria-hidden="true"></i>Send Request</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var modal = document.getElementById('contactSubsModal');
+  if (!modal) return;
+  var contactUrl = "{{ url_for('admin_panel.ecs_fc_contact_subs') }}";
+  var matchSelect = document.getElementById('contactMatchSelect');
+  var errEl = document.getElementById('contactError');
+  var sendBtn = document.getElementById('contactSendBtn');
+
+  function show() { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+  function hide() { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+  function setErr(msg) {
+    if (!errEl) return;
+    if (msg) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+    else { errEl.textContent = ''; errEl.classList.add('hidden'); }
+  }
+
+  // Recipient-type radios: visually highlight + toggle conditional inputs.
+  function syncRecipientUI() {
+    var checked = modal.querySelector('input[name="contact_recipient_type"]:checked');
+    var val = checked ? checked.value : 'all';
+    modal.querySelectorAll('#contactRecipientGroup label').forEach(function (lbl) {
+      var input = lbl.querySelector('input');
+      var on = input && input.checked;
+      lbl.className = 'flex items-center justify-center px-3 py-2.5 rounded-lg border-2 text-sm font-medium cursor-pointer '
+        + (on ? 'border-ecs-green bg-ecs-green/10 text-gray-900 dark:text-white'
+              : 'border-transparent bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300');
+    });
+    document.getElementById('contactGenderWrap').classList.toggle('hidden', val !== 'gender');
+    document.getElementById('contactPositionWrap').classList.toggle('hidden', val !== 'position');
+    document.getElementById('contactSpecificWrap').classList.toggle('hidden', val !== 'specific');
+  }
+  modal.querySelectorAll('input[name="contact_recipient_type"]').forEach(function (r) {
+    r.addEventListener('change', syncRecipientUI);
+  });
+
+  // Open from header button (no preset match) or per-request button (preset match).
+  document.querySelectorAll('[data-contact-subs]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setErr('');
+      var mid = btn.getAttribute('data-match-id');
+      if (mid && matchSelect) { matchSelect.value = mid; }
+      syncRecipientUI();
+      show();
+    });
+  });
+
+  modal.querySelectorAll('[data-contact-close]').forEach(function (b) {
+    b.addEventListener('click', hide);
+  });
+  modal.addEventListener('click', function (e) { if (e.target === modal) hide(); });
+
+  function parseIds(str) {
+    return (str || '').split(',').map(function (s) { return parseInt(s.trim(), 10); })
+      .filter(function (n) { return !isNaN(n); });
+  }
+  function parsePositions(str) {
+    return (str || '').split(',').map(function (s) { return s.trim().toUpperCase(); })
+      .filter(function (s) { return s.length; });
+  }
+
+  if (sendBtn) sendBtn.addEventListener('click', function () {
+    setErr('');
+    var matchId = matchSelect ? matchSelect.value : '';
+    if (!matchId) { setErr('Select a match first.'); return; }
+
+    var channels = [];
+    modal.querySelectorAll('.contact-channel:checked').forEach(function (c) { channels.push(c.value); });
+    if (!channels.length) { setErr('Select at least one notification channel.'); return; }
+
+    var checked = modal.querySelector('input[name="contact_recipient_type"]:checked');
+    var recipientType = checked ? checked.value : 'all';
+
+    var payload = {
+      match_id: parseInt(matchId, 10),
+      recipient_type: recipientType,
+      channels: channels,
+      subs_needed: parseInt(document.getElementById('contactSubsNeeded').value, 10) || 1,
+      message: document.getElementById('contactMessage').value || ''
+    };
+    if (recipientType === 'gender') payload.gender = document.getElementById('contactGender').value;
+    if (recipientType === 'position') payload.positions = parsePositions(document.getElementById('contactPositions').value);
+    if (recipientType === 'specific') payload.player_ids = parseIds(document.getElementById('contactPlayerIds').value);
+
+    var csrf = document.querySelector('meta[name=csrf-token]');
+    var headers = {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'};
+    if (csrf) headers['X-CSRFToken'] = csrf.content;
+
+    var orig = sendBtn.innerHTML;
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i>Sending…';
+
+    fetch(contactUrl, {method: 'POST', headers: headers, body: JSON.stringify(payload), credentials: 'same-origin'})
+      .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, body: j}; }); })
+      .then(function (res) {
+        if (!res.ok || !res.body || !res.body.success) {
+          setErr((res.body && res.body.message) ? res.body.message : 'Failed to contact subs.');
+          return;
+        }
+        hide();
+        if (window.Swal) {
+          var isDark = document.documentElement.classList.contains('dark');
+          window.Swal.fire({icon: 'success', title: 'Request sent', text: res.body.message,
+            background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'})
+            .then(function () { location.reload(); });
+        } else {
+          location.reload();
+        }
+      })
+      .catch(function () { setErr('Network error while contacting subs.'); })
+      .finally(function () { sendBtn.disabled = false; sendBtn.innerHTML = orig; });
+  });
+
+  syncRecipientUI();
+})();
+</script>
 
 {% else %}
 {# =========================== CLASSIC (unchanged) =========================== #}

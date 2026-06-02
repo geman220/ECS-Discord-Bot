@@ -28,17 +28,25 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{# REAL DATA from route scheduled_messages_queue(): pending_messages (list of
+   ScheduledMessage, status='PENDING', ordered scheduled_send_time asc),
+   pending_count, next_message, now. No queue_stats / priority / *_pst exist —
+   derive every figure from these vars; never fabricate. #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+{# Real, derived counts (no fabricated stats). #}
+{% set ns = namespace(matchday=0, ecsfc=0, overdue=0, today=0) %}
+{% for m in (pending_messages or []) %}
+  {% if not m.message_type or m.message_type == 'standard' %}{% set ns.matchday = ns.matchday + 1 %}
+  {% else %}{% set ns.ecsfc = ns.ecsfc + 1 %}{% endif %}
+  {% if m.scheduled_send_time and m.scheduled_send_time < now() %}{% set ns.overdue = ns.overdue + 1 %}{% endif %}
+  {% if m.scheduled_send_time and m.scheduled_send_time.date() == now().date() %}{% set ns.today = ns.today + 1 %}{% endif %}
+{% endfor %}
 <div class="space-y-6">
 
-  {% call page_header('Message Queue', subtitle='Scheduled Messages') %}
+  {% call page_header('Message Queue', subtitle='Communication / Scheduled Messages') %}
     <button type="button" onclick="location.reload()"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-refresh" aria-hidden="true"></i><span>Refresh</span>
-    </button>
-    <button type="button" data-action="pause-queue"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-800 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
-      <i class="ti ti-player-pause" aria-hidden="true"></i><span>Pause Queue</span>
     </button>
     <button type="button" data-action="process-queue"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
@@ -46,19 +54,20 @@
     </button>
   {% endcall %}
 
-  <!-- KPI band (real data) -->
+  <!-- KPI band (all figures derived from real pending_messages) -->
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    <div id="queue-total-card">{{ stat_card('ti-list-numbers', 'Total Queued', queue_stats.total if queue_stats else 0, tone='info') }}</div>
-    <div id="queue-processing-card">{{ stat_card('ti-loader', 'Processing', queue_stats.processing if queue_stats else 0, tone='primary') }}</div>
-    <div id="queue-waiting-card">{{ stat_card('ti-clock-pause', 'Waiting', queue_stats.waiting if queue_stats else 0, tone='warning') }}</div>
-    <div id="queue-completed-card">{{ stat_card('ti-check', 'Completed Today', queue_stats.completed_today if queue_stats else 0, tone='success') }}</div>
+    {{ stat_card('ti-list-numbers', 'Pending', pending_count or 0, sublabel='in queue', tone='info') }}
+    {{ stat_card('ti-clock-exclamation', 'Overdue', ns.overdue, sublabel='past send time', tone=('danger' if ns.overdue else 'neutral')) }}
+    {{ stat_card('ti-calendar-due', 'Due Today', ns.today, sublabel=now().strftime('%b %d'), tone=('warning' if ns.today else 'neutral')) }}
+    {{ stat_card('ti-trophy', 'ECS FC', ns.ecsfc, sublabel='non-standard', tone='gold') }}
   </div>
-  {# Hidden spans preserving the original JS id targets for live stat updates #}
+  {# Hidden spans preserving the original JS id targets. JS only reads/writes these
+     by id; populated from real derived figures so live updates have a real baseline. #}
   <div class="sr-only" aria-hidden="true">
-    <span id="queue-total">{{ queue_stats.total if queue_stats else 0 }}</span>
-    <span id="queue-processing">{{ queue_stats.processing if queue_stats else 0 }}</span>
-    <span id="queue-waiting">{{ queue_stats.waiting if queue_stats else 0 }}</span>
-    <span id="queue-completed">{{ queue_stats.completed_today if queue_stats else 0 }}</span>
+    <span id="queue-total">{{ pending_count or 0 }}</span>
+    <span id="queue-processing">0</span>
+    <span id="queue-waiting">{{ pending_count or 0 }}</span>
+    <span id="queue-completed">0</span>
   </div>
 
   <!-- Queue status indicator (mutated by JS via #queue-status-bar) -->
@@ -75,169 +84,208 @@
     </div>
   </div>
 
-  <!-- Queued messages table -->
-  {% call data_table('Queued Messages', icon='ti-list-numbers', count=(queued_messages|length if queued_messages else 0), search_placeholder='Filter messages…', search_id='admQueueFilter', filters=false) %}
-    <div class="flex flex-wrap items-center justify-end gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-      <select id="priorityFilter" class="input-ecs h-9 text-sm w-auto">
-        <option value="">All Priorities</option>
-        <option value="urgent">Urgent</option>
-        <option value="high">High</option>
-        <option value="normal">Normal</option>
-      </select>
-      <div class="relative">
-        <button id="bulkActionsBtn" data-dropdown-toggle="bulkMenu" disabled
-                class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-          <i class="ti ti-list" aria-hidden="true"></i><span>Bulk Actions</span><i class="ti ti-chevron-down" aria-hidden="true"></i>
-        </button>
-        <div id="bulkMenu" class="hidden z-10 w-44 bg-white rounded-lg shadow border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
-          <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
-            <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="bulk-send"><i class="ti ti-send mr-2" aria-hidden="true"></i>Send Selected</button></li>
-            <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="bulk-cancel"><i class="ti ti-ban mr-2" aria-hidden="true"></i>Cancel Selected</button></li>
-            <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 text-red-600 dark:text-red-400" data-action="bulk-delete"><i class="ti ti-trash mr-2" aria-hidden="true"></i>Delete Selected</button></li>
-          </ul>
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+    <!-- Primary object: the queue itself (feature card + real table) -->
+    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <!-- header bar -->
+      <div class="flex flex-wrap items-center gap-2 px-4 sm:px-5 h-auto sm:h-14 py-3 sm:py-0 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-bold uppercase tracking-wide text-sm text-gray-900 dark:text-white flex items-center gap-2 mr-auto">
+          <i class="ti ti-list-numbers text-ecs-green" aria-hidden="true"></i> Queued Messages
+          <span class="font-mono font-bold text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ pending_count or 0 }}</span>
+        </h2>
+        <select id="priorityFilter" class="h-9 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-2 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <option value="">All Types</option>
+          <option value="normal">Match Day</option>
+        </select>
+        <div class="relative">
+          <button id="bulkActionsBtn" data-dropdown-toggle="bulkMenu" disabled
+                  class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-list" aria-hidden="true"></i><span>Bulk Actions</span><i class="ti ti-chevron-down" aria-hidden="true"></i>
+          </button>
+          <div id="bulkMenu" class="hidden z-10 w-44 bg-white rounded-lg shadow border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+            <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+              <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="bulk-send"><i class="ti ti-send mr-2" aria-hidden="true"></i>Send Selected</button></li>
+              <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="bulk-cancel"><i class="ti ti-ban mr-2" aria-hidden="true"></i>Cancel Selected</button></li>
+              <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 text-red-600 dark:text-red-400" data-action="bulk-delete"><i class="ti ti-trash mr-2" aria-hidden="true"></i>Delete Selected</button></li>
+            </ul>
+          </div>
         </div>
       </div>
-    </div>
-    {% if queued_messages %}
-    <table class="hidden md:table w-full text-sm" id="queueTable">
-      <thead><tr>
-        <th scope="col" class="px-3 py-2.5">
-          <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" aria-label="Select all messages">
-        </th>
-        {{ data_table_th('Position', key='position', sortable=False) }}
-        {{ data_table_th('Message', key='message', sortable=False) }}
-        {{ data_table_th('Scheduled Send', key='scheduled', sortable=False, hide='sm') }}
-        {{ data_table_th('Priority', key='priority', sortable=False, hide='sm') }}
-        {{ data_table_th('Status', key='status', sortable=False, hide='sm') }}
-        {{ data_table_th('Actions', sortable=False, align='right') }}
-      </tr></thead>
-      <tbody>
-        {% for idx, message in queued_messages %}
-        <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 queue-row"
-            data-id="{{ message.id }}" data-priority="{{ message.priority or 'normal' }}">
-          <td class="px-3 py-3">
-            <input type="checkbox" class="row-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" data-id="{{ message.id }}" aria-label="Select message">
-          </td>
-          <td class="px-3 py-3">
-            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-mono font-bold text-sm">{{ idx + 1 }}</span>
-          </td>
-          <td class="px-3 py-3">
-            <div class="flex items-center gap-3">
-              <span class="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 {{ 'bg-ecs-green/10' if not message.message_type or message.message_type == 'standard' else 'bg-ecs-gold/10' }}">
-                <i class="ti {{ 'ti-soccer-field text-ecs-green' if not message.message_type or message.message_type == 'standard' else 'ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400' }}" aria-hidden="true"></i>
-              </span>
-              <div class="min-w-0">
+
+      {% if pending_messages %}
+      <!-- desktop table -->
+      <table class="hidden md:table w-full text-sm" id="queueTable">
+        <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+          <tr>
+            <th scope="col" class="px-3 py-2.5 text-left w-10">
+              <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" aria-label="Select all messages">
+            </th>
+            <th scope="col" class="px-3 py-2.5 text-left w-12">#</th>
+            <th scope="col" class="px-3 py-2.5 text-left">Message</th>
+            <th scope="col" class="px-3 py-2.5 text-left">Scheduled Send</th>
+            <th scope="col" class="px-3 py-2.5 text-left">Status</th>
+            <th scope="col" class="px-3 py-2.5 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for message in pending_messages %}
+          <tr class="border-b border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50 queue-row{{ ' bg-ecs-green/5 dark:bg-ecs-green/10' if loop.first }}"
+              data-id="{{ message.id }}" data-priority="normal">
+            <td class="px-3 py-3 align-top">
+              <input type="checkbox" class="row-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" data-id="{{ message.id }}" aria-label="Select message">
+            </td>
+            <td class="px-3 py-3 align-top">
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg font-mono font-bold text-sm {{ 'bg-ecs-green text-white' if loop.first else 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' }}">{{ loop.index }}</span>
+            </td>
+            <td class="px-3 py-3">
+              <div class="flex items-center gap-3">
+                <span class="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 {{ 'bg-ecs-green/10' if not message.message_type or message.message_type == 'standard' else 'bg-ecs-gold/10' }}">
+                  <i class="ti {{ 'ti-soccer-field text-ecs-green' if not message.message_type or message.message_type == 'standard' else 'ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400' }}" aria-hidden="true"></i>
+                </span>
+                <div class="min-w-0">
+                  {% if message.match %}
+                  <p class="font-semibold text-gray-900 dark:text-white truncate">{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">Match {{ message.match.date.strftime('%b %d') }} · ID {{ message.id }}</p>
+                  {% else %}
+                  <p class="font-semibold text-gray-900 dark:text-white truncate">{{ message.message_type or 'Scheduled Message' }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">ID {{ message.id }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td class="px-3 py-3">
+              {% if message.scheduled_send_time %}
+              <p class="text-gray-900 dark:text-white font-mono">{{ message.scheduled_send_time.strftime('%b %d, %Y') }}</p>
+              <p class="text-xs font-mono {{ 'text-red-600 dark:text-red-400' if message.scheduled_send_time < now() else 'text-gray-500 dark:text-gray-400' }}">{{ message.scheduled_send_time.strftime('%I:%M %p') }} UTC{{ ' · overdue' if message.scheduled_send_time < now() }}</p>
+              {% else %}
+              <p class="text-xs text-gray-400 dark:text-gray-500 font-mono">—</p>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3">
+              {% if message.status == 'PROCESSING' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300"><i class="ti ti-loader animate-spin" aria-hidden="true"></i>Processing</span>
+              {% elif message.status == 'PENDING' or message.status == 'QUEUED' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>Pending</span>
+              {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">{{ message.status }}</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3">
+              <div class="flex items-center justify-end gap-1">
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send now" data-action="send-now" data-id="{{ message.id }}"><i class="ti ti-send" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Up" aria-label="Move up" data-action="move-up" data-id="{{ message.id }}"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Down" aria-label="Move down" data-action="move-down" data-id="{{ message.id }}"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel" data-action="cancel-queued" data-id="{{ message.id }}"><i class="ti ti-x" aria-hidden="true"></i></button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- mobile stacked dense rows -->
+      <div class="md:hidden divide-y divide-gray-100 dark:divide-gray-700/60">
+        {% for message in pending_messages %}
+        <div class="px-4 py-3.5 queue-row{{ ' bg-ecs-green/5 dark:bg-ecs-green/10' if loop.first }}" data-id="{{ message.id }}" data-priority="normal">
+          <div class="flex items-start gap-3">
+            <input type="checkbox" class="row-checkbox mt-1 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" data-id="{{ message.id }}" aria-label="Select message">
+            <span class="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 {{ 'bg-ecs-green/10' if not message.message_type or message.message_type == 'standard' else 'bg-ecs-gold/10' }}">
+              <i class="ti {{ 'ti-soccer-field text-ecs-green' if not message.message_type or message.message_type == 'standard' else 'ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400' }}" aria-hidden="true"></i>
+            </span>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded font-mono font-bold text-xs shrink-0 {{ 'bg-ecs-green text-white' if loop.first else 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' }}">{{ loop.index }}</span>
                 {% if message.match %}
                 <p class="font-semibold text-gray-900 dark:text-white truncate">{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Match: {{ message.match.date.strftime('%b %d') }}</p>
                 {% else %}
                 <p class="font-semibold text-gray-900 dark:text-white truncate">{{ message.message_type or 'Scheduled Message' }}</p>
                 {% endif %}
               </div>
-            </div>
-          </td>
-          <td class="px-3 py-3 hidden md:table-cell">
-            <p class="text-gray-900 dark:text-white font-mono">{{ message.scheduled_send_time_pst.strftime('%b %d, %Y') }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ message.scheduled_send_time_pst.strftime('%I:%M %p') }} PST</p>
-          </td>
-          <td class="px-3 py-3 hidden md:table-cell">
-            {% if message.priority == 'urgent' %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Urgent</span>
-            {% elif message.priority == 'high' %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><i class="ti ti-arrow-up" aria-hidden="true"></i>High</span>
-            {% else %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Normal</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-3 hidden md:table-cell">
-            {% if message.status == 'QUEUED' %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>Queued</span>
-            {% elif message.status == 'PROCESSING' %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300"><i class="ti ti-loader animate-spin" aria-hidden="true"></i>Processing</span>
-            {% else %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">{{ message.status }}</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-3">
-            <div class="flex items-center justify-end gap-1">
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send now" data-action="send-now" data-id="{{ message.id }}"><i class="ti ti-send" aria-hidden="true"></i></button>
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Up" aria-label="Move up" data-action="move-up" data-id="{{ message.id }}"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Down" aria-label="Move down" data-action="move-down" data-id="{{ message.id }}"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel" data-action="cancel-queued" data-id="{{ message.id }}"><i class="ti ti-x" aria-hidden="true"></i></button>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    <!-- Mobile stacked cards -->
-    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-      {% for idx, message in queued_messages %}
-      <div class="px-4 py-3.5 queue-row" data-id="{{ message.id }}" data-priority="{{ message.priority or 'normal' }}">
-        <div class="flex items-start gap-3">
-          <input type="checkbox" class="row-checkbox mt-1 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" data-id="{{ message.id }}" aria-label="Select message">
-          <span class="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 {{ 'bg-ecs-green/10' if not message.message_type or message.message_type == 'standard' else 'bg-ecs-gold/10' }}">
-            <i class="ti {{ 'ti-soccer-field text-ecs-green' if not message.message_type or message.message_type == 'standard' else 'ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400' }}" aria-hidden="true"></i>
-          </span>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-mono font-bold text-xs shrink-0">{{ idx + 1 }}</span>
-              {% if message.match %}
-              <p class="font-semibold text-gray-900 dark:text-white truncate">{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}</p>
-              {% else %}
-              <p class="font-semibold text-gray-900 dark:text-white truncate">{{ message.message_type or 'Scheduled Message' }}</p>
+              {% if message.scheduled_send_time %}
+              <p class="mt-1 text-xs font-mono {{ 'text-red-600 dark:text-red-400' if message.scheduled_send_time < now() else 'text-gray-500 dark:text-gray-400' }}">{{ message.scheduled_send_time.strftime('%b %d, %Y %I:%M %p') }} UTC{{ ' · overdue' if message.scheduled_send_time < now() }}</p>
               {% endif %}
-            </div>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ message.scheduled_send_time_pst.strftime('%b %d, %Y %I:%M %p') }} PST</p>
-            <div class="mt-2 flex flex-wrap items-center gap-2">
-              {% if message.priority == 'urgent' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Urgent</span>
-              {% elif message.priority == 'high' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><i class="ti ti-arrow-up" aria-hidden="true"></i>High</span>
-              {% else %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Normal</span>
-              {% endif %}
-              {% if message.status == 'QUEUED' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>Queued</span>
-              {% elif message.status == 'PROCESSING' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300"><i class="ti ti-loader animate-spin" aria-hidden="true"></i>Processing</span>
-              {% else %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">{{ message.status }}</span>
-              {% endif %}
-            </div>
-            <div class="mt-2 flex items-center gap-1">
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send now" data-action="send-now" data-id="{{ message.id }}"><i class="ti ti-send" aria-hidden="true"></i></button>
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Up" aria-label="Move up" data-action="move-up" data-id="{{ message.id }}"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Down" aria-label="Move down" data-action="move-down" data-id="{{ message.id }}"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel" data-action="cancel-queued" data-id="{{ message.id }}"><i class="ti ti-x" aria-hidden="true"></i></button>
+              <div class="mt-2 flex flex-wrap items-center gap-2">
+                {% if message.status == 'PROCESSING' %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300"><i class="ti ti-loader animate-spin" aria-hidden="true"></i>Processing</span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>{{ message.status|capitalize }}</span>
+                {% endif %}
+                <span class="font-mono text-xs text-gray-400 dark:text-gray-500">ID {{ message.id }}</span>
+              </div>
+              <div class="mt-2 flex items-center gap-1">
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send now" data-action="send-now" data-id="{{ message.id }}"><i class="ti ti-send" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Up" aria-label="Move up" data-action="move-up" data-id="{{ message.id }}"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Down" aria-label="Move down" data-action="move-down" data-id="{{ message.id }}"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel" data-action="cancel-queued" data-id="{{ message.id }}"><i class="ti ti-x" aria-hidden="true"></i></button>
+              </div>
             </div>
           </div>
         </div>
+        {% endfor %}
       </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    {{ empty_state('ti-inbox', 'Queue Empty', 'No messages are currently queued for delivery.', action={'label': 'Schedule New Message', 'url': url_for('admin_panel.schedule_new_message'), 'icon': 'ti-plus'}) }}
-    {% endif %}
-  {% endcall %}
+      {% else %}
+      {{ empty_state('ti-inbox', 'Queue Empty', 'No messages are currently queued for delivery.', action={'label': 'Schedule New Message', 'url': url_for('admin_panel.schedule_new_message'), 'icon': 'ti-plus'}) }}
+      {% endif %}
+    </section>
 
-  <!-- Processing log -->
-  {% call section_card('Processing Log', icon='ti-terminal') %}
-    <div class="flex items-center justify-end px-4 sm:px-5 pt-3">
-      <button type="button" data-action="clear-log"
-              class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        <i class="ti ti-trash" aria-hidden="true"></i><span>Clear Log</span>
-      </button>
+    <!-- Right rail: Next up (real next_message) + processing log -->
+    <div class="space-y-6">
+
+      {% call section_card('Next To Send', icon='ti-clock-play') %}
+        <div class="p-4 sm:p-5">
+          {% if next_message %}
+          <div class="flex items-start gap-3">
+            <span class="flex items-center justify-center w-11 h-11 rounded-xl shrink-0 {{ 'bg-ecs-green/10' if not next_message.message_type or next_message.message_type == 'standard' else 'bg-ecs-gold/10' }}">
+              <i class="ti {{ 'ti-soccer-field text-ecs-green text-xl' if not next_message.message_type or next_message.message_type == 'standard' else 'ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400 text-xl' }}" aria-hidden="true"></i>
+            </span>
+            <div class="min-w-0">
+              {% if next_message.match %}
+              <p class="font-bold text-gray-900 dark:text-white truncate">{{ next_message.match.home_team.name }} vs {{ next_message.match.away_team.name }}</p>
+              {% else %}
+              <p class="font-bold text-gray-900 dark:text-white truncate">{{ next_message.message_type or 'Scheduled Message' }}</p>
+              {% endif %}
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">ID {{ next_message.id }}</p>
+            </div>
+          </div>
+          {% if next_message.scheduled_send_time %}
+          <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Scheduled Send</p>
+            <p class="mt-1 font-mono text-2xl font-bold {{ 'text-red-600 dark:text-red-400' if next_message.scheduled_send_time < now() else 'text-gray-900 dark:text-white' }}">{{ next_message.scheduled_send_time.strftime('%I:%M %p') }}</p>
+            <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ next_message.scheduled_send_time.strftime('%A, %b %d, %Y') }} UTC{{ ' · overdue' if next_message.scheduled_send_time < now() }}</p>
+          </div>
+          {% endif %}
+          <button type="button" data-action="send-now" data-id="{{ next_message.id }}"
+                  class="mt-4 w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-send" aria-hidden="true"></i><span>Send This Now</span>
+          </button>
+          {% else %}
+          <div class="text-center py-4">
+            <i class="ti ti-clock-off text-3xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Nothing waiting to send.</p>
+          </div>
+          {% endif %}
+        </div>
+      {% endcall %}
+
+      {% call section_card('Processing Log', icon='ti-terminal') %}
+        <div class="flex items-center justify-end px-4 sm:px-5 pt-3">
+          <button type="button" data-action="clear-log"
+                  class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-trash" aria-hidden="true"></i><span>Clear Log</span>
+          </button>
+        </div>
+        <div class="p-4 sm:p-5 pt-3">
+          <div id="processing-log" class="bg-gray-900 rounded-lg p-4 font-mono text-sm text-gray-300 max-h-64 overflow-y-auto">
+            <div class="log-entry text-gray-500">[{{ now().strftime('%H:%M:%S') }}] Queue manager initialized</div>
+            <div class="log-entry text-green-400">[{{ now().strftime('%H:%M:%S') }}] Queue status: Active</div>
+            <div class="log-entry text-cyan-400">[{{ now().strftime('%H:%M:%S') }}] {{ pending_count or 0 }} message(s) pending</div>
+          </div>
+        </div>
+      {% endcall %}
+
     </div>
-    <div class="p-4 sm:p-5 pt-3">
-      <div id="processing-log" class="bg-gray-900 rounded-lg p-4 font-mono text-sm text-gray-300 max-h-64 overflow-y-auto">
-        <div class="log-entry text-gray-500">[{{ now().strftime('%H:%M:%S') }}] Queue manager initialized</div>
-        <div class="log-entry text-green-400">[{{ now().strftime('%H:%M:%S') }}] Queue status: Active</div>
-        <div class="log-entry text-cyan-400">[{{ now().strftime('%H:%M:%S') }}] Waiting for scheduled messages...</div>
-      </div>
-    </div>
-  {% endcall %}
+  </div>
 
 </div>
 {% else %}
@@ -515,6 +563,12 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
+    function getCsrf() {
+        const m = document.querySelector('meta[name="csrf-token"]');
+        if (m) return m.getAttribute('content');
+        const i = document.querySelector('input[name="csrf_token"]');
+        return i ? i.value : '';
+    }
     const selectAll = document.getElementById('selectAll');
     const rowCheckboxes = document.querySelectorAll('.row-checkbox');
     const bulkActionsBtn = document.getElementById('bulkActionsBtn');
@@ -593,60 +647,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 addLogEntry('Processing queue manually...', 'processing');
                 Swal.fire({
                     title: 'Processing Queue',
-                    text: 'Sending queued messages...',
+                    text: 'Sending due messages...',
                     allowOutsideClick: false,
                     didOpen: () => Swal.showLoading(),
                     background: isDark ? '#1f2937' : '#ffffff',
                     color: isDark ? '#f3f4f6' : '#111827'
                 });
-                setTimeout(function() {
-                    addLogEntry('Queue processed successfully', 'success');
+                fetch('/admin-panel/communication/scheduled-messages/queue/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    addLogEntry(data.message || (data.success ? 'Queue processing started' : 'Queue processing failed'), data.success ? 'success' : 'error');
                     Swal.fire({
-                        icon: 'success',
-                        title: 'Queue Processed',
-                        text: 'All eligible messages have been sent.',
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Queue Processing Started' : 'Failed',
+                        text: data.message || '',
                         confirmButtonColor: '#1a472a',
                         background: isDark ? '#1f2937' : '#ffffff',
                         color: isDark ? '#f3f4f6' : '#111827'
-                    });
-                }, 2000);
-                break;
-
-            case 'pause-queue':
-                addLogEntry('Queue paused by administrator', 'warning');
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Queue Paused',
-                    text: 'Message processing has been paused.',
-                    confirmButtonColor: '#1a472a',
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827'
-                });
-                document.getElementById('queue-status-bar').innerHTML = `
-                    <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <i class="ti ti-player-pause text-yellow-500 text-xl"></i>
-                            </div>
-                            <div class="ml-3 flex-1">
-                                <p class="text-sm font-medium text-yellow-800 dark:text-yellow-300">Queue Paused</p>
-                                <p class="text-sm text-yellow-600 dark:text-yellow-400">Message processing is currently paused</p>
-                            </div>
-                            <div class="ml-3">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
-                                    Paused
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                    }).then(() => { if (data.success) location.reload(); });
+                })
+                .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Unable to process queue.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }));
                 break;
 
             case 'send-now':
-                addLogEntry(`Force sending message ID: ${id}`, 'processing');
                 Swal.fire({
                     title: 'Send Now?',
-                    text: 'This will immediately send this message.',
+                    text: 'This will immediately queue this message for delivery.',
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: 'Send Now',
@@ -654,25 +683,51 @@ document.addEventListener('DOMContentLoaded', function() {
                     background: isDark ? '#1f2937' : '#ffffff',
                     color: isDark ? '#f3f4f6' : '#111827'
                 }).then((result) => {
-                    if (result.isConfirmed) {
-                        addLogEntry(`Message ${id} sent successfully`, 'success');
+                    if (!result.isConfirmed) return;
+                    addLogEntry(`Force sending message ID: ${id}`, 'processing');
+                    fetch(`/admin-panel/communication/scheduled-messages/${id}/send-now`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() }
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        addLogEntry(data.message || (data.success ? `Message ${id} queued` : `Message ${id} failed`), data.success ? 'success' : 'error');
                         Swal.fire({
-                            icon: 'success',
-                            title: 'Message Sent',
-                            text: 'The message has been sent.',
-                            timer: 2000,
-                            showConfirmButton: false,
+                            icon: data.success ? 'success' : 'error',
+                            title: data.success ? 'Message Queued' : 'Failed',
+                            text: data.message || '',
+                            confirmButtonColor: '#1a472a',
                             background: isDark ? '#1f2937' : '#ffffff',
                             color: isDark ? '#f3f4f6' : '#111827'
-                        });
-                    }
+                        }).then(() => { if (data.success) location.reload(); });
+                    })
+                    .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Unable to send message.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }));
                 });
                 break;
 
             case 'move-up':
-            case 'move-down':
-                addLogEntry(`Reordering message ${id} in queue`, 'info');
+            case 'move-down': {
+                const direction = action === 'move-up' ? 'up' : 'down';
+                addLogEntry(`Reordering message ${id} (${direction})`, 'processing');
+                fetch('/admin-panel/communication/scheduled-messages/queue/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+                    body: JSON.stringify({ message_id: id, direction: direction })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.moved) {
+                        addLogEntry(data.message || `Message ${id} moved ${direction}`, 'success');
+                        location.reload();
+                    } else if (data.success) {
+                        addLogEntry(data.message || 'Message already at edge of queue', 'warning');
+                    } else {
+                        addLogEntry(data.message || `Failed to move message ${id}`, 'error');
+                    }
+                })
+                .catch(() => addLogEntry(`Unable to reorder message ${id}`, 'error'));
                 break;
+            }
 
             case 'cancel-queued':
                 Swal.fire({
@@ -685,49 +740,56 @@ document.addEventListener('DOMContentLoaded', function() {
                     background: isDark ? '#1f2937' : '#ffffff',
                     color: isDark ? '#f3f4f6' : '#111827'
                 }).then((result) => {
-                    if (result.isConfirmed) {
-                        addLogEntry(`Message ${id} cancelled`, 'warning');
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Message Cancelled',
-                            text: 'The message has been removed from the queue.',
-                            confirmButtonColor: '#1a472a',
-                            background: isDark ? '#1f2937' : '#ffffff',
-                            color: isDark ? '#f3f4f6' : '#111827'
-                        });
-                    }
+                    if (!result.isConfirmed) return;
+                    addLogEntry(`Cancelling message ${id}`, 'warning');
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/admin-panel/communication/scheduled-messages/cancel';
+                    form.innerHTML = `<input type="hidden" name="csrf_token" value="${getCsrf()}"><input type="hidden" name="message_id" value="${id}">`;
+                    document.body.appendChild(form);
+                    form.submit();
                 });
                 break;
 
             case 'bulk-send':
             case 'bulk-cancel':
             case 'bulk-delete':
+                bulkMenu.classList.add('hidden');
                 const checked = document.querySelectorAll('.row-checkbox:checked');
-                const count = checked.length;
-                const actionText = action === 'bulk-send' ? 'send' : action === 'bulk-cancel' ? 'cancel' : 'delete';
+                const ids = Array.from(checked).map(cb => cb.dataset.id);
+                const count = ids.length;
+                if (!count) return;
+                const apiAction = action === 'bulk-send' ? 'send' : action === 'bulk-cancel' ? 'cancel' : 'delete';
                 Swal.fire({
-                    title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} ${count} Messages?`,
-                    text: `This will ${actionText} all selected messages.`,
+                    title: `${apiAction.charAt(0).toUpperCase() + apiAction.slice(1)} ${count} Messages?`,
+                    text: `This will ${apiAction} all selected messages.`,
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonText: `Yes, ${actionText} all`,
+                    confirmButtonText: `Yes, ${apiAction} all`,
                     confirmButtonColor: action === 'bulk-delete' ? '#dc2626' : '#1a472a',
                     background: isDark ? '#1f2937' : '#ffffff',
                     color: isDark ? '#f3f4f6' : '#111827'
                 }).then((result) => {
-                    if (result.isConfirmed) {
-                        addLogEntry(`Bulk ${actionText} completed for ${count} messages`, 'success');
+                    if (!result.isConfirmed) return;
+                    fetch('/admin-panel/communication/scheduled-messages/queue/bulk', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+                        body: JSON.stringify({ action: apiAction, ids: ids })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        addLogEntry(data.message || (data.success ? `Bulk ${apiAction} complete` : `Bulk ${apiAction} failed`), data.success ? 'success' : 'error');
                         Swal.fire({
-                            icon: 'success',
-                            title: 'Done',
-                            text: `${count} messages have been ${actionText}ed.`,
+                            icon: data.success ? 'success' : 'error',
+                            title: data.success ? 'Done' : 'Failed',
+                            text: data.message || '',
                             confirmButtonColor: '#1a472a',
                             background: isDark ? '#1f2937' : '#ffffff',
                             color: isDark ? '#f3f4f6' : '#111827'
-                        });
-                    }
+                        }).then(() => { if (data.success) location.reload(); });
+                    })
+                    .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Unable to complete bulk action.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }));
                 });
-                bulkMenu.classList.add('hidden');
                 break;
 
             case 'clear-log':
@@ -735,12 +797,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
         }
     });
-
-    // Simulate queue activity
-    setInterval(function() {
-        const messages = ['Checking for scheduled messages...', 'Queue heartbeat', 'Connection healthy'];
-        addLogEntry(messages[Math.floor(Math.random() * messages.length)], 'info');
-    }, 30000);
 });
 </script>
 {% endblock %}

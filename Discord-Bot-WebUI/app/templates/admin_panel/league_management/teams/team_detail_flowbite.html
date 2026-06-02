@@ -28,7 +28,15 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state as kit_empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, data_table, data_table_th, data_table_row_card, empty_state as kit_empty_state %}
+
+{# ---- Real-data derivations (model: Team.discord_channel_id / discord_coach_role_id /
+       discord_player_role_id / is_active; Player.is_coach / discord_id / created_at) ---- #}
+{% set player_count = team.players|length if team.players else 0 %}
+{% set linked_count = (team.players | selectattr('discord_id') | list | length) if team.players else 0 %}
+{% set coach_count = (team.players | selectattr('is_coach') | list | length) if team.players else 0 %}
+{% set discord_parts = [team.discord_channel_id, team.discord_coach_role_id, team.discord_player_role_id] %}
+{% set discord_set = discord_parts | select | list | length %}
 
 {% call page_header(team.name, subtitle="League Management / Teams") %}
   <button type="button" data-action="rename-league-team" data-team-id="{{ team.id }}" data-team-name="{{ team.name }}"
@@ -37,126 +45,208 @@
   </button>
   <button type="button" data-action="sync-league-team-discord" data-team-id="{{ team.id }}"
           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-    <i class="ti ti-refresh" aria-hidden="true"></i>Sync Discord
+    <i class="ti ti-brand-discord" aria-hidden="true"></i>Sync Discord
   </button>
 {% endcall %}
 
 <div class="space-y-5 sm:space-y-6">
-  {# KPI band #}
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-    {{ stat_card("ti-users", "Players", team.players|length if team.players else 0, sublabel="on roster", tone="primary") }}
-    {{ stat_card("ti-trophy", "Division", (team.league.name if team.league else 'Unassigned'), tone="info") }}
-    {{ stat_card("ti-calendar", "Season", (team.league.season.name if team.league and team.league.season else 'N/A'), tone="neutral") }}
-    {% if team.discord_channel_id and team.discord_role_id and team.discord_captain_role_id %}
-      {{ stat_card("ti-brand-discord", "Discord", "Linked", sublabel="channel + roles", tone="success") }}
-    {% else %}
-      {{ stat_card("ti-brand-discord", "Discord", "Partial", sublabel="needs setup", tone="warning") }}
-    {% endif %}
-  </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
-    {# Discord Integration #}
-    {% call section_card("Discord Integration", icon="ti-brand-discord") %}
-    <div class="p-4 sm:p-5 space-y-4">
-      <div>
-        <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Channel</span>
-        {% if team.discord_channel_id %}
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-            <i class="ti ti-check" aria-hidden="true"></i>Connected
-          </span>
-          <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">{{ team.discord_channel_id }}</code>
-        </div>
-        {% else %}
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-          <i class="ti ti-x" aria-hidden="true"></i>Not Configured
-        </span>
-        {% endif %}
+  {# ============ PRIMARY OBJECT: team identity feature card ============ #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-5">
+      {# Crest monogram #}
+      <div class="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-ecs-green/10 dark:bg-ecs-green/15 border border-ecs-green/30 flex items-center justify-center">
+        <span class="font-mono text-2xl sm:text-3xl font-extrabold text-ecs-green leading-none">{{ team.name[0]|upper if team.name else 'T' }}</span>
       </div>
-      <div>
-        <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Role</span>
-        {% if team.discord_role_id %}
-        <div class="flex flex-wrap items-center gap-2">
+      <div class="min-w-0 flex-1">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          Team <span class="font-mono">#{{ team.id }}</span>
+        </p>
+        <h2 class="mt-0.5 text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ team.name }}</h2>
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          {% if team.is_active %}
           <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-            <i class="ti ti-check" aria-hidden="true"></i>Connected
+            <i class="ti ti-circle-check" aria-hidden="true"></i>Active
           </span>
-          <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">{{ team.discord_role_id }}</code>
-        </div>
-        {% else %}
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-          <i class="ti ti-x" aria-hidden="true"></i>Not Configured
-        </span>
-        {% endif %}
-      </div>
-      <div>
-        <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Captain Role</span>
-        {% if team.discord_captain_role_id %}
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-            <i class="ti ti-check" aria-hidden="true"></i>Connected
+          {% else %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+            <i class="ti ti-circle-off" aria-hidden="true"></i>Inactive
           </span>
-          <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">{{ team.discord_captain_role_id }}</code>
+          {% endif %}
+          {% if team.league %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">
+            <i class="ti ti-trophy" aria-hidden="true"></i>{{ team.league.name }}
+          </span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
+            <i class="ti ti-trophy-off" aria-hidden="true"></i>Unassigned
+          </span>
+          {% endif %}
+          {% if team.league and team.league.season %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+            <i class="ti ti-calendar" aria-hidden="true"></i>{{ team.league.season.name }}
+          </span>
+          {% endif %}
         </div>
-        {% else %}
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-          <i class="ti ti-x" aria-hidden="true"></i>Not Configured
-        </span>
-        {% endif %}
       </div>
     </div>
-    {% endcall %}
+    {# KPI band as a divided footer — concept signature (mono figures + dividers) #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 border-t border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700">
+      <div class="px-4 py-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Roster</p>
+        <p class="mt-1 font-mono text-2xl font-bold text-ecs-green leading-none">{{ player_count }}</p>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">players</p>
+      </div>
+      <div class="px-4 py-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Coaches</p>
+        <p class="mt-1 font-mono text-2xl font-bold text-ecs-gold-500 dark:text-ecs-gold-400 leading-none">{{ coach_count }}</p>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">on staff</p>
+      </div>
+      <div class="px-4 py-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Discord</p>
+        <p class="mt-1 font-mono text-2xl font-bold leading-none {{ 'text-green-600 dark:text-green-400' if linked_count == player_count and player_count > 0 else 'text-gray-900 dark:text-white' }}">{{ linked_count }}<span class="text-base text-gray-400 dark:text-gray-500">/{{ player_count }}</span></p>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">linked</p>
+      </div>
+      <div class="px-4 py-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Wiring</p>
+        <p class="mt-1 font-mono text-2xl font-bold leading-none {{ 'text-green-600 dark:text-green-400' if discord_set == 3 else 'text-amber-600 dark:text-amber-400' }}">{{ discord_set }}<span class="text-base text-gray-400 dark:text-gray-500">/3</span></p>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">resources</p>
+      </div>
+    </div>
+  </section>
 
-    {# League Info #}
-    {% call section_card("League Info", icon="ti-trophy") %}
-    {% if team.league %}
-    <div class="p-4 sm:p-5 space-y-4">
-      <div>
-        <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Division</span>
-        <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ team.league.name }}</span>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
+
+    {# ============ Discord wiring — primary management surface (2/3 width) ============ #}
+    <div class="lg:col-span-2">
+      {% call section_card("Discord Wiring", icon="ti-brand-discord") %}
+      <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        {# Channel #}
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-4 sm:px-5 py-3.5">
+          <div class="sm:w-40 shrink-0 flex items-center gap-2">
+            <i class="ti ti-hash text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+            <span class="text-sm font-semibold text-gray-900 dark:text-white">Channel</span>
+          </div>
+          <div class="flex-1 min-w-0 flex flex-wrap items-center gap-2">
+            {% if team.discord_channel_id %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+              <i class="ti ti-check" aria-hidden="true"></i>Connected
+            </span>
+            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">{{ team.discord_channel_id }}</code>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-x" aria-hidden="true"></i>Not configured
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        {# Coach role #}
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-4 sm:px-5 py-3.5">
+          <div class="sm:w-40 shrink-0 flex items-center gap-2">
+            <i class="ti ti-whistle text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+            <span class="text-sm font-semibold text-gray-900 dark:text-white">Coach Role</span>
+          </div>
+          <div class="flex-1 min-w-0 flex flex-wrap items-center gap-2">
+            {% if team.discord_coach_role_id %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+              <i class="ti ti-check" aria-hidden="true"></i>Connected
+            </span>
+            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">{{ team.discord_coach_role_id }}</code>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-x" aria-hidden="true"></i>Not configured
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        {# Player role #}
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-4 sm:px-5 py-3.5">
+          <div class="sm:w-40 shrink-0 flex items-center gap-2">
+            <i class="ti ti-users-group text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+            <span class="text-sm font-semibold text-gray-900 dark:text-white">Player Role</span>
+          </div>
+          <div class="flex-1 min-w-0 flex flex-wrap items-center gap-2">
+            {% if team.discord_player_role_id %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+              <i class="ti ti-check" aria-hidden="true"></i>Connected
+            </span>
+            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">{{ team.discord_player_role_id }}</code>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-x" aria-hidden="true"></i>Not configured
+            </span>
+            {% endif %}
+          </div>
+        </div>
       </div>
-      {% if team.league.season %}
-      <div>
-        <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Season</span>
-        <span class="text-sm text-gray-900 dark:text-white">{{ team.league.season.name }}</span>
+      {# Command footer — re-sync action #}
+      <div class="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          {% if discord_set == 3 %}All Discord resources provisioned.{% elif discord_set == 0 %}No Discord resources provisioned yet.{% else %}<span class="font-mono">{{ 3 - discord_set }}</span> of 3 resources missing.{% endif %}
+        </p>
+        <button type="button" data-action="sync-league-team-discord" data-team-id="{{ team.id }}"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-refresh" aria-hidden="true"></i>Sync Discord
+        </button>
       </div>
-      <div>
-        <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">League Type</span>
-        {% if team.league.season.league_type == 'ECS FC' %}
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-          <i class="ti ti-shirt-sport" aria-hidden="true"></i>ECS FC
-        </span>
-        {% else %}
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-500/15 dark:text-cyan-400">
-          <i class="ti ti-trophy" aria-hidden="true"></i>Pub League
-        </span>
+      {% endcall %}
+    </div>
+
+    {# ============ League context (1/3 width) ============ #}
+    <div class="lg:col-span-1">
+      {% call section_card("League Context", icon="ti-trophy") %}
+      {% if team.league %}
+      <div class="p-4 sm:p-5 space-y-4">
+        <div>
+          <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Division</span>
+          <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ team.league.name }}</span>
+        </div>
+        {% if team.league.season %}
+        <div>
+          <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Season</span>
+          <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ team.league.season.name }}</span>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">League Type</span>
+            {% if team.league.season.league_type == 'ECS FC' %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+              <i class="ti ti-shirt-sport" aria-hidden="true"></i>ECS FC
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-500/15 dark:text-cyan-400">
+              <i class="ti ti-trophy" aria-hidden="true"></i>Pub League
+            </span>
+            {% endif %}
+          </div>
+          <div class="text-right">
+            <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Status</span>
+            {% if team.league.season.is_current %}
+            <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">Current</span>
+            {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Past</span>
+            {% endif %}
+          </div>
+        </div>
         {% endif %}
       </div>
-      <div>
-        <span class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Season Status</span>
-        {% if team.league.season.is_current %}
-        <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">Current Season</span>
-        {% else %}
-        <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Past Season</span>
-        {% endif %}
-      </div>
+      {% else %}
+      {{ kit_empty_state("ti-trophy-off", "No league", "This team is not assigned to a league.") }}
       {% endif %}
+      {% endcall %}
     </div>
-    {% else %}
-    {{ kit_empty_state("ti-trophy-off", "No league", "This team is not assigned to a league.") }}
-    {% endif %}
-    {% endcall %}
   </div>
 
-  {# Team Roster #}
-  {% call data_table("Team Roster", icon="ti-users", count=(team.players|length if team.players else 0), search_placeholder="Filter players…", search_id="rosterFilter") %}
+  {# ============ Team Roster — real table, dense identity rows ============ #}
+  {% call data_table("Team Roster", icon="ti-users", count=player_count, search_placeholder="Filter players…", search_id="rosterFilter") %}
     {% if team.players %}
     <table class="hidden md:table w-full text-sm">
       <thead class="bg-gray-50 dark:bg-gray-700/50">
         <tr>
           {{ data_table_th("Player", key="player") }}
-          {{ data_table_th("Discord", key="discord", hide="sm") }}
           {{ data_table_th("Role", key="role") }}
-          {{ data_table_th("Joined", key="joined", hide="sm") }}
+          {{ data_table_th("Discord", key="discord", hide="sm") }}
+          {{ data_table_th("Joined", key="joined", align="right", hide="sm") }}
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700" data-modern-rows>
@@ -165,38 +255,33 @@
           <td class="px-3 py-3">
             <div class="flex items-center gap-3">
               {% if player.user and player.user.profile_picture_url %}
-              <img src="{{ player.user.profile_picture_url }}" alt="" class="w-8 h-8 rounded-full object-cover shrink-0">
+              <img src="{{ player.user.profile_picture_url }}" alt="" class="w-9 h-9 rounded-full object-cover shrink-0">
               {% else %}
-              <div class="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center shrink-0">
-                <i class="ti ti-user text-gray-500 dark:text-gray-300 text-sm" aria-hidden="true"></i>
+              <div class="w-9 h-9 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center shrink-0">
+                <span class="font-mono text-xs font-bold text-gray-500 dark:text-gray-300">{{ player.name[0]|upper if player.name else '?' }}</span>
               </div>
               {% endif %}
-              <div class="min-w-0">
-                <span class="font-medium text-gray-900 dark:text-white">{{ player.name }}</span>
-                {% if player.is_current_captain %}
-                <span class="ml-1 inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-ecs-gold-100 text-ecs-gold-700 dark:bg-ecs-gold-400/15 dark:text-ecs-gold-400">Captain</span>
-                {% endif %}
-              </div>
+              <span class="font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</span>
             </div>
           </td>
-          <td class="px-3 py-3 hidden md:table-cell">
-            {% if player.discord_id %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-              <i class="ti ti-check" aria-hidden="true"></i>Linked
-            </span>
-            {% else %}
-            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Not Linked</span>
-            {% endif %}
-          </td>
           <td class="px-3 py-3">
-            {% if player.is_current_captain %}
-            <span class="inline-flex items-center gap-1 text-ecs-gold-600 dark:text-ecs-gold-400"><i class="ti ti-crown" aria-hidden="true"></i>Captain</span>
+            {% if player.is_coach %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-ecs-gold-100 text-ecs-gold-700 dark:bg-ecs-gold-400/15 dark:text-ecs-gold-400"><i class="ti ti-whistle" aria-hidden="true"></i>Coach</span>
             {% else %}
             <span class="text-gray-500 dark:text-gray-400">Player</span>
             {% endif %}
           </td>
-          <td class="px-3 py-3 hidden md:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">
-            {% if player.created_at %}{{ player.created_at.strftime('%b %d, %Y') }}{% else %}<span class="text-gray-400">-</span>{% endif %}
+          <td class="px-3 py-3 hidden md:table-cell">
+            {% if player.discord_id %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+              <i class="ti ti-brand-discord" aria-hidden="true"></i>Linked
+            </span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Not linked</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell text-right font-mono text-xs text-gray-500 dark:text-gray-400">
+            {% if player.created_at %}{{ player.created_at.strftime('%b %d, %Y') }}{% else %}<span class="text-gray-400">&mdash;</span>{% endif %}
           </td>
         </tr>
         {% endfor %}
@@ -207,13 +292,13 @@
       {% for player in team.players %}
       {% call data_table_row_card(player.name) %}
         <div class="flex flex-wrap items-center gap-1.5">
-          {% if player.is_current_captain %}
-          <span class="inline-flex items-center gap-1 text-ecs-gold-600 dark:text-ecs-gold-400 font-medium"><i class="ti ti-crown" aria-hidden="true"></i>Captain</span>
+          {% if player.is_coach %}
+          <span class="inline-flex items-center gap-1 text-ecs-gold-600 dark:text-ecs-gold-400 font-medium"><i class="ti ti-whistle" aria-hidden="true"></i>Coach</span>
           {% else %}
           <span>Player</span>
           {% endif %}
           {% if player.discord_id %}
-          <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400"><i class="ti ti-check" aria-hidden="true"></i>Discord Linked</span>
+          <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400"><i class="ti ti-brand-discord" aria-hidden="true"></i>Discord linked</span>
           {% else %}
           <span class="text-gray-400">Discord not linked</span>
           {% endif %}

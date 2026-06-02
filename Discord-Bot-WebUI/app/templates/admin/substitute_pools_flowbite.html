@@ -115,7 +115,7 @@
                                         <i class="ti ti-check"></i>
                                     </button>
                                     <button type="button" class="view-details-btn p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                                            data-player-id="{{ player.id }}" title="View Details">
+                                            data-player-id="{{ player.id }}" data-detail-url="{{ url_for('players.player_profile', player_id=player.id) }}" title="View Details">
                                         <i class="ti ti-user"></i>
                                     </button>
                                 </div>
@@ -285,46 +285,24 @@
         </div>
     </div>
 
-    <!-- Quick Actions and Settings -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-            <h6 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                <i class="ti ti-users text-gray-500"></i>Quick Actions
-            </h6>
-            <div class="space-y-2">
-                <button type="button" id="bulkApproveBtn" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors">
-                    <i class="ti ti-check-circle mr-2"></i>Approve All Pending
-                </button>
-                <button type="button" id="exportPoolBtn" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 border border-cyan-200 dark:border-cyan-800 rounded-lg transition-colors">
-                    <i class="ti ti-download mr-2"></i>Export Pool Data
-                </button>
-                <button type="button" id="sendNotificationBtn" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 border border-yellow-200 dark:border-yellow-800 rounded-lg transition-colors">
-                    <i class="ti ti-bell mr-2"></i>Send Pool Notification
-                </button>
-            </div>
-        </div>
-        <div>
-            <h6 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                <i class="ti ti-settings text-gray-500"></i>Pool Settings
-            </h6>
-            <div class="space-y-4">
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Default Max Matches Per Week</label>
-                    <input type="number" id="defaultMaxMatches" min="1" max="10" value="3"
-                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                </div>
-                <label class="flex items-center">
-                    <input type="checkbox" id="autoApprovalSwitch" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Automatically approve players with required role</span>
-                </label>
-            </div>
+    <!-- Quick Actions -->
+    <div>
+        <h6 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <i class="ti ti-users text-gray-500"></i>Quick Actions
+        </h6>
+        <div class="space-y-2">
+            <button type="button" id="bulkApproveBtn" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors">
+                <i class="ti ti-check-circle mr-2"></i>Approve All Pending
+            </button>
+            <button type="button" id="exportPoolBtn" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 border border-cyan-200 dark:border-cyan-800 rounded-lg transition-colors">
+                <i class="ti ti-download mr-2"></i>Export Pool Data
+            </button>
         </div>
     </div>
 
     <!-- Custom Footer -->
     <div class="flex justify-end gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
         <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" data-modal-hide="leagueManagementModal">Close</button>
-        <button type="button" id="savePoolSettings" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green hover:bg-ecs-green-dark rounded-lg transition-colors">Save Settings</button>
     </div>
 {% endcall %}
 {% endblock %}
@@ -440,6 +418,104 @@ document.addEventListener('DOMContentLoaded', function() {
             const modal = FlowbiteInstances.getInstance('Modal', 'editPreferencesModal');
             if (modal) modal.show();
         });
+    });
+
+    // View details - navigate to the player's full profile
+    document.querySelectorAll('.view-details-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const url = this.dataset.detailUrl;
+            if (url) window.location.href = url;
+        });
+    });
+
+    // Track which league the management modal is operating on
+    let activeManageLeague = null;
+    document.querySelectorAll('[data-modal-toggle="leagueManagementModal"][data-league]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            activeManageLeague = this.dataset.league;
+            // Populate modal stats from the already-rendered page counts (real data)
+            const active = document.getElementById('active-count-' + activeManageLeague);
+            const pending = document.getElementById('pending-count-' + activeManageLeague);
+            document.getElementById('modalTotalActive').textContent = active ? active.textContent : '0';
+            document.getElementById('modalPendingApproval').textContent = pending ? pending.textContent : '0';
+
+            // Total requests / matches summed from the active player cards in this league
+            let totalReq = 0, totalMat = 0;
+            const zone = document.querySelector('.drop-zone[data-league="' + activeManageLeague + '"][data-status="active"]');
+            if (zone) {
+                zone.querySelectorAll('.player-item').forEach(item => {
+                    const bold = item.querySelectorAll('.font-bold');
+                    if (bold.length >= 2) {
+                        totalReq += parseInt(bold[0].textContent, 10) || 0;
+                        totalMat += parseInt(bold[1].textContent, 10) || 0;
+                    }
+                });
+            }
+            document.getElementById('modalTotalRequests').textContent = totalReq;
+            document.getElementById('modalMatchesPlayed').textContent = totalMat;
+        });
+    });
+
+    // Bulk approve all pending players for the active league (uses add-player endpoint)
+    document.getElementById('bulkApproveBtn')?.addEventListener('click', function() {
+        if (!activeManageLeague) return;
+        const zone = document.querySelector('.drop-zone[data-league="' + activeManageLeague + '"][data-status="pending"]');
+        const ids = zone ? Array.from(zone.querySelectorAll('.player-item')).map(i => i.dataset.playerId) : [];
+        if (!ids.length) {
+            Swal.fire({ icon: 'info', title: 'Nothing to approve', text: 'There are no pending players in this pool.',
+                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            return;
+        }
+        Swal.fire({
+            title: 'Approve all pending?',
+            text: `Add ${ids.length} pending player(s) to the active ${activeManageLeague} pool?`,
+            icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, approve all', confirmButtonColor: '#22c55e',
+            background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            const league = activeManageLeague;
+            const url = `/admin/substitute-pools/${encodeURIComponent(league)}/add-player`;
+            Promise.all(ids.map(id => fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ player_id: id })
+            }).then(r => r.json()).catch(() => ({ success: false })))).then(results => {
+                const ok = results.filter(r => r && r.success).length;
+                Swal.fire({
+                    icon: ok ? 'success' : 'error',
+                    title: ok ? 'Approved' : 'Failed',
+                    text: `${ok} of ${ids.length} player(s) approved.`,
+                    background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => location.reload());
+            });
+        });
+    });
+
+    // Export active pool data for the active league as CSV (from rendered data)
+    document.getElementById('exportPoolBtn')?.addEventListener('click', function() {
+        if (!activeManageLeague) return;
+        const zone = document.querySelector('.drop-zone[data-league="' + activeManageLeague + '"][data-status="active"]');
+        const rows = [['Name', 'Email', 'Requests', 'Matches', 'AcceptanceRate']];
+        if (zone) {
+            zone.querySelectorAll('.player-item').forEach(item => {
+                const name = item.querySelector('h6')?.textContent.trim() || '';
+                const email = item.querySelector('p')?.textContent.trim() || '';
+                const bold = item.querySelectorAll('.font-bold');
+                const req = bold[0] ? bold[0].textContent.trim() : '';
+                const mat = bold[1] ? bold[1].textContent.trim() : '';
+                const rate = bold[2] ? bold[2].textContent.trim() : '';
+                rows.push([name, email, req, mat, rate]);
+            });
+        }
+        const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `substitute-pool-${activeManageLeague}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
     });
 
     // Refresh button

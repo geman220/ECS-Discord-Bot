@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import data_table_th, empty_state %}
 {% from "macros/flowbite.html" import modal_info %}
 {% from "macros/_modern_kit.html" import page_header, stat_card, data_table, data_table_th, empty_state %}
 
@@ -8,49 +9,118 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% set completion = ((predictions_map|length / players|length) * 100) if players|length > 0 else 0 %}
+{% set total_players = players|length %}
+{% set my_count = predictions_map|length %}
+{% set completion = ((my_count / total_players) * 100) if total_players > 0 else 0 %}
+{% set _cov = namespace(n=0) %}
+{% for _s in aggregate_stats.values() %}{% if _s.get('prediction_count', 0) > 0 %}{% set _cov.n = _cov.n + 1 %}{% endif %}{% endfor %}
+{% set covered = _cov.n %}
 <div class="max-w-7xl mx-auto">
 
-  {{ page_header(league_type ~ " League Predictions", subtitle=current_season.name ~ " · Predict which round each player will be drafted") }}
-
-  <nav class="flex mb-5" aria-label="Breadcrumb">
-    <ol class="inline-flex items-center gap-1 text-sm">
-      <li>
-        <a href="{{ url_for('draft_predictions.index') }}" class="inline-flex items-center font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">
-          <i class="ti ti-arrow-left mr-1.5" aria-hidden="true"></i>Draft Predictions
+  {# ---- Command bar: breadcrumb context + primary intent + back action ---- #}
+  <div class="flex flex-col gap-3 mb-5 sm:mb-6">
+    <nav class="flex" aria-label="Breadcrumb">
+      <ol class="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <li>
+          <a href="{{ url_for('draft_predictions.index') }}" class="inline-flex items-center hover:text-ecs-green dark:hover:text-white">
+            <i class="ti ti-arrow-left mr-1.5" aria-hidden="true"></i>Draft Predictions
+          </a>
+        </li>
+        <li class="flex items-center">
+          <i class="ti ti-chevron-right mx-1" aria-hidden="true"></i>
+          <span class="text-gray-700 dark:text-gray-300">{{ league_type }}</span>
+        </li>
+      </ol>
+    </nav>
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+      <div class="min-w-0">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 truncate">{{ current_season.name }} · Predict the draft round for every player</p>
+        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">
+          {{ league_type }} League Predictions
+        </h1>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <span id="saveStatus" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-medium font-mono
+                                       text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <i class="ti ti-device-floppy text-sm" aria-hidden="true"></i>
+          <span class="status-text">Changes save automatically</span>
+        </span>
+        <a href="{{ url_for('draft_predictions.index') }}"
+           class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold
+                  border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
+                  hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+          <i class="ti ti-list" aria-hidden="true"></i><span class="hidden sm:inline">All leagues</span>
         </a>
-      </li>
-      <li class="flex items-center text-gray-400">
-        <i class="ti ti-chevron-right mx-1" aria-hidden="true"></i>
-        <span class="font-medium text-gray-500 dark:text-gray-400">{{ league_type }}</span>
-      </li>
-    </ol>
-  </nav>
-
-  <div id="saveStatus" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-5">
-    <i class="ti ti-device-floppy" aria-hidden="true"></i>
-    <span class="status-text">Changes save automatically</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Progress Stats -->
-  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
-    {% call stat_card("ti-users", "Total Players", players|length, sublabel="in this league", tone="info") %}
-      <span id="totalPlayers" class="hidden">{{ players|length }}</span>
-    {% endcall %}
-    {% call stat_card("ti-check", "Your Predictions", predictions_map|length, sublabel="rounds set", tone="primary") %}
-      <span id="predictionCount" class="hidden">{{ predictions_map|length }}</span>
-    {% endcall %}
-    {% call stat_card("ti-percentage", "Completion", '%.0f'|format(completion) ~ '%', sublabel="of roster", tone="gold") %}
-      <span id="completionPercent" class="hidden">{{ "%.0f"|format(completion) }}%</span>
-    {% endcall %}
+  {# ---- KPI band: your progress leads, consensus coverage as context ---- #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 mb-5 sm:mb-6 overflow-hidden">
+    <div class="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-gray-200 dark:divide-gray-700">
+      {# Completion — the lead figure, with a progress meter #}
+      <div class="p-4 sm:p-5 col-span-2 lg:col-span-1">
+        <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Completion</span>
+        <div class="mt-3 flex items-end gap-2">
+          <span id="completionPercent" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ "%.0f"|format(completion) }}%</span>
+        </div>
+        <div class="mt-3 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <div class="h-full rounded-full bg-ecs-green transition-all" style="width: {{ '%.0f'|format(completion) }}%"></div>
+        </div>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 font-mono">
+          <span id="predictionCount">{{ my_count }}</span> of <span id="totalPlayers">{{ total_players }}</span> set
+        </p>
+      </div>
+      {# Roster size #}
+      <div class="p-4 sm:p-5">
+        <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Roster</span>
+        <div class="mt-3 flex items-end gap-2 flex-wrap">
+          <span class="font-mono text-2xl sm:text-3xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ total_players }}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">players</span>
+        </div>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 truncate">in {{ league_type }} league</p>
+      </div>
+      {# Your predictions #}
+      <div class="p-4 sm:p-5">
+        <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Yours set</span>
+        <div class="mt-3 flex items-end gap-2 flex-wrap">
+          <span class="font-mono text-2xl sm:text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ my_count }}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">rounds</span>
+        </div>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 truncate">{{ total_players - my_count }} remaining</p>
+      </div>
+      {# Consensus coverage — real datum: players with any coach votes #}
+      <div class="p-4 sm:p-5">
+        <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Consensus on</span>
+        <div class="mt-3 flex items-end gap-2 flex-wrap">
+          <span class="font-mono text-2xl sm:text-3xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ covered }}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">players</span>
+        </div>
+        <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 truncate">have coach votes</p>
+      </div>
+    </div>
   </div>
 
-  <!-- Players Table -->
+  {# ---- The board: dense player rows with inline prediction + consensus ---- #}
   {% if players %}
-  {% call data_table("Players", icon="ti-users", count=players|length, search_placeholder="Search players…", search_id="playerSearch") %}
+  <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-clipboard-list text-ecs-green" aria-hidden="true"></i> Draft board
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total_players }}</span>
+      </h2>
+    </div>
+
+    {# Filter / command toolbar #}
     <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div class="relative flex-1 min-w-[180px]">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+        <input type="search" id="playerSearch" placeholder="Search players…"
+               class="input-ecs h-9 pl-9 pr-3 text-sm w-full" aria-label="Search players">
+      </div>
       <label for="positionFilter" class="sr-only">Filter by position</label>
-      <div class="relative w-full sm:w-auto sm:min-w-[200px]">
+      <div class="relative w-full sm:w-auto sm:min-w-[180px]">
         <select id="positionFilter" class="input-ecs h-9 text-sm w-full">
           <option value="">All Positions</option>
           <option value="Forward">Forward</option>
@@ -62,82 +132,86 @@
     </div>
 
     {# md+ table #}
+    <div class="md:overflow-x-auto">
     <table class="hidden md:table w-full text-sm text-left" id="playersTable">
       <thead>
         <tr class="border-b border-gray-200 dark:border-gray-700">
           {{ data_table_th("#", key="index", sortable=False) }}
           {{ data_table_th("Player", key="player", sortable=False) }}
-          {{ data_table_th("Position", key="position", sortable=False, hide="sm") }}
-          {{ data_table_th("Predicted Round", key="round", sortable=False) }}
-          {{ data_table_th("Confidence", key="confidence", sortable=False, hide="md") }}
+          {{ data_table_th("Pos", key="position", sortable=False, hide="sm") }}
+          {{ data_table_th("Your Round", key="round", sortable=False) }}
+          {{ data_table_th("Conf", key="confidence", sortable=False, hide="md") }}
           {{ data_table_th("Notes", key="notes", sortable=False, hide="md") }}
-          {{ data_table_th("Avg Prediction", key="avg", sortable=False, hide="md") }}
+          {{ data_table_th("Consensus", key="avg", sortable=False, hide="md", align="right") }}
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for player in players %}
         {% set prediction = predictions_map.get(player.id) %}
         {% set stats = aggregate_stats.get(player.id, {}) %}
-        <tr class="prediction-row hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {% if prediction %}has-prediction{% endif %}"
+        <tr class="prediction-row group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {% if prediction %}has-prediction{% endif %}"
             data-player-id="{{ player.id }}"
             data-player-name="{{ player.name|lower }}"
             data-position="{{ player.favorite_position or '' }}">
-          <td class="px-3 py-2.5 font-mono text-gray-500 dark:text-gray-400">{{ loop.index }}</td>
-          <td class="px-3 py-2.5">
+          <td class="px-3 py-2.5 font-mono text-gray-400 dark:text-gray-500 align-middle">{{ '%02d'|format(loop.index) }}</td>
+          <td class="px-3 py-2.5 align-middle">
             <div class="flex items-center gap-3">
-              <div class="shrink-0 w-8 h-8">
+              <div class="shrink-0 w-9 h-9 relative">
                 {% if player.profile_picture_url or (player.image_cache and player.image_cache.thumbnail_url) %}
                   <img src="{{ player.image_cache.thumbnail_url if player.image_cache and player.image_cache.thumbnail_url else player.profile_picture_url }}"
                        alt="{{ player.name }}"
-                       class="w-8 h-8 rounded-full object-cover cursor-pointer player-avatar-clickable"
+                       class="w-9 h-9 rounded-full object-cover cursor-pointer player-avatar-clickable ring-2 ring-transparent group-[.has-prediction]:ring-ecs-green/40"
                        data-player-name="{{ player.name }}"
                        data-full-image="{{ (player.image_cache.original_url or player.image_cache.cached_url) if player.image_cache else player.profile_picture_url }}">
                 {% else %}
-                  <div class="w-8 h-8 rounded-full bg-ecs-green flex items-center justify-center text-white text-xs font-semibold">
+                  <div class="w-9 h-9 rounded-full bg-ecs-green flex items-center justify-center text-white text-xs font-semibold ring-2 ring-transparent group-[.has-prediction]:ring-ecs-green/40">
                     {{ player.name[:2]|upper }}
                   </div>
                 {% endif %}
               </div>
               <div class="min-w-0">
-                <div class="font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</div>
+                <div class="font-semibold text-gray-900 dark:text-white truncate flex items-center gap-1.5">
+                  {{ player.name }}
+                  {% if prediction %}<i class="ti ti-circle-check-filled text-ecs-green text-sm shrink-0" aria-label="Prediction set" title="You predicted Round {{ prediction.predicted_round }}"></i>{% endif %}
+                </div>
                 {% if player.league %}
-                  <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ player.league.name }}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 truncate font-mono">{{ player.league.name }}</div>
                 {% endif %}
               </div>
             </div>
           </td>
-          <td class="px-3 py-2.5 hidden md:table-cell">
+          <td class="px-3 py-2.5 hidden md:table-cell align-middle">
             {% if player.favorite_position %}
-              <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                {{ player.favorite_position }}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wide bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                {{ player.favorite_position[:3] }}
               </span>
             {% else %}
-              <span class="text-gray-400 dark:text-gray-500">-</span>
+              <span class="text-gray-400 dark:text-gray-500">—</span>
             {% endif %}
           </td>
-          <td class="px-3 py-2.5">
-            <select class="prediction-input input-ecs h-9 text-sm w-full min-w-[120px]"
+          <td class="px-3 py-2.5 align-middle">
+            <select class="prediction-input input-ecs h-9 text-sm w-full min-w-[120px] font-mono"
                     data-field="predicted_round"
                     data-player-id="{{ player.id }}"
                     aria-label="Predicted round for {{ player.name }}">
-              <option value="">-</option>
+              <option value="">—</option>
               {% for round_num in range(1, 21) %}
                 <option value="{{ round_num }}" {% if prediction and prediction.predicted_round == round_num %}selected{% endif %}>Round {{ round_num }}</option>
               {% endfor %}
             </select>
           </td>
-          <td class="px-3 py-2.5 hidden lg:table-cell">
-            <select class="prediction-input input-ecs h-9 text-sm w-full min-w-[90px]"
+          <td class="px-3 py-2.5 hidden lg:table-cell align-middle">
+            <select class="prediction-input input-ecs h-9 text-sm w-full min-w-[80px] font-mono"
                     data-field="confidence_level"
                     data-player-id="{{ player.id }}"
                     aria-label="Confidence for {{ player.name }}">
-              <option value="">-</option>
+              <option value="">—</option>
               {% for conf in range(1, 6) %}
                 <option value="{{ conf }}" {% if prediction and prediction.confidence_level == conf %}selected{% endif %}>{{ conf }}/5</option>
               {% endfor %}
             </select>
           </td>
-          <td class="px-3 py-2.5 hidden lg:table-cell">
+          <td class="px-3 py-2.5 hidden lg:table-cell align-middle">
             <input type="text"
                    class="prediction-input input-ecs h-9 text-sm w-full min-w-[140px]"
                    data-field="notes"
@@ -146,85 +220,91 @@
                    placeholder="Optional notes…"
                    aria-label="Optional notes for {{ player.name }}">
           </td>
-          <td class="px-3 py-2.5 hidden lg:table-cell">
+          <td class="px-3 py-2.5 hidden lg:table-cell align-middle text-right">
             {% if stats.get('prediction_count', 0) > 0 %}
-              <div class="text-sm">
-                <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ "%.1f"|format(stats.avg_round) }}</span>
-                <span class="text-gray-500 dark:text-gray-400 text-xs">({{ stats.prediction_count }} votes)</span>
+              <div class="inline-flex flex-col items-end leading-tight">
+                <span class="font-mono text-base font-bold text-gray-900 dark:text-white">R{{ "%.1f"|format(stats.avg_round) }}</span>
+                <span class="font-mono text-[11px] text-gray-500 dark:text-gray-400">
+                  range {{ stats.min_round }}–{{ stats.max_round }} · {{ stats.prediction_count }} vote{{ 's' if stats.prediction_count != 1 }}
+                </span>
               </div>
             {% else %}
-              <span class="text-gray-400 dark:text-gray-500 text-sm">No predictions yet</span>
+              <span class="text-gray-400 dark:text-gray-500 text-xs italic">no votes yet</span>
             {% endif %}
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+    </div>
 
     {# mobile stacked cards (filter bar above is shared) #}
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
       {% for player in players %}
       {% set prediction = predictions_map.get(player.id) %}
       {% set stats = aggregate_stats.get(player.id, {}) %}
-      <div class="prediction-row px-4 py-3.5 {% if prediction %}has-prediction{% endif %}"
+      <div class="prediction-row px-4 py-3.5 {% if prediction %}has-prediction border-l-2 border-ecs-green{% else %}border-l-2 border-transparent{% endif %}"
            data-player-id="{{ player.id }}"
            data-player-name="{{ player.name|lower }}"
            data-position="{{ player.favorite_position or '' }}">
         <div class="flex items-center gap-3 mb-3">
-          <div class="shrink-0 w-9 h-9">
+          <div class="shrink-0 w-10 h-10">
             {% if player.profile_picture_url or (player.image_cache and player.image_cache.thumbnail_url) %}
               <img src="{{ player.image_cache.thumbnail_url if player.image_cache and player.image_cache.thumbnail_url else player.profile_picture_url }}"
                    alt="{{ player.name }}"
-                   class="w-9 h-9 rounded-full object-cover cursor-pointer player-avatar-clickable"
+                   class="w-10 h-10 rounded-full object-cover cursor-pointer player-avatar-clickable"
                    data-player-name="{{ player.name }}"
                    data-full-image="{{ (player.image_cache.original_url or player.image_cache.cached_url) if player.image_cache else player.profile_picture_url }}">
             {% else %}
-              <div class="w-9 h-9 rounded-full bg-ecs-green flex items-center justify-center text-white text-xs font-semibold">
+              <div class="w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center text-white text-xs font-semibold">
                 {{ player.name[:2]|upper }}
               </div>
             {% endif %}
           </div>
           <div class="min-w-0 flex-1">
-            <div class="font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</div>
+            <div class="font-semibold text-gray-900 dark:text-white truncate flex items-center gap-1.5">
+              {{ player.name }}
+              {% if prediction %}<i class="ti ti-circle-check-filled text-ecs-green text-sm shrink-0" aria-label="Prediction set"></i>{% endif %}
+            </div>
             <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
-              {% if player.favorite_position %}{{ player.favorite_position }}{% else %}No position{% endif %}
+              {% if player.favorite_position %}<span class="font-bold uppercase tracking-wide">{{ player.favorite_position }}</span>{% else %}No position{% endif %}
               {% if player.league %} · {{ player.league.name }}{% endif %}
             </div>
           </div>
           {% if stats.get('prediction_count', 0) > 0 %}
-          <div class="shrink-0 text-right">
-            <div class="font-mono font-semibold text-gray-900 dark:text-white text-sm">{{ "%.1f"|format(stats.avg_round) }}</div>
-            <div class="text-[11px] text-gray-500 dark:text-gray-400">{{ stats.prediction_count }} votes</div>
+          <div class="shrink-0 text-right leading-tight">
+            <div class="font-mono text-base font-bold text-gray-900 dark:text-white">R{{ "%.1f"|format(stats.avg_round) }}</div>
+            <div class="font-mono text-[11px] text-gray-500 dark:text-gray-400">{{ stats.min_round }}–{{ stats.max_round }} · {{ stats.prediction_count }}v</div>
           </div>
           {% endif %}
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Predicted Round</label>
-            <select class="prediction-input input-ecs h-9 text-sm w-full"
+            <label class="block text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Your Round</label>
+            <select class="prediction-input input-ecs h-9 text-sm w-full font-mono"
                     data-field="predicted_round"
                     data-player-id="{{ player.id }}"
                     aria-label="Predicted round for {{ player.name }}">
-              <option value="">-</option>
+              <option value="">—</option>
               {% for round_num in range(1, 21) %}
                 <option value="{{ round_num }}" {% if prediction and prediction.predicted_round == round_num %}selected{% endif %}>Round {{ round_num }}</option>
               {% endfor %}
             </select>
           </div>
           <div>
-            <label class="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Confidence</label>
-            <select class="prediction-input input-ecs h-9 text-sm w-full"
+            <label class="block text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Confidence</label>
+            <select class="prediction-input input-ecs h-9 text-sm w-full font-mono"
                     data-field="confidence_level"
                     data-player-id="{{ player.id }}"
                     aria-label="Confidence for {{ player.name }}">
-              <option value="">-</option>
+              <option value="">—</option>
               {% for conf in range(1, 6) %}
                 <option value="{{ conf }}" {% if prediction and prediction.confidence_level == conf %}selected{% endif %}>{{ conf }}/5</option>
               {% endfor %}
             </select>
           </div>
           <div class="col-span-2">
-            <label class="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Notes</label>
+            <label class="block text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Notes</label>
             <input type="text"
                    class="prediction-input input-ecs h-9 text-sm w-full"
                    data-field="notes"
@@ -237,7 +317,12 @@
       </div>
       {% endfor %}
     </div>
-  {% endcall %}
+
+    <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+      <span class="font-mono">{{ my_count }}/{{ total_players }} set · {{ covered }} with consensus</span>
+      <span class="inline-flex items-center gap-1.5"><i class="ti ti-circle-check-filled text-ecs-green text-sm" aria-hidden="true"></i> = your prediction is saved</span>
+    </div>
+  </section>
   {% else %}
     {{ empty_state("ti-users-off", "No Players Found", "No players are currently registered in this league.") }}
   {% endif %}

@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import empty_state, page_header %}
 {% from "macros/flowbite.html" import modal_form %}
 {% from "macros/_modern_kit.html" import page_header, section_card, empty_state %}
 
@@ -6,15 +7,15 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
-    {% call page_header(season.name + ' — Schedule', subtitle='Pub League Schedule Management') %}
+<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8 space-y-5 sm:space-y-6">
+    {% call page_header(season.name, subtitle='Pub League · Schedule Management') %}
     <a href="{{ url_for('publeague.schedule.schedule_wizard', season_id=season.id) }}"
        class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-calendar-plus" aria-hidden="true"></i> Generate Bulk Schedule
     </a>
     {% endcall %}
 
-    <!-- League Tabs (Modern) -->
+    <!-- League workbench — tabs select a league; each panel is its own schedule build surface -->
     <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
         <div class="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
             <ul class="flex flex-nowrap -mb-px text-sm font-medium px-2" role="tablist">
@@ -35,160 +36,200 @@
         </div>
 
         {% for league in leagues %}
+        {% set weeks = schedule[league.name] %}
+        {% set week_count = weeks|length if weeks else 0 %}
+        {% set match_count = namespace(total=0) %}
+        {% if weeks %}{% for w, d in weeks.items() %}{% set match_count.total = match_count.total + (d.matches|length) %}{% endfor %}{% endif %}
         <div class="league-content {{ '' if loop.first else 'hidden' }}" data-league-id="{{ league.id }}">
-            <!-- Actions Bar -->
+            <!-- KPI band — real counts derived from this league's schedule -->
+            <div class="grid grid-cols-3 gap-3 px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Weeks</span>
+                        <i class="ti ti-calendar-week text-ecs-green shrink-0" aria-hidden="true"></i>
+                    </div>
+                    <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ week_count }}</div>
+                    <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">scheduled this season</p>
+                </div>
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Matches</span>
+                        <i class="ti ti-ballpen text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+                    </div>
+                    <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ match_count.total }}</div>
+                    <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">across all weeks</p>
+                </div>
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Teams</span>
+                        <i class="ti ti-shield-half text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+                    </div>
+                    <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ league.teams|length }}</div>
+                    <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">registered rosters</p>
+                </div>
+            </div>
+
+            <!-- Command toolbar -->
             <div class="flex flex-wrap justify-between items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                <p class="text-sm text-gray-600 dark:text-gray-400">
-                    <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ league.teams|length }}</span> teams registered
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    {{ league.name }} build surface
                 </p>
                 <div class="flex flex-wrap gap-2">
                     <a href="{{ url_for('publeague.schedule.schedule_wizard', season_id=season.id, league_id=league.id) }}"
-                       class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm bg-blue-600 hover:bg-blue-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                       class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-calendar-plus" aria-hidden="true"></i> Generate Schedule
                     </a>
                     <button type="button"
-                            class="js-add-single-week inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                            class="js-add-single-week inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                             data-league-id="{{ league.id }}">
                         <i class="ti ti-plus" aria-hidden="true"></i> Add Single Week
                     </button>
                 </div>
             </div>
 
-            <!-- Schedule Content -->
-            <div class="p-4">
-                {% if schedule[league.name] %}
-                <div class="space-y-4">
-                    {% for week, data in schedule[league.name].items() %}
-                    <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-                        <!-- Week Header -->
-                        <div class="week-header flex justify-between items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 cursor-pointer"
-                             data-week-target="week-{{ league.id }}-{{ week }}">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <i class="ti ti-chevron-down week-chevron text-gray-500 transition-transform shrink-0" aria-hidden="true"></i>
-                                <div class="min-w-0">
-                                    <h3 class="font-semibold text-gray-900 dark:text-white">Week {{ week }}</h3>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400"><span class="font-mono">{{ data.date }}</span> &bull; <span class="font-mono">{{ data.matches|length }}</span> matches</p>
-                                </div>
-                            </div>
-                            <button type="button"
-                                    class="js-add-match inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-700"
-                                    data-week="{{ week }}"
-                                    data-date="{{ data.date }}"
-                                    data-league-id="{{ league.id }}"
-                                    onclick="event.stopPropagation();">
-                                <i class="ti ti-plus" aria-hidden="true"></i> Add Match
-                            </button>
-                        </div>
+            <!-- Schedule content -->
+            <div>
+                {% if weeks %}
+                <div>
+                    {% for week, data in weeks.items() %}
+                    <!-- Date-group header (collapsible week). mono ecs-green week label + h-px rule -->
+                    <div class="week-header flex items-center gap-3 px-4 sm:px-5 pt-4 pb-2 cursor-pointer group"
+                         data-week-target="week-{{ league.id }}-{{ week }}">
+                        <i class="ti ti-chevron-down week-chevron text-gray-400 transition-transform shrink-0 text-sm" aria-hidden="true"></i>
+                        <span class="font-mono text-[11px] font-semibold text-ecs-green uppercase tracking-wide shrink-0">Week {{ week }}</span>
+                        <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500 shrink-0">{{ data.date }}</span>
+                        <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+                        <span class="font-mono text-[10px] text-gray-500 dark:text-gray-400 shrink-0">{{ data.matches|length }} match{{ '' if data.matches|length == 1 else 'es' }}</span>
+                        <button type="button"
+                                class="js-add-match inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green shrink-0"
+                                data-week="{{ week }}"
+                                data-date="{{ data.date }}"
+                                data-league-id="{{ league.id }}"
+                                onclick="event.stopPropagation();">
+                            <i class="ti ti-plus" aria-hidden="true"></i><span class="hidden sm:inline">Add Match</span>
+                        </button>
+                    </div>
 
-                        <!-- Week Content -->
-                        <div id="week-{{ league.id }}-{{ week }}" class="week-content {{ 'hidden' if not loop.first else '' }}">
-                            <!-- md+ table -->
-                            <div class="hidden md:block md:overflow-x-auto">
-                                <table class="w-full text-sm text-left">
-                                    <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50">
-                                        <tr>
-                                            <th scope="col" class="px-4 py-2.5 font-semibold">Match</th>
-                                            <th scope="col" class="px-4 py-2.5 font-semibold">Time</th>
-                                            <th scope="col" class="px-4 py-2.5 font-semibold">Location</th>
-                                            <th scope="col" class="px-4 py-2.5 font-semibold text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                                        {% for match in data.matches %}
-                                        <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                            <td class="px-4 py-3">
-                                                <div class="font-medium text-gray-900 dark:text-white">
-                                                    {{ match.team_a }} <span class="text-gray-400">vs</span> {{ match.team_b }}
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-3 font-mono text-gray-600 dark:text-gray-400">
-                                                {{ match.time }}
-                                            </td>
-                                            <td class="px-4 py-3">
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full {{ 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' if match.location == 'North' else 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' }}">
-                                                    <i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ match.location }}
+                    <!-- Week content -->
+                    <div id="week-{{ league.id }}-{{ week }}" class="week-content {{ 'hidden' if not loop.first else '' }}">
+                        {% if data.matches %}
+                        <!-- md+ real table with mono figures -->
+                        <div class="hidden md:block md:overflow-x-auto px-2 pb-2">
+                            <table class="w-full text-sm text-left">
+                                <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                                        <th scope="col" class="px-3 py-2.5 font-semibold">Fixture</th>
+                                        <th scope="col" class="px-3 py-2.5 font-semibold">Kickoff</th>
+                                        <th scope="col" class="px-3 py-2.5 font-semibold">Venue</th>
+                                        <th scope="col" class="px-3 py-2.5 font-semibold text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                    {% for match in data.matches %}
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                        <td class="px-3 py-3">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <span class="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-md bg-ecs-green/10 text-ecs-green font-mono text-[11px] font-bold" aria-hidden="true">H</span>
+                                                <span class="font-medium text-gray-900 dark:text-white truncate">
+                                                    {{ match.team_a }} <span class="text-gray-400 font-normal">vs</span> {{ match.team_b }}
                                                 </span>
-                                            </td>
-                                            <td class="px-4 py-3 text-right">
-                                                <div class="flex justify-end gap-2">
-                                                    <button type="button"
-                                                            class="js-edit-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                            data-match-id="{{ match.id }}"
-                                                            data-date="{{ data.date }}"
-                                                            data-time="{{ match.time }}"
-                                                            data-team-a="{{ match.team_a }}"
-                                                            data-team-b="{{ match.team_b }}"
-                                                            data-team-a-id="{{ match.team_a_id }}"
-                                                            data-team-b-id="{{ match.team_b_id }}"
-                                                            data-location="{{ match.location }}"
-                                                            data-latitude="{{ match.latitude if match.latitude is not none else '' }}"
-                                                            data-longitude="{{ match.longitude if match.longitude is not none else '' }}"
-                                                            data-week="{{ week }}"
-                                                            data-league-id="{{ league.id }}"
-                                                            title="Edit Match" aria-label="Edit Match">
-                                                        <i class="ti ti-edit" aria-hidden="true"></i>
-                                                    </button>
-                                                    <button type="button"
-                                                            class="js-delete-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
-                                                            data-match-id="{{ match.id }}"
-                                                            title="Delete Match" aria-label="Delete Match">
-                                                        <i class="ti ti-trash" aria-hidden="true"></i>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <!-- mobile stacked cards -->
-                            <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-                                {% for match in data.matches %}
-                                <div class="px-4 py-3">
-                                    <div class="flex items-start justify-between gap-2">
-                                        <div class="min-w-0">
-                                            <p class="font-medium text-gray-900 dark:text-white">
-                                                {{ match.team_a }} <span class="text-gray-400">vs</span> {{ match.team_b }}
-                                            </p>
-                                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-2">
-                                                <span class="font-mono inline-flex items-center gap-1"><i class="ti ti-clock text-[11px]" aria-hidden="true"></i>{{ match.time }}</span>
-                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full {{ 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' if match.location == 'North' else 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' }}">
-                                                    <i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ match.location }}
-                                                </span>
-                                            </p>
-                                        </div>
-                                        <div class="flex gap-2 shrink-0">
-                                            <button type="button"
-                                                    class="js-edit-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    data-match-id="{{ match.id }}"
-                                                    data-date="{{ data.date }}"
-                                                    data-time="{{ match.time }}"
-                                                    data-team-a="{{ match.team_a }}"
-                                                    data-team-b="{{ match.team_b }}"
-                                                    data-team-a-id="{{ match.team_a_id }}"
-                                                    data-team-b-id="{{ match.team_b_id }}"
-                                                    data-location="{{ match.location }}"
-                                                    data-latitude="{{ match.latitude if match.latitude is not none else '' }}"
-                                                    data-longitude="{{ match.longitude if match.longitude is not none else '' }}"
-                                                    data-week="{{ week }}"
-                                                    data-league-id="{{ league.id }}"
-                                                    title="Edit Match" aria-label="Edit Match">
-                                                <i class="ti ti-edit" aria-hidden="true"></i>
-                                            </button>
-                                            <button type="button"
-                                                    class="js-delete-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
-                                                    data-match-id="{{ match.id }}"
-                                                    title="Delete Match" aria-label="Delete Match">
-                                                <i class="ti ti-trash" aria-hidden="true"></i>
-                                            </button>
-                                        </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-3 py-3 font-mono text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                                            {{ match.time }}
+                                        </td>
+                                        <td class="px-3 py-3">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full {{ 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' if match.location == 'North' else 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' }}">
+                                                <i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ match.location }}
+                                            </span>
+                                            {% if match.latitude is not none and match.longitude is not none %}
+                                            <span class="ml-2 font-mono text-[10px] text-gray-400 dark:text-gray-500 hidden lg:inline">{{ '%.4f'|format(match.latitude) }}, {{ '%.4f'|format(match.longitude) }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="px-3 py-3 text-right">
+                                            <div class="inline-flex items-center gap-1">
+                                                <button type="button"
+                                                        class="js-edit-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-2 rounded-lg border border-transparent text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-gray-200 dark:hover:border-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        data-match-id="{{ match.id }}"
+                                                        data-date="{{ data.date }}"
+                                                        data-time="{{ match.time }}"
+                                                        data-team-a="{{ match.team_a }}"
+                                                        data-team-b="{{ match.team_b }}"
+                                                        data-team-a-id="{{ match.team_a_id }}"
+                                                        data-team-b-id="{{ match.team_b_id }}"
+                                                        data-location="{{ match.location }}"
+                                                        data-latitude="{{ match.latitude if match.latitude is not none else '' }}"
+                                                        data-longitude="{{ match.longitude if match.longitude is not none else '' }}"
+                                                        data-week="{{ week }}"
+                                                        data-league-id="{{ league.id }}"
+                                                        title="Edit Match" aria-label="Edit Match">
+                                                    <i class="ti ti-edit" aria-hidden="true"></i>
+                                                </button>
+                                                <button type="button"
+                                                        class="js-delete-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-2 rounded-lg border border-transparent text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:border-gray-200 dark:hover:border-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                                                        data-match-id="{{ match.id }}"
+                                                        title="Delete Match" aria-label="Delete Match">
+                                                    <i class="ti ti-trash" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- mobile dense rows -->
+                        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for match in data.matches %}
+                            <div class="px-4 py-3 flex items-start justify-between gap-2">
+                                <div class="flex items-start gap-2.5 min-w-0">
+                                    <span class="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-md bg-ecs-green/10 text-ecs-green font-mono text-[11px] font-bold mt-0.5" aria-hidden="true">H</span>
+                                    <div class="min-w-0">
+                                        <p class="font-medium text-gray-900 dark:text-white truncate">
+                                            {{ match.team_a }} <span class="text-gray-400 font-normal">vs</span> {{ match.team_b }}
+                                        </p>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                                            <span class="font-mono inline-flex items-center gap-1"><i class="ti ti-clock text-[11px]" aria-hidden="true"></i>{{ match.time }}</span>
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full {{ 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' if match.location == 'North' else 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' }}">
+                                                <i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ match.location }}
+                                            </span>
+                                        </p>
                                     </div>
                                 </div>
-                                {% endfor %}
+                                <div class="flex gap-1 shrink-0">
+                                    <button type="button"
+                                            class="js-edit-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            data-match-id="{{ match.id }}"
+                                            data-date="{{ data.date }}"
+                                            data-time="{{ match.time }}"
+                                            data-team-a="{{ match.team_a }}"
+                                            data-team-b="{{ match.team_b }}"
+                                            data-team-a-id="{{ match.team_a_id }}"
+                                            data-team-b-id="{{ match.team_b_id }}"
+                                            data-location="{{ match.location }}"
+                                            data-latitude="{{ match.latitude if match.latitude is not none else '' }}"
+                                            data-longitude="{{ match.longitude if match.longitude is not none else '' }}"
+                                            data-week="{{ week }}"
+                                            data-league-id="{{ league.id }}"
+                                            title="Edit Match" aria-label="Edit Match">
+                                        <i class="ti ti-edit" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button"
+                                            class="js-delete-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                                            data-match-id="{{ match.id }}"
+                                            title="Delete Match" aria-label="Delete Match">
+                                        <i class="ti ti-trash" aria-hidden="true"></i>
+                                    </button>
+                                </div>
                             </div>
+                            {% endfor %}
                         </div>
+                        {% else %}
+                        <p class="px-5 pb-4 text-sm text-gray-500 dark:text-gray-400">No matches in this week yet.</p>
+                        {% endif %}
                     </div>
                     {% endfor %}
+                    <div class="h-2"></div>
                 </div>
                 {% else %}
                 {{ empty_state('ti-calendar-off', 'No Schedule Yet', "This league doesn't have any matches scheduled.", action={'label': 'Generate Schedule', 'url': url_for('publeague.schedule.schedule_wizard', season_id=season.id, league_id=league.id), 'icon': 'ti-calendar-plus'}) }}

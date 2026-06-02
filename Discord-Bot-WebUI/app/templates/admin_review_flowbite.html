@@ -3,35 +3,183 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/_modern_kit.html' import data_table_filter_bar, empty_state %}
+{# --- Real derived metrics from the flagged-player queue (no fabricated data) --- #}
+{% set total = players|length %}
+{% set linked_count = players|selectattr('linked_primary_player_id')|list|length %}
+{% set with_email = players|selectattr('user')|list|length %}
+{% set with_discord = players|selectattr('discord_id')|list|length %}
+{% set no_email = total - with_email %}
+{% set first = players[0] if players else none %}
 <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
-    {{ page_header("Manual Review Required", subtitle="Players that need manual verification or review") }}
+
+    {# --- Command header: eyebrow + title + primary triage CTA --- #}
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-5 sm:mb-6">
+        <div class="min-w-0">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                <i class="ti ti-shield-half-filled text-ecs-green" aria-hidden="true"></i> Identity Moderation
+            </p>
+            <h1 class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">Manual Review Queue</h1>
+            <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Duplicate &amp; placeholder profiles flagged during registration</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <a href="{{ url_for('players.view_players') }}"
+               class="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg border border-gray-200 dark:border-gray-700
+                      bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-semibold transition-colors
+                      hover:bg-gray-50 dark:hover:bg-gray-700/50
+                      focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti ti-users text-sm" aria-hidden="true"></i> All Players
+            </a>
+            {% if first %}
+            <a href="{{ url_for('players.player_profile', player_id=first.id) }}"
+               class="inline-flex items-center justify-center gap-1.5 min-h-[44px] h-10 px-4 rounded-lg
+                      bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                      focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti ti-player-track-next text-sm" aria-hidden="true"></i> Review next
+            </a>
+            {% endif %}
+        </div>
+    </div>
 
     {% if players %}
-    {% call data_table("Players Needing Review", icon="ti-alert-circle", count=players|length, search_placeholder="Filter players…", search_id="reviewFilter") %}
+    {# --- KPI band: big mono figures w/ eyebrow + divider footer; counts derived live from the queue --- #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+        <div class="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                <i class="ti ti-user-question" aria-hidden="true"></i> In Queue
+            </p>
+            <p class="mt-2 font-mono text-3xl font-bold text-amber-700 dark:text-amber-300 tabular-nums">{{ total }}</p>
+            <div class="mt-2 pt-2 border-t border-amber-200 dark:border-amber-500/30">
+                <p class="text-[11px] text-amber-700/80 dark:text-amber-400/80 font-mono">awaiting a decision</p>
+            </div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                <i class="ti ti-git-merge text-blue-500" aria-hidden="true"></i> Linked Dupes
+            </p>
+            <p class="mt-2 font-mono text-3xl font-bold text-blue-600 dark:text-blue-400 tabular-nums">{{ linked_count }}</p>
+            <div class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 font-mono">tied to a primary PID</p>
+            </div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                <i class="ti ti-mail-off text-rose-500" aria-hidden="true"></i> No Email
+            </p>
+            <p class="mt-2 font-mono text-3xl font-bold {{ 'text-rose-600 dark:text-rose-400' if no_email else 'text-gray-900 dark:text-white' }} tabular-nums">{{ no_email }}</p>
+            <div class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 font-mono">{{ with_email }} contactable</p>
+            </div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                <i class="ti ti-brand-discord text-indigo-500" aria-hidden="true"></i> Discord Linked
+            </p>
+            <p class="mt-2 font-mono text-3xl font-bold text-gray-900 dark:text-white tabular-nums">{{ with_discord }}</p>
+            <div class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 font-mono">account tied</p>
+            </div>
+        </div>
+    </div>
+
+    {# --- Triage queue: bespoke dense rows w/ severity eyebrow, real identity meta, merge target, status pills --- #}
+    <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <i class="ti ti-alert-circle text-ecs-green" aria-hidden="true"></i> Review Queue
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total }}</span>
+            </h2>
+        </div>
+        {{ data_table_filter_bar("Filter by name, email, Discord or league…", "reviewFilter") }}
+
+        {# --- Desktop: real table with mono identity columns --- #}
+        <div class="md:overflow-x-auto">
         <table class="hidden md:table w-full text-sm">
             <thead class="bg-gray-50 dark:bg-gray-700/50">
-                <tr>
-                    {{ data_table_th("Name", key="name", active=True, dir="asc") }}
-                    {{ data_table_th("Email", key="email") }}
-                    {{ data_table_th("Action", sortable=False, align="right") }}
+                <tr class="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                    <th class="px-4 py-2.5 font-semibold">Profile</th>
+                    <th class="px-4 py-2.5 font-semibold">Identity</th>
+                    <th class="px-4 py-2.5 font-semibold hidden lg:table-cell">League</th>
+                    <th class="px-4 py-2.5 font-semibold text-right">Merge Target</th>
+                    <th class="px-4 py-2.5 font-semibold text-right hidden xl:table-cell">Updated</th>
+                    <th class="px-4 py-2.5 font-semibold text-right">Action</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 {% for player in players %}
-                <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <td class="px-3 py-3" data-cell="name">
-                        <div class="flex items-center gap-3">
+                {% set is_placeholder = '+' in (player.name or '') %}
+                {% set reason = 'Duplicate' if player.linked_primary_player_id else ('Placeholder' if is_placeholder else 'Manual flag') %}
+                {% set reason_cls = 'text-blue-600 dark:text-blue-400' if player.linked_primary_player_id else ('text-amber-600 dark:text-amber-400' if is_placeholder else 'text-gray-500 dark:text-gray-400') %}
+                {% set reason_icon = 'ti-git-merge' if player.linked_primary_player_id else ('ti-copy' if is_placeholder else 'ti-flag') %}
+                <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors align-top">
+                    <td class="px-4 py-3" data-cell="name" data-sort-value="{{ player.name }}">
+                        <div class="flex items-start gap-3">
+                            {% if player.profile_picture_url %}
+                            <img src="{{ player.profile_picture_url }}" alt="" loading="lazy"
+                                 class="w-10 h-10 rounded-full object-cover shrink-0 ring-2 ring-amber-200 dark:ring-amber-500/30">
+                            {% else %}
                             <span class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center shrink-0">
                                 <i class="ti ti-user-question text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
                             </span>
-                            <span class="font-semibold text-gray-900 dark:text-white">{{ player.name }}</span>
+                            {% endif %}
+                            <div class="min-w-0">
+                                <p class="text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 {{ reason_cls }}">
+                                    <i class="ti {{ reason_icon }} text-[11px]" aria-hidden="true"></i> {{ reason }}
+                                </p>
+                                <span class="block font-semibold text-gray-900 dark:text-white truncate mt-0.5">{{ player.name }}</span>
+                                <div class="mt-0.5 flex flex-wrap items-center gap-1.5">
+                                    <span class="text-[11px] text-gray-500 dark:text-gray-400 font-mono">PID {{ player.id }}</span>
+                                    {% if player.is_current_player %}
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
+                                        <i class="ti ti-circle-check text-[10px]" aria-hidden="true"></i> Active
+                                    </span>
+                                    {% endif %}
+                                    {% if player.is_sub %}
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400">Sub</span>
+                                    {% endif %}
+                                    {% if player.is_coach %}
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400">Coach</span>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
                     </td>
-                    <td class="px-3 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs" data-cell="email">{{ player.user.email if player.user else 'No email' }}</td>
-                    <td class="px-3 py-3 text-right">
+                    <td class="px-4 py-3" data-cell="email" data-sort-value="{{ player.user.email if player.user else 'zzzz' }}">
+                        <div class="space-y-0.5">
+                            <p class="font-mono text-xs flex items-center gap-1.5 {{ 'text-gray-600 dark:text-gray-300' if player.user else 'text-gray-400 dark:text-gray-500 italic' }}">
+                                <i class="ti ti-mail text-[12px] shrink-0" aria-hidden="true"></i>
+                                <span class="truncate">{{ player.user.email if player.user else 'No email on file' }}</span>
+                            </p>
+                            {% if player.discord_id %}
+                            <p class="font-mono text-[11px] text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                                <i class="ti ti-brand-discord text-[12px] shrink-0" aria-hidden="true"></i>
+                                <span class="truncate">{{ player.discord_username or player.discord_id }}</span>
+                            </p>
+                            {% else %}
+                            <p class="font-mono text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+                                <i class="ti ti-brand-discord text-[12px] shrink-0" aria-hidden="true"></i> not linked
+                            </p>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-300 hidden lg:table-cell" data-sort-value="{{ player.league.name if player.league else 'zzzz' }}">
+                        {% if player.league %}{{ player.league.name }}{% else %}<span class="text-gray-400 dark:text-gray-500">&mdash;</span>{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right whitespace-nowrap" data-sort-value="{{ player.linked_primary_player_id or 0 }}">
+                        {% if player.linked_primary_player_id %}
+                        <a href="{{ url_for('players.player_profile', player_id=player.linked_primary_player_id) }}"
+                           class="inline-flex items-center gap-1 font-mono text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                            <i class="ti ti-git-merge text-[12px]" aria-hidden="true"></i> #{{ player.linked_primary_player_id }}
+                        </a>
+                        {% else %}<span class="text-gray-400 dark:text-gray-500 font-mono text-xs">&mdash;</span>{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right text-gray-500 dark:text-gray-400 font-mono text-xs hidden xl:table-cell whitespace-nowrap"
+                        data-sort-value="{{ player.updated_at.isoformat() if player.updated_at else '' }}">
+                        {{ player.updated_at.strftime('%Y-%m-%d') if player.updated_at else '—' }}
+                    </td>
+                    <td class="px-4 py-3 text-right">
                         <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
-                           class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg
+                           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] h-9 px-3 rounded-lg
                                   bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors
                                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <i class="ti ti-eye text-sm" aria-hidden="true"></i> Review
@@ -41,17 +189,55 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
+
+        {# --- Mobile: dense stacked rows mirroring the table --- #}
         <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
             {% for player in players %}
-            {% call data_table_row_card(player.name, url=url_for('players.player_profile', player_id=player.id)) %}
-                <p class="font-mono"><i class="ti ti-mail mr-1" aria-hidden="true"></i>{{ player.user.email if player.user else 'No email' }}</p>
-                <p class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold"><i class="ti ti-user-question" aria-hidden="true"></i>Needs review</p>
-            {% endcall %}
+            {% set is_placeholder = '+' in (player.name or '') %}
+            {% set reason = 'Duplicate' if player.linked_primary_player_id else ('Placeholder' if is_placeholder else 'Manual flag') %}
+            {% set reason_cls = 'text-blue-600 dark:text-blue-400' if player.linked_primary_player_id else ('text-amber-600 dark:text-amber-400' if is_placeholder else 'text-gray-500 dark:text-gray-400') %}
+            {% set reason_icon = 'ti-git-merge' if player.linked_primary_player_id else ('ti-copy' if is_placeholder else 'ti-flag') %}
+            <a data-row data-row-card href="{{ url_for('players.player_profile', player_id=player.id) }}"
+               class="block px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                <div class="flex items-start gap-3">
+                    {% if player.profile_picture_url %}
+                    <img src="{{ player.profile_picture_url }}" alt="" loading="lazy"
+                         class="w-10 h-10 rounded-full object-cover shrink-0 ring-2 ring-amber-200 dark:ring-amber-500/30">
+                    {% else %}
+                    <span class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center shrink-0">
+                        <i class="ti ti-user-question text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+                    </span>
+                    {% endif %}
+                    <div class="min-w-0 flex-1">
+                        <p class="text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 {{ reason_cls }}">
+                            <i class="ti {{ reason_icon }} text-[11px]" aria-hidden="true"></i> {{ reason }}
+                        </p>
+                        <div class="flex items-center justify-between gap-2 mt-0.5">
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</span>
+                            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+                        </div>
+                        <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+                            <p class="font-mono truncate"><i class="ti ti-mail mr-1" aria-hidden="true"></i>{{ player.user.email if player.user else 'No email on file' }}</p>
+                            <p class="flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono">
+                                <span><i class="ti ti-hash mr-0.5" aria-hidden="true"></i>PID {{ player.id }}</span>
+                                {% if player.discord_id %}<span class="text-indigo-600 dark:text-indigo-400"><i class="ti ti-brand-discord mr-0.5" aria-hidden="true"></i>{{ player.discord_username or player.discord_id }}</span>{% endif %}
+                                {% if player.linked_primary_player_id %}<span class="text-blue-600 dark:text-blue-400"><i class="ti ti-git-merge mr-0.5" aria-hidden="true"></i>#{{ player.linked_primary_player_id }}</span>{% endif %}
+                                {% if player.league %}<span><i class="ti ti-trophy mr-0.5" aria-hidden="true"></i>{{ player.league.name }}</span>{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </a>
             {% endfor %}
         </div>
-    {% endcall %}
+        <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">
+            <span>{{ total }} flagged · {{ linked_count }} linked · {{ no_email }} missing email</span>
+            <span>open a profile to merge, verify or dismiss</span>
+        </div>
+    </section>
     {% else %}
-    {{ empty_state("ti-circle-check", "All Clear!", "No accounts need manual review at this time.") }}
+    {{ empty_state("ti-circle-check", "All Clear", "No accounts need manual review at this time.", action={'label': 'View all players', 'url': url_for('players.view_players'), 'icon': 'ti-users'}) }}
     {% endif %}
 </div>
 {% else %}

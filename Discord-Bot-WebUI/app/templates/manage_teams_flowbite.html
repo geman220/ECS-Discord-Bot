@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import empty_state, page_header %}
 {% from "macros/flowbite.html" import modal_form %}
 {% from "macros/_modern_kit.html" import page_header, section_card, empty_state %}
 
@@ -7,24 +8,90 @@
 {% block main_content %}
 {% if shell == 'console' %}
 {# ===================== MODERN (console) ===================== #}
+{# Real aggregates derived from route vars (Season -> League -> Team -> players). #}
+{% set ns = namespace(leagues=0, teams=0, players=0) %}
+{% for season in seasons %}
+  {% set ns.leagues = ns.leagues + (season.leagues|length if season.leagues else 0) %}
+  {% for league in (season.leagues or []) %}
+    {% set ns.teams = ns.teams + (league.teams|length if league.teams else 0) %}
+    {% for team in (league.teams or []) %}
+      {% set ns.players = ns.players + (team.players|length if team.players else 0) %}
+    {% endfor %}
+  {% endfor %}
+{% endfor %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-    {{ page_header("Manage Teams", subtitle="Seasons & Leagues") }}
+    {{ page_header("Manage Teams", subtitle="Current seasons · leagues · rosters") }}
 
     {% if seasons %}
+    {# ---- KPI band: top-level real counts ---- #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Active Seasons</span>
+                <i class="ti ti-calendar-event text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+            </div>
+            <span class="mt-3 block font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ seasons|length }}</span>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Leagues</span>
+                <i class="ti ti-trophy text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+            </div>
+            <span class="mt-3 block font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ ns.leagues }}</span>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Teams</span>
+                <i class="ti ti-shield-half text-lg text-gray-900 dark:text-white shrink-0" aria-hidden="true"></i>
+            </div>
+            <span class="mt-3 block font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ ns.teams }}</span>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Rostered Players</span>
+                <i class="ti ti-users text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+            </div>
+            <span class="mt-3 block font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ ns.players }}</span>
+        </div>
+    </div>
+
+    {# ---- Per-season feature cards ---- #}
     <div class="space-y-6">
         {% for season in seasons %}
-        {% call section_card(season.name, icon="ti-calendar-event") %}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            {# Header bar: season name + real date range + league/team tallies #}
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 sm:px-5 py-3.5 border-b border-gray-200 dark:border-gray-700">
+                <div class="min-w-0">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ season.league_type }} season</p>
+                    <h2 class="text-base font-bold text-gray-900 dark:text-white truncate flex items-center gap-2">
+                        <i class="ti ti-calendar-event text-ecs-green" aria-hidden="true"></i>{{ season.name }}
+                    </h2>
+                </div>
+                <div class="flex items-center gap-4 shrink-0 text-xs">
+                    {% if season.start_date or season.end_date %}
+                    <span class="inline-flex items-center gap-1.5 font-mono text-gray-600 dark:text-gray-300">
+                        <i class="ti ti-clock-hour-4 text-gray-400" aria-hidden="true"></i>
+                        {{ season.start_date.strftime('%b %-d, %Y') if season.start_date else '—' }} – {{ season.end_date.strftime('%b %-d, %Y') if season.end_date else '—' }}
+                    </span>
+                    {% endif %}
+                    <span class="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        <span class="font-mono text-gray-900 dark:text-white">{{ season.leagues|length if season.leagues else 0 }}</span> leagues
+                    </span>
+                </div>
+            </div>
+
             {% if season.leagues %}
-            {# League Tabs — hooks preserved verbatim #}
-            <div class="border-b border-gray-200 dark:border-gray-700">
+            {# League Tabs — segmented control; hooks preserved verbatim #}
+            <div class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
                 <div class="flex flex-wrap gap-1 p-2">
                     {% for league in season.leagues %}
                     <button type="button"
-                            class="league-tab-{{ season.id }} inline-flex items-center min-h-[44px] sm:min-h-0 sm:py-2 px-4 text-sm font-semibold rounded-lg transition-colors
+                            class="league-tab-{{ season.id }} inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:py-2 px-4 text-sm font-semibold rounded-lg transition-colors
                                    focus:outline-none focus:ring-2 focus:ring-ecs-green
                                    {% if league.is_first %}bg-ecs-green text-white{% else %}text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700{% endif %}"
                             data-tab="league-{{ league.name|replace(' ', '-')|lower }}-{{ season.id }}">
                         {{ league.name }}
+                        <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded {% if league.is_first %}bg-white/20{% else %}bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300{% endif %}">{{ league.teams|length if league.teams else 0 }}</span>
                     </button>
                     {% endfor %}
                 </div>
@@ -32,12 +99,14 @@
 
             {# League Content #}
             {% for league in season.leagues %}
-            <div class="league-content-{{ season.id }} {% if not league.is_first %}hidden{% endif %} p-4 sm:p-5"
+            <div class="league-content-{{ season.id }} {% if not league.is_first %}hidden{% endif %}"
                  id="league-{{ league.name|replace(' ', '-')|lower }}-{{ season.id }}-content">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">
-                        {{ league.name }} Teams
-                        <span class="font-mono font-normal normal-case text-gray-500 dark:text-gray-400">({{ league.teams|length if league.teams else 0 }})</span>
+                {# Command toolbar #}
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+                        {{ league.name }}
+                        <span class="font-mono font-normal normal-case text-gray-500 dark:text-gray-400">{{ league.teams|length if league.teams else 0 }} teams</span>
                     </h3>
                     <button type="button"
                             class="add-team-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
@@ -52,33 +121,96 @@
                 </div>
 
                 {% if league.teams and league.teams|length > 0 %}
-                <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    {% for team in league.teams %}
-                    <li class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <span class="font-semibold text-gray-900 dark:text-white truncate">
-                            <i class="ti ti-shield-half text-ecs-green mr-1.5" aria-hidden="true"></i>{{ team.name }}
-                        </span>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <button type="button"
-                                    class="edit-team-btn inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                                    data-team-id="{{ team.id }}"
-                                    data-team-name="{{ team.name }}"
-                                    data-league-name="{{ league.name }}"
-                                    data-season-id="{{ season.id }}">
-                                <i class="ti ti-edit" aria-hidden="true"></i>
-                                Edit
-                            </button>
-                            <button type="button"
-                                    class="delete-team-btn inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                                    data-team-id="{{ team.id }}"
-                                    data-team-name="{{ team.name }}">
-                                <i class="ti ti-trash" aria-hidden="true"></i>
-                                Delete
-                            </button>
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
+                {# Real table on md+, stacked rows on mobile #}
+                <div class="md:overflow-x-auto">
+                    <table class="hidden md:table w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-200 dark:border-gray-700">
+                                <th scope="col" class="px-5 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Team</th>
+                                <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Players</th>
+                                <th scope="col" class="px-3 py-2.5 text-center font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Discord</th>
+                                <th scope="col" class="px-5 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for team in league.teams %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="px-5 py-3">
+                                    <span class="inline-flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                                        <i class="ti ti-shield-half text-ecs-green" aria-hidden="true"></i>{{ team.name }}
+                                    </span>
+                                </td>
+                                <td class="px-3 py-3 text-right font-mono text-gray-900 dark:text-white">{{ team.players|length if team.players else 0 }}</td>
+                                <td class="px-3 py-3 text-center hidden lg:table-cell">
+                                    {% if team.discord_channel_id %}
+                                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-600 dark:text-green-400">
+                                        <i class="ti ti-brand-discord" aria-hidden="true"></i>Linked
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center gap-1 text-xs font-medium text-gray-400 dark:text-gray-500">
+                                        <i class="ti ti-plug-connected-x" aria-hidden="true"></i>None
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-5 py-3">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button type="button"
+                                                class="edit-team-btn inline-flex items-center gap-1 h-9 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                                data-team-id="{{ team.id }}"
+                                                data-team-name="{{ team.name }}"
+                                                data-league-name="{{ league.name }}"
+                                                data-season-id="{{ season.id }}">
+                                            <i class="ti ti-edit" aria-hidden="true"></i>
+                                            Edit
+                                        </button>
+                                        <button type="button"
+                                                class="delete-team-btn inline-flex items-center gap-1 h-9 px-3 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                                data-team-id="{{ team.id }}"
+                                                data-team-name="{{ team.name }}">
+                                            <i class="ti ti-trash" aria-hidden="true"></i>
+                                            Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    {# Mobile stacked rows #}
+                    <ul role="list" class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for team in league.teams %}
+                        <li class="px-4 py-3.5">
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="inline-flex items-center gap-2 font-semibold text-gray-900 dark:text-white truncate">
+                                    <i class="ti ti-shield-half text-ecs-green shrink-0" aria-hidden="true"></i>{{ team.name }}
+                                </span>
+                                <span class="shrink-0 inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                    <i class="ti ti-users" aria-hidden="true"></i><span class="font-mono">{{ team.players|length if team.players else 0 }}</span>
+                                </span>
+                            </div>
+                            <div class="mt-3 flex items-center gap-2">
+                                <button type="button"
+                                        class="edit-team-btn flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                        data-team-id="{{ team.id }}"
+                                        data-team-name="{{ team.name }}"
+                                        data-league-name="{{ league.name }}"
+                                        data-season-id="{{ season.id }}">
+                                    <i class="ti ti-edit" aria-hidden="true"></i>
+                                    Edit
+                                </button>
+                                <button type="button"
+                                        class="delete-team-btn flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                        data-team-id="{{ team.id }}"
+                                        data-team-name="{{ team.name }}">
+                                    <i class="ti ti-trash" aria-hidden="true"></i>
+                                    Delete
+                                </button>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
                 {% else %}
                 {{ empty_state("ti-users-off", "No teams yet", "Click 'Add Team' to create one for this league.") }}
                 {% endif %}
@@ -87,7 +219,7 @@
             {% else %}
             {{ empty_state("ti-trophy-off", "No leagues yet", "This season has no leagues configured.") }}
             {% endif %}
-        {% endcall %}
+        </section>
         {% endfor %}
     </div>
     {% else %}

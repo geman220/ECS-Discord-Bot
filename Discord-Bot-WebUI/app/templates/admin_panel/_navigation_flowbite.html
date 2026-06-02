@@ -296,7 +296,7 @@
             </div>
 
             {# Admin/System #}
-            {% set admin_active = request.endpoint and request.endpoint in ['admin_panel.feedback_list', 'admin_panel.appearance', 'admin_panel.feature_toggles', 'admin_panel.system_health_consolidated', 'admin_panel.cache_redis_consolidated', 'admin_panel.api_management', 'admin_panel.docker_management', 'admin_panel.security_dashboard', 'admin_panel.task_monitoring_page', 'admin_panel.audit_logs', 'ai_assistant.admin_metrics'] %}
+            {% set admin_active = request.endpoint and request.endpoint in ['admin_panel.feedback_list', 'admin_panel.appearance', 'admin_panel.feature_toggles', 'admin_panel.system_health_consolidated', 'admin_panel.cache_redis_consolidated', 'admin_panel.api_management', 'admin_panel.docker_management', 'admin_panel.security_dashboard', 'admin_panel.task_monitoring_page', 'admin_panel.audit_logs', 'ai_assistant.admin_metrics', 'admin_panel.reports_center', 'admin_panel.player_stats_report', 'admin_panel.attendance_report', 'admin_panel.movement_report', 'admin_panel.retention_report', 'admin_panel.roster_history_report', 'admin_panel.leaderboards_report', 'admin_panel.jersey_report', 'admin_panel.standings_report', 'admin_panel.discipline_report', 'admin_panel.contactability_report'] %}
             <div>
                 <button type="button" data-action="admin-nav-mobile-accordion"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors
@@ -305,7 +305,9 @@
                     <i class="ti ti-chevron-down text-xs transition-transform duration-200"></i>
                 </button>
                 <div class="{{ '' if admin_active else 'hidden' }} pl-4 mt-1 space-y-0.5 border-l-2 border-gray-200 dark:border-gray-600 ml-5">
-                    <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase">Feedback & Logs</div>
+                    <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase">Reports & Exports</div>
+                    <a href="{{ url_for('admin_panel.reports_center') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-report-analytics text-gray-400 text-xs"></i>Reports Hub</a>
+                    <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Feedback & Logs</div>
                     <a href="{{ url_for('admin_panel.feedback_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-message text-gray-400 text-xs"></i>Feedback</a>
                     <a href="{{ url_for('admin_panel.audit_logs') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-file-text text-gray-400 text-xs"></i>Audit Logs</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Monitoring</div>
@@ -679,6 +681,11 @@
                     <div class="py-2 grid grid-cols-2 gap-x-2">
                         {# Left Column: Feedback & Logs + Monitoring #}
                         <div>
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Reports & Exports</div>
+                            <a href="{{ url_for('admin_panel.reports_center') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-report-analytics text-gray-400"></i>Reports Hub
+                            </a>
+                            <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                             <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Feedback & Logs</div>
                             <a href="{{ url_for('admin_panel.feedback_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <i class="ti ti-message text-gray-400"></i>Feedback

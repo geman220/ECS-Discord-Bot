@@ -22,10 +22,12 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_filter_bar, data_table_row_card, empty_state as kit_empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table_th, empty_state as kit_empty_state %}
+{% set podium_tones = {1: 'text-ecs-gold-500 dark:text-ecs-gold-400', 2: 'text-gray-400 dark:text-gray-300', 3: 'text-amber-600 dark:text-amber-400'} %}
+{% set podium_ring = {1: 'border-ecs-gold-400/60 dark:border-ecs-gold-400/40', 2: 'border-gray-300 dark:border-gray-600', 3: 'border-amber-500/50 dark:border-amber-400/30'} %}
 <div class="space-y-6">
 
-  {% call page_header('I-Spy Players', subtitle='I-Spy') %}
+  {% call page_header('I-Spy Players', subtitle='I-Spy · Roster & Leaderboard') %}
     {% if active_season %}
     <span class="inline-flex items-center gap-1.5 px-2.5 h-9 rounded-lg bg-ecs-green/10 text-ecs-green text-sm font-semibold">
       <i class="ti ti-calendar-event" aria-hidden="true"></i>{{ active_season.name }}
@@ -42,47 +44,91 @@
     {{ stat_card('ti-trophy', 'Top Points', player_stats.top_points, tone='gold') }}
   </div>
 
-  {# ----- Players table ----- #}
+  {# ----- Podium: top 3 of the leaderboard (real `leaderboard` var, top-10 by points) ----- #}
+  {% if leaderboard %}
+  <section aria-labelledby="podiumHeading" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-award text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+      <h2 id="podiumHeading" class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Leaders</h2>
+      <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">{% if active_season %}{{ active_season.name }}{% else %}All seasons{% endif %}</span>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700">
+      {% for leader in leaderboard[:3] %}
+      <div class="flex items-center gap-4 px-4 sm:px-5 py-4">
+        <div class="shrink-0 w-12 h-12 rounded-full border-2 {{ podium_ring.get(loop.index, podium_ring[3]) }} flex flex-col items-center justify-center">
+          <i class="ti ti-trophy {{ podium_tones.get(loop.index, podium_tones[3]) }}" aria-hidden="true"></i>
+          <span class="font-mono text-[11px] font-bold leading-none mt-0.5 {{ podium_tones.get(loop.index, podium_tones[3]) }}">#{{ loop.index }}</span>
+        </div>
+        <div class="min-w-0">
+          <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Discord ID</p>
+          <code class="block text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded font-mono text-gray-700 dark:text-gray-300 truncate">{{ leader.discord_id }}</code>
+          <p class="mt-1.5 flex items-baseline gap-1.5">
+            <span class="font-mono text-2xl font-bold text-gray-900 dark:text-white leading-none">{{ leader.total_points }}</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">pts</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">· <span class="text-green-600 dark:text-green-400">{{ leader.approved_shots }}</span> approved</span>
+          </p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# ----- Players roster table ----- #}
   {% if players %}
-  {% call data_table('All Players', icon='ti-users', count=players|length, search_placeholder='Search by Discord ID…', search_id='searchPlayers', filters=False) %}
-    {{ data_table_filter_bar('Search by Discord ID…', 'searchPlayers') }}
-    {# season filter chip in its own bar; kept separate so search_id stays canonical #}
-    <div class="flex flex-wrap items-center gap-2 px-4 pb-3 -mt-1">
-      <label for="filterSeason" class="sr-only">Filter by season</label>
-      <select id="filterSeason" class="input-ecs h-9 px-3 text-sm">
-        <option value="">All Seasons</option>
-        {% for season in seasons %}
-        <option value="{{ season.id }}" {% if active_season and season.id == active_season.id %}selected{% endif %}>{{ season.name }}</option>
-        {% endfor %}
-      </select>
+  <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    {# command toolbar: title + count + season context + search #}
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-list-numbers text-ecs-green" aria-hidden="true"></i> Player Roster
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ players|length }}</span>
+      </h2>
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div class="relative flex-1 sm:w-64">
+          <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+          <input type="search" id="searchPlayers" placeholder="Search by Discord ID…"
+                 class="input-ecs w-full h-9 pl-9 pr-3 text-sm" aria-label="Search by Discord ID">
+        </div>
+        <label for="filterSeason" class="sr-only">Filter by season</label>
+        <select id="filterSeason" class="input-ecs h-9 px-3 text-sm">
+          <option value="">All Seasons</option>
+          {% for season in seasons %}
+          <option value="{{ season.id }}" {% if active_season and season.id == active_season.id %}selected{% endif %}>{{ season.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
     </div>
 
-    {# md+ : real table #}
+    {# md+ : real table with mono numerals #}
+    <div class="md:overflow-x-auto">
     <table class="hidden md:table w-full text-sm text-left" id="playersTable">
       <thead class="bg-gray-50 dark:bg-gray-700/40">
         <tr>
           {{ data_table_th('#', key='rank', sortable=False) }}
           {{ data_table_th('Discord ID', key='discord', sortable=False) }}
-          {{ data_table_th('Points', key='points', sortable=False) }}
-          {{ data_table_th('Shots', key='shots', sortable=False, hide='sm') }}
+          {{ data_table_th('Points', key='points', sortable=False, align='right') }}
+          {{ data_table_th('Shots (✓/✗)', key='shots', sortable=False, hide='sm') }}
+          {{ data_table_th('Approval', key='approval', sortable=False, hide='sm') }}
           {{ data_table_th('Streak', key='streak', sortable=False, hide='sm') }}
+          {{ data_table_th('Targets', key='targets', sortable=False, hide='md') }}
           {{ data_table_th('Last Active', key='last', sortable=False, hide='md') }}
           {{ data_table_th('Actions', key='actions', sortable=False, align='right') }}
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for player in players %}
+        {% set approval = (player.approved_shots / player.total_shots * 100) if player.total_shots else 0 %}
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-discord-id="{{ player.discord_id }}">
-          <td class="px-3 py-3 align-middle">
+          <td class="px-3 py-3 align-middle whitespace-nowrap">
             <span class="font-mono font-semibold text-gray-500 dark:text-gray-400">{{ loop.index }}</span>
             {% if loop.index <= 3 %}
-            <i class="ti ti-trophy ml-1 {% if loop.index == 1 %}text-ecs-gold-500 dark:text-ecs-gold-400{% elif loop.index == 2 %}text-gray-400{% else %}text-amber-600 dark:text-amber-400{% endif %}" aria-hidden="true"></i>
+            <i class="ti ti-trophy ml-1 {{ podium_tones.get(loop.index, podium_tones[3]) }}" aria-hidden="true"></i>
             {% endif %}
           </td>
           <td class="px-3 py-3 align-middle">
             <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono text-gray-700 dark:text-gray-300">{{ player.discord_id }}</code>
           </td>
-          <td class="px-3 py-3 align-middle">
+          <td class="px-3 py-3 align-middle text-right">
             <span class="font-mono font-bold text-gray-900 dark:text-white">{{ player.total_points }}</span>
           </td>
           <td class="px-3 py-3 align-middle hidden md:table-cell">
@@ -96,12 +142,27 @@
             </div>
           </td>
           <td class="px-3 py-3 align-middle hidden md:table-cell">
+            {% if player.total_shots %}
+            <div class="flex items-center gap-2">
+              <div class="w-16 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" role="img" aria-label="{{ approval|round|int }} percent approved">
+                <div class="h-full rounded-full {% if approval >= 75 %}bg-green-500{% elif approval >= 50 %}bg-amber-500{% else %}bg-red-500{% endif %}" style="width: {{ approval|round|int }}%"></div>
+              </div>
+              <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ approval|round|int }}%</span>
+            </div>
+            {% else %}
+            <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 align-middle hidden md:table-cell">
             <div class="flex flex-col leading-tight">
               <span class="text-gray-900 dark:text-white"><span class="font-mono font-semibold">{{ player.current_streak }}</span> current</span>
               <span class="text-xs text-gray-500 dark:text-gray-400"><span class="font-mono">{{ player.max_streak }}</span> best</span>
             </div>
           </td>
-          <td class="px-3 py-3 align-middle text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell font-mono">
+          <td class="px-3 py-3 align-middle hidden lg:table-cell">
+            <span class="font-mono text-gray-900 dark:text-white">{{ player.unique_targets_count }}</span>
+          </td>
+          <td class="px-3 py-3 align-middle text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell font-mono whitespace-nowrap">
             {% if player.last_shot_at %}
             {{ player.last_shot_at.strftime('%b %d, %Y %H:%M') }}
             {% else %}
@@ -134,16 +195,18 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
 
-    {# mobile : stacked cards (share #playersTable tbody hooks for search) #}
+    {# mobile : dense stacked cards (share #playersTable tbody hooks for search) #}
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700" id="playersTableMobile">
       {% for player in players %}
+      {% set approval = (player.approved_shots / player.total_shots * 100) if player.total_shots else 0 %}
       <div class="px-4 py-3.5" data-discord-id="{{ player.discord_id }}">
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-2 min-w-0">
             <span class="font-mono font-semibold text-gray-500 dark:text-gray-400">{{ loop.index }}</span>
             {% if loop.index <= 3 %}
-            <i class="ti ti-trophy {% if loop.index == 1 %}text-ecs-gold-500 dark:text-ecs-gold-400{% elif loop.index == 2 %}text-gray-400{% else %}text-amber-600 dark:text-amber-400{% endif %}" aria-hidden="true"></i>
+            <i class="ti ti-trophy {{ podium_tones.get(loop.index, podium_tones[3]) }}" aria-hidden="true"></i>
             {% endif %}
             <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono text-gray-700 dark:text-gray-300 truncate">{{ player.discord_id }}</code>
           </div>
@@ -152,7 +215,9 @@
         <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
           <span>Shots <span class="font-mono text-gray-900 dark:text-white">{{ player.total_shots }}</span>
             (<span class="font-mono text-green-600 dark:text-green-400">{{ player.approved_shots }}</span>/<span class="font-mono text-red-600 dark:text-red-400">{{ player.disallowed_shots }}</span>)</span>
+          {% if player.total_shots %}<span>Approval <span class="font-mono text-gray-900 dark:text-white">{{ approval|round|int }}%</span></span>{% endif %}
           <span>Streak <span class="font-mono text-gray-900 dark:text-white">{{ player.current_streak }}</span> / best <span class="font-mono">{{ player.max_streak }}</span></span>
+          <span>Targets <span class="font-mono text-gray-900 dark:text-white">{{ player.unique_targets_count }}</span></span>
           <span>
             {% if player.last_shot_at %}<span class="font-mono">{{ player.last_shot_at.strftime('%b %d, %Y %H:%M') }}</span>{% else %}Never active{% endif %}
           </span>
@@ -176,7 +241,12 @@
       </div>
       {% endfor %}
     </div>
-  {% endcall %}
+
+    <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+      <span>Showing top <span class="font-mono">{{ players|length }}</span> by points{% if players|length >= 50 %} (capped at 50){% endif %}</span>
+      <span class="font-mono">Approval = approved ÷ total shots</span>
+    </div>
+  </section>
   {% else %}
   {{ kit_empty_state('ti-users-minus', 'No Players Found', 'No players have joined the I-Spy game yet for this season.') }}
   {% endif %}

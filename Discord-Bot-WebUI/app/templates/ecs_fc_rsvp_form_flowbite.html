@@ -5,121 +5,191 @@
 {% block content %}
 {% if shell == 'console' %}
 {% import "macros/_modern_kit.html" as kit %}
-{% from "macros/flowbite.html" import textarea, button %}
-<div class="max-w-2xl mx-auto">
-    {{ kit.page_header("Match RSVP", subtitle="ECS FC") }}
+{# Real opponent: linked library opponent name, else the always-stored free-text opponent_name. #}
+{% set opp_name = (match.external_opponent.name if match.external_opponent else match.opponent_name) or 'TBD' %}
+{% set rsvp = existing_rsvp.response if existing_rsvp else none %}
+<div class="max-w-3xl mx-auto space-y-5 sm:space-y-6">
 
-    {# Match Info #}
-    {% call kit.section_card(
-        (match.team.name ~ ' vs ' ~ match.opponent.name) if match.opponent
-        else (match.team.name ~ ' - ' ~ (match.custom_opponent or 'TBD')),
-        icon="ti-calendar-event") %}
-    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700">
-        <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
-            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i> Date
-            </dt>
-            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ match.match_date.strftime('%A, %B %d, %Y') if match.match_date else 'TBD' }}</dd>
-        </div>
-        <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
-            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                <i class="ti ti-clock text-ecs-green" aria-hidden="true"></i> Time
-            </dt>
-            <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white">{{ match.match_time.strftime('%I:%M %p') if match.match_time else 'TBD' }}</dd>
-        </div>
-        <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
-            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                <i class="ti ti-map-pin text-ecs-green" aria-hidden="true"></i> Location
-            </dt>
-            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ match.location or 'TBD' }}</dd>
-        </div>
-        <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
-            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                <i class="ti ti-home text-ecs-green" aria-hidden="true"></i> Venue
-            </dt>
-            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ 'Home' if match.is_home else 'Away' }}</dd>
-        </div>
-        {% if match.home_shirt_color or match.away_shirt_color %}
-        <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3 sm:col-span-2">
-            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                <i class="ti ti-shirt text-ecs-green" aria-hidden="true"></i> Shirt Colors
-            </dt>
-            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
-                {% if match.home_shirt_color %}Us: {{ match.home_shirt_color }}{% endif %}
-                {% if match.home_shirt_color and match.away_shirt_color %} | {% endif %}
-                {% if match.away_shirt_color %}Them: {{ match.away_shirt_color }}{% endif %}
-            </dd>
-        </div>
-        {% endif %}
-    </dl>
+    {% call(slot) kit.page_header("Match RSVP", subtitle="ECS FC · " ~ (match.team.name if match.team else 'Team')) %}
+        <a href="{{ url_for('main.index') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700
+                  text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i> Home
+        </a>
     {% endcall %}
 
-    {% if existing_rsvp %}
-    <div class="mt-5">
-        {{ kit.alert('info', "Submitting again will update your response.", title="You've already submitted an RSVP.", dismissible=False) }}
-    </div>
-    {% endif %}
+    {# ===== MATCH FEATURE CARD — the primary object ===== #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2 bg-gray-50 dark:bg-gray-700/40">
+            <div class="flex items-center gap-2 min-w-0">
+                <i class="ti ti-ballpen text-ecs-green shrink-0" aria-hidden="true"></i>
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white truncate">Your Next Match</span>
+            </div>
+            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide
+                         {% if match.is_home_match %}bg-ecs-green/12 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                <i class="ti {{ 'ti-home' if match.is_home_match else 'ti-plane-departure' }} text-[12px]" aria-hidden="true"></i>
+                {{ 'Home' if match.is_home_match else 'Away' }}
+            </span>
+        </div>
+
+        {# matchup hero #}
+        <div class="p-4 sm:p-6">
+            <div class="flex items-center gap-3 sm:gap-4">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                    <div class="w-11 h-11 rounded-xl bg-ecs-green/12 text-ecs-green flex items-center justify-center shrink-0">
+                        <i class="ti ti-shield-filled text-2xl" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-base sm:text-lg font-bold leading-tight text-gray-900 dark:text-white truncate">{{ match.team.name if match.team else 'Our Team' }}</div>
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400">{{ 'Home' if match.is_home_match else 'Away' }}</div>
+                    </div>
+                </div>
+                <span class="font-mono text-sm font-bold text-gray-400 dark:text-gray-500 px-1 shrink-0">vs</span>
+                <div class="flex items-center gap-3 min-w-0 flex-1 justify-end text-right">
+                    <div class="min-w-0">
+                        <div class="text-base sm:text-lg font-bold leading-tight text-gray-900 dark:text-white truncate">{{ opp_name }}</div>
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400">{{ 'Away' if match.is_home_match else 'Home' }}</div>
+                    </div>
+                    <div class="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 flex items-center justify-center shrink-0 border border-gray-200 dark:border-gray-600">
+                        <i class="ti ti-shield text-2xl" aria-hidden="true"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# fact band — real fields, mono figures #}
+        <dl class="grid grid-cols-2 sm:grid-cols-4 gap-px bg-gray-200 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 px-4 py-3">
+                <dt class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i> Date
+                </dt>
+                <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ match.match_date.strftime('%a, %b %d') if match.match_date else 'TBD' }}</dd>
+            </div>
+            <div class="bg-white dark:bg-gray-800 px-4 py-3">
+                <dt class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <i class="ti ti-clock text-ecs-green" aria-hidden="true"></i> Kickoff
+                </dt>
+                <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white">{{ match.match_time.strftime('%I:%M %p') if match.match_time else 'TBD' }}</dd>
+            </div>
+            <div class="bg-white dark:bg-gray-800 px-4 py-3">
+                <dt class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <i class="ti ti-map-pin text-ecs-green" aria-hidden="true"></i> Location
+                </dt>
+                <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white truncate">{{ match.location or 'TBD' }}</dd>
+            </div>
+            <div class="bg-white dark:bg-gray-800 px-4 py-3">
+                <dt class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <i class="ti ti-flag text-ecs-green" aria-hidden="true"></i> Field
+                </dt>
+                <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white truncate">{{ match.field_name or '—' }}</dd>
+            </div>
+            {% if match.home_shirt_color or match.away_shirt_color %}
+            <div class="bg-white dark:bg-gray-800 px-4 py-3 col-span-2 sm:col-span-4">
+                <dt class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <i class="ti ti-shirt text-ecs-green" aria-hidden="true"></i> Shirt Colors
+                </dt>
+                <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    {% if match.home_shirt_color %}Us: {{ match.home_shirt_color }}{% endif %}
+                    {% if match.home_shirt_color and match.away_shirt_color %} <span class="text-gray-400 dark:text-gray-500">·</span> {% endif %}
+                    {% if match.away_shirt_color %}Them: {{ match.away_shirt_color }}{% endif %}
+                </dd>
+            </div>
+            {% endif %}
+        </dl>
+    </section>
 
     {# RSVP Form #}
-    <form method="POST" action="{{ url_for('ecs_fc.submit_rsvp', match_id=match.id) }}" class="space-y-5 mt-5">
+    <form method="POST" action="{{ url_for('ecs_fc.submit_rsvp', match_id=match.id) }}" class="space-y-5 sm:space-y-6">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        {% call kit.section_card("Will you attend?", icon="ti-help-circle") %}
-        <fieldset class="p-4 sm:p-5">
-            <legend class="sr-only">Match availability</legend>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <label class="block">
-                    <input type="radio" name="availability" value="yes"
-                           {% if existing_rsvp and existing_rsvp.availability == 'yes' %}checked{% endif %}
-                           class="peer sr-only">
-                    <div class="cursor-pointer text-center min-h-[44px] flex items-center justify-center gap-1.5 py-3 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300
-                                peer-checked:border-green-500 peer-checked:bg-green-50 dark:peer-checked:bg-green-900/30
-                                peer-checked:text-green-600 dark:peer-checked:text-green-400
-                                peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green transition-colors">
-                        <i class="ti ti-check" aria-hidden="true"></i> Yes
-                    </div>
-                </label>
-                <label class="block">
-                    <input type="radio" name="availability" value="maybe"
-                           {% if existing_rsvp and existing_rsvp.availability == 'maybe' %}checked{% endif %}
-                           class="peer sr-only">
-                    <div class="cursor-pointer text-center min-h-[44px] flex items-center justify-center gap-1.5 py-3 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300
-                                peer-checked:border-yellow-500 peer-checked:bg-yellow-50 dark:peer-checked:bg-yellow-900/30
-                                peer-checked:text-yellow-600 dark:peer-checked:text-yellow-400
-                                peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green transition-colors">
-                        <i class="ti ti-question-mark" aria-hidden="true"></i> Maybe
-                    </div>
-                </label>
-                <label class="block">
-                    <input type="radio" name="availability" value="no"
-                           {% if existing_rsvp and existing_rsvp.availability == 'no' %}checked{% endif %}
-                           class="peer sr-only">
-                    <div class="cursor-pointer text-center min-h-[44px] flex items-center justify-center gap-1.5 py-3 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300
-                                peer-checked:border-red-500 peer-checked:bg-red-50 dark:peer-checked:bg-red-900/30
-                                peer-checked:text-red-600 dark:peer-checked:text-red-400
-                                peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green transition-colors">
-                        <i class="ti ti-x" aria-hidden="true"></i> No
-                    </div>
-                </label>
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+                <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-help-circle text-ecs-green" aria-hidden="true"></i> Will you attend?
+                </h3>
+                {% if rsvp %}
+                <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide
+                             {% if rsvp == 'yes' %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400
+                             {% elif rsvp == 'maybe' %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400
+                             {% else %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400{% endif %}">
+                    <i class="ti {{ 'ti-check' if rsvp == 'yes' else ('ti-help' if rsvp == 'maybe' else 'ti-x') }} text-[12px]" aria-hidden="true"></i>
+                    Current: {{ rsvp|capitalize }}
+                </span>
+                {% endif %}
             </div>
-        </fieldset>
-        {% endcall %}
+            <fieldset class="p-4 sm:p-5">
+                <legend class="sr-only">Match availability</legend>
+                {% if match.rsvp_deadline %}
+                <p class="mb-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <i class="ti ti-hourglass-low text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+                    Respond by <span class="font-mono font-semibold text-gray-700 dark:text-gray-200">{{ match.rsvp_deadline.strftime('%a %b %d · %I:%M %p') }}</span>
+                </p>
+                {% endif %}
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <label class="block">
+                        <input type="radio" name="availability" value="yes"
+                               {% if rsvp == 'yes' %}checked{% endif %}
+                               class="peer sr-only">
+                        <div class="cursor-pointer min-h-[44px] flex flex-col items-center justify-center gap-0.5 py-3.5 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300
+                                    peer-checked:border-green-500 peer-checked:bg-green-50 dark:peer-checked:bg-green-900/30
+                                    peer-checked:text-green-600 dark:peer-checked:text-green-400 peer-checked:shadow-sm
+                                    peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green transition-colors">
+                            <span class="inline-flex items-center gap-1.5 text-sm font-semibold"><i class="ti ti-circle-check text-lg" aria-hidden="true"></i> Yes</span>
+                            <span class="text-[11px] uppercase tracking-wide opacity-70">I'm in</span>
+                        </div>
+                    </label>
+                    <label class="block">
+                        <input type="radio" name="availability" value="maybe"
+                               {% if rsvp == 'maybe' %}checked{% endif %}
+                               class="peer sr-only">
+                        <div class="cursor-pointer min-h-[44px] flex flex-col items-center justify-center gap-0.5 py-3.5 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300
+                                    peer-checked:border-yellow-500 peer-checked:bg-yellow-50 dark:peer-checked:bg-yellow-900/30
+                                    peer-checked:text-yellow-600 dark:peer-checked:text-yellow-400 peer-checked:shadow-sm
+                                    peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green transition-colors">
+                            <span class="inline-flex items-center gap-1.5 text-sm font-semibold"><i class="ti ti-help-circle text-lg" aria-hidden="true"></i> Maybe</span>
+                            <span class="text-[11px] uppercase tracking-wide opacity-70">Tentative</span>
+                        </div>
+                    </label>
+                    <label class="block">
+                        <input type="radio" name="availability" value="no"
+                               {% if rsvp == 'no' %}checked{% endif %}
+                               class="peer sr-only">
+                        <div class="cursor-pointer min-h-[44px] flex flex-col items-center justify-center gap-0.5 py-3.5 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300
+                                    peer-checked:border-red-500 peer-checked:bg-red-50 dark:peer-checked:bg-red-900/30
+                                    peer-checked:text-red-600 dark:peer-checked:text-red-400 peer-checked:shadow-sm
+                                    peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green transition-colors">
+                            <span class="inline-flex items-center gap-1.5 text-sm font-semibold"><i class="ti ti-circle-x text-lg" aria-hidden="true"></i> No</span>
+                            <span class="text-[11px] uppercase tracking-wide opacity-70">Can't make it</span>
+                        </div>
+                    </label>
+                </div>
+            </fieldset>
+        </section>
 
-        {% call kit.section_card("Notes", icon="ti-note") %}
-        <div class="p-4 sm:p-5">
-            {{ textarea('notes', placeholder="Any additional information…", rows=3, value=(existing_rsvp.notes if existing_rsvp else '')) }}
-        </div>
-        {% endcall %}
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                <i class="ti ti-note text-ecs-green" aria-hidden="true"></i>
+                <label for="notes" class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Notes <span class="font-normal normal-case text-gray-400 dark:text-gray-500">(optional)</span></label>
+            </div>
+            <div class="p-4 sm:p-5">
+                <textarea id="notes" name="notes" rows="3"
+                          class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-ecs-green focus:border-ecs-green"
+                          placeholder="Any additional information…">{{ existing_rsvp.notes if existing_rsvp else '' }}</textarea>
+            </div>
+        </section>
 
-        {{ button("Submit RSVP", variant="primary", type="submit", icon="send", size="lg", class_="w-full") }}
+        {% if existing_rsvp %}
+        {{ kit.alert('info', "Submitting again will update your response.", title="You've already RSVP'd.", dismissible=False) }}
+        {% endif %}
+
+        <button type="submit"
+                class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-6 py-3 rounded-lg bg-ecs-green text-white font-semibold
+                       hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-send" aria-hidden="true"></i>
+            {{ 'Update RSVP' if existing_rsvp else 'Submit RSVP' }}
+        </button>
     </form>
-
-    <div class="text-center mt-6">
-        <a href="{{ url_for('main.index') }}"
-           class="inline-flex items-center gap-1.5 text-sm font-medium text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
-            <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Home
-        </a>
-    </div>
 </div>
 {% else %}
 <div class="container mx-auto px-4 py-8 max-w-2xl">

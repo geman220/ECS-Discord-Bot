@@ -22,14 +22,13 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state %}
 {% set home_count = matches | selectattr('is_home_match') | list | length %}
+{% set total_responses = matches | sum(attribute='rsvp_counts.total') %}
+{% set next_match = matches | first if (matches and not show_past) else none %}
 <div class="space-y-6">
 
-  {{ page_header(team.name ~ ' Schedule', subtitle='ECS FC Team Schedule') }}
-
-  <!-- Actions -->
-  <div class="flex flex-wrap items-center gap-2">
+  {% call page_header(team.name, subtitle='ECS FC · Team Schedule') %}
     <button type="button"
             data-modal-target="addMatchModal" data-modal-toggle="addMatchModal"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg
@@ -43,155 +42,224 @@
               hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-file-import" aria-hidden="true"></i>Import
     </a>
-  </div>
+  {% endcall %}
+
+  <!-- Next match — primary object (real next upcoming match) -->
+  {% if next_match %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 h-11 flex items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+      <span class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+        <i class="ti ti-flag-3 text-ecs-green" aria-hidden="true"></i>Next Match
+      </span>
+      <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded
+          {% if next_match.status_color == 'success' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+          {% elif next_match.status_color == 'warning' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
+          {% elif next_match.status_color == 'danger' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
+          {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+        <i class="{{ next_match.status_icon }} mr-1" aria-hidden="true"></i>{{ next_match.status }}
+      </span>
+    </div>
+    <div class="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center gap-5">
+      <!-- date block -->
+      <div class="flex items-center gap-4 lg:pr-5 lg:border-r border-gray-200 dark:border-gray-700">
+        <div class="shrink-0 w-16 text-center">
+          <div class="text-[11px] font-bold uppercase tracking-wide text-ecs-green">{{ next_match.match_date.strftime('%b') }}</div>
+          <div class="font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ next_match.match_date.strftime('%d') }}</div>
+          <div class="text-[11px] text-gray-500 dark:text-gray-400 font-mono">{{ next_match.match_date.strftime('%a').upper() }}</div>
+        </div>
+        <div class="font-mono text-2xl font-bold text-gray-900 dark:text-white whitespace-nowrap">{{ next_match.match_time.strftime('%I:%M %p') }}</div>
+      </div>
+      <!-- fixture -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          {% if next_match.is_home_match %}
+          <span class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-md bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-xs font-bold font-mono">H</span>
+          {% else %}
+          <span class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-md bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 text-xs font-bold font-mono">A</span>
+          {% endif %}
+          <span class="text-lg font-bold text-gray-900 dark:text-white truncate">
+            <span class="text-ecs-green">{{ team.name }}</span>
+            <span class="text-gray-400 dark:text-gray-500 font-normal text-base">vs</span>
+            {{ next_match.opponent_name }}
+          </span>
+          {% if next_match.external_opponent_id %}<i class="ti ti-link text-gray-400" title="From Library" aria-label="From Library"></i>{% endif %}
+        </div>
+        <div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
+          <span class="flex items-center gap-1"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ next_match.location }}{% if next_match.field_name %} — {{ next_match.field_name }}{% endif %}</span>
+        </div>
+      </div>
+      <!-- RSVP summary + CTA -->
+      <div class="flex items-center gap-4 lg:pl-5 lg:border-l border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-3">
+          <div class="text-center"><div class="font-mono text-xl font-bold text-green-600 dark:text-green-400">{{ next_match.rsvp_counts.yes }}</div><div class="text-[10px] uppercase tracking-wide text-gray-400">In</div></div>
+          <div class="text-center"><div class="font-mono text-xl font-bold text-yellow-600 dark:text-yellow-400">{{ next_match.rsvp_counts.maybe }}</div><div class="text-[10px] uppercase tracking-wide text-gray-400">Maybe</div></div>
+          <div class="text-center"><div class="font-mono text-xl font-bold text-red-600 dark:text-red-400">{{ next_match.rsvp_counts.no }}</div><div class="text-[10px] uppercase tracking-wide text-gray-400">Out</div></div>
+        </div>
+        <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=next_match.id) }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-users" aria-hidden="true"></i>RSVPs
+        </a>
+      </div>
+    </div>
+  </section>
+  {% endif %}
 
   <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
     {{ stat_card('ti-calendar', show_past and 'Total Matches' or 'Upcoming', matches | length, tone='primary') }}
     {{ stat_card('ti-home', 'Home', home_count, tone='info') }}
     {{ stat_card('ti-plane-departure', 'Away', matches | length - home_count, tone='neutral') }}
+    {{ stat_card('ti-checkbox', 'RSVPs Logged', total_responses, tone='success') }}
   </div>
 
-  <!-- Filter -->
-  {% call section_card('Filters', icon='ti-filter') %}
-    <div class="p-4 sm:p-5">
-      <form method="get">
-        <label class="inline-flex items-center cursor-pointer gap-3 min-h-[44px]">
-          <input type="checkbox" class="sr-only peer" name="show_past" value="true"
-                 {% if show_past %}checked{% endif %} onchange="this.form.submit()">
-          <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
-          <span class="text-sm font-medium text-gray-900 dark:text-gray-300">Show past matches</span>
-        </label>
+  {# ===== Month calendar grid (server-built calendar_weeks; real matches placed by day) ===== #}
+  {% if calendar_weeks %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-calendar-month text-ecs-green" aria-hidden="true"></i>{{ calendar_label }}
+      </h2>
+      <div class="flex items-center gap-1">
+        <a href="{{ url_for('admin_panel.ecs_fc_team_schedule', team_id=team.id, month=prev_month, year=prev_year, show_past=show_past|string|lower) }}"
+           aria-label="Previous month"
+           class="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-chevron-left" aria-hidden="true"></i>
+        </a>
+        <a href="{{ url_for('admin_panel.ecs_fc_team_schedule', team_id=team.id, month=next_month, year=next_year, show_past=show_past|string|lower) }}"
+           aria-label="Next month"
+           class="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-chevron-right" aria-hidden="true"></i>
+        </a>
+      </div>
+    </div>
+
+    <div class="p-3">
+      <!-- weekday header -->
+      <div class="grid grid-cols-7 gap-1 mb-1 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+      </div>
+      <!-- day grid -->
+      <div class="grid grid-cols-7 gap-1 text-sm">
+        {% for week in calendar_weeks %}
+          {% for cell in week %}
+            {% if not cell.in_month %}
+            <div class="min-h-[68px] rounded-lg border border-gray-200/60 dark:border-gray-700/50 p-1.5 text-gray-300 dark:text-gray-600">
+              <span class="font-mono text-xs">{{ cell.day }}</span>
+            </div>
+            {% else %}
+            {% set next_here = cell.matches | selectattr('id', 'equalto', next_match_id) | list | length > 0 %}
+            <div class="min-h-[68px] rounded-lg p-1.5
+                        {% if cell.is_today or next_here %}border-2 border-ecs-green bg-ecs-green/5{% else %}border border-gray-200 dark:border-gray-700{% endif %}">
+              <span class="font-mono text-xs {% if cell.is_today or next_here %}font-bold text-ecs-green{% else %}text-gray-500 dark:text-gray-400{% endif %}">{{ cell.day }}</span>
+              {% for m in cell.matches %}
+              <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=m.id) }}" class="mt-1 block" title="{{ team.name }} {% if m.is_home_match %}vs{% else %}@{% endif %} {{ m.opponent_name }}">
+                <span class="block truncate rounded px-1 py-0.5 text-[10px] font-medium
+                             {% if m.is_home_match %}bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                  <span class="font-mono">{{ m.match_time.strftime('%I:%M%p').lstrip('0').lower() if m.match_time else '' }}</span>
+                  {% if m.is_home_match %}vs{% else %}@{% endif %} {{ m.opponent_name }}
+                </span>
+              </a>
+              {% endfor %}
+            </div>
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      </div>
+
+      <!-- legend -->
+      <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-500 dark:text-gray-400 px-1">
+        <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded bg-blue-100 dark:bg-blue-900/40"></span> Home</span>
+        <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600"></span> Away</span>
+        <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded border-2 border-ecs-green"></span> Next match</span>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Schedule -->
+  {% if matches %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i>{{ show_past and 'All Matches' or 'Upcoming Matches' }}
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ matches | length }}</span>
+      </h2>
+      <!-- segmented past/upcoming filter -->
+      <form method="get" class="flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700/60 self-start sm:self-auto" role="group" aria-label="Schedule range">
+        <button type="submit" name="show_past" value="false"
+                class="px-3 h-8 rounded-md text-xs font-semibold transition-colors {% if not show_past %}bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-white{% else %}text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %}">
+          Upcoming
+        </button>
+        <button type="submit" name="show_past" value="true"
+                class="px-3 h-8 rounded-md text-xs font-semibold transition-colors {% if show_past %}bg-white dark:bg-gray-800 shadow-sm text-gray-900 dark:text-white{% else %}text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %}">
+          All / Past
+        </button>
       </form>
     </div>
-  {% endcall %}
 
-  <!-- Matches -->
-  {% if matches %}
-    {% call data_table(show_past and 'All Matches' or 'Upcoming Matches', icon='ti-calendar', count=matches | length, search_placeholder='Filter matches…', search_id='matchFilter', filters=true) %}
-      {# Desktop table (md+) #}
-      <table class="hidden md:table w-full text-sm text-left">
-        <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
-          <tr>
-            {{ data_table_th('Date', key='date', active=true, dir='asc') }}
-            {{ data_table_th('Time', key='time', hide='sm') }}
-            {{ data_table_th('Opponent', key='opponent') }}
-            {{ data_table_th('Location', key='location', hide='sm') }}
-            {{ data_table_th('RSVP', key='rsvp', sortable=false) }}
-            {{ data_table_th('Status', key='status') }}
-            {{ data_table_th('Actions', sortable=false, align='right') }}
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-          {% for match in matches %}
-          <tr data-row class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <td class="px-3 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap" data-cell="date">{{ match.match_date.strftime('%a, %b %d, %Y') }}</td>
-            <td class="px-3 py-3 text-gray-600 dark:text-gray-400 font-mono whitespace-nowrap hidden md:table-cell" data-cell="time">{{ match.match_time.strftime('%I:%M %p') }}</td>
-            <td class="px-3 py-3 text-gray-700 dark:text-gray-300" data-cell="opponent">
-              {% if match.is_home_match %}
-              <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 mr-1">H</span>
-              {% else %}
-              <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 mr-1">A</span>
-              {% endif %}
+    {# Date-grouped dense match rows (concept treatment) #}
+    {% set ns = namespace(day=none) %}
+    {% for match in matches %}
+      {% if match.match_date != ns.day %}
+        {% set ns.day = match.match_date %}
+        <div class="px-4 sm:px-5 pt-4 pb-1 flex items-center gap-2">
+          <span class="font-mono text-[11px] font-semibold text-ecs-green whitespace-nowrap">{{ match.match_date.strftime('%a · %b %d').upper() }}</span>
+          <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+          <span class="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide font-mono">{{ match.match_date.strftime('%Y') }}</span>
+        </div>
+      {% endif %}
+      <div data-row class="match-row px-4 sm:px-5 py-3.5 flex flex-col lg:flex-row lg:items-center gap-3 border-t border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+        <div class="flex items-start gap-3 flex-1 min-w-0">
+          {% if match.is_home_match %}
+          <span class="shrink-0 w-7 h-7 rounded-md bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 flex items-center justify-center text-[11px] font-bold font-mono mt-0.5">H</span>
+          {% else %}
+          <span class="shrink-0 w-7 h-7 rounded-md bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 flex items-center justify-center text-[11px] font-bold font-mono mt-0.5">A</span>
+          {% endif %}
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-gray-900 dark:text-white truncate" data-cell="opponent">
+              <span class="text-ecs-green">{{ team.name }}</span>
+              <span class="text-gray-400 dark:text-gray-500 font-normal">vs</span>
               {{ match.opponent_name }}
-              {% if match.external_opponent_id %}
-              <i class="ti ti-link text-gray-400 ml-1" title="From Library" aria-label="From Library"></i>
-              {% endif %}
-            </td>
-            <td class="px-3 py-3 text-gray-700 dark:text-gray-300 hidden md:table-cell" data-cell="location">
-              <div>{{ match.location }}</div>
-              {% if match.field_name %}<div class="text-xs text-gray-400 dark:text-gray-500">{{ match.field_name }}</div>{% endif %}
-            </td>
-            <td class="px-3 py-3">
-              <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}" class="inline-flex gap-1 font-mono">
-                <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ match.rsvp_counts.yes }}</span>
-                <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ match.rsvp_counts.no }}</span>
-                <span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ match.rsvp_counts.maybe }}</span>
-              </a>
-            </td>
-            <td class="px-3 py-3" data-cell="status">
-              <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded
+              {% if match.external_opponent_id %}<i class="ti ti-link text-gray-400 ml-0.5" title="From Library" aria-label="From Library"></i>{% endif %}
+            </div>
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <span class="flex items-center gap-1" data-cell="time"><i class="ti ti-clock" aria-hidden="true"></i><span class="font-mono">{{ match.match_time.strftime('%I:%M %p') }}</span></span>
+              <span class="flex items-center gap-1" data-cell="location"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ match.location }}{% if match.field_name %} — {{ match.field_name }}{% endif %}</span>
+              <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded
                   {% if match.status_color == 'success' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
                   {% elif match.status_color == 'warning' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
                   {% elif match.status_color == 'danger' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
-                  {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                  {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}" data-cell="status">
                 <i class="{{ match.status_icon }} mr-1" aria-hidden="true"></i>{{ match.status }}
               </span>
-            </td>
-            <td class="px-3 py-3">
-              <div class="flex items-center justify-end gap-1">
-                <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
-                   class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View RSVP" aria-label="View RSVP">
-                  <i class="ti ti-users" aria-hidden="true"></i>
-                </a>
-                <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
-                   class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Edit" aria-label="Edit match">
-                  <i class="ti ti-edit" aria-hidden="true"></i>
-                </a>
-                <button type="button"
-                        class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-                        title="Delete" aria-label="Delete match" onclick="deleteMatch({{ match.id }})">
-                  <i class="ti ti-trash" aria-hidden="true"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-
-      {# Mobile stacked cards (<md) #}
-      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-        {% for match in matches %}
-        <div data-row-card class="px-4 py-3.5">
-          <div class="flex items-start justify-between gap-2">
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900 dark:text-white">
-                {% if match.is_home_match %}
-                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 mr-1">H</span>
-                {% else %}
-                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 mr-1">A</span>
-                {% endif %}
-                {{ match.opponent_name }}
-                {% if match.external_opponent_id %}<i class="ti ti-link text-gray-400 ml-1" aria-label="From Library"></i>{% endif %}
-              </p>
-              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ match.match_date.strftime('%a, %b %d, %Y') }} · {{ match.match_time.strftime('%I:%M %p') }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400">{{ match.location }}{% if match.field_name %} — {{ match.field_name }}{% endif %}</p>
-            </div>
-            <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded
-                {% if match.status_color == 'success' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
-                {% elif match.status_color == 'warning' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
-                {% elif match.status_color == 'danger' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
-                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
-              <i class="{{ match.status_icon }} mr-1" aria-hidden="true"></i>{{ match.status }}
-            </span>
-          </div>
-          <div class="mt-2 flex items-center justify-between gap-2">
-            <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}" class="inline-flex gap-1 font-mono">
-              <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ match.rsvp_counts.yes }}</span>
-              <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ match.rsvp_counts.no }}</span>
-              <span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ match.rsvp_counts.maybe }}</span>
-            </a>
-            <div class="flex items-center gap-1">
-              <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
-                 class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="View RSVP">
-                <i class="ti ti-users" aria-hidden="true"></i>
-              </a>
-              <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
-                 class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Edit match">
-                <i class="ti ti-edit" aria-hidden="true"></i>
-              </a>
-              <button type="button"
-                      class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-                      aria-label="Delete match" onclick="deleteMatch({{ match.id }})">
-                <i class="ti ti-trash" aria-hidden="true"></i>
-              </button>
             </div>
           </div>
         </div>
-        {% endfor %}
+        <div class="flex items-center gap-2 shrink-0 pl-10 lg:pl-0">
+          <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
+             class="inline-flex gap-1 font-mono" title="Yes / No / Maybe" aria-label="RSVP counts">
+            <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ match.rsvp_counts.yes }}</span>
+            <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ match.rsvp_counts.no }}</span>
+            <span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ match.rsvp_counts.maybe }}</span>
+          </a>
+          <span class="w-px h-6 bg-gray-200 dark:bg-gray-700 hidden sm:inline-block"></span>
+          <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
+             class="inline-flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View RSVP" aria-label="View RSVP">
+            <i class="ti ti-users" aria-hidden="true"></i>
+          </a>
+          <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
+             class="inline-flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Edit" aria-label="Edit match">
+            <i class="ti ti-edit" aria-hidden="true"></i>
+          </a>
+          <button type="button"
+                  class="inline-flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  title="Delete" aria-label="Delete match" onclick="deleteMatch({{ match.id }})">
+            <i class="ti ti-trash" aria-hidden="true"></i>
+          </button>
+        </div>
       </div>
-    {% endcall %}
+    {% endfor %}
+  </section>
   {% else %}
     {{ empty_state('ti-calendar-off',
         show_past and 'No matches found' or 'No upcoming matches',

@@ -1,21 +1,74 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import empty_state, page_header, section_card %}
 {% from "macros/_modern_kit.html" import page_header, section_card, empty_state %}
 
 {% block title %}Pub League Management{% endblock %}
 
 {% block main_content %}
 {% if shell == 'console' %}
+{# ---- derive real totals from provided `leagues` data (no fabricated values) ---- #}
+{% set ns = namespace(teams=0, league_matches=0, team_matches=0) %}
+{% for league in leagues %}
+  {% set ns.teams = ns.teams + (league.teams | length) %}
+  {% set ns.league_matches = ns.league_matches + (league.schedule | length) %}
+  {% for team in league.teams %}
+    {% set ns.team_matches = ns.team_matches + (team.schedule | length) %}
+  {% endfor %}
+{% endfor %}
 <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
     {{ page_header("Pub League Management", subtitle="Schedules & teams for all leagues") }}
 
-    <!-- League Tabs -->
-    <div class="mb-6">
-        <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700">
+    <!-- ============ KPI BAND (derived from real `leagues` data) ============ -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Leagues</span>
+                <i class="ti ti-stack-2 text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ leagues | length }}</div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono truncate">
+                {{ leagues | map(attribute='name') | join(' · ') }}
+            </div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Teams</span>
+                <i class="ti ti-shield-half text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ ns.teams }}</div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">across all leagues</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Sunday Matches</span>
+                <i class="ti ti-calendar-event text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ ns.league_matches }}</div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">league fixtures</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Team Fixtures</span>
+                <i class="ti ti-calendar-stats text-lg text-gray-900 dark:text-white shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ ns.team_matches }}</div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">scheduled entries</div>
+        </div>
+    </div>
+
+    <!-- ============ COMMAND TOOLBAR + SEGMENTED LEAGUE CONTROL ============ -->
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div class="flex items-center gap-2 shrink-0">
+            <i class="ti ti-adjustments-horizontal text-ecs-green" aria-hidden="true"></i>
+            <span class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">League</span>
+        </div>
+        <div class="flex flex-wrap gap-1 p-1 rounded-lg bg-gray-100 dark:bg-gray-900/60 flex-1">
             {% for league in leagues %}
             <button type="button"
-                    class="league-tab inline-flex items-center min-h-[44px] px-4 font-semibold text-sm rounded-t-lg border-b-2 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if loop.first %}border-ecs-green text-ecs-green bg-ecs-green/10{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300{% endif %}"
+                    class="league-tab inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-4 font-semibold text-sm rounded-md border-b-2 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if loop.first %}border-ecs-green text-ecs-green bg-ecs-green/10{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-800{% endif %}"
                     data-tab="{{ league.name|replace(' ', '-')|lower }}">
                 {{ league.name }}
+                <span class="ml-2 font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ league.teams | length }}</span>
             </button>
             {% endfor %}
         </div>
@@ -24,72 +77,105 @@
     <!-- Tab Content -->
     {% for league in leagues %}
     <div class="league-content space-y-6 {% if not loop.first %}hidden{% endif %}" id="{{ league.name|replace(' ', '-')|lower }}-content">
-        <!-- Add Match Form -->
-        {% call section_card("Add New Match", icon="ti-calendar-plus") %}
-        <div class="p-4 sm:p-5">
-            <form method="POST" action="{{ url_for('publeague.add_publeague_match') }}"
-                  class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
-                <input type="hidden" name="league_name" value="{{ league.name }}">
-                <div class="lg:col-span-1">
-                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Team A</label>
-                    <input type="text" name="teamA" placeholder="Team A" required class="input-ecs h-10 w-full text-sm">
-                </div>
-                <div class="lg:col-span-1">
-                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Team B</label>
-                    <input type="text" name="teamB" placeholder="Team B" required class="input-ecs h-10 w-full text-sm">
-                </div>
-                <div class="lg:col-span-1">
-                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Time</label>
-                    <input type="text" name="time" placeholder="9:40 AM" required class="input-ecs h-10 w-full text-sm">
-                </div>
-                <div class="lg:col-span-1">
-                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Date</label>
-                    <input type="date" name="date" required class="input-ecs h-10 w-full text-sm">
-                </div>
-                <div class="lg:col-span-1">
-                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Location</label>
-                    <select name="location" required class="input-ecs h-10 w-full text-sm">
-                        <option value="North">North</option>
-                        <option value="South">South</option>
-                    </select>
-                </div>
-                <div class="lg:col-span-1">
-                    <button type="submit"
-                            class="inline-flex items-center justify-center gap-2 min-h-[44px] w-full px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                        <i class="ti ti-plus" aria-hidden="true"></i>
-                        Add Match
-                    </button>
-                </div>
-            </form>
-        </div>
-        {% endcall %}
 
-        <!-- Schedule Timeline -->
+        <!-- ===== PRIMARY OBJECT: Add Match command card ===== -->
+        <section class="rounded-xl border border-ecs-green/40 dark:border-ecs-green/30 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2 bg-ecs-green/5">
+                <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-calendar-plus text-ecs-green" aria-hidden="true"></i>
+                    Add Match — {{ league.name }}
+                </h3>
+                <span class="text-xs font-mono text-gray-500 dark:text-gray-400 hidden sm:inline">Sundays · North / South</span>
+            </div>
+            <div class="p-4 sm:p-5">
+                <form method="POST" action="{{ url_for('publeague.add_publeague_match') }}"
+                      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+                    <input type="hidden" name="league_name" value="{{ league.name }}">
+                    <div class="lg:col-span-1">
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Team A</label>
+                        <input type="text" name="teamA" placeholder="Team A" required class="input-ecs h-10 w-full text-sm">
+                    </div>
+                    <div class="lg:col-span-1">
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Team B</label>
+                        <input type="text" name="teamB" placeholder="Team B" required class="input-ecs h-10 w-full text-sm">
+                    </div>
+                    <div class="lg:col-span-1">
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Time</label>
+                        <input type="text" name="time" placeholder="9:40 AM" required class="input-ecs h-10 w-full text-sm font-mono">
+                    </div>
+                    <div class="lg:col-span-1">
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Date</label>
+                        <input type="date" name="date" required class="input-ecs h-10 w-full text-sm font-mono">
+                    </div>
+                    <div class="lg:col-span-1">
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Location</label>
+                        <select name="location" required class="input-ecs h-10 w-full text-sm">
+                            <option value="North">North</option>
+                            <option value="South">South</option>
+                        </select>
+                    </div>
+                    <div class="lg:col-span-1">
+                        <button type="submit"
+                                class="inline-flex items-center justify-center gap-2 min-h-[44px] w-full px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            <i class="ti ti-plus" aria-hidden="true"></i>
+                            Add Match
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- ===== SEASON SCHEDULE: dense rows grouped by date divider ===== -->
         {% call section_card(league.name ~ " Schedule — Sundays", icon="ti-calendar-event") %}
         {% if league.schedule %}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-5">
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+            {% set sched_ns = namespace(prev=none) %}
             {% for match in league.schedule %}
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4">
-                <div class="text-sm font-semibold text-ecs-green mb-2 font-mono">{{ match.date }}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-mono">{{ match.time }}</div>
-                <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ match.teamA }} vs {{ match.teamB }}</div>
-            </div>
+            {% if match.date != sched_ns.prev %}
+            <li class="flex items-center gap-3 px-4 sm:px-5 pt-4 pb-1.5">
+                <span class="font-mono text-sm font-bold text-ecs-green whitespace-nowrap">{{ match.date }}</span>
+                <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+            </li>
+            {% set sched_ns.prev = match.date %}
+            {% endif %}
+            <li class="flex items-center gap-3 px-4 sm:px-5 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <span class="font-mono text-xs text-gray-500 dark:text-gray-400 w-20 shrink-0 tabular-nums">{{ match.time }}</span>
+                <div class="flex-1 min-w-0 flex items-center gap-2 text-sm">
+                    <span class="font-semibold text-gray-900 dark:text-white truncate">{{ match.teamA }}</span>
+                    <span class="text-xs font-mono text-gray-400 shrink-0">vs</span>
+                    <span class="font-semibold text-gray-900 dark:text-white truncate">{{ match.teamB }}</span>
+                </div>
+            </li>
             {% endfor %}
-        </div>
+        </ul>
         {% else %}
         {{ empty_state("ti-calendar-off", "No matches scheduled", "Add a match above to start building this league's schedule.") }}
         {% endif %}
         {% endcall %}
 
-        <!-- Teams -->
+        <!-- ===== TEAMS: feature cards w/ header bar + editable schedule table ===== -->
+        <div class="flex items-center gap-2 pt-2">
+            <i class="ti ti-shield-half text-ecs-green" aria-hidden="true"></i>
+            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Teams</h2>
+            <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ league.teams | length }}</span>
+            <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+        </div>
         <div class="space-y-4">
             {% for team in league.teams %}
             <details class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden group">
-                <summary class="flex items-center justify-between gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white truncate">{{ team.name }}</h3>
+                <summary class="flex items-center justify-between gap-3 px-4 sm:px-5 h-14 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="w-9 h-9 rounded-lg bg-ecs-green/10 text-ecs-green flex items-center justify-center shrink-0">
+                            <i class="ti ti-shield" aria-hidden="true"></i>
+                        </span>
+                        <div class="min-w-0">
+                            <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white truncate">{{ team.name }}</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ team.schedule | length }} fixture{{ '' if (team.schedule | length) == 1 else 's' }}</p>
+                        </div>
+                    </div>
                     <div class="flex items-center gap-2 shrink-0">
                         <button type="button"
-                                class="edit-team-btn inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                class="edit-team-btn inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                                 data-team-id="{{ team.name|replace(' ', '_') }}">
                             <i class="ti ti-edit" aria-hidden="true"></i>
                             Edit
@@ -97,9 +183,10 @@
                         <i class="ti ti-chevron-down transition-transform group-open:rotate-180 text-gray-400" aria-hidden="true"></i>
                     </div>
                 </summary>
-                <div class="p-4 pt-0 border-t border-gray-200 dark:border-gray-700">
+                <div class="px-4 sm:px-5 pb-5 border-t border-gray-200 dark:border-gray-700">
                     <!-- Team Name Edit Form -->
                     <form method="POST" action="{{ url_for('publeague.update_publeague_team_name', league_name=league.name, team_name=team.name) }}" class="my-4">
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Team Name</label>
                         <div class="flex gap-2">
                             <input type="text" name="team_name" value="{{ team.name }}"
                                    id="input-{{ team.name|replace(' ', '_') }}-name"
@@ -116,68 +203,73 @@
 
                     <!-- Team Schedule -->
                     {% if team.schedule %}
-                    <div class="md:overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr class="border-b border-gray-200 dark:border-gray-700">
-                                    <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Week</th>
-                                    <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Date</th>
-                                    <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Time</th>
-                                    <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Opponent</th>
-                                    <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hidden md:table-cell">Location</th>
-                                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                                {% for match in team.schedule %}
-                                <tr>
-                                    <td class="px-3 py-2 font-mono text-gray-900 dark:text-white">{{ match.week }}</td>
-                                    <td class="px-3 py-2">
-                                        <input type="date" name="date" value="{{ match.date }}"
-                                               id="input-{{ team.name|replace(' ', '_') }}-date-{{ loop.index0 }}"
-                                               readonly
-                                               class="rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm read-only:bg-transparent read-only:border-transparent focus:border-ecs-green focus:ring-ecs-green">
-                                    </td>
-                                    <td class="px-3 py-2">
-                                        <input type="text" name="time" value="{{ match.time }}"
-                                               id="input-{{ team.name|replace(' ', '_') }}-time-{{ loop.index0 }}"
-                                               readonly
-                                               class="rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm w-24 read-only:bg-transparent read-only:border-transparent focus:border-ecs-green focus:ring-ecs-green">
-                                    </td>
-                                    <td class="px-3 py-2">
-                                        <input type="text" name="opponent" value="{{ match.opponent }}"
-                                               id="input-{{ team.name|replace(' ', '_') }}-opponent-{{ loop.index0 }}"
-                                               readonly
-                                               class="rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm read-only:bg-transparent read-only:border-transparent focus:border-ecs-green focus:ring-ecs-green">
-                                    </td>
-                                    <td class="px-3 py-2 hidden md:table-cell">
-                                        <input type="text" name="location" value="{{ match.location }}"
-                                               id="input-{{ team.name|replace(' ', '_') }}-location-{{ loop.index0 }}"
-                                               readonly
-                                               class="rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm w-20 read-only:bg-transparent read-only:border-transparent focus:border-ecs-green focus:ring-ecs-green">
-                                    </td>
-                                    <td class="px-3 py-2 text-right whitespace-nowrap">
-                                        <button type="button"
-                                                id="btn-{{ team.name|replace(' ', '_') }}-save-match-{{ loop.index0 }}"
-                                                class="hidden items-center min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white mr-1 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                                            Save
-                                        </button>
-                                        <button type="button"
-                                                class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
-                                            Remove
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div class="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div class="md:overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+                                        <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Week</th>
+                                        <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Date</th>
+                                        <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Time</th>
+                                        <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Opponent</th>
+                                        <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hidden md:table-cell">Location</th>
+                                        <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                    {% for match in team.schedule %}
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                                        <td class="px-3 py-2">
+                                            <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-ecs-green/10 text-ecs-green">{{ match.week }}</span>
+                                        </td>
+                                        <td class="px-3 py-2">
+                                            <input type="date" name="date" value="{{ match.date }}"
+                                                   id="input-{{ team.name|replace(' ', '_') }}-date-{{ loop.index0 }}"
+                                                   readonly
+                                                   class="font-mono rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm read-only:bg-transparent read-only:border-transparent focus:border-ecs-green focus:ring-ecs-green">
+                                        </td>
+                                        <td class="px-3 py-2">
+                                            <input type="text" name="time" value="{{ match.time }}"
+                                                   id="input-{{ team.name|replace(' ', '_') }}-time-{{ loop.index0 }}"
+                                                   readonly
+                                                   class="font-mono rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm w-24 read-only:bg-transparent read-only:border-transparent focus:border-ecs-green focus:ring-ecs-green">
+                                        </td>
+                                        <td class="px-3 py-2">
+                                            <input type="text" name="opponent" value="{{ match.opponent }}"
+                                                   id="input-{{ team.name|replace(' ', '_') }}-opponent-{{ loop.index0 }}"
+                                                   readonly
+                                                   class="rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm read-only:bg-transparent read-only:border-transparent focus:border-ecs-green focus:ring-ecs-green">
+                                        </td>
+                                        <td class="px-3 py-2 hidden md:table-cell">
+                                            <input type="text" name="location" value="{{ match.location }}"
+                                                   id="input-{{ team.name|replace(' ', '_') }}-location-{{ loop.index0 }}"
+                                                   readonly
+                                                   class="rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm w-20 read-only:bg-transparent read-only:border-transparent focus:border-ecs-green focus:ring-ecs-green">
+                                        </td>
+                                        <td class="px-3 py-2 text-right whitespace-nowrap">
+                                            <button type="button"
+                                                    id="btn-{{ team.name|replace(' ', '_') }}-save-match-{{ loop.index0 }}"
+                                                    class="hidden items-center min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white mr-1 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                                Save
+                                            </button>
+                                            <button type="button"
+                                                    class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-semibold rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
+                                                <i class="ti ti-trash" aria-hidden="true"></i>
+                                                Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     {% else %}
                     {{ empty_state("ti-calendar-off", "No matches", "This team has no matches scheduled yet.") }}
                     {% endif %}
 
                     <button type="button"
-                            class="mt-4 inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            class="mt-4 inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-ecs-green/40 text-ecs-green hover:bg-ecs-green/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-plus" aria-hidden="true"></i>
                         Add Match
                     </button>

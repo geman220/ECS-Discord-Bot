@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import alert, page_header, section_card %}
 {% from "macros/flowbite.html" import modal_info, button as fb_button, avatar as fb_avatar %}
 {% from "macros/_modern_kit.html" import page_header, section_card, alert %}
 
@@ -8,88 +9,190 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-<div class="container mx-auto px-4 py-6 sm:py-8 max-w-2xl">
-  {{ page_header("Join the Waitlist", subtitle="ECS FC Pub League") }}
+{# ---- derived from REAL data only: profile readiness over the modal's actual fields ---- #}
+{% set _pl_label =
+   ('Pub League Classic' if user.preferred_league == 'pub_league_classic'
+    else 'Pub League Premier' if user.preferred_league == 'pub_league_premier'
+    else 'ECS FC' if user.preferred_league == 'ecs_fc'
+    else user.preferred_league) if user.preferred_league else None %}
+{% set _profile_fields = [
+   player.phone if player else None,
+   player.pronouns if player else None,
+   player.jersey_size if player else None,
+   player.expected_weeks_available if player else None,
+   player.favorite_position if player else None,
+   player.player_notes if player else None
+] %}
+{% set _filled = _profile_fields | select | list | length %}
+{% set _total = _profile_fields | length %}
+{% set _pct = ((_filled / _total) * 100) | round | int if _total else 0 %}
+
+<div class="container mx-auto px-4 py-6 sm:py-8 max-w-3xl">
+  {{ page_header("Join the Waitlist", subtitle="ECS FC Pub League · " ~ user.username) }}
 
   {% if already_on_waitlist %}
-  {% call section_card("Waitlist Status", icon="ti-list-check") %}
-  <div class="p-4 sm:p-5 space-y-5">
-    {{ alert('success', "You're already on our waitlist for the current season. We'll notify you as soon as spots become available.", title="You're already on the waitlist.", dismissible=False) }}
-    <div>
-      {{ fb_button("Back to Dashboard", variant="primary", icon="ti-arrow-left", href=url_for('main.index')) }}
+  {# ---- CONFIRMED STATE: single feature card, status pill, empty-style centerpiece ---- #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-list-check text-ecs-green" aria-hidden="true"></i> Waitlist Status
+      </h2>
+      <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+        <i class="ti ti-circle-check" aria-hidden="true"></i> Confirmed
+      </span>
     </div>
-  </div>
-  {% endcall %}
+    <div class="flex flex-col items-center justify-center text-center px-6 py-10 sm:py-12">
+      <div class="w-16 h-16 rounded-full bg-green-100 dark:bg-green-500/10 flex items-center justify-center mb-4">
+        <i class="ti ti-circle-check text-3xl text-green-600 dark:text-green-400" aria-hidden="true"></i>
+      </div>
+      <h3 class="text-lg font-bold text-gray-900 dark:text-white">You're on the waitlist</h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-md">
+        You're in line for the current season. We'll notify you the moment a spot opens up &mdash; no further action needed.
+      </p>
+      {{ fb_button("Back to Dashboard", variant="primary", icon="ti-arrow-left", href=url_for('main.index'), class_="mt-6") }}
+    </div>
+  </section>
 
   {% else %}
-  {% call section_card("Welcome back, " ~ user.username, icon="ti-clock-hour-4") %}
-  <div class="p-4 sm:p-5 space-y-5">
-    {{ alert('warning', 'All spots for the current season have been filled. Join our waitlist to be first in line for future openings.', title='Season full.', dismissible=False) }}
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+    {# ---- PRIMARY OBJECT: the join action, as a feature card (2 cols on xl) ---- #}
+    <div class="xl:col-span-2 space-y-5">
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <i class="ti ti-clock-hour-4 text-ecs-green" aria-hidden="true"></i> Welcome back, {{ user.username }}
+          </h2>
+          <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i> Season full
+          </span>
+        </div>
 
-    <form method="POST" action="{{ url_for('auth.waitlist_register') }}" class="space-y-5">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="p-4 sm:p-5 space-y-5">
+          {{ alert('warning', 'All spots for the current season have been filled. Join our waitlist to be first in line for future openings.', title='Season full.', dismissible=False) }}
 
-      <!-- Profile summary -->
-      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4">
-        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-          {% if player and player.profile_picture_url %}
-          {{ fb_avatar(src=player.profile_picture_url, alt=user.username, size="lg") }}
+          <form method="POST" action="{{ url_for('auth.waitlist_register') }}" class="space-y-5">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            {# ---- Profile identity row ---- #}
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4">
+              <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                {% if player and player.profile_picture_url %}
+                {{ fb_avatar(src=player.profile_picture_url, alt=user.username, size="lg") }}
+                {% else %}
+                <div class="w-16 h-16 shrink-0 rounded-full bg-ecs-green flex items-center justify-center">
+                  <span class="text-2xl font-bold text-white">{{ user.username[0].upper() }}</span>
+                </div>
+                {% endif %}
+                <div class="flex-1 min-w-0">
+                  <h6 class="font-semibold text-gray-900 dark:text-white truncate">{{ user.username }}</h6>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
+                  {% if _pl_label %}
+                  <p class="mt-1.5 inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 text-ecs-green dark:text-ecs-gold-400">
+                    <i class="ti ti-trophy text-[11px]" aria-hidden="true"></i> {{ _pl_label }}
+                  </p>
+                  {% endif %}
+                </div>
+                <button type="button" id="review-profile-btn"
+                        class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  <i class="ti ti-edit" aria-hidden="true"></i>
+                  Review Profile
+                </button>
+              </div>
+            </div>
+
+            {{ alert('info', 'We encourage you to review and update your profile so we have your current details before a spot opens.', title='Heads up.', dismissible=False) }}
+
+            {# ---- ONE primary CTA ---- #}
+            {{ fb_button("Join the Waitlist", variant="primary", type="submit", icon="ti-clock", class_="w-full justify-center text-base py-3") }}
+          </form>
+        </div>
+      </section>
+
+      {# ---- Benefits as a dense feature strip ---- #}
+      {% call section_card("What you get on the waitlist", icon="ti-sparkles") %}
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+        <li class="flex items-center gap-3 px-4 sm:px-5 py-3">
+          <span class="w-9 h-9 shrink-0 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center">
+            <i class="ti ti-bell text-ecs-green" aria-hidden="true"></i>
+          </span>
+          <p class="text-sm text-gray-700 dark:text-gray-300">Priority notifications the instant a spot opens</p>
+        </li>
+        <li class="flex items-center gap-3 px-4 sm:px-5 py-3">
+          <span class="w-9 h-9 shrink-0 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center">
+            <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i>
+          </span>
+          <p class="text-sm text-gray-700 dark:text-gray-300">Early access to season info and announcements</p>
+        </li>
+        <li class="flex items-center gap-3 px-4 sm:px-5 py-3">
+          <span class="w-9 h-9 shrink-0 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center">
+            <i class="ti ti-users text-ecs-green" aria-hidden="true"></i>
+          </span>
+          <p class="text-sm text-gray-700 dark:text-gray-300">Stay connected with the ECS community</p>
+        </li>
+      </ul>
+      {% endcall %}
+    </div>
+
+    {# ---- SIDE RAIL: profile readiness, derived from real fields ---- #}
+    <div class="space-y-5">
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Profile readiness</span>
+          <i class="ti ti-user-check text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-3 flex items-end gap-2">
+          <span class="font-mono text-3xl sm:text-4xl font-bold leading-none {% if _pct >= 80 %}text-green-600 dark:text-green-400{% elif _pct >= 40 %}text-amber-600 dark:text-amber-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ _pct }}%</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-mono">{{ _filled }}/{{ _total }} fields</span>
+        </div>
+        <div class="mt-3 h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="progressbar" aria-valuenow="{{ _pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Profile completeness">
+          <div class="h-full rounded-full {% if _pct >= 80 %}bg-green-500{% elif _pct >= 40 %}bg-amber-500{% else %}bg-ecs-green{% endif %}" style="width: {{ _pct }}%"></div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          {% if player and player.profile_last_updated %}
+          <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+            <i class="ti ti-clock text-[12px]" aria-hidden="true"></i>
+            Updated <span class="font-mono text-gray-700 dark:text-gray-300">{{ player.profile_last_updated.strftime('%Y-%m-%d') }}</span>
+          </p>
           {% else %}
-          <div class="w-16 h-16 shrink-0 rounded-full bg-ecs-green flex items-center justify-center">
-            <span class="text-2xl font-bold text-white">{{ user.username[0].upper() }}</span>
-          </div>
+          <p class="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+            <i class="ti ti-alert-circle text-[12px]" aria-hidden="true"></i> Never verified &mdash; please review
+          </p>
           {% endif %}
-          <div class="flex-1 min-w-0">
-            <h6 class="font-semibold text-gray-900 dark:text-white truncate">{{ user.username }}</h6>
-            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
-            {% if user.preferred_league %}
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-              Preferred League:
-              {% if user.preferred_league == 'pub_league_classic' %}Pub League Classic
-              {% elif user.preferred_league == 'pub_league_premier' %}Pub League Premier
-              {% elif user.preferred_league == 'ecs_fc' %}ECS FC
-              {% else %}{{ user.preferred_league }}{% endif %}
-            </p>
-            {% endif %}
-          </div>
-          <button type="button" id="review-profile-btn"
-                  class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-edit" aria-hidden="true"></i>
-            Review Profile
+          <button type="button" id="review-profile-btn-rail"
+                  data-modal-target="profileModal" data-modal-toggle="profileModal"
+                  class="mt-3 w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-edit" aria-hidden="true"></i> Review profile details
           </button>
         </div>
-      </div>
+      </section>
 
-      {{ alert('info', 'Before joining the waitlist, we encourage you to review and update your profile information to ensure we have your current details.', title='Welcome back.', dismissible=False) }}
-
-      {{ fb_button("Join the Waitlist", variant="primary", type="submit", icon="ti-clock", class_="w-full justify-center") }}
-    </form>
-  </div>
-  {% endcall %}
-
-  <!-- Benefits -->
-  {% call section_card("Benefits of Joining", icon="ti-sparkles") %}
-  <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <div class="text-center">
-      <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
-        <i class="ti ti-bell text-ecs-green" aria-hidden="true"></i>
-      </div>
-      <p class="text-xs text-gray-600 dark:text-gray-300">Priority notifications when spots open</p>
-    </div>
-    <div class="text-center">
-      <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
-        <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i>
-      </div>
-      <p class="text-xs text-gray-600 dark:text-gray-300">Early access to more information</p>
-    </div>
-    <div class="text-center">
-      <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
-        <i class="ti ti-users text-ecs-green" aria-hidden="true"></i>
-      </div>
-      <p class="text-xs text-gray-600 dark:text-gray-300">Stay connected with ECS community</p>
+      {# ---- Profile snapshot: real field values, dense rows ---- #}
+      {% call section_card("Profile snapshot", icon="ti-id") %}
+      <dl class="divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+        <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+          <dt class="text-gray-500 dark:text-gray-400">Phone</dt>
+          <dd class="font-mono text-gray-900 dark:text-white truncate text-right">{{ player.phone if player and player.phone else '—' }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+          <dt class="text-gray-500 dark:text-gray-400">Pronouns</dt>
+          <dd class="text-gray-900 dark:text-white truncate text-right">{{ player.pronouns if player and player.pronouns else '—' }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+          <dt class="text-gray-500 dark:text-gray-400">Jersey size</dt>
+          <dd class="font-mono text-gray-900 dark:text-white truncate text-right">{{ player.jersey_size if player and player.jersey_size else '—' }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+          <dt class="text-gray-500 dark:text-gray-400">Position</dt>
+          <dd class="text-gray-900 dark:text-white truncate text-right">{{ player.favorite_position if player and player.favorite_position else '—' }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+          <dt class="text-gray-500 dark:text-gray-400">Weeks available</dt>
+          <dd class="font-mono text-gray-900 dark:text-white truncate text-right">{{ player.expected_weeks_available if player and player.expected_weeks_available else '—' }}</dd>
+        </div>
+      </dl>
+      {% endcall %}
     </div>
   </div>
-  {% endcall %}
   {% endif %}
 
   <div class="text-center mt-6">

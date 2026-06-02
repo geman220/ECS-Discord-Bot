@@ -4,34 +4,120 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, data_table, data_table_th, empty_state %}
-<div class="container mx-auto px-4 py-8 max-w-4xl">
-    {{ page_header("Approve Users", subtitle="Review and approve pending user registrations") }}
+{% from 'macros/_modern_kit.html' import empty_state %}
+{# Derive queue metrics from real User fields only (no fabrication). #}
+{% set queue_total = users|length if users else 0 %}
+{% set with_league = (users|selectattr('preferred_league')|list|length) if users else 0 %}
+{% set without_league = queue_total - with_league %}
+<div class="container mx-auto px-4 py-6 sm:py-8 max-w-5xl">
+
+    {# ---- Command header : eyebrow + title + live queue figure ---- #}
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+        <div class="min-w-0">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Membership · Access Control</p>
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Approve Users</h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Review pending registrations and grant access to the platform.</p>
+        </div>
+        <div class="shrink-0 inline-flex items-end gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+            <span class="font-mono text-3xl sm:text-4xl font-bold leading-none {% if queue_total %}text-ecs-gold-500 dark:text-ecs-gold-400{% else %}text-ecs-green{% endif %}">{{ queue_total }}</span>
+            <span class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">in&nbsp;queue</span>
+        </div>
+    </div>
 
     {% if users %}
-    {% call data_table("Pending Approvals", icon="ti-user-check", count=users|length, search_placeholder="Filter by username or email…", search_id="approveUsersFilter") %}
-        {# md+ : real table #}
+    {# ---- KPI band : big mono figures w/ divider footers, all derived from real fields ---- #}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Pending review</p>
+            <p class="mt-2 font-mono text-3xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ queue_total }}</p>
+            <div class="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700/60 text-xs text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
+                <i class="ti ti-clock-pause text-sm" aria-hidden="true"></i> Awaiting an approval decision
+            </div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">League selected</p>
+            <p class="mt-2 font-mono text-3xl font-bold leading-none text-ecs-green">{{ with_league }}</p>
+            <div class="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700/60 text-xs text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
+                <i class="ti ti-trophy text-sm" aria-hidden="true"></i> Picked a preferred league
+            </div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">No league yet</p>
+            <p class="mt-2 font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ without_league }}</p>
+            <div class="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700/60 text-xs text-gray-500 dark:text-gray-400 inline-flex items-center gap-1.5">
+                <i class="ti ti-help-circle text-sm" aria-hidden="true"></i> Registered without selecting one
+            </div>
+        </div>
+    </div>
+
+    {# ---- Queue panel : command toolbar + dense roster ---- #}
+    <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+
+        {# header bar w/ status pill #}
+        <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                <i class="ti ti-user-check text-ecs-green" aria-hidden="true"></i> Pending Approvals
+            </h2>
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                <i class="ti ti-clock-pause text-[13px]" aria-hidden="true"></i> Awaiting review
+            </span>
+        </div>
+
+        {# command toolbar : filter (search hook preserved) #}
+        <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <div class="relative flex-1 min-w-[200px]">
+                <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+                <input type="search" id="approveUsersFilter" placeholder="Filter by username or email…"
+                       class="input-ecs h-9 pl-9 pr-3 text-sm" aria-label="Filter by username or email">
+            </div>
+            <span class="hidden sm:inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 font-mono">
+                <i class="ti ti-list-numbers text-sm" aria-hidden="true"></i>{{ queue_total }} total
+            </span>
+        </div>
+
+        {# md+ : real table w/ mono ID, league pill, registered date #}
         <table class="hidden md:table w-full text-sm">
             <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                    {{ data_table_th("Username", key="username") }}
-                    {{ data_table_th("Email", key="email") }}
-                    {{ data_table_th("Actions", sortable=False, align="right") }}
+                    <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 w-16">ID</th>
+                    <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Applicant</th>
+                    <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Preferred League</th>
+                    <th scope="col" class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 w-32">Registered</th>
+                    <th scope="col" class="px-4 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Action</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 {% for user in users %}
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <td class="px-3 py-3" data-cell="username">
-                        <div class="flex items-center gap-3">
-                            <span class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
-                                <i class="ti ti-user text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                <tr class="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td class="px-4 py-3 align-middle">
+                        <span class="font-mono text-xs text-gray-400 dark:text-gray-500">#{{ user.id }}</span>
+                    </td>
+                    <td class="px-4 py-3 align-middle" data-cell="username">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="w-9 h-9 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center shrink-0 font-mono text-xs font-bold uppercase">
+                                {{ user.username[0] if user.username else 'U' }}
                             </span>
-                            <span class="font-semibold text-gray-900 dark:text-white truncate">{{ user.username }}</span>
+                            <div class="min-w-0">
+                                <div class="font-semibold text-gray-900 dark:text-white truncate">{{ user.username }}</div>
+                                <div class="text-gray-500 dark:text-gray-400 font-mono text-xs truncate" data-cell="email">{{ user.email }}</div>
+                            </div>
                         </div>
                     </td>
-                    <td class="px-3 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs" data-cell="email">{{ user.email }}</td>
-                    <td class="px-3 py-3 text-right">
+                    <td class="px-4 py-3 align-middle">
+                        {% if user.preferred_league %}
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-ecs-green/10 px-2.5 py-1 text-xs font-semibold text-ecs-green">
+                            <i class="ti ti-trophy text-[13px]" aria-hidden="true"></i>{{ user.preferred_league }}
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 dark:border-gray-600 px-2.5 py-1 text-xs font-medium text-gray-400 dark:text-gray-500">
+                            <i class="ti ti-minus text-[13px]" aria-hidden="true"></i>None
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 align-middle font-mono text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        {{ user.created_at.strftime('%b %d, %Y') if user.created_at else '—' }}
+                    </td>
+                    <td class="px-4 py-3 align-middle text-right">
                         <form method="post" action="{{ url_for('approve_users') }}" class="inline">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="user_id" value="{{ user.id }}">
@@ -49,18 +135,37 @@
             </tbody>
         </table>
 
-        {# mobile : stacked cards (form per row, so not the link-based row_card macro) #}
+        {# mobile : dense stacked cards (form per row) #}
         <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
             {% for user in users %}
             <div data-row-card class="px-4 py-3.5">
                 <div class="flex items-center gap-3">
-                    <span class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
-                        <i class="ti ti-user text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                    <span class="w-10 h-10 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center shrink-0 font-mono text-sm font-bold uppercase">
+                        {{ user.username[0] if user.username else 'U' }}
                     </span>
                     <div class="min-w-0 flex-1">
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white truncate" data-cell="username">{{ user.username }}</p>
+                        <div class="flex items-center gap-2">
+                            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate" data-cell="username">{{ user.username }}</p>
+                            <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500 shrink-0">#{{ user.id }}</span>
+                        </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate" data-cell="email">{{ user.email }}</p>
                     </div>
+                </div>
+                <div class="mt-2 flex flex-wrap items-center gap-2 pl-[52px]">
+                    {% if user.preferred_league %}
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-ecs-green/10 px-2.5 py-1 text-[11px] font-semibold text-ecs-green">
+                        <i class="ti ti-trophy text-[12px]" aria-hidden="true"></i>{{ user.preferred_league }}
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 dark:border-gray-600 px-2.5 py-1 text-[11px] font-medium text-gray-400 dark:text-gray-500">
+                        <i class="ti ti-minus text-[12px]" aria-hidden="true"></i>No league
+                    </span>
+                    {% endif %}
+                    {% if user.created_at %}
+                    <span class="inline-flex items-center gap-1 font-mono text-[11px] text-gray-400 dark:text-gray-500">
+                        <i class="ti ti-calendar-event text-[12px]" aria-hidden="true"></i>{{ user.created_at.strftime('%b %d, %Y') }}
+                    </span>
+                    {% endif %}
                 </div>
                 <form method="post" action="{{ url_for('approve_users') }}" class="mt-3">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -76,7 +181,15 @@
             </div>
             {% endfor %}
         </div>
-    {% endcall %}
+
+        {# footer : queue summary #}
+        <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+            <span class="inline-flex items-center gap-1.5">
+                <i class="ti ti-info-circle text-sm" aria-hidden="true"></i> Approving grants platform access immediately.
+            </span>
+            <span class="font-mono">{{ queue_total }} pending</span>
+        </div>
+    </section>
     {% else %}
         {{ empty_state("ti-circle-check", "All Caught Up!", "No pending user approvals at this time.") }}
     {% endif %}

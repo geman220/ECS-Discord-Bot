@@ -18,66 +18,103 @@
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
 
-{{ page_header('API Management', subtitle='Monitor and manage API endpoints') }}
+{# Health verdict derived from real error_rate #}
+{% set ok = stats.error_rate < 2 %}
+{% set warn = stats.error_rate >= 2 and stats.error_rate < 5 %}
+{% set verdict = 'Excellent' if ok else 'Good' if warn else 'Needs Attention' %}
+{% set verdict_tone = 'success' if ok else 'warning' if warn else 'danger' %}
+{% set verdict_cls = 'text-green-600 dark:text-green-400' if ok else 'text-amber-600 dark:text-amber-400' if warn else 'text-red-600 dark:text-red-400' %}
+{% set verdict_icon = 'ti-circle-check' if ok else 'ti-alert-triangle' if warn else 'ti-alert-octagon' %}
+{% set success_rate = 100 - stats.error_rate %}
 
-<!-- KPI band -->
+{# Command toolbar: lead with the page's primary job (drill into endpoints) + secondary ops #}
+{% call page_header('API Management', subtitle='Endpoint observability & health') %}
+  <a href="{{ url_for('admin_panel.api_analytics') }}"
+     class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <i class="ti ti-chart-line" aria-hidden="true"></i><span class="hidden sm:inline">Analytics</span>
+  </a>
+  <button type="button" data-action="export-api"
+          class="inline-flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] sm:h-10 sm:min-w-0 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <i class="ti ti-download" aria-hidden="true"></i><span class="hidden sm:inline">Export</span>
+  </button>
+  <button type="button" data-action="test-endpoint"
+          class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <i class="ti ti-test-pipe" aria-hidden="true"></i>Test Endpoint
+  </button>
+{% endcall %}
+
+<!-- KPI band — mono figures w/ divider footers -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  {{ stat_card('ti-api', 'Total Endpoints', stats.total_endpoints, tone='info') }}
-  {{ stat_card('ti-circle-check', 'Active Endpoints', stats.active_endpoints, tone='success') }}
-  {{ stat_card('ti-activity', 'Requests Today', "{:,}".format(stats.total_requests_today), tone='primary') }}
-  {{ stat_card('ti-alert-triangle', 'Error Rate', "%.1f"|format(stats.error_rate) ~ '%', tone=('success' if stats.error_rate < 2 else 'warning' if stats.error_rate < 5 else 'danger')) }}
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-  <!-- Quick Actions -->
-  <div class="lg:col-span-2">
-    {% call section_card('Quick Actions', icon='ti-rocket') %}
-    <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <a href="{{ url_for('admin_panel.api_endpoints') }}"
-         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-list" aria-hidden="true"></i>View All Endpoints
-      </a>
-      <a href="{{ url_for('admin_panel.api_analytics') }}"
-         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-chart-line" aria-hidden="true"></i>View Analytics
-      </a>
-      <button type="button" data-action="test-endpoint"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-test-pipe" aria-hidden="true"></i>Test Endpoint
-      </button>
-      <button type="button" data-action="export-api"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-download" aria-hidden="true"></i>Export Data
-      </button>
-    </div>
-    {% endcall %}
-  </div>
-
-  <!-- Performance -->
-  {% call section_card('Performance', icon='ti-gauge') %}
-  <div class="p-4 sm:p-5">
-    <div class="flex items-center justify-between gap-3 py-2 border-b border-gray-200 dark:border-gray-700">
-      <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5"><i class="ti ti-clock text-ecs-green" aria-hidden="true"></i>Avg Response Time</span>
-      <span class="text-base font-bold font-mono text-gray-900 dark:text-white">{{ "%.3f"|format(stats.avg_response_time) }}s</span>
-    </div>
-    <div class="flex items-center justify-between gap-3 py-2 mb-3 border-b border-gray-200 dark:border-gray-700">
-      <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5"><i class="ti ti-circle-check text-ecs-green" aria-hidden="true"></i>Success Rate</span>
-      <span class="text-base font-bold font-mono text-gray-900 dark:text-white">{{ "%.1f"|format(100 - stats.error_rate) }}%</span>
-    </div>
-    <div class="text-center">
-      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300' if stats.error_rate < 2 else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if stats.error_rate < 5 else 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300' }}">
-        <i class="ti {{ 'ti-circle-check' if stats.error_rate < 2 else 'ti-alert-triangle' if stats.error_rate < 5 else 'ti-alert-octagon' }}" aria-hidden="true"></i>
-        {% if stats.error_rate < 2 %}Excellent{% elif stats.error_rate < 5 %}Good{% else %}Needs Attention{% endif %}
-      </span>
-    </div>
-  </div>
+  {% call stat_card('ti-api', 'Total Endpoints', stats.total_endpoints, tone='info') %}
+    <span class="font-mono text-gray-700 dark:text-gray-300">{{ stats.endpoint_breakdown|length }}</span> blueprints
+  {% endcall %}
+  {% call stat_card('ti-circle-check', 'Active Endpoints', stats.active_endpoints, tone='success') %}
+    <span class="font-mono text-gray-700 dark:text-gray-300">{{ "%.0f"|format((stats.active_endpoints / stats.total_endpoints * 100) if stats.total_endpoints else 0) }}%</span> of fleet live
+  {% endcall %}
+  {% call stat_card('ti-activity', 'Requests Today', "{:,}".format(stats.total_requests_today), tone='primary') %}
+    last 24 hours
+  {% endcall %}
+  {% call stat_card('ti-alert-triangle', 'Error Rate', "%.1f"|format(stats.error_rate) ~ '%', tone=verdict_tone) %}
+    <span class="inline-flex items-center gap-1 {{ verdict_cls }}"><i class="ti {{ verdict_icon }}" aria-hidden="true"></i>{{ verdict }}</span>
   {% endcall %}
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-  <!-- Blueprint Breakdown -->
-  <div class="lg:col-span-2">
-    {% if stats.endpoint_breakdown %}
+  <!-- Primary object: Service Health feature card -->
+  <section class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-heartbeat text-ecs-green" aria-hidden="true"></i>Service Health
+      </h2>
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300' if ok else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if warn else 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300' }}">
+        <i class="ti {{ verdict_icon }}" aria-hidden="true"></i>{{ verdict }}
+      </span>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700 flex-1">
+      <div class="p-4 sm:p-5">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Success Rate</p>
+        <p class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none {{ verdict_cls }}">{{ "%.1f"|format(success_rate) }}<span class="text-xl">%</span></p>
+        <div class="mt-3 w-full h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <div class="h-full rounded-full {{ 'bg-green-500' if ok else 'bg-amber-500' if warn else 'bg-red-500' }}" style="width: {{ '%.1f'|format(success_rate) }}%"></div>
+        </div>
+      </div>
+      <div class="p-4 sm:p-5">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Avg Response</p>
+        <p class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ "%.3f"|format(stats.avg_response_time) }}<span class="text-xl">s</span></p>
+        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5"><i class="ti ti-clock text-ecs-green" aria-hidden="true"></i>per request, 24h</p>
+      </div>
+      <div class="p-4 sm:p-5">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Error Rate</p>
+        <p class="mt-2 font-mono text-3xl sm:text-4xl font-bold leading-none {{ verdict_cls }}">{{ "%.1f"|format(stats.error_rate) }}<span class="text-xl">%</span></p>
+        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5"><i class="ti ti-activity text-ecs-green" aria-hidden="true"></i><span class="font-mono">{{ "{:,}".format(stats.total_requests_today) }}</span> requests</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recent Activity -->
+  {% call section_card('Recent Activity', icon='ti-history') %}
+  {% if recent_activity %}
+  <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+    {% for activity in recent_activity %}
+    <li class="flex items-start gap-3 px-4 sm:px-5 py-3">
+      <span class="shrink-0 w-2.5 h-2.5 mt-1.5 rounded-full bg-ecs-green" aria-hidden="true"></span>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm text-gray-900 dark:text-white truncate">{{ activity.description }}</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">{{ activity.user }} · {{ activity.timestamp.strftime('%H:%M') }}</p>
+      </div>
+      <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium font-mono bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">API</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  {{ empty_state('ti-history-toggle', 'No recent activity', 'API activity will appear here as requests come in.') }}
+  {% endif %}
+  {% endcall %}
+</div>
+
+<div class="mb-6">
+  <!-- Blueprint Breakdown — real table with mono numerals + health pills -->
+  {% if stats.endpoint_breakdown %}
     {% call data_table('Endpoint Breakdown by Blueprint', icon='ti-components', count=stats.endpoint_breakdown|length, filters=false) %}
       <table class="hidden md:table w-full text-sm text-left">
         <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
@@ -118,47 +155,25 @@
         {% endfor %}
       </div>
     {% endcall %}
-    {% else %}
+  {% else %}
     {% call section_card('Endpoint Breakdown by Blueprint', icon='ti-components') %}
       {{ empty_state('ti-components-off', 'No blueprint data', 'No endpoint breakdown is available yet.') }}
     {% endcall %}
-    {% endif %}
-  </div>
-
-  <!-- Recent Activity -->
-  {% call section_card('Recent Activity', icon='ti-activity') %}
-  {% if recent_activity %}
-  <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-    {% for activity in recent_activity %}
-    <li class="flex items-start gap-3 px-4 sm:px-5 py-3">
-      <span class="shrink-0 w-2.5 h-2.5 mt-1.5 rounded-full bg-blue-500" aria-hidden="true"></span>
-      <div class="flex-1 min-w-0">
-        <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <p class="text-sm text-gray-900 dark:text-white">{{ activity.description }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ activity.timestamp.strftime('%H:%M') }}</p>
-          </div>
-          <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">API</span>
-        </div>
-      </div>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  {{ empty_state('ti-activity-off', 'No recent activity', 'API activity will appear here as requests come in.') }}
   {% endif %}
-  {% endcall %}
 </div>
 
 <!-- Top Endpoints -->
 {% if endpoints %}
-{% call data_table('Top Endpoints', icon='ti-api', count=endpoints|length, search_placeholder='Filter endpoints…', search_id='apiEndpointFilter', footer=true) %}
+{% set _shown = endpoints|length %}
+{% set _total = stats.total_endpoints %}
+{% call data_table('Top Endpoints', icon='ti-api', count=endpoints|length, search_placeholder='Filter endpoints…', search_id='apiEndpointFilter', footer=('Showing top <span class="font-mono">' ~ _shown ~ '</span> of <span class="font-mono">' ~ _total ~ '</span> endpoints')|safe) %}
   <table class="hidden md:table w-full text-sm text-left">
     <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
       <tr>
         {{ data_table_th('Endpoint', key='endpoint', sortable=false) }}
         {{ data_table_th('Blueprint', key='blueprint', sortable=false, hide='sm') }}
         {{ data_table_th('Methods', key='methods', sortable=false, hide='sm') }}
+        {{ data_table_th('Auth', key='auth', sortable=false, hide='md') }}
         {{ data_table_th('Requests', key='requests', sortable=false, hide='sm') }}
         {{ data_table_th('Avg Response', key='avg', sortable=false, hide='sm') }}
         {{ data_table_th('Status', key='status', sortable=false, hide='sm') }}
@@ -183,6 +198,11 @@
             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium font-mono {{ 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300' if method == 'GET' else 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300' if method == 'POST' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
             {% endfor %}
           </div>
+        </td>
+        <td class="px-3 py-2.5 hidden lg:table-cell">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {{ 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if endpoint.authentication == 'admin' else 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}">
+            <i class="ti {{ 'ti-shield-lock' if endpoint.authentication == 'admin' else 'ti-lock' }}" aria-hidden="true"></i>{{ endpoint.authentication }}
+          </span>
         </td>
         <td class="px-3 py-2.5 font-medium font-mono text-gray-900 dark:text-white hidden md:table-cell">{{ "{:,}".format(endpoint.request_count) }}</td>
         <td class="px-3 py-2.5 font-mono text-gray-700 dark:text-gray-300 hidden md:table-cell">{{ "%.3f"|format(endpoint.avg_response_time) }}s</td>
@@ -217,6 +237,7 @@
       {% if endpoint.description %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ endpoint.description }}</p>{% endif %}
       <div class="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
         <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ endpoint.blueprint }}</span>
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded {{ 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if endpoint.authentication == 'admin' else 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}"><i class="ti {{ 'ti-shield-lock' if endpoint.authentication == 'admin' else 'ti-lock' }}" aria-hidden="true"></i>{{ endpoint.authentication }}</span>
         {% for method in endpoint.methods %}
         <span class="inline-flex items-center px-2 py-0.5 rounded font-mono {{ 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300' if method == 'GET' else 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300' if method == 'POST' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
         {% endfor %}

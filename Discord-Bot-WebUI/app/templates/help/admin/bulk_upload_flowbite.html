@@ -8,39 +8,48 @@
 {% block main_content %}
 {% if shell == 'console' %}
 <div class="space-y-6">
-    {% call page_header("Bulk Upload Help Topics", subtitle="Upload multiple markdown files at once") %}
+    {% call page_header("Bulk Upload", subtitle="Help Topics · Markdown ingest") %}
         <a href="{{ url_for('help.admin_help_topics') }}"
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                   border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800
                   text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-            <i class="ti ti-arrow-left text-base" aria-hidden="true"></i><span>Back to Help Topics</span>
+            <i class="ti ti-arrow-left text-base" aria-hidden="true"></i><span>Topics</span>
         </a>
+        <button type="submit" form="bulkUploadForm"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                       bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-upload text-base" aria-hidden="true"></i><span>Run Upload</span>
+        </button>
     {% endcall %}
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Upload Form -->
-        <div class="lg:col-span-2">
-            {% call section_card("Upload Multiple Help Topics", icon="ti-cloud-upload") %}
-            <form method="POST"
-                  enctype="multipart/form-data"
-                  class="space-y-6 p-4 sm:p-5"
-                  data-component="help-upload-form">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <!-- PRIMARY: dropzone feature card -->
+        <div class="xl:col-span-2 space-y-6">
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+                        <i class="ti ti-cloud-upload text-ecs-green" aria-hidden="true"></i> Markdown Drop
+                    </h2>
+                    <span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">.md only</span>
+                </div>
+                <form method="POST"
+                      id="bulkUploadForm"
+                      enctype="multipart/form-data"
+                      class="p-4 sm:p-5 space-y-5"
+                      data-component="help-upload-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                <!-- File Input -->
-                <div>
-                    <label for="files" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Select Markdown Files
-                    </label>
-                    <div class="flex items-center justify-center w-full">
-                        <label for="files" class="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-ecs-green dark:hover:border-ecs-green transition-colors focus-within:ring-2 focus-within:ring-ecs-green">
-                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                <i class="ti ti-cloud-upload text-4xl text-gray-500 dark:text-gray-400 mb-3" aria-hidden="true"></i>
-                                <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                                    <span class="font-semibold text-gray-700 dark:text-gray-200">Click to upload</span> or drag and drop
+                    <!-- File Input / dropzone -->
+                    <div>
+                        <label for="files" class="flex flex-col items-center justify-center w-full h-44 sm:h-52 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-700/40 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-ecs-green dark:hover:border-ecs-green transition-colors focus-within:ring-2 focus-within:ring-ecs-green">
+                            <div class="flex flex-col items-center justify-center text-center px-6">
+                                <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">MD</span>
+                                <p class="mt-3 text-sm text-gray-700 dark:text-gray-200">
+                                    <span class="font-semibold">Click to upload</span> or drag &amp; drop
                                 </p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Markdown files (.md) only</p>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">multiple markdown files &middot; one topic per file</p>
                             </div>
                             <input type="file"
                                    class="hidden"
@@ -52,44 +61,103 @@
                                    data-form-control>
                         </label>
                     </div>
-                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        Select one or more markdown (.md) files to upload. Each file will become a separate help topic.
-                    </p>
-                </div>
 
-                <!-- Info Alert -->
-                <div role="note" class="flex items-start gap-3 rounded-xl border p-3 sm:p-4 bg-blue-50 dark:bg-blue-500/10 border-blue-300 dark:border-blue-500/40 text-blue-800 dark:text-blue-300">
-                    <i class="ti ti-info-circle text-lg shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
-                    <div class="flex-1 min-w-0 text-sm">
-                        <h4 class="font-semibold mb-2">File Format Requirements:</h4>
-                        <ul class="space-y-1 list-disc list-inside">
-                            <li>Files must have a <code class="font-mono bg-blue-100 dark:bg-blue-900/50 px-1 rounded">.md</code> extension</li>
-                            <li>Each file must start with a heading (e.g., <code class="font-mono bg-blue-100 dark:bg-blue-900/50 px-1 rounded"># Topic Title</code>)</li>
-                            <li>Include <code class="font-mono bg-blue-100 dark:bg-blue-900/50 px-1 rounded">**Role Access**: Role Name</code> to specify which roles can access the topic</li>
-                            <li>Use <code class="font-mono bg-blue-100 dark:bg-blue-900/50 px-1 rounded">**Role Access**: Public</code> to make the topic visible to all users</li>
-                            <li>Supported roles: Global Admin, Pub League Admin, ECS FC Coach, Pub League Coach, etc.</li>
-                            <li>If no role is specified, the topic will default to Global Admin access</li>
-                        </ul>
+                    <!-- Default-role notice (real route behavior) -->
+                    <div role="note" class="flex items-start gap-3 rounded-xl border p-3 sm:p-4 bg-blue-50 dark:bg-blue-500/10 border-blue-300 dark:border-blue-500/40">
+                        <i class="ti ti-info-circle text-lg shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+                        <p class="flex-1 min-w-0 text-sm text-blue-800 dark:text-blue-300">
+                            A file whose title already exists <span class="font-semibold">updates that topic in place</span>. Files with no
+                            <code class="font-mono bg-blue-100 dark:bg-blue-900/50 px-1 rounded">Role Access</code> marker default to
+                            <code class="font-mono bg-blue-100 dark:bg-blue-900/50 px-1 rounded">Global Admin</code>.
+                        </p>
                     </div>
-                </div>
 
-                <!-- Submit Button -->
-                <div>
-                    <button type="submit"
-                            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
-                                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-                        <i class="ti ti-upload text-base" aria-hidden="true"></i><span>Upload Help Topics</span>
-                    </button>
-                </div>
-            </form>
+                    <!-- Submit (kept inside form for non-JS / direct submit) -->
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <button type="submit"
+                                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                                       bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                            <i class="ti ti-upload text-base" aria-hidden="true"></i><span>Upload Help Topics</span>
+                        </button>
+                        <a href="{{ url_for('help.admin_help_topics') }}"
+                           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                                  border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800
+                                  text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+                                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                            <span>Cancel</span>
+                        </a>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Ingest pipeline — numbered steps mirroring the real route logic -->
+            {% call section_card("How each file is processed", icon="ti-route") %}
+            <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+                <li class="flex items-start gap-3 px-4 sm:px-5 py-3.5">
+                    <span class="shrink-0 w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-700 text-ecs-green font-mono font-bold text-sm flex items-center justify-center">1</span>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">Read the title</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">First <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded text-gray-800 dark:text-gray-200"># heading</code> becomes the topic title. No heading &rarr; file is skipped with an error.</p>
+                    </div>
+                </li>
+                <li class="flex items-start gap-3 px-4 sm:px-5 py-3.5">
+                    <span class="shrink-0 w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-700 text-ecs-green font-mono font-bold text-sm flex items-center justify-center">2</span>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">Resolve role access</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Names after <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded text-gray-800 dark:text-gray-200">**Role Access**:</code> are matched to roles. <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded text-gray-800 dark:text-gray-200">Public</code> assigns none (everyone sees it).</p>
+                    </div>
+                </li>
+                <li class="flex items-start gap-3 px-4 sm:px-5 py-3.5">
+                    <span class="shrink-0 w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-700 text-ecs-green font-mono font-bold text-sm flex items-center justify-center">3</span>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">Create or update by title</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">A matching title is overwritten; otherwise a new topic is created. The whole file body is stored as the topic content.</p>
+                    </div>
+                </li>
+                <li class="flex items-start gap-3 px-4 sm:px-5 py-3.5">
+                    <span class="shrink-0 w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-700 text-ecs-green font-mono font-bold text-sm flex items-center justify-center">4</span>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">Commit &amp; report</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Successful topics are saved together; per-file errors are reported back without blocking the rest of the batch.</p>
+                    </div>
+                </li>
+            </ul>
             {% endcall %}
         </div>
 
-        <!-- Sidebar -->
+        <!-- Sidebar: contract reference -->
         <div class="space-y-6">
+            <!-- File markers — real table of what the parser reads -->
+            {% call section_card("File markers", icon="ti-hash") %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-200 dark:border-gray-700 text-left">
+                            <th scope="col" class="px-4 sm:px-5 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Marker</th>
+                            <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        <tr>
+                            <td class="px-4 sm:px-5 py-3 align-top"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200"># Title</code></td>
+                            <td class="px-3 py-3 text-gray-500 dark:text-gray-400 text-xs">Topic title <span class="text-gray-400 dark:text-gray-500">(required)</span></td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 sm:px-5 py-3 align-top"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">**Role Access**:</code></td>
+                            <td class="px-3 py-3 text-gray-500 dark:text-gray-400 text-xs">Who can view it</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 sm:px-5 py-3 align-top"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">**Priority**:</code></td>
+                            <td class="px-3 py-3 text-gray-500 dark:text-gray-400 text-xs">Optional hint, kept in body</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            {% endcall %}
+
             <!-- Example Format -->
-            {% call section_card("Example Format", icon="ti-file-text") %}
+            {% call section_card("Example file", icon="ti-file-text") %}
             <div class="p-4 sm:p-5">
             <pre class="font-mono bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-xs overflow-x-auto"><code class="text-gray-800 dark:text-gray-200"># Topic Title
 
@@ -124,29 +192,29 @@ regardless of their role.</code></pre>
             </div>
             {% endcall %}
 
-            <!-- Available Roles -->
-            {% call section_card("Available Roles", icon="ti-shield-lock") %}
+            <!-- Available Roles — dense pills -->
+            {% call section_card("Role Access values", icon="ti-shield-lock") %}
             <div class="p-4 sm:p-5">
-            <ul class="space-y-2 text-sm">
-                <li class="flex items-center gap-2">
-                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Public</code>
-                    <span class="text-gray-500 dark:text-gray-400">(visible to all users)</span>
-                </li>
-                <li><code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Global Admin</code></li>
-                <li><code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Pub League Admin</code></li>
-                <li><code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">ECS FC Coach</code></li>
-                <li><code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Pub League Coach</code></li>
-                <li><code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Discord Admin</code></li>
-                <li><code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">pl-classic</code></li>
-                <li><code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">pl-premier</code></li>
-                <li><code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">pl-ecs-fc</code></li>
-                <li><code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Classic Sub</code></li>
-                <li><code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Premier Sub</code></li>
-                <li><code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">ECS FC Sub</code></li>
-            </ul>
-            <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                You can specify multiple roles separated by commas, or use "Public" for all users.
-            </p>
+                <div class="flex items-start gap-2 mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+                    <code class="font-mono bg-ecs-green/10 text-ecs-green px-2 py-0.5 rounded text-xs font-semibold shrink-0">Public</code>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">visible to all users &mdash; no role required</span>
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Global Admin</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Pub League Admin</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">ECS FC Coach</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Pub League Coach</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Discord Admin</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">pl-classic</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">pl-premier</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">pl-ecs-fc</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Classic Sub</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Premier Sub</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">ECS FC Sub</code>
+                </div>
+                <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                    Separate multiple roles with commas. Unknown names are ignored at match time.
+                </p>
             </div>
             {% endcall %}
         </div>

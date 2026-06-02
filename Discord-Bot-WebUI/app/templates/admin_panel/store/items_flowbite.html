@@ -22,72 +22,25 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state %}
 
-{% call page_header("Store Items", subtitle="Store Management") %}
-  <a href="{{ url_for('admin_panel.create_store_item') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-    <i class="ti ti-plus" aria-hidden="true"></i>Add New Item
-  </a>
-{% endcall %}
+{# --- derive real figures (route provides items pagination, categories, current_filters; NO stat aggregates) --- #}
+{% set page_active = items.items | selectattr('is_active') | list | length %}
+{% set page_inactive = (items.items | length) - page_active %}
+{% set page_priced = items.items | selectattr('price') | list | length %}
+{% set filters_applied = (current_filters.category != 'all') or (current_filters.status != 'all') or (current_filters.search | trim | length > 0) %}
+{% set range_start = ((items.page - 1) * items.per_page + 1) if items.total else 0 %}
+{% set range_end = (range_start + (items.items | length) - 1) if items.total else 0 %}
+{% set group_by_cat = (current_filters.order_by == 'category') %}
 
-<div class="space-y-5 sm:space-y-6">
-  {# Filters #}
-  {% call section_card("Filters", icon="ti-filter") %}
-  <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 sm:p-5">
-    <div>
-      <label for="category" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
-      <select name="category" id="category"
-              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <option value="all" {% if current_filters.category == 'all' %}selected{% endif %}>All Categories</option>
-        {% for category in categories %}
-        <option value="{{ category }}" {% if current_filters.category == category %}selected{% endif %}>{{ category }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div>
-      <label for="status" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-      <select name="status" id="status"
-              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <option value="all" {% if current_filters.status == 'all' %}selected{% endif %}>All Status</option>
-        <option value="active" {% if current_filters.status == 'active' %}selected{% endif %}>Active</option>
-        <option value="inactive" {% if current_filters.status == 'inactive' %}selected{% endif %}>Inactive</option>
-      </select>
-    </div>
-    <div>
-      <label for="order_by" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Sort By</label>
-      <select name="order_by" id="order_by"
-              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <option value="name" {% if current_filters.order_by == 'name' %}selected{% endif %}>Name</option>
-        <option value="category" {% if current_filters.order_by == 'category' %}selected{% endif %}>Category</option>
-        <option value="created_at" {% if current_filters.order_by == 'created_at' %}selected{% endif %}>Created Date</option>
-        <option value="updated_at" {% if current_filters.order_by == 'updated_at' %}selected{% endif %}>Updated Date</option>
-      </select>
-    </div>
-    <div>
-      <label for="search" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Search</label>
-      <div class="flex">
-        <input type="text" name="search" id="search" value="{{ current_filters.search }}" placeholder="Search items..."
-               class="flex-1 min-w-0 rounded-l-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        <button type="submit"
-                class="inline-flex items-center justify-center min-w-[44px] px-4 rounded-r-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                aria-label="Search">
-          <i class="ti ti-search" aria-hidden="true"></i>
-        </button>
-      </div>
-    </div>
-  </form>
-  {% endcall %}
-
-  {# Items table #}
-  {% set table_footer %}
-    {% if items.pages > 1 %}
+{# pagination footer markup — defined before the table card that consumes it #}
+{% set store_items_pagination %}
     <nav aria-label="Store items pagination" class="w-full flex justify-center">
       <ul class="inline-flex items-center -space-x-px">
         {% if items.has_prev %}
         <li>
           <a href="{{ url_for('admin_panel.store_items', page=items.prev_num, **current_filters) }}"
-             class="block px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+             class="block px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" aria-label="Previous page">
             <i class="ti ti-chevron-left" aria-hidden="true"></i>
           </a>
         </li>
@@ -106,64 +59,124 @@
         {% if items.has_next %}
         <li>
           <a href="{{ url_for('admin_panel.store_items', page=items.next_num, **current_filters) }}"
-             class="block px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+             class="block px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" aria-label="Next page">
             <i class="ti ti-chevron-right" aria-hidden="true"></i>
           </a>
         </li>
         {% endif %}
       </ul>
     </nav>
-    {% endif %}
-  {% endset %}
+{% endset %}
 
-  {% if items.items %}
-  {% call data_table("Inventory", icon="ti-package", count=items.total, search_placeholder="Filter items…", search_id="storeItemsFilter", footer=table_footer) %}
+{% call page_header("Store Items", subtitle="Store Management / Inventory") %}
+  <a href="{{ url_for('admin_panel.store_management') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-clipboard-list" aria-hidden="true"></i><span class="hidden sm:inline">Store Overview</span>
+  </a>
+  <a href="{{ url_for('admin_panel.create_store_item') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <i class="ti ti-plus" aria-hidden="true"></i>Add New Item
+  </a>
+{% endcall %}
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6 items-start">
+
+  {# ============================ MAIN COLUMN ============================ #}
+  <div class="xl:col-span-2 space-y-5 sm:space-y-6 min-w-0">
+
+  {# ---- KPI band: only real, route-provided figures ---- #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card("ti-package", "Total Items", items.total, sublabel="catalog-wide", tone="primary") }}
+    {{ stat_card("ti-tags", "Categories", categories | length, sublabel="distinct", tone="info") }}
+    {% call stat_card("ti-circle-check", "Active Here", page_active, sublabel="of " ~ (items.items | length) ~ " shown", tone="success") %}
+      <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ page_inactive }}</span> inactive on this page
+    {% endcall %}
+    {% call stat_card("ti-list-details", "Page", items.page, sublabel="of " ~ items.pages, tone="neutral") %}
+      Rows <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ range_start }}–{{ range_end }}</span>
+    {% endcall %}
+  </div>
+
+  {# ---- Items: real table with category-group dividers (concept's group-divider pattern) ---- #}
+  <section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-package text-ecs-green" aria-hidden="true"></i> Inventory
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ items.total }}</span>
+      </h2>
+      <div class="relative w-40 sm:w-56">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+        <input type="search" id="storeItemsFilter" placeholder="Filter rows…"
+               class="w-full h-9 pl-9 pr-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+               aria-label="Filter loaded rows">
+      </div>
+    </div>
+
+    {% if items.items %}
+    <div class="md:overflow-x-auto">
     <table class="hidden md:table w-full text-sm text-left">
       <thead class="bg-gray-50 dark:bg-gray-900/40">
         <tr>
-          {{ data_table_th("Image", key="image", sortable=false) }}
-          {{ data_table_th("Name", key="name") }}
-          {{ data_table_th("Category", key="category", hide='sm') }}
-          {{ data_table_th("Price", key="price") }}
-          {{ data_table_th("Status", key="status", hide='sm') }}
-          {{ data_table_th("Options", key="options", sortable=false, hide='md') }}
-          {{ data_table_th("Created", key="created_at", hide='md') }}
-          {{ data_table_th("Actions", key="actions", sortable=false, align='right') }}
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Item</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Category</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Price</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Variants</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Created</th>
+          <th scope="col" class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 text-right">Actions</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% set ns = namespace(prev_cat='__init__') %}
         {% for item in items.items %}
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-          <td class="px-3 py-3 align-middle">
-            {% if item.image_url %}
-            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-12 h-12 rounded-lg object-cover">
-            {% else %}
-            <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700">
-              <i class="ti ti-package text-gray-400" aria-hidden="true"></i>
+        {% set cur_cat = item.category or 'Uncategorized' %}
+        {% if group_by_cat and cur_cat != ns.prev_cat %}
+        {# category-group divider: mono ecs-green label + h-px rule (concept date-group pattern) #}
+        <tr data-row-group aria-hidden="true">
+          <td colspan="7" class="px-3 pt-4 pb-1.5">
+            <div class="flex items-center gap-3">
+              <span class="font-mono text-xs font-bold uppercase tracking-wide text-ecs-green whitespace-nowrap">{{ cur_cat }}</span>
+              <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
             </div>
-            {% endif %}
           </td>
+        </tr>
+        {% set ns.prev_cat = cur_cat %}
+        {% endif %}
+        <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
           <td class="px-3 py-3 align-middle">
-            <p class="font-medium text-gray-900 dark:text-white">{{ item.name }}</p>
-            {% if item.description %}
-            <p class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</p>
-            {% endif %}
+            <div class="flex items-center gap-3 min-w-0">
+              {% if item.image_url %}
+              <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-11 h-11 rounded-lg object-cover shrink-0 ring-1 ring-gray-200 dark:ring-gray-700">
+              {% else %}
+              <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-gray-100 dark:bg-gray-700 shrink-0">
+                <i class="ti ti-package text-gray-400" aria-hidden="true"></i>
+              </div>
+              {% endif %}
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <p data-row-name class="font-semibold text-gray-900 dark:text-white truncate">{{ item.name }}</p>
+                  <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500 shrink-0">#{{ item.id }}</span>
+                </div>
+                {% if item.description %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">{{ item.description[:60] }}{% if item.description|length > 60 %}…{% endif %}</p>
+                {% endif %}
+              </div>
+            </div>
           </td>
-          <td class="px-3 py-3 align-middle hidden md:table-cell">
+          <td class="px-3 py-3 align-middle hidden lg:table-cell">
             {% if item.category %}
             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ item.category }}</span>
             {% else %}
             <span class="text-gray-400 dark:text-gray-500">Uncategorized</span>
             {% endif %}
           </td>
-          <td class="px-3 py-3 align-middle">
+          <td class="px-3 py-3 align-middle text-right">
             {% if item.price %}
-            <span class="font-mono font-medium text-gray-900 dark:text-white">${{ "%.2f"|format(item.price) }}</span>
+            <span class="font-mono font-semibold text-gray-900 dark:text-white tabular-nums">${{ "%.2f"|format(item.price) }}</span>
             {% else %}
-            <span class="text-gray-400 dark:text-gray-500">N/A</span>
+            <span class="text-gray-400 dark:text-gray-500">—</span>
             {% endif %}
           </td>
-          <td class="px-3 py-3 align-middle hidden md:table-cell">
+          <td class="px-3 py-3 align-middle">
             {% if item.is_active %}
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
               <i class="ti ti-circle-check" aria-hidden="true"></i>Active
@@ -177,18 +190,25 @@
           <td class="px-3 py-3 align-middle hidden lg:table-cell">
             {% set colors = item.available_colors|from_json if item.available_colors else [] %}
             {% set sizes = item.available_sizes|from_json if item.available_sizes else [] %}
-            {% if colors %}
-            <p class="text-xs text-gray-500 dark:text-gray-400">Colors: <span class="font-mono">{{ colors|length }}</span></p>
-            {% endif %}
-            {% if sizes %}
-            <p class="text-xs text-gray-500 dark:text-gray-400">Sizes: <span class="font-mono">{{ sizes|length }}</span></p>
-            {% endif %}
-            {% if not colors and not sizes %}
-            <span class="text-gray-400 dark:text-gray-500">None</span>
+            {% if colors or sizes %}
+            <div class="flex flex-wrap items-center gap-1.5">
+              {% if colors %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                <i class="ti ti-palette text-[11px]" aria-hidden="true"></i><span class="font-mono">{{ colors|length }}</span> color{{ 's' if colors|length != 1 }}
+              </span>
+              {% endif %}
+              {% if sizes %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                <i class="ti ti-ruler-2 text-[11px]" aria-hidden="true"></i><span class="font-mono">{{ sizes|length }}</span> size{{ 's' if sizes|length != 1 }}
+              </span>
+              {% endif %}
+            </div>
+            {% else %}
+            <span class="text-gray-400 dark:text-gray-500 text-xs">No variants</span>
             {% endif %}
           </td>
           <td class="px-3 py-3 align-middle hidden lg:table-cell">
-            <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ item.created_at.strftime('%Y-%m-%d') if item.created_at else 'Unknown' }}</span>
+            <span class="font-mono text-xs text-gray-500 dark:text-gray-400 tabular-nums">{{ item.created_at.strftime('%Y-%m-%d') if item.created_at else 'Unknown' }}</span>
           </td>
           <td class="px-3 py-3 align-middle text-right">
             <div class="inline-flex items-center gap-1">
@@ -209,11 +229,21 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
 
-    {# Mobile stacked cards #}
+    {# Mobile stacked cards — with category-group dividers too #}
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% set nsm = namespace(prev_cat='__init__') %}
       {% for item in items.items %}
-      <div class="px-4 py-3.5">
+      {% set cur_cat = item.category or 'Uncategorized' %}
+      {% if group_by_cat and cur_cat != nsm.prev_cat %}
+      <div data-row-group class="flex items-center gap-3 px-4 pt-3.5 pb-1" aria-hidden="true">
+        <span class="font-mono text-xs font-bold uppercase tracking-wide text-ecs-green whitespace-nowrap">{{ cur_cat }}</span>
+        <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+      </div>
+      {% set nsm.prev_cat = cur_cat %}
+      {% endif %}
+      <div data-row class="px-4 py-3.5">
         <div class="flex items-start gap-3">
           {% if item.image_url %}
           <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-12 h-12 rounded-lg object-cover shrink-0">
@@ -223,7 +253,10 @@
           </div>
           {% endif %}
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ item.name }}</p>
+            <div class="flex items-center gap-2">
+              <p data-row-name class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ item.name }}</p>
+              <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500 shrink-0">#{{ item.id }}</span>
+            </div>
             <div class="mt-1 flex flex-wrap items-center gap-2 text-xs">
               {% if item.category %}
               <span class="inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ item.category }}</span>
@@ -234,9 +267,21 @@
               <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-circle-x" aria-hidden="true"></i>Inactive</span>
               {% endif %}
               {% if item.price %}
-              <span class="font-mono font-medium text-gray-900 dark:text-white">${{ "%.2f"|format(item.price) }}</span>
+              <span class="font-mono font-semibold text-gray-900 dark:text-white tabular-nums">${{ "%.2f"|format(item.price) }}</span>
               {% endif %}
             </div>
+            {% set m_colors = item.available_colors|from_json if item.available_colors else [] %}
+            {% set m_sizes = item.available_sizes|from_json if item.available_sizes else [] %}
+            {% if m_colors or m_sizes %}
+            <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+              {% if m_colors %}
+              <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-palette text-[11px]" aria-hidden="true"></i><span class="font-mono">{{ m_colors|length }}</span></span>
+              {% endif %}
+              {% if m_sizes %}
+              <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-ruler-2 text-[11px]" aria-hidden="true"></i><span class="font-mono">{{ m_sizes|length }}</span></span>
+              {% endif %}
+            </div>
+            {% endif %}
           </div>
           <div class="flex items-center gap-1 shrink-0">
             <a href="{{ url_for('admin_panel.edit_store_item', item_id=item.id) }}"
@@ -255,10 +300,139 @@
       </div>
       {% endfor %}
     </div>
-  {% endcall %}
-  {% else %}
-  {{ empty_state("ti-package", "No Items Found", "No store items match your current filters.", action={'label': 'Add First Item', 'url': url_for('admin_panel.create_store_item'), 'icon': 'ti-plus'}) }}
+
+    {# footer: pagination #}
+    {% if items.pages > 1 %}
+    <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+      {{ store_items_pagination }}
+    </div>
+    {% endif %}
+
+    {% else %}
+    {% if filters_applied %}
+    {{ empty_state("ti-filter-off", "No Matching Items", "No store items match your current query. Try clearing the filters.", action={'label': 'Clear Filters', 'url': url_for('admin_panel.store_items'), 'icon': 'ti-x'}) }}
+    {% else %}
+    {{ empty_state("ti-package", "No Items Found", "The store catalog is empty. Add your first item to get started.", action={'label': 'Add First Item', 'url': url_for('admin_panel.create_store_item'), 'icon': 'ti-plus'}) }}
+    {% endif %}
+    {% endif %}
+  </section>
+  </div>{# /main column #}
+
+  {# ============================ SIDE RAIL ============================ #}
+  <div class="space-y-5 sm:space-y-6">
+
+  {# ---- Query panel: filters as a vertical command form (verbatim field names) ---- #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-adjustments-horizontal text-ecs-green" aria-hidden="true"></i> Query
+        {% if filters_applied %}
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/15 text-ecs-green dark:text-ecs-green">active</span>
+        {% endif %}
+      </h2>
+      {% if filters_applied %}
+      <a href="{{ url_for('admin_panel.store_items') }}"
+         class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-ecs-green">
+        <i class="ti ti-x" aria-hidden="true"></i> Clear
+      </a>
+      {% endif %}
+    </div>
+    <form method="GET" class="p-4 space-y-4">
+      <div>
+        <label for="search" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Search</label>
+        <div class="flex">
+          <input type="text" name="search" id="search" value="{{ current_filters.search }}" placeholder="Name, description, category…"
+                 class="flex-1 min-w-0 rounded-l-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <button type="submit"
+                  class="inline-flex items-center justify-center min-w-[44px] px-4 rounded-r-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  aria-label="Search">
+            <i class="ti ti-search" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      <div>
+        <label for="category" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Category</label>
+        <select name="category" id="category"
+                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="all" {% if current_filters.category == 'all' %}selected{% endif %}>All Categories</option>
+          {% for category in categories %}
+          <option value="{{ category }}" {% if current_filters.category == category %}selected{% endif %}>{{ category }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="status" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</label>
+        <select name="status" id="status"
+                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="all" {% if current_filters.status == 'all' %}selected{% endif %}>All Status</option>
+          <option value="active" {% if current_filters.status == 'active' %}selected{% endif %}>Active</option>
+          <option value="inactive" {% if current_filters.status == 'inactive' %}selected{% endif %}>Inactive</option>
+        </select>
+      </div>
+      <div>
+        <label for="order_by" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Sort By</label>
+        <select name="order_by" id="order_by"
+                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="name" {% if current_filters.order_by == 'name' %}selected{% endif %}>Name</option>
+          <option value="category" {% if current_filters.order_by == 'category' %}selected{% endif %}>Category</option>
+          <option value="created_at" {% if current_filters.order_by == 'created_at' %}selected{% endif %}>Created Date</option>
+          <option value="updated_at" {% if current_filters.order_by == 'updated_at' %}selected{% endif %}>Updated Date</option>
+        </select>
+      </div>
+      <button type="submit"
+              class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-filter" aria-hidden="true"></i>Apply Filters
+      </button>
+    </form>
+  </section>
+
+  {# ---- This-page snapshot: real derived counts only ---- #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-chart-bar text-ecs-green" aria-hidden="true"></i>
+      <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">This Page</h3>
+    </div>
+    <dl class="divide-y divide-gray-100 dark:divide-gray-700/60">
+      <div class="flex items-center justify-between px-4 py-2.5">
+        <dt class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2"><i class="ti ti-list-details text-gray-400" aria-hidden="true"></i>Rows shown</dt>
+        <dd class="font-mono text-sm font-semibold text-gray-900 dark:text-white tabular-nums">{{ items.items | length }}</dd>
+      </div>
+      <div class="flex items-center justify-between px-4 py-2.5">
+        <dt class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2"><i class="ti ti-circle-check text-green-500" aria-hidden="true"></i>Active</dt>
+        <dd class="font-mono text-sm font-semibold text-green-600 dark:text-green-400 tabular-nums">{{ page_active }}</dd>
+      </div>
+      <div class="flex items-center justify-between px-4 py-2.5">
+        <dt class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2"><i class="ti ti-circle-x text-gray-400" aria-hidden="true"></i>Inactive</dt>
+        <dd class="font-mono text-sm font-semibold text-gray-700 dark:text-gray-300 tabular-nums">{{ page_inactive }}</dd>
+      </div>
+      <div class="flex items-center justify-between px-4 py-2.5">
+        <dt class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2"><i class="ti ti-currency-dollar text-blue-500" aria-hidden="true"></i>Priced</dt>
+        <dd class="font-mono text-sm font-semibold text-gray-900 dark:text-white tabular-nums">{{ page_priced }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  {# ---- Category index: real distinct categories from the route ---- #}
+  {% if categories %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-tags text-ecs-green" aria-hidden="true"></i>
+      <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Categories</h3>
+      <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ categories | length }}</span>
+    </div>
+    <div class="flex flex-wrap gap-2 p-4">
+      {% for category in categories %}
+      <a href="{{ url_for('admin_panel.store_items', category=category, status=current_filters.status, order_by=current_filters.order_by, search=current_filters.search) }}"
+         class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors
+                {% if current_filters.category == category %}border-ecs-green bg-ecs-green/10 text-ecs-green{% else %}border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:text-ecs-green{% endif %}">
+        <i class="ti ti-tag text-[11px]" aria-hidden="true"></i>{{ category }}
+      </a>
+      {% endfor %}
+    </div>
+  </section>
   {% endif %}
+
+  </div>{# /side rail #}
 </div>
 
 {% else %}

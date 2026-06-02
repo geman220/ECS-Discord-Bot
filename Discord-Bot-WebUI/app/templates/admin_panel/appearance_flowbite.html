@@ -16,8 +16,9 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, section_card, alert as kit_alert, modal as kit_modal, empty_state as kit_empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, stat_card, alert as kit_alert, modal as kit_modal, empty_state as kit_empty_state %}
 {% from 'macros/flowbite.html' import input, textarea %}
+{% set _token_count = (colors.light|length) + (colors.dark|length) %}
 {% set _color_groups = {
   'brand': {'icon': 'ti-brush', 'title': 'Brand Colors',
     'fields': [('primary', 'Buttons, links, active states'), ('primary_light', 'Hover states, highlights'), ('primary_dark', 'Pressed states, emphasis'), ('secondary', 'Secondary buttons, muted UI'), ('accent', 'CTAs, highlights, badges')]},
@@ -32,30 +33,75 @@
 } %}
 <div class="space-y-6">
 
-  {{ page_header('Theme Customization', subtitle='Appearance') }}
+  {% call page_header('Theme Customization', subtitle='Appearance') %}
+    <button type="button" data-action="save-colors"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg text-sm font-semibold
+                   bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-device-floppy" aria-hidden="true"></i><span class="hidden sm:inline">Save Changes</span><span class="sm:hidden">Save</span>
+    </button>
+  {% endcall %}
 
-  <div class="flex flex-wrap gap-2">
-    <button type="button" data-action="export-colors"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
-                   border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-                   hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-      <i class="ti ti-download" aria-hidden="true"></i>Export
-    </button>
-    <button type="button" data-action="show-import"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
-                   border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-                   hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-      <i class="ti ti-upload" aria-hidden="true"></i>Import
-    </button>
-    <button type="button" data-action="reset-colors"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
-                   border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400
-                   hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-      <i class="ti ti-refresh" aria-hidden="true"></i>Reset to Default
-    </button>
+  {# ---- KPI band: real palette facts (token values are load-bearing user data) ---- #}
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    {% call stat_card('ti-palette', 'Palette Source', 'Custom' if has_custom_colors else 'Default', tone=('gold' if has_custom_colors else 'primary')) %}
+      {% if has_custom_colors %}Overriding the Modern default palette{% else %}Using the built-in Modern palette{% endif %}
+    {% endcall %}
+    {% call stat_card('ti-color-swatch', 'Color Tokens', _token_count, sublabel='light + dark', tone='neutral') %}
+      <span class="font-mono">{{ colors.light|length }}</span> per mode across 5 groups
+    {% endcall %}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Brand Primary</span>
+        <i class="ti ti-sun text-lg text-amber-500 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-center gap-2.5">
+        <span class="w-8 h-8 rounded-lg border border-gray-300 dark:border-gray-600 shrink-0" style="background: {{ colors.light.primary }};" aria-hidden="true"></span>
+        <span class="font-mono text-2xl sm:text-3xl font-bold leading-none text-gray-900 dark:text-white uppercase">{{ colors.light.primary }}</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Light mode brand color</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Brand Primary</span>
+        <i class="ti ti-moon text-lg text-indigo-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-center gap-2.5">
+        <span class="w-8 h-8 rounded-lg border border-gray-300 dark:border-gray-600 shrink-0" style="background: {{ colors.dark.primary }};" aria-hidden="true"></span>
+        <span class="font-mono text-2xl sm:text-3xl font-bold leading-none text-gray-900 dark:text-white uppercase">{{ colors.dark.primary }}</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">Dark mode brand color</div>
+    </div>
+  </div>
+
+  {# ---- Command toolbar: palette-level actions ---- #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 flex flex-wrap items-center gap-3">
+    <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mr-auto inline-flex items-center gap-1.5">
+      <i class="ti ti-adjustments" aria-hidden="true"></i>Palette Actions
+    </span>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" data-action="export-colors"
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                     border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                     hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-download" aria-hidden="true"></i>Export
+      </button>
+      <button type="button" data-action="show-import"
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                     border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                     hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-upload" aria-hidden="true"></i>Import
+      </button>
+      <button type="button" data-action="reset-colors"
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                     border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400
+                     hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-refresh" aria-hidden="true"></i>Reset to Default
+      </button>
+    </div>
   </div>
 
   {% if has_custom_colors %}
@@ -245,49 +291,68 @@
   </div>
   {% endcall %}
 
-  {# ---- Color Editor (Light / Dark tabs) ---- #}
-  <div class="border-b border-gray-200 dark:border-gray-700">
-    <ul class="flex flex-wrap -mb-px text-sm font-medium" id="colorTabs" role="tablist">
-      <li class="mr-2" role="presentation">
-        <button class="inline-flex items-center p-4 border-b-2 border-ecs-green text-ecs-green rounded-t-lg min-h-[44px]" id="light-tab" data-tabs-target="#light-colors" type="button" role="tab" aria-controls="light-colors" aria-selected="true">
-          <i class="ti ti-sun mr-2" aria-hidden="true"></i>Light Mode Colors
-        </button>
-      </li>
-      <li class="mr-2" role="presentation">
-        <button class="inline-flex items-center p-4 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400 rounded-t-lg min-h-[44px]" id="dark-tab" data-tabs-target="#dark-colors" type="button" role="tab" aria-controls="dark-colors" aria-selected="false">
-          <i class="ti ti-moon mr-2" aria-hidden="true"></i>Dark Mode Colors
-        </button>
-      </li>
-    </ul>
-  </div>
+  {# ---- Color Editor (Light / Dark tabs, wrapped in a section shell) ---- #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2">
+      <i class="ti ti-color-picker text-ecs-green" aria-hidden="true"></i>
+      <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Color Editor</h3>
+      <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ colors.light|length }} tokens / mode</span>
+    </div>
 
-  <div id="colorTabContent">
-    {% for panel in ['light', 'dark'] %}
-    <div class="{{ 'hidden' if panel == 'dark' else '' }}" id="{{ panel }}-colors" role="tabpanel" aria-labelledby="{{ panel }}-tab">
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-        {% for gkey, g in _color_groups.items() %}
-        {% call section_card(g.title, icon=g.icon) %}
-        <div class="p-4 space-y-4">
-          {% for field, desc in g.fields %}
-          {% set fname = field|replace('text_', '')|replace('bg_', '')|replace('border_', '')|replace('_', ' ')|title if (field.startswith('text_') or field.startswith('bg_') or field.startswith('border_')) else field|replace('_', ' ')|title %}
-          <div>
-            <label class="flex justify-between text-sm mb-1">
-              <span class="font-medium text-gray-900 dark:text-white">{{ 'Default' if field == 'border' else fname }}</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ desc }}</span>
-            </label>
-            <div class="flex">
-              <input type="color" class="w-12 h-10 rounded-l-lg border border-r-0 border-gray-300 dark:border-gray-600 cursor-pointer" id="{{ panel }}-{{ field }}" value="{{ colors[panel][field] }}">
-              <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-r-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-mono" id="{{ panel }}-{{ field }}-hex" value="{{ colors[panel][field] }}" pattern="^#[0-9A-Fa-f]{6}$">
+    <div class="border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4">
+      <ul class="flex flex-wrap -mb-px text-sm font-medium" id="colorTabs" role="tablist">
+        <li class="mr-2" role="presentation">
+          <button class="inline-flex items-center p-4 border-b-2 border-ecs-green text-ecs-green rounded-t-lg min-h-[44px]" id="light-tab" data-tabs-target="#light-colors" type="button" role="tab" aria-controls="light-colors" aria-selected="true">
+            <i class="ti ti-sun mr-2" aria-hidden="true"></i>Light Mode Colors
+          </button>
+        </li>
+        <li class="mr-2" role="presentation">
+          <button class="inline-flex items-center p-4 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400 rounded-t-lg min-h-[44px]" id="dark-tab" data-tabs-target="#dark-colors" type="button" role="tab" aria-controls="dark-colors" aria-selected="false">
+            <i class="ti ti-moon mr-2" aria-hidden="true"></i>Dark Mode Colors
+          </button>
+        </li>
+      </ul>
+    </div>
+
+    <div id="colorTabContent" class="p-4 sm:p-5">
+      {% for panel in ['light', 'dark'] %}
+      <div class="{{ 'hidden' if panel == 'dark' else '' }}" id="{{ panel }}-colors" role="tabpanel" aria-labelledby="{{ panel }}-tab">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+          {% for gkey, g in _color_groups.items() %}
+          <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/40 overflow-hidden">
+            {# group header: eyebrow + live swatch strip (real token values) #}
+            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3 bg-white dark:bg-gray-800">
+              <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-200">
+                <i class="ti {{ g.icon }} text-ecs-green" aria-hidden="true"></i>{{ g.title }}
+              </span>
+              <div class="flex -space-x-1 shrink-0" aria-hidden="true">
+                {% for field, desc in g.fields %}
+                <span class="w-5 h-5 rounded-full ring-2 ring-white dark:ring-gray-800 border border-black/5" style="background: {{ colors[panel][field] }};"></span>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+              {% for field, desc in g.fields %}
+              {% set fname = field|replace('text_', '')|replace('bg_', '')|replace('border_', '')|replace('_', ' ')|title if (field.startswith('text_') or field.startswith('bg_') or field.startswith('border_')) else field|replace('_', ' ')|title %}
+              <div class="px-4 py-3">
+                <label for="{{ panel }}-{{ field }}-hex" class="flex items-baseline justify-between gap-2 mb-2">
+                  <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ 'Default' if field == 'border' else fname }}</span>
+                  <span class="text-xs text-gray-500 dark:text-gray-400 text-right truncate">{{ desc }}</span>
+                </label>
+                <div class="flex">
+                  <input type="color" class="w-12 h-10 rounded-l-lg border border-r-0 border-gray-300 dark:border-gray-600 cursor-pointer bg-transparent" id="{{ panel }}-{{ field }}" value="{{ colors[panel][field] }}" aria-label="{{ fname }} color picker">
+                  <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-r-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono uppercase tracking-tight" id="{{ panel }}-{{ field }}-hex" value="{{ colors[panel][field] }}" pattern="^#[0-9A-Fa-f]{6}$">
+                </div>
+              </div>
+              {% endfor %}
             </div>
           </div>
           {% endfor %}
         </div>
-        {% endcall %}
-        {% endfor %}
       </div>
+      {% endfor %}
     </div>
-    {% endfor %}
-  </div>
+  </section>
 
   {# ---- Save (sticky FAB) ---- #}
   <div class="fixed bottom-6 right-6 z-40">

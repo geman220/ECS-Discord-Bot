@@ -1,21 +1,23 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import empty_state, page_header, stat_card %}
 {% from "macros/flowbite.html" import modal_form %}
-{% from "macros/_modern_kit.html" import page_header, section_card, empty_state %}
+{% from "macros/_modern_kit.html" import page_header, section_card, empty_state, stat_card %}
 
 {% block title %}ECS FC Management{% endblock %}
 
 {% block main_content %}
 {% if shell == 'console' %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-    {{ page_header("ECS FC Management", subtitle="Schedules & Matches") }}
+    {{ page_header("ECS FC Schedule", subtitle=("Season · " ~ season.name) if season.name else "Schedule Builder") }}
 
-    <!-- League Tabs -->
+    <!-- League selector (segmented control) -->
     <div class="mb-6">
-        <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700" id="league-tabs">
+        <div class="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800" id="league-tabs" role="tablist" aria-label="Leagues">
             {% for league in leagues %}
-            <button type="button" class="league-tab inline-flex items-center min-h-[44px] px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ecs-green rounded-t-lg {{ 'border-b-2 border-ecs-green text-ecs-green' if loop.first else 'text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200' }}"
+            <button type="button" role="tab" aria-selected="{{ 'true' if loop.first else 'false' }}"
+                    class="league-tab inline-flex items-center gap-2 min-h-[40px] px-4 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {{ 'bg-white dark:bg-gray-700 text-ecs-green shadow-sm' if loop.first else 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}"
                     data-tab="league-{{ league.id }}">
-                {{ league.name }}
+                <i class="ti ti-shield-half text-base" aria-hidden="true"></i>{{ league.name }}
             </button>
             {% endfor %}
         </div>
@@ -24,42 +26,71 @@
     <!-- Tab Content -->
     <div class="tab-content space-y-6">
         {% for league in leagues %}
-        <div class="league-pane {{ 'hidden' if not loop.first else '' }} space-y-6" id="league-{{ league.id }}">
-            <!-- Bulk Match Creation Form -->
-            {% call section_card("Bulk Match Creation for " ~ league.name, icon="ti-wand") %}
-            <div class="px-4 sm:px-5 py-4">
-                <div class="flex justify-end mb-4">
-                    <button type="button" class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 bg-ecs-green hover:bg-ecs-green-700 text-white rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                            data-action="generate-form" data-league-name="{{ league.name }}">
-                        <i class="ti ti-wand" aria-hidden="true"></i> Generate Input Form
-                    </button>
+        {% set weeks = schedule[league.name] %}
+        {% set week_count = (weeks | length) if weeks else 0 %}
+        {% set ns = namespace(matches=0, locations=[]) %}
+        {% if weeks %}
+          {% for wk, data in weeks.items() %}
+            {% set ns.matches = ns.matches + (data.matches | length) %}
+            {% for m in data.matches %}{% if m.location and m.location not in ns.locations %}{% set ns.locations = ns.locations + [m.location] %}{% endif %}{% endfor %}
+          {% endfor %}
+        {% endif %}
+        <div class="league-pane {{ 'hidden' if not loop.first else '' }} space-y-6" id="league-{{ league.id }}" role="tabpanel">
+
+            <!-- KPI band (derived from real schedule + league data) -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                {{ stat_card("ti-calendar-week", "Weeks", week_count, sublabel="scheduled", tone='primary') }}
+                {{ stat_card("ti-ball-football", "Matches", ns.matches, sublabel="total fixtures", tone='neutral') }}
+                {{ stat_card("ti-users-group", "Teams", league.teams | length, sublabel="in league", tone='info') }}
+                {{ stat_card("ti-map-pin", "Venues", ns.locations | length, sublabel="in use", tone='gold') }}
+            </div>
+
+            <!-- PRIMARY OBJECT: Schedule builder (feature card with command toolbar) -->
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <i class="ti ti-wand text-ecs-green" aria-hidden="true"></i>
+                        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white truncate">Build Schedule</h3>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                data-action="add-single-week" data-league-name="{{ league.name }}">
+                            <i class="ti ti-plus" aria-hidden="true"></i> Add Single Week
+                        </button>
+                        <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 bg-ecs-green hover:bg-ecs-green-700 text-white rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                data-action="generate-form" data-league-name="{{ league.name }}">
+                            <i class="ti ti-wand" aria-hidden="true"></i> Generate Input Form
+                        </button>
+                    </div>
                 </div>
                 <form method="POST" id="bulkCreationForm-{{ league.name }}"
-                      action="{{ url_for('publeague.schedule.bulk_create_ecsfc_matches', season_id=season.id, league_name=league.name) }}">
+                      action="{{ url_for('publeague.schedule.bulk_create_ecsfc_matches', season_id=season.id, league_name=league.name) }}"
+                      class="px-4 sm:px-5 py-4">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Set the season-wide parameters, then generate the week-by-week input form to assign matchups.</p>
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Total Weeks</label>
-                            <input type="number" name="total_weeks" value="11" required class="input-ecs">
+                            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Total Weeks</label>
+                            <input type="number" name="total_weeks" value="11" required class="input-ecs font-mono">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Matches per Week</label>
-                            <input type="number" name="matches_per_week" value="8" required class="input-ecs">
+                            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Matches / Week</label>
+                            <input type="number" name="matches_per_week" value="8" required class="input-ecs font-mono">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Time</label>
-                            <input type="time" name="start_time" required class="input-ecs">
+                            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Start Time</label>
+                            <input type="time" name="start_time" required class="input-ecs font-mono">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fun Week</label>
-                            <input type="number" name="fun_week" value="9" class="input-ecs">
+                            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Fun Week</label>
+                            <input type="number" name="fun_week" value="9" class="input-ecs font-mono">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">TST Week</label>
-                            <input type="number" name="tst_week" value="11" class="input-ecs">
+                            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">TST Week</label>
+                            <input type="number" name="tst_week" value="11" class="input-ecs font-mono">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Location</label>
+                            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Default Venue</label>
                             <select name="location" class="input-ecs">
                                 <option value="North">North</option>
                                 <option value="South">South</option>
@@ -67,69 +98,82 @@
                         </div>
                     </div>
                 </form>
-                <button type="button" class="mt-4 inline-flex items-center gap-2 min-h-[44px] px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-                        data-action="add-single-week" data-league-name="{{ league.name }}">
-                    <i class="ti ti-plus" aria-hidden="true"></i> Add Single Week
-                </button>
-            </div>
-            {% endcall %}
+            </section>
 
-            <!-- Detailed Input Form for Bulk Matches -->
+            <!-- Detailed Input Form for Bulk Matches (JS-rendered) -->
             <div id="detailedInputForm-{{ league.name }}"></div>
 
-            <!-- Current Schedule Display -->
-            {% call section_card("Current Schedule for " ~ league.name, icon="ti-calendar-event") %}
-            {% if schedule[league.name] %}
-            <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {% for week, data in schedule[league.name].items() %}
-                <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 overflow-hidden">
-                    <div class="px-3 py-2.5 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center gap-2">
-                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white truncate">Week <span class="font-mono">{{ week }}</span> · {{ data.date }}</h4>
-                        <form method="POST" action="{{ url_for('publeague.schedule.delete_ecsfc_week', season_id=season.id, week_number=week) }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" aria-label="Delete week {{ week }}">
-                                <i class="ti ti-trash" aria-hidden="true"></i>
-                            </button>
-                        </form>
-                    </div>
-                    <div class="p-3 space-y-2">
-                        {% set sorted_matches = data.matches | sort(attribute='time') %}
-                        {% for match in sorted_matches %}
-                        <div class="flex justify-between items-center gap-2 p-2.5 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                            <div class="min-w-0">
-                                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ match.team_a }} vs {{ match.team_b }}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400"><span class="font-mono">{{ match.time }}</span> · {{ match.location }}</p>
-                            </div>
-                            <div class="flex gap-1 shrink-0">
-                                <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                        data-action="edit-ecsfc-schedule-match"
-                                        data-match-id="{{ match.match_id }}"
-                                        data-team-a="{{ match.team_a }}"
-                                        data-team-b="{{ match.team_b }}"
-                                        data-time="{{ match.time }}"
-                                        data-location="{{ match.location }}"
-                                        data-date="{{ match.date }}"
-                                        data-league-name="{{ league.name }}"
-                                        aria-label="Edit match {{ match.team_a }} vs {{ match.team_b }}">
-                                    <i class="ti ti-edit" aria-hidden="true"></i>
-                                </button>
-                                <form action="{{ url_for('publeague.schedule.delete_ecsfc_match', match_id=match.match_id) }}" method="POST" class="inline">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" aria-label="Delete match">
-                                        <i class="ti ti-trash" aria-hidden="true"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
+            <!-- Current Schedule: week-grouped dense rows -->
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-calendar-event text-ecs-green" aria-hidden="true"></i> Current Schedule
+                    </h3>
+                    {% if weeks %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ week_count }} wk · {{ ns.matches }} mt</span>{% endif %}
                 </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            {{ empty_state("ti-calendar-off", "No matches scheduled yet", "Generate an input form or add a single week to build " ~ league.name ~ "'s schedule.") }}
-            {% endif %}
-            {% endcall %}
+                {% if weeks %}
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for week, data in weeks.items() %}
+                    {% set sorted_matches = data.matches | sort(attribute='time') %}
+                    <div>
+                        <!-- date-group divider: mono week + date with delete-week control -->
+                        <div class="flex items-center gap-3 px-4 sm:px-5 py-2.5 bg-gray-50 dark:bg-gray-700/40">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-ecs-green shrink-0">
+                                <i class="ti ti-flag text-[12px]" aria-hidden="true"></i> Week <span class="font-mono">{{ week }}</span>
+                            </span>
+                            <span class="font-mono text-xs text-gray-500 dark:text-gray-400 shrink-0">{{ data.date }}</span>
+                            <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500 shrink-0">{{ sorted_matches | length }} matches</span>
+                            <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+                            <form method="POST" action="{{ url_for('publeague.schedule.delete_ecsfc_week', season_id=season.id, week_number=week) }}" class="shrink-0">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" aria-label="Delete week {{ week }}">
+                                    <i class="ti ti-trash" aria-hidden="true"></i><span class="hidden sm:inline">Week</span>
+                                </button>
+                            </form>
+                        </div>
+                        <!-- match rows -->
+                        <div class="divide-y divide-gray-100 dark:divide-gray-700/60">
+                            {% for match in sorted_matches %}
+                            <div class="flex items-center gap-3 px-4 sm:px-5 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                <span class="font-mono text-sm text-gray-900 dark:text-white tabular-nums w-20 shrink-0">{{ match.time }}</span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                        {{ match.team_a }} <span class="text-gray-400 dark:text-gray-500 font-normal">vs</span> {{ match.team_b }}
+                                    </p>
+                                </div>
+                                <span class="hidden sm:inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 shrink-0">
+                                    <i class="ti ti-map-pin text-[12px]" aria-hidden="true"></i>{{ match.location }}
+                                </span>
+                                <div class="flex gap-1 shrink-0">
+                                    <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                            data-action="edit-ecsfc-schedule-match"
+                                            data-match-id="{{ match.match_id }}"
+                                            data-team-a="{{ match.team_a }}"
+                                            data-team-b="{{ match.team_b }}"
+                                            data-time="{{ match.time }}"
+                                            data-location="{{ match.location }}"
+                                            data-date="{{ match.date }}"
+                                            data-league-name="{{ league.name }}"
+                                            aria-label="Edit match {{ match.team_a }} vs {{ match.team_b }}">
+                                        <i class="ti ti-edit" aria-hidden="true"></i>
+                                    </button>
+                                    <form action="{{ url_for('publeague.schedule.delete_ecsfc_match', match_id=match.match_id) }}" method="POST" class="inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" aria-label="Delete match">
+                                            <i class="ti ti-trash" aria-hidden="true"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                {{ empty_state("ti-calendar-off", "No matches scheduled yet", "Generate an input form or add a single week to build " ~ league.name ~ "'s schedule.") }}
+                {% endif %}
+            </section>
         </div>
         {% endfor %}
     </div>
@@ -491,6 +535,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-<script src="{{ url_for('static', filename='custom_js/ecs-fc-bulk-admin.js') }}"></script>
-<script src="{{ url_for('static', filename='custom_js/schedule-management.js') }}"></script>
 {% endblock %}

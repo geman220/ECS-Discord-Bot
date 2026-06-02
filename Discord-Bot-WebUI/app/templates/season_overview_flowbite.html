@@ -29,30 +29,32 @@
         {{ kit.stat_card("ti-alert-triangle", "Own Goals", total_own_goals, sublabel="all leagues", tone="neutral") }}
     </div>
 
-    {# Division Tabs — hooks (.division-tab / data-tab / #division-tabs) preserved verbatim for custom_js #}
-    <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
-        <div class="flex flex-wrap gap-2 -mb-px" id="division-tabs" role="tablist" aria-label="Division">
-            <button type="button"
-                    class="division-tab inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-                    data-tab="premier">
-                <i class="ti ti-trophy mr-1.5" aria-hidden="true"></i>Premier Division
-            </button>
-            <button type="button"
-                    class="division-tab inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-                    data-tab="classic">
-                <i class="ti ti-ball-football mr-1.5" aria-hidden="true"></i>Classic Division
-            </button>
-            <button type="button"
-                    class="division-tab inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-                    data-tab="all-stats">
-                <i class="ti ti-chart-bar mr-1.5" aria-hidden="true"></i>All League Leaderboards
-            </button>
-        </div>
+    {# Division segmented control — the page's primary navigation. Hooks
+       (.division-tab / data-tab / #division-tabs + the bg-ecs-green/bg-gray-200
+       toggle classes) preserved verbatim for custom_js. #}
+    <div class="mb-6 inline-flex w-full sm:w-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 p-1 gap-1"
+         id="division-tabs" role="tablist" aria-label="Division">
+        <button type="button"
+                class="division-tab flex-1 sm:flex-none inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                data-tab="premier">
+            <i class="ti ti-trophy mr-1.5" aria-hidden="true"></i>Premier
+        </button>
+        <button type="button"
+                class="division-tab flex-1 sm:flex-none inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                data-tab="classic">
+            <i class="ti ti-ball-football mr-1.5" aria-hidden="true"></i>Classic
+        </button>
+        <button type="button"
+                class="division-tab flex-1 sm:flex-none inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                data-tab="all-stats">
+            <i class="ti ti-chart-bar mr-1.5" aria-hidden="true"></i>Leaderboards
+        </button>
     </div>
 
     <div class="tab-content">
         {# ============ PREMIER ============ #}
         <div class="division-pane space-y-6" id="premier">
+            {{ podium("Premier Division", "ti-trophy", premier_standings, premier_top_scorers) }}
             {{ standings_table("Premier Division Standings", "ti-trophy", premier_standings) }}
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -68,6 +70,7 @@
 
         {# ============ CLASSIC ============ #}
         <div class="division-pane hidden space-y-6" id="classic">
+            {{ podium("Classic Division", "ti-ball-football", classic_standings, classic_top_scorers) }}
             {{ standings_table("Classic Division Standings", "ti-ball-football", classic_standings) }}
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -113,6 +116,102 @@
 </div>
 
 {# --- Modern reusable leaderboard macros (page-local; data + hooks preserved) --- #}
+
+{# podium — the division's ONE primary answer: who is winning. A feature card with
+   a header bar, the top-3 teams as ranked tiles (medal rank + BIG mono points +
+   signed GD), each carrying a real W-D-L proportional form bar built ONLY from the
+   Standings.wins/draws/losses the model provides (no fabricated match history). A
+   side rail surfaces the division's Golden Boot leader from top_scorers. #}
+{% macro podium(division, icon, standings, top_scorers) %}
+{% set leader = standings[0] if standings else None %}
+{% set golden = top_scorers[0] if top_scorers else None %}
+{% set medals = {0: {'cls': 'text-ecs-gold-500 dark:text-ecs-gold-400', 'ring': 'ring-ecs-gold-400/40', 'i': 'ti-trophy'},
+                 1: {'cls': 'text-gray-400 dark:text-gray-300',          'ring': 'ring-gray-300/40 dark:ring-gray-500/30', 'i': 'ti-medal-2'},
+                 2: {'cls': 'text-amber-700 dark:text-amber-500',         'ring': 'ring-amber-600/30', 'i': 'ti-medal-2'}} %}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti {{ icon }} text-ecs-green" aria-hidden="true"></i> {{ division }} — Title Race
+        </h3>
+        <span class="shrink-0 inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <i class="ti ti-users" aria-hidden="true"></i><span class="font-mono">{{ standings | length }}</span> teams
+        </span>
+    </div>
+    {% if leader %}
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-px bg-gray-200 dark:bg-gray-700">
+        {# Top-3 ranked tiles — span 2 cols on xl so the leader rail sits beside them #}
+        <div class="xl:col-span-2 bg-white dark:bg-gray-800 p-4 sm:p-5">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {% for s in standings[:3] %}
+                {% set m = medals[loop.index0] %}
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4 {% if loop.first %}ring-2 {{ m.ring }} bg-ecs-gold-50 dark:bg-ecs-gold-500/5{% endif %}">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide {{ m.cls }}">
+                            <i class="ti {{ m.i }}" aria-hidden="true"></i> <span class="font-mono">#{{ loop.index }}</span>
+                        </span>
+                        <span class="font-mono text-xs text-gray-400 dark:text-gray-500">{% if s.goal_difference > 0 %}+{% endif %}{{ s.goal_difference }} GD</span>
+                    </div>
+                    <a href="{{ url_for('teams.team_details', team_id=s.team.id) }}"
+                       class="mt-2 block text-sm font-bold text-gray-900 dark:text-white hover:text-ecs-green truncate">{{ s.team.name }}</a>
+                    <div class="mt-2 flex items-end gap-1.5">
+                        <span class="font-mono text-3xl font-bold leading-none {% if loop.first %}text-ecs-gold-600 dark:text-ecs-gold-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ s.points }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">pts</span>
+                    </div>
+                    {# Real W-D-L record from model fields (no fabricated match
+                       history; counts come straight off Standings). #}
+                    <div class="mt-3 grid grid-cols-3 gap-1 text-center">
+                        <span class="rounded-md bg-ecs-green/10 dark:bg-ecs-green/15 py-1 font-mono text-xs font-bold text-ecs-green" title="Won">{{ s.wins }}<span class="font-sans font-medium opacity-70">W</span></span>
+                        <span class="rounded-md bg-amber-100 dark:bg-amber-500/15 py-1 font-mono text-xs font-bold text-amber-600 dark:text-amber-400" title="Drawn">{{ s.draws }}<span class="font-sans font-medium opacity-70">D</span></span>
+                        <span class="rounded-md bg-red-100 dark:bg-red-500/15 py-1 font-mono text-xs font-bold text-red-600 dark:text-red-400" title="Lost">{{ s.losses }}<span class="font-sans font-medium opacity-70">L</span></span>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-400 dark:text-gray-500 font-mono">{{ s.played }} played</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {# Leader rail — headline figure + Golden Boot leader for the division #}
+        <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 flex flex-col gap-4">
+            <div>
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Current Leader</p>
+                <a href="{{ url_for('teams.team_details', team_id=leader.team.id) }}"
+                   class="mt-1 block text-lg font-extrabold text-gray-900 dark:text-white hover:text-ecs-green truncate">{{ leader.team.name }}</a>
+                <div class="mt-2 grid grid-cols-3 gap-2 text-center">
+                    <div class="rounded-lg bg-gray-50 dark:bg-gray-700/50 py-2">
+                        <p class="font-mono text-xl font-bold text-ecs-gold-600 dark:text-ecs-gold-400 leading-none">{{ leader.points }}</p>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Points</p>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 dark:bg-gray-700/50 py-2">
+                        <p class="font-mono text-xl font-bold text-gray-900 dark:text-white leading-none">{% if leader.goal_difference > 0 %}+{% endif %}{{ leader.goal_difference }}</p>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Goal Diff</p>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 dark:bg-gray-700/50 py-2">
+                        <p class="font-mono text-xl font-bold text-gray-900 dark:text-white leading-none">{{ leader.goals_for }}</p>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Scored</p>
+                    </div>
+                </div>
+            </div>
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <i class="ti ti-award text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> Golden Boot
+                </p>
+                {% if golden %}
+                <div class="mt-2 flex items-center justify-between gap-2">
+                    <a href="{{ url_for('players.player_profile', player_id=golden[0].id) }}"
+                       class="text-sm font-semibold text-gray-900 dark:text-white hover:text-ecs-green truncate">{{ golden[0].name }}</a>
+                    <span class="shrink-0 font-mono text-lg font-bold text-ecs-gold-600 dark:text-ecs-gold-400">{{ golden[1] }}</span>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ golden[0].primary_team.name if golden[0].primary_team else "Unknown" }} · goals</p>
+                {% else %}
+                <p class="mt-2 text-sm text-gray-400 dark:text-gray-500">No goals yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    {{ kit.empty_state(icon, "No standings yet", "No matches have been played in " + division + " this season.") }}
+    {% endif %}
+</section>
+{% endmacro %}
 
 {# standings_table — league table that emphasizes the leader (gold trophy + accent on
    row 1) and signs goal difference (+/-) per the universal table convention. Responsive:

@@ -1,0 +1,79 @@
+{# Reusable widgets for report pages: KPI tiles, filter chips, preview table. #}
+
+{# KPI summary tiles. `kpis` is a list of {label, value} dicts. #}
+{% macro kpi_tiles(kpis) %}
+{% if kpis %}
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-5">
+    {% for k in kpis %}
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-4">
+        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ k.label }}</div>
+        <div class="mt-1 text-2xl font-bold text-gray-900 dark:text-white truncate" title="{{ k.value }}">{{ k.value }}</div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{# Active-filter chips. `chips` is a list of strings describing the current scope. #}
+{% macro filter_chips(chips) %}
+{% if chips %}
+<div class="flex flex-wrap gap-2 mb-4">
+    {% for c in chips %}
+    <span class="inline-flex items-center gap-1 rounded-full bg-ecs-green/10 text-ecs-green text-xs font-medium px-3 py-1">
+        <i class="ti ti-filter text-[10px]"></i>{{ c }}
+    </span>
+    {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{# Preview table. `rows` is a list of dicts (already limited to the preview
+   window); `total_count` is the full result count. Numeric cells are right-
+   aligned; the first `highlight_top` rows get a subtle highlight. #}
+{% macro preview_table(rows, total_count, label='', highlight_top=0) %}
+<div class="mt-6">
+    <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Preview{% if label %} · {{ label }}{% endif %}
+        </h3>
+        <span class="text-xs text-gray-500 dark:text-gray-400">
+            {% if total_count %}
+                Showing {{ rows|length }} of {{ total_count }} row{{ 's' if total_count != 1 else '' }}
+            {% else %}
+                No matching rows
+            {% endif %}
+        </span>
+    </div>
+    {% if rows %}
+    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+        <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
+                <tr>
+                    {% for col in rows[0].keys() %}
+                    <th class="px-3 py-2 whitespace-nowrap font-medium {{ 'text-right' if rows[0][col] is number else 'text-left' }}">{{ col }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                {% for row in rows %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 {{ 'bg-ecs-green/5 font-medium' if loop.index <= highlight_top else '' }}">
+                    {% for val in row.values() %}
+                    <td class="px-3 py-2 whitespace-nowrap text-gray-700 dark:text-gray-300 {{ 'text-right tabular-nums' if val is number else 'text-left' }}">{{ val }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if total_count and total_count > rows|length %}
+    <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">
+        The Excel download includes all {{ total_count }} rows.
+    </p>
+    {% endif %}
+    {% else %}
+    <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+        No records match the current filters.
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}

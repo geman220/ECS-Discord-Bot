@@ -28,141 +28,279 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state, alert as kit_alert %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, alert as kit_alert %}
 
-{{ page_header(match.team.name ~ ' vs ' ~ match.opponent_name, subtitle='RSVP Status') }}
+{# --- Derived readiness figures (real data only) --- #}
+{% set needed = 11 %}
+{% set confirmed = rsvp_counts.yes %}
+{% set short_by = (needed - confirmed) if confirmed < needed else 0 %}
+{% set gap_pct = ((confirmed / needed * 100) if confirmed < needed else 100) | round | int %}
+{% set assigned_total = sub_assignments|length if sub_request else 0 %}
+{% set roster_total = rsvp_counts.total %}
 
-{# Match meta + actions #}
-{% call() section_card('Match Details', icon='ti-ballpark') %}
-<div class="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-    <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600 dark:text-gray-300">
-        <span class="inline-flex items-center gap-1.5">
-            <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i>
-            <span class="font-medium">{{ match.match_date.strftime('%A, %B %d, %Y') }}</span>
+{{ page_header('RSVP Status', subtitle='ECS FC Match Day') }}
+
+{# ============================================================
+   PRIMARY FEATURE CARD — the match + roster readiness (the ONE job)
+   ============================================================ #}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    {# Header bar: opponent + readiness pill #}
+    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2 min-w-0">
+            <i class="ti ti-ballpark text-ecs-green text-lg shrink-0" aria-hidden="true"></i>
+            <div class="min-w-0">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Match</p>
+                <h2 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate">
+                    {{ match.team.name }} <span class="text-gray-400 font-normal">vs</span> {{ match.opponent_name }}
+                </h2>
+            </div>
+        </div>
+        {% if confirmed >= needed %}
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wide rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+            <i class="ti ti-circle-check text-sm" aria-hidden="true"></i>Full Squad
         </span>
-        <span class="inline-flex items-center gap-1.5">
-            <i class="ti ti-clock text-ecs-green" aria-hidden="true"></i>
-            <span class="font-mono">{{ match.match_time.strftime('%I:%M %p') }}</span>
-        </span>
-        <span class="inline-flex items-center gap-1.5">
-            <i class="ti ti-map-pin text-ecs-green" aria-hidden="true"></i>
-            <span>{{ match.location }}{% if match.field_name %} - {{ match.field_name }}{% endif %}</span>
-        </span>
-    </div>
-    <div class="flex flex-wrap gap-2 shrink-0">
-        {% if rsvp_counts.yes < 11 %}
-        <form action="{{ url_for('admin.ecs_fc_subs.create_sub_request', match_id=match.id) }}" method="POST" class="inline">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-gold-500 hover:bg-ecs-gold-600 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-gold-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                <i class="ti ti-user-plus" aria-hidden="true"></i>Request Sub
-            </button>
-        </form>
-        {% endif %}
-        <button type="button" onclick="sendReminder({{ match.id }})"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-bell" aria-hidden="true"></i>Send Reminder
-        </button>
-        <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
-           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-edit" aria-hidden="true"></i>Edit Match
-        </a>
-    </div>
-</div>
-{% endcall %}
-
-{# RSVP summary KPIs — yes=green · no=red · maybe=gold · no_response=neutral #}
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-5 sm:mt-6">
-    {{ stat_card('ti-check', 'Yes', rsvp_counts.yes, tone='success') }}
-    {{ stat_card('ti-x', 'No', rsvp_counts.no, tone='danger') }}
-    {{ stat_card('ti-question-mark', 'Maybe', rsvp_counts.maybe, tone='gold') }}
-    {{ stat_card('ti-minus', 'No Response', rsvp_counts.no_response, tone='neutral') }}
-</div>
-
-{# Response lists #}
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 mt-5 sm:mt-6">
-    {% set lists = [
-        ('Yes', responses.yes, 'ti-check', 'text-green-600 dark:text-green-400', 'No responses yet'),
-        ('No', responses.no, 'ti-x', 'text-red-600 dark:text-red-400', 'No \"No\" responses'),
-        ('Maybe', responses.maybe, 'ti-question-mark', 'text-ecs-gold-500 dark:text-ecs-gold-400', 'No \"Maybe\" responses'),
-        ('No Response', responses.no_response, 'ti-minus', 'text-gray-500 dark:text-gray-400', 'Everyone has responded!')
-    ] %}
-    {% for label, items, icon, icon_cls, empty_msg in lists %}
-    {% call() section_card(label ~ ' (' ~ (items|length) ~ ')', icon=icon) %}
-        {% if items %}
-        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
-            {% for avail in items %}
-            <li class="flex items-center justify-between gap-3 px-4 py-3">
-                <div class="min-w-0">
-                    {% if avail.player %}
-                    <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ avail.player.name }}</span>
-                    {% else %}
-                    <span class="text-sm text-gray-500 dark:text-gray-400 font-mono truncate">Discord ID: {{ avail.discord_id }}</span>
-                    {% endif %}
-                </div>
-                {% if label == 'No Response' %}
-                <button type="button" disabled
-                        class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center rounded-lg text-blue-600 dark:text-blue-400 opacity-50 cursor-not-allowed"
-                        title="Send Reminder" aria-label="Send Reminder">
-                    <i class="ti ti-bell" aria-hidden="true"></i>
-                </button>
-                {% elif avail.responded_at %}
-                <span class="text-xs text-gray-500 dark:text-gray-400 font-mono shrink-0">{{ avail.responded_at.strftime('%b %d, %I:%M %p') }}</span>
-                {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
         {% else %}
-        {{ empty_state(icon, empty_msg, '', None) }}
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wide rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+            <i class="ti ti-alert-triangle text-sm" aria-hidden="true"></i>Short <span class="font-mono">{{ short_by }}</span>
+        </span>
         {% endif %}
-    {% endcall %}
-    {% endfor %}
+    </div>
+
+    {# Body: readiness figure (left) + match meta (right) #}
+    <div class="grid grid-cols-1 lg:grid-cols-3">
+        {# Readiness — BIG mono figure with proportional bar #}
+        <div class="lg:col-span-1 p-5 sm:p-6 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700">
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Confirmed Players</p>
+            <div class="mt-2 flex items-end gap-2">
+                <span class="font-mono text-5xl font-bold leading-none {% if confirmed >= needed %}text-green-600 dark:text-green-400{% else %}text-ecs-gold-500 dark:text-ecs-gold-400{% endif %}">{{ confirmed }}</span>
+                <span class="font-mono text-2xl font-bold leading-none text-gray-400 dark:text-gray-500 mb-0.5">/ {{ needed }}</span>
+            </div>
+            <div class="mt-4 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                <div class="h-full rounded-full {% if confirmed >= needed %}bg-green-500{% else %}bg-ecs-gold-500{% endif %}" style="width: {{ gap_pct }}%"></div>
+            </div>
+            <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                {% if confirmed >= needed %}
+                Starting XI confirmed.
+                {% else %}
+                Need <span class="font-mono font-semibold text-gray-700 dark:text-gray-200">{{ short_by }}</span> more to field a full side.
+                {% endif %}
+                {% if assigned_total %} <span class="font-mono font-semibold text-blue-600 dark:text-blue-400">{{ assigned_total }}</span> sub{{ 's' if assigned_total != 1 else '' }} assigned.{% endif %}
+            </p>
+        </div>
+
+        {# Match meta #}
+        <div class="lg:col-span-2 p-5 sm:p-6 flex flex-col justify-between gap-4">
+            <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div>
+                    <dt class="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"><i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i>Date</dt>
+                    <dd class="mt-1 font-medium text-gray-900 dark:text-white">{{ match.match_date.strftime('%a, %b %d, %Y') }}</dd>
+                </div>
+                <div>
+                    <dt class="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"><i class="ti ti-clock text-ecs-green" aria-hidden="true"></i>Kickoff</dt>
+                    <dd class="mt-1 font-mono font-medium text-gray-900 dark:text-white">{{ match.match_time.strftime('%I:%M %p') }}</dd>
+                </div>
+                <div>
+                    <dt class="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"><i class="ti ti-map-pin text-ecs-green" aria-hidden="true"></i>Venue</dt>
+                    <dd class="mt-1 font-medium text-gray-900 dark:text-white truncate">{{ match.location }}{% if match.field_name %} <span class="text-gray-400">·</span> {{ match.field_name }}{% endif %}</dd>
+                </div>
+            </dl>
+
+            {# Command toolbar #}
+            <div class="flex flex-wrap gap-2 pt-1">
+                {% if rsvp_counts.yes < 11 %}
+                <form action="{{ url_for('admin.ecs_fc_subs.create_sub_request', match_id=match.id) }}" method="POST" class="inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-gold-500 hover:bg-ecs-gold-600 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-gold-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-user-plus" aria-hidden="true"></i>Request Sub
+                    </button>
+                </form>
+                {% endif %}
+                <button type="button" onclick="sendReminder({{ match.id }})"
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-bell" aria-hidden="true"></i>Send Reminder
+                </button>
+                <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
+                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-edit" aria-hidden="true"></i>Edit Match
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {# KPI band footer — the four response buckets as a divided strip #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 border-t border-gray-200 dark:border-gray-700 divide-y sm:divide-y-0 divide-x divide-gray-200 dark:divide-gray-700">
+        {% set buckets = [
+            ('Yes', rsvp_counts.yes, 'ti-check', 'text-green-600 dark:text-green-400'),
+            ('No', rsvp_counts.no, 'ti-x', 'text-red-600 dark:text-red-400'),
+            ('Maybe', rsvp_counts.maybe, 'ti-question-mark', 'text-ecs-gold-500 dark:text-ecs-gold-400'),
+            ('No Response', rsvp_counts.no_response, 'ti-minus', 'text-gray-500 dark:text-gray-400')
+        ] %}
+        {% for label, count, icon, tone in buckets %}
+        <div class="px-4 py-3 sm:py-4">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">{{ label }}</span>
+                <i class="ti {{ icon }} {{ tone }} shrink-0" aria-hidden="true"></i>
+            </div>
+            <span class="mt-1 block font-mono text-2xl sm:text-3xl font-bold leading-none {{ tone }}">{{ count }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+{# ============================================================
+   ROSTER BOARD — real table, status pills, mono timestamps
+   ============================================================ #}
+{% set roster_rows = [] %}
+{% for a in responses.yes %}{% set _ = roster_rows.append((a, 'yes')) %}{% endfor %}
+{% for a in responses.maybe %}{% set _ = roster_rows.append((a, 'maybe')) %}{% endfor %}
+{% for a in responses.no %}{% set _ = roster_rows.append((a, 'no')) %}{% endfor %}
+{% for a in responses.no_response %}{% set _ = roster_rows.append((a, 'no_response')) %}{% endfor %}
+{% set status_meta = {
+    'yes':         {'pill': 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300', 'icon': 'ti-check', 'word': 'Yes'},
+    'no':          {'pill': 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300', 'icon': 'ti-x', 'word': 'No'},
+    'maybe':       {'pill': 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300', 'icon': 'ti-question-mark', 'word': 'Maybe'},
+    'no_response': {'pill': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', 'icon': 'ti-minus', 'word': 'No Reply'}
+} %}
+
+<div class="mt-5 sm:mt-6">
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <i class="ti ti-clipboard-list text-ecs-green" aria-hidden="true"></i>Roster Responses
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ roster_total }}</span>
+        </h2>
+    </div>
+
+    {% if roster_rows %}
+    {# md+ table #}
+    <table class="hidden md:table w-full text-sm">
+        <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+                <th scope="col" class="px-5 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Player</th>
+                <th scope="col" class="px-5 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+                <th scope="col" class="px-5 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Responded</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for avail, status in roster_rows %}
+            {% set m = status_meta[status] %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <td class="px-5 py-3">
+                    {% if avail.player %}
+                    <span class="font-medium text-gray-900 dark:text-white">{{ avail.player.name }}</span>
+                    {% else %}
+                    <span class="text-gray-500 dark:text-gray-400 font-mono text-xs">Discord ID: {{ avail.discord_id }}</span>
+                    {% endif %}
+                </td>
+                <td class="px-5 py-3">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full {{ m.pill }}">
+                        <i class="ti {{ m.icon }} text-[11px]" aria-hidden="true"></i>{{ m.word }}
+                    </span>
+                </td>
+                <td class="px-5 py-3 text-right">
+                    {% if avail.responded_at %}
+                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ avail.responded_at.strftime('%b %d, %I:%M %p') }}</span>
+                    {% else %}
+                    <span class="text-xs text-gray-400 dark:text-gray-500">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {# mobile stacked rows #}
+    <ul class="md:hidden divide-y divide-gray-200 dark:divide-gray-700" role="list">
+        {% for avail, status in roster_rows %}
+        {% set m = status_meta[status] %}
+        <li class="flex items-center justify-between gap-3 px-4 py-3">
+            <div class="min-w-0">
+                {% if avail.player %}
+                <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ avail.player.name }}</span>
+                {% else %}
+                <span class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">Discord ID: {{ avail.discord_id }}</span>
+                {% endif %}
+                {% if avail.responded_at %}
+                <p class="text-xs text-gray-400 dark:text-gray-500 font-mono mt-0.5">{{ avail.responded_at.strftime('%b %d, %I:%M %p') }}</p>
+                {% endif %}
+            </div>
+            <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full {{ m.pill }}">
+                <i class="ti {{ m.icon }} text-[11px]" aria-hidden="true"></i>{{ m.word }}
+            </span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    {{ empty_state('ti-clipboard-off', 'No roster responses yet', 'Availability appears here as players RSVP in Discord.', None) }}
+    {% endif %}
+</section>
 </div>
 
-{# Substitute request management #}
+{# ============================================================
+   SUBSTITUTE REQUEST — feature card: pool funnel + assignment board
+   ============================================================ #}
 {% if sub_request %}
 {% set available_subs = sub_responses|selectattr('responded_at')|selectattr('is_available')|list %}
 {% set unavailable_subs = sub_responses|selectattr('responded_at')|rejectattr('is_available')|list %}
 {% set pending_subs = sub_responses|rejectattr('responded_at')|list %}
 {% set assigned_ids = sub_assignments|map(attribute='player_id')|list %}
 <div class="mt-5 sm:mt-6">
-{% call() section_card('Substitute Request', icon='ti-user-plus') %}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    {# Header bar with status + command #}
     <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="flex items-center gap-2">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+            <i class="ti ti-user-plus text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>Substitute Request
             {% if sub_request.status == 'OPEN' %}
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock text-[11px]" aria-hidden="true"></i>Open</span>
             {% elif sub_request.status == 'FILLED' %}
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check text-[11px]" aria-hidden="true"></i>Filled</span>
             {% endif %}
-            <span class="text-sm text-gray-500 dark:text-gray-400">Need <span class="font-mono">{{ sub_request.substitutes_needed or 1 }}</span> sub{{ 's' if (sub_request.substitutes_needed or 1) > 1 else '' }}</span>
+        </h2>
+        <div class="flex items-center gap-3">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Need <span class="font-mono font-semibold text-gray-700 dark:text-gray-200">{{ sub_request.substitutes_needed or 1 }}</span> sub{{ 's' if (sub_request.substitutes_needed or 1) > 1 else '' }}</span>
+            {% if sub_request.status == 'OPEN' %}
+            <form method="POST" action="{{ url_for('admin.ecs_fc_subs.cancel_sub_request', request_id=sub_request.id) }}"
+                  onsubmit="return confirm('Cancel this substitute request?');" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-3 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
+                    <i class="ti ti-x" aria-hidden="true"></i>Cancel Request
+                </button>
+            </form>
+            {% endif %}
         </div>
-        {% if sub_request.status == 'OPEN' %}
-        <form method="POST" action="{{ url_for('admin.ecs_fc_subs.cancel_sub_request', request_id=sub_request.id) }}"
-              onsubmit="return confirm('Cancel this substitute request?');" class="inline">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-3 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
-                <i class="ti ti-x" aria-hidden="true"></i>Cancel Request
-            </button>
-        </form>
-        {% endif %}
     </div>
-    <div class="p-4 sm:p-5">
-        <div class="flex flex-wrap gap-2 mb-4">
-            <span class="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check text-xs" aria-hidden="true"></i><span class="font-mono">{{ available_subs|length }}</span> Available</span>
-            <span class="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"><i class="ti ti-x text-xs" aria-hidden="true"></i><span class="font-mono">{{ unavailable_subs|length }}</span> Unavailable</span>
-            <span class="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-clock text-xs" aria-hidden="true"></i><span class="font-mono">{{ pending_subs|length }}</span> Pending</span>
-            <span class="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300"><i class="ti ti-user-check text-xs" aria-hidden="true"></i><span class="font-mono">{{ sub_assignments|length }}</span> Assigned</span>
-        </div>
 
+    {# Pool funnel — KPI band of the four sub states #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 border-b border-gray-200 dark:border-gray-700 divide-y sm:divide-y-0 divide-x divide-gray-200 dark:divide-gray-700">
+        {% set sub_kpis = [
+            ('Available', available_subs|length, 'ti-check', 'text-green-600 dark:text-green-400'),
+            ('Unavailable', unavailable_subs|length, 'ti-x', 'text-red-600 dark:text-red-400'),
+            ('Pending', pending_subs|length, 'ti-clock', 'text-gray-500 dark:text-gray-400'),
+            ('Assigned', sub_assignments|length, 'ti-user-check', 'text-blue-600 dark:text-blue-400')
+        ] %}
+        {% for label, count, icon, tone in sub_kpis %}
+        <div class="px-4 py-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">{{ label }}</span>
+                <i class="ti {{ icon }} {{ tone }} shrink-0" aria-hidden="true"></i>
+            </div>
+            <span class="mt-1 block font-mono text-2xl font-bold leading-none {{ tone }}">{{ count }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="p-4 sm:p-5">
         {% if available_subs or sub_assignments %}
+        <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Ready to Assign</h3>
         <div class="space-y-2">
             {% for resp in available_subs %}
             {% set already_assigned = resp.player_id in assigned_ids %}
             <div class="flex items-center justify-between gap-3 p-3 rounded-lg {% if already_assigned %}bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30{% else %}bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30{% endif %}">
                 <div class="flex items-center gap-3 min-w-0">
                     {% if already_assigned %}
-                    <i class="ti ti-user-check text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+                    <i class="ti ti-user-check text-blue-600 dark:text-blue-400 shrink-0 text-lg" aria-hidden="true"></i>
                     {% else %}
-                    <i class="ti ti-check text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+                    <i class="ti ti-circle-check text-green-600 dark:text-green-400 shrink-0 text-lg" aria-hidden="true"></i>
                     {% endif %}
                     <div class="min-w-0">
                         <span class="text-sm font-medium text-gray-900 dark:text-white">{{ resp.player.name if resp.player else 'Unknown' }}</span>
@@ -176,7 +314,7 @@
                     </div>
                 </div>
                 {% if already_assigned %}
-                <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">Assigned</span>
+                <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300"><i class="ti ti-check text-[11px]" aria-hidden="true"></i>Assigned</span>
                 {% elif sub_request.status == 'OPEN' %}
                 <form method="POST" action="{{ url_for('admin.ecs_fc_subs.assign_substitute', request_id=sub_request.id) }}"
                       onsubmit="return confirm('Assign {{ resp.player.name if resp.player else 'this player' }} as substitute?');" class="shrink-0">
@@ -195,7 +333,7 @@
 
         {% if unavailable_subs %}
         <div class="mt-4">
-            <h6 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Unavailable</h6>
+            <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Unavailable</h3>
             <div class="space-y-1">
                 {% for resp in unavailable_subs %}
                 <div class="flex items-center gap-3 p-2 text-sm text-gray-500 dark:text-gray-400">
@@ -210,7 +348,7 @@
 
         {% if pending_subs %}
         <div class="mt-4">
-            <h6 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Awaiting Response</h6>
+            <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Awaiting Response</h3>
             <div class="space-y-1">
                 {% for resp in pending_subs %}
                 <div class="flex items-center gap-3 p-2 text-sm text-gray-500 dark:text-gray-400">
@@ -227,7 +365,7 @@
         {{ empty_state('ti-inbox', 'No subs contacted yet', 'Notifications were queued when the request was created.', None) }}
         {% endif %}
     </div>
-{% endcall %}
+</section>
 </div>
 {% elif rsvp_counts.yes < 11 %}
 <div class="mt-5 sm:mt-6">

@@ -46,6 +46,9 @@
     <!-- Template Styles (includes jQuery UI autocomplete overrides) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/template-styles.css') }}" />
 
+    <!-- Modern a11y baseline: global focus-visible ring + prefers-reduced-motion (ui-ux-pro-max §1/§7) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/a11y-modern.css') }}" />
+
     <!-- NOTE: Flowbite JS is bundled via npm in our Vite build (vendor-globals.js).
          CDN script REMOVED to prevent double-initialization and timing issues. -->
 
@@ -146,6 +149,9 @@
          full sidebar (w-64) for Classic AND the admin full-sidebar console. -->
     {% if _console_rail %}
         {% include 'shells/_shell_console.html' %}
+    {% elif shell == 'console' and console_full_sidebar|default(false) %}
+        {# Admin panel in Modern: console-styled FULL sidebar (not the Classic one) #}
+        {% include 'shells/_shell_admin.html' %}
     {% else %}
         {% include 'sidebar_flowbite.html' %}
     {% endif %}

@@ -172,6 +172,18 @@ def team_details(team_id):
     league = session.query(League).get(team.league_id)
     season = league.season if league else None
 
+    # Opponents available for the pub-league "Add Match" form: every other
+    # team in the same league. Used to populate the Modern add-match modal
+    # which POSTs to publeague.schedule.add_match (ScheduleManager.create_match).
+    opponent_teams = []
+    if league:
+        opponent_teams = (
+            session.query(Team)
+            .filter(Team.league_id == league.id, Team.id != team_id)
+            .order_by(Team.name.asc())
+            .all()
+        )
+
     # Retrieve current players from the many-to-many relationship.
     current_players = team.players
 
@@ -503,6 +515,8 @@ def team_details(team_id):
         can_manage_ecs_fc=can_manage_ecs_fc,
         ecs_fc_matches=ecs_fc_matches,
         can_add_match=can_add_match,
+        opponent_teams=opponent_teams,
+        season_id=(season.id if season else None),
         can_view_player_stats=can_view_player_stats,
         can_view_player_cards=can_view_player_cards,
         can_view_game_results=can_view_game_results,

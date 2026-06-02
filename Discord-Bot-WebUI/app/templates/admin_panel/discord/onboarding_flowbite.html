@@ -24,7 +24,26 @@
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state, alert as kit_alert %}
 
-{{ page_header("Discord Onboarding", subtitle="Discord Management") }}
+{# ---- Real derived figures (route gives stats + overview_data only) ---- #}
+{% set total_users = overview_data|length %}
+{% set stage_max = [stats.completed, stats.pending_discord, stats.pending_approval]|max %}
+{% set completion_pct = ((stats.completed / total_users) * 100)|round(0, 'floor')|int if total_users else 0 %}
+
+{% call page_header("Discord Onboarding", subtitle="Discord Management") %}
+  <button type="button" data-action="refresh-overview"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-sm font-medium
+                 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <i class="ti ti-refresh" aria-hidden="true"></i>Refresh Data
+  </button>
+  <button type="button" data-action="save-onboarding-config"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                 bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Flow
+  </button>
+{% endcall %}
 
 {% if error %}
 <div class="mb-5 sm:mb-6">
@@ -32,49 +51,272 @@
 </div>
 {% endif %}
 
-{# KPI band #}
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+{# ===== KPI strip — Completed / Pending Discord / Pending Approval / Total Users (all real, derived from stats + overview_data) ===== #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-5 sm:mb-6">
   {{ stat_card("ti-circle-check", "Completed", stats.completed, tone='success') }}
   {{ stat_card("ti-brand-discord", "Pending Discord", stats.pending_discord, tone='warning') }}
   {{ stat_card("ti-user-question", "Pending Approval", stats.pending_approval, tone='info') }}
-  {{ stat_card("ti-users", "Total Users", overview_data|length, tone='primary') }}
+  {{ stat_card("ti-users", "Total Users", total_users, tone='primary') }}
 </div>
 
-{# Overview + Legend #}
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-5 sm:mb-6">
-  {% call section_card("Onboarding Overview", icon="ti-user-plus") %}
-  <div class="p-4 sm:p-5">
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">View and manage user onboarding status for Discord verification.</p>
-    <button type="button" data-action="refresh-overview"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
-                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-      <i class="ti ti-refresh" aria-hidden="true"></i>Refresh Onboarding Data
-    </button>
+{# ===== Wizard layout: FUNCTIONAL step rail (client-side section nav) ===== #}
+{# The "Flow Steps" rail is a real client-side stepper. Each rail button and the
+   Back / "Step N of M" / Next footer below show exactly one of the page's real
+   sections (data-step-panel): 1 Link Discord -> Verification Pipeline funnel,
+   2 Approval Gate -> Approval Gate Settings, 3 Assign Roles -> role-mapping link,
+   4 Review & Activity -> the onboarding activity table. There is no per-user
+   wizard *state* in the backend (this page configures the gate + monitors status),
+   so the stepper is a presentational navigation aid only — no fabricated data.
+   The completion footer reuses the REAL derived figures (completion_pct /
+   stats.completed / total_users). All navigation is wired in the page script
+   at the bottom of this branch. #}
+<div data-onboarding-stepper data-step-count="4"
+     class="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-4 sm:gap-6 mb-5 sm:mb-6">
+
+  {# Step rail #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden self-start">
+    <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-route text-ecs-green" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Flow Steps</h2>
+    </div>
+    <ol class="p-2 space-y-1">
+      <li>
+        <button type="button" data-step-nav="1"
+                class="w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <span data-step-badge="1" class="shrink-0 w-7 h-7 rounded-full border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs font-bold font-mono">1</span>
+          <span class="min-w-0">
+            <span data-step-label="1" class="block text-sm font-semibold text-gray-900 dark:text-white">Link Discord</span>
+            <span class="block text-xs text-gray-500 dark:text-gray-400">User connects their Discord ID</span>
+          </span>
+        </button>
+      </li>
+      <li>
+        <button type="button" data-step-nav="2"
+                class="w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <span data-step-badge="2" class="shrink-0 w-7 h-7 rounded-full border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs font-bold font-mono">2</span>
+          <span class="min-w-0">
+            <span data-step-label="2" class="block text-sm font-semibold text-gray-900 dark:text-white">Approval Gate</span>
+            <span class="block text-xs text-gray-500 dark:text-gray-400">Admin reviews &amp; approves</span>
+          </span>
+        </button>
+      </li>
+      <li>
+        <button type="button" data-step-nav="3"
+                class="w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <span data-step-badge="3" class="shrink-0 w-7 h-7 rounded-full border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs font-bold font-mono">3</span>
+          <span class="min-w-0">
+            <span data-step-label="3" class="block text-sm font-semibold text-gray-900 dark:text-white">Assign Roles</span>
+            <span class="block text-xs text-gray-500 dark:text-gray-400">Map teams to Discord roles</span>
+          </span>
+        </button>
+      </li>
+      <li>
+        <button type="button" data-step-nav="4"
+                class="w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <span data-step-badge="4" class="shrink-0 w-7 h-7 rounded-full border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs font-bold font-mono">4</span>
+          <span class="min-w-0">
+            <span data-step-label="4" class="block text-sm font-semibold text-gray-900 dark:text-white">Review &amp; Activity</span>
+            <span class="block text-xs text-gray-500 dark:text-gray-400">Confirm and monitor</span>
+          </span>
+        </button>
+      </li>
+    </ol>
+    <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700">
+      <div class="flex items-center justify-between text-xs mb-1.5">
+        <span class="text-gray-500 dark:text-gray-400">Completion rate</span>
+        <span class="font-mono font-bold text-green-600 dark:text-green-400">{{ completion_pct }}%</span>
+      </div>
+      <div class="h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+        <div class="h-full rounded-full bg-ecs-green" style="width: {{ completion_pct }}%"></div>
+      </div>
+      <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <span class="font-mono">{{ stats.completed }}</span> of <span class="font-mono">{{ total_users }}</span> verified
+      </p>
+    </div>
+  </section>
+
+  {# Active-step column: holds the 4 real step panels + Back/Next footer #}
+  <div class="min-w-0">
+
+  {# ---- Step 1 panel: Verification Pipeline funnel + completion KPIs (real data) ---- #}
+  <div data-step-panel="1" hidden>
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+
+  {# Funnel feature card spans 2/3 #}
+  <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-route text-ecs-green" aria-hidden="true"></i> Verification Pipeline
+      </h2>
+      <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total_users }} users</span>
+    </div>
+    <div class="p-4 sm:p-5 space-y-4">
+
+      {# Stage 1 — Pending Discord #}
+      <div>
+        <div class="flex items-center justify-between gap-2 mb-1.5">
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+            <i class="ti ti-brand-discord text-[13px]" aria-hidden="true"></i>Pending Discord
+          </span>
+          <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ stats.pending_discord }}</span>
+        </div>
+        <div class="h-2.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <div class="h-full rounded-full bg-amber-500 dark:bg-amber-400" style="width: {{ ((stats.pending_discord / stage_max) * 100)|round|int if stage_max else 0 }}%"></div>
+        </div>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">No Discord ID linked yet</p>
+      </div>
+
+      {# Stage 2 — Pending Approval #}
+      <div>
+        <div class="flex items-center justify-between gap-2 mb-1.5">
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">
+            <i class="ti ti-user-question text-[13px]" aria-hidden="true"></i>Pending Approval
+          </span>
+          <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ stats.pending_approval }}</span>
+        </div>
+        <div class="h-2.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <div class="h-full rounded-full bg-blue-500 dark:bg-blue-400" style="width: {{ ((stats.pending_approval / stage_max) * 100)|round|int if stage_max else 0 }}%"></div>
+        </div>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Discord linked, awaiting approval</p>
+      </div>
+
+      {# Stage 3 — Completed #}
+      <div>
+        <div class="flex items-center justify-between gap-2 mb-1.5">
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-green-600 dark:text-green-400">
+            <i class="ti ti-circle-check text-[13px]" aria-hidden="true"></i>Completed
+          </span>
+          <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ stats.completed }}</span>
+        </div>
+        <div class="h-2.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <div class="h-full rounded-full bg-ecs-green" style="width: {{ ((stats.completed / stage_max) * 100)|round|int if stage_max else 0 }}%"></div>
+        </div>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Discord linked + Approved</p>
+      </div>
+    </div>
+  </section>
+
+  {# Completion-rate KPI + breakdown #}
+  <div class="grid grid-cols-2 xl:grid-cols-1 gap-4 sm:gap-6">
+    {% call stat_card("ti-target-arrow", "Completion Rate", completion_pct ~ '%', tone='primary') %}
+      <span class="font-mono">{{ stats.completed }}</span> of <span class="font-mono">{{ total_users }}</span> verified
+    {% endcall %}
+    {% call stat_card("ti-users", "In Onboarding", (stats.pending_discord + stats.pending_approval), tone='warning') %}
+      Awaiting Discord or approval
+    {% endcall %}
+  </div>
+</div>
+  </div>{# /step-1 panel #}
+
+{# ===== Step 2 panel: Approval Gate Settings (REAL — backed by AdminConfig) + Status Legend ===== #}
+{# These three controls persist to AdminConfig rows (category 'onboarding') via
+   data-action="save-onboarding-config" -> POST /admin-panel/discord/onboarding/config.
+   onboarding_config carries the current saved values; reminder_windows is the
+   server-side allow-list. The Status Legend remains a static definition (mirrors
+   the Classic branch). #}
+<div data-step-panel="2" hidden>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+
+  {# Approval Gate Settings — wired to real config #}
+  {% call section_card("Approval Gate Settings", icon="ti-adjustments") %}
+  <div class="p-4 sm:p-5 space-y-5" data-onboarding-config>
+    {# Auto-approve toggle #}
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <label for="onboardingAutoApprove" class="text-sm font-medium text-gray-900 dark:text-white">Auto-approve linked members</label>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Skip manual review once a Discord ID is verified</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5">
+        <input type="checkbox" id="onboardingAutoApprove" data-config-key="auto_approve_linked" class="sr-only peer"
+               {% if onboarding_config and onboarding_config.auto_approve_linked %}checked{% endif %}>
+        <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-ecs-green
+                    peer-focus:ring-2 peer-focus:ring-ecs-green/40 transition-colors
+                    after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full
+                    after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></div>
+      </label>
+    </div>
+
+    {# Approval notification channel (free text — Discord channel name) #}
+    <div>
+      <label for="onboardingNotifyChannel" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Approval notification channel</label>
+      <input type="text" id="onboardingNotifyChannel" data-config-key="approval_notify_channel"
+             value="{{ onboarding_config.approval_notify_channel if onboarding_config else '' }}"
+             maxlength="100" placeholder="#mod-approvals"
+             class="w-full h-9 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900
+                    text-sm text-gray-900 dark:text-white px-3 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Channel name notified when a member is awaiting approval</p>
+    </div>
+
+    {# Auto-reminder window (constrained select) #}
+    <div>
+      <label for="onboardingReminderWindow" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Auto-reminder window</label>
+      <select id="onboardingReminderWindow" data-config-key="reminder_window"
+              class="w-full h-9 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900
+                     text-sm text-gray-900 dark:text-white px-3 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        {% set _labels = {'24h': 'After 24 hours', '48h': 'After 48 hours', '72h': 'After 72 hours', 'never': 'Never'} %}
+        {% for win in (reminder_windows or ['24h', '48h', '72h', 'never']) %}
+        <option value="{{ win }}" {% if onboarding_config and onboarding_config.reminder_window == win %}selected{% endif %}>{{ _labels.get(win, win) }}</option>
+        {% endfor %}
+      </select>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Use the <span class="font-semibold">Save Flow</span> button above to persist changes</p>
+    </div>
   </div>
   {% endcall %}
 
+  {# Status Legend (static definitions — mirrors Classic branch) #}
   {% call section_card("Status Legend", icon="ti-info-circle") %}
-  <div class="p-4 sm:p-5">
-    <ul class="space-y-3" role="list">
-      <li class="flex items-center gap-2">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">Completed</span>
-        <span class="text-sm text-gray-600 dark:text-gray-400">Discord linked + Approved</span>
-      </li>
-      <li class="flex items-center gap-2">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">Pending Discord</span>
-        <span class="text-sm text-gray-600 dark:text-gray-400">No Discord ID linked</span>
-      </li>
-      <li class="flex items-center gap-2">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">Pending Approval</span>
-        <span class="text-sm text-gray-600 dark:text-gray-400">Discord linked, awaiting approval</span>
-      </li>
-    </ul>
-  </div>
+  <ul class="p-4 sm:p-5 space-y-3 text-sm">
+    <li class="flex items-center gap-2">
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">Completed</span>
+      <span class="text-gray-600 dark:text-gray-400">Discord linked + Approved</span>
+    </li>
+    <li class="flex items-center gap-2">
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">Pending Discord</span>
+      <span class="text-gray-600 dark:text-gray-400">No Discord ID linked</span>
+    </li>
+    <li class="flex items-center gap-2">
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">Pending Approval</span>
+      <span class="text-gray-600 dark:text-gray-400">Discord linked, awaiting approval</span>
+    </li>
+  </ul>
   {% endcall %}
 </div>
+  </div>{# /step-2 panel #}
 
-{# Activity table #}
+{# ===== Step 3 panel: Assign Roles — real link to the role-mapping tool ===== #}
+{# This page does not own the role-mapping data; role mapping lives on its own
+   admin page. The step hands off to that real tool rather than fabricating a
+   mapping editor here. #}
+<div data-step-panel="3" hidden>
+  {% call section_card("Assign Roles", icon="ti-shield-cog") %}
+  <div class="p-4 sm:p-5 space-y-4">
+    <p class="text-sm text-gray-600 dark:text-gray-400">
+      After a member is approved, their team membership is mapped to Discord roles.
+      Manage how Flask roles map to Discord roles on the dedicated Role Mapping page.
+    </p>
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
+      <div class="flex items-start gap-3">
+        <span class="shrink-0 w-9 h-9 rounded-lg bg-ecs-green/10 text-ecs-green flex items-center justify-center">
+          <i class="ti ti-link" aria-hidden="true"></i>
+        </span>
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white">Discord Role Mapping</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Map league/team roles to Discord server roles and sync membership.</p>
+        </div>
+      </div>
+      <a href="{{ url_for('admin_panel.discord_role_mapping') }}"
+         class="mt-4 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-external-link" aria-hidden="true"></i>Open Role Mapping
+      </a>
+    </div>
+  </div>
+  {% endcall %}
+</div>{# /step-3 panel #}
+
+{# ===== Step 4 panel: Review & Activity table ===== #}
+<div data-step-panel="4" hidden>
 {% if overview_data %}
 {% call data_table("Recent Onboarding Activity", icon="ti-list", count=(overview_data|length ~ ' users'), search_placeholder="Filter users…", search_id="onboardingFilter") %}
   {# md+ table #}
@@ -266,6 +508,134 @@
   </div>
 {% endcall %}
 {% endif %}
+  </div>{# /step-4 panel #}
+
+  {# ===== Wizard nav footer (real Back / Step N of M / Next) ===== #}
+  <div class="flex items-center justify-between gap-3 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+    <button type="button" data-step-prev
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                   border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-sm font-medium
+                   hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i>Back
+    </button>
+    <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">Step <span data-step-current>1</span> of <span data-step-total>4</span></div>
+    <button type="button" data-step-next
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   disabled:opacity-40 disabled:cursor-not-allowed
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <span data-step-next-label>Next</span><i class="ti ti-arrow-right" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  </div>{# /active-step column #}
+</div>{# /wizard layout #}
+
+{# ===== Stepper navigation script (page-scoped, console branch only) ===== #}
+<script>
+(function () {
+  function initOnboardingStepper() {
+    var root = document.querySelector('[data-onboarding-stepper]');
+    if (!root || root.dataset.stepperReady === '1') return;
+    root.dataset.stepperReady = '1';
+
+    var total = parseInt(root.getAttribute('data-step-count'), 10) || 0;
+    var panels = {};
+    var navs = {};
+    var badges = {};
+    var i;
+    for (i = 1; i <= total; i++) {
+      panels[i] = document.querySelector('[data-step-panel="' + i + '"]');
+      navs[i] = root.querySelector('[data-step-nav="' + i + '"]');
+      badges[i] = root.querySelector('[data-step-badge="' + i + '"]');
+    }
+    var prevBtn = root.querySelector('[data-step-prev]');
+    var nextBtn = root.querySelector('[data-step-next]');
+    var nextLabel = root.querySelector('[data-step-next-label]');
+    var currentOut = root.querySelector('[data-step-current]');
+    var totalOut = root.querySelector('[data-step-total]');
+    if (totalOut) { totalOut.textContent = String(total); }
+
+    var stepNames = {};
+    for (i = 1; i <= total; i++) {
+      var lbl = root.querySelector('[data-step-label="' + i + '"]');
+      stepNames[i] = lbl ? (lbl.textContent || '').trim() : ('Step ' + i);
+    }
+
+    // Tailwind classes used to mark the active rail item / badge.
+    var ACTIVE_NAV = ['bg-ecs-green/10', 'ring-1', 'ring-ecs-green/40'];
+    var ACTIVE_BADGE = ['bg-ecs-green', 'text-white', 'border-ecs-green'];
+    var IDLE_BADGE = ['border', 'border-gray-200', 'dark:border-gray-600', 'text-gray-500', 'dark:text-gray-400'];
+
+    var current = 1;
+
+    function show(step) {
+      if (step < 1) step = 1;
+      if (step > total) step = total;
+      current = step;
+      for (var s = 1; s <= total; s++) {
+        if (panels[s]) { panels[s].hidden = (s !== step); }
+        if (navs[s]) {
+          if (s === step) {
+            navs[s].classList.add.apply(navs[s].classList, ACTIVE_NAV);
+            navs[s].setAttribute('aria-current', 'step');
+          } else {
+            navs[s].classList.remove.apply(navs[s].classList, ACTIVE_NAV);
+            navs[s].removeAttribute('aria-current');
+          }
+        }
+        if (badges[s]) {
+          if (s === step) {
+            badges[s].classList.remove.apply(badges[s].classList, IDLE_BADGE);
+            badges[s].classList.add.apply(badges[s].classList, ACTIVE_BADGE);
+          } else {
+            badges[s].classList.remove.apply(badges[s].classList, ACTIVE_BADGE);
+            badges[s].classList.add.apply(badges[s].classList, IDLE_BADGE);
+          }
+        }
+      }
+      if (currentOut) { currentOut.textContent = String(step); }
+      if (prevBtn) { prevBtn.disabled = (step <= 1); }
+      if (nextBtn) { nextBtn.disabled = (step >= total); }
+      if (nextLabel) {
+        nextLabel.textContent = (step >= total) ? 'Done' : ('Next: ' + (stepNames[step + 1] || ''));
+      }
+    }
+
+    for (i = 1; i <= total; i++) {
+      (function (s) {
+        if (navs[s]) {
+          navs[s].addEventListener('click', function (e) {
+            e.preventDefault();
+            show(s);
+          });
+        }
+      })(i);
+    }
+    if (prevBtn) {
+      prevBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        show(current - 1);
+      });
+    }
+    if (nextBtn) {
+      nextBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        show(current + 1);
+      });
+    }
+
+    show(1);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initOnboardingStepper);
+  } else {
+    initOnboardingStepper();
+  }
+})();
+</script>
 
 {% else %}
 {% if error %}

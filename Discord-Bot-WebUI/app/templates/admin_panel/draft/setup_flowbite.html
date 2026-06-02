@@ -1,0 +1,274 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Draft Setup{% endblock %}
+{% block panel_description %}Set the team pick order, then start the on-the-clock draft{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.draft_overview') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Draft</a>
+    </div>
+</li>
+<li aria-current="page">
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Setup</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% set clk = draft_clock_state %}
+<div id="draftSetup"
+     data-season="{{ season.id if season else '' }}"
+     data-league-id="{{ current_league.id if current_league else '' }}"
+     {% if current_league %}data-board-url="{{ url_for('draft_enhanced.draft_league', league_name=current_league.name) }}"{% endif %}
+     class="space-y-4">
+
+  {% if not season or not current_league %}
+    <div class="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+      <i class="ti ti-alert-triangle"></i> No current season / Pub League found. Create a season and teams first.
+    </div>
+  {% else %}
+
+  <!-- header row -->
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="min-w-0">
+      <h2 class="text-xl font-bold text-gray-900 dark:text-white">Draft Setup</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400">{{ season.name }} · {{ current_league.name }}</p>
+    </div>
+    <div class="flex items-center gap-2">
+      {% if leagues|length > 1 %}
+      <select id="leagueSelect" class="h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm px-3" aria-label="Choose league">
+        {% for lg in leagues %}<option value="{{ lg.id }}" {{ 'selected' if lg.id == current_league.id }}>{{ lg.name }}</option>{% endfor %}
+      </select>
+      {% endif %}
+      <button type="button" id="randomizeBtn" class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-arrows-shuffle"></i><span class="hidden sm:inline">Randomize</span></button>
+      <button type="button" id="startDraftBtn" class="h-9 px-4 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green hover:bg-ecs-green-600 text-white text-sm font-semibold"><i class="ti ti-player-play"></i> Start Draft</button>
+    </div>
+  </div>
+
+  <!-- status banner -->
+  <div class="rounded-xl border {{ 'border-ecs-green/40 bg-ecs-green-50 dark:bg-ecs-green-900/10' if clk and clk.status in ['active','paused'] else 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800' }} px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
+    {% if clk and clk.status in ['active','paused'] %}
+      <i class="ti ti-circle-filled text-ecs-green text-[8px]"></i> Draft is <strong>{{ clk.status }}</strong> — pick #{{ clk.overall_pick }} of {{ clk.total_picks }}. Changing the order requires Reset.
+    {% else %}
+      <i class="ti ti-info-circle"></i> Arrange the order below and press <strong>Start Draft</strong> to put the first team on the clock.
+    {% endif %}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <!-- pick order -->
+    <section class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div class="flex items-center gap-2"><i class="ti ti-list-numbers text-ecs-green"></i><h3 class="font-semibold text-gray-900 dark:text-white">Pick Order</h3></div>
+        <span class="text-xs text-gray-500 dark:text-gray-400"><span class="font-mono">{{ teams|length }}</span> teams · use ↑ ↓ to reorder</span>
+      </div>
+      {% set num_teams = teams|length %}
+      {% set is_snake = (not clk or clk.format != 'linear') %}
+      <ul id="orderList" class="divide-y divide-gray-100 dark:divide-gray-700">
+        {% for t in teams %}
+        {% set slot = loop.index %}
+        {% set p1 = slot %}
+        {% set p2 = (2 * num_teams - slot + 1) if is_snake else (num_teams + slot) %}
+        {# initials from team name: first letters of up to two words #}
+        {% set words = t.name.split() %}
+        {% set initials = (words[0][0] ~ words[1][0]) if words|length > 1 else (t.name[:2]) %}
+        <li data-team-id="{{ t.id }}" class="flex items-center gap-3 px-4 py-3">
+          <button type="button" class="drag-handle text-gray-300 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300 cursor-grab shrink-0" aria-label="Drag to reorder" title="Drag to reorder"><i class="ti ti-grip-vertical"></i></button>
+          <span class="slot w-7 h-7 rounded-lg bg-ecs-green-50 dark:bg-ecs-green-900/30 text-ecs-green flex items-center justify-center font-mono font-bold text-sm shrink-0">{{ slot }}</span>
+          <span class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center text-xs font-bold uppercase text-gray-700 dark:text-gray-200 shrink-0">{{ initials|upper }}</span>
+          <div class="min-w-0 flex-1">
+            <div class="font-semibold text-gray-900 dark:text-white truncate">{{ t.name }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
+              Coach: {{ t.coach_name or 'Unassigned' }} · {{ t.roster_count|default(0) }} roster spot{{ '' if t.roster_count == 1 else 's' }} filled
+            </div>
+          </div>
+          <span class="snake-pick hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300" title="This team's pick numbers"><i class="ti ti-arrow-up text-[11px]"></i> Pick {{ p1 }} &amp; {{ p2 }}</span>
+          <div class="flex items-center gap-0.5">
+            <button type="button" class="move-up p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white" aria-label="Move up"><i class="ti ti-chevron-up"></i></button>
+            <button type="button" class="move-down p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white" aria-label="Move down"><i class="ti ti-chevron-down"></i></button>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <!-- format -->
+    <aside class="space-y-4">
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2"><i class="ti ti-adjustments text-ecs-green"></i><h3 class="font-semibold text-gray-900 dark:text-white">Format</h3></div>
+        <div class="p-4 space-y-4 text-sm">
+          <div>
+            <label class="block font-medium text-gray-900 dark:text-white mb-1.5">Draft type</label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer {{ 'border-ecs-green bg-ecs-green-50 dark:bg-ecs-green-900/20' if not clk or clk.format=='snake' else 'border-gray-300 dark:border-gray-600' }}"><input type="radio" name="format" value="snake" {{ 'checked' if not clk or clk.format=='snake' }}> Snake</label>
+              <label class="flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer {{ 'border-ecs-green bg-ecs-green-50 dark:bg-ecs-green-900/20' if clk and clk.format=='linear' else 'border-gray-300 dark:border-gray-600' }}"><input type="radio" name="format" value="linear" {{ 'checked' if clk and clk.format=='linear' }}> Linear</label>
+            </div>
+          </div>
+          <div>
+            <label for="spp" class="block font-medium text-gray-900 dark:text-white mb-1.5">Seconds per pick</label>
+            <input id="spp" type="number" min="0" value="{{ clk.seconds_per_pick if clk else 90 }}" class="w-28 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono">
+            <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">0 = untimed</span>
+          </div>
+          <div>
+            <label for="rounds" class="block font-medium text-gray-900 dark:text-white mb-1.5">Rounds (picks per team)</label>
+            <input id="rounds" type="number" min="1" value="{{ clk.rounds if clk and clk.rounds else 12 }}" class="w-28 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono">
+          </div>
+          <div>
+            <label class="block font-medium text-gray-900 dark:text-white mb-1.5">When the clock hits 0</label>
+            <div class="space-y-2">
+              {% set ta = clk.timeout_action if clk else 'alert' %}
+              <label class="flex items-start gap-2 rounded-lg border px-3 py-2 cursor-pointer {{ 'border-ecs-green bg-ecs-green-50 dark:bg-ecs-green-900/20' if ta=='alert' else 'border-gray-300 dark:border-gray-600' }}"><input type="radio" name="timeout" value="alert" {{ 'checked' if ta=='alert' }} class="mt-0.5"><span><span class="font-medium text-gray-900 dark:text-white">Alert the coach</span><span class="block text-xs text-gray-500 dark:text-gray-400">Escalating Discord DM + on-screen alert; never silently skipped</span></span></label>
+              <label class="flex items-start gap-2 rounded-lg border px-3 py-2 cursor-pointer {{ 'border-ecs-green bg-ecs-green-50 dark:bg-ecs-green-900/20' if ta=='skip' else 'border-gray-300 dark:border-gray-600' }}"><input type="radio" name="timeout" value="skip" {{ 'checked' if ta=='skip' }} class="mt-0.5"><span><span class="font-medium text-gray-900 dark:text-white">Auto-skip</span><span class="block text-xs text-gray-500 dark:text-gray-400">Move to the next team</span></span></label>
+              <label class="flex items-start gap-2 rounded-lg border px-3 py-2 cursor-pointer {{ 'border-ecs-green bg-ecs-green-50 dark:bg-ecs-green-900/20' if ta=='pause' else 'border-gray-300 dark:border-gray-600' }}"><input type="radio" name="timeout" value="pause" {{ 'checked' if ta=='pause' }} class="mt-0.5"><span><span class="font-medium text-gray-900 dark:text-white">Pause the draft</span><span class="block text-xs text-gray-500 dark:text-gray-400">Stop and wait for an admin</span></span></label>
+            </div>
+          </div>
+          <label class="flex items-center justify-between">
+            <span><span class="font-medium text-gray-900 dark:text-white">Lock picks to team on clock</span></span>
+            <input id="lockToggle" type="checkbox" {{ 'checked' if not clk or clk.lock_to_clock }} class="w-5 h-5 rounded accent-[color:theme(colors.ecs-green)]">
+          </label>
+          <button type="button" id="saveSetupBtn" class="w-full h-10 inline-flex items-center justify-center gap-1.5 rounded-lg border border-ecs-green text-ecs-green hover:bg-ecs-green-50 dark:hover:bg-ecs-green-900/20 text-sm font-semibold"><i class="ti ti-device-floppy"></i> Save order &amp; settings</button>
+        </div>
+      </section>
+
+      <!-- summary -->
+      {% set s_teams = teams|length %}
+      {% set s_rounds = (clk.rounds if clk and clk.rounds else 12) %}
+      {% set s_picks = s_teams * s_rounds %}
+      {% set s_spp = (clk.seconds_per_pick if clk and clk.seconds_per_pick else 90) %}
+      {% set s_total_secs = s_picks * s_spp %}
+      {% set s_hours = s_total_secs // 3600 %}
+      {% set s_mins = (s_total_secs % 3600) // 60 %}
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2"><i class="ti ti-clipboard-check text-ecs-green"></i><h3 class="font-semibold text-gray-900 dark:text-white">Summary</h3></div>
+        <dl class="p-4 text-sm divide-y divide-gray-100 dark:divide-gray-700">
+          <div class="flex justify-between py-1.5"><dt class="text-gray-500 dark:text-gray-400">Teams</dt><dd class="font-mono text-gray-900 dark:text-white">{{ s_teams }}</dd></div>
+          <div class="flex justify-between py-1.5"><dt class="text-gray-500 dark:text-gray-400">Rounds (roster size)</dt><dd id="sumRounds" class="font-mono text-gray-900 dark:text-white">{{ s_rounds }}</dd></div>
+          <div class="flex justify-between py-1.5"><dt class="text-gray-500 dark:text-gray-400">Total picks</dt><dd id="sumPicks" class="font-mono text-gray-900 dark:text-white">{{ s_picks }}</dd></div>
+          <div class="flex justify-between py-1.5"><dt class="text-gray-500 dark:text-gray-400">Players in pool</dt><dd class="font-mono text-gray-900 dark:text-white">{{ available_players|default(0) }}</dd></div>
+          <div class="flex justify-between py-1.5"><dt class="text-gray-500 dark:text-gray-400">Est. duration</dt><dd id="sumDuration" class="font-mono text-gray-900 dark:text-white">{% if s_spp %}~{% if s_hours %}{{ s_hours }}h {% endif %}{{ s_mins }}m{% else %}untimed{% endif %}</dd></div>
+        </dl>
+        <div class="px-4 pb-4">
+          <button type="button" id="startDraftBtn2" class="w-full h-10 inline-flex items-center justify-center gap-1.5 rounded-lg bg-ecs-green hover:bg-ecs-green-600 text-white text-sm font-semibold"><i class="ti ti-player-play"></i> Start Draft &amp; Put Team 1 on the Clock</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block custom_js %}{{ super() }}
+<script>
+(function () {
+  var root = document.getElementById('draftSetup');
+  if (!root || !root.dataset.leagueId) return;
+  function csrf() { return document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''; }
+  var list = document.getElementById('orderList');
+
+  function isSnake() { return ((document.querySelector('input[name=format]:checked') || {}).value || 'snake') !== 'linear'; }
+  function renumber() {
+    var rows = list.querySelectorAll('li');
+    var n = rows.length;
+    var snake = isSnake();
+    rows.forEach(function (li, i) {
+      var slot = i + 1;
+      var slotEl = li.querySelector('.slot');
+      if (slotEl) slotEl.textContent = slot;
+      var badge = li.querySelector('.snake-pick');
+      if (badge) {
+        var p2 = snake ? (2 * n - slot + 1) : (n + slot);
+        badge.innerHTML = '<i class="ti ti-arrow-up text-[11px]"></i> Pick ' + slot + ' &amp; ' + p2;
+      }
+    });
+  }
+  list && list.addEventListener('click', function (e) {
+    var up = e.target.closest('.move-up'), down = e.target.closest('.move-down');
+    if (!up && !down) return;
+    var li = e.target.closest('li');
+    if (up && li.previousElementSibling) li.parentNode.insertBefore(li, li.previousElementSibling);
+    if (down && li.nextElementSibling) li.parentNode.insertBefore(li.nextElementSibling, li);
+    renumber();
+  });
+
+  // Randomize the pick order
+  var randomize = document.getElementById('randomizeBtn');
+  randomize && randomize.addEventListener('click', function () {
+    var rows = Array.from(list.children);
+    for (var i = rows.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      list.insertBefore(rows[i], rows[j]);
+      rows = Array.from(list.children);
+    }
+    renumber();
+  });
+
+  // Keep snake/linear pick badges in sync when the format toggles
+  document.querySelectorAll('input[name=format]').forEach(function (r) { r.addEventListener('change', renumber); });
+
+  // Live-update the Summary KPIs from rounds / seconds-per-pick
+  function updateSummary() {
+    var teams = list.querySelectorAll('li').length;
+    var rounds = +(document.getElementById('rounds') || {}).value || 0;
+    var spp = +(document.getElementById('spp') || {}).value || 0;
+    var picks = teams * rounds;
+    var rEl = document.getElementById('sumRounds'); if (rEl) rEl.textContent = rounds;
+    var pEl = document.getElementById('sumPicks'); if (pEl) pEl.textContent = picks;
+    var dEl = document.getElementById('sumDuration');
+    if (dEl) {
+      if (!spp) { dEl.textContent = 'untimed'; }
+      else {
+        var secs = picks * spp, h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60);
+        dEl.textContent = '~' + (h ? h + 'h ' : '') + m + 'm';
+      }
+    }
+  }
+  ['rounds', 'spp'].forEach(function (id) { var el = document.getElementById(id); el && el.addEventListener('input', updateSummary); });
+
+  function payload() {
+    return {
+      season_id: +root.dataset.season,
+      league_id: +root.dataset.leagueId,
+      team_order: Array.from(list.querySelectorAll('li')).map(function (li) { return +li.dataset.teamId; }),
+      format: (document.querySelector('input[name=format]:checked') || {}).value || 'snake',
+      seconds_per_pick: +document.getElementById('spp').value || 0,
+      rounds: +document.getElementById('rounds').value || 0,
+      timeout_action: (document.querySelector('input[name=timeout]:checked') || {}).value || 'alert',
+      lock_to_clock: document.getElementById('lockToggle').checked
+    };
+  }
+  function post(path, body) {
+    return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() }, body: JSON.stringify(body) }).then(function (r) { return r.json(); });
+  }
+
+  var save = document.getElementById('saveSetupBtn');
+  save && save.addEventListener('click', function () {
+    post('/admin-panel/draft/session/setup', payload()).then(function (d) {
+      if (window.Swal) window.Swal.fire({ icon: d.success ? 'success' : 'error', title: d.success ? 'Saved' : 'Error', text: d.message || '', timer: d.success ? 1400 : undefined });
+      else alert(d.success ? 'Saved' : (d.message || 'Error'));
+    });
+  });
+
+  function startDraft() {
+    var go = function () {
+      post('/admin-panel/draft/session/start', { season_id: +root.dataset.season, league_id: +root.dataset.leagueId }).then(function (d) {
+        if (d && d.success) { if (root.dataset.boardUrl) window.location.href = root.dataset.boardUrl; }
+        else if (window.Swal) window.Swal.fire({ icon: 'error', title: 'Could not start', text: (d && d.message) || '' });
+        else alert((d && d.message) || 'Could not start');
+      });
+    };
+    // always save current order/settings first, then start
+    post('/admin-panel/draft/session/setup', payload()).then(function (d) { if (d && d.success) go(); else alert((d && d.message) || 'Setup failed'); });
+  }
+  ['startDraftBtn', 'startDraftBtn2'].forEach(function (id) {
+    var btn = document.getElementById(id);
+    btn && btn.addEventListener('click', startDraft);
+  });
+
+  var sel = document.getElementById('leagueSelect');
+  sel && sel.addEventListener('change', function () { window.location.search = '?league_id=' + sel.value; });
+})();
+</script>
+{% endblock %}

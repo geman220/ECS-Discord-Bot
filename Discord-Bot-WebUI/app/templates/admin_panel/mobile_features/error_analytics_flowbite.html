@@ -22,60 +22,320 @@
 {% block panel_content %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state, alert as kit_alert %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, data_table_th, empty_state %}
 {% set has_critical = stats.critical_errors_24h and stats.critical_errors_24h > 0 %}
 <div class="space-y-6">
-  {{ page_header("Mobile Error Analytics", subtitle="Mobile Features") }}
 
-  {{ kit_alert('info', 'Monitor mobile app errors, crash reports, and error patterns to improve app stability.', title='Mobile Error Analytics', dismissible=False) }}
+  {# ---- Page header + command toolbar (primary CTA = View All Errors) ---- #}
+  {% call page_header("Mobile Error Analytics", subtitle="Mobile Features / Stability") %}
+    <a href="{{ url_for('admin_panel.mobile_features') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg text-sm font-semibold
+              bg-white text-gray-700 border border-gray-300 hover:bg-gray-50
+              dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Back to Mobile</span>
+    </a>
+    <button type="button" data-action="export-errors" data-export-url="{{ url_for('admin_panel.mobile_error_list') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg text-sm font-semibold
+              bg-white text-gray-700 border border-gray-300 hover:bg-gray-50
+              dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-download" aria-hidden="true"></i><span class="hidden sm:inline">Export</span>
+    </button>
+    <a href="{{ url_for('admin_panel.mobile_error_list') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3.5 rounded-lg text-sm font-semibold
+              bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-list" aria-hidden="true"></i>View All Errors
+    </a>
+  {% endcall %}
 
-  {# KPI band #}
+  {# ---- Stability banner: the ONE primary readout (critical-in-24h drives state) ---- #}
+  {% if has_critical %}
+  <section class="rounded-xl border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 overflow-hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-4 p-5">
+      <div class="flex items-center gap-4 min-w-0 flex-1">
+        <span class="shrink-0 w-12 h-12 rounded-xl bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center">
+          <i class="ti ti-alert-octagon text-2xl" aria-hidden="true"></i>
+        </span>
+        <div class="min-w-0">
+          <p class="text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">Action required</p>
+          <p class="text-base font-bold text-gray-900 dark:text-white">
+            <span class="font-mono">{{ stats.critical_errors_24h }}</span> critical error{{ 's' if stats.critical_errors_24h != 1 else '' }} in the last 24 hours
+          </p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Review crash reports before they affect more users.</p>
+        </div>
+      </div>
+      <a href="{{ url_for('admin_panel.mobile_error_list') }}"
+         class="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                bg-red-600 hover:bg-red-700 text-white transition-colors
+                focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        Triage now <i class="ti ti-arrow-right" aria-hidden="true"></i>
+      </a>
+    </div>
+  </section>
+  {% else %}
+  <section class="rounded-xl border border-green-300 dark:border-green-500/40 bg-green-50 dark:bg-green-500/10 overflow-hidden">
+    <div class="flex items-center gap-4 p-5">
+      <span class="shrink-0 w-12 h-12 rounded-xl bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 flex items-center justify-center">
+        <i class="ti ti-shield-check text-2xl" aria-hidden="true"></i>
+      </span>
+      <div class="min-w-0">
+        <p class="text-xs font-semibold uppercase tracking-wide text-green-700 dark:text-green-400">All clear</p>
+        <p class="text-base font-bold text-gray-900 dark:text-white">No critical errors in the last 24 hours</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Mobile app stability is healthy. Keep monitoring patterns below.</p>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {# ---- KPI band: bespoke token cards w/ mono figures + divider footers ---- #}
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-    {{ stat_card('ti-bug', 'Total Errors', stats.total_errors, tone='danger') }}
-    {{ stat_card('ti-alert-triangle', 'Errors (7 days)', stats.recent_errors, tone='warning') }}
-    {{ stat_card('ti-chart-dots', 'Error Patterns', stats.total_patterns, tone='info') }}
-    {{ stat_card('ti-urgent', 'Critical (24h)', stats.critical_errors_24h, tone='danger' if has_critical else 'success') }}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Errors</span>
+        <i class="ti ti-bug text-lg text-gray-900 dark:text-white shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ stats.total_errors }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">all-time captured</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Last 7 Days</span>
+        <i class="ti ti-alert-triangle text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ stats.recent_errors }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">errors this week</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Patterns</span>
+        <i class="ti ti-chart-dots text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ stats.total_patterns }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">distinct signatures</div>
+    </div>
+    <div class="rounded-xl border {{ 'border-red-300 dark:border-red-500/40' if has_critical else 'border-gray-200 dark:border-gray-700' }} bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Critical (24h)</span>
+        <i class="ti ti-urgent text-lg {{ 'text-red-600 dark:text-red-400' if has_critical else 'text-green-600 dark:text-green-400' }} shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none {{ 'text-red-600 dark:text-red-400' if has_critical else 'text-green-600 dark:text-green-400' }}">{{ stats.critical_errors_24h }}</div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">{{ 'needs triage' if has_critical else 'no incidents' }}</div>
+    </div>
   </div>
 
-  {# Error management #}
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    {# Top Errors This Week #}
-    {% if stats.top_errors %}
-    {% call data_table("Top Errors This Week", icon="ti-list", count=stats.top_errors|length, filters=False) %}
-      <table class="hidden md:table w-full text-sm text-left">
-        <thead>
-          <tr class="border-b border-gray-200 dark:border-gray-700">
-            {{ data_table_th("Error Type", key="type", sortable=False) }}
-            {{ data_table_th("Severity", key="severity", sortable=False) }}
-            {{ data_table_th("Count", key="count", sortable=False, align="right") }}
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-          {% for error in stats.top_errors %}
-          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <td class="px-3 py-3 font-medium text-gray-900 dark:text-white">{{ error.error_type }}</td>
-            <td class="px-3 py-3">
-              {% if error.severity == 'critical' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-alert-octagon text-[12px]" aria-hidden="true"></i>{{ error.severity }}</span>
-              {% elif error.severity == 'error' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-alert-triangle-filled text-[12px]" aria-hidden="true"></i>{{ error.severity }}</span>
-              {% else %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-info-circle-filled text-[12px]" aria-hidden="true"></i>{{ error.severity }}</span>
-              {% endif %}
-            </td>
-            <td class="px-3 py-3 text-right font-mono text-gray-600 dark:text-gray-400">{{ error.count }}</td>
-          </tr>
+  {# ---- HERO: Error Volume Trend (real 7-day series) + Severity Breakdown (real severity field) ---- #}
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    {# Error Volume Trend — SVG area/line built from stats.volume_series (one point per bucket).
+       Period toggle (24h/7d/30d) fetches /error-analytics/volume and re-renders client-side. #}
+    <section class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden"
+             data-error-volume
+             data-volume-url="{{ url_for('admin_panel.mobile_error_volume') }}"
+             data-current-period="{{ stats.current_period or '7d' }}">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-chart-line text-ecs-green" aria-hidden="true"></i> Error Volume Trend
+          <span data-volume-badge class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ stats.current_period or '7d' }}</span>
+        </h2>
+        <div class="inline-flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 shrink-0" role="group" aria-label="Trend period">
+          {% set _periods = [('24h', '24h'), ('7d', '7 Days'), ('30d', '30 Days')] %}
+          {% for pval, plabel in _periods %}
+          {% set _active = (stats.current_period or '7d') == pval %}
+          <button type="button" data-action="change-error-period" data-period="{{ pval }}"
+                  aria-pressed="{{ 'true' if _active else 'false' }}"
+                  class="px-3 h-9 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {{ 'font-semibold bg-ecs-green text-white' if _active else 'font-medium text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700' }}">{{ plabel }}</button>
           {% endfor %}
-        </tbody>
-      </table>
+        </div>
+      </div>
+      <div class="p-4 sm:p-5" data-volume-body>
+        {% if stats.volume_series and stats.volume_peak and stats.volume_peak > 0 %}
+        {% set vmax = stats.volume_peak %}
+        {% set n = stats.volume_series|length %}
+        {% set step = (600 / (n - 1)) if n > 1 else 600 %}
+        {# Precompute (x,y) points: y maps count -> 0..180 inverted, with 10px top padding #}
+        {% set ns = namespace(line='', area='') %}
+        {% for pt in stats.volume_series %}
+          {% set x = (loop.index0 * step)|round(2) %}
+          {% set y = (190 - ((pt.count / vmax) * 170))|round(2) %}
+          {% set ns.line = ns.line ~ (',' if not loop.first else '') ~ x ~ ',' ~ y %}
+        {% endfor %}
+        <div class="relative h-52" role="img" aria-label="Mobile error volume over the last 7 days, peak {{ stats.volume_peak }} errors in a day">
+          <svg viewBox="0 0 600 200" preserveAspectRatio="none" class="w-full h-full">
+            <defs>
+              <linearGradient id="errFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgb(245 158 11)" stop-opacity="0.30" />
+                <stop offset="100%" stop-color="rgb(245 158 11)" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <line x1="0" y1="50" x2="600" y2="50" class="stroke-gray-200 dark:stroke-gray-700" stroke-width="1" />
+            <line x1="0" y1="100" x2="600" y2="100" class="stroke-gray-200 dark:stroke-gray-700" stroke-width="1" />
+            <line x1="0" y1="150" x2="600" y2="150" class="stroke-gray-200 dark:stroke-gray-700" stroke-width="1" />
+            <polygon points="0,200 {{ ns.line }} 600,200" fill="url(#errFill)" />
+            <polyline points="{{ ns.line }}" fill="none" stroke="rgb(245 158 11)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round" />
+          </svg>
+          <div class="absolute inset-x-0 bottom-0 flex justify-between text-[10px] text-gray-400 dark:text-gray-500 font-mono px-1">
+            {% for pt in stats.volume_series %}
+            <span class="{{ '' if loop.first or loop.last or loop.index0 == (n // 2) else 'hidden sm:inline' }}">{{ pt.label }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700 text-center mt-4">
+          <div class="px-3 py-3">
+            <p data-volume-total-label class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">This Period</p>
+            <p data-volume-total class="mt-0.5 font-mono text-lg font-bold text-amber-600 dark:text-amber-400">{{ stats.period_total }}</p>
+          </div>
+          <div class="px-3 py-3">
+            <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Peak</p>
+            <p data-volume-peak class="mt-0.5 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ stats.volume_peak }}</p>
+          </div>
+          <div class="px-3 py-3">
+            {# Real, accurately-labeled: share of mobile log lines NOT at ERROR/FATAL level.
+               This is NOT crash-free-sessions (no session-outcome data exists). #}
+            <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400" title="Share of mobile log lines not at ERROR/FATAL level">Error-Free Logs</p>
+            <p data-error-free class="mt-0.5 font-mono text-lg font-bold {{ 'text-green-600 dark:text-green-400' if stats.error_free_pct is not none and stats.error_free_pct >= 99 else 'text-gray-900 dark:text-white' }}">{{ (stats.error_free_pct ~ '%') if stats.error_free_pct is not none else 'n/a' }}</p>
+          </div>
+        </div>
+        {% else %}
+        {{ empty_state('ti-chart-line', 'No volume data', 'No errors recorded in the last 7 days to chart.') }}
+        {% endif %}
+      </div>
+    </section>
+
+    {# Severity Breakdown — donut + per-level tiles built from the real `severity` field #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <i class="ti ti-chart-pie text-ecs-green" aria-hidden="true"></i>
+        <h2 class="font-semibold text-gray-900 dark:text-white">Severity Breakdown</h2>
+      </div>
+      <div class="p-4 sm:p-5">
+        {% if stats.severity_week_total and stats.severity_week_total > 0 %}
+        {% set total = stats.severity_week_total %}
+        {% set sev_color = {'critical': 'rgb(239 68 68)', 'high': 'rgb(245 158 11)', 'medium': 'rgb(59 130 246)', 'low': 'rgb(107 114 128)'} %}
+        <div class="flex items-center justify-center" role="img" aria-label="Severity of {{ total }} errors this week">
+          <div class="relative h-40 w-40">
+            <svg viewBox="0 0 36 36" class="h-full w-full -rotate-90">
+              {% set ring = namespace(offset=0) %}
+              {% for item in stats.severity_breakdown %}
+              {% if item.count > 0 %}
+              {% set dash = (item.pct)|round(2) %}
+              <circle cx="18" cy="18" r="15.915" fill="none" stroke="{{ sev_color[item.level] }}" stroke-width="3.5"
+                      stroke-dasharray="{{ dash }} {{ (100 - dash)|round(2) }}" stroke-dashoffset="{{ (-ring.offset)|round(2) }}" />
+              {% set ring.offset = ring.offset + dash %}
+              {% endif %}
+              {% endfor %}
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ total }}</span>
+              <span class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">this week</span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 grid grid-cols-2 gap-2 text-center">
+          {% for item in stats.severity_breakdown %}
+          <div class="rounded-lg bg-gray-50 dark:bg-gray-700/50 py-2">
+            <p class="font-mono text-xl font-bold {{ 'text-red-600 dark:text-red-400' if item.level == 'critical' else 'text-amber-600 dark:text-amber-400' if item.level == 'high' else 'text-blue-600 dark:text-blue-400' if item.level == 'medium' else 'text-gray-600 dark:text-gray-300' }}">{{ item.count }}</p>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ item.level }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        <dl class="mt-4 space-y-2 text-sm border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div class="flex justify-between items-center">
+            <dt class="text-gray-500 dark:text-gray-400">Avg. Recovery Rate</dt>
+            <dd data-stat-recovery class="font-mono font-semibold {{ 'text-green-600 dark:text-green-400' if stats.recovery_rate_pct is not none and stats.recovery_rate_pct >= 80 else 'text-gray-900 dark:text-white' }}">{{ (stats.recovery_rate_pct ~ '%') if stats.recovery_rate_pct is not none else 'N/A' }}</dd>
+          </div>
+          <div class="flex justify-between items-center">
+            <dt class="text-gray-500 dark:text-gray-400">Top Platform</dt>
+            {# Real: top `platform` value on MobileLogs over the period; n/a when no logs carry a platform. #}
+            <dd data-stat-platform class="inline-flex items-center gap-1 font-semibold text-gray-900 dark:text-white">
+              {% if stats.top_platform == 'iOS' %}<i class="ti ti-brand-apple" aria-hidden="true"></i> iOS
+              {% elif stats.top_platform == 'Android' %}<i class="ti ti-brand-android" aria-hidden="true"></i> Android
+              {% elif stats.top_platform %}<i class="ti ti-device-mobile" aria-hidden="true"></i> {{ stats.top_platform }}
+              {% else %}<span class="text-gray-400 dark:text-gray-500 font-normal">n/a</span>{% endif %}
+            </dd>
+          </div>
+          <div class="flex justify-between items-center">
+            <dt class="text-gray-500 dark:text-gray-400">Critical Trend</dt>
+            {# Real: critical count this period vs the immediately-preceding equal-length period. #}
+            <dd data-stat-trend
+                class="inline-flex items-center gap-1 font-semibold {{ 'text-red-600 dark:text-red-400' if stats.critical_trend == 'up' else 'text-green-600 dark:text-green-400' if stats.critical_trend == 'down' else 'text-gray-500 dark:text-gray-400' }}">
+              {% if stats.critical_trend == 'up' %}<i class="ti ti-trending-up" aria-hidden="true"></i> Increasing
+              {% elif stats.critical_trend == 'down' %}<i class="ti ti-trending-down" aria-hidden="true"></i> Decreasing
+              {% else %}<i class="ti ti-minus" aria-hidden="true"></i> Flat{% endif %}
+              {% if stats.critical_delta and stats.critical_delta != 0 %}<span class="font-mono text-xs">({{ '+' if stats.critical_delta > 0 else '' }}{{ stats.critical_delta }})</span>{% endif %}
+            </dd>
+          </div>
+          <div class="flex justify-between items-center">
+            <dt class="text-gray-500 dark:text-gray-400">Critical (24h)</dt>
+            <dd class="font-mono font-semibold {{ 'text-red-600 dark:text-red-400' if has_critical else 'text-green-600 dark:text-green-400' }}">{{ stats.critical_errors_24h }}</dd>
+          </div>
+        </dl>
+        {% else %}
+        {{ empty_state('ti-chart-pie', 'No severity data', 'No errors recorded in the last 7 days.') }}
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  {# ---- Two-column working area: top errors table + active patterns rows ---- #}
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+    {# Top Errors This Week — real ranked table w/ mono numerals (spans 2 cols) #}
+    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-list text-ecs-green" aria-hidden="true"></i> Top Errors This Week
+          {% if stats.top_errors %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ stats.top_errors|length }}</span>{% endif %}
+        </h2>
+        <a href="{{ url_for('admin_panel.mobile_error_list') }}" class="text-xs font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">View all</a>
+      </div>
+      {% if stats.top_errors %}
+      {% set top_count = stats.top_errors[0].count or 1 %}
+      <div class="md:overflow-x-auto">
+        <table class="hidden md:table w-full text-sm text-left">
+          <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+              {{ data_table_th("#", key="rank", sortable=False, align="right") }}
+              {{ data_table_th("Error Type", key="type", sortable=False) }}
+              {{ data_table_th("Severity", key="severity", sortable=False) }}
+              {{ data_table_th("Share", key="share", sortable=False) }}
+              {{ data_table_th("Count", key="count", sortable=False, align="right") }}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for error in stats.top_errors %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <td class="px-3 py-3 text-right font-mono text-xs text-gray-400 dark:text-gray-500 tabular-nums w-8">{{ loop.index }}</td>
+              <td class="px-3 py-3 font-medium text-gray-900 dark:text-white">{{ error.error_type }}</td>
+              <td class="px-3 py-3">
+                {% if error.severity == 'critical' %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-alert-octagon text-[12px]" aria-hidden="true"></i>{{ error.severity }}</span>
+                {% elif error.severity == 'error' %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-alert-triangle-filled text-[12px]" aria-hidden="true"></i>{{ error.severity }}</span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-info-circle-filled text-[12px]" aria-hidden="true"></i>{{ error.severity }}</span>
+                {% endif %}
+              </td>
+              <td class="px-3 py-3 w-32">
+                <div class="h-1.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="presentation">
+                  <div class="h-full rounded-full {{ 'bg-red-500' if error.severity == 'critical' else 'bg-amber-500' if error.severity == 'error' else 'bg-blue-500' }}" style="width: {{ ((error.count / top_count) * 100)|round|int }}%"></div>
+                </div>
+              </td>
+              <td class="px-3 py-3 text-right font-mono font-semibold text-gray-900 dark:text-white tabular-nums">{{ error.count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
       <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
         {% for error in stats.top_errors %}
         <div class="px-4 py-3.5">
           <div class="flex items-center justify-between gap-2">
-            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ error.error_type }}</span>
-            <span class="shrink-0 font-mono text-sm text-gray-600 dark:text-gray-400">{{ error.count }}</span>
+            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate"><span class="font-mono text-xs text-gray-400 mr-1.5">{{ loop.index }}</span>{{ error.error_type }}</span>
+            <span class="shrink-0 font-mono text-sm font-semibold text-gray-900 dark:text-white tabular-nums">{{ error.count }}</span>
           </div>
-          <div class="mt-1">
+          <div class="mt-1.5 flex items-center gap-2">
             {% if error.severity == 'critical' %}
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-alert-octagon text-[12px]" aria-hidden="true"></i>{{ error.severity }}</span>
             {% elif error.severity == 'error' %}
@@ -83,72 +343,123 @@
             {% else %}
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-info-circle-filled text-[12px]" aria-hidden="true"></i>{{ error.severity }}</span>
             {% endif %}
+            <div class="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+              <div class="h-full rounded-full {{ 'bg-red-500' if error.severity == 'critical' else 'bg-amber-500' if error.severity == 'error' else 'bg-blue-500' }}" style="width: {{ ((error.count / top_count) * 100)|round|int }}%"></div>
+            </div>
           </div>
-        </div>
-        {% endfor %}
-      </div>
-    {% endcall %}
-    {% else %}
-    {% call section_card("Top Errors This Week", icon="ti-list") %}
-      {{ empty_state('ti-circle-check', 'No errors this week', 'No errors recorded this week.') }}
-    {% endcall %}
-    {% endif %}
-
-    {# Active Patterns #}
-    {% call section_card("Active Patterns", icon="ti-chart-dots") %}
-      {% if stats.active_patterns %}
-      <div class="p-4 sm:p-5 space-y-3">
-        {% for pattern in stats.active_patterns %}
-        <div class="flex justify-between items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-          <div class="min-w-0">
-            <p class="font-medium text-gray-900 dark:text-white truncate">{{ pattern.pattern_name or pattern.error_type }}</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ pattern.occurrences }} occurrences</p>
-          </div>
-          <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold font-mono bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ pattern.occurrences }}</span>
         </div>
         {% endfor %}
       </div>
       {% else %}
-      {{ empty_state('ti-circle-check', 'No active patterns', 'No active patterns detected.') }}
+      {{ empty_state('ti-circle-check', 'No errors this week', 'Nothing logged in the last 7 days. Mobile clients are reporting clean.') }}
       {% endif %}
-    {% endcall %}
+    </section>
+
+    {# Active Patterns — dense rows w/ real operation, recovery rate, last-seen #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti ti-chart-dots text-ecs-green" aria-hidden="true"></i> Active Patterns
+          {% if stats.active_patterns %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ stats.active_patterns|length }}</span>{% endif %}
+        </h2>
+      </div>
+      {% if stats.active_patterns %}
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+        {% for pattern in stats.active_patterns %}
+        {% set rate_pct = (pattern.recovery_rate * 100)|round|int %}
+        <li class="px-4 py-3.5">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ pattern.error_type }}</p>
+              {% if pattern.operation %}
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">{{ pattern.operation }}</p>
+              {% endif %}
+            </div>
+            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold font-mono bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-repeat text-[12px]" aria-hidden="true"></i>{{ pattern.occurrences }}
+            </span>
+          </div>
+          <div class="mt-2 flex items-center gap-2">
+            <span class="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 w-16 shrink-0">recovery</span>
+            <div class="flex-1 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+              <div class="h-full rounded-full {{ 'bg-green-500' if rate_pct >= 80 else 'bg-amber-500' if rate_pct >= 50 else 'bg-red-500' }}" style="width: {{ rate_pct }}%"></div>
+            </div>
+            <span class="shrink-0 font-mono text-xs font-semibold tabular-nums {{ 'text-green-600 dark:text-green-400' if rate_pct >= 80 else 'text-amber-600 dark:text-amber-400' if rate_pct >= 50 else 'text-red-600 dark:text-red-400' }}">{{ rate_pct }}%</span>
+          </div>
+          {% if pattern.last_seen %}
+          <p class="mt-1.5 text-[11px] text-gray-400 dark:text-gray-500 font-mono">last seen {{ pattern.last_seen[:10] }}</p>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      {{ empty_state('ti-circle-check', 'No active patterns', 'No recurring error patterns detected this week.') }}
+      {% endif %}
+    </section>
   </div>
 
-  {# Quick Actions #}
-  {% call section_card("Quick Actions", icon="ti-bolt") %}
-    <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <a href="{{ url_for('admin_panel.mobile_error_list') }}" class="flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/40 dark:hover:bg-blue-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-list" aria-hidden="true"></i>View All Errors
-      </a>
-      <a href="{{ url_for('admin_panel.mobile_error_cleanup') }}" class="flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/40 dark:hover:bg-amber-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-trash" aria-hidden="true"></i>Cleanup Old Data
-      </a>
-      <button type="button" data-action="export-errors" data-export-url="{{ url_for('admin_panel.mobile_error_list') }}" class="flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/40 dark:hover:bg-green-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-download" aria-hidden="true"></i>Export Errors
-      </button>
-      <a href="{{ url_for('admin_panel.mobile_features') }}" class="flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-        <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to Mobile
-      </a>
+  {# ---- Storage footprint + maintenance (real counts, mono, command toolbar) ---- #}
+  {% call section_card("Storage Footprint & Maintenance", icon="ti-database") %}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700">
+      <div class="bg-white dark:bg-gray-800 p-5 grid grid-cols-3 gap-4">
+        <div>
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Error Records</p>
+          <p class="mt-2 font-mono text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{{ stats.total_errors }}</p>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Log Entries</p>
+          <p class="mt-2 font-mono text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{{ stats.total_logs }}</p>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Patterns</p>
+          <p class="mt-2 font-mono text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{{ stats.total_patterns }}</p>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-5 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+        <p class="text-sm text-gray-600 dark:text-gray-400">Old error data accumulates over time. Run cleanup to reclaim storage.</p>
+        <a href="{{ url_for('admin_panel.mobile_error_cleanup') }}"
+           class="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                  bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100
+                  dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/40 dark:hover:bg-amber-500/20 transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-trash" aria-hidden="true"></i>Cleanup Old Data
+        </a>
+      </div>
     </div>
   {% endcall %}
 
-  {# Storage Statistics #}
-  {% call section_card("Storage Statistics", icon="ti-database") %}
-    <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="text-center p-6 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-        <span class="block font-mono text-3xl font-bold text-blue-600 dark:text-blue-400">{{ stats.total_errors }}</span>
-        <span class="text-sm text-gray-500 dark:text-gray-400">Error Records</span>
-      </div>
-      <div class="text-center p-6 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-        <span class="block font-mono text-3xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.total_logs }}</span>
-        <span class="text-sm text-gray-500 dark:text-gray-400">Log Entries</span>
-      </div>
-      <div class="text-center p-6 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-        <span class="block font-mono text-3xl font-bold text-amber-600 dark:text-amber-400">{{ stats.total_patterns }}</span>
-        <span class="text-sm text-gray-500 dark:text-gray-400">Patterns Detected</span>
+  {# ---- Quick actions: navigation/command tiles (ported from legacy branch) ---- #}
+  {% call section_card("Quick Actions", icon="ti-bolt") %}
+    <div class="p-4 sm:p-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <a href="{{ url_for('admin_panel.mobile_error_list') }}"
+           class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-400 hover:bg-blue-50 dark:hover:border-blue-500 dark:hover:bg-blue-500/10 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <span class="w-9 h-9 shrink-0 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-list text-lg" aria-hidden="true"></i></span>
+          <span class="min-w-0"><span class="block text-sm font-semibold text-gray-900 dark:text-white">View All Errors</span><span class="block text-xs text-gray-500 dark:text-gray-400 font-mono">{{ stats.total_errors }} records</span></span>
+        </a>
+        <a href="{{ url_for('admin_panel.mobile_error_cleanup') }}"
+           class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-amber-400 hover:bg-amber-50 dark:hover:border-amber-500 dark:hover:bg-amber-500/10 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <span class="w-9 h-9 shrink-0 rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-trash text-lg" aria-hidden="true"></i></span>
+          <span class="min-w-0"><span class="block text-sm font-semibold text-gray-900 dark:text-white">Cleanup Old Data</span><span class="block text-xs text-gray-500 dark:text-gray-400 font-mono">Reclaim storage</span></span>
+        </a>
+        <button type="button" data-action="export-errors" data-export-url="{{ url_for('admin_panel.mobile_error_list') }}"
+           class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-green-400 hover:bg-green-50 dark:hover:border-green-500 dark:hover:bg-green-500/10 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <span class="w-9 h-9 shrink-0 rounded-lg bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400 flex items-center justify-center"><i class="ti ti-download text-lg" aria-hidden="true"></i></span>
+          <span class="min-w-0"><span class="block text-sm font-semibold text-gray-900 dark:text-white">Export Errors</span><span class="block text-xs text-gray-500 dark:text-gray-400 font-mono">CSV</span></span>
+        </button>
+        <a href="{{ url_for('admin_panel.mobile_features') }}"
+           class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-ecs-green/10 dark:hover:border-ecs-green transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <span class="w-9 h-9 shrink-0 rounded-lg bg-ecs-green/15 text-ecs-green flex items-center justify-center"><i class="ti ti-arrow-left text-lg" aria-hidden="true"></i></span>
+          <span class="min-w-0"><span class="block text-sm font-semibold text-gray-900 dark:text-white">Back to Mobile</span><span class="block text-xs text-gray-500 dark:text-gray-400 font-mono">Mobile features</span></span>
+        </a>
       </div>
     </div>
   {% endcall %}
+
+  {# NOTE: Period toggle (24h/7d/30d), Top Platform, Critical Trend, and Error-Free Logs are all
+     wired to real data via /mobile-features/error-analytics/volume (see _build_error_volume_payload).
+     Top Platform reads MobileLogs.platform; "Error-Free Logs" is the share of mobile log lines NOT at
+     ERROR/FATAL level — deliberately NOT labeled "Crash-Free" because no session-outcome data exists. #}
 </div>
 {% else %}
 <!-- Error Analytics Header -->

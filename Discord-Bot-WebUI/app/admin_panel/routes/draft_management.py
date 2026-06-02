@@ -14,15 +14,16 @@ from datetime import datetime
 from flask import render_template, request, jsonify, redirect, url_for, g
 from flask_login import login_required, current_user
 from sqlalchemy import desc
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from .. import admin_panel_bp
 from app.decorators import role_required
 from app.utils.db_utils import transactional
-from app.models import DraftOrderHistory, Season, League, Player, Team
+from app.models import DraftOrderHistory, Season, League, Player, Team, DraftSession, DraftPickSlot
 from app.models.admin_config import AdminAuditLog
 from app.core import db
 from app.draft_enhanced import DraftService
+from app import draft_clock
 
 logger = logging.getLogger(__name__)
 
@@ -383,3 +384,308 @@ def draft_stats_api():
     except Exception as e:
         logger.error(f"Error getting draft stats: {e}")
         return jsonify({'error': 'Internal Server Error'}), 500
+
+
+# -----------------------------------------------------------
+# Draft "On the Clock" — setup + live turn engine
+# -----------------------------------------------------------
+
+def _require_league(season_id, league_id):
+    """Resolve and validate (season, league); returns (season, league) or (None, error_response)."""
+    season = db.session.query(Season).filter_by(id=season_id).first()
+    league = db.session.query(League).filter_by(id=league_id).first()
+    if not season or not league:
+        return None, (jsonify({'success': False, 'message': 'Season or league not found'}), 404)
+    return (season, league), None
+
+
+@admin_panel_bp.route('/draft/session/state')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def draft_session_state():
+    """Return the live clock state for a (season, league), or {exists: false}."""
+    season_id = request.args.get('season_id', type=int)
+    league_id = request.args.get('league_id', type=int)
+    ds = draft_clock.get_session(db.session, season_id, league_id)
+    if not ds:
+        return jsonify({'success': True, 'exists': False})
+    return jsonify({'success': True, 'exists': True, 'state': draft_clock.build_state(db.session, ds)})
+
+
+@admin_panel_bp.route('/draft/session/setup', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def draft_session_setup():
+    """Create/replace the draft order + format for a (season, league). Status -> setup."""
+    data = request.get_json() or {}
+    season_id = data.get('season_id')
+    league_id = data.get('league_id')
+    team_order = data.get('team_order') or []   # ordered list of team ids
+    if not season_id or not league_id or not team_order:
+        return jsonify({'success': False, 'message': 'season_id, league_id and team_order are required'}), 400
+
+    resolved, err = _require_league(season_id, league_id)
+    if err:
+        return err
+
+    # validate teams belong to this league
+    valid_ids = {t.id for t in db.session.query(Team).filter(Team.league_id == league_id).all()}
+    bad = [tid for tid in team_order if tid not in valid_ids]
+    if bad:
+        return jsonify({'success': False, 'message': f'Teams not in this league: {bad}'}), 400
+
+    ds = draft_clock.get_session(db.session, season_id, league_id)
+    if not ds:
+        ds = DraftSession(season_id=season_id, league_id=league_id)
+        db.session.add(ds)
+        db.session.flush()
+    if ds.status == 'active':
+        return jsonify({'success': False, 'message': 'Draft is active; pause or reset before changing the order'}), 409
+
+    ds.format = data.get('format', 'snake')
+    ds.seconds_per_pick = int(data.get('seconds_per_pick', 90) or 0)
+    timeout_action = (data.get('timeout_action') or 'alert').lower()
+    ds.timeout_action = timeout_action if timeout_action in ('alert', 'skip', 'pause') else 'alert'
+    ds.lock_to_clock = bool(data.get('lock_to_clock', True))
+    ds.rounds = int(data.get('rounds') or 0)
+    ds.status = 'setup'
+    ds.current_overall_pick = None
+    ds.current_round = None
+    ds.current_team_id = None
+    ds.pick_deadline = None
+
+    # replace slots
+    db.session.query(DraftPickSlot).filter_by(draft_session_id=ds.id).delete()
+    for i, tid in enumerate(team_order, start=1):
+        db.session.add(DraftPickSlot(draft_session_id=ds.id, team_id=tid, slot=i))
+
+    AdminAuditLog.log_action(
+        user_id=current_user.id, action='draft_session_setup', resource_type='draft_session',
+        resource_id=str(ds.id), new_value=f'{len(team_order)} teams, {ds.format}, {ds.seconds_per_pick}s, {ds.rounds} rounds',
+        ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent'))
+
+    return jsonify({'success': True, 'state': draft_clock.build_state(db.session, ds)})
+
+
+@admin_panel_bp.route('/draft/setup')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def draft_setup_page():
+    """Admin page to set the team pick order + format, then start the on-the-clock draft."""
+    season = db.session.query(Season).filter_by(is_current=True).first()
+    leagues = []
+    if season:
+        leagues = db.session.query(League).filter_by(season_id=season.id).order_by(League.name).all()
+    league_id = request.args.get('league_id', type=int)
+    if not league_id and leagues:
+        league_id = leagues[0].id
+    league = db.session.query(League).filter_by(id=league_id).first() if league_id else None
+
+    teams = []
+    state = None
+    available_players = 0
+    if league:
+        teams = db.session.query(Team).filter_by(league_id=league.id).order_by(Team.name).all()
+        ds = draft_clock.get_session(db.session, season.id, league.id) if season else None
+        if ds:
+            state = draft_clock.build_state(db.session, ds)
+            # order teams by saved slot order when a session exists
+            order = {s.team_id: s.slot for s in ds.slots}
+            if order:
+                teams = sorted(teams, key=lambda t: order.get(t.id, 999))
+
+        # Per-team coach name + current roster size (real data from player_teams).
+        for t in teams:
+            coaches = draft_clock.get_team_coaches(db.session, t.id)
+            t.coach_name = coaches[0]['name'] if coaches else None
+            t.roster_count = len(t.players)
+
+        # Players in pool = current players eligible for this league who are not
+        # yet rostered on any team in this league (same definition the draft board uses).
+        from sqlalchemy import or_, and_, exists
+        from app.models import player_league
+        team_id_set = {t.id for t in teams}
+        belongs_to_league = or_(
+            Player.primary_league_id == league.id,
+            exists().where(
+                and_(
+                    player_league.c.player_id == Player.id,
+                    player_league.c.league_id == league.id,
+                )
+            ),
+        )
+        eligible_players = (
+            db.session.query(Player)
+            .filter(belongs_to_league)
+            .filter(Player.is_current_player.is_(True))
+            .options(selectinload(Player.teams))
+            .all()
+        )
+        available_players = sum(
+            1 for p in eligible_players
+            if not ({tm.id for tm in p.teams} & team_id_set)
+        )
+
+    return render_template(
+        'admin_panel/draft/setup_flowbite.html',
+        title='Draft Setup',
+        season=season,
+        leagues=leagues,
+        current_league=league,
+        teams=teams,
+        draft_clock_state=state,
+        available_players=available_players,
+        shell='console',
+    )
+
+
+@admin_panel_bp.route('/draft/session/timer', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def draft_session_timer():
+    """Adjust the per-pick time live. Optionally extend the current pick's deadline."""
+    from datetime import timedelta
+    data = request.get_json() or {}
+    ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'))
+    if not ds:
+        return jsonify({'success': False, 'message': 'No draft set up for this league'}), 404
+    secs = data.get('seconds_per_pick')
+    extend = data.get('extend_current')
+    add_seconds = data.get('add_seconds')
+    if secs is None and not extend and add_seconds is None:
+        return jsonify({'success': False, 'message': 'seconds_per_pick, extend_current, or add_seconds is required'}), 400
+    if secs is not None:
+        ds.seconds_per_pick = max(0, int(secs))
+    # Additive mode: add N seconds to the CURRENT pick's remaining time (does not change seconds_per_pick).
+    if add_seconds is not None:
+        if ds.status != 'active':
+            return jsonify({'success': False, 'message': 'No active pick to adjust'}), 400
+        try:
+            delta = int(add_seconds)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'message': 'add_seconds must be an integer'}), 400
+        now = datetime.utcnow()
+        # Base off the live remaining time (or now, if the pick was untimed/overdue).
+        base = ds.pick_deadline if (ds.pick_deadline and ds.pick_deadline > now) else now
+        new_deadline = base + timedelta(seconds=delta)
+        # Never let an adjustment push the deadline into the past.
+        ds.pick_deadline = new_deadline if new_deadline > now else now
+        ds.alerts_sent = 0
+    # If live and asked to apply now, reset the current pick's clock to the (new or stored) length.
+    elif ds.status == 'active' and extend:
+        ds.pick_deadline = (datetime.utcnow() + timedelta(seconds=ds.seconds_per_pick)) if ds.seconds_per_pick else None
+        ds.alerts_sent = 0
+    state = draft_clock.build_state(db.session, ds)
+    draft_clock.emit_clock(ds.league.name, state)
+    return jsonify({'success': True, 'state': state})
+
+
+@admin_panel_bp.route('/draft/session/start', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def draft_session_start():
+    """Put the first team on the clock."""
+    data = request.get_json() or {}
+    ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'))
+    if not ds:
+        return jsonify({'success': False, 'message': 'No draft set up for this league'}), 404
+    team_ids = draft_clock.ordered_team_ids(db.session, ds)
+    if not team_ids or not ds.rounds:
+        return jsonify({'success': False, 'message': 'Set the pick order and rounds first'}), 400
+    ds.status = 'active'
+    ds.started_at = datetime.utcnow()
+    ds.started_by = current_user.id
+    ds.completed_at = None
+    draft_clock.set_clock_to(ds, 1, team_ids)
+    state = draft_clock.build_state(db.session, ds, team_ids=team_ids)
+    AdminAuditLog.log_action(
+        user_id=current_user.id, action='draft_session_start', resource_type='draft_session',
+        resource_id=str(ds.id), ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent'))
+    draft_clock.emit_clock(ds.league.name, state)
+    return jsonify({'success': True, 'state': state})
+
+
+@admin_panel_bp.route('/draft/session/pause', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def draft_session_pause():
+    data = request.get_json() or {}
+    ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'))
+    if not ds or ds.status != 'active':
+        return jsonify({'success': False, 'message': 'No active draft to pause'}), 400
+    if ds.pick_deadline:
+        remaining = (ds.pick_deadline - datetime.utcnow()).total_seconds()
+        ds.pause_remaining_seconds = max(0, int(remaining))
+    ds.status = 'paused'
+    ds.pick_deadline = None
+    state = draft_clock.build_state(db.session, ds)
+    draft_clock.emit_clock(ds.league.name, state)
+    return jsonify({'success': True, 'state': state})
+
+
+@admin_panel_bp.route('/draft/session/resume', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def draft_session_resume():
+    from datetime import timedelta
+    data = request.get_json() or {}
+    ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'))
+    if not ds or ds.status != 'paused':
+        return jsonify({'success': False, 'message': 'No paused draft to resume'}), 400
+    ds.status = 'active'
+    if ds.seconds_per_pick:
+        secs = ds.pause_remaining_seconds if ds.pause_remaining_seconds is not None else ds.seconds_per_pick
+        ds.pick_deadline = datetime.utcnow() + timedelta(seconds=secs)
+    ds.pause_remaining_seconds = None
+    state = draft_clock.build_state(db.session, ds)
+    draft_clock.emit_clock(ds.league.name, state)
+    return jsonify({'success': True, 'state': state})
+
+
+@admin_panel_bp.route('/draft/session/skip', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def draft_session_skip():
+    """Advance the clock to the next team without recording a pick."""
+    data = request.get_json() or {}
+    ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'))
+    if not ds or ds.status not in ('active', 'paused'):
+        return jsonify({'success': False, 'message': 'No live draft to advance'}), 400
+    state = draft_clock.advance(db.session, ds)
+    AdminAuditLog.log_action(
+        user_id=current_user.id, action='draft_session_skip', resource_type='draft_session',
+        resource_id=str(ds.id), new_value=f'skipped to pick {ds.current_overall_pick}',
+        ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent'))
+    draft_clock.emit_clock(ds.league.name, state)
+    return jsonify({'success': True, 'state': state})
+
+
+@admin_panel_bp.route('/draft/session/reset', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+@transactional
+def draft_session_reset():
+    """Return a draft to setup (keeps the order + format; clears live progress)."""
+    data = request.get_json() or {}
+    ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'))
+    if not ds:
+        return jsonify({'success': False, 'message': 'No draft to reset'}), 404
+    ds.status = 'setup'
+    ds.current_overall_pick = None
+    ds.current_round = None
+    ds.current_team_id = None
+    ds.pick_deadline = None
+    ds.pause_remaining_seconds = None
+    ds.completed_at = None
+    AdminAuditLog.log_action(
+        user_id=current_user.id, action='draft_session_reset', resource_type='draft_session',
+        resource_id=str(ds.id), ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent'))
+    state = draft_clock.build_state(db.session, ds)
+    draft_clock.emit_clock(ds.league.name, state)
+    return jsonify({'success': True, 'state': state})

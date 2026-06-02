@@ -581,18 +581,36 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Export actions
+    function exportScheduledMessagesCsv() {
+        const table = document.getElementById('scheduledMessagesTable');
+        const rows = [['League', 'Match', 'Match Date', 'Scheduled Send', 'Status']];
+        if (table) {
+            table.querySelectorAll('tbody tr[data-league]').forEach(tr => {
+                if (tr.style.display === 'none') return;
+                const cells = tr.querySelectorAll('td');
+                const cellText = (i) => cells[i] ? cells[i].textContent.replace(/\s+/g, ' ').trim() : '';
+                // Columns: League, Match, Match Date, Scheduled Send, Status (Actions col skipped)
+                rows.push([cellText(0), cellText(1), cellText(2), cellText(3), cellText(4)]);
+            });
+        }
+        const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `scheduled-messages-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
     document.querySelectorAll('[data-action^="export-"]').forEach(btn => {
         btn.addEventListener('click', function() {
-            const action = this.dataset.action;
-            Swal.fire({
-                title: 'Export',
-                text: 'Exporting data as ' + action.replace('export-', '').toUpperCase(),
-                icon: 'info',
-                timer: 2000,
-                showConfirmButton: false,
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            });
+            // CSV is the only real, dependency-free export. Excel/PDF would require
+            // libraries this page does not load, so all formats export the same real CSV
+            // built from the rendered (non-fabricated) scheduled-message rows.
+            exportScheduledMessagesCsv();
             document.getElementById('exportMenu').classList.add('hidden');
         });
     });

@@ -10,16 +10,19 @@ Routes for duplicate detection and management:
 - Dismiss duplicate flags
 """
 
+import json
 import logging
 
 from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
+from sqlalchemy import desc
 
 from app.admin_panel import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminAuditLog
-from app.models.core import User, Role
+from app.models.core import User, Role, DuplicateRegistrationAlert
+from app.models import Player
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.utils.user_locking import lock_users_for_role_update, LockAcquisitionError
@@ -29,32 +32,118 @@ from app.admin_panel.routes.user_management.helpers import find_duplicate_regist
 
 logger = logging.getLogger(__name__)
 
+# Fields the existing merge engine (duplicate_management.execute_profile_merge)
+# accepts as field_{field} POST params. Kept identical to that route so the
+# console detail pane wires straight into the real merge handler.
+MERGE_FIELDS = [
+    'name', 'phone', 'pronouns', 'jersey_size', 'jersey_number',
+    'favorite_position', 'other_positions', 'positions_not_to_play',
+    'frequency_play_goal', 'expected_weeks_available', 'willing_to_referee',
+    'unavailable_dates', 'additional_info', 'player_notes',
+]
+
+
+def _build_compare_fields(existing_player, new_user_data):
+    """Build a list of {field, label, existing, new} rows for the detail pane.
+
+    Only includes fields that have a value on at least one side, mirroring the
+    merge_profiles interface. Reads ONLY real Player attributes and the JSON
+    new_user_data carried on the alert. Never fabricates values.
+    """
+    rows = []
+    for field in MERGE_FIELDS:
+        try:
+            existing_value = getattr(existing_player, field, None) if existing_player else None
+        except Exception:
+            existing_value = None
+        new_value = new_user_data.get(field) if isinstance(new_user_data, dict) else None
+        if (existing_value in (None, '')) and (new_value in (None, '')):
+            continue
+        rows.append({
+            'field': field,
+            'label': field.replace('_', ' ').title(),
+            'existing': existing_value,
+            'new': new_value,
+            'combinable': field in ('additional_info', 'player_notes')
+                          and existing_value and new_value,
+        })
+    return rows
+
 
 @admin_panel_bp.route('/users/duplicates')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def duplicate_registrations():
-    """Display and manage potential duplicate registrations."""
+    """Display and manage potential duplicate registration alerts.
+
+    Renders the master-detail merge workspace from real DuplicateRegistrationAlert
+    rows. The left pane lists pending alerts; selecting one (?selected=<id>) loads
+    a side-by-side compare pane whose Merge action posts to the EXISTING merge
+    handler (duplicate_management.execute_profile_merge). Crash-safe: any failure
+    degrades to empty lists rather than a 500.
+    """
+    pending_alerts = []
+    resolved_alerts = []
+    selected_alert = None
+    selected_new_data = {}
+    compare_fields = []
+
     try:
-        # Find potential duplicates based on email patterns, names, and Discord IDs
-        duplicate_groups = find_duplicate_registrations()
-
-        # Get statistics
-        stats = {
-            'total_groups': len(duplicate_groups),
-            'total_potential_duplicates': sum(len(group['users']) for group in duplicate_groups),
-            'by_email': len([g for g in duplicate_groups if g['match_type'] == 'email']),
-            'by_name': len([g for g in duplicate_groups if g['match_type'] == 'name']),
-            'by_discord': len([g for g in duplicate_groups if g['match_type'] == 'discord'])
-        }
-
-        return render_template('admin_panel/users/duplicate_registrations_flowbite.html',
-                               duplicate_groups=duplicate_groups,
-                               stats=stats)
+        pending_alerts = db.session.query(DuplicateRegistrationAlert).options(
+            joinedload(DuplicateRegistrationAlert.existing_player).joinedload(Player.user)
+        ).filter_by(status='pending').order_by(
+            desc(DuplicateRegistrationAlert.confidence_score),
+            desc(DuplicateRegistrationAlert.created_at)
+        ).all()
     except Exception as e:
-        logger.error(f"Error loading duplicate registrations: {e}")
-        flash('Duplicate detection unavailable. Check database connectivity.', 'error')
-        return redirect(url_for('admin_panel.users_comprehensive'))
+        logger.error(f"Error loading pending duplicate alerts: {e}")
+        pending_alerts = []
+
+    try:
+        resolved_alerts = db.session.query(DuplicateRegistrationAlert).options(
+            joinedload(DuplicateRegistrationAlert.existing_player),
+            joinedload(DuplicateRegistrationAlert.resolved_by)
+        ).filter(
+            DuplicateRegistrationAlert.status.in_(['resolved', 'ignored'])
+        ).order_by(
+            desc(DuplicateRegistrationAlert.resolved_at)
+        ).limit(20).all()
+    except Exception as e:
+        logger.error(f"Error loading resolved duplicate alerts: {e}")
+        resolved_alerts = []
+
+    # Resolve which alert is shown in the detail pane. Default to the first
+    # pending alert so the workspace is never blank when work exists.
+    selected_id = request.args.get('selected', type=int)
+    if selected_id is not None:
+        selected_alert = next((a for a in pending_alerts if a.id == selected_id), None)
+    if selected_alert is None and pending_alerts:
+        selected_alert = pending_alerts[0]
+
+    if selected_alert is not None:
+        if selected_alert.details:
+            try:
+                parsed = json.loads(selected_alert.details)
+                if isinstance(parsed, dict):
+                    selected_new_data = parsed
+            except (ValueError, TypeError):
+                logger.warning(f"Failed to parse details for alert {selected_alert.id}")
+        try:
+            compare_fields = _build_compare_fields(
+                selected_alert.existing_player, selected_new_data
+            )
+        except Exception as e:
+            logger.error(f"Error building compare fields for alert {selected_alert.id}: {e}")
+            compare_fields = []
+
+    return render_template(
+        'admin_panel/users/duplicate_registrations_flowbite.html',
+        pending_alerts=pending_alerts,
+        resolved_alerts=resolved_alerts,
+        selected_alert=selected_alert,
+        selected_new_data=selected_new_data,
+        compare_fields=compare_fields,
+    )
 
 
 @admin_panel_bp.route('/users/duplicates/scan', methods=['POST'])

@@ -4,102 +4,317 @@
 
 {% block main_content %}
 {% if shell == 'console' %}
-{% from 'macros/_modern_kit.html' import page_header, section_card %}
-<div class="mx-auto max-w-2xl">
-    {{ page_header("Create New User", subtitle="User Management") }}
+{% from 'macros/_modern_kit.html' import page_header %}
+{% set role_count = form.roles.choices | length %}
+{% set league_count = (form.league_id.choices | length) - 1 %}
+{% set team_count = (form.team_id.choices | length) - 1 %}
+{% set has_errors = form.errors | length > 0 %}
+{% set error_count = form.errors | length %}
+<div class="mx-auto max-w-6xl">
+    {% call page_header("Provision User", subtitle="User Management / New Account") %}
+        <a href="{{ url_for('user_management.manage_users') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i>
+            <span class="hidden sm:inline">All Users</span>
+        </a>
+        <button type="submit" form="createUserForm"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-user-plus" aria-hidden="true"></i>
+            Create User
+        </button>
+    {% endcall %}
 
-    {% call section_card("User Details", icon="ti-user-plus") %}
-    <form method="POST" action="{{ url_for('user_management.create_user') }}" class="p-4 sm:p-6 space-y-6">
+    <!-- KPI band: real provisioning surface available to this account -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Roles</span>
+                <i class="ti ti-shield-lock text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-2 font-mono text-2xl sm:text-3xl font-bold leading-none text-ecs-green">{{ role_count }}</div>
+            <p class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">assignable</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Leagues</span>
+                <i class="ti ti-trophy text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-2 font-mono text-2xl sm:text-3xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ league_count }}</div>
+            <p class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">for player profile</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Teams</span>
+                <i class="ti ti-shield-half text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-2 font-mono text-2xl sm:text-3xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ team_count }}</div>
+            <p class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">available rosters</p>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Status</span>
+                {% if has_errors %}
+                <i class="ti ti-alert-octagon text-lg text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
+                {% else %}
+                <i class="ti ti-circle-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+                {% endif %}
+            </div>
+            {% if has_errors %}
+            <div class="mt-2 font-mono text-2xl sm:text-3xl font-bold leading-none text-red-600 dark:text-red-400">{{ error_count }}</div>
+            <p class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs text-red-600 dark:text-red-400">field{{ 's' if error_count != 1 }} need fixing</p>
+            {% else %}
+            <div class="mt-2 font-mono text-2xl sm:text-3xl font-bold leading-none text-green-600 dark:text-green-400">OK</div>
+            <p class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">ready to provision</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('user_management.create_user') }}" id="createUserForm">
         {{ form.hidden_tag() }}
 
-        <!-- Username -->
-        <div>
-            <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {{ form.username.label.text }}
-            </label>
-            <div class="relative">
-                <i class="ti ti-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
-                {{ form.username(class="input-ecs pl-10") }}
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
+        <!-- Primary feature card: the new account object -->
+        <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <!-- Header bar with provisioning context -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="shrink-0 w-11 h-11 rounded-xl bg-ecs-green/10 text-ecs-green flex items-center justify-center">
+                        <i class="ti ti-user-plus text-xl" aria-hidden="true"></i>
+                    </span>
+                    <div class="min-w-0">
+                        <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">New Account</p>
+                        <h2 class="text-base font-bold text-gray-900 dark:text-white truncate">Account &amp; access details</h2>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400 text-xs font-semibold">
+                        <i class="ti ti-circle-check text-sm" aria-hidden="true"></i> Auto-approved
+                    </span>
+                </div>
             </div>
-            {% for error in form.username.errors %}
-            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-            {% endfor %}
-        </div>
 
-        <!-- Email -->
-        <div>
-            <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {{ form.email.label.text }}
-            </label>
-            <div class="relative">
-                <i class="ti ti-mail absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
-                {{ form.email(class="input-ecs pl-10", inputmode="email", autocomplete="email") }}
+            {% if has_errors %}
+            <div role="alert" class="flex items-start gap-3 px-4 sm:px-5 py-3 border-b border-red-200 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10">
+                <i class="ti ti-alert-octagon text-lg shrink-0 mt-0.5 text-red-600 dark:text-red-400" aria-hidden="true"></i>
+                <p class="text-sm text-red-800 dark:text-red-300">
+                    <span class="font-semibold">Couldn't create the account.</span> Fix the highlighted fields below and resubmit.
+                </p>
             </div>
-            {% for error in form.email.errors %}
-            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-            {% endfor %}
-        </div>
+            {% endif %}
 
-        <!-- Password -->
-        <div>
-            <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {{ form.password.label.text }}
-            </label>
-            <div class="relative">
-                <i class="ti ti-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
-                {{ form.password(class="input-ecs pl-10") }}
+            <div class="p-4 sm:p-6 space-y-8">
+                <!-- Fieldset 1: Identity -->
+                <fieldset class="space-y-4">
+                    <legend class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                        <i class="ti ti-id-badge-2 text-ecs-green" aria-hidden="true"></i> Identity
+                    </legend>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Username -->
+                        <div>
+                            <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                {{ form.username.label.text }}
+                            </label>
+                            <div class="relative">
+                                <i class="ti ti-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
+                                {{ form.username(class="input-ecs pl-10 min-h-[44px]", autocomplete="username") }}
+                            </div>
+                            {% for error in form.username.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><i class="ti ti-alert-circle text-xs" aria-hidden="true"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Email -->
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                {{ form.email.label.text }}
+                            </label>
+                            <div class="relative">
+                                <i class="ti ti-mail absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
+                                {{ form.email(class="input-ecs pl-10 min-h-[44px]", inputmode="email", autocomplete="email") }}
+                            </div>
+                            {% for error in form.email.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><i class="ti ti-alert-circle text-xs" aria-hidden="true"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Fieldset 2: Credentials -->
+                <fieldset class="space-y-4">
+                    <legend class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                        <i class="ti ti-key text-ecs-green" aria-hidden="true"></i> Credentials
+                    </legend>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Password -->
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                {{ form.password.label.text }}
+                            </label>
+                            <div class="relative">
+                                <i class="ti ti-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
+                                {{ form.password(class="input-ecs pl-10 min-h-[44px]", autocomplete="new-password") }}
+                            </div>
+                            {% for error in form.password.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><i class="ti ti-alert-circle text-xs" aria-hidden="true"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Confirm Password -->
+                        <div>
+                            <label for="confirm_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                {{ form.confirm_password.label.text }}
+                            </label>
+                            <div class="relative">
+                                <i class="ti ti-lock-check absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
+                                {{ form.confirm_password(class="input-ecs pl-10 min-h-[44px]", autocomplete="new-password") }}
+                            </div>
+                            {% for error in form.confirm_password.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><i class="ti ti-alert-circle text-xs" aria-hidden="true"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Fieldset 3: Access (roles) -->
+                <fieldset class="space-y-4">
+                    <legend class="flex items-center justify-between gap-2 w-full mb-1">
+                        <span class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            <i class="ti ti-shield-lock text-ecs-green" aria-hidden="true"></i> Access &amp; Roles
+                        </span>
+                        <span class="text-[11px] text-gray-400 dark:text-gray-500 font-mono">{{ role_count }} available</span>
+                    </legend>
+                    <div>
+                        <label for="roles" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                            {{ form.roles.label.text }}
+                        </label>
+                        {{ form.roles(class="input-ecs", multiple=True, size=6) }}
+                        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            <i class="ti ti-info-circle text-xs" aria-hidden="true"></i>
+                            Hold Ctrl/Cmd to select multiple roles. SUB and coach roles set player flags automatically.
+                        </p>
+                        {% for error in form.roles.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><i class="ti ti-alert-circle text-xs" aria-hidden="true"></i>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+
+                <!-- Fieldset 4: Optional player profile -->
+                <fieldset class="space-y-4 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-4 sm:p-5">
+                    <legend class="flex items-center gap-2 px-2 -ml-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        <i class="ti ti-ball-football text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> Player Profile
+                        <span class="font-normal normal-case tracking-normal text-gray-400 dark:text-gray-500">(optional)</span>
+                    </legend>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Assign a league to create a linked player profile. Leave as <span class="font-mono">None</span> for a system-only account.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- League -->
+                        <div>
+                            <label for="league_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                {{ form.league_id.label.text }}
+                            </label>
+                            <div class="relative">
+                                <i class="ti ti-trophy absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" aria-hidden="true"></i>
+                                {{ form.league_id(class="input-ecs pl-10 min-h-[44px]") }}
+                            </div>
+                            {% for error in form.league_id.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><i class="ti ti-alert-circle text-xs" aria-hidden="true"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Team -->
+                        <div>
+                            <label for="team_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                {{ form.team_id.label.text }}
+                            </label>
+                            <div class="relative">
+                                <i class="ti ti-shield-half absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" aria-hidden="true"></i>
+                                {{ form.team_id(class="input-ecs pl-10 min-h-[44px]") }}
+                            </div>
+                            {% for error in form.team_id.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><i class="ti ti-alert-circle text-xs" aria-hidden="true"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Is Current Player -->
+                    <label for="is_current_player" class="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-3 cursor-pointer hover:border-ecs-green/50 transition-colors">
+                        {{ form.is_current_player(class="w-4 h-4 mt-0.5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green") }}
+                        <span class="min-w-0">
+                            <span class="block text-sm font-medium text-gray-900 dark:text-white">{{ form.is_current_player.label.text }}</span>
+                            <span class="block text-xs text-gray-500 dark:text-gray-400">Mark this player as active for the current season.</span>
+                        </span>
+                    </label>
+                </fieldset>
             </div>
-            {% for error in form.password.errors %}
-            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-            {% endfor %}
-        </div>
 
-        <!-- Roles -->
-        <div>
-            <label for="roles" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {{ form.roles.label.text }}
-            </label>
-            {{ form.roles(class="input-ecs", multiple=True, size=5) }}
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple roles</p>
-            {% for error in form.roles.errors %}
-            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-            {% endfor %}
-        </div>
+            <!-- Command footer -->
+            <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+                <a href="{{ url_for('user_management.manage_users') }}"
+                   class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-x" aria-hidden="true"></i>
+                    Cancel
+                </a>
+                <button type="submit"
+                        class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-user-plus" aria-hidden="true"></i>
+                    Create User
+                </button>
+            </div>
+        </section>
 
-        <!-- League -->
-        <div>
-            <label for="league_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {{ form.league_id.label.text }}
-            </label>
-            {{ form.league_id(class="input-ecs") }}
-            {% for error in form.league_id.errors %}
-            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-            {% endfor %}
-        </div>
+        <!-- Side rail: what this provision does, grounded in the real route logic -->
+        <aside class="xl:col-span-1 space-y-5 sm:space-y-6">
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                    <i class="ti ti-list-check text-ecs-green" aria-hidden="true"></i>
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">What gets created</h3>
+                </div>
+                <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <li class="flex items-start gap-3 px-4 sm:px-5 py-3">
+                        <i class="ti ti-user-check text-lg text-green-600 dark:text-green-400 shrink-0 mt-0.5" aria-hidden="true"></i>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-gray-900 dark:text-white">Approved account</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">User is created with <span class="font-mono">is_approved</span> set, so they can sign in immediately.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3 px-4 sm:px-5 py-3">
+                        <i class="ti ti-shield-lock text-lg text-ecs-green shrink-0 mt-0.5" aria-hidden="true"></i>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-gray-900 dark:text-white">Selected roles</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Every role you pick is attached to the account on save.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3 px-4 sm:px-5 py-3">
+                        <i class="ti ti-ball-football text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0 mt-0.5" aria-hidden="true"></i>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-gray-900 dark:text-white">Optional player profile</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Assigning a league links a player record; adding a team seats them on that roster for the current season.</p>
+                        </div>
+                    </li>
+                </ul>
+            </section>
 
-        <!-- Is Current Player -->
-        <div class="flex items-center">
-            {{ form.is_current_player(class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green") }}
-            <label for="is_current_player" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                {{ form.is_current_player.label.text }}
-            </label>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button type="submit"
-                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                <i class="ti ti-user-plus" aria-hidden="true"></i>
-                Create User
-            </button>
-            <a href="{{ url_for('user_management.manage_users') }}"
-               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                <i class="ti ti-x" aria-hidden="true"></i>
-                Cancel
-            </a>
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                    <i class="ti ti-flag-2 text-ecs-green" aria-hidden="true"></i>
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Auto-set flags</h3>
+                </div>
+                <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <li class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">SUB role</span>
+                        <span class="inline-flex items-center gap-1.5 px-2 h-6 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 text-xs font-mono">sets is_sub</span>
+                    </li>
+                    <li class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Coach role</span>
+                        <span class="inline-flex items-center gap-1.5 px-2 h-6 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 text-xs font-mono">sets is_coach</span>
+                    </li>
+                </ul>
+                <p class="px-4 sm:px-5 py-3 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700">
+                    Pub League / ECS FC Coach roles flag the player as a coach automatically.
+                </p>
+            </section>
+        </aside>
         </div>
     </form>
-    {% endcall %}
 </div>
 {% else %}
 <div class="container mx-auto px-4 py-8 max-w-2xl">

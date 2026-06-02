@@ -29,6 +29,101 @@ from app.utils.db_utils import transactional
 logger = logging.getLogger(__name__)
 
 
+def _build_send_volume_series(windows):
+    """Build per-day push send-volume series for the dashboard trend chart.
+
+    Reads ONLY real columns from PushNotificationCampaign:
+      - sent_count   (devices the campaign reported sending to)
+      - actual_send_time / created_at (the day the volume is attributed to)
+      - status       (only count campaigns that actually sent)
+
+    Returns a dict keyed by window label ('7d', '30d', '90d') with a dense,
+    zero-filled daily series plus summary figures so the template can render an
+    SVG area/line chart and Sent / Daily-Avg / Peak footer without any further
+    computation:
+
+        {
+          '7d': {
+            'series': [{'date': '2026-05-27', 'label': 'May 27', 'count': 12}, ...],
+            'total': 84, 'daily_avg': 12, 'peak': 30, 'days': 7
+          },
+          ...
+        }
+
+    Fully defensive: any failure (missing table, empty data) yields zero-filled
+    series so the dashboard never 500s.
+    """
+    result = {}
+    try:
+        from app.models.push_campaigns import PushNotificationCampaign, CampaignStatus
+
+        # Attribute each campaign's volume to the day it sent (or was created if
+        # actual_send_time is null). COALESCE keeps drafts-turned-sent honest.
+        send_day = db.func.date(
+            db.func.coalesce(
+                PushNotificationCampaign.actual_send_time,
+                PushNotificationCampaign.created_at,
+            )
+        )
+
+        max_window = max(windows)
+        window_start = (datetime.utcnow() - timedelta(days=max_window - 1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+
+        # One grouped query across the widest window; slice per-window in Python.
+        rows = db.session.query(
+            send_day.label('day'),
+            db.func.coalesce(db.func.sum(PushNotificationCampaign.sent_count), 0).label('volume'),
+        ).filter(
+            PushNotificationCampaign.status == CampaignStatus.SENT.value,
+            db.func.coalesce(
+                PushNotificationCampaign.actual_send_time,
+                PushNotificationCampaign.created_at,
+            ) >= window_start,
+        ).group_by(send_day).all()
+
+        # Normalize day keys to date objects (func.date may return str or date).
+        volume_by_day = {}
+        for day, volume in rows:
+            if day is None:
+                continue
+            if isinstance(day, str):
+                try:
+                    day = datetime.strptime(day[:10], '%Y-%m-%d').date()
+                except ValueError:
+                    continue
+            elif isinstance(day, datetime):
+                day = day.date()
+            volume_by_day[day] = int(volume or 0)
+    except Exception as e:
+        logger.warning(f"Send volume series unavailable, defaulting to empty: {e}")
+        volume_by_day = {}
+
+    today = datetime.utcnow().date()
+    for days in windows:
+        series = []
+        for offset in range(days - 1, -1, -1):
+            d = today - timedelta(days=offset)
+            count = volume_by_day.get(d, 0)
+            series.append({
+                'date': d.isoformat(),
+                'label': d.strftime('%b %-d') if hasattr(d, 'strftime') else str(d),
+                'count': count,
+            })
+        total = sum(pt['count'] for pt in series)
+        peak = max((pt['count'] for pt in series), default=0)
+        daily_avg = round(total / days) if days else 0
+        result[f'{days}d'] = {
+            'series': series,
+            'total': total,
+            'daily_avg': daily_avg,
+            'peak': peak,
+            'days': days,
+        }
+    return result
+
+
 # =============================================================================
 # PAGE VIEWS
 # =============================================================================
@@ -63,8 +158,18 @@ def push_notifications():
 
         unsubscribed_count = UserFCMToken.query.filter_by(is_active=False).count()
         total_notifications = Notification.query.filter_by(notification_type='push').count()
-        delivery_rate = '95%' if total_subscribers > 0 else '0%'
-        click_rate = '12%' if total_notifications > 0 else '0%'
+        # Real delivery/click rates aggregated from campaign analytics (no estimates).
+        # delivery_rate = delivered/sent, click_rate = clicked/delivered; 'N/A' when
+        # there is nothing sent yet rather than a fabricated percentage.
+        from app.models.push_campaigns import PushNotificationCampaign
+        from sqlalchemy import func as _func
+        _sent, _delivered, _clicked = db.session.query(
+            _func.coalesce(_func.sum(PushNotificationCampaign.sent_count), 0),
+            _func.coalesce(_func.sum(PushNotificationCampaign.delivered_count), 0),
+            _func.coalesce(_func.sum(PushNotificationCampaign.click_count), 0),
+        ).first() or (0, 0, 0)
+        delivery_rate = f"{round(100 * _delivered / _sent)}%" if _sent else 'N/A'
+        click_rate = f"{round(100 * _clicked / _delivered)}%" if _delivered else 'N/A'
 
         from app.models import Team, League, Role
         teams = Team.query.filter_by(is_active=True).order_by(Team.name).all()
@@ -137,18 +242,37 @@ def push_notifications_dashboard():
             db.func.count(UserFCMToken.id)
         ).filter_by(is_active=True).group_by(UserFCMToken.platform).all()
 
+        # --- Send Volume trend (real per-day campaign send counts) ---------------
+        # Derived from PushNotificationCampaign: sum of sent_count grouped by the
+        # day the campaign actually went out (actual_send_time), falling back to
+        # created_at when a campaign has no recorded send time. Built for 7/30/90
+        # day windows so the dashboard chart's period toggle has real data. Wrapped
+        # defensively so an empty/missing table never 500s the dashboard.
+        send_volume = _build_send_volume_series([7, 30, 90])
+
+        # Real delivery/engagement from campaign analytics (no estimates); 'N/A'
+        # until there is real sent/delivered volume rather than a fabricated %.
+        from app.models.push_campaigns import PushNotificationCampaign as _PNC
+        from sqlalchemy import func as _f
+        _sent, _delivered, _clicked = db.session.query(
+            _f.coalesce(_f.sum(_PNC.sent_count), 0),
+            _f.coalesce(_f.sum(_PNC.delivered_count), 0),
+            _f.coalesce(_f.sum(_PNC.click_count), 0),
+        ).first() or (0, 0, 0)
+
         stats = {
             'total_subscribers': total_subscribers,
             'active_subscribers': active_subscribers,
             'notifications_sent_today': notifications_sent_today,
             'notifications_sent_week': notifications_sent_week,
             'platform_stats': dict(platform_stats) if platform_stats else {},
-            'delivery_rate': '95%' if total_subscribers > 0 else '0%',
-            'avg_engagement': '12%' if notifications_sent_week > 0 else '0%'
+            'delivery_rate': (f"{round(100 * _delivered / _sent)}%" if _sent else 'N/A'),
+            'avg_engagement': (f"{round(100 * _clicked / _delivered)}%" if _delivered else 'N/A'),
         }
 
         return render_template('admin_panel/communication/push_notifications_dashboard_flowbite.html',
                              recent_notifications=recent_notifications,
+                             send_volume=send_volume,
                              **stats)
     except Exception as e:
         logger.error(f"Error loading push notifications dashboard: {e}")
@@ -572,6 +696,71 @@ def push_notification_preview():
             'success': False, 'error': 'Internal Server Error',
             'preview': {'total_users': 0, 'total_tokens': 0, 'breakdown': {}}
         }), 500
+
+
+# =============================================================================
+# REMINDER TRIGGERS (manual fire of automated reminder Celery tasks)
+# =============================================================================
+
+@admin_panel_bp.route('/communication/push-notifications/trigger-match-reminders', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def push_trigger_match_reminders():
+    """Manually trigger the daily match-reminder Celery task.
+
+    Fires the same task celery beat runs at 6 PM Pacific
+    (send_match_reminders_daily): one consolidated DM per player covering
+    every match they have tomorrow, respecting per-user preferences and the
+    MatchReminderLog dedup so manual triggers never double-send.
+    """
+    try:
+        from app.tasks.tasks_notification_reminders import send_match_reminders_daily
+        task = send_match_reminders_daily.delay()
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id, action='trigger_match_reminders',
+            resource_type='push_notifications', resource_id='match_reminders',
+            new_value=f'Manually triggered daily match reminders (task {task.id})',
+            ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({
+            'success': True,
+            'message': 'Match reminders queued. Players with matches tomorrow will receive a reminder.',
+            'task_id': task.id
+        })
+    except Exception as e:
+        logger.error(f"Error triggering match reminders: {e}")
+        return jsonify({'success': False, 'message': 'Unable to queue match reminders. Check the task queue.'}), 500
+
+
+@admin_panel_bp.route('/communication/push-notifications/trigger-rsvp-reminders', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def push_trigger_rsvp_reminders():
+    """Manually trigger the RSVP-reminder Celery task.
+
+    Fires send_rsvp_reminders, which chases players who have not responded to
+    RSVP for matches happening in 3-5 days, via the unified
+    NotificationOrchestrator (in-app + push, respecting user preferences).
+    """
+    try:
+        from app.tasks.tasks_notification_reminders import send_rsvp_reminders
+        task = send_rsvp_reminders.delay()
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id, action='trigger_rsvp_reminders',
+            resource_type='push_notifications', resource_id='rsvp_reminders',
+            new_value=f'Manually triggered RSVP reminders (task {task.id})',
+            ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent')
+        )
+        return jsonify({
+            'success': True,
+            'message': 'RSVP reminders queued. Non-responders for matches in 3-5 days will be reminded.',
+            'task_id': task.id
+        })
+    except Exception as e:
+        logger.error(f"Error triggering RSVP reminders: {e}")
+        return jsonify({'success': False, 'message': 'Unable to queue RSVP reminders. Check the task queue.'}), 500
 
 
 # =============================================================================
