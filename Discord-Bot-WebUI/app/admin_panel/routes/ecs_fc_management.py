@@ -1743,3 +1743,179 @@ def ecs_fc_contact_subs():
         session.rollback()
         logger.error(f"Error in board-level contact subs: {e}", exc_info=True)
         return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
+
+
+@admin_panel_bp.route('/ecs-fc/sub-requests/<int:request_id>/contact', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+def ecs_fc_contact_existing(request_id):
+    """
+    Contact subs for an EXISTING ECS FC sub request (unified board modal).
+
+    Unlike ecs_fc_contact_subs (which CREATES a new request from a match), this
+    targets an already-open EcsFcSubRequest. It resolves eligible active pool
+    members by the SAME recipient_type/gender/position/specific logic, creates or
+    updates the request's EcsFcSubResponse rows, and SENDS by REUSING the existing
+    _send_sub_request_notification helper — no new send code. The modal's
+    custom_message is the notification body.
+
+    Expected JSON:
+    {
+        "recipient_type": "all"|"gender"|"position"|"specific",
+        "gender": str,            # for recipient_type == "gender"
+        "positions": [...],       # for recipient_type == "position"
+        "player_ids": [...],      # for recipient_type == "specific"
+        "channels": ["email","discord","sms","push"],
+        "message": str,
+        "subs_needed": int        # optional
+    }
+    """
+    import os
+    from app.models import Player
+    from app.models.substitutes import EcsFcSubRequest, EcsFcSubResponse, EcsFcSubPool
+    # Reuse the SAME notification helper the per-match create flow uses.
+    from app.ecs_fc_routes import _send_sub_request_notification
+
+    session = g.db_session
+
+    try:
+        sub_request = session.query(EcsFcSubRequest).options(
+            joinedload(EcsFcSubRequest.match).joinedload(EcsFcMatch.team),
+            joinedload(EcsFcSubRequest.team),
+        ).get(request_id)
+        if not sub_request:
+            return jsonify({'success': False, 'message': 'Sub request not found'}), 404
+
+        match = sub_request.match
+        if not match:
+            return jsonify({'success': False, 'message': 'Request has no linked match'}), 400
+
+        if not validate_ecs_fc_coach_access(match.team_id, current_user):
+            return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+        data = request.get_json(silent=True) or {}
+
+        recipient_type = data.get('recipient_type', 'all')
+        gender_filter = data.get('gender')
+        position_filters = data.get('positions', []) or []
+        specific_player_ids = data.get('player_ids', []) or []
+        channels = data.get('channels', ['email', 'discord']) or []
+        # Defensive: only allow known channels through (consent gating lives in the helper).
+        channels = [c for c in channels if c in ('sms', 'email', 'push', 'discord')]
+        if not channels:
+            return jsonify({'success': False, 'message': 'Select at least one notification channel'}), 400
+
+        custom_message = (data.get('message') or '').strip()
+
+        # subs_needed is optional here — the request already exists. Update if provided.
+        if data.get('subs_needed') is not None:
+            try:
+                subs_needed = max(1, min(int(data.get('subs_needed')), 10))
+                sub_request.substitutes_needed = subs_needed
+            except (TypeError, ValueError):
+                pass
+
+        # Resolve eligible subs from the active ECS FC pool, same filter rules as
+        # ecs_fc_contact_subs / create_sub_request.
+        pool_members = session.query(EcsFcSubPool).options(
+            joinedload(EcsFcSubPool.player).joinedload(Player.user)
+        ).filter(EcsFcSubPool.is_active == True).all()  # noqa: E712
+
+        eligible_players = []
+        for pool_entry in pool_members:
+            player = pool_entry.player
+            if not player or not player.user or not player.user.is_approved:
+                continue
+
+            if recipient_type == 'specific':
+                if player.id not in specific_player_ids:
+                    continue
+            elif recipient_type == 'gender' and gender_filter:
+                pronouns = (player.pronouns or '').lower()
+                if gender_filter == 'male' and 'he' not in pronouns:
+                    continue
+                if gender_filter == 'female' and 'she' not in pronouns:
+                    continue
+            elif recipient_type == 'position' and position_filters:
+                player_positions = [p.strip() for p in (pool_entry.preferred_positions or '').upper().split(',')]
+                if not any(p in position_filters for p in player_positions):
+                    continue
+
+            eligible_players.append((player, pool_entry))
+
+        if not eligible_players:
+            return jsonify({
+                'success': False,
+                'message': 'No eligible subs found matching the selected criteria'
+            }), 400
+
+        base_url = os.getenv('BASE_URL', 'https://portal.ecsfc.com')
+        notifications_sent = 0
+
+        for player, pool_entry in eligible_players:
+            # Reuse an existing response row for this player+request if present,
+            # otherwise create a new one (re-contacting an existing request).
+            response = session.query(EcsFcSubResponse).filter_by(
+                request_id=sub_request.id, player_id=player.id
+            ).first()
+            if response is None:
+                response = EcsFcSubResponse(
+                    request_id=sub_request.id,
+                    player_id=player.id,
+                    is_available=None,
+                    notification_sent_at=datetime.utcnow(),
+                    notification_methods=','.join(channels)
+                )
+                response.generate_token()
+                session.add(response)
+            else:
+                response.is_available = None
+                response.responded_at = None
+                response.notification_sent_at = datetime.utcnow()
+                response.notification_methods = ','.join(channels)
+                if not response.rsvp_token:
+                    response.generate_token()
+            session.flush()
+
+            rsvp_url = f"{base_url}/ecs-fc/sub-response/{response.rsvp_token}"
+
+            try:
+                send_result = _send_sub_request_notification(
+                    player=player,
+                    pool_entry=pool_entry,
+                    match=match,
+                    custom_message=custom_message,
+                    channels=channels,
+                    rsvp_url=rsvp_url,
+                    rsvp_token=response.rsvp_token,
+                    request_id=sub_request.id
+                )
+            except Exception as send_err:
+                logger.error(f"Contact existing: notification failed for player {player.id}: {send_err}", exc_info=True)
+                send_result = False
+
+            if send_result:
+                notifications_sent += 1
+                pool_entry.requests_received = (pool_entry.requests_received or 0) + 1
+                pool_entry.last_active_at = datetime.utcnow()
+
+        session.commit()
+
+        logger.info(
+            f"ECS FC contact existing: sub request {sub_request.id} for match {match.id} "
+            f"by user {current_user.id}, {notifications_sent}/{len(eligible_players)} sent"
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Contacted {notifications_sent} sub{"s" if notifications_sent != 1 else ""} '
+                       f'for {match.team.name if match.team else "ECS FC"} vs {match.opponent_name}',
+            'request_id': sub_request.id,
+            'eligible_count': len(eligible_players),
+            'notifications_sent': notifications_sent
+        })
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error contacting subs for existing request {request_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500

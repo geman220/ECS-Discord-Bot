@@ -84,6 +84,16 @@
                     <span>Sub Pool</span>
                 </a>
             </li>
+
+            {# Substitutes (Unified) — the combined sub board, pre-filtered to ECS FC #}
+            <li>
+                <a href="{{ url_for('admin_panel.unified_substitutes', league='ecs_fc') }}"
+                   class="inline-flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors
+                   {{ 'text-ecs-green border-ecs-green' if request.endpoint == 'admin_panel.unified_substitutes' else 'border-transparent' }}">
+                    <i class="ti ti-layout-grid"></i>
+                    <span>Substitutes</span>
+                </a>
+            </li>
         </ul>
     </div>
 </nav>
@@ -207,6 +217,7 @@
                     <a href="{{ url_for('admin_panel.substitute_pools', context='ecs-fc') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-user-plus text-gray-400 text-xs"></i>Substitute Pool</a>
                     <a href="{{ url_for('admin_panel.ecs_fc_sub_pool') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users-group text-gray-400 text-xs"></i>ECS FC Sub Pool</a>
                     <a href="{{ url_for('admin_panel.ecs_fc_sub_requests') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-clipboard-list text-gray-400 text-xs"></i>Sub Requests</a>
+                    <a href="{{ url_for('admin_panel.unified_substitutes', league='ecs_fc') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-layout-grid text-gray-400 text-xs"></i>Substitutes (Unified)</a>
                 </div>
             </div>
 
@@ -597,6 +608,9 @@
                         </a>
                         <a href="{{ url_for('admin_panel.ecs_fc_sub_requests') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-clipboard-list text-gray-400"></i>Sub Requests
+                        </a>
+                        <a href="{{ url_for('admin_panel.unified_substitutes', league='ecs_fc') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-layout-grid text-gray-400"></i>Substitutes (Unified)
                         </a>
                     </div>
                 </div>

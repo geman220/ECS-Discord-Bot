@@ -661,7 +661,7 @@
                              draggable="true">
                             <!-- Player Image -->
                             <div class="relative h-32 bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-600 dark:to-gray-700">
-                                <img src="{{ player.profile_picture_medium or player.profile_picture_webp or player.profile_picture_url or '/static/img/default_player.png' }}" onerror="this.onerror=null;this.src='/static/img/default_player.png'"
+                                <img src="{{ player.profile_picture_medium or player.profile_picture_webp or player.profile_picture_url or '/static/img/default_player.png' }}"
                                      alt="{{ player.name }}"
                                      class="w-full h-full object-cover object-top"
                                      loading="lazy">
@@ -841,7 +841,7 @@
                             <div id="teamPlayers{{ team.id }}" class="space-y-2 js-draft-drop-zone" data-team-id="{{ team.id }}" data-drop-target="team">
                                 {% for player in drafted_players_by_team[team.id] %}
                                 <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg js-draggable-player" draggable="true" data-player-id="{{ player.id }}">
-                                    <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}" onerror="this.onerror=null;this.src='/static/img/default_player.png'"
+                                    <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
                                          alt="{{ player.name }}"
                                          class="w-8 h-8 rounded-full object-cover">
                                     <div class="flex-1 min-w-0">

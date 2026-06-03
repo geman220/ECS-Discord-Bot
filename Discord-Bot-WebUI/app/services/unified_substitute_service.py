@@ -45,6 +45,57 @@ logger = logging.getLogger(__name__)
 ACTIVE_STATUSES = ('OPEN', 'PENDING', 'APPROVED')
 
 
+def _fmt_day(d):
+    """'Sat Jun 14' (no leading zero on the day-of-month)."""
+    if not d:
+        return None
+    return f"{d.strftime('%a %b')} {d.day}"
+
+
+def _fmt_time(t):
+    """'8:20am' / '9:30pm' — lowercase am/pm, no leading zero on the hour."""
+    if not t:
+        return None
+    hour = t.hour % 12 or 12
+    ampm = 'am' if t.hour < 12 else 'pm'
+    return f"{hour}:{t.minute:02d}{ampm}"
+
+
+def _first_position(positions_needed):
+    """First position from a comma-separated 'positions_needed' string, or None."""
+    if not positions_needed:
+        return None
+    first = positions_needed.split(',')[0].strip()
+    return first or None
+
+
+def _pub_league_default_message(match, positions_needed):
+    """Pub League contact default — time + position, NO team.
+
+    'Need a sub Sat Jun 14 at 8:20am — Defender. You in?'
+    Drops the '— {position}' part when no specific position is needed.
+    """
+    day = _fmt_day(match.date) if match else None
+    tm = _fmt_time(match.time) if match else None
+    when = f"{day} at {tm}" if (day and tm) else (day or 'soon')
+    pos = _first_position(positions_needed)
+    if pos:
+        return f"Need a sub {when} — {pos}. You in?"
+    return f"Need a sub {when}. You in?"
+
+
+def _ecs_fc_default_message(team_name, match):
+    """ECS FC contact default — team + time + field.
+
+    'ECS FC Rainier needs a sub Sat Jun 14, 9:30pm at Starfire Field 3. Can you play?'
+    """
+    day = _fmt_day(match.match_date) if match else None
+    tm = _fmt_time(match.match_time) if match else None
+    field = (match.location if match and match.location else None) or 'the field'
+    when = f"{day}, {tm}" if (day and tm) else (day or 'soon')
+    return f"{team_name} needs a sub {when} at {field}. Can you play?"
+
+
 def _tally_from_responses(responses):
     """Count responses by availability tri-state.
 
@@ -83,7 +134,7 @@ def _ecs_fc_action_urls(req):
     urls = {
         'available': url_for('admin.ecs_fc_subs.get_available_subs', request_id=req.id),
         'assign': url_for('admin.ecs_fc_subs.assign_substitute', request_id=req.id),
-        'contact': url_for('admin_panel.ecs_fc_contact_subs'),
+        'contact': url_for('admin_panel.ecs_fc_contact_existing', request_id=req.id),
         'cancel': url_for('admin.ecs_fc_subs.cancel_sub_request', request_id=req.id),
         'view': None,
     }
@@ -128,6 +179,7 @@ def _normalize_pub_league(req):
         'tally': tally,
         'total_contacted': len(responses),
         'ready_to_assign': ready,
+        'default_contact_message': _pub_league_default_message(match, req.positions_needed),
         'action_urls': _pub_league_action_urls(req),
     }
 
@@ -167,6 +219,10 @@ def _normalize_ecs_fc(req):
         'tally': tally,
         'total_contacted': len(responses),
         'ready_to_assign': ready,
+        'default_contact_message': _ecs_fc_default_message(
+            req.team.name if req.team else (match.team.name if match and match.team else 'ECS FC'),
+            match,
+        ),
         'action_urls': _ecs_fc_action_urls(req),
     }
 

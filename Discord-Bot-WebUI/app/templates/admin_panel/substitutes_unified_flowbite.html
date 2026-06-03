@@ -48,24 +48,22 @@
   {% endif %}
 
   {% if item.status == 'OPEN' and item.action_urls.contact %}
-  {% if item.league == 'pub_league' %}
-  {# Pub League contact dispatches a single JSON POST to notify_substitute_pool (all subs). #}
+  {# Unified Contact: opens the league-aware modal (recipient targeting + per-league
+     framing). Dispatches to the item's contact endpoint (Pub League notify-pool /
+     ECS FC contact-existing) — both reuse existing send paths. #}
   <button type="button"
-          data-contact-pool
+          data-contact-open
+          data-league="{{ item.league }}"
           data-contact-url="{{ item.action_urls.contact }}"
           data-request-id="{{ item.id }}"
           data-league-type="{{ item.league_type|e }}"
           data-needed="{{ item.needed }}"
+          data-match-label="{{ item.match_label|e }}"
+          data-positions="{{ item.positions|e }}"
+          data-default-message="{{ item.default_contact_message|e }}"
           class="{{ btn_mh }}{{ btn_base }} text-ecs-green bg-ecs-green/10 hover:bg-ecs-green/20 dark:bg-ecs-green/15 dark:hover:bg-ecs-green/25">
     <i class="ti ti-send" aria-hidden="true"></i>Contact
   </button>
-  {% elif item.action_urls.view %}
-  {# ECS FC board-level contact requires the match-aware modal on the RSVP page. #}
-  <a href="{{ item.action_urls.view }}" title="Contact subs on the match RSVP page"
-     class="{{ btn_mh }}{{ btn_base }} text-ecs-green bg-ecs-green/10 hover:bg-ecs-green/20 dark:bg-ecs-green/15 dark:hover:bg-ecs-green/25">
-    <i class="ti ti-send" aria-hidden="true"></i>Contact
-  </a>
-  {% endif %}
   {% endif %}
 
   {% if item.action_urls.view %}
@@ -503,44 +501,289 @@
 })();
 </script>
 
-{# Pub League "Contact" — single JSON POST to notify_substitute_pool (all subs in pool). #}
+{# Sub pool members keyed by league — feeds the "Specific players" multi-select. #}
+<script id="poolMembersData" type="application/json">
+{{ {'pub_league': pool_members | selectattr('league', 'equalto', 'pub_league') | list,
+    'ecs_fc':     pool_members | selectattr('league', 'equalto', 'ecs_fc')     | list} | tojson }}
+</script>
+
+{# ===== Contact subs modal — works for BOTH leagues.
+   Recipient targeting (all / by position / by gender / specific players) +
+   channel checkboxes + editable per-league default message + subs-needed.
+   Dispatches to the item's contact endpoint:
+     Pub League -> admin_panel.notify_substitute_pool   (notify-pool JSON shape)
+     ECS FC     -> admin_panel.ecs_fc_contact_existing   (request_id in URL)
+   Both reuse existing send paths; no new message logic here. ===== #}
+<div id="contactModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 p-4">
+  <div class="w-full max-w-lg rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 sticky top-0 bg-white dark:bg-gray-800">
+      <i class="ti ti-send text-ecs-green" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Contact Subs</h2>
+      <button type="button" data-contact-close aria-label="Close" class="ml-auto h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-x text-xl"></i></button>
+    </div>
+    <div class="p-4 space-y-4">
+      <p id="contactContext" class="text-sm text-gray-600 dark:text-gray-300"></p>
+
+      {# Recipient targeting #}
+      <fieldset>
+        <legend class="block text-sm font-medium text-gray-900 dark:text-white mb-1.5">Who to contact</legend>
+        <div class="grid grid-cols-2 gap-2">
+          {% for val, lbl in [('all','All sub pool'), ('position','By position'), ('gender','By gender'), ('specific','Specific players')] %}
+          <label class="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+            <input type="radio" name="contactRecipient" value="{{ val }}" {% if val == 'all' %}checked{% endif %}
+                   class="text-ecs-green focus:ring-ecs-green">
+            <span class="text-sm text-gray-700 dark:text-gray-300">{{ lbl }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      {# Conditional: positions (multi-select from the request's needed positions) #}
+      <div data-recipient-panel="position" class="hidden">
+        <label class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Positions</label>
+        <div id="contactPositions" class="flex flex-wrap gap-1.5"></div>
+        <p id="contactPositionsEmpty" class="hidden text-xs text-gray-400 dark:text-gray-500">This request has no specific positions; contacting by position is unavailable.</p>
+      </div>
+
+      {# Conditional: gender #}
+      <div data-recipient-panel="gender" class="hidden">
+        <label for="contactGender" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Gender</label>
+        <select id="contactGender"
+                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="male">Men</option>
+          <option value="female">Women</option>
+        </select>
+      </div>
+
+      {# Conditional: specific players (searchable multi-select of this league's pool) #}
+      <div data-recipient-panel="specific" class="hidden">
+        <label for="contactPlayerSearch" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Specific players</label>
+        <div class="relative mb-1.5">
+          <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
+          <input id="contactPlayerSearch" type="text" placeholder="Search this league's pool…"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        </div>
+        <div id="contactPlayers" class="max-h-44 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700"></div>
+        <p id="contactPlayersEmpty" class="hidden mt-1 text-xs text-gray-400 dark:text-gray-500">No subs in this league's pool.</p>
+      </div>
+
+      {# Channels #}
+      <fieldset>
+        <legend class="block text-sm font-medium text-gray-900 dark:text-white mb-1.5">Send via</legend>
+        <div class="flex flex-wrap gap-3">
+          {% for val, lbl in [('sms','SMS'), ('discord','Discord'), ('email','Email')] %}
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="contactChannel" value="{{ val }}" {% if val != 'sms' %}checked{% endif %}
+                   class="rounded text-ecs-green focus:ring-ecs-green">
+            <span class="text-sm text-gray-700 dark:text-gray-300">{{ lbl }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">SMS only reaches subs who explicitly opted in.</p>
+      </fieldset>
+
+      {# Subs needed #}
+      <div>
+        <label for="contactSubsNeeded" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Subs needed</label>
+        <input id="contactSubsNeeded" type="number" min="1" max="10" value="1"
+               class="w-24 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+      </div>
+
+      {# Editable message (pre-filled with the per-league default) #}
+      <div>
+        <label for="contactMessage" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Message</label>
+        <textarea id="contactMessage" rows="3"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
+      </div>
+
+      <p id="contactError" class="hidden text-sm text-red-600 dark:text-red-400"></p>
+    </div>
+    <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2 sticky bottom-0 bg-white dark:bg-gray-800">
+      <button type="button" data-contact-close class="h-9 px-3 inline-flex items-center rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancel</button>
+      <button type="button" id="contactSend" class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-send" aria-hidden="true"></i>Send</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function () {
+  var modal = document.getElementById('contactModal');
+  if (!modal) return;
   var csrf = document.querySelector('meta[name=csrf-token]');
-  document.querySelectorAll('[data-contact-pool]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      if (!confirm('Notify all subs in this pool for this request?')) return;
-      var url = btn.getAttribute('data-contact-url');
-      var payload = {
-        request_id: parseInt(btn.getAttribute('data-request-id'), 10),
-        league_type: btn.getAttribute('data-league-type'),
-        recipient_type: 'all',
-        subs_needed: parseInt(btn.getAttribute('data-needed'), 10) || 1
-      };
-      var headers = {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'};
-      if (csrf) headers['X-CSRFToken'] = csrf.content;
-      var orig = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="ti ti-loader animate-spin"></i>Sending…';
-      fetch(url, {method: 'POST', headers: headers, body: JSON.stringify(payload), credentials: 'same-origin'})
-        .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, body: j}; }); })
-        .then(function (res) {
-          var ok = res.ok && res.body && res.body.success !== false;
-          if (window.Swal) {
-            var isDark = document.documentElement.classList.contains('dark');
-            window.Swal.fire({
-              icon: ok ? 'success' : 'error',
-              title: ok ? 'Subs contacted' : 'Could not contact subs',
-              text: (res.body && (res.body.message || res.body.error)) || '',
-              background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
-            });
-          } else if (!ok) {
-            alert((res.body && (res.body.message || res.body.error)) || 'Could not contact subs.');
-          }
-        })
-        .catch(function () { if (window.Swal) { window.Swal.fire({icon: 'error', title: 'Network error'}); } else { alert('Network error.'); } })
-        .finally(function () { btn.disabled = false; btn.innerHTML = orig; });
+
+  var pool = {pub_league: [], ecs_fc: []};
+  try { pool = JSON.parse(document.getElementById('poolMembersData').textContent) || pool; } catch (e) {}
+
+  var ctx = document.getElementById('contactContext');
+  var posWrap = document.getElementById('contactPositions');
+  var posEmpty = document.getElementById('contactPositionsEmpty');
+  var genderSel = document.getElementById('contactGender');
+  var playerSearch = document.getElementById('contactPlayerSearch');
+  var playersWrap = document.getElementById('contactPlayers');
+  var playersEmpty = document.getElementById('contactPlayersEmpty');
+  var subsNeeded = document.getElementById('contactSubsNeeded');
+  var msg = document.getElementById('contactMessage');
+  var err = document.getElementById('contactError');
+  var sendBtn = document.getElementById('contactSend');
+
+  var state = {league: '', url: '', requestId: null, leagueType: ''};
+
+  function show() { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+  function hide() { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+  function setErr(m) { if (m) { err.textContent = m; err.classList.remove('hidden'); } else { err.textContent = ''; err.classList.add('hidden'); } }
+
+  function escAttr(s) { return (s || '').replace(/"/g, '&quot;'); }
+  function escHtml(s) {
+    var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML;
+  }
+
+  function recipientMode() {
+    var r = modal.querySelector('input[name="contactRecipient"]:checked');
+    return r ? r.value : 'all';
+  }
+  function syncPanels() {
+    var mode = recipientMode();
+    modal.querySelectorAll('[data-recipient-panel]').forEach(function (p) {
+      p.classList.toggle('hidden', p.getAttribute('data-recipient-panel') !== mode);
     });
+  }
+  modal.querySelectorAll('input[name="contactRecipient"]').forEach(function (r) {
+    r.addEventListener('change', syncPanels);
+  });
+
+  function renderPositions(positionsStr) {
+    posWrap.innerHTML = '';
+    var list = (positionsStr || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
+    if (!list.length) { posEmpty.classList.remove('hidden'); return; }
+    posEmpty.classList.add('hidden');
+    list.forEach(function (p) {
+      var label = document.createElement('label');
+      label.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-gray-200 dark:border-gray-700 cursor-pointer text-sm text-gray-700 dark:text-gray-300';
+      label.innerHTML = '<input type="checkbox" name="contactPosition" value="' + escAttr(p) + '" class="rounded text-ecs-green focus:ring-ecs-green">' + escHtml(p);
+      posWrap.appendChild(label);
+    });
+  }
+
+  function renderPlayers() {
+    var members = pool[state.league] || [];
+    playersWrap.innerHTML = '';
+    if (!members.length) { playersEmpty.classList.remove('hidden'); return; }
+    playersEmpty.classList.add('hidden');
+    var q = (playerSearch.value || '').trim().toLowerCase();
+    members.forEach(function (m) {
+      var hay = ((m.name || '') + ' ' + (m.positions || '')).toLowerCase();
+      if (q && hay.indexOf(q) === -1) return;
+      var row = document.createElement('label');
+      row.className = 'flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50';
+      row.innerHTML =
+        '<input type="checkbox" name="contactPlayer" value="' + m.player_id + '" class="rounded text-ecs-green focus:ring-ecs-green">' +
+        '<span class="text-sm text-gray-700 dark:text-gray-300">' + escHtml(m.name) +
+        (m.positions ? ' <span class="text-xs text-gray-400">(' + escHtml(m.positions) + ')</span>' : '') + '</span>';
+      playersWrap.appendChild(row);
+    });
+  }
+  playerSearch.addEventListener('input', renderPlayers);
+
+  modal.querySelectorAll('[data-contact-close]').forEach(function (b) { b.addEventListener('click', hide); });
+  modal.addEventListener('click', function (e) { if (e.target === modal) hide(); });
+
+  document.querySelectorAll('[data-contact-open]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setErr('');
+      state.league = btn.getAttribute('data-league') || '';
+      state.url = btn.getAttribute('data-contact-url') || '';
+      state.requestId = parseInt(btn.getAttribute('data-request-id'), 10);
+      state.leagueType = btn.getAttribute('data-league-type') || '';
+
+      ctx.textContent = btn.getAttribute('data-match-label') || '';
+      msg.value = btn.getAttribute('data-default-message') || '';
+      subsNeeded.value = parseInt(btn.getAttribute('data-needed'), 10) || 1;
+
+      // Reset recipient to "all"
+      var allRadio = modal.querySelector('input[name="contactRecipient"][value="all"]');
+      if (allRadio) allRadio.checked = true;
+      genderSel.value = 'male';
+      playerSearch.value = '';
+
+      renderPositions(btn.getAttribute('data-positions') || '');
+      renderPlayers();
+      syncPanels();
+      show();
+    });
+  });
+
+  function checkedValues(name) {
+    return Array.prototype.slice.call(modal.querySelectorAll('input[name="' + name + '"]:checked'))
+      .map(function (el) { return el.value; });
+  }
+
+  sendBtn.addEventListener('click', function () {
+    setErr('');
+    var mode = recipientMode();
+    var channels = checkedValues('contactChannel');
+    if (!channels.length) { setErr('Select at least one channel.'); return; }
+
+    var positionFilters = checkedValues('contactPosition');
+    var playerIds = checkedValues('contactPlayer').map(function (v) { return parseInt(v, 10); });
+
+    if (mode === 'position' && !positionFilters.length) { setErr('Pick at least one position.'); return; }
+    if (mode === 'specific' && !playerIds.length) { setErr('Pick at least one player.'); return; }
+
+    var subs = parseInt(subsNeeded.value, 10) || 1;
+    var message = (msg.value || '').trim();
+
+    var payload;
+    if (state.league === 'pub_league') {
+      // notify_substitute_pool JSON shape (uppercase channels).
+      payload = {
+        request_id: state.requestId,
+        league_type: state.leagueType,
+        custom_message: message,
+        channels: channels.map(function (c) { return c.toUpperCase(); }),
+        recipient_type: mode,
+        gender_filter: mode === 'gender' ? genderSel.value : null,
+        position_filters: mode === 'position' ? positionFilters : [],
+        player_ids: mode === 'specific' ? playerIds : [],
+        subs_needed: subs
+      };
+    } else {
+      // ecs_fc_contact_existing shape (request_id is in the URL; lowercase channels).
+      payload = {
+        recipient_type: mode,
+        gender: mode === 'gender' ? genderSel.value : null,
+        positions: mode === 'position' ? positionFilters : [],
+        player_ids: mode === 'specific' ? playerIds : [],
+        channels: channels,
+        message: message,
+        subs_needed: subs
+      };
+    }
+
+    var headers = {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'};
+    if (csrf) headers['X-CSRFToken'] = csrf.content;
+    var orig = sendBtn.innerHTML;
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i>Sending…';
+
+    fetch(state.url, {method: 'POST', headers: headers, body: JSON.stringify(payload), credentials: 'same-origin'})
+      .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, body: j}; }); })
+      .then(function (res) {
+        var ok = res.ok && res.body && res.body.success !== false;
+        if (ok) hide();
+        if (window.Swal) {
+          var isDark = document.documentElement.classList.contains('dark');
+          window.Swal.fire({
+            icon: ok ? 'success' : 'error',
+            title: ok ? 'Subs contacted' : 'Could not contact subs',
+            text: (res.body && (res.body.message || res.body.error)) || '',
+            background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+          });
+        } else if (!ok) {
+          setErr((res.body && (res.body.message || res.body.error)) || 'Could not contact subs.');
+        }
+      })
+      .catch(function () { setErr('Network error.'); })
+      .finally(function () { sendBtn.disabled = false; sendBtn.innerHTML = orig; });
   });
 })();
 </script>
