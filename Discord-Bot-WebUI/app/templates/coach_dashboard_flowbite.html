@@ -234,7 +234,7 @@
                             <span class="flex items-center gap-2.5 min-w-0">
                                 <span class="font-mono text-[11px] font-bold w-5 h-5 rounded flex items-center justify-center shrink-0
                                     {% if loop.index == 1 %}bg-ecs-gold/15 text-ecs-gold-500 dark:text-ecs-gold-400{% else %}bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400{% endif %}">{{ loop.index }}</span>
-                                <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white truncate"><a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="hover:text-ecs-green hover:underline">{{ player.name }}</a></span>
                             </span>
                             <span class="flex items-baseline gap-3 shrink-0 ml-2">
                                 <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500"><span class="text-gray-300 dark:text-gray-600">A</span> {{ pstats.assists }}</span>
@@ -260,7 +260,7 @@
                             <span class="flex items-center gap-2.5 min-w-0">
                                 <span class="font-mono text-[11px] font-bold w-5 h-5 rounded flex items-center justify-center shrink-0
                                     {% if loop.index == 1 %}bg-ecs-gold/15 text-ecs-gold-500 dark:text-ecs-gold-400{% else %}bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400{% endif %}">{{ loop.index }}</span>
-                                <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white truncate"><a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="hover:text-ecs-green hover:underline">{{ player.name }}</a></span>
                             </span>
                             <span class="flex items-baseline gap-3 shrink-0 ml-2">
                                 <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500"><span class="text-gray-300 dark:text-gray-600">G</span> {{ pstats.goals }}</span>
@@ -304,7 +304,7 @@
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                             {% for player, attendance, season_stats in stats.roster %}
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                <td class="px-4 py-2.5 font-medium text-gray-900 dark:text-white">{{ player.name }}</td>
+                                <td class="px-4 py-2.5 font-medium text-gray-900 dark:text-white"><a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="hover:text-ecs-green hover:underline">{{ player.name }}</a></td>
                                 <td class="px-4 py-2.5 text-center font-mono text-gray-900 dark:text-white">{{ (season_stats.goals if season_stats else 0) or 0 }}</td>
                                 <td class="px-4 py-2.5 text-center font-mono text-gray-900 dark:text-white">{{ (season_stats.assists if season_stats else 0) or 0 }}</td>
                                 <td class="px-4 py-2.5 text-center font-mono hidden lg:table-cell {% if season_stats and season_stats.yellow_cards > 0 %}text-amber-600 dark:text-amber-400{% else %}text-gray-400{% endif %}">{{ (season_stats.yellow_cards if season_stats else 0) or 0 }}</td>
@@ -326,7 +326,7 @@
                         {% for player, attendance, season_stats in stats.roster %}
                         <li class="px-4 py-3">
                             <div class="flex items-center justify-between gap-2">
-                                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</span>
+                                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate"><a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="hover:text-ecs-green hover:underline">{{ player.name }}</a></span>
                                 {% if attendance %}
                                 {% set rate = (attendance.season_attendance_rate * 100)|int %}
                                 <span class="font-mono text-xs font-bold shrink-0 {% if rate >= 80 %}text-green-600 dark:text-green-400{% elif rate >= 60 %}text-amber-600 dark:text-amber-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ rate }}%</span>

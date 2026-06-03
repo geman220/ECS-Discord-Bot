@@ -34,7 +34,9 @@
     <h2 id="reports-kpis" class="sr-only">Key report metrics</h2>
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {% for c in stat_cards %}
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        {% set card_tag = 'a' if c.url else 'div' %}
+        <{{ card_tag }} {% if c.url %}href="{{ c.url }}"{% endif %}
+            class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 {% if c.url %}hover:border-ecs-green hover:shadow-sm transition cursor-pointer{% endif %}">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">{{ c.label }}</span>
                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0 {{ tone_icon.get(c.tone, tone_icon['primary']) }}">
@@ -42,38 +44,60 @@
                 </span>
             </div>
             <div class="mt-3 text-3xl font-bold leading-none tabular-nums {{ tone_value.get(c.tone, '') }}" title="{{ c.value }}">{{ c.value }}</div>
-            <p class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 truncate" title="{{ c.note }}">{{ c.note }}</p>
-        </div>
+            <p class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 truncate flex items-center gap-1" title="{{ c.note }}">
+                <span class="truncate">{{ c.note }}</span>
+                {% if c.url %}<i class="ti ti-arrow-up-right shrink-0 opacity-0 group-hover:opacity-100 text-[10px] text-ecs-green"></i>{% endif %}
+            </p>
+        </{{ card_tag }}>
         {% endfor %}
     </div>
 </section>
 
 {# ================= ATTENDANCE ================= #}
+{# Drill-down links carry the section's active league slice so the detail report
+   opens already scoped. `att_league` is None / 'pub_league' / a League.name. #}
+{% set att_drill = {'league': att_league or None} %}
 <section class="mt-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2">
         <i class="ti ti-calendar-check text-ecs-green" aria-hidden="true"></i>
-        <h2 class="font-semibold text-gray-900 dark:text-white">Attendance &amp; Reliability</h2>
+        <a href="{{ url_for('admin_panel.attendance_report', segment='all', metric='season', league=att_drill.league) }}"
+           class="font-semibold text-gray-900 dark:text-white hover:text-ecs-green">Attendance &amp; Reliability</a>
+        {# Lightweight league slicer — re-links every card below via att_league. #}
+        <div class="inline-flex ml-2" role="group">
+            {% set lg_base = "px-2.5 py-1 text-xs font-medium border first:rounded-l-lg last:rounded-r-lg -ml-px first:ml-0" %}
+            {% set lg_on = "bg-ecs-green text-white border-ecs-green" %}
+            {% set lg_off = "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700" %}
+            {% for val, lbl in [('all','All'), ('pub_league','Pub League'), ('Premier','Premier'), ('Classic','Classic')] %}
+            {% set active = (att_league == val) or (val == 'all' and not att_league) %}
+            <a href="{{ url_for('admin_panel.reports_center', att_league=(val if val != 'all' else None)) }}#attendance"
+               class="{{ lg_base }} {{ lg_on if active else lg_off }}">{{ lbl }}</a>
+            {% endfor %}
+        </div>
         <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ attendance_total }} current players</span>
     </div>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+    <div id="attendance" class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
         <div>
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3">
-                    <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Avg season</div>
+                <a href="{{ url_for('admin_panel.attendance_report', segment='all', metric='season', league=att_drill.league) }}"
+                   class="group rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3 hover:border-ecs-green hover:shadow-sm transition cursor-pointer">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">Avg season <i class="ti ti-arrow-up-right opacity-0 group-hover:opacity-100 text-[10px]"></i></div>
                     <div class="mt-1 text-2xl font-bold text-ecs-green tabular-nums">{{ avg_season_attendance }}%</div>
-                </div>
-                <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3">
-                    <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Avg career</div>
+                </a>
+                <a href="{{ url_for('admin_panel.attendance_report', segment='all', metric='career', league=att_drill.league) }}"
+                   class="group rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3 hover:border-ecs-green hover:shadow-sm transition cursor-pointer">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">Avg career <i class="ti ti-arrow-up-right opacity-0 group-hover:opacity-100 text-[10px]"></i></div>
                     <div class="mt-1 text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{{ avg_career_attendance }}%</div>
-                </div>
-                <div class="rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 p-3">
-                    <div class="text-xs text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">High ≥ {{ high_threshold|int }}%</div>
+                </a>
+                <a href="{{ url_for('admin_panel.attendance_report', segment='high', metric='season', league=att_drill.league) }}"
+                   class="group rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 p-3 hover:border-emerald-500 hover:shadow-sm transition cursor-pointer">
+                    <div class="text-xs text-emerald-700 dark:text-emerald-400 uppercase tracking-wide flex items-center gap-1">High ≥ {{ high_threshold|int }}% <i class="ti ti-arrow-up-right opacity-0 group-hover:opacity-100 text-[10px]"></i></div>
                     <div class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{{ high_count }}</div>
-                </div>
-                <div class="rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 p-3">
-                    <div class="text-xs text-amber-700 dark:text-amber-400 uppercase tracking-wide">Low ≤ {{ low_threshold|int }}%</div>
+                </a>
+                <a href="{{ url_for('admin_panel.attendance_report', segment='low', metric='season', league=att_drill.league) }}"
+                   class="group rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 p-3 hover:border-amber-500 hover:shadow-sm transition cursor-pointer">
+                    <div class="text-xs text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1">Low ≤ {{ low_threshold|int }}% <i class="ti ti-arrow-up-right opacity-0 group-hover:opacity-100 text-[10px]"></i></div>
                     <div class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">{{ low_count }}</div>
-                </div>
+                </a>
             </div>
             {% if attendance_total %}
             <div class="relative h-56"><canvas id="attendanceChart"></canvas></div>
@@ -87,6 +111,13 @@
         <div>
             <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
                 <i class="ti ti-alert-triangle text-amber-500"></i> Lowest attendance — needs follow-up
+                {% if low_count > low_attendance_players|length %}
+                <a href="{{ url_for('admin_panel.attendance_report', segment='low', metric='season', league=att_drill.league) }}"
+                   class="ml-auto text-xs font-medium text-ecs-green hover:underline">View all {{ low_count }}</a>
+                {% elif low_count %}
+                <a href="{{ url_for('admin_panel.attendance_report', segment='low', metric='season', league=att_drill.league) }}"
+                   class="ml-auto text-xs font-medium text-ecs-green hover:underline">View all</a>
+                {% endif %}
             </h3>
             {% if low_attendance_players %}
             <ul class="divide-y divide-gray-100 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700">

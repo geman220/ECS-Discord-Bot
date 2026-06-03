@@ -20,12 +20,21 @@
 {{ kpi_tiles(kpis) }}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
     <form method="get" class="space-y-5">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
                 <label for="league" class="{{ label_cls }}">Primary League</label>
                 <select id="league" name="league" class="{{ field_cls }}">
                     <option value="">All leagues</option>
                     {% for l in leagues %}<option value="{{ l }}" {{ 'selected' if args.league_name == l }}>{{ l }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="segment" class="{{ label_cls }}">Show</label>
+                <select id="segment" name="segment" class="{{ field_cls }}">
+                    <option value="">Everyone</option>
+                    {% for key, seg in contact_segments.items() %}
+                    <option value="{{ key }}" {{ 'selected' if args.segment == key }}>{{ seg[0] }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="flex items-end">

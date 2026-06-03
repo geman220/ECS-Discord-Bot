@@ -14,12 +14,24 @@
 {% set btn_primary = "inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green/90 focus:ring-4 focus:ring-ecs-green/30" %}
 
 {% block panel_content %}
+{% if detail_mode %}
+{# Drill-in: the actual players behind a New / Returning / Lapsed count. #}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ detail_title }}</h2>
+        <a href="{{ url_for('admin_panel.retention_report') }}" class="text-sm font-medium text-ecs-green hover:underline inline-flex items-center gap-1">
+            <i class="ti ti-arrow-left"></i> Back to retention
+        </a>
+    </div>
+    {{ preview_table(preview_rows, total_count) }}
+</div>
+{% else %}
 {{ kpi_tiles(kpis) }}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
     <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 p-4 text-xs text-gray-500 dark:text-gray-400 space-y-1">
         <p>One row per pub-league season (oldest to newest) covering every player rostered that season.</p>
         <p><strong>Returning</strong> = also rostered the prior season · <strong>New</strong> = not · <strong>Lapsed</strong> = rostered the prior season but not this one.</p>
-        <p>Retention % = returning ÷ prior-season total.</p>
+        <p>Retention % = returning ÷ prior-season total. Click any New / Returning / Lapsed count to see those players.</p>
     </div>
     <div class="mt-5">
         <a href="{{ url_for('admin_panel.retention_export') }}" class="{{ btn_primary }}">
@@ -34,11 +46,40 @@
     </div>
     {% endif %}
 
-    {{ preview_table(preview_rows, total_count) }}
+    {# Summary table with drill-in links on New / Returning / Lapsed counts. #}
+    {% set num_cell = "px-3 py-2 text-right tabular-nums" %}
+    <div class="mt-6 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+        <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
+                <tr>
+                    <th class="px-3 py-2 font-medium">Season</th>
+                    <th class="px-3 py-2 text-right font-medium">Total</th>
+                    <th class="px-3 py-2 text-right font-medium">New</th>
+                    <th class="px-3 py-2 text-right font-medium">Returning</th>
+                    <th class="px-3 py-2 text-right font-medium">Lapsed</th>
+                    <th class="px-3 py-2 text-right font-medium">Retention %</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                {% for r in summary_rows %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                    <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">{{ r['Season'] }}</td>
+                    <td class="{{ num_cell }} text-gray-700 dark:text-gray-300">{{ r['Total Players'] }}</td>
+                    <td class="{{ num_cell }}">{% if r['New Players'] %}<a href="{{ url_for('admin_panel.retention_report', season_id=r['_season_id'], cohort='new') }}" class="text-ecs-green hover:underline font-medium">{{ r['New Players'] }}</a>{% else %}<span class="text-gray-400">0</span>{% endif %}</td>
+                    <td class="{{ num_cell }}">{% if r['Returning'] %}<a href="{{ url_for('admin_panel.retention_report', season_id=r['_season_id'], cohort='returning') }}" class="text-ecs-green hover:underline font-medium">{{ r['Returning'] }}</a>{% else %}<span class="text-gray-400">0</span>{% endif %}</td>
+                    <td class="{{ num_cell }}">{% if r['Lapsed From Prior'] %}<a href="{{ url_for('admin_panel.retention_report', season_id=r['_season_id'], cohort='lapsed') }}" class="text-red-600 dark:text-red-400 hover:underline font-medium">{{ r['Lapsed From Prior'] }}</a>{% else %}<span class="text-gray-400">0</span>{% endif %}</td>
+                    <td class="{{ num_cell }} text-gray-700 dark:text-gray-300">{{ r['Retention % (of prior)'] }}{% if r['Retention % (of prior)'] is number %}%{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
+{% if not detail_mode %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script id="retention-data" type="application/json">{{ chart_data | tojson }}</script>
 <script>
@@ -71,4 +112,5 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+{% endif %}
 {% endblock %}

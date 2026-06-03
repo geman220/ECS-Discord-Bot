@@ -294,13 +294,30 @@ class PlayerAttendanceStats(db.Model):
         responses = {a.match_id: (a.response or '').lower()
                      for a in session.query(Availability).filter_by(player_id=self.player_id).all()}
 
-        # The invited universe: every match the player's team(s) played from their
-        # first activity onward. Fall back to response rows only when we have no
-        # team/activity signal (brand-new player → treated as no data, as before).
-        if team_ids and first_activity is not None:
+        # CAREER invited universe = every REGULAR match the player's team(s) played in,
+        # summed across ALL seasons (true lifetime) via player_team_season roster history.
+        # We join by team_id ALONE: Pub League teams are recreated per season, so each
+        # team_id already encodes exactly one (team, season) — no need to also match the
+        # season. This is deliberate: historical schedules have a null/orphaned
+        # season_id, so joining through Schedule.season_id silently dropped every season
+        # before the current one. (Current player_teams alone would also cap "career" at
+        # this season.) Only real games count — week_type='REGULAR' excludes
+        # FUN/TST/BYE/PLAYOFF/PRACTICE/BONUS special weeks (self-match placeholder rows).
+        # Falls back to current teams (then to response rows) when there's no roster history.
+        from app.models.players import PlayerTeamSeason
+        pts_team_ids = [tid for (tid,) in session.query(PlayerTeamSeason.team_id).filter(
+            PlayerTeamSeason.player_id == self.player_id).distinct().all()]
+        if pts_team_ids:
+            invited_match_ids = [mid for (mid,) in session.query(Match.id).filter(
+                Match.week_type == 'REGULAR',
+                or_(Match.home_team_id.in_(pts_team_ids),
+                    Match.away_team_id.in_(pts_team_ids))
+            ).all()]
+        elif team_ids and first_activity is not None:
             invited_match_ids = [mid for (mid,) in session.query(Match.id).filter(
                 or_(Match.home_team_id.in_(team_ids), Match.away_team_id.in_(team_ids)),
-                Match.date >= first_activity.date()
+                Match.date >= first_activity.date(),
+                Match.week_type == 'REGULAR'
             ).all()]
         else:
             invited_match_ids = list(responses.keys())
@@ -385,7 +402,9 @@ class PlayerAttendanceStats(db.Model):
             season_match_ids = [mid for (mid,) in session.query(Match.id).join(Schedule).filter(
                 Schedule.season_id.in_(season_ids),
                 or_(Match.home_team_id.in_(team_ids), Match.away_team_id.in_(team_ids)),
-                Match.date >= first_activity.date()
+                Match.date >= first_activity.date(),
+                # Real league games only (exclude special weeks / placeholders).
+                Match.week_type == 'REGULAR'
             ).all()]
         else:
             season_match_ids = list(responses.keys())

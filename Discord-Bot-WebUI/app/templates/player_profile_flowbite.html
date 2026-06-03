@@ -863,7 +863,7 @@
                                     </td>
                                     <td class="px-4 py-2">
                                         {% if event.match %}
-                                        {{ event.match.home_team.name if event.match.home_team else '?' }} vs {{ event.match.away_team.name if event.match.away_team else '?' }}
+                                        <a href="{{ url_for('match_pages.view_match', match_id=event.match.id) }}" class="text-ecs-green hover:underline">{{ event.match.home_team.name if event.match.home_team else '?' }} vs {{ event.match.away_team.name if event.match.away_team else '?' }}</a>
                                         {% else %}
                                         Unknown
                                         {% endif %}

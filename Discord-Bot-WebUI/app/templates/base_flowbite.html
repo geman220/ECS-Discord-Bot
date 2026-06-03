@@ -133,6 +133,23 @@
         {% if dark.bg_sidebar %}.dark #sidebar > div { background-color: {{ dark.bg_sidebar }}; }{% endif %}
     </style>
     {% endif %}
+
+    {# Global SweetAlert2 theme — dialogs default to SweetAlert's purple; this themes
+       them to the ECS design (ecs-green confirm + dark-mode popup) app-wide. SweetAlert
+       is 3rd-party with its own classes, so a scoped CSS override is the only way. #}
+    <style>
+      .swal2-popup { border-radius: 0.75rem; }
+      .swal2-styled.swal2-confirm { background-color: #1a472a !important; }
+      .swal2-styled.swal2-confirm:focus { box-shadow: 0 0 0 3px rgba(26, 71, 42, 0.45) !important; }
+      .swal2-styled.swal2-cancel:focus { box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.4) !important; }
+      .dark .swal2-popup { background: #1f2937; color: #f3f4f6; }
+      .dark .swal2-title { color: #f9fafb; }
+      .dark .swal2-html-container { color: #d1d5db; }
+      .dark .swal2-input, .dark .swal2-textarea { background: #374151; color: #f3f4f6; border-color: #4b5563; }
+      /* Edit User modal is toggled via the .hidden class but its wrapper lacks `flex`,
+         so when shown it rendered full-page. Force a centered flex overlay + backdrop. */
+      #editUserModal:not(.hidden) { display: flex !important; inset: 0; height: 100%; background: rgba(17, 24, 39, 0.5); }
+    </style>
 </head>
 
 <body class="bg-gray-50 dark:bg-gray-900 min-h-screen">

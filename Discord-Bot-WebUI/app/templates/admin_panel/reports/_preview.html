@@ -1,14 +1,20 @@
 {# Reusable widgets for report pages: KPI tiles, filter chips, preview table. #}
 
-{# KPI summary tiles. `kpis` is a list of {label, value} dicts. #}
+{# KPI summary tiles. `kpis` is a list of {label, value} dicts; an optional `url`
+   key turns the tile into a link to that detail view. #}
 {% macro kpi_tiles(kpis) %}
 {% if kpis %}
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-5">
     {% for k in kpis %}
-    <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-4">
-        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ k.label }}</div>
-        <div class="mt-1 text-2xl font-bold text-gray-900 dark:text-white truncate" title="{{ k.value }}">{{ k.value }}</div>
-    </div>
+    {% set tile_tag = 'a' if k.url else 'div' %}
+    <{{ tile_tag }} {% if k.url %}href="{{ k.url }}"{% endif %}
+        class="group rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-4 {% if k.url %}hover:border-ecs-green hover:shadow-sm transition cursor-pointer{% endif %}">
+        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
+            <span class="truncate">{{ k.label }}</span>
+            {% if k.url %}<i class="ti ti-arrow-up-right shrink-0 opacity-0 group-hover:opacity-100 text-[10px] text-ecs-green"></i>{% endif %}
+        </div>
+        <div class="mt-1 text-2xl font-bold {{ 'text-ecs-green' if k.url else 'text-gray-900 dark:text-white' }} truncate" title="{{ k.value }}">{{ k.value }}</div>
+    </{{ tile_tag }}>
     {% endfor %}
 </div>
 {% endif %}
@@ -31,6 +37,13 @@
    window); `total_count` is the full result count. Numeric cells are right-
    aligned; the first `highlight_top` rows get a subtle highlight. #}
 {% macro preview_table(rows, total_count, label='', highlight_top=0) %}
+{# Visible columns = all keys except hidden `_`-prefixed metadata (e.g. _player_id,
+   _team_id, _season_sort). A `Player`/`Team`/`Name` cell becomes a link when its row
+   carries a sibling `_player_id`/`_team_id`. #}
+{% set ns = namespace(cols=[]) %}
+{% if rows %}
+    {% for col in rows[0].keys() %}{% if not col.startswith('_') %}{% set ns.cols = ns.cols + [col] %}{% endif %}{% endfor %}
+{% endif %}
 <div class="mt-6">
     <div class="flex items-center justify-between mb-2">
         <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -49,7 +62,7 @@
         <table class="min-w-full text-sm text-left">
             <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
                 <tr>
-                    {% for col in rows[0].keys() %}
+                    {% for col in ns.cols %}
                     <th class="px-3 py-2 whitespace-nowrap font-medium {{ 'text-right' if rows[0][col] is number else 'text-left' }}">{{ col }}</th>
                     {% endfor %}
                 </tr>
@@ -57,8 +70,17 @@
             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                 {% for row in rows %}
                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 {{ 'bg-ecs-green/5 font-medium' if loop.index <= highlight_top else '' }}">
-                    {% for val in row.values() %}
-                    <td class="px-3 py-2 whitespace-nowrap text-gray-700 dark:text-gray-300 {{ 'text-right tabular-nums' if val is number else 'text-left' }}">{{ val }}</td>
+                    {% for col in ns.cols %}
+                    {% set val = row[col] %}
+                    <td class="px-3 py-2 whitespace-nowrap text-gray-700 dark:text-gray-300 {{ 'text-right tabular-nums' if val is number else 'text-left' }}">
+                        {%- if col in ('Player', 'Player Name', 'Name') and row.get('_player_id') -%}
+                        <a href="{{ url_for('players.player_profile', player_id=row['_player_id']) }}" class="text-ecs-green hover:underline font-medium">{{ val }}</a>
+                        {%- elif col in ('Team', 'Team Name') and row.get('_team_id') -%}
+                        <a href="{{ url_for('teams.team_details', team_id=row['_team_id']) }}" class="text-ecs-green hover:underline font-medium">{{ val }}</a>
+                        {%- else -%}
+                        {{ val }}
+                        {%- endif -%}
+                    </td>
                     {% endfor %}
                 </tr>
                 {% endfor %}

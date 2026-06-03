@@ -20,14 +20,34 @@
 {{ kpi_tiles(kpis) }}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
     <form method="get" class="space-y-5">
-        <div class="max-w-xs">
-            <label for="season_id" class="{{ label_cls }}">Season</label>
-            <select id="season_id" name="season_id" class="{{ field_cls }}">
-                <option value="">All seasons (all-time)</option>
-                {% for s in seasons %}
-                <option value="{{ s.id }}" {{ 'selected' if args.season_id == s.id }}>{{ s.name }}{% if s.is_current %} (current){% endif %}</option>
-                {% endfor %}
-            </select>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label for="season_id" class="{{ label_cls }}">Season</label>
+                <select id="season_id" name="season_id" class="{{ field_cls }}">
+                    <option value="">All seasons (all-time)</option>
+                    {% for s in seasons %}
+                    <option value="{{ s.id }}" {{ 'selected' if args.season_id == s.id }}>{{ s.name }}{% if s.is_current %} (current){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="card_type" class="{{ label_cls }}">Card type</label>
+                <select id="card_type" name="card_type" class="{{ field_cls }}">
+                    <option value="">All cards</option>
+                    <option value="yellow" {{ 'selected' if args.card_type == 'yellow' }}>Yellow only</option>
+                    <option value="red" {{ 'selected' if args.card_type == 'red' }}>Red only</option>
+                </select>
+            </div>
+            <div>
+                <label for="reason" class="{{ label_cls }}">Reason</label>
+                <select id="reason" name="reason" class="{{ field_cls }}">
+                    <option value="">All reasons</option>
+                    {% for key, lbl in card_reasons.items() %}
+                    <option value="{{ key }}" {{ 'selected' if args.reason == key }}>{{ lbl }}</option>
+                    {% endfor %}
+                    <option value="UNSPECIFIED" {{ 'selected' if args.reason == 'UNSPECIFIED' }}>Unspecified</option>
+                </select>
+            </div>
         </div>
         <p class="text-xs text-gray-500 dark:text-gray-400">
             Yellow and red cards per player, with the reason breakdown (foul, dissent, persistent infringement, serious foul play).

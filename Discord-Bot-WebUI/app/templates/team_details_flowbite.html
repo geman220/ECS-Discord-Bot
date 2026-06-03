@@ -342,7 +342,7 @@
        this route passes no per-user availability, so we keep the
        report/details affordances that the route DOES support.
        ============================================================ #}
-    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <section id="schedule" class="scroll-mt-20 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
       <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3 bg-gray-50 dark:bg-gray-700/30">
         <div class="flex items-center gap-2">
           <i class="ti ti-calendar-event text-ecs-green" aria-hidden="true"></i>
@@ -368,9 +368,16 @@
         {% endif %}
       </div>
 
-      {% if schedule %}
+      {% if result_filter %}
+      <div class="px-4 sm:px-5 py-2 bg-ecs-green/5 border-b border-ecs-green/20 flex items-center justify-between gap-2 text-xs">
+        <span class="text-gray-600 dark:text-gray-300">Showing {% if result_filter == 'W' %}wins{% elif result_filter == 'D' %}draws{% else %}losses{% endif %} only</span>
+        <a href="{{ url_for('teams.team_details', team_id=team.id) }}#schedule" class="font-medium text-ecs-green hover:underline">Clear filter</a>
+      </div>
+      {% endif %}
+
+      {% if filtered_schedule %}
       <div class="max-h-[560px] overflow-y-auto">
-        {% for date, matches_on_date in schedule.items() %}
+        {% for date, matches_on_date in filtered_schedule.items() %}
         {# date-group divider: mono primary date + h-px rule #}
         <div class="px-4 sm:px-5 pt-4 pb-1 flex items-center gap-2">
           <span class="font-mono text-[11px] font-semibold text-ecs-green uppercase">{{ date.strftime('%a · %b %d') }}</span>

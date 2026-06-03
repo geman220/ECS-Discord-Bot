@@ -68,6 +68,15 @@ def setup_periodic_tasks(sender, **kwargs):
         name='expire-past-match-sub-requests'
     )
 
+    # Recompute player attendance stats nightly at 4 AM so career/season attendance
+    # stays current as RSVPs come in (counts only week_type='REGULAR' games). This is
+    # the safety net; the data had gone stale because nothing recomputed it.
+    sender.add_periodic_task(
+        crontab(hour=4, minute=0),
+        recalculate_all_attendance_stats.s(),
+        name='recalculate-all-attendance-stats'
+    )
+
 
 @celery.task
 def cleanup_database_connections():

@@ -88,9 +88,9 @@
           {% else %}<span class="text-xs text-gray-400 font-mono">—</span>{% endif %}
         </td>
         <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300">{{ standing.played }}</td>
-        <td class="px-3 py-3 text-center font-mono font-semibold text-ecs-green">{{ standing.wins }}</td>
-        <td class="px-3 py-3 text-center font-mono text-amber-600 dark:text-amber-400">{{ standing.draws }}</td>
-        <td class="px-3 py-3 text-center font-mono text-red-600 dark:text-red-400">{{ standing.losses }}</td>
+        <td class="px-3 py-3 text-center font-mono font-semibold text-ecs-green">{% if standing.wins %}<a href="{{ url_for('teams.team_details', team_id=standing.team.id, result='W') }}#schedule" class="hover:underline" title="View {{ standing.team.name }} wins">{{ standing.wins }}</a>{% else %}{{ standing.wins }}{% endif %}</td>
+        <td class="px-3 py-3 text-center font-mono text-amber-600 dark:text-amber-400">{% if standing.draws %}<a href="{{ url_for('teams.team_details', team_id=standing.team.id, result='D') }}#schedule" class="hover:underline" title="View {{ standing.team.name }} draws">{{ standing.draws }}</a>{% else %}{{ standing.draws }}{% endif %}</td>
+        <td class="px-3 py-3 text-center font-mono text-red-600 dark:text-red-400">{% if standing.losses %}<a href="{{ url_for('teams.team_details', team_id=standing.team.id, result='L') }}#schedule" class="hover:underline" title="View {{ standing.team.name }} losses">{{ standing.losses }}</a>{% else %}{{ standing.losses }}{% endif %}</td>
         <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300 hidden md:table-cell">{{ standing.goals_for }}</td>
         <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300 hidden md:table-cell">{{ standing.goals_against }}</td>
         <td class="px-3 py-3 text-center font-mono font-medium {% if gd > 0 %}text-ecs-green{% elif gd < 0 %}text-red-600 dark:text-red-400{% else %}text-gray-500 dark:text-gray-400{% endif %}">{% if gd > 0 %}+{% endif %}{{ gd }}</td>

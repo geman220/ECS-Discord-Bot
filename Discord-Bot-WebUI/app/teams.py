@@ -417,6 +417,21 @@ def team_details(team_id):
                 next_match = schedule[next_match_date][0]
                 next_match['date'] = next_match_date  # Add date to the match object
 
+    # Optional result filter — the drill-in from the standings W/D/L columns. We keep
+    # the full `schedule` (the header derives the season record + form from it) and
+    # pass a separate `filtered_schedule` for the Schedule & Results list, showing only
+    # that team's wins / draws / losses. 'D' (draw) maps to the per-match 'T' (tie)
+    # result_text assigned above.
+    result_filter = (request.args.get('result') or '').upper()
+    if result_filter in ('W', 'D', 'L'):
+        want = 'T' if result_filter == 'D' else result_filter
+        filtered_schedule = {d: [m for m in ms if m['result_text'] == want]
+                             for d, ms in schedule.items()}
+        filtered_schedule = {d: ms for d, ms in filtered_schedule.items() if ms}
+    else:
+        result_filter = None
+        filtered_schedule = schedule
+
     # Check permissions for template
     from app.role_impersonation import is_impersonation_active, has_effective_permission
     
@@ -503,6 +518,8 @@ def team_details(team_id):
         season=season,
         players=players,
         schedule=schedule,
+        filtered_schedule=filtered_schedule,
+        result_filter=result_filter,
         safe_current_user=safe_current_user,
         next_match_date=next_match_date,
         next_match=next_match,
@@ -2299,6 +2316,16 @@ def coach_dashboard():
                                 from collections import namedtuple
                                 TempAttendance = namedtuple('TempAttendance', ['season_attendance_rate'])
                                 attendance_stats = TempAttendance(season_attendance_rate=yes_count / total_matches)
+                else:
+                    # Cached PlayerAttendanceStats stores season_attendance_rate as a
+                    # percentage (0-100), but the template (and the fallback above) expect a
+                    # 0-1 fraction that it multiplies by 100. Normalize the cached value to a
+                    # fraction so both code paths agree — otherwise a populated cache renders
+                    # e.g. 8570% instead of 86%.
+                    from collections import namedtuple
+                    TempAttendance = namedtuple('TempAttendance', ['season_attendance_rate'])
+                    attendance_stats = TempAttendance(
+                        season_attendance_rate=(attendance_stats.season_attendance_rate or 0) / 100.0)
 
                 roster.append((player, attendance_stats, season_stats))
 
