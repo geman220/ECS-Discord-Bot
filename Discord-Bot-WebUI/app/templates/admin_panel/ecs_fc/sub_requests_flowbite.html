@@ -504,7 +504,7 @@
 {# ===== Contact Substitutes modal — board-level contact flow ===== #}
 {# Posts to admin_panel.ecs_fc_contact_subs, which reuses the same notification
    helper (_send_sub_request_notification) the per-match create flow uses. #}
-<div id="contactSubsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 p-4">
+<div id="contactSubsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-900/50 dark:bg-gray-900/80 p-4">
   <div class="w-full max-w-2xl rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl max-h-[90vh] overflow-y-auto">
     <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
       <i class="ti ti-send text-ecs-green" aria-hidden="true"></i>
@@ -927,7 +927,7 @@
 
 <!-- Assign Sub Modal -->
 <div id="assignModal" class="fixed inset-0 z-50 hidden">
-    <div class="fixed inset-0 bg-black/50" onclick="closeAssignModal()"></div>
+    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" onclick="closeAssignModal()"></div>
     <div class="fixed inset-0 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md relative">
             <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -949,7 +949,7 @@
 
 <!-- Edit Sub Request Modal -->
 <div id="editRequestModal" class="fixed inset-0 z-50 hidden">
-    <div class="fixed inset-0 bg-black/50" onclick="closeEditModal()"></div>
+    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" onclick="closeEditModal()"></div>
     <div class="fixed inset-0 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md relative">
             <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">

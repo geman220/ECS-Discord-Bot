@@ -127,7 +127,7 @@
           </div>
           <label class="flex items-center justify-between">
             <span><span class="font-medium text-gray-900 dark:text-white">Lock picks to team on clock</span></span>
-            <input id="lockToggle" type="checkbox" {{ 'checked' if not clk or clk.lock_to_clock }} class="w-5 h-5 rounded accent-[color:theme(colors.ecs-green)]">
+            <input id="lockToggle" type="checkbox" {{ 'checked' if not clk or clk.lock_to_clock }} class="w-5 h-5 rounded accent-ecs-green">
           </label>
           <button type="button" id="saveSetupBtn" class="w-full h-10 inline-flex items-center justify-center gap-1.5 rounded-lg border border-ecs-green text-ecs-green hover:bg-ecs-green-50 dark:hover:bg-ecs-green-900/20 text-sm font-semibold"><i class="ti ti-device-floppy"></i> Save order &amp; settings</button>
         </div>
@@ -208,19 +208,22 @@
   // Keep snake/linear pick badges in sync when the format toggles
   document.querySelectorAll('input[name=format]').forEach(function (r) { r.addEventListener('change', renumber); });
 
-  // Move the green active-highlight when a timeout option is picked. The label
-  // highlight is server-rendered from the saved value, so without this the radio
+  // Move the green active-highlight when a radio option (format AND timeout) is
+  // picked. The label highlight is server-rendered, so without this the radio
   // selects natively but the border never moves — looked like "can't change it".
-  var _timeoutActive = ['border-ecs-green', 'bg-ecs-green-50', 'dark:bg-ecs-green-900/20'];
-  var _timeoutIdle = ['border-gray-300', 'dark:border-gray-600'];
-  document.querySelectorAll('input[name=timeout]').forEach(function (r) {
-    r.addEventListener('change', function () {
-      document.querySelectorAll('input[name=timeout]').forEach(function (radio) {
-        var label = radio.closest('label');
-        if (!label) return;
-        if (radio.checked) { label.classList.add.apply(label.classList, _timeoutActive); label.classList.remove.apply(label.classList, _timeoutIdle); }
-        else { label.classList.remove.apply(label.classList, _timeoutActive); label.classList.add.apply(label.classList, _timeoutIdle); }
-      });
+  var _radioActive = ['border-ecs-green', 'bg-ecs-green-50', 'dark:bg-ecs-green-900/20'];
+  var _radioIdle = ['border-gray-300', 'dark:border-gray-600'];
+  function syncRadioHighlight(name) {
+    document.querySelectorAll('input[name=' + name + ']').forEach(function (radio) {
+      var label = radio.closest('label');
+      if (!label) return;
+      if (radio.checked) { label.classList.add.apply(label.classList, _radioActive); label.classList.remove.apply(label.classList, _radioIdle); }
+      else { label.classList.remove.apply(label.classList, _radioActive); label.classList.add.apply(label.classList, _radioIdle); }
+    });
+  }
+  ['format', 'timeout'].forEach(function (name) {
+    document.querySelectorAll('input[name=' + name + ']').forEach(function (r) {
+      r.addEventListener('change', function () { syncRadioHighlight(name); });
     });
   });
 

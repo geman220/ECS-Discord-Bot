@@ -1226,7 +1226,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (total > 0) countText += `, ${total} contacted`;
             countText += ')';
             if (allFilled) {
-                countText = `<span class="text-green-600 dark:text-green-400">${countText} ✓</span>`;
+                countText = `<span class="text-green-600 dark:text-green-400 inline-flex items-center gap-1">${countText} <i class="ti ti-check"></i></span>`;
             }
         } else if (total > 0) {
             countText = `(${total} contacted)`;

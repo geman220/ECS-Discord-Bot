@@ -906,7 +906,7 @@
                                 <!-- Goal Scorers -->
                                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                                     <h4 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                        <span class="text-lg">⚽</span> Goal Scorers
+                                        <i class="ti ti-ball-football text-lg"></i> Goal Scorers
                                     </h4>
                                     <div id="goalScorersContainer-{{ match.id }}" class="space-y-2">
                                         {% for scorer in match.goal_scorers %}
@@ -946,7 +946,7 @@
                                 <!-- Assists -->
                                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                                     <h4 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                        <span class="text-lg">🅰️</span> Assists
+                                        <i class="ti ti-shoe text-lg"></i> Assists
                                     </h4>
                                     <div id="assistProvidersContainer-{{ match.id }}" class="space-y-2">
                                         {% for assist in match.assist_providers %}
@@ -989,13 +989,13 @@
                                 <!-- Cards -->
                                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                                     <h4 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                        <span class="text-lg">🟨🟥</span> Cards
+                                        <i class="ti ti-cards text-lg"></i> Cards
                                     </h4>
                                     <!-- Yellow Cards -->
                                     <div id="yellowCardsContainer-{{ match.id }}" class="space-y-2">
                                         {% for card in match.yellow_cards %}
                                         <div class="flex items-center gap-2" data-event-row>
-                                            <span class="px-2 py-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded">🟨</span>
+                                            <span class="px-2 py-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded"><i class="ti ti-square-rounded-filled text-yellow-500"></i></span>
                                             <input type="hidden" name="yellow_cards-stat_id[]" value="{{ card.id }}">
                                             <select name="yellow_cards-player_id[]"
                                                     class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
@@ -1022,7 +1022,7 @@
                                     <div id="redCardsContainer-{{ match.id }}" class="space-y-2 mt-2">
                                         {% for card in match.red_cards %}
                                         <div class="flex items-center gap-2" data-event-row>
-                                            <span class="px-2 py-1 bg-red-500 text-white text-xs font-bold rounded">🟥</span>
+                                            <span class="px-2 py-1 bg-red-500 text-white text-xs font-bold rounded"><i class="ti ti-square-rounded-filled text-red-600"></i></span>
                                             <input type="hidden" name="red_cards-stat_id[]" value="{{ card.id }}">
                                             <select name="red_cards-player_id[]"
                                                     class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
@@ -1052,7 +1052,7 @@
                                                 data-match-id="{{ match.id }}"
                                                 data-container="yellowCardsContainer-{{ match.id }}"
                                                 data-event-type="yellow_card">
-                                            🟨 Yellow
+                                            <i class="ti ti-square-rounded-filled text-yellow-500"></i> Yellow
                                         </button>
                                         <button type="button"
                                                 class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg transition-colors"
@@ -1060,7 +1060,7 @@
                                                 data-match-id="{{ match.id }}"
                                                 data-container="redCardsContainer-{{ match.id }}"
                                                 data-event-type="red_card">
-                                            🟥 Red
+                                            <i class="ti ti-square-rounded-filled text-red-600"></i> Red
                                         </button>
                                     </div>
                                 </div>
@@ -1068,7 +1068,7 @@
                                 <!-- Own Goals -->
                                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                                     <h4 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                        <span class="text-lg">⚽❌</span> Own Goals
+                                        <i class="ti ti-ball-football text-lg"></i> Own Goals
                                     </h4>
                                     <div id="ownGoalsContainer-{{ match.id }}" class="space-y-2">
                                         {% for own_goal in match.own_goals %}

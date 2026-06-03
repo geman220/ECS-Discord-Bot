@@ -473,18 +473,25 @@ def draft_session_setup():
 @role_required(['Global Admin', 'Pub League Admin'])
 def draft_setup_page():
     """Admin page to set the team pick order + format, then start the on-the-clock draft."""
-    # Scope to the current PUB LEAGUE season. There are two is_current seasons
-    # (Pub League + ECS FC); a bare .first() nondeterministically returned the ECS FC
-    # one, locking the whole setup page (and the Start→live-board redirect) to
-    # "2024 Fall ECS FC". The draft is per-current-Pub-League-season.
-    season = db.session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
-    leagues = []
-    if season:
-        leagues = db.session.query(League).filter_by(season_id=season.id).order_by(League.name).all()
+    # Offer leagues from ALL current seasons — Pub League (Premier/Classic) AND ECS FC.
+    # There can be two is_current seasons (Pub League 2026 + ECS FC's 2024, which they
+    # keep current since they don't run traditional seasons). The admin picks which
+    # league to draft via ?league_id; we default to a Pub League league. (Earlier this
+    # was scoped to Pub League only, which made ECS FC undraftable; and a bare .first()
+    # had nondeterministically locked it to ECS FC.)
+    current_seasons = db.session.query(Season).filter_by(is_current=True).order_by(Season.league_type).all()
+    season_ids = [s.id for s in current_seasons]
+    leagues = (db.session.query(League).filter(League.season_id.in_(season_ids)).order_by(League.name).all()
+               if season_ids else [])
     league_id = request.args.get('league_id', type=int)
-    if not league_id and leagues:
-        league_id = leagues[0].id
     league = db.session.query(League).filter_by(id=league_id).first() if league_id else None
+    if league and league.season_id not in season_ids:
+        league = None  # ignore a league that isn't in a current season
+    if not league and leagues:
+        pub_ids = {s.id for s in current_seasons if s.league_type == 'Pub League'}
+        league = next((l for l in leagues if l.season_id in pub_ids), leagues[0])
+    # season = the SELECTED league's season, so the header + draft session use the right one
+    season = next((s for s in current_seasons if league and s.id == league.season_id), None)
 
     teams = []
     state = None

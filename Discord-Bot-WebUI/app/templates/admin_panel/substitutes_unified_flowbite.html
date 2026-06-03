@@ -415,7 +415,7 @@
    then POSTs a chosen player to item.action_urls.assign. League-agnostic:
    ECS FC carries request_id in the URL; Pub League needs match_id/team_id/request_id
    in the body. The hidden fields below carry whatever the selected row provides. ===== #}
-<div id="assignModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 p-4">
+<div id="assignModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-900/50 dark:bg-gray-900/80 p-4">
   <div class="w-full max-w-md rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
     <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
       <i class="ti ti-user-check text-ecs-green" aria-hidden="true"></i>
@@ -514,7 +514,7 @@
      Pub League -> admin_panel.notify_substitute_pool   (notify-pool JSON shape)
      ECS FC     -> admin_panel.ecs_fc_contact_existing   (request_id in URL)
    Both reuse existing send paths; no new message logic here. ===== #}
-<div id="contactModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 p-4">
+<div id="contactModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-900/50 dark:bg-gray-900/80 p-4">
   <div class="w-full max-w-lg rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl max-h-[90vh] overflow-y-auto">
     <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 sticky top-0 bg-white dark:bg-gray-800">
       <i class="ti ti-send text-ecs-green" aria-hidden="true"></i>
