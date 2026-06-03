@@ -129,7 +129,7 @@ function buildModalHTML(matchId, data) {
                                     <!-- Goal Scorers -->
                                     <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                                         <h4 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                            <span class="text-lg">⚽</span> Goal Scorers
+                                            <i class="ti ti-ball-football text-lg"></i> Goal Scorers
                                         </h4>
                                         <div id="goalScorersContainer-${matchId}" class="space-y-2"></div>
                                         <button type="button"
@@ -145,7 +145,7 @@ function buildModalHTML(matchId, data) {
                                     <!-- Assists -->
                                     <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                                         <h4 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                            <span class="text-lg">🅰️</span> Assists
+                                            <i class="ti ti-shoe text-lg"></i> Assists
                                         </h4>
                                         <div id="assistProvidersContainer-${matchId}" class="space-y-2"></div>
                                         <button type="button"
@@ -164,7 +164,7 @@ function buildModalHTML(matchId, data) {
                                     <!-- Cards -->
                                     <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                                         <h4 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                            <span class="text-lg">🟨🟥</span> Cards
+                                            <i class="ti ti-cards text-lg"></i> Cards
                                         </h4>
                                         <div id="yellowCardsContainer-${matchId}" class="space-y-2"></div>
                                         <div id="redCardsContainer-${matchId}" class="space-y-2 mt-2"></div>
@@ -175,7 +175,7 @@ function buildModalHTML(matchId, data) {
                                                     data-match-id="${matchId}"
                                                     data-container="yellowCardsContainer-${matchId}"
                                                     data-event-type="yellow">
-                                                🟨 Yellow
+                                                <i class="ti ti-square-rounded-filled text-yellow-500"></i> Yellow
                                             </button>
                                             <button type="button"
                                                     class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg transition-colors"
@@ -183,7 +183,7 @@ function buildModalHTML(matchId, data) {
                                                     data-match-id="${matchId}"
                                                     data-container="redCardsContainer-${matchId}"
                                                     data-event-type="red">
-                                                🟥 Red
+                                                <i class="ti ti-square-rounded-filled text-red-600"></i> Red
                                             </button>
                                         </div>
                                     </div>
@@ -191,7 +191,7 @@ function buildModalHTML(matchId, data) {
                                     <!-- Own Goals -->
                                     <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                                         <h4 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                            <span class="text-lg">⚽❌</span> Own Goals
+                                            <i class="ti ti-ball-football text-lg"></i> Own Goals
                                         </h4>
                                         <div id="ownGoalsContainer-${matchId}" class="space-y-2"></div>
                                         <button type="button"
@@ -306,7 +306,7 @@ function updateModalTitle(modal, data) {
         const homeTeamName = data.home_team_name || 'Home Team';
         const awayTeamName = data.away_team_name || 'Away Team';
         const reportType = data.reported ? 'Edit' : 'Report';
-        modalTitle.innerHTML = `<i data-feather="edit" class="me-2"></i>${reportType} Match: ${homeTeamName} vs ${awayTeamName}`;
+        modalTitle.innerHTML = `<i class="ti ti-edit"></i>${reportType} Match: ${homeTeamName} vs ${awayTeamName}`;
 
         if (typeof window.feather !== 'undefined') {
             window.feather.replace();
