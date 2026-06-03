@@ -52,21 +52,8 @@
             </div>
         </div>
 
-        <!-- Layout (admins only) -->
-        {# nav_is_admin: reserved bool — `is_admin` may be a route-passed bool, so don't call is_admin() #}
-        {% if nav_is_admin %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-            <div class="flex items-start gap-3">
-                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 shrink-0">
-                    <i class="ti ti-layout-2 w-5 h-5"></i>
-                </div>
-                <div>
-                    <h5 class="text-base font-semibold text-gray-900 dark:text-white">Layout (admin preview)</h5>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">During the evaluation trial, admins can switch between the Classic and Modern layouts using the layout menu in the top bar.</p>
-                </div>
-            </div>
-        </div>
-        {% endif %}
+        {# Layout (admin preview) card removed at the player cutover — Modern is the
+           default for everyone and the top-bar switcher is gone. #}
 
     </div>
 </div>

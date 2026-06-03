@@ -279,7 +279,12 @@ def _register_utility_processor(app):
         # The `console_full_sidebar` flag tells base_flowbite to use the full
         # sidebar (not the rail) when shell=='console'. Every OTHER page honors
         # the admin's chosen shell so the user-facing app A/B tests Classic vs Modern.
-        shell = 'classic'
+        # Modern ("console") is the default shell for EVERYONE as of the player
+        # cutover (the admin-only A/B is over). Classic is now a dormant break-glass:
+        # it still renders if session['ui_shell'] == 'classic' is explicitly set, but
+        # no UI exposes that anymore (the switcher was removed). The admin panel always
+        # uses the full console sidebar; every other page uses the console rail.
+        shell = 'console'
         console_full_sidebar = False
         # nav_is_admin is a RESERVED boolean for shared chrome (topbar/shell/nav).
         # Page routes commonly pass `is_admin` as a bool in their render context,
@@ -289,17 +294,14 @@ def _register_utility_processor(app):
         try:
             from flask import session, request
             nav_is_admin = bool(is_admin())
-            if nav_is_admin:
-                if has_request_context() and request.blueprint == 'admin_panel':
-                    shell = 'console'
-                    console_full_sidebar = True   # full sidebar + Modern header, not the rail
-                else:
-                    requested = session.get('ui_shell')
-                    if requested in ('classic', 'console'):
-                        shell = requested
+            if nav_is_admin and has_request_context() and request.blueprint == 'admin_panel':
+                console_full_sidebar = True   # full sidebar + Modern header, not the rail
+            elif session.get('ui_shell') == 'classic':
+                # Break-glass: an explicit classic override (no UI sets this anymore).
+                shell = 'classic'
         except Exception as e:
             logger.error(f"Error resolving UI shell: {e}")
-            shell = 'classic'
+            shell = 'console'
             console_full_sidebar = False
 
         return {

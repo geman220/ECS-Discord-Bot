@@ -34,52 +34,9 @@
                         </button>
                         {% endif %}
 
-                        <!-- Layout (shell) switcher — admin-only, evaluation trial -->
-                        {# nav_is_admin: reserved bool from context_processors — routes shadow is_admin() with a bool, so chrome must not call it #}
-                        {% if nav_is_admin %}
-                        <div class="relative">
-                            <button id="shell-switch-btn" type="button" data-dropdown-toggle="shell-switch-menu"
-                                    class="p-2 rounded-lg focus:outline-none focus:ring-2 {{ _ab }}"
-                                    title="Layout (admin preview)" aria-label="Switch layout">
-                                <i class="ti ti-layout-2 w-5 h-5"></i>
-                            </button>
-                            <div id="shell-switch-menu" class="z-50 hidden w-56 bg-white rounded-lg shadow-lg dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400 border-b border-gray-100 dark:border-gray-600">Layout (admin preview)</div>
-                                <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
-                                    {% for opt in [('classic','Classic','ti-layout-sidebar'), ('console','Modern','ti-layout-dashboard')] %}
-                                    <li>
-                                        <button type="button" data-set-shell="{{ opt[0] }}"
-                                                class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 {{ 'text-ecs-green font-medium' if shell == opt[0] else '' }}">
-                                            <i class="ti {{ opt[2] }} w-5 h-5"></i>
-                                            <span class="flex-1">{{ opt[1] }}</span>
-                                            {% if shell == opt[0] %}<i class="ti ti-check w-4 h-4"></i>{% endif %}
-                                        </button>
-                                    </li>
-                                    {% endfor %}
-                                </ul>
-                                <div class="px-4 py-2 text-xs text-gray-400 border-t border-gray-100 dark:border-gray-600">Only you see this preview while we A/B test.</div>
-                            </div>
-                        </div>
-                        <script>
-                            (function () {
-                                document.addEventListener('click', function (e) {
-                                    var el = e.target.closest('[data-set-shell]');
-                                    if (!el) return;
-                                    var _csrf = document.querySelector('meta[name=csrf-token]');
-                                    fetch('{{ url_for("main.set_ui_shell") }}', {
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'X-CSRFToken': _csrf ? _csrf.getAttribute('content') : ''
-                                        },
-                                        body: JSON.stringify({ shell: el.getAttribute('data-set-shell') })
-                                    }).then(function (r) { return r.json(); })
-                                      .then(function () { window.location.reload(); })
-                                      .catch(function () { window.location.reload(); });
-                                });
-                            })();
-                        </script>
-                        {% endif %}
+                        {# Layout (shell) switcher removed at the player cutover — Modern is now
+                           the default for everyone. Classic remains a dormant break-glass via the
+                           main.set_ui_shell endpoint (session['ui_shell']='classic'); no UI exposes it. #}
 
                         <!-- Dark Mode Toggle -->
                         <button id="theme-toggle" type="button" class="p-2 rounded-lg focus:outline-none focus:ring-2 {{ _ab }}">
