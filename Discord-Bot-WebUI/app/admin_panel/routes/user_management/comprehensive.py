@@ -180,8 +180,10 @@ def users_comprehensive():
             'total_users': User.query.count(),
             'active_users': User.query.filter(User.is_active == True).count(),
             'approved_users': User.query.filter(User.is_approved == True).count(),
+            # Pending = awaiting a decision. Use approval_status, not is_approved:
+            # denied users keep is_approved=False and would otherwise inflate this.
             'pending_approval': User.query.filter(
-                or_(User.is_approved == False, User.is_approved == None)
+                User.approval_status == 'pending'
             ).count(),
             'recent_registrations': User.query.filter(
                 User.created_at >= thirty_days_ago

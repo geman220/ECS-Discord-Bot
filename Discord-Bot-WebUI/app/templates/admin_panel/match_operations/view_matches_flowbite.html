@@ -2,7 +2,7 @@
 {% from 'macros/flowbite.html' import card, button, badge, alert, empty_state %}
 {% from 'macros/_modern_kit.html' import page_header, section_card, data_table, data_table_th, data_table_row_card, empty_state as modern_empty_state %}
 
-{% block admin_title %}View Matches{% endblock %}
+{% block admin_title %}Matches{% endblock %}
 {% block panel_description %}Browse and manage all scheduled matches{% endblock %}
 
 {% block breadcrumb_items %}
@@ -15,7 +15,7 @@
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">View Matches</span>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Matches</span>
     </div>
 </li>
 {% endblock %}
@@ -38,8 +38,8 @@
 {% set has_filters = current_league_id or current_week or current_status or request.args.get('date_from') or request.args.get('date_to') %}
 
 {# ── Header + primary command toolbar ── #}
-{% call page_header("View Matches", subtitle="Match Operations" + (" · " + current_season.name if current_season else "")) %}
-    <a href="{{ url_for('admin_panel.match_results') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+{% call page_header("Matches", subtitle="Match Operations" + (" · " + current_season.name if current_season else "")) %}
+    <a href="{{ url_for('admin_panel.view_matches', status='awaiting_score') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-clipboard-check" aria-hidden="true"></i><span class="hidden sm:inline">Enter Results</span>
     </a>
     <a href="{{ url_for('admin_panel.schedule_matches') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Schedule matches">
@@ -112,6 +112,8 @@
             <option value="past" {% if current_status == 'past' %}selected{% endif %}>Past</option>
             <option value="verified" {% if current_status == 'verified' %}selected{% endif %}>Verified</option>
             <option value="unverified" {% if current_status == 'unverified' %}selected{% endif %}>Unverified</option>
+            <option value="results" {% if current_status == 'results' %}selected{% endif %}>Results (reported)</option>
+            <option value="awaiting_score" {% if current_status == 'awaiting_score' %}selected{% endif %}>Awaiting Score</option>
         </select>
     </div>
     <div>
@@ -374,6 +376,8 @@
             <option value="past" {% if current_status == 'past' %}selected{% endif %}>Past</option>
             <option value="verified" {% if current_status == 'verified' %}selected{% endif %}>Verified</option>
             <option value="unverified" {% if current_status == 'unverified' %}selected{% endif %}>Unverified</option>
+            <option value="results" {% if current_status == 'results' %}selected{% endif %}>Results (reported)</option>
+            <option value="awaiting_score" {% if current_status == 'awaiting_score' %}selected{% endif %}>Awaiting Score</option>
         </select>
     </div>
 
@@ -632,7 +636,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="text-left space-y-3">
                     <p class="text-gray-600 dark:text-gray-400">What would you like to do?</p>
                     <div class="space-y-2">
-                        <a href="{{ url_for('admin_panel.match_results') }}?match_id=${matchId}" class="flex items-center justify-center w-full px-4 py-2.5 text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg font-medium">
+                        <a href="{{ url_for('admin_panel.view_matches', status='results') }}" class="flex items-center justify-center w-full px-4 py-2.5 text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg font-medium">
                             <i class="ti ti-pencil mr-2"></i>Enter/Update Results
                         </a>
                         <a href="{{ url_for('admin_panel.schedule_matches') }}" class="flex items-center justify-center w-full px-4 py-2.5 text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 rounded-lg font-medium">

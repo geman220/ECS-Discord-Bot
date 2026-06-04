@@ -568,23 +568,27 @@ def expire_past_match_sub_requests(self, session):
     match is in the past so the boards only show what's actually actionable. EXPIRED
     is terminal and excluded from the active/open views; rows are kept for history.
     """
-    today = datetime.utcnow().date()
-    active = ('OPEN', 'PENDING', 'APPROVED')
-
     from app.models.substitutes import SubstituteRequest, EcsFcSubRequest
     from app.models.matches import Match
     from app.models.ecs_fc import EcsFcMatch
+    from app.utils.substitute_helpers import ACTIVE_SUB_STATUSES, actionable_sub_cutoff_date
+
+    # Expire only once a request is past the grace window the UI still shows it in,
+    # so a request stays live through its ~24h retroactive-assignment window rather
+    # than vanishing the morning after the match.
+    cutoff = actionable_sub_cutoff_date()
+    active = ACTIVE_SUB_STATUSES
 
     pl = (session.query(SubstituteRequest)
           .join(Match, SubstituteRequest.match_id == Match.id)
-          .filter(SubstituteRequest.status.in_(active), Match.date < today)
+          .filter(SubstituteRequest.status.in_(active), Match.date < cutoff)
           .all())
     for req in pl:
         req.status = 'EXPIRED'
 
     ecs = (session.query(EcsFcSubRequest)
            .join(EcsFcMatch, EcsFcSubRequest.match_id == EcsFcMatch.id)
-           .filter(EcsFcSubRequest.status.in_(active), EcsFcMatch.match_date < today)
+           .filter(EcsFcSubRequest.status.in_(active), EcsFcMatch.match_date < cutoff)
            .all())
     for req in ecs:
         req.status = 'EXPIRED'

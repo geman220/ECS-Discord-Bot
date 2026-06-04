@@ -50,11 +50,13 @@ def calculate_avg_wait_time():
 
 
 def calculate_processing_rate():
-    """Calculate the processing rate (approved + rejected / total registrations)."""
+    """Calculate the processing rate (approved + denied / total registrations)."""
     try:
         total_registrations = db.session.query(func.count(User.id)).scalar()
+        # The deny action sets approval_status='denied' (not 'rejected'), so 'rejected'
+        # here matched nothing and undercounted processed registrations.
         processed_registrations = db.session.query(func.count(User.id)).filter(
-            User.approval_status.in_(['approved', 'rejected'])
+            User.approval_status.in_(['approved', 'denied'])
         ).scalar()
 
         if total_registrations == 0:

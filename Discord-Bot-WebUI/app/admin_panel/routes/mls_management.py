@@ -138,7 +138,16 @@ def get_status_display(status):
 @login_required
 @role_required(['Global Admin', 'Discord Admin', 'Pub League Admin'])
 def mls_overview():
-    """MLS match management overview dashboard."""
+    """Consolidated: the MLS landing now opens directly on Matches.
+
+    Its KPI/match/task content were strict subsets of mls_matches /
+    mls_task_monitoring, so the standalone overview is retired as a redirect
+    (breadcrumbs that point here still resolve).
+    """
+    return redirect(url_for('admin_panel.mls_matches'))
+
+
+def _legacy_mls_overview_impl():
     from app.models import ScheduledTask, TaskState
     session = g.db_session
     try:

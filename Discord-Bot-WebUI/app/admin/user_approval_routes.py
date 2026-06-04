@@ -42,16 +42,16 @@ def test_onboarding():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def ux_test_flow():
-    """
-    Complete Onboarding UX Test - Test the entire new user journey.
-    Uses the current user's account with reset capability to simulate new user states.
-    Combines UI page links with Discord bot interaction testing.
+    """Consolidated into the single Onboarding Test Console (admin_test_onboarding).
 
-    NOTE: Intentionally NOT wrapped in @transactional. This route mixes DB
-    writes with synchronous HTTP calls to other services (10–30s timeouts),
-    and a wrapping transaction would extend past idle_in_transaction_session_timeout.
-    DB writes via g.db_session are committed by the request teardown handler.
+    The two QA consoles overlapped almost entirely (same bot HTTP calls + state
+    resets); the Discord-section 'Onboarding Test Console' is canonical. Kept as a
+    redirect so old bookmarks/links resolve.
     """
+    return redirect(url_for('admin.discord_onboarding.admin_test_onboarding'))
+
+
+def _legacy_ux_test_flow_impl():
     import requests
     from datetime import datetime
 

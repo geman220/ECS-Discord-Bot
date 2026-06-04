@@ -48,9 +48,22 @@ def substitute_management():
             user_agent=request.headers.get('User-Agent')
         )
 
+        from app.utils.substitute_helpers import ACTIVE_SUB_STATUSES, actionable_sub_cutoff_date
+
         # Get filter parameters
         show_requested = request.args.get('show_requested', 'all')
         week_filter = request.args.get('week', type=int)
+        # request_scope controls which requests the LIST shows. The KPI stat cards
+        # always reflect the real-current (actionable) numbers regardless of this.
+        #   active (default) — still staffable: match not past the grace window
+        #   past            — active-status requests whose match already happened (clean-up / retroactive)
+        #   all             — every non-terminal request this season
+        request_scope = request.args.get('request_scope', 'active')
+        if request_scope not in ('active', 'past', 'all'):
+            request_scope = 'active'
+
+        # Earliest match date still worth staffing (today minus the grace window).
+        actionable_cutoff = actionable_sub_cutoff_date()
 
         # Get current Pub League season IDs for filtering
         current_seasons = Season.query.filter_by(is_current=True).all()
@@ -71,8 +84,9 @@ def substitute_management():
 
         upcoming_matches = upcoming_matches_query.limit(20).all()
 
-        # Get substitute requests filtered to current season
-        sub_requests_query = SubstituteRequest.query.options(
+        # Base query: non-terminal requests in the current season(s). The grace-window
+        # date filter is layered on per scope so the list and the KPI stats stay in lockstep.
+        sub_requests_base = SubstituteRequest.query.options(
             joinedload(SubstituteRequest.match).joinedload(Match.home_team),
             joinedload(SubstituteRequest.match).joinedload(Match.away_team),
             joinedload(SubstituteRequest.team),
@@ -83,15 +97,33 @@ def substitute_management():
         ).join(
             Schedule, Match.schedule_id == Schedule.id
         ).filter(
-            SubstituteRequest.status.in_(['OPEN', 'PENDING', 'APPROVED']),
-            Schedule.season_id.in_(current_season_ids),
-            # Exclude requests whose match already happened — past-match OPEN requests
-            # aren't actionable and were cluttering the queue. The nightly
-            # expire_past_match_sub_requests task also marks these EXPIRED for good.
-            Match.date >= datetime.utcnow().date()
-        ).order_by(SubstituteRequest.created_at.desc())
+            SubstituteRequest.status.in_(list(ACTIVE_SUB_STATUSES)),
+            Schedule.season_id.in_(current_season_ids)
+        )
 
-        sub_requests = sub_requests_query.limit(50).all()
+        # Actionable = still staffable (match not past the grace window). This drives
+        # the KPI band's real-current numbers no matter which scope the list shows.
+        actionable_requests = sub_requests_base.filter(
+            Match.date >= actionable_cutoff
+        ).order_by(SubstituteRequest.created_at.desc()).all()
+
+        # Past-unresolved = active-status requests whose match already happened. Surfaced
+        # so an admin can retroactively assign or close them out, but excluded from counts.
+        past_unresolved_count = sub_requests_base.filter(
+            Match.date < actionable_cutoff
+        ).count()
+
+        # The list shown follows request_scope; the default reuses the actionable set.
+        if request_scope == 'past':
+            sub_requests = sub_requests_base.filter(
+                Match.date < actionable_cutoff
+            ).order_by(SubstituteRequest.created_at.desc()).limit(100).all()
+        elif request_scope == 'all':
+            sub_requests = sub_requests_base.order_by(
+                SubstituteRequest.created_at.desc()
+            ).limit(100).all()
+        else:
+            sub_requests = actionable_requests
 
         # Batch-query RSVP counts per requesting team for each sub request
         rsvp_counts = {}
@@ -152,7 +184,9 @@ def substitute_management():
         # Sort by name
         available_subs.sort(key=lambda s: s['name'])
 
-        # Calculate statistics (scoped to current season)
+        # ── KPI stats: always derived from the actionable set so every card on the
+        # page agrees with itself and with the admin dashboard, regardless of which
+        # scope the list below is showing. ──
         total_requests = SubstituteRequest.query.join(
             Match, SubstituteRequest.match_id == Match.id
         ).join(
@@ -161,20 +195,28 @@ def substitute_management():
             Schedule.season_id.in_(current_season_ids)
         ).count()
 
-        active_requests = SubstituteRequest.query.join(
-            Match, SubstituteRequest.match_id == Match.id
-        ).join(
-            Schedule, Match.schedule_id == Schedule.id
-        ).filter(
-            SubstituteRequest.status.in_(['OPEN', 'PENDING', 'APPROVED']),
-            Schedule.season_id.in_(current_season_ids)
-        ).count()
+        filled_slots = 0
+        need_slots = 0
+        fully_staffed = 0
+        for req in actionable_requests:
+            filled = len(req.assignments) if req.assignments else 0
+            needed = req.substitutes_needed or 0
+            filled_slots += filled
+            need_slots += needed
+            if filled >= needed:
+                fully_staffed += 1
+        open_slots = need_slots - filled_slots if need_slots > filled_slots else 0
 
         stats = {
             'total_requests': total_requests,
-            'active_requests': active_requests,
+            'active_requests': len(actionable_requests),
             'available_subs': len(available_subs),
-            'upcoming_matches': len(upcoming_matches)
+            'upcoming_matches': len(upcoming_matches),
+            'open_slots': open_slots,
+            'filled_slots': filled_slots,
+            'need_slots': need_slots,
+            'fully_staffed': fully_staffed,
+            'past_unresolved': past_unresolved_count,
         }
 
         # Group requests by match for easier template processing
@@ -207,7 +249,8 @@ def substitute_management():
             requested_teams_by_match=requested_teams_by_match,
             weeks=weeks,
             current_week=current_week,
-            show_requested=show_requested
+            show_requested=show_requested,
+            request_scope=request_scope
         )
     except Exception as e:
         logger.error(f"Error loading substitute management: {e}", exc_info=True)

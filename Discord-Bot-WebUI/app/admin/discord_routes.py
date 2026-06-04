@@ -8,7 +8,7 @@ This module contains routes for Discord role synchronization and management.
 
 import logging
 from datetime import datetime
-from flask import jsonify, g, render_template, request, current_app
+from flask import jsonify, g, render_template, request, current_app, redirect, url_for
 from flask_login import login_required
 from sqlalchemy.orm import joinedload
 from app.decorators import role_required
@@ -114,9 +114,18 @@ def mass_update_discord_roles():
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def discord_management():
+    """Legacy 'Discord Join Status' page — consolidated into admin_panel.discord_players.
+
+    The new Discord Players page runs the same query (players with a discord_id,
+    filterable by server-membership status) and is a superset (search/sort/filter
+    plus per-player Email + Send-Discord-DM actions ported over), so this route now
+    redirects there. Kept as a redirect (not deleted) so old bookmarks/links resolve.
     """
-    Discord Management Dashboard - Shows players not in Discord server with contact options.
-    """
+    return redirect(url_for('admin_panel.discord_players'))
+
+
+def _legacy_discord_management_impl():
+    """Original implementation, retained for reference; no longer routed."""
     session = g.db_session
     try:
         # Get pagination parameters

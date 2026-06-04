@@ -13,6 +13,7 @@ from flask import render_template, flash, redirect, url_for
 from flask_login import login_required
 
 from app.admin_panel import admin_panel_bp
+from app.core import db
 from app.decorators import role_required
 
 logger = logging.getLogger(__name__)
@@ -53,29 +54,52 @@ def match_operations():
         # Active seasons
         active_seasons = Season.query.filter_by(is_current=True).count()
 
-        # Live matches (matches happening today)
+        # Live matches = matches actually being live-reported right now (real
+        # LiveMatch/EcsFcLiveMatch state), NOT "scheduled today". This is the same
+        # concept as the dashboard's "live matches in progress" (MLS sessions),
+        # sourced from our own socket-driven reporting. Shared helper keeps this
+        # count identical to the Live Matches page it links to.
         today = datetime.utcnow().date()
-        live_matches = base_query.filter(Match.date == today).count()
+        from app.services.live_reporting.live_match_queries import count_live_matches
+        live_matches = count_live_matches(db.session)
+
+        # Matches scheduled today (context KPI, distinct from "live now")
+        matches_today = base_query.filter(Match.date == today).count()
 
         # Recent match activity (last 7 days)
         week_ago = datetime.utcnow().date() - timedelta(days=7)
         recent_matches = base_query.filter(Match.date >= week_ago).count()
 
-        # Match completion rate
+        # Match completion rate. Match has no 'status' column, so the old
+        # hasattr(Match, 'status') check was always False and fell back to
+        # completed = past_matches → a hardcoded 100%. Measure completion by an
+        # actual result being entered (both scores present), mirroring the
+        # dashboard's "awaiting a result" logic. Special weeks (BYE/FUN/TST) never
+        # carry a score, so they're excluded from BOTH sides rather than dragging
+        # the rate down.
+        recordable_matches = base_query.filter(
+            Match.date < datetime.utcnow().date(),
+            Match.is_special_week.is_(False)
+        ).count()
         completed_matches = base_query.filter(
             Match.date < datetime.utcnow().date(),
-            Match.status == 'completed'
-        ).count() if hasattr(Match, 'status') else past_matches
+            Match.is_special_week.is_(False),
+            Match.home_team_score.isnot(None),
+            Match.away_team_score.isnot(None)
+        ).count()
 
-        completion_rate = round((completed_matches / past_matches * 100), 1) if past_matches > 0 else 0
+        completion_rate = round((completed_matches / recordable_matches * 100), 1) if recordable_matches > 0 else 0
 
         stats = {
             'total_matches': total_matches,
             'upcoming_matches': upcoming_matches,
             'past_matches': past_matches,
+            'recordable_matches': recordable_matches,
+            'completed_matches': completed_matches,
             'teams_count': teams_count,
             'active_leagues': active_leagues,
             'live_matches': live_matches,
+            'matches_today': matches_today,
             'active_seasons': active_seasons,
             'recent_matches': recent_matches,
             'completion_rate': f"{completion_rate}%",

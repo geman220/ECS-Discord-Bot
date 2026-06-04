@@ -373,7 +373,15 @@ def mobile_users():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def push_campaigns():
-    """Manage push notification campaigns."""
+    """Consolidated into the canonical campaigns system (campaigns_list).
+
+    This Mobile-section page duplicated the PushNotificationCampaign rows owned by
+    admin_panel.campaigns_list, so it is retired as a redirect.
+    """
+    return redirect(url_for('admin_panel.campaigns_list'))
+
+
+def _legacy_push_campaigns_impl():
     try:
         # Log the access to push campaigns
         AdminAuditLog.log_action(

@@ -145,10 +145,6 @@ def _build_admin_search_index():
          'url': url_for('admin_panel.substitute_pools'), 'icon': 'ti-users'},
 
         # --- Pub League: Draft ---
-        {'name': 'Draft Overview', 'category': 'Pub League', 'subcategory': 'Draft',
-         'description': 'Overview of player draft status and board',
-         'keywords': ['picks', 'selections', 'draft board'],
-         'url': url_for('admin_panel.draft_overview'), 'icon': 'ti-layout-grid'},
         {'name': 'Draft History', 'category': 'Pub League', 'subcategory': 'Draft',
          'description': 'View past draft results and picks',
          'keywords': ['past drafts', 'previous', 'archive'],
