@@ -27,9 +27,12 @@ def match_operations():
     try:
         from app.models import Match, Team, Season, League, Schedule
         from app.utils.special_weeks import get_special_week_display_name
+        from app.utils.season_context import current_pub_league_season
 
-        # Get current season
-        current_season = Season.query.filter_by(is_current=True).first()
+        # The hub is a Pub-League operations board (internal team-vs-team fixtures),
+        # so default to the current Pub League season — never an arbitrary is_current
+        # season (which could be the ECS FC one and show an empty/wrong board).
+        current_season = current_pub_league_season()
 
         # Base query for current season matches
         base_query = Match.query

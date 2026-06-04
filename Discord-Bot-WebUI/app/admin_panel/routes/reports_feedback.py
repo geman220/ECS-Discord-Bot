@@ -732,7 +732,7 @@ def recalculate_statistics():
         data = request.get_json()
         scope = data.get('scope', 'all')
 
-        current_season = session.query(Season).filter_by(is_current=True).first()
+        current_season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
         if not current_season:
             return jsonify({'success': False, 'error': 'No current season found'}), 400
 
@@ -797,7 +797,7 @@ def export_statistics():
         export_type = data.get('type', 'all')
         export_format = data.get('format', 'csv')
 
-        current_season = session.query(Season).filter_by(is_current=True).first()
+        current_season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
         if not current_season:
             return jsonify({'success': False, 'error': 'No current season found'}), 400
 
@@ -857,7 +857,7 @@ def export_statistics():
 def _get_match_stats(session):
     """Generate comprehensive match statistics."""
     try:
-        current_season = session.query(Season).filter_by(is_current=True).first()
+        current_season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
         if not current_season:
             return {"status": "no_season", "stats": []}
 

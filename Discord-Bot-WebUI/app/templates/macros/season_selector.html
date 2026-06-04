@@ -1,0 +1,27 @@
+{# ============================================================================
+   SEASON SELECTOR (Pub League)
+   ----------------------------------------------------------------------------
+   A GET form that lets an admin switch the viewed Pub League season (default =
+   current, plus all past seasons for history). Submits ?season_id= to the
+   current page. Pub-League pages only — ECS FC is a disjoint set of teams vs
+   external opponents and has no league-table season view.
+
+   Usage:
+     {% from 'macros/season_selector.html' import season_selector %}
+     {{ season_selector(seasons, selected_season) }}
+   ============================================================================ #}
+{% macro season_selector(seasons, selected_season, label='Season') %}
+{% if seasons and seasons|length %}
+<form method="GET" class="inline-flex items-center gap-2" aria-label="Select season">
+  {# Preserve other active filters (league, week, status, …) when switching season. #}
+  {% for k, v in request.args.items() %}{% if k != 'season_id' and k != 'page' %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+  <label for="season_id" class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ label }}</label>
+  <select id="season_id" name="season_id" onchange="this.form.submit()"
+          class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm font-medium text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    {% for s in seasons %}
+    <option value="{{ s.id }}" {% if selected_season and s.id == selected_season.id %}selected{% endif %}>{{ s.name }}{% if s.is_current %} — current{% endif %}</option>
+    {% endfor %}
+  </select>
+</form>
+{% endif %}
+{% endmacro %}

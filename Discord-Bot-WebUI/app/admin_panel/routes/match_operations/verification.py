@@ -50,11 +50,11 @@ def match_verification():
             user_agent=request.headers.get('User-Agent')
         )
 
-        # Get current Pub League season
-        current_season = Season.query.filter_by(is_current=True, league_type="Pub League").first()
-        if not current_season:
-            # Fallback to any current season
-            current_season = Season.query.filter_by(is_current=True).first()
+        # Resolve the viewed Pub League season (a requested historical season via
+        # ?season_id=, else the current one). Match verification is a Pub-League
+        # concept, so this never falls back to an arbitrary is_current season.
+        from app.utils.season_context import pub_league_season_context
+        current_season, seasons = pub_league_season_context(request.args.get('season_id'))
 
         if not current_season:
             flash('No current season found. Contact an administrator.', 'warning')
@@ -67,6 +67,7 @@ def match_verification():
                 current_league_id=None,
                 current_verification_status='all',
                 current_season=None,
+                seasons=seasons,
                 verifiable_teams={},
                 is_coach=False
             )
@@ -220,6 +221,7 @@ def match_verification():
             current_league_id=int(current_league_id) if current_league_id else None,
             current_verification_status=current_verification_status,
             current_season=current_season,
+            seasons=seasons,
             verifiable_teams=verifiable_teams,
             is_coach=is_coach
         )

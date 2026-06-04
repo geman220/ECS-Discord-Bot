@@ -286,12 +286,12 @@ def test_api_endpoint_legacy():
 def _get_api_endpoints():
     """Get all API endpoints from the Flask application"""
     try:
-        from app import create_app
-        
         endpoints = []
-        
-        # This is a static list of known API endpoints from our codebase analysis
-        # In a real implementation, you would dynamically discover these from Flask's routing
+
+        # Curated metadata (descriptions + auth level) for notable API endpoints —
+        # hand-written because they're more accurate than we can infer at runtime.
+        # The endpoint LIST itself is derived from current_app.url_map below (so it
+        # can't drift from the registered routes); this dict just enriches known paths.
         known_endpoints = [
             {
                 'path': '/api/discord_bot_last_online',
@@ -423,18 +423,71 @@ def _get_api_endpoints():
             }
         ]
         
-        for endpoint_data in known_endpoints:
-            endpoint_data['last_used'] = datetime.utcnow() - timedelta(
-                hours=hash(endpoint_data['path']) % 24
-            )
-            endpoint_data['request_count'] = hash(endpoint_data['path']) % 1000 + 100
-            endpoint_data['avg_response_time'] = (hash(endpoint_data['path']) % 500 + 50) / 1000
-            endpoints.append(endpoint_data)
-        
+        # Derive the actual endpoint list from Flask's URL map so it can't drift from
+        # the registered routes. Known paths keep their curated description/auth; any
+        # other /api route falls back to its docstring + decorator-based auth detection.
+        from flask import current_app
+        from app.models import APIRequestLog
+
+        curated = {e['path']: e for e in known_endpoints}
+        seen = set()
+        for rule in current_app.url_map.iter_rules():
+            path = str(rule.rule)
+            if not path.startswith('/api') or path in seen:
+                continue
+            seen.add(path)
+
+            meta = curated.get(path)
+            if meta:
+                entry = dict(meta)
+            else:
+                view = current_app.view_functions.get(rule.endpoint)
+                doc = ''
+                if view is not None and view.__doc__:
+                    doc = view.__doc__.strip().splitlines()[0].strip()
+                entry = {
+                    'path': path,
+                    'methods': sorted(m for m in (rule.methods or set()) if m not in ('HEAD', 'OPTIONS')),
+                    'blueprint': rule.endpoint.rsplit('.', 1)[0] if '.' in rule.endpoint else '',
+                    'description': doc,
+                    'status': 'active',
+                    # role_required marks the view (role_decorated); we can't read the
+                    # specific roles, so report 'required' vs 'public' honestly.
+                    'authentication': 'required' if getattr(view, 'role_decorated', False) else 'public',
+                }
+            endpoints.append(entry)
+
+        # Enrich each endpoint with REAL traffic metrics from APIRequestLog. Logged
+        # request paths are concrete (e.g. /api/player_profile/5) while route paths are
+        # templated (/api/player_profile/<int:player_id>), so parameterized routes are
+        # matched with a LIKE pattern. Endpoints with no recorded traffic honestly show
+        # 0 requests / "Never" last-used — no fabricated numbers.
+        for endpoint_data in endpoints:
+            path = endpoint_data['path']
+            if '<' in path:
+                traffic_filter = APIRequestLog.endpoint_path.like(re.sub(r'<[^>]+>', '%', path))
+            else:
+                traffic_filter = (APIRequestLog.endpoint_path == path)
+
+            try:
+                count, avg_ms, last = db.session.query(
+                    func.count(APIRequestLog.id),
+                    func.avg(APIRequestLog.response_time_ms),
+                    func.max(APIRequestLog.timestamp),
+                ).filter(traffic_filter).first()
+            except Exception as metric_err:
+                logger.warning(f"API metrics unavailable for {path}: {metric_err}")
+                count, avg_ms, last = 0, None, None
+
+            endpoint_data['request_count'] = int(count or 0)
+            # response_time_ms is milliseconds; the Endpoints table renders seconds.
+            endpoint_data['avg_response_time'] = round(float(avg_ms) / 1000.0, 3) if avg_ms is not None else 0
+            endpoint_data['last_used'] = last
+
         return sorted(endpoints, key=lambda x: x['path'])
-        
+
     except Exception as e:
-        print(f"Error getting API endpoints: {e}")
+        logger.error(f"Error getting API endpoints: {e}")
         return []
 
 

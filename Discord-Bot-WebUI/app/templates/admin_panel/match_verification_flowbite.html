@@ -1,6 +1,7 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert %}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+{% from 'macros/season_selector.html' import season_selector %}
 
 {% block admin_title %}Match Verification{% endblock %}
 {% block panel_description %}Review and verify match results{% endblock %}
@@ -35,6 +36,7 @@
 
 {# --- Header + command toolbar: ONE primary job = clear the verification backlog --- #}
 {% call page_header("Match Verification", subtitle="Match Operations") %}
+    {{ season_selector(seasons, current_season) }}
     <span class="hidden sm:inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg text-xs font-mono font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" aria-hidden="true">
         <i class="ti ti-checkup-list text-ecs-green"></i>{{ fully_verified }}/{{ reported_count }} verified
     </span>
@@ -120,6 +122,7 @@
         </div>
         {# --- Filter command bar (GET form, dense) --- #}
         <form method="GET" class="flex flex-wrap items-center gap-2">
+            <input type="hidden" name="season_id" value="{{ current_season.id if current_season }}">
             <div class="relative flex-1 min-w-[160px]">
                 <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
                 <input type="search" id="matchFilter" placeholder="Filter shown matches…" class="input-ecs h-9 pl-9 pr-3 text-sm w-full" aria-label="Filter shown matches">

@@ -111,8 +111,9 @@ def manage_leagues():
 def league_standings():
     """View league standings."""
     try:
-        from app.models import Team, Season, League
+        from app.models import Team, League
         from app.models.stats import Standings
+        from app.utils.season_context import pub_league_season_context
 
         # Log the access to league standings
         AdminAuditLog.log_action(
@@ -125,11 +126,14 @@ def league_standings():
             user_agent=request.headers.get('User-Agent')
         )
 
-        # Get current season
-        current_season = Season.query.filter_by(is_current=True).first()
+        # Resolve the viewed Pub League season: a requested historical season via
+        # ?season_id=, else the current Pub League season. Standings is a
+        # Pub-League-only concept (ECS FC plays EXTERNAL opponents and has no
+        # league table), so we never fall back to an arbitrary is_current season.
+        current_season, seasons = pub_league_season_context(request.args.get('season_id'))
 
         if not current_season:
-            flash('No active season found. Please create a season first.', 'warning')
+            flash('No current Pub League season found. Please create one first.', 'warning')
             return redirect(url_for('admin_panel.match_operations'))
 
         # Teams in the current season (kept even with no Standings row yet, so
@@ -181,7 +185,8 @@ def league_standings():
         standings_data = {
             'current_season': current_season,
             'standings': standings,
-            'total_teams': len(teams)
+            'total_teams': len(teams),
+            'seasons': seasons,
         }
 
         return render_template('admin_panel/match_operations/league_standings_flowbite.html',

@@ -49,7 +49,9 @@ def draft_history():
     try:
         seasons = db.session.query(Season).order_by(desc(Season.id)).all()
         leagues = db.session.query(League).distinct(League.name).order_by(League.name).all()
-        current_season = db.session.query(Season).filter_by(is_current=True).first()
+        # Draft is a Pub League concept — default to the current Pub League season,
+        # not an arbitrary is_current season (which could be the ECS FC one).
+        current_season = db.session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
 
         season_filter = request.args.get('season', type=int)
         league_filter = request.args.get('league')

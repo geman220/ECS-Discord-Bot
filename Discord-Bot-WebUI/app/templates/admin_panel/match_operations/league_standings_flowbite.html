@@ -23,6 +23,7 @@
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state, alert as kit_alert %}
+{% from 'macros/season_selector.html' import season_selector %}
 
 {# Real aggregates derived from the provided standings dicts (no fabricated fields) #}
 {% set rows = standings_data.standings or [] %}
@@ -33,6 +34,7 @@
 {% set total_pts = rows | sum(attribute='points') %}
 
 {% call(slot) page_header("League Standings", subtitle=(standings_data.current_season.name ~ " · Match Operations") if standings_data.current_season else "Match Operations") %}
+  {{ season_selector(standings_data.seasons, standings_data.current_season) }}
   <a href="{{ url_for('admin_panel.view_matches') }}"
      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg
             border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold

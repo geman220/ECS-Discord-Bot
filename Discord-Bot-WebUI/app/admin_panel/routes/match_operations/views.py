@@ -37,10 +37,11 @@ def view_matches():
     try:
         from app.models import Match, Team, Season, League, Schedule
 
-        # Get current Pub League season
-        current_season = Season.query.filter_by(is_current=True, league_type="Pub League").first()
-        if not current_season:
-            current_season = Season.query.filter_by(is_current=True).first()
+        # Resolve the viewed Pub League season (a requested historical season via
+        # ?season_id=, else the current one). The matches browser is Pub-League-only
+        # (internal team-vs-team), so this never falls back to an arbitrary season.
+        from app.utils.season_context import pub_league_season_context
+        current_season, seasons = pub_league_season_context(request.args.get('season_id'))
 
         # Get pagination parameters
         page = request.args.get('page', 1, type=int)
@@ -160,6 +161,7 @@ def view_matches():
             current_week=week_filter,
             current_status=status_filter,
             current_season=current_season,
+            seasons=seasons,
             today_date=datetime.utcnow().date()
         )
     except Exception as e:

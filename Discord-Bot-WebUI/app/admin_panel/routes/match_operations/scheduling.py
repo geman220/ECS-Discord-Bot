@@ -47,10 +47,10 @@ def schedule_matches():
             user_agent=request.headers.get('User-Agent')
         )
 
-        # Get current Pub League season
-        current_season = db.session.query(Season).filter_by(is_current=True, league_type="Pub League").first()
-        if not current_season:
-            current_season = db.session.query(Season).filter_by(is_current=True).first()
+        # Pub League scheduling tool — default to the current Pub League season
+        # (a creation tool, so current-only; never an arbitrary is_current season).
+        from app.utils.season_context import current_pub_league_season
+        current_season = current_pub_league_season()
 
         # Get filter parameter
         league_filter = request.args.get('league_id', type=int)
