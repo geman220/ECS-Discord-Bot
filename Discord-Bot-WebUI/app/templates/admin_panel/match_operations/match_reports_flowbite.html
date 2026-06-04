@@ -188,12 +188,12 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {% call section_card('Result Distribution', icon='ti-chart-pie') %}
           <div class="p-4 sm:p-5">
-            <div class="h-64"><canvas id="matchStatusChart"></canvas></div>
+            <div class="relative h-64"><canvas id="matchStatusChart"></canvas></div>
           </div>
         {% endcall %}
         {% call section_card('Matches per Week', icon='ti-chart-line') %}
           <div class="p-4 sm:p-5">
-            <div class="h-64"><canvas id="matchesPerWeekChart"></canvas></div>
+            <div class="relative h-64"><canvas id="matchesPerWeekChart"></canvas></div>
           </div>
         {% endcall %}
       </div>
@@ -650,7 +650,7 @@
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             <i class="ti ti-chart-pie mr-2"></i>Match Status Distribution
         </h5>
-        <div class="h-64">
+        <div class="relative h-64">
             <canvas id="matchStatusChart"></canvas>
         </div>
     </div>
@@ -658,7 +658,7 @@
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             <i class="ti ti-chart-line mr-2"></i>Matches per Week
         </h5>
-        <div class="h-64">
+        <div class="relative h-64">
             <canvas id="matchesPerWeekChart"></canvas>
         </div>
     </div>

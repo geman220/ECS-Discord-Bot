@@ -117,7 +117,9 @@
       </div>
       {% if analytics.daily_requests %}
       <div class="p-4 sm:p-5">
-        <canvas id="requestsChart" height="100"></canvas>
+        <div class="relative h-[260px]">
+          <canvas id="requestsChart"></canvas>
+        </div>
       </div>
       {% else %}
       <canvas id="requestsChart" class="hidden"></canvas>
@@ -132,7 +134,9 @@
       </div>
       {% if error_analysis.error_types %}
       <div class="p-4 sm:p-5">
-        <canvas id="errorChart" height="200"></canvas>
+        <div class="relative h-[240px]">
+          <canvas id="errorChart"></canvas>
+        </div>
       </div>
       {% else %}
       <canvas id="errorChart" class="hidden"></canvas>
@@ -424,7 +428,9 @@
             </h5>
         </div>
         <div class="p-5">
-            <canvas id="requestsChart" height="100"></canvas>
+            <div class="relative h-[260px]">
+                <canvas id="requestsChart"></canvas>
+            </div>
         </div>
     </div>
 
@@ -436,7 +442,9 @@
             </h5>
         </div>
         <div class="p-5">
-            <canvas id="errorChart" height="200"></canvas>
+            <div class="relative h-[240px]">
+                <canvas id="errorChart"></canvas>
+            </div>
         </div>
     </div>
 </div>

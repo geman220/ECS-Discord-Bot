@@ -223,7 +223,9 @@
     <div class="p-4 sm:p-5">
       <div class="flex items-center justify-center mb-5">
         <div class="w-full max-w-[220px]">
-          <canvas id="roleDistributionChart" height="200"></canvas>
+          <div class="relative h-[240px]">
+            <canvas id="roleDistributionChart"></canvas>
+          </div>
         </div>
       </div>
       <div class="flex items-baseline justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
@@ -619,7 +621,9 @@
     <div class="p-6">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2">
-                <canvas id="roleDistributionChart" height="200"></canvas>
+                <div class="relative h-[240px]">
+                    <canvas id="roleDistributionChart"></canvas>
+                </div>
             </div>
             <div class="space-y-3">
                 {% for role, count in role_stats.items() %}

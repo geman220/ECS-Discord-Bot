@@ -119,7 +119,9 @@
             </div>
             <div class="p-4 sm:p-5 flex-1">
                 {% if analytics.daily_orders %}
-                <canvas id="ordersChart" height="120"></canvas>
+                <div class="relative h-[260px]">
+                    <canvas id="ordersChart"></canvas>
+                </div>
                 {% else %}
                 {{ empty_state('ti-chart-line', 'No order activity', 'No orders were placed in the selected period.') }}
                 {% endif %}
@@ -136,7 +138,9 @@
             </div>
             {% if analytics.status_stats %}
             <div class="p-4 sm:p-5">
-                <canvas id="statusChart" height="180"></canvas>
+                <div class="relative h-[240px]">
+                    <canvas id="statusChart"></canvas>
+                </div>
             </div>
             {# real per-status breakdown — tokened dense rows from status_stats, not just the canvas legend #}
             <ul class="border-t border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700" role="list">
@@ -358,7 +362,9 @@
             </h3>
         </div>
         <div class="p-6">
-            <canvas id="ordersChart" height="120"></canvas>
+            <div class="relative h-[260px]">
+                <canvas id="ordersChart"></canvas>
+            </div>
         </div>
     </div>
 
@@ -371,7 +377,9 @@
             </h3>
         </div>
         <div class="p-6">
-            <canvas id="statusChart" height="200"></canvas>
+            <div class="relative h-[240px]">
+                <canvas id="statusChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
