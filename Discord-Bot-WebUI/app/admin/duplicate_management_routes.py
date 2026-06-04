@@ -31,7 +31,16 @@ duplicate_management = Blueprint('duplicate_management', __name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def duplicate_registrations():
-    """Display pending duplicate registration alerts for admin review."""
+    """Legacy duplicate-registrations LIST page — superseded by admin_panel.duplicate_registrations.
+
+    Only this list view is retired; the merge/resolve/detail/stats action endpoints in
+    this blueprint are still used by the canonical admin-panel page, so they stay.
+    Kept as a redirect so the old (non-nav) URL keeps resolving.
+    """
+    return redirect(url_for('admin_panel.duplicate_registrations'))
+
+
+def _legacy_duplicate_registrations_impl():
     try:
         # Get all pending alerts ordered by confidence score (highest first)
         pending_alerts = db.session.query(DuplicateRegistrationAlert).options(

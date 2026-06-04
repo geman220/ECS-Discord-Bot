@@ -86,6 +86,19 @@ def view_matches():
                     Match.home_team_score != None,
                     or_(Match.home_team_verified == False, Match.away_team_verified == False)
                 )
+            elif status_filter == 'results':
+                # Reported matches (both scores entered) — the old "Match Results" completed list.
+                query = query.filter(
+                    Match.home_team_score != None,
+                    Match.away_team_score != None
+                )
+            elif status_filter == 'awaiting_score':
+                # Past matches still missing a score — the old "Match Results" pending list.
+                query = query.filter(
+                    Match.date <= datetime.utcnow().date(),
+                    Match.home_team_score == None,
+                    Match.away_team_score == None
+                )
 
         # Apply league filter (filter by team's league)
         if league_filter:
@@ -159,7 +172,16 @@ def view_matches():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def upcoming_matches():
-    """View upcoming matches."""
+    """Consolidated into the unified Matches page — redirect to its Upcoming preset.
+
+    The View Matches page (admin_panel.view_matches) already supports status=upcoming
+    plus league/week/date filters and forward-looking KPI cards, so this standalone
+    page is retired but kept as a redirect for old links/bookmarks.
+    """
+    return redirect(url_for('admin_panel.view_matches', status='upcoming'))
+
+
+def _legacy_upcoming_matches_impl():
     try:
         from app.models import Match, Team, Season, League, Schedule
 
@@ -227,7 +249,16 @@ def upcoming_matches():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def match_results():
-    """View match results."""
+    """Consolidated into the unified Matches page — redirect to its Results preset.
+
+    The View Matches page now exposes a 'Results (reported)' and an 'Awaiting Score'
+    status preset that reproduce this page's completed + pending lists, and it carries
+    the same per-row score-entry action, so this page is retired (kept as a redirect).
+    """
+    return redirect(url_for('admin_panel.view_matches', status='results'))
+
+
+def _legacy_match_results_impl():
     try:
         from app.models.matches import Match
 
@@ -273,70 +304,88 @@ def match_results():
         return redirect(url_for('admin_panel.match_operations'))
 
 
+LIVE_MATCHES_PAGE_ROLES = [
+    'Global Admin', 'Pub League Admin', 'ECS FC Admin', 'Pub League Ref',
+    'ECS FC Coach', 'Pub League Coach',
+]
+
+
+def _live_match_view_context():
+    """Shared payload for the Live Matches page + its JSON refresh endpoint.
+
+    `live` = matches actually being reported right now (real LiveMatch /
+    EcsFcLiveMatch state, both leagues) via the single shared helper. `today`
+    counts are context only. `v2_enabled` tells the client whether to upgrade
+    to instant socket push; `observer_eligible` gates that join to admin/ref.
+    """
+    from app.services.live_reporting.live_match_queries import get_live_match_overviews
+    from app.services.live_reporting.live_match_roles import is_admin_or_ref
+    from app.models import Match, Season, Schedule
+    from web_config import Config
+
+    live = get_live_match_overviews(db.session)
+
+    today = datetime.utcnow().date()
+    current_season = Season.query.filter_by(is_current=True).first()
+    today_q = Match.query.filter(Match.date == today)
+    if current_season:
+        today_q = today_q.join(Schedule).filter(Schedule.season_id == current_season.id)
+    scheduled_today = today_q.count()
+
+    return {
+        'live': live,
+        'stats': {
+            'in_progress': len(live),
+            'scheduled_today': scheduled_today,
+        },
+        'v2_enabled': bool(getattr(Config, 'LIVE_MATCH_STATE_V2_ENABLED', False)),
+        'observer_eligible': is_admin_or_ref(current_user),
+    }
+
+
 @admin_panel_bp.route('/match-operations/live')
 @login_required
-@role_required(['Global Admin', 'Pub League Admin'])
+@role_required(LIVE_MATCHES_PAGE_ROLES)
 def live_matches():
-    """View live matches."""
+    """Monitor matches being live-reported right now (Pub League + ECS FC)."""
     try:
-        from app.models import Match, Team, Season, League, Schedule
-
-        # Get current season
-        current_season = Season.query.filter_by(is_current=True).first()
-
-        # Get today's matches (considered "live" if happening today)
-        today = datetime.utcnow().date()
-        query = Match.query.filter(Match.date == today)
-
-        # Filter by current season if available
-        if current_season:
-            query = query.join(Schedule).filter(Schedule.season_id == current_season.id)
-
-        live_matches_list = query.order_by(Match.time.asc()).all()
-
-        # Get matches in progress (if we have status tracking)
-        in_progress = []
-        upcoming_today = []
-        completed_today = []
-
-        current_time = datetime.utcnow().time()
-
-        for match in live_matches_list:
-            if hasattr(match, 'status'):
-                if match.status == 'in_progress':
-                    in_progress.append(match)
-                elif match.status == 'completed':
-                    completed_today.append(match)
-                else:
-                    upcoming_today.append(match)
-            else:
-                # Fallback logic based on time
-                if match.time and match.time <= current_time:
-                    # Assume match duration of 90 minutes
-                    match_end_time = (datetime.combine(today, match.time) + timedelta(minutes=90)).time()
-                    if current_time <= match_end_time:
-                        in_progress.append(match)
-                    else:
-                        completed_today.append(match)
-                else:
-                    upcoming_today.append(match)
-
-        stats = {
-            'total_today': len(live_matches_list),
-            'in_progress': len(in_progress),
-            'upcoming_today': len(upcoming_today),
-            'completed_today': len(completed_today)
-        }
-
-        return render_template('admin_panel/match_operations/live_matches_flowbite.html',
-                               in_progress=in_progress,
-                               upcoming_today=upcoming_today,
-                               completed_today=completed_today,
-                               stats=stats)
+        ctx = _live_match_view_context()
+        return render_template('admin_panel/match_operations/live_matches_flowbite.html', **ctx)
     except Exception as e:
-        logger.error(f"Error loading live matches: {e}")
-        flash('Live matches unavailable. Verify database connection and match status data.', 'error')
+        logger.error(f"Error loading live matches: {e}", exc_info=True)
+        flash('Live matches unavailable. Verify database connection and live-reporting tables.', 'error')
         return redirect(url_for('admin_panel.match_operations'))
+
+
+@admin_panel_bp.route('/match-operations/live/data')
+@login_required
+@role_required(LIVE_MATCHES_PAGE_ROLES)
+def live_matches_data():
+    """JSON snapshot of currently-live matches.
+
+    Powers the page's periodic refresh (works with V1 or V2) and the socket
+    fallback when LIVE_MATCH_STATE_V2_ENABLED is off. Datetimes are ISO strings.
+    """
+    try:
+        ctx = _live_match_view_context()
+        # Render the board with the SAME partial the page uses, so refreshed
+        # markup never drifts from the initial server render.
+        board_html = render_template(
+            'admin_panel/match_operations/_live_board.html', live=ctx['live']
+        )
+        live = []
+        for o in ctx['live']:
+            live.append({
+                'match_id': o['match_id'],
+                'league_type': o['league_type'],
+                'room': o['room'],
+            })
+        return jsonify({'success': True, 'live': live, 'stats': ctx['stats'],
+                        'html': board_html,
+                        'generated_at': datetime.utcnow().isoformat()})
+    except Exception as e:
+        logger.error(f"Error loading live matches data: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Unable to load live match data'}), 500
 
 
 @admin_panel_bp.route('/match-operations/reports')
@@ -366,10 +415,14 @@ def match_reports():
         # Get teams for dropdown/filtering
         teams = Team.query.all()
 
-        # Calculate basic statistics
+        # Calculate basic statistics. "Completed" = both scores entered (Match has
+        # no status column, so the old Match.status=='completed' check always read 0).
         total_matches = Match.query.count()
         recent_matches_count = len(recent_matches)
-        completed_matches = Match.query.filter(Match.status == 'completed').count() if hasattr(Match, 'status') else 0
+        completed_matches = Match.query.filter(
+            Match.home_team_score.isnot(None),
+            Match.away_team_score.isnot(None)
+        ).count()
 
         reports_data = {
             'total_matches': total_matches,

@@ -1,0 +1,63 @@
+{# Live Now board — cards for matches actively being reported.
+   Rendered both inline (initial page load) and by the /live/data refresh
+   endpoint, so the markup lives in exactly one place. Expects `live` (list of
+   dicts from get_live_match_overviews). #}
+{% if live %}
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-5">
+  {% for m in live %}
+  {% set mins = (m.elapsed_seconds // 60) %}
+  {% set secs = (m.elapsed_seconds % 60) %}
+  <div class="relative rounded-xl border border-green-300 dark:border-green-500/40 bg-green-50 dark:bg-green-500/10 p-4 overflow-hidden"
+       data-live-card data-room="{{ m.room }}" data-match-id="{{ m.match_id }}" data-league="{{ m.league_type }}">
+    <span class="absolute top-0 left-0 w-1 h-full bg-green-500" aria-hidden="true"></span>
+    <div class="flex items-center justify-between gap-2 mb-3">
+      <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-green-700 dark:text-green-400">
+        <span class="relative flex h-2 w-2" aria-hidden="true">
+          <span class="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+        </span>
+        Live
+      </span>
+      <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium
+                   {% if m.league_type == 'ecs_fc' %}bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300{% else %}bg-ecs-green/10 text-ecs-green{% endif %}">
+        {{ 'ECS FC' if m.league_type == 'ecs_fc' else 'Pub League' }}
+      </span>
+    </div>
+
+    <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
+      <div class="min-w-0 text-right">
+        <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate" title="{{ m.home_team_name }}">{{ m.home_team_name }}</span>
+        <span class="inline-flex items-center justify-center mt-1 px-1.5 h-4 rounded text-[10px] font-bold font-mono bg-green-200/70 dark:bg-green-500/20 text-green-800 dark:text-green-300" title="Home">H</span>
+      </div>
+      <span class="shrink-0 font-mono text-2xl font-extrabold text-green-700 dark:text-green-400 tabular-nums" data-live-score>
+        {{ m.home_score }}<span class="text-gray-400 dark:text-gray-500 mx-1">-</span>{{ m.away_score }}
+      </span>
+      <div class="min-w-0 text-left">
+        <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate" title="{{ m.away_team_name }}">{{ m.away_team_name }}</span>
+        <span class="inline-flex items-center justify-center mt-1 px-1.5 h-4 rounded text-[10px] font-bold font-mono bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300" title="Away">A</span>
+      </div>
+    </div>
+
+    <div class="mt-3 pt-3 border-t border-green-200 dark:border-green-500/30 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+      {% if m.league_type == 'pub' %}
+      <span class="inline-flex items-center gap-1 font-mono {{ 'text-green-700 dark:text-green-400' if m.timer_running else '' }}">
+        <i class="ti ti-clock" aria-hidden="true"></i>{{ '%d:%02d'|format(mins, secs) }}{% if m.current_period %} · {{ m.current_period|replace('_', ' ')|title }}{% endif %}
+      </span>
+      {% endif %}
+      <span class="inline-flex items-center gap-1"><i class="ti ti-list-details" aria-hidden="true"></i>{{ m.event_count }} event{{ '' if m.event_count == 1 else 's' }}</span>
+      {% if m.reporter_count %}
+      <span class="inline-flex items-center gap-1"><i class="ti ti-user-edit" aria-hidden="true"></i>{{ m.reporter_count }} reporting</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="p-8 text-center">
+  <div class="mx-auto w-12 h-12 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 mb-3">
+    <i class="ti ti-broadcast text-xl text-gray-400" aria-hidden="true"></i>
+  </div>
+  <h4 class="text-base font-medium text-gray-700 dark:text-gray-200">No matches being reported</h4>
+  <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">When a coach starts live-reporting a match, it appears here.</p>
+</div>
+{% endif %}

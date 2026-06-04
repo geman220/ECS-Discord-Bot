@@ -24,12 +24,12 @@
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state as kit_empty_state, alert as kit_alert, attention_list %}
 
-{# ── Everything below is derived from real assignment + RSVP counts. No fabricated fields. ──
+{# ── Display lists for the cards below, derived from the requests in the current
+   scope (sub_requests). The KPI band's numbers come from server-computed `stats`
+   (always the actionable set) so they don't shift when the list scope changes.
    active_open : rows still needing a body (gap > 0) — drives the Priority Fill Queue + leads the cards
    active_full : rows already fully staffed
-   Row shape: {r: request, filled, needed, gap, counts}
-   Tallies feed the KPI band. #}
-{% set ns = namespace(open_slots=0, filled_slots=0, need_slots=0, fully_filled=0) %}
+   Row shape: {r: request, filled, needed, gap, counts} #}
 {% set active_open = [] %}
 {% set active_full = [] %}
 {% for request in sub_requests %}
@@ -39,17 +39,13 @@
     {% set _gap = (_needed - _filled) if _needed > _filled else 0 %}
     {% set _counts = rsvp_counts.get(request.id, {'yes': 0, 'maybe': 0, 'no': 0}) %}
     {% set _row = {'r': request, 'filled': _filled, 'needed': _needed, 'gap': _gap, 'counts': _counts} %}
-    {% set ns.filled_slots = ns.filled_slots + _filled %}
-    {% set ns.need_slots = ns.need_slots + _needed %}
     {% if _gap > 0 %}
       {% set _ = active_open.append(_row) %}
     {% else %}
-      {% set ns.fully_filled = ns.fully_filled + 1 %}
       {% set _ = active_full.append(_row) %}
     {% endif %}
   {% endif %}
 {% endfor %}
-{% set ns.open_slots = ns.need_slots - ns.filled_slots if ns.need_slots > ns.filled_slots else 0 %}
 
 {% call(slot) page_header("Substitute Management", subtitle="Match Operations") %}
   {# TODO backend: the mock has a page-level "Contact Subs" primary button, but the
@@ -66,10 +62,10 @@
 <div class="space-y-5 sm:space-y-6">
   {# ===== KPI band: open slots leads (the page's one job is filling them) ===== #}
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {% call stat_card("ti-user-exclamation", "Open Slots", ns.open_slots, tone=('warning' if ns.open_slots else 'success')) %}
-      {{ ns.filled_slots }}/{{ ns.need_slots }} assigned across {{ stats.active_requests }} active request{{ '' if stats.active_requests == 1 else 's' }}
+    {% call stat_card("ti-user-exclamation", "Open Slots", stats.open_slots, tone=('warning' if stats.open_slots else 'success')) %}
+      {{ stats.filled_slots }}/{{ stats.need_slots }} assigned across {{ stats.active_requests }} active request{{ '' if stats.active_requests == 1 else 's' }}
     {% endcall %}
-    {% call stat_card("ti-clipboard-check", "Fully Staffed", ns.fully_filled, tone='success') %}
+    {% call stat_card("ti-clipboard-check", "Fully Staffed", stats.fully_staffed, tone='success') %}
       requests with every slot filled
     {% endcall %}
     {% call stat_card("ti-user-check", "Sub Pool", stats.available_subs, tone='info') %}
@@ -152,6 +148,15 @@
           {% endfor %}
         </select>
       </div>
+      <div class="flex-1 min-w-[160px]">
+        <label for="request_scope" class="block mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">Requests</label>
+        <select name="request_scope" id="request_scope"
+                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="active" {% if request_scope == 'active' %}selected{% endif %}>Current (actionable)</option>
+          <option value="past" {% if request_scope == 'past' %}selected{% endif %}>Past unresolved{% if stats.past_unresolved %} ({{ stats.past_unresolved }}){% endif %}</option>
+          <option value="all" {% if request_scope == 'all' %}selected{% endif %}>All open</option>
+        </select>
+      </div>
       <div class="flex items-end gap-2">
         <button type="submit"
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
@@ -172,11 +177,30 @@
   <section class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
     <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
-        <i class="ti ti-alert-circle text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>Active Substitute Requests
-        {% if stats.active_requests %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ stats.active_requests }}</span>{% endif %}
+        <i class="ti ti-alert-circle text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+        {% if request_scope == 'past' %}Past Unresolved Requests
+        {% elif request_scope == 'all' %}All Open Requests
+        {% else %}Active Substitute Requests{% endif %}
+        {% if sub_requests %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ sub_requests|length }}</span>{% endif %}
       </h2>
     </div>
     <div class="p-4 sm:p-5">
+    {% if request_scope == 'active' and stats.past_unresolved %}
+    {# Heads-up: stale active-status requests whose match already passed. Excluded from
+       the counts above (resolved-by-default), but offered here so an admin can still
+       retroactively assign or close them out. #}
+    <a href="{{ url_for('admin_panel.substitute_management', request_scope='past', week=current_week if current_week else None, show_requested=show_requested) }}"
+       class="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+      <i class="ti ti-history text-gray-400" aria-hidden="true"></i>
+      <span><span class="font-mono font-bold">{{ stats.past_unresolved }}</span> past request{{ '' if stats.past_unresolved == 1 else 's' }} went unresolved after the match — review to assign retroactively or close out.</span>
+      <i class="ti ti-chevron-right ml-auto text-gray-400" aria-hidden="true"></i>
+    </a>
+    {% elif request_scope != 'active' %}
+    <a href="{{ url_for('admin_panel.substitute_management') }}"
+       class="inline-flex items-center gap-1.5 mb-4 text-sm text-ecs-green hover:underline font-medium">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to current requests
+    </a>
+    {% endif %}
     {% if active_open or active_full %}
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {# Unfilled requests lead; fully-staffed follow. Both share the same card. #}

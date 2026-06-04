@@ -236,7 +236,7 @@ def preload_admin_data():
         admin_stats_cache.get_stats('user_stats', lambda: {
             'total_users': User.query.count(),
             'active_users': User.query.filter_by(is_active=True).count(),
-            'pending_approvals': User.query.filter_by(approved=False).count()
+            'pending_approvals': User.query.filter_by(approval_status='pending').count()
         })
         
         # Preload match statistics

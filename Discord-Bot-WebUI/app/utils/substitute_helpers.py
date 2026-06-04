@@ -33,6 +33,27 @@ LEAGUE_ROLE_MAPPING = {
 ADMIN_ROLES = ['Global Admin', 'Pub League Admin']
 COACH_ROLES = ['Pub League Coach', 'ECS FC Coach']
 
+# --- Canonical "actionable substitute request" definition -------------------
+# A sub request only matters while it can still be staffed. Statuses below are
+# the non-terminal ones; FILLED/CANCELLED/EXPIRED are done. A request whose match
+# already happened can't be staffed, so it stops counting once the match date
+# falls before the grace cutoff. We keep showing requests for a short grace
+# window AFTER the match so an admin who forgot can still retroactively assign;
+# beyond that they're treated as resolved-by-default. Every count across the app
+# (admin dashboard attention queue + substitute management page) MUST derive from
+# this single definition so the numbers can't drift apart.
+ACTIVE_SUB_STATUSES = ('OPEN', 'PENDING', 'APPROVED')
+SUB_REQUEST_GRACE_DAYS = 1  # keep a request visible ~24h past its match
+
+
+def actionable_sub_cutoff_date():
+    """Earliest match date still considered actionable for sub assignment.
+
+    Requests for matches before this date are treated as resolved-by-default
+    (the match is over and the grace window for retroactive assignment lapsed).
+    """
+    return datetime.utcnow().date() - timedelta(days=SUB_REQUEST_GRACE_DAYS)
+
 
 def resolve_league_type_from_match(match, session) -> str:
     """

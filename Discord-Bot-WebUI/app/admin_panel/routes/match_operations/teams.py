@@ -37,7 +37,16 @@ def manage_teams():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def team_rosters():
-    """Manage team rosters."""
+    """Consolidated into All Teams (league_management_teams).
+
+    Team Rosters was a read-only coverage lens whose every action already redirected
+    to league_management_teams; it is retired as a redirect (forwarding any team_id
+    deep-link via request.args).
+    """
+    return redirect(url_for('admin_panel.league_management_teams', **request.args))
+
+
+def _legacy_team_rosters_impl():
     try:
         from app.models import Team, Player, Season, League
 

@@ -98,12 +98,25 @@ def build_attention_queue(user):
     except Exception as e:
         logger.warning(f"attention/verification: {e}")
 
-    # 4) Open substitute requests (pub league + ECS FC)
+    # 4) Open substitute requests (pub league + ECS FC) — only ones still
+    #    actionable (non-terminal status AND match not yet past the grace window).
+    #    Stale OPEN requests for matches that already happened are resolved-by-default
+    #    and excluded, so this count matches the substitute management page.
     try:
         from app.models.substitutes import SubstituteRequest, EcsFcSubRequest
-        n = (SubstituteRequest.query.filter_by(status='OPEN').count()
-             + EcsFcSubRequest.query.filter_by(status='OPEN').count())
-        add('subs', 'Open substitute requests', n, 'warning', safe_url('admin_panel.substitute_management'))
+        from app.models.matches import Match
+        from app.models.ecs_fc import EcsFcMatch
+        from app.utils.substitute_helpers import ACTIVE_SUB_STATUSES, actionable_sub_cutoff_date
+        cutoff = actionable_sub_cutoff_date()
+        pl = (SubstituteRequest.query
+              .join(Match, SubstituteRequest.match_id == Match.id)
+              .filter(SubstituteRequest.status.in_(ACTIVE_SUB_STATUSES), Match.date >= cutoff)
+              .count())
+        ecs = (EcsFcSubRequest.query
+               .join(EcsFcMatch, EcsFcSubRequest.match_id == EcsFcMatch.id)
+               .filter(EcsFcSubRequest.status.in_(ACTIVE_SUB_STATUSES), EcsFcMatch.match_date >= cutoff)
+               .count())
+        add('subs', 'Open substitute requests', pl + ecs, 'warning', safe_url('admin_panel.substitute_management'))
     except Exception as e:
         logger.warning(f"attention/subs: {e}")
 
@@ -238,7 +251,11 @@ def dashboard():
             total_users = 0
 
         try:
-            pending_approvals = User.query.filter_by(is_approved=False).count()
+            # Count by approval_status (the field the approval workflow maintains),
+            # NOT is_approved — a denied user keeps is_approved=False, so is_approved
+            # would lump denied users in with pending ones and overcount this KPI vs.
+            # the attention queue and the Approvals page (both use approval_status).
+            pending_approvals = User.query.filter_by(approval_status='pending').count()
         except Exception as e:
             logger.warning(f"Error getting pending approvals: {e}")
             pending_approvals = 0

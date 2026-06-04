@@ -33,80 +33,14 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def draft_history():
+    """Legacy draft history page — superseded by the unified admin-panel draft page.
+
+    Consolidation: a near-identical copy of admin_panel.draft_history lived here.
+    Kept as a redirect so old bookmarks / external links keep working; the
+    canonical page (with filters, stats, edit/delete/clear/normalize, CSV export)
+    is admin_panel.draft_history.
     """
-    Display the draft history admin page with all draft orders.
-    """
-    try:
-        # Get available seasons and leagues for filtering
-        seasons = db.session.query(Season).order_by(desc(Season.id)).all()
-        leagues = db.session.query(League).distinct(League.name).order_by(League.name).all()
-        current_season = db.session.query(Season).filter_by(is_current=True).first()
-
-        # Get current season and league filters from query params
-        season_filter = request.args.get('season', type=int)
-        league_filter = request.args.get('league')
-
-        # Default to current season if no filter specified
-        if season_filter is None and current_season:
-            season_filter = current_season.id
-
-        # Build query for draft history
-        query = db.session.query(DraftOrderHistory).options(
-            joinedload(DraftOrderHistory.player),
-            joinedload(DraftOrderHistory.team),
-            joinedload(DraftOrderHistory.season),
-            joinedload(DraftOrderHistory.league),
-            joinedload(DraftOrderHistory.drafter)
-        )
-
-        # Apply filters
-        if season_filter:
-            query = query.filter(DraftOrderHistory.season_id == season_filter)
-        if league_filter:
-            query = query.filter(DraftOrderHistory.league_id == league_filter)
-
-        # Order by season (desc), league (asc), then draft position (asc)
-        draft_history = query.order_by(
-            desc(DraftOrderHistory.season_id),
-            DraftOrderHistory.league_id,
-            DraftOrderHistory.draft_position
-        ).all()
-
-        # Group by season and league for easier display
-        grouped_history = {}
-        for pick in draft_history:
-            season_key = f"{pick.season.name} (ID: {pick.season.id})"
-            league_key = f"{pick.league.name} (ID: {pick.league.id})"
-
-            if season_key not in grouped_history:
-                grouped_history[season_key] = {}
-            if league_key not in grouped_history[season_key]:
-                grouped_history[season_key][league_key] = []
-
-            grouped_history[season_key][league_key].append(pick)
-
-        return render_template(
-            'admin/draft_history_flowbite.html',
-            draft_history=grouped_history,
-            seasons=seasons,
-            leagues=leagues,
-            current_season_filter=season_filter,
-            current_league_filter=league_filter,
-            total_picks=len(draft_history)
-        )
-
-    except Exception as e:
-        logger.error(f"Error loading draft history: {str(e)}", exc_info=True)
-        return render_template(
-            'admin/draft_history_flowbite.html',
-            draft_history={},
-            seasons=[],
-            leagues=[],
-            current_season_filter=None,
-            current_league_filter=None,
-            total_picks=0,
-            error=str(e)
-        )
+    return redirect(url_for('admin_panel.draft_history'))
 
 
 @admin_bp.route('/admin/draft-history/edit/<int:pick_id>', methods=['POST'])

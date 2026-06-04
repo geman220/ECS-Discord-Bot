@@ -1020,7 +1020,16 @@ def system_logs():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def system_alerts():
-    """System alerts generated from real system conditions."""
+    """Consolidated into System Health (same psutil/Redis/Celery probes, thresholded).
+
+    The alerts view re-ran the exact health probes and its dismiss action never
+    persisted (no alerts table), so it is retired as a redirect to the consolidated
+    health page.
+    """
+    return redirect(url_for('admin_panel.system_health_consolidated'))
+
+
+def _legacy_system_alerts_impl():
     try:
         import psutil
 
@@ -1128,9 +1137,10 @@ def system_alerts():
             })
             alert_id += 1
 
-        # Check pending user approvals
+        # Check pending user approvals (approval_status, not is_approved — denied
+        # users keep is_approved=False and shouldn't trigger a "pending" alert).
         try:
-            pending = User.query.filter_by(is_approved=False).count()
+            pending = User.query.filter_by(approval_status='pending').count()
             if pending > 10:
                 active_alerts.append({
                     'id': alert_id, 'type': 'info', 'title': 'Pending Approvals',

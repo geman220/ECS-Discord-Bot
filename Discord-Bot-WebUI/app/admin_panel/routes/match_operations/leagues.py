@@ -112,7 +112,7 @@ def league_standings():
     """View league standings."""
     try:
         from app.models import Team, Season, League
-        from app.models.matches import Match
+        from app.models.stats import Standings
 
         # Log the access to league standings
         AdminAuditLog.log_action(
@@ -132,60 +132,47 @@ def league_standings():
             flash('No active season found. Please create a season first.', 'warning')
             return redirect(url_for('admin_panel.match_operations'))
 
-        # Get all teams in current season
-        teams = Team.query.join(League).filter(League.season_id == current_season.id).all() if current_season else Team.query.all()
+        # Teams in the current season (kept even with no Standings row yet, so
+        # newly-added teams still appear in the table).
+        teams = (
+            Team.query.join(League).filter(League.season_id == current_season.id).all()
+            if current_season else Team.query.all()
+        )
 
-        # Calculate standings for each team
+        # Read the CANONICAL Standings table (app/models/stats.py) — the single
+        # source of truth maintained by recompute_team_standings(). It deliberately
+        # EXCLUDES self-matches (home==away) and special weeks (BYE/FUN/TST/BONUS),
+        # so these numbers now agree with the per-league snapshot and the player app.
+        # The previous implementation re-derived standings by looping raw Match rows
+        # with no such exclusions, which inflated games played and invented phantom
+        # draws on any season containing special-week / unassigned-playoff self-matches.
+        standing_rows = {
+            s.team_id: s
+            for s in Standings.query.filter(
+                Standings.season_id == current_season.id
+            ).all()
+        }
+
         standings = []
         for team in teams:
-            # Get team's matches (both home and away)
-            home_matches = Match.query.filter_by(home_team_id=team.id).all()
-            away_matches = Match.query.filter_by(away_team_id=team.id).all() if hasattr(Match, 'away_team_id') else []
-
-            wins = losses = draws = goals_for = goals_against = matches_played = 0
-
-            # Calculate real stats from reported matches
-            for m in home_matches:
-                if m.home_team_score is not None and m.away_team_score is not None:
-                    matches_played += 1
-                    goals_for += m.home_team_score
-                    goals_against += m.away_team_score
-                    if m.home_team_score > m.away_team_score:
-                        wins += 1
-                    elif m.home_team_score < m.away_team_score:
-                        losses += 1
-                    else:
-                        draws += 1
-
-            for m in away_matches:
-                if m.home_team_score is not None and m.away_team_score is not None:
-                    matches_played += 1
-                    goals_for += m.away_team_score
-                    goals_against += m.home_team_score
-                    if m.away_team_score > m.home_team_score:
-                        wins += 1
-                    elif m.away_team_score < m.home_team_score:
-                        losses += 1
-                    else:
-                        draws += 1
-
-            points = wins * 3 + draws
-            goal_difference = goals_for - goals_against
-
+            s = standing_rows.get(team.id)
             standings.append({
                 'team': team,
-                'matches_played': matches_played,
-                'wins': wins,
-                'draws': draws,
-                'losses': losses,
-                'goals_for': goals_for,
-                'goals_against': goals_against,
-                'goal_difference': goal_difference,
-                'points': points
+                'matches_played': (s.played if s else 0) or 0,
+                'wins': (s.wins if s else 0) or 0,
+                'draws': (s.draws if s else 0) or 0,
+                'losses': (s.losses if s else 0) or 0,
+                'goals_for': (s.goals_for if s else 0) or 0,
+                'goals_against': (s.goals_against if s else 0) or 0,
+                'goal_difference': (s.goal_difference if s else 0) or 0,
+                'points': (s.points if s else 0) or 0,
             })
 
-        # Sort by points, then goal difference
-        standings.sort(key=lambda x: (x['points'], x['goal_difference']), reverse=True)
+        # Canonical ordering: points, then goal difference, then goals for.
+        standings.sort(
+            key=lambda x: (x['points'], x['goal_difference'], x['goals_for']),
+            reverse=True,
+        )
 
         # Add position
         for i, standing in enumerate(standings, 1):

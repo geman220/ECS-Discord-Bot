@@ -150,18 +150,14 @@
                     <a href="{{ url_for('admin_panel.match_check_in_index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-qrcode text-gray-400 text-xs"></i>Match Check-In</a>
                     <a href="{{ url_for('admin_panel.league_standings') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-table text-gray-400 text-xs"></i>League Standings</a>
                     <a href="{{ url_for('admin_panel.match_reports') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-report text-gray-400 text-xs"></i>Match Reports</a>
-                    <a href="{{ url_for('admin_panel.match_results') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-clipboard-check text-gray-400 text-xs"></i>Match Results</a>
                     <a href="{{ url_for('admin_panel.schedule_matches') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-calendar-plus text-gray-400 text-xs"></i>Schedule Matches</a>
-                    <a href="{{ url_for('admin_panel.team_rosters') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users text-gray-400 text-xs"></i>Team Rosters</a>
-                    <a href="{{ url_for('admin_panel.upcoming_matches') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-calendar-event text-gray-400 text-xs"></i>Upcoming Matches</a>
-                    <a href="{{ url_for('admin_panel.view_matches') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-list text-gray-400 text-xs"></i>View Matches</a>
+                    <a href="{{ url_for('admin_panel.view_matches') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-list text-gray-400 text-xs"></i>Matches</a>
                     <a href="{{ url_for('admin_panel.playoff_management') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-trophy text-gray-400 text-xs"></i>Playoff Management</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Substitutes</div>
                     <a href="{{ url_for('admin_panel.unified_substitutes') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-layout-grid text-gray-400 text-xs"></i>Substitutes (Unified)</a>
                     <a href="{{ url_for('admin_panel.substitute_management') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-user-plus text-gray-400 text-xs"></i>Manage Substitutes</a>
                     <a href="{{ url_for('admin_panel.substitute_pools', context='pub-league') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users text-gray-400 text-xs"></i>Substitute Pools</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Draft</div>
-                    <a href="{{ url_for('admin_panel.draft_overview') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-layout-grid text-gray-400 text-xs"></i>Draft Overview</a>
                     <a href="{{ url_for('admin_panel.draft_history') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-history text-gray-400 text-xs"></i>Draft History</a>
                     <a href="{{ url_for('draft_predictions.admin_dashboard') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-chart-dots text-gray-400 text-xs"></i>Draft Predictions</a>
                     <a href="{{ url_for('admin_panel.draft_setup_page') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-settings text-gray-400 text-xs"></i>Draft Setup</a>
@@ -183,7 +179,6 @@
                     <i class="ti ti-chevron-down text-xs transition-transform duration-200"></i>
                 </button>
                 <div class="{{ '' if mls_active else 'hidden' }} pl-4 mt-1 space-y-0.5 border-l-2 border-gray-200 dark:border-gray-600 ml-5">
-                    <a href="{{ url_for('admin_panel.mls_overview') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-dashboard text-gray-400 text-xs"></i>MLS Overview</a>
                     <a href="{{ url_for('admin_panel.mls_matches') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-list text-gray-400 text-xs"></i>MLS Matches</a>
                     <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-list-check text-gray-400 text-xs"></i>Task Monitoring</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Live Reporting</div>
@@ -194,7 +189,7 @@
             </div>
 
             {# ECS FC #}
-            {% set ecsfc_active = request.endpoint and (request.endpoint in ['admin_panel.ecs_fc_dashboard', 'admin_panel.ecs_fc_matches', 'admin_panel.ecs_fc_opponents', 'admin_panel.ecs_fc_import', 'admin_panel.ecs_fc_team_schedule', 'admin_panel.ecs_fc_sub_requests', 'admin_panel.ecs_fc_sub_pool'] or (request.endpoint == 'admin_panel.substitute_pools' and request.args.get('context') == 'ecs-fc')) %}
+            {% set ecsfc_active = request.endpoint and (request.endpoint in ['admin_panel.ecs_fc_dashboard', 'admin_panel.ecs_fc_matches', 'admin_panel.ecs_fc_opponents', 'admin_panel.ecs_fc_import', 'admin_panel.ecs_fc_team_schedule', 'admin_panel.ecs_fc_sub_requests'] or (request.endpoint == 'admin_panel.substitute_pools' and request.args.get('context') == 'ecs-fc')) %}
             <div>
                 <button type="button" data-action="admin-nav-mobile-accordion"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors
@@ -215,14 +210,12 @@
                     <a href="{{ url_for('admin_panel.ecs_fc_opponents') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users-group text-gray-400 text-xs"></i>Opponents Library</a>
                     <a href="{{ url_for('admin_panel.ecs_fc_import') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-file-import text-gray-400 text-xs"></i>Import Schedule</a>
                     <a href="{{ url_for('admin_panel.substitute_pools', context='ecs-fc') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-user-plus text-gray-400 text-xs"></i>Substitute Pool</a>
-                    <a href="{{ url_for('admin_panel.ecs_fc_sub_pool') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users-group text-gray-400 text-xs"></i>ECS FC Sub Pool</a>
                     <a href="{{ url_for('admin_panel.ecs_fc_sub_requests') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-clipboard-list text-gray-400 text-xs"></i>Sub Requests</a>
-                    <a href="{{ url_for('admin_panel.unified_substitutes', league='ecs_fc') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-layout-grid text-gray-400 text-xs"></i>Substitutes (Unified)</a>
                 </div>
             </div>
 
             {# Discord #}
-            {% set discord_active = request.endpoint and request.endpoint in ['admin_panel.discord_overview', 'admin_panel.discord_players', 'admin_panel.discord_onboarding', 'admin_panel.discord_roles', 'admin_panel.discord_role_mapping', 'admin_panel.discord_bot_management', 'ai_prompts.list_prompts', 'admin.discord_management', 'admin.discord_onboarding.admin_test_onboarding'] %}
+            {% set discord_active = request.endpoint and request.endpoint in ['admin_panel.discord_overview', 'admin_panel.discord_players', 'admin_panel.discord_onboarding', 'admin_panel.discord_roles', 'admin_panel.discord_role_mapping', 'admin_panel.discord_bot_management', 'ai_prompts.list_prompts', 'admin.discord_onboarding.admin_test_onboarding'] %}
             <div>
                 <button type="button" data-action="admin-nav-mobile-accordion"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors
@@ -235,7 +228,6 @@
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Members</div>
                     <a href="{{ url_for('admin_panel.discord_players') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users text-gray-400 text-xs"></i>Discord Players</a>
                     <a href="{{ url_for('admin_panel.discord_onboarding') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-user-plus text-gray-400 text-xs"></i>Onboarding</a>
-                    <a href="{{ url_for('admin.discord_management') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-plug-connected text-gray-400 text-xs"></i>Discord Join Status</a>
                     <a href="{{ url_for('admin.discord_onboarding.admin_test_onboarding') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-flask text-gray-400 text-xs"></i>Onboarding Test Console</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Roles & Sync</div>
                     <a href="{{ url_for('admin_panel.discord_roles') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-refresh text-gray-400 text-xs"></i>Role Sync</a>
@@ -262,9 +254,6 @@
                     <a href="{{ url_for('admin_panel.mobile_users') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users text-gray-400 text-xs"></i>Mobile Users</a>
                     <a href="{{ url_for('admin_panel.mobile_error_analytics') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-bug text-gray-400 text-xs"></i>Error Analytics</a>
                     <a href="{{ url_for('admin_panel.mobile_app_config') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-adjustments text-gray-400 text-xs"></i>App Configuration</a>
-                    <a href="{{ url_for('admin_panel.push_history') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-history text-gray-400 text-xs"></i>Push History</a>
-                    <a href="{{ url_for('admin_panel.push_subscriptions') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-bell-plus text-gray-400 text-xs"></i>Push Subscriptions</a>
-                    <a href="{{ url_for('admin_panel.push_campaigns') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-rocket text-gray-400 text-xs"></i>Push Campaigns</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Store</div>
                     <a href="{{ url_for('admin_panel.store_management') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-shopping-cart text-gray-400 text-xs"></i>Store Management</a>
                     <a href="{{ url_for('admin_panel.store_items') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-package text-gray-400 text-xs"></i>Items</a>
@@ -295,18 +284,15 @@
                     <a href="{{ url_for('admin_panel.push_notifications') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-bell text-gray-400 text-xs"></i>Push Notifications</a>
                     <a href="{{ url_for('admin_panel.announcements') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-speakerphone text-gray-400 text-xs"></i>Announcements</a>
                     <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-clock text-gray-400 text-xs"></i>Scheduled Messages</a>
-                    <a href="{{ url_for('admin_panel.campaigns_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-broadcast text-gray-400 text-xs"></i>Campaigns</a>
+                    <a href="{{ url_for('admin_panel.campaigns_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-broadcast text-gray-400 text-xs"></i>Push Campaigns</a>
                     <a href="{{ url_for('admin_panel.email_broadcasts_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-mail-forward text-gray-400 text-xs"></i>Email Broadcasts</a>
-                    <a href="{{ url_for('admin_panel.email_templates_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-template text-gray-400 text-xs"></i>Email Templates</a>
+                    <a href="{{ url_for('admin_panel.email_templates_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-mail text-gray-400 text-xs"></i>Email Wrappers</a>
                     <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users-group text-gray-400 text-xs"></i>Notification Groups</a>
                     <a href="{{ url_for('admin_panel.direct_messaging') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-send text-gray-400 text-xs"></i>Direct Messaging</a>
-                    <a href="{{ url_for('admin_panel.push_notifications_dashboard') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-dashboard text-gray-400 text-xs"></i>Push Dashboard</a>
                     <a href="{{ url_for('admin_panel.sms_analytics_dashboard') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-chart-bar text-gray-400 text-xs"></i>SMS Analytics</a>
-                    <a href="{{ url_for('admin_panel.scheduled_messages_history') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-history text-gray-400 text-xs"></i>Scheduled History</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Settings</div>
                     <a href="{{ url_for('admin_panel.messaging_settings') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-settings text-gray-400 text-xs"></i>Messaging Settings</a>
                     <a href="{{ url_for('admin_panel.league_settings') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-adjustments text-gray-400 text-xs"></i>League Settings</a>
-                    <a href="{{ url_for('admin_panel.push_notifications_settings') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-bell-cog text-gray-400 text-xs"></i>Push Settings</a>
                 </div>
             </div>
 
@@ -339,7 +325,7 @@
             </div>
 
             {# Admin/System #}
-            {% set admin_active = request.endpoint and request.endpoint in ['admin_panel.feedback_list', 'admin_panel.appearance', 'admin_panel.feature_toggles', 'admin_panel.system_health_consolidated', 'admin_panel.cache_redis_consolidated', 'admin_panel.api_management', 'admin_panel.docker_management', 'admin_panel.security_dashboard', 'admin_panel.task_monitoring_page', 'admin_panel.audit_logs', 'ai_assistant.admin_metrics', 'admin_panel.reports_center', 'admin_panel.player_stats_report', 'admin_panel.attendance_report', 'admin_panel.movement_report', 'admin_panel.retention_report', 'admin_panel.roster_history_report', 'admin_panel.leaderboards_report', 'admin_panel.jersey_report', 'admin_panel.standings_report', 'admin_panel.discipline_report', 'admin_panel.contactability_report', 'admin_panel.api_analytics', 'admin_panel.api_endpoints', 'admin_panel.navigation_settings', 'admin_panel.system_info', 'admin.ux_test_flow', 'help.admin_help_topics', 'admin_panel.redis_draft_cache_stats', 'admin_panel.database_monitor', 'admin_panel.system_alerts', 'admin_panel.system_logs', 'admin_panel.system_performance', 'admin_panel.task_history'] %}
+            {% set admin_active = request.endpoint and request.endpoint in ['admin_panel.feedback_list', 'admin_panel.appearance', 'admin_panel.feature_toggles', 'admin_panel.system_health_consolidated', 'admin_panel.cache_redis_consolidated', 'admin_panel.api_management', 'admin_panel.docker_management', 'admin_panel.security_dashboard', 'admin_panel.task_monitoring_page', 'admin_panel.audit_logs', 'ai_assistant.admin_metrics', 'admin_panel.reports_center', 'admin_panel.player_stats_report', 'admin_panel.attendance_report', 'admin_panel.movement_report', 'admin_panel.retention_report', 'admin_panel.roster_history_report', 'admin_panel.leaderboards_report', 'admin_panel.jersey_report', 'admin_panel.standings_report', 'admin_panel.discipline_report', 'admin_panel.contactability_report', 'admin_panel.api_analytics', 'admin_panel.api_endpoints', 'admin_panel.navigation_settings', 'admin_panel.system_info', 'help.admin_help_topics', 'admin_panel.redis_draft_cache_stats', 'admin_panel.database_monitor', 'admin_panel.system_alerts', 'admin_panel.system_logs', 'admin_panel.system_performance', 'admin_panel.task_history'] %}
             <div>
                 <button type="button" data-action="admin-nav-mobile-accordion"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors
@@ -358,22 +344,17 @@
                     <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-list-check text-gray-400 text-xs"></i>Task Monitor</a>
                     <a href="{{ url_for('ai_assistant.admin_metrics') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-sparkles text-gray-400 text-xs"></i>AI Assistant</a>
                     <a href="{{ url_for('admin_panel.database_monitor') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-database-cog text-gray-400 text-xs"></i>Database Monitor</a>
-                    <a href="{{ url_for('admin_panel.system_alerts') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-alert-triangle text-gray-400 text-xs"></i>System Alerts</a>
                     <a href="{{ url_for('admin_panel.system_logs') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-file-text text-gray-400 text-xs"></i>System Logs</a>
                     <a href="{{ url_for('admin_panel.system_performance') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-gauge text-gray-400 text-xs"></i>System Performance</a>
-                    <a href="{{ url_for('admin_panel.task_history') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-history text-gray-400 text-xs"></i>Task History</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">System</div>
                     <a href="{{ url_for('admin_panel.feature_toggles') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-toggle-left text-gray-400 text-xs"></i>Feature Toggles</a>
                     <a href="{{ url_for('admin_panel.security_dashboard') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-shield-check text-gray-400 text-xs"></i>Security Dashboard</a>
                     <a href="{{ url_for('admin_panel.appearance') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-palette text-gray-400 text-xs"></i>Theme Settings</a>
                     <a href="{{ url_for('admin_panel.navigation_settings') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-menu-2 text-gray-400 text-xs"></i>Navigation Settings</a>
                     <a href="{{ url_for('admin_panel.system_info') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-info-circle text-gray-400 text-xs"></i>System Information</a>
-                    <a href="{{ url_for('admin.ux_test_flow') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-route text-gray-400 text-xs"></i>UX Test Flow</a>
                     <a href="{{ url_for('help.admin_help_topics') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-help text-gray-400 text-xs"></i>Help Topics</a>
                     <a href="{{ url_for('admin_panel.redis_draft_cache_stats') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-stack text-gray-400 text-xs"></i>Draft Cache Stats</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">API</div>
-                    <a href="{{ url_for('admin_panel.api_analytics') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-chart-line text-gray-400 text-xs"></i>API Analytics</a>
-                    <a href="{{ url_for('admin_panel.api_endpoints') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-plug text-gray-400 text-xs"></i>API Endpoints</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Infrastructure</div>
                     <a href="{{ url_for('admin_panel.cache_redis_consolidated') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-database text-gray-400 text-xs"></i>Cache & Redis</a>
                     <a href="{{ url_for('admin_panel.docker_management') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-box text-gray-400 text-xs"></i>Docker Management</a>
@@ -468,20 +449,11 @@
                             <a href="{{ url_for('admin_panel.match_reports') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <i class="ti ti-report text-gray-400"></i>Match Reports
                             </a>
-                            <a href="{{ url_for('admin_panel.match_results') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="ti ti-clipboard-check text-gray-400"></i>Match Results
-                            </a>
                             <a href="{{ url_for('admin_panel.schedule_matches') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <i class="ti ti-calendar-plus text-gray-400"></i>Schedule Matches
                             </a>
-                            <a href="{{ url_for('admin_panel.team_rosters') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="ti ti-users text-gray-400"></i>Team Rosters
-                            </a>
-                            <a href="{{ url_for('admin_panel.upcoming_matches') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="ti ti-calendar-event text-gray-400"></i>Upcoming Matches
-                            </a>
                             <a href="{{ url_for('admin_panel.view_matches') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="ti ti-list text-gray-400"></i>View Matches
+                                <i class="ti ti-list text-gray-400"></i>Matches
                             </a>
                             <a href="{{ url_for('admin_panel.playoff_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <i class="ti ti-trophy text-gray-400"></i>Playoff Management
@@ -501,9 +473,6 @@
                             </a>
                             <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                             <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Draft</div>
-                            <a href="{{ url_for('admin_panel.draft_overview') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="ti ti-layout-grid text-gray-400"></i>Draft Overview
-                            </a>
                             <a href="{{ url_for('admin_panel.draft_history') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <i class="ti ti-history text-gray-400"></i>Draft History
                             </a>
@@ -541,9 +510,6 @@
                 </button>
                 <div id="dropdown-mls-nav" class="hidden absolute left-0 z-50 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
                     <div class="py-2">
-                        <a href="{{ url_for('admin_panel.mls_overview') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-dashboard text-gray-400"></i>MLS Overview
-                        </a>
                         <a href="{{ url_for('admin_panel.mls_matches') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-list text-gray-400"></i>MLS Matches
                         </a>
@@ -603,14 +569,8 @@
                         <a href="{{ url_for('admin_panel.substitute_pools', context='ecs-fc') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-user-plus text-gray-400"></i>Substitute Pool
                         </a>
-                        <a href="{{ url_for('admin_panel.ecs_fc_sub_pool') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-users-group text-gray-400"></i>ECS FC Sub Pool
-                        </a>
                         <a href="{{ url_for('admin_panel.ecs_fc_sub_requests') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-clipboard-list text-gray-400"></i>Sub Requests
-                        </a>
-                        <a href="{{ url_for('admin_panel.unified_substitutes', league='ecs_fc') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-layout-grid text-gray-400"></i>Substitutes (Unified)
                         </a>
                     </div>
                 </div>
@@ -637,9 +597,6 @@
                         </a>
                         <a href="{{ url_for('admin_panel.discord_onboarding') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-user-plus text-gray-400"></i>Onboarding
-                        </a>
-                        <a href="{{ url_for('admin.discord_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-plug-connected text-gray-400"></i>Discord Join Status
                         </a>
                         <a href="{{ url_for('admin.discord_onboarding.admin_test_onboarding') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-flask text-gray-400"></i>Onboarding Test Console
@@ -690,15 +647,6 @@
                         </a>
                         <a href="{{ url_for('admin_panel.mobile_app_config') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-adjustments text-gray-400"></i>App Configuration
-                        </a>
-                        <a href="{{ url_for('admin_panel.push_history') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-history text-gray-400"></i>Push History
-                        </a>
-                        <a href="{{ url_for('admin_panel.push_subscriptions') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-bell-plus text-gray-400"></i>Push Subscriptions
-                        </a>
-                        <a href="{{ url_for('admin_panel.push_campaigns') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-rocket text-gray-400"></i>Push Campaigns
                         </a>
                         <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                         <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Store</div>
@@ -765,13 +713,13 @@
                             <i class="ti ti-clock text-gray-400"></i>Scheduled Messages
                         </a>
                         <a href="{{ url_for('admin_panel.campaigns_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-broadcast text-gray-400"></i>Campaigns
+                            <i class="ti ti-broadcast text-gray-400"></i>Push Campaigns
                         </a>
                         <a href="{{ url_for('admin_panel.email_broadcasts_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-mail-forward text-gray-400"></i>Email Broadcasts
                         </a>
                         <a href="{{ url_for('admin_panel.email_templates_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-template text-gray-400"></i>Email Templates
+                            <i class="ti ti-mail text-gray-400"></i>Email Wrappers
                         </a>
                         <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-users-group text-gray-400"></i>Notification Groups
@@ -779,14 +727,8 @@
                         <a href="{{ url_for('admin_panel.direct_messaging') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-send text-gray-400"></i>Direct Messaging
                         </a>
-                        <a href="{{ url_for('admin_panel.push_notifications_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-dashboard text-gray-400"></i>Push Dashboard
-                        </a>
                         <a href="{{ url_for('admin_panel.sms_analytics_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-chart-bar text-gray-400"></i>SMS Analytics
-                        </a>
-                        <a href="{{ url_for('admin_panel.scheduled_messages_history') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-history text-gray-400"></i>Scheduled History
                         </a>
                         <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                         <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Settings</div>
@@ -795,9 +737,6 @@
                         </a>
                         <a href="{{ url_for('admin_panel.league_settings') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-adjustments text-gray-400"></i>League Settings
-                        </a>
-                        <a href="{{ url_for('admin_panel.push_notifications_settings') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-bell-cog text-gray-400"></i>Push Settings
                         </a>
                     </div>
                 </div>
@@ -880,17 +819,11 @@
                             <a href="{{ url_for('admin_panel.database_monitor') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <i class="ti ti-database-cog text-gray-400"></i>Database Monitor
                             </a>
-                            <a href="{{ url_for('admin_panel.system_alerts') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="ti ti-alert-triangle text-gray-400"></i>System Alerts
-                            </a>
                             <a href="{{ url_for('admin_panel.system_logs') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <i class="ti ti-file-text text-gray-400"></i>System Logs
                             </a>
                             <a href="{{ url_for('admin_panel.system_performance') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <i class="ti ti-gauge text-gray-400"></i>System Performance
-                            </a>
-                            <a href="{{ url_for('admin_panel.task_history') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="ti ti-history text-gray-400"></i>Task History
                             </a>
                         </div>
                         {# Right Column: System + Infrastructure #}
@@ -911,9 +844,6 @@
                             <a href="{{ url_for('admin_panel.system_info') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <i class="ti ti-info-circle text-gray-400"></i>System Information
                             </a>
-                            <a href="{{ url_for('admin.ux_test_flow') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="ti ti-route text-gray-400"></i>UX Test Flow
-                            </a>
                             <a href="{{ url_for('help.admin_help_topics') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <i class="ti ti-help text-gray-400"></i>Help Topics
                             </a>
@@ -922,12 +852,6 @@
                             </a>
                             <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                             <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">API</div>
-                            <a href="{{ url_for('admin_panel.api_analytics') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="ti ti-chart-line text-gray-400"></i>API Analytics
-                            </a>
-                            <a href="{{ url_for('admin_panel.api_endpoints') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="ti ti-plug text-gray-400"></i>API Endpoints
-                            </a>
                             <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                             <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Infrastructure</div>
                             <a href="{{ url_for('admin_panel.cache_redis_consolidated') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
