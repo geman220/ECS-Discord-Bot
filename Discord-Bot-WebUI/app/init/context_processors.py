@@ -81,7 +81,7 @@ def build_nav_sections(user_roles, admin_settings):
 
         # --- ECS FC League ---
         league_items = []
-        if can_view_draft:
+        if can_view_draft and (admin_settings.get('drafts_navigation_enabled', True) or is_admin):
             draft_children = [
                 item('Classic Division', 'ti-point', 'draft_enhanced.draft_league', args={'league_name': 'classic'}),
                 item('Premier Division', 'ti-point', 'draft_enhanced.draft_league', args={'league_name': 'premier'}),
@@ -94,7 +94,7 @@ def build_nav_sections(user_roles, admin_settings):
             league_items.append(item('Draft', 'ti-list', children=draft_children))
         if can_view_teams and admin_settings.get('teams_navigation_enabled', True):
             league_items.append(item('Teams', 'ti-users', 'teams.teams_overview'))
-        if can_view_standings:
+        if can_view_standings and (admin_settings.get('leagues_navigation_enabled', True) or is_admin):
             league_items.append(item('Standings', 'ti-chart-bar', 'teams.view_standings'))
         if can_view_store:
             league_items.append(item('League Store', 'ti-shopping-cart', 'store.index', active_path='store'))

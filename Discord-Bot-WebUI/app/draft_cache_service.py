@@ -461,6 +461,44 @@ class DraftCacheService:
             except Exception as e:
                 logger.error(f"Error warming cache for {league_name}: {e}")
                 return {'success': False, 'error': str(e)}
+
+    @staticmethod
+    def get_league_cache_status(league_name: str) -> Dict[str, Any]:
+        """Read-only per-league cache status for the admin stats page.
+
+        Same shape as warm_cache_for_active_draft() but WITHOUT marking the draft
+        active — viewing the stats page must not mutate draft state. (The stats
+        route previously called a non-existent warm_cache_for_league(), which made
+        the page error out entirely.)
+        """
+        active = DraftCacheService.is_draft_active(league_name)
+        cache_status = {}
+        with DraftCacheService._redis_connection_safe() as redis_conn:
+            if not redis_conn:
+                return {'success': False, 'error': 'Redis unavailable',
+                        'active_draft_enabled': active, 'cache_status': {}, 'warmed': False}
+            cache_keys = [
+                ('players_available', DraftCacheService._get_cache_key('players', league_name, 'available')),
+                ('players_drafted', DraftCacheService._get_cache_key('players', league_name, 'drafted')),
+                ('analytics', DraftCacheService._get_cache_key('analytics', league_name)),
+                ('teams', DraftCacheService._get_cache_key('teams', league_name)),
+            ]
+            warmed_any = False
+            for cache_type, cache_key in cache_keys:
+                try:
+                    exists = bool(redis_conn.exists(cache_key))
+                    ttl = redis_conn.ttl(cache_key) if exists else 0
+                    cache_status[cache_type] = {'exists': exists, 'ttl': ttl, 'cache_key': cache_key}
+                    warmed_any = warmed_any or exists
+                except Exception as e:
+                    cache_status[cache_type] = {'exists': False, 'error': str(e)}
+        return {
+            'success': True,
+            'league_name': league_name,
+            'active_draft_enabled': active,
+            'cache_status': cache_status,
+            'warmed': warmed_any,
+        }
     
     @staticmethod 
     def end_active_draft(league_name: str):

@@ -1031,16 +1031,15 @@ def navigation_settings():
     """Navigation settings page with toggles for sidebar visibility."""
     try:
         # Define navigation items with metadata
+        # Only toggles that map to a real player-sidebar item are shown — each is
+        # actually enforced for non-admin users in app/init/context_processors.py.
+        # (Removed Matches/Players/Messaging/Mobile Features/Admin Panel: they pointed
+        # at no sidebar item, so they never did anything.)
         nav_items_config = [
-            {'key': 'teams_navigation_enabled', 'label': 'Teams', 'icon': 'users-group', 'description': 'Team listings and management'},
-            {'key': 'store_navigation_enabled', 'label': 'Store', 'icon': 'shopping-cart', 'description': 'Club store access'},
-            {'key': 'matches_navigation_enabled', 'label': 'Matches', 'icon': 'ball-football', 'description': 'Match schedules and results'},
-            {'key': 'leagues_navigation_enabled', 'label': 'Leagues', 'icon': 'trophy', 'description': 'League standings and info'},
-            {'key': 'drafts_navigation_enabled', 'label': 'Drafts', 'icon': 'list-numbers', 'description': 'Draft tools and history'},
-            {'key': 'players_navigation_enabled', 'label': 'Players', 'icon': 'user', 'description': 'Player directory'},
-            {'key': 'messaging_navigation_enabled', 'label': 'Messaging', 'icon': 'message', 'description': 'Team messaging features'},
-            {'key': 'mobile_features_navigation_enabled', 'label': 'Mobile Features', 'icon': 'device-mobile', 'description': 'Mobile app settings'},
-            {'key': 'admin_panel_navigation_enabled', 'label': 'Admin Panel', 'icon': 'settings', 'description': 'Admin panel access'},
+            {'key': 'teams_navigation_enabled', 'label': 'Teams', 'icon': 'users-group', 'description': 'Hides the Teams item from non-admin sidebars'},
+            {'key': 'store_navigation_enabled', 'label': 'Store', 'icon': 'shopping-cart', 'description': 'Hides the League Store item from non-admin sidebars'},
+            {'key': 'drafts_navigation_enabled', 'label': 'Drafts', 'icon': 'list-numbers', 'description': 'Hides the Draft item from non-admin sidebars'},
+            {'key': 'leagues_navigation_enabled', 'label': 'Standings', 'icon': 'chart-bar', 'description': 'Hides the Standings item from non-admin sidebars'},
         ]
 
         if request.method == 'GET':
@@ -1085,14 +1084,9 @@ def navigation_settings():
             # Navigation settings to handle
             nav_settings = [
                 'teams_navigation_enabled',
-                'store_navigation_enabled', 
-                'matches_navigation_enabled',
-                'leagues_navigation_enabled',
+                'store_navigation_enabled',
                 'drafts_navigation_enabled',
-                'players_navigation_enabled',
-                'messaging_navigation_enabled',
-                'mobile_features_navigation_enabled',
-                'admin_panel_navigation_enabled'
+                'leagues_navigation_enabled',
             ]
             
             for setting_key in nav_settings:

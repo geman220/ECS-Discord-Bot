@@ -24,7 +24,68 @@ def init_request_handlers(app, csrf):
     """
     _init_csrf_handlers(app, csrf)
     _init_before_request(app)
+    _init_maintenance_gate(app)
     _init_teardown_handlers(app)
+
+
+def _init_maintenance_gate(app):
+    """Block non-admin access when the `maintenance_mode` AdminConfig flag is on.
+
+    Admins (Global Admin / Pub League Admin) are exempt so they can keep working
+    and switch maintenance back off; static assets, the login page and health
+    checks stay reachable. The check FAILS OPEN — any error reading the flag lets
+    the request through, so a transient DB hiccup can never lock the whole site.
+    Registered after the db-session before_request so g.db_session is available.
+    """
+    from flask import request, render_template, jsonify
+    from app.utils.user_helpers import safe_current_user
+
+    # Must stay reachable so admins can log in / disable it, and infra keeps working.
+    exempt_prefixes = ('/static/', '/auth/', '/health')
+
+    @app.before_request
+    def _maintenance_gate():
+        try:
+            from app.models.admin_config import AdminConfig
+            val = AdminConfig.get_setting('maintenance_mode', False)
+        except Exception:
+            return None  # fail open — never lock the app due to a check failure
+
+        if not ((val is True) or (str(val).lower() == 'true')):
+            return None
+
+        path = request.path or ''
+        if path.startswith(exempt_prefixes):
+            return None
+
+        # Admins bypass maintenance entirely.
+        try:
+            user = safe_current_user
+            if user and user.is_authenticated and (
+                user.has_role('Global Admin') or user.has_role('Pub League Admin')
+            ):
+                return None
+        except Exception:
+            pass  # an unresolved user is treated as non-admin (gated)
+
+        # Everyone else gets a 503 maintenance response (JSON for API/XHR callers).
+        accept = request.headers.get('Accept') or ''
+        wants_json = (
+            path.startswith('/api')
+            or request.is_json
+            or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            or 'application/json' in accept
+        )
+        if wants_json:
+            return jsonify({
+                'success': False,
+                'maintenance': True,
+                'message': 'The site is temporarily down for maintenance. Please try again shortly.'
+            }), 503
+        try:
+            return render_template('errors/503_flowbite.html'), 503
+        except Exception:
+            return ('The site is down for maintenance. Please try again shortly.', 503)
 
 
 def _init_csrf_handlers(app, csrf):

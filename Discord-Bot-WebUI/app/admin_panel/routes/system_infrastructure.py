@@ -403,9 +403,14 @@ def redis_draft_cache_stats():
         session = g.db_session
         leagues = session.query(League).join(Season).filter(Season.is_current == True).all()
 
+        # Read-only per-league status (is a draft currently marked active for it).
+        # Do NOT warm the cache here — warming is an expensive write side-effect and
+        # this is a stats GET. The old code called DraftCacheService.warm_cache_for_league(),
+        # which does not exist, so the AttributeError made the whole page show
+        # "Draft cache statistics unavailable."
         league_cache_status = {}
         for league in leagues:
-            league_cache_status[league.name] = DraftCacheService.warm_cache_for_league(league.name)
+            league_cache_status[league.name] = DraftCacheService.get_league_cache_status(league.name)
 
         return render_template('admin_panel/system/draft_cache_stats_flowbite.html',
                              cache_stats=cache_stats,

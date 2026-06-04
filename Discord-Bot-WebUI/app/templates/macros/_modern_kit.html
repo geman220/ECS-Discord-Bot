@@ -403,11 +403,17 @@
 {% macro modal(id, title, icon=None, size='md', closable=true, static_backdrop=true, mobile_fullscreen=false) %}
 {# closable/static_backdrop/mobile_fullscreen accepted for API parity with macros/flowbite.html's modal
    (this macro already uses a static backdrop); closable toggles the X button. #}
-{% set sizes = {'sm': 'max-w-sm', 'md': 'max-w-md', 'lg': 'max-w-lg', 'xl': 'max-w-2xl'} %}
+{# Width is set via an inline max-width (in rem) rather than Tailwind's sm:max-w-*
+   utilities: those responsive max-width classes are NOT in the compiled
+   vite-dist/css/tailwind.css, so relying on them left every modal at w-full
+   (full viewport width, covering the whole app shell). An inline style can't be
+   purged, so this is build-independent. On phones (< the max-width) the card is
+   still full-bleed, giving the intended bottom-sheet. #}
+{% set size_rem = {'sm': '24rem', 'md': '28rem', 'lg': '32rem', 'xl': '42rem'} %}
 <div id="{{ id }}" tabindex="-1" aria-hidden="true" aria-modal="true" role="dialog"
      aria-labelledby="{{ id }}-title" data-modal-backdrop="static"
      class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 justify-center items-end sm:items-center w-full max-h-full">
-  <div class="relative p-0 sm:p-4 w-full sm:{{ sizes.get(size, sizes['md']) }} max-h-full">
+  <div class="relative p-0 sm:p-4 w-full max-h-full mx-auto" style="max-width: {{ size_rem.get(size, size_rem['md']) }};">
     <div class="relative bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[90vh]">
       <div class="flex items-center justify-between px-5 h-14 border-b border-gray-200 dark:border-gray-700 shrink-0">
         <h3 id="{{ id }}-title" class="font-bold flex items-center gap-2 text-gray-900 dark:text-white">
