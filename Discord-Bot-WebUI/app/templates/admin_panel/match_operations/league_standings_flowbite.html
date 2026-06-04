@@ -27,7 +27,8 @@
 
 {# Real aggregates derived from the provided standings dicts (no fabricated fields) #}
 {% set rows = standings_data.standings or [] %}
-{% set leader = rows[0] if rows %}
+{% set leader_div = standings_data.divisions[0] if standings_data.divisions %}
+{% set leader = leader_div.standings[0] if leader_div and leader_div.standings %}
 {% set total_mp = rows | sum(attribute='matches_played') %}
 {% set total_played = (total_mp / 2) | round(0, 'floor') | int %}
 {% set total_gf = rows | sum(attribute='goals_for') %}
@@ -64,7 +65,7 @@
       <h2 class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-2">
         <i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> Top of the Table
       </h2>
-      <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ standings_data.current_season.name }}</span>
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ leader_div.name if leader_div else standings_data.current_season.name }}</span>
     </div>
     {% if leader %}
     <div class="p-4 sm:p-5">
@@ -124,12 +125,14 @@
 </div>
 
 {# ---- League table: the primary job ---- #}
-{% if rows %}
+{% if standings_data.divisions %}
 {% set table_footer %}
   <span><strong class="text-gray-700 dark:text-gray-300">Legend:</strong> MP = Matches Played, W = Wins, D = Draws, L = Losses, GF = Goals For, GA = Goals Against, GD = Goal Difference, Pts = Points</span>
 {% endset %}
+{# Premier and Classic are separate competitions — one ranked table per division. #}
+{% for div in standings_data.divisions %}
 <div class="mb-5 sm:mb-6">
-{% call data_table("League Table", icon="ti-list-numbers", count=rows|length, search_placeholder="Filter teams…", search_id="standingsFilter", footer=table_footer) %}
+{% call data_table(div.name ~ " Division", icon="ti-list-numbers", count=div.standings|length, footer=table_footer) %}
   {# md+ table #}
   <table class="hidden md:table w-full text-sm">
     <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
@@ -147,7 +150,7 @@
       </tr>
     </thead>
     <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-      {% for standing in rows %}
+      {% for standing in div.standings %}
       <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {% if standing.position == 1 %}bg-ecs-gold-50/40 dark:bg-ecs-gold-400/5{% endif %}">
         <td class="px-3 py-2.5 text-center">
           {% if standing.position == 1 %}
@@ -184,7 +187,7 @@
   </table>
   {# mobile stacked cards #}
   <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-    {% for standing in rows %}
+    {% for standing in div.standings %}
     <div data-row class="px-4 py-3.5 {% if standing.position == 1 %}bg-ecs-gold-50/40 dark:bg-ecs-gold-400/5{% endif %}">
       <div class="flex items-center gap-3">
         {% if standing.position == 1 %}
@@ -214,6 +217,7 @@
   </div>
 {% endcall %}
 </div>
+{% endfor %}
 
 {{ kit_alert('info', 'Standings are calculated from reported match results. Points: Win = 3, Draw = 1, Loss = 0. Ranking is sorted by points, then goal difference.', title='How standings work.', dismissible=False) }}
 {% else %}

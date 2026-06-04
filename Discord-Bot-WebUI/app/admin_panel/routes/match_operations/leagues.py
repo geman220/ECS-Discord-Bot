@@ -157,10 +157,9 @@ def league_standings():
             ).all()
         }
 
-        standings = []
-        for team in teams:
+        def _build_standing(team):
             s = standing_rows.get(team.id)
-            standings.append({
+            return {
                 'team': team,
                 'matches_played': (s.played if s else 0) or 0,
                 'wins': (s.wins if s else 0) or 0,
@@ -170,21 +169,35 @@ def league_standings():
                 'goals_against': (s.goals_against if s else 0) or 0,
                 'goal_difference': (s.goal_difference if s else 0) or 0,
                 'points': (s.points if s else 0) or 0,
-            })
+            }
 
-        # Canonical ordering: points, then goal difference, then goals for.
-        standings.sort(
-            key=lambda x: (x['points'], x['goal_difference'], x['goals_for']),
-            reverse=True,
-        )
+        # Combined list — used only for the season-wide KPI aggregates at the top.
+        standings = [_build_standing(t) for t in teams]
 
-        # Add position
-        for i, standing in enumerate(standings, 1):
-            standing['position'] = i
+        # Per-division standings. Premier and Classic are SEPARATE competitions within
+        # a Pub League season (a Classic team never plays a Premier team), so each
+        # league/division is ranked independently rather than pooled into one table.
+        # Ordered by League.id so the higher division (Premier, created first) leads.
+        divisions = []
+        for league in League.query.filter_by(season_id=current_season.id).order_by(League.id).all():
+            div_standings = [_build_standing(t) for t in teams if t.league_id == league.id]
+            div_standings.sort(
+                key=lambda x: (x['points'], x['goal_difference'], x['goals_for']),
+                reverse=True,
+            )
+            for i, st in enumerate(div_standings, 1):
+                st['position'] = i
+            if div_standings:
+                divisions.append({
+                    'name': league.name,
+                    'league_id': league.id,
+                    'standings': div_standings,
+                })
 
         standings_data = {
             'current_season': current_season,
             'standings': standings,
+            'divisions': divisions,
             'total_teams': len(teams),
             'seasons': seasons,
         }

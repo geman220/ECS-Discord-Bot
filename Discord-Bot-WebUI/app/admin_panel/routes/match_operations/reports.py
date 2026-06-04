@@ -170,11 +170,14 @@ def export_standings():
         )
 
     standings = query.all()
-    # Rank by points, then goal difference, then goals for (highest first).
-    standings.sort(
-        key=lambda s: (s.points or 0, s.goal_difference or 0, s.goals_for or 0),
-        reverse=True,
-    )
+
+    # Premier and Classic are SEPARATE competitions, so group by division and rank
+    # within each (position resets per league) rather than pooling into one order.
+    from collections import defaultdict
+    by_league = defaultdict(list)
+    for s in standings:
+        league_name = s.team.league.name if s.team and s.team.league else ''
+        by_league[league_name].append(s)
 
     header = [
         'Position', 'Team', 'League', 'Played', 'Wins', 'Draws', 'Losses',
@@ -182,21 +185,27 @@ def export_standings():
     ]
 
     def rows():
-        for i, s in enumerate(standings, start=1):
-            team = s.team
-            yield [
-                i,
-                team.name if team else f'#{s.team_id}',
-                team.league.name if team and team.league else '',
-                s.played or 0,
-                s.wins or 0,
-                s.draws or 0,
-                s.losses or 0,
-                s.goals_for or 0,
-                s.goals_against or 0,
-                s.goal_difference if s.goal_difference is not None else ((s.goals_for or 0) - (s.goals_against or 0)),
-                s.points or 0,
-            ]
+        for league_name in sorted(by_league.keys()):
+            ranked = sorted(
+                by_league[league_name],
+                key=lambda s: (s.points or 0, s.goal_difference or 0, s.goals_for or 0),
+                reverse=True,
+            )
+            for i, s in enumerate(ranked, start=1):
+                team = s.team
+                yield [
+                    i,
+                    team.name if team else f'#{s.team_id}',
+                    league_name,
+                    s.played or 0,
+                    s.wins or 0,
+                    s.draws or 0,
+                    s.losses or 0,
+                    s.goals_for or 0,
+                    s.goals_against or 0,
+                    s.goal_difference if s.goal_difference is not None else ((s.goals_for or 0) - (s.goals_against or 0)),
+                    s.points or 0,
+                ]
 
     return _csv_response(header, rows(), 'league_standings')
 
