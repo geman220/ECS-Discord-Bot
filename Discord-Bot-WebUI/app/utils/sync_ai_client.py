@@ -106,7 +106,7 @@ class SyncAIClient:
 
     def generate_match_event_commentary(self, event_context: Dict[str, Any], match_history: Optional[List[Dict]] = None) -> Optional[str]:
         """
-        Generate dynamic, contextually-aware live event commentary using ChatGPT API.
+        Generate dynamic, contextually-aware live event commentary using Anthropic Claude.
         Validates output against tone rules and anti-repetition before returning.
 
         Args:

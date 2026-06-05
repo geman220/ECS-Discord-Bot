@@ -3,7 +3,7 @@
 """
 Commentary Validation & Anti-AI Detection
 
-Final gate between GPT output and Discord. Enforces tone rules in code
+Final gate between LLM/template output and Discord. Enforces tone rules in code
 (not just in the prompt), rejects AI-sounding output, prevents repetition,
 and enforces character limits.
 

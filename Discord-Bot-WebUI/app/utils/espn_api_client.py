@@ -318,6 +318,16 @@ class ESPNAPIClient:
             venue_name = (game_info.get('venue') or {}).get('fullName', '') or \
                          (comp.get('venue') or {}).get('fullName', '')
 
+            # Referee from gameInfo.officials[] (position.name == 'Referee')
+            officials = game_info.get('officials') or []
+            referee = ''
+            for off in officials:
+                if ((off.get('position') or {}).get('name', '')) == 'Referee':
+                    referee = off.get('displayName') or off.get('fullName', '')
+                    break
+            if not referee and officials:
+                referee = officials[0].get('displayName') or officials[0].get('fullName', '')
+
             return {
                 'match_id': match_id,
                 'status': status,
@@ -335,6 +345,7 @@ class ESPNAPIClient:
                 'stats': {'home': home_stats, 'away': away_stats},
                 'events': match_events,
                 'venue': venue_name,
+                'referee': referee,
                 'attendance': comp.get('attendance', 0) or game_info.get('attendance', 0) or 0,
                 'cached_at': time.time(),
             }
@@ -438,11 +449,40 @@ class ESPNAPIClient:
             is_scoring = ke.get('scoringPlay', False)
             event_id = str(ke.get('id') or '')
 
-            # Goals: "Goal", "Goal - Header", "Goal - Free Kick", "Own Goal", "Penalty"
-            if is_scoring or type_text.startswith('Goal') or 'Penalty' in type_text:
-                is_own_goal = 'Own Goal' in type_text
-                is_penalty = type_text == 'Penalty' or 'Penalty' in type_text
-                goal_type = 'OWN_GOAL' if is_own_goal else 'PENALTY_GOAL' if is_penalty else 'GOAL'
+            # Goals & penalties. A real goal MUST be a scoring play (or a clearly
+            # goal-typed event that isn't a disallowed/VAR marker). A penalty event
+            # that is NOT scoring is a save or a miss — never announce it as a goal
+            # (the community is sensitive to false goal posts).
+            is_penalty_text = 'Penalty' in type_text
+            is_own_goal = 'Own Goal' in type_text
+            is_disallowed = 'Disallow' in type_text or 'No Goal' in type_text
+            is_goal = (is_scoring or type_text.startswith('Goal')) and not is_disallowed
+
+            if is_penalty_text and not is_scoring:
+                # Penalty missed or saved — a non-scoring event, NOT a goal.
+                tl = type_text.lower()
+                pen_type = 'PENALTY_SAVED' if 'saved' in tl else 'PENALTY_MISSED'
+                taker = self._enrich_athlete(
+                    (participants[0].get('athlete') if participants else {}) or {},
+                    athlete_lookup,
+                )
+                if not taker['name']:
+                    taker['name'] = self._player_from_goal_text(ke.get('text', ''))
+                out.append({
+                    'id': event_id,
+                    'type': pen_type,
+                    'minute': clock_val,
+                    'player': taker['name'],
+                    'player_headshot': taker['headshot'],
+                    'player_jersey': taker['jersey'],
+                    'team': team_name,
+                    'team_logo': team_logo,
+                    'detail_text': type_text,
+                    'description': ke.get('text', '') or f"{type_text}. {taker['name']} ({team_name}). {clock_val}.",
+                })
+
+            elif is_goal:
+                goal_type = 'OWN_GOAL' if is_own_goal else 'PENALTY_GOAL' if is_penalty_text else 'GOAL'
                 scorer = self._enrich_athlete(
                     (participants[0].get('athlete') if participants else {}) or {},
                     athlete_lookup,
@@ -450,6 +490,17 @@ class ESPNAPIClient:
                 # Fall back to parsing player from text when participants are empty
                 if not scorer['name']:
                     scorer['name'] = self._player_from_goal_text(ke.get('text', ''))
+                # Assist provider: ESPN puts it in participants[1] for open-play goals
+                # (penalties/own goals have no assist). Fall back to "Assisted by" text.
+                assist_name = ''
+                if not is_own_goal and not is_penalty_text and len(participants) > 1:
+                    assist = self._enrich_athlete(
+                        (participants[1].get('athlete') if participants[1] else {}) or {},
+                        athlete_lookup,
+                    )
+                    assist_name = assist['name']
+                if not assist_name and not is_own_goal:
+                    assist_name = self._assist_from_goal_text(ke.get('text', ''))
                 out.append({
                     'id': event_id,
                     'type': goal_type,
@@ -457,6 +508,7 @@ class ESPNAPIClient:
                     'player': scorer['name'],
                     'player_headshot': scorer['headshot'],
                     'player_jersey': scorer['jersey'],
+                    'assist': assist_name,
                     'team': team_name,
                     'team_logo': team_logo,
                     'detail_text': type_text,
@@ -535,6 +587,25 @@ class ESPNAPIClient:
         except Exception:
             pass
         return ''
+
+    def _assist_from_goal_text(self, text: str) -> str:
+        """
+        Parse the assist provider from ESPN goal text when participants don't
+        carry it. Example: "...Albert Rusnák (Seattle Sounders FC)... Assisted
+        by Cristian Roldan with a cross." -> "Cristian Roldan". '' if no assist.
+        """
+        if not text or 'Assisted by' not in text:
+            return ''
+        try:
+            after = text.split('Assisted by', 1)[1].strip()
+            # Name ends at a period or a trailing descriptive clause
+            for sep in ['.', ' with ', ' following ', ' after ']:
+                idx = after.find(sep)
+                if idx != -1:
+                    after = after[:idx]
+            return after.strip().rstrip('.').strip()
+        except Exception:
+            return ''
 
     def _get_cached_data(self, cache_key: str) -> Optional[Dict[str, Any]]:
         """

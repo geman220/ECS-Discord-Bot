@@ -65,6 +65,8 @@ def schedule_upcoming_matches(self, session):
                             logger.info(f"Dispatch: thread already created for match {due_task.match_id}, marking completed")
                             continue
                         celery_result = create_mls_match_thread_task.apply_async(args=[due_task.match_id])
+                    elif due_task.task_type == TaskType.BUILDUP_POST:
+                        celery_result = post_match_buildup_task.apply_async(args=[due_task.match_id])
                     elif due_task.task_type == TaskType.LINEUP_POST:
                         celery_result = post_match_lineups_task.apply_async(args=[due_task.match_id])
                     elif due_task.task_type == TaskType.LIVE_REPORTING_START:
@@ -99,8 +101,11 @@ def schedule_upcoming_matches(self, session):
             # Lineup post: 30min default. ESPN typically publishes 30-60min
             # before kickoff; if not ready, the task self-retries every 5min.
             lineup_post_minutes = AdminConfig.get_setting('mls_lineup_post_minutes_before', 30)
+            # Build-up post (form + H2H): 3h before kickoff by default.
+            buildup_post_hours = AdminConfig.get_setting('mls_buildup_post_hours_before', 3)
 
             scheduled_lineups = 0
+            scheduled_buildups = 0
 
             for match in upcoming_matches:
                 try:
@@ -192,6 +197,40 @@ def schedule_upcoming_matches(self, session):
                             logger.info(f"Immediately dispatched lineup post for match {match.id}, task_id={celery_task.id}")
                         # If match has already started, skip — too late for a pre-match lineup post
 
+                    # Schedule pre-match build-up post (form + H2H), one-shot per match.
+                    buildup_time = match_dt - timedelta(hours=buildup_post_hours)
+                    existing_buildup_task = session.query(ScheduledTask).filter(
+                        ScheduledTask.match_id == match.id,
+                        ScheduledTask.task_type == TaskType.BUILDUP_POST
+                    ).first()
+                    if not existing_buildup_task:
+                        if buildup_time > now:
+                            db_task = ScheduledTask(
+                                task_type=TaskType.BUILDUP_POST,
+                                match_id=match.id,
+                                celery_task_id=None,
+                                scheduled_time=buildup_time,
+                                state=TaskState.SCHEDULED
+                            )
+                            session.add(db_task)
+                            scheduled_buildups += 1
+                            logger.info(f"Scheduled build-up post for match {match.id} at {buildup_time} (poll-dispatch)")
+                        elif match_dt > now:
+                            # Past T-{buildup_post_hours}h but match hasn't started — fire immediately
+                            celery_task = post_match_buildup_task.apply_async(args=[match.id])
+                            db_task = ScheduledTask(
+                                task_type=TaskType.BUILDUP_POST,
+                                match_id=match.id,
+                                celery_task_id=celery_task.id,
+                                scheduled_time=buildup_time,
+                                state=TaskState.RUNNING,
+                                execution_time=now
+                            )
+                            session.add(db_task)
+                            scheduled_buildups += 1
+                            logger.info(f"Immediately dispatched build-up post for match {match.id}, task_id={celery_task.id}")
+                        # If match already started, skip — too late for a pre-match build-up
+
                     # Schedule live reporting start (configurable minutes before, default 5)
                     live_start_time = match_dt - timedelta(minutes=live_reporting_minutes)
 
@@ -268,11 +307,13 @@ def schedule_upcoming_matches(self, session):
                 'threads_scheduled': scheduled_threads,
                 'reporting_scheduled': scheduled_live,
                 'lineups_scheduled': scheduled_lineups,
+                'buildups_scheduled': scheduled_buildups,
             }
 
         if result['success']:
             logger.info(
                 f"✅ Enterprise scheduler: {result['threads_scheduled']} threads, "
+                f"{result['buildups_scheduled']} build-ups, "
                 f"{result['lineups_scheduled']} lineups, "
                 f"{result['reporting_scheduled']} live sessions"
             )
@@ -883,6 +924,123 @@ def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
         raise
     except Exception as e:
         logger.error(f"Error posting lineups for match {match_id}: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@celery_task(
+    name='app.tasks.match_scheduler.post_match_buildup_task',
+    queue='discord',
+    max_retries=2,
+    default_retry_delay=300,
+    soft_time_limit=45,
+    time_limit=60
+)
+def post_match_buildup_task(self, session, match_id: int) -> Dict[str, Any]:
+    """
+    Post a pre-match build-up to the Discord thread (default T-3h): team
+    records/standing + last meeting (reuses _build_espn_description), recent
+    form (WWLDW), venue, and a live kickoff countdown. Factual, no AI — fills
+    the dead air between thread creation (T-48h) and lineups (T-30m).
+    """
+    try:
+        from datetime import timezone
+        from zoneinfo import ZoneInfo
+        from app.models.external import MLSMatch
+        from app.utils.espn_api_client import ESPNAPIClient
+        from app.utils.competition_mappings import resolve_league_code
+        from app.utils.discord_request_handler import send_to_discord_bot
+
+        with task_session() as db_session:
+            match = db_session.query(MLSMatch).filter_by(id=match_id).first()
+            if not match:
+                return {"success": False, "error": f"Match {match_id} not found"}
+
+            thread_id = match.discord_thread_id
+            if not thread_id:
+                logger.warning(f"No Discord thread for match {match_id}, skipping build-up post")
+                return {"success": False, "error": "No Discord thread"}
+
+            home_team = 'Seattle Sounders FC' if match.is_home_game else match.opponent
+            away_team = match.opponent if match.is_home_game else 'Seattle Sounders FC'
+            espn_id = str(match.espn_match_id or match.match_id)
+            competition = match.competition or 'MLS'
+            league_code = resolve_league_code(competition)
+
+            match_dt = match.date_time
+            if match_dt and match_dt.tzinfo is None:
+                match_dt = match_dt.replace(tzinfo=timezone.utc)
+            match_date_str = match_dt.astimezone(ZoneInfo('UTC')).strftime('%Y%m%d') if match_dt else None
+
+            # Records / standing / H2H (reuses the thread-description builder)
+            espn_description = _build_espn_description(
+                match.match_id, home_team, away_team, competition, match_date=match_date_str
+            )
+
+            # Recent form + venue (best-effort; don't fail the post if unavailable)
+            home_form = away_form = ''
+            venue = match.venue or ''
+            try:
+                data = ESPNAPIClient().get_match_data(espn_id, league_code)
+                if data:
+                    home_form = data.get('home_form', '') or ''
+                    away_form = data.get('away_form', '') or ''
+                    venue = venue or data.get('venue', '')
+            except Exception as form_err:
+                logger.info(f"Build-up: form lookup failed for match {match_id}: {form_err}")
+
+            def _fmt_form(f):
+                return ' '.join(list(f)) if f else ''
+
+            fields = []
+            if home_form or away_form:
+                lines = []
+                if home_form:
+                    lines.append(f"{home_team}: {_fmt_form(home_form)}")
+                if away_form:
+                    lines.append(f"{away_team}: {_fmt_form(away_form)}")
+                fields.append({'name': 'Recent Form', 'value': '\n'.join(lines), 'inline': False})
+            if venue:
+                fields.append({'name': 'Venue', 'value': str(venue)[:1024], 'inline': True})
+            fields.append({'name': 'Competition', 'value': str(competition)[:1024], 'inline': True})
+            if match_dt:
+                unix = int(match_dt.timestamp())
+                fields.append({'name': 'Kickoff', 'value': f"<t:{unix}:F> (<t:{unix}:R>)", 'inline': False})
+
+            embed = {
+                'title': 'Matchday Build-Up',
+                'description': espn_description,
+                'color': 0x005F4F,
+                'timestamp': datetime.utcnow().isoformat(),
+                'footer': {'text': f'{home_team} vs {away_team}'},
+                'fields': fields,
+            }
+
+            request_data = {
+                'thread_id': thread_id,
+                'event_type': 'buildup',
+                'content': f"{home_team} vs {away_team}",
+                'embed': embed,
+                'match_data': {'match_id': str(match_id)},
+            }
+
+            response = send_to_discord_bot('/api/live-reporting/event', request_data)
+            task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.BUILDUP_POST)
+            if response and response.get('success'):
+                logger.info(f"Posted build-up for match {match_id}")
+                if task:
+                    task.mark_completed()
+                    db_session.commit()
+                return {"success": True, "message": "Build-up posted"}
+
+            error_msg = response.get('error', 'Unknown') if response else 'No response'
+            logger.error(f"Failed to post build-up for match {match_id}: {error_msg}")
+            if task:
+                task.mark_failed(error_msg)
+                db_session.commit()
+            return {"success": False, "error": error_msg}
+
+    except Exception as e:
+        logger.error(f"Error posting build-up for match {match_id}: {e}")
         return {"success": False, "error": str(e)}
 
 

@@ -112,19 +112,9 @@
                                 <label for="prompt_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Prompt Type <span class="text-red-500">*</span></label>
                                 <select id="prompt_type" name="prompt_type" required class="input-ecs">
                                     <option value="">Select Type...</option>
-                                    <option value="match_thread_context" {{ 'selected' if prompt and prompt.prompt_type == 'match_thread_context' }}>Match Thread Context</option>
-                                    <option value="pre_match_hype" {{ 'selected' if prompt and prompt.prompt_type == 'pre_match_hype' }}>Pre-Match Hype</option>
-                                    <option value="half_time_message" {{ 'selected' if prompt and prompt.prompt_type == 'half_time_message' }}>Half Time Message</option>
-                                    <option value="full_time_message" {{ 'selected' if prompt and prompt.prompt_type == 'full_time_message' }}>Full Time Message</option>
-                                    <option value="match_commentary" {{ 'selected' if prompt and prompt.prompt_type == 'match_commentary' }}>Match Commentary</option>
-                                    <option value="goal" {{ 'selected' if prompt and prompt.prompt_type == 'goal' }}>Goal Event</option>
-                                    <option value="sounders_goal" {{ 'selected' if prompt and prompt.prompt_type == 'sounders_goal' }}>Sounders Goal</option>
-                                    <option value="opponent_goal" {{ 'selected' if prompt and prompt.prompt_type == 'opponent_goal' }}>Opponent Goal</option>
-                                    <option value="card" {{ 'selected' if prompt and prompt.prompt_type == 'card' }}>Card Event</option>
-                                    <option value="sounders_red_card" {{ 'selected' if prompt and prompt.prompt_type == 'sounders_red_card' }}>Sounders Red Card</option>
-                                    <option value="opponent_red_card" {{ 'selected' if prompt and prompt.prompt_type == 'opponent_red_card' }}>Opponent Red Card</option>
-                                    <option value="substitution" {{ 'selected' if prompt and prompt.prompt_type == 'substitution' }}>Substitution</option>
-                                    <option value="rivalry" {{ 'selected' if prompt and prompt.prompt_type == 'rivalry' }}>Rivalry Match</option>
+                                    {% for pt_value, pt_label in prompt_type_labels.items() %}
+                                    <option value="{{ pt_value }}" {{ 'selected' if prompt and prompt.prompt_type == pt_value }}>{{ pt_label }}</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                         </div>
@@ -153,6 +143,16 @@
                             </div>
                             <textarea id="user_prompt_template" name="user_prompt_template" rows="5" required class="input-ecs font-mono">{{ prompt.user_prompt_template if prompt else '' }}</textarea>
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Use template variables listed below as placeholders in your prompt</p>
+                        </div>
+
+                        <!-- Mad-lib Lines — drives the DEFAULT (non-AI) live commentary -->
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <label for="template_lines" class="text-sm font-medium text-gray-900 dark:text-white">Mad-lib Lines</label>
+                                <span class="text-[11px] font-mono uppercase tracking-wide text-gray-400 dark:text-gray-500">one per line · {player} {team} {minute} {score} {assist}</span>
+                            </div>
+                            <textarea id="template_lines" name="template_lines" rows="6" class="input-ecs font-mono">{{ prompt.template_lines if prompt else '' }}</textarea>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Human-written lines for the deterministic (non-AI) commentary engine — the DEFAULT live path. When set, these replace the built-in lines for this prompt type (goal / card / substitution types only). One phrase per line; blank = use built-in defaults.</p>
                         </div>
 
                         <!-- Template Variables Reference -->
@@ -494,19 +494,9 @@
                             <select id="prompt_type" name="prompt_type" required
                                     class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                 <option value="">Select Type...</option>
-                                <option value="match_thread_context" {{ 'selected' if prompt and prompt.prompt_type == 'match_thread_context' }}>Match Thread Context</option>
-                                <option value="pre_match_hype" {{ 'selected' if prompt and prompt.prompt_type == 'pre_match_hype' }}>Pre-Match Hype</option>
-                                <option value="half_time_message" {{ 'selected' if prompt and prompt.prompt_type == 'half_time_message' }}>Half Time Message</option>
-                                <option value="full_time_message" {{ 'selected' if prompt and prompt.prompt_type == 'full_time_message' }}>Full Time Message</option>
-                                <option value="match_commentary" {{ 'selected' if prompt and prompt.prompt_type == 'match_commentary' }}>Match Commentary</option>
-                                <option value="goal" {{ 'selected' if prompt and prompt.prompt_type == 'goal' }}>Goal Event</option>
-                                <option value="sounders_goal" {{ 'selected' if prompt and prompt.prompt_type == 'sounders_goal' }}>Sounders Goal</option>
-                                <option value="opponent_goal" {{ 'selected' if prompt and prompt.prompt_type == 'opponent_goal' }}>Opponent Goal</option>
-                                <option value="card" {{ 'selected' if prompt and prompt.prompt_type == 'card' }}>Card Event</option>
-                                <option value="sounders_red_card" {{ 'selected' if prompt and prompt.prompt_type == 'sounders_red_card' }}>Sounders Red Card</option>
-                                <option value="opponent_red_card" {{ 'selected' if prompt and prompt.prompt_type == 'opponent_red_card' }}>Opponent Red Card</option>
-                                <option value="substitution" {{ 'selected' if prompt and prompt.prompt_type == 'substitution' }}>Substitution</option>
-                                <option value="rivalry" {{ 'selected' if prompt and prompt.prompt_type == 'rivalry' }}>Rivalry Match</option>
+                                {% for pt_value, pt_label in prompt_type_labels.items() %}
+                                <option value="{{ pt_value }}" {{ 'selected' if prompt and prompt.prompt_type == pt_value }}>{{ pt_label }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                     </div>
@@ -532,6 +522,14 @@
                         <textarea id="user_prompt_template" name="user_prompt_template" rows="5" required
                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono">{{ prompt.user_prompt_template if prompt else '' }}</textarea>
                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Use template variables listed below as placeholders in your prompt</p>
+                    </div>
+
+                    <!-- Mad-lib Lines — drives the DEFAULT (non-AI) live commentary -->
+                    <div>
+                        <label for="template_lines" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Mad-lib Lines <span class="text-[11px] font-mono uppercase tracking-wide text-gray-400 dark:text-gray-500">one per line · {player} {team} {minute} {score} {assist}</span></label>
+                        <textarea id="template_lines" name="template_lines" rows="6"
+                                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono">{{ prompt.template_lines if prompt else '' }}</textarea>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Human-written lines for the deterministic (non-AI) commentary engine — the DEFAULT live path. When set, these replace the built-in lines for this prompt type (goal / card / substitution types only). One phrase per line; blank = use built-in defaults.</p>
                     </div>
 
                     <!-- Template Variables Reference -->

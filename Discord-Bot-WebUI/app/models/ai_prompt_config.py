@@ -32,6 +32,11 @@ class AIPromptConfig(db.Model):
     prompt_type = Column(String(50), nullable=False)  # 'match_commentary', 'rivalry', 'goal', 'card', etc.
     system_prompt = Column(Text, nullable=False)
     user_prompt_template = Column(Text)  # Template with {variables}
+    # Mad-lib template lines (one human-written line per row, newline-separated).
+    # When present, these REPLACE the code-default base lines for this prompt_type
+    # in the deterministic TemplateCommentaryEngine (the default live-commentary
+    # path). Lets admins edit the bot's voice from this editor without a deploy.
+    template_lines = Column(Text)
     
     # Context and conditions
     competition_filter = Column(String(100))  # e.g., 'usa.1', 'usa.nwsl', 'all'
@@ -92,6 +97,7 @@ class AIPromptConfig(db.Model):
             'prompt_type': self.prompt_type,
             'system_prompt': self.system_prompt,
             'user_prompt_template': self.user_prompt_template,
+            'template_lines': self.template_lines,
             'competition_filter': self.competition_filter,
             'team_filter': self.team_filter,
             'event_types': self.event_types,
@@ -117,6 +123,7 @@ class AIPromptConfig(db.Model):
             prompt_type=self.prompt_type,
             system_prompt=self.system_prompt,
             user_prompt_template=self.user_prompt_template,
+            template_lines=self.template_lines,
             competition_filter=self.competition_filter,
             team_filter=self.team_filter,
             event_types=self.event_types,

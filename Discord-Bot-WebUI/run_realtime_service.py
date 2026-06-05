@@ -105,14 +105,25 @@ class RealtimeServiceManager:
         logger.info("🛑 Initiating graceful shutdown...")
 
         try:
-            # Stop the real-time service
+            # Signal the loop to stop; it exits after the current iteration.
             await realtime_service.stop_service()
 
-            # Cancel the service task
+            # Drain: let the in-flight poll/post/persist cycle finish before
+            # exiting, so a deploy/restart can't land between a Discord post and
+            # its dedup-key persist (which would re-post on restart). Bounded by a
+            # grace period; force-cancel only if it overruns. (Pairs with the
+            # compose stop_grace_period so Docker doesn't SIGKILL mid-drain.)
             if self.service_task and not self.service_task.done():
-                self.service_task.cancel()
                 try:
-                    await self.service_task
+                    await asyncio.wait_for(asyncio.shield(self.service_task), timeout=25)
+                    logger.info("In-flight cycle drained cleanly")
+                except asyncio.TimeoutError:
+                    logger.warning("Drain grace period exceeded — cancelling service task")
+                    self.service_task.cancel()
+                    try:
+                        await self.service_task
+                    except asyncio.CancelledError:
+                        pass
                 except asyncio.CancelledError:
                     pass
 

@@ -21,6 +21,53 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/live-reporting", tags=["live-reporting"])
 
 
+# --- Idempotency: drop duplicate event resends (e.g. the realtime service
+# retrying after a timeout the bot actually delivered). Keyed by
+# (thread_id, idempotency_key) with a short TTL. In-memory is sufficient — the
+# realtime service commits dedup keys only after a confirmed post, so a
+# cross-restart duplicate is rare; this covers the common same-process retry. ---
+import time as _time
+_recent_events: Dict[str, float] = {}
+_IDEMPOTENCY_TTL = 600  # seconds
+
+
+def _seen_event(thread_id: int, key: Optional[str]) -> bool:
+    if not key:
+        return False
+    ts = _recent_events.get(f"{thread_id}:{key}")
+    return ts is not None and (_time.time() - ts) < _IDEMPOTENCY_TTL
+
+
+def _record_event(thread_id: int, key: Optional[str]) -> None:
+    if not key:
+        return
+    now = _time.time()
+    _recent_events[f"{thread_id}:{key}"] = now
+    if len(_recent_events) > 2000:  # prune stale entries
+        cutoff = now - _IDEMPOTENCY_TTL
+        for k, ts in list(_recent_events.items()):
+            if ts < cutoff:
+                _recent_events.pop(k, None)
+
+
+async def _resolve_thread(bot, thread_id: int):
+    """
+    Resolve a thread by id. bot.get_channel is cache-only and returns None for
+    archived or uncached threads (e.g. after a bot restart), which would 404
+    every event. Fall back to fetch_channel and unarchive so posting survives
+    cache misses and threads that auto-archived between events.
+    """
+    thread = bot.get_channel(thread_id)
+    if thread is None:
+        thread = await bot.fetch_channel(thread_id)  # raises NotFound on a real miss
+    if getattr(thread, 'archived', False):
+        try:
+            await thread.edit(archived=False)
+        except Exception as e:
+            logger.warning(f"Could not unarchive thread {thread_id}: {e}")
+    return thread
+
+
 # Pydantic models for request/response
 class ThreadCreateRequest(BaseModel):
     channel_id: int
@@ -38,6 +85,7 @@ class LiveEventRequest(BaseModel):
     content: str
     embed: Optional[Dict[str, Any]] = None
     match_data: Optional[Dict[str, Any]] = None
+    idempotency_key: Optional[str] = None
 
 
 class StatusUpdateRequest(BaseModel):
@@ -230,11 +278,17 @@ async def send_live_event(request: LiveEventRequest, bot: commands.Bot = Depends
     Called by real-time service for goals, cards, etc.
     Enhanced with professional embed formatting and ESPN integration.
     """
+    # Drop duplicate resends before doing any work
+    if _seen_event(request.thread_id, request.idempotency_key):
+        logger.info(f"Duplicate event {request.idempotency_key} for thread {request.thread_id} — skipping resend")
+        return {"success": True, "duplicate": True, "thread_id": request.thread_id, "event_type": request.event_type}
+
     try:
-        # Get the thread
-        thread = bot.get_channel(request.thread_id)
-        if not thread:
-            raise HTTPException(status_code=404, detail=f"Thread {request.thread_id} not found")
+        # Resolve the thread (cache-miss / archived fallback)
+        try:
+            thread = await _resolve_thread(bot, request.thread_id)
+        except (discord.NotFound, discord.Forbidden) as e:
+            raise HTTPException(status_code=404, detail=f"Thread {request.thread_id} not found: {e}")
 
         # Use enhanced embed if provided by WebUI, otherwise fallback to old system
         if request.embed:
@@ -303,6 +357,9 @@ async def send_live_event(request: LiveEventRequest, bot: commands.Bot = Depends
 
         logger.info(f"Sent {request.event_type} event to thread {request.thread_id}")
 
+        # Record only after a confirmed send so a failed send still retries
+        _record_event(request.thread_id, request.idempotency_key)
+
         return {
             "success": True,
             "message_id": message.id,
@@ -310,6 +367,8 @@ async def send_live_event(request: LiveEventRequest, bot: commands.Bot = Depends
             "event_type": request.event_type
         }
 
+    except HTTPException:
+        raise  # preserve intended status (e.g. 404 thread-not-found)
     except discord.HTTPException as e:
         logger.error(f"Discord API error sending event: {e}")
         raise HTTPException(status_code=500, detail=f"Discord API error: {e}")

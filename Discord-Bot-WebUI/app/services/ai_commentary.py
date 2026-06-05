@@ -68,7 +68,7 @@ class AICommentaryService:
             for attempt in range(self.max_retries):
                 try:
                     logger.debug(f"🤖 AI Commentary attempt {attempt + 1}/{self.max_retries}")
-                    commentary = await self._call_openai_api(prompt)
+                    commentary = await self._call_claude_api(prompt)
                     if commentary:
                         # Validate against tone rules before accepting
                         result = validate_and_record(
@@ -153,8 +153,8 @@ Write only the reaction, nothing else."""
 
         return prompt
     
-    async def _call_openai_api(self, prompt: str) -> Optional[str]:
-        """Make the actual API call to Claude. (Name preserved for backward compat.)"""
+    async def _call_claude_api(self, prompt: str) -> Optional[str]:
+        """Make the actual API call to Anthropic Claude."""
         client = anthropic.AsyncAnthropic(api_key=self.api_key, timeout=self.timeout)
         try:
             response = await client.messages.create(
@@ -272,8 +272,8 @@ class EnhancedAICommentaryService(AICommentaryService):
             logger.error(f"Error retrieving prompt config for {prompt_type}: {e}")
             return None
     
-    async def _call_openai_api_with_config(self, prompt: str, config: Optional[Dict[str, Any]]) -> Optional[str]:
-        """Make Claude API call using database configuration. (Name preserved for backward compat.)"""
+    async def _call_claude_api_with_config(self, prompt: str, config: Optional[Dict[str, Any]]) -> Optional[str]:
+        """Make Claude API call using database configuration."""
         cfg = config or {}
         temperature = cfg.get('temperature') if cfg.get('temperature') is not None else 0.4
         max_tokens = cfg.get('max_tokens') or 60
@@ -372,7 +372,7 @@ class EnhancedAICommentaryService(AICommentaryService):
             
             for attempt in range(self.max_retries):
                 try:
-                    commentary = await self._call_openai_api_with_config(prompt, config)
+                    commentary = await self._call_claude_api_with_config(prompt, config)
                     if commentary:
                         logger.info(f"🤖 Pre-match Hype SUCCESS: '{commentary[:80]}{'...' if len(commentary) > 80 else ''}'")
                         return commentary
@@ -417,7 +417,7 @@ class EnhancedAICommentaryService(AICommentaryService):
             
             for attempt in range(self.max_retries):
                 try:
-                    commentary = await self._call_openai_api_with_config(prompt, config)
+                    commentary = await self._call_claude_api_with_config(prompt, config)
                     if commentary:
                         logger.info(f"🤖 Half-time Message SUCCESS: '{commentary[:80]}{'...' if len(commentary) > 80 else ''}'")
                         return commentary
@@ -462,7 +462,7 @@ class EnhancedAICommentaryService(AICommentaryService):
             
             for attempt in range(self.max_retries):
                 try:
-                    commentary = await self._call_openai_api_with_config(prompt, config)
+                    commentary = await self._call_claude_api_with_config(prompt, config)
                     if commentary:
                         logger.info(f"🤖 Full-time Message SUCCESS: '{commentary[:80]}{'...' if len(commentary) > 80 else ''}'")
                         return commentary
@@ -507,7 +507,7 @@ class EnhancedAICommentaryService(AICommentaryService):
             
             for attempt in range(self.max_retries):
                 try:
-                    commentary = await self._call_openai_api_with_config(prompt, config)
+                    commentary = await self._call_claude_api_with_config(prompt, config)
                     if commentary:
                         logger.info(f"🤖 Thread Context SUCCESS: '{commentary[:80]}{'...' if len(commentary) > 80 else ''}'")
                         return commentary

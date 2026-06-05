@@ -32,10 +32,12 @@ PROMPT_TYPE_LABELS = {
     'goal': 'Goal Event',
     'sounders_goal': 'Sounders Goal',
     'opponent_goal': 'Opponent Goal',
-    'card': 'Card Event',
+    'card': 'Card / Sounders Yellow',
+    'opponent_card': 'Opponent Yellow Card',
     'sounders_red_card': 'Sounders Red Card',
     'opponent_red_card': 'Opponent Red Card',
-    'substitution': 'Substitution',
+    'substitution': 'Sounders Substitution',
+    'opponent_substitution': 'Opponent Substitution',
     'rivalry': 'Rivalry Match',
 }
 
@@ -184,6 +186,7 @@ def create_prompt():
                 prompt_type=data.get('prompt_type', 'match_commentary'),
                 system_prompt=data.get('system_prompt'),
                 user_prompt_template=data.get('user_prompt_template'),
+                template_lines=data.get('template_lines') or None,
                 competition_filter=data.get('competition_filter'),
                 team_filter=data.get('team_filter'),
                 event_types=data.get('event_types'),
@@ -282,6 +285,8 @@ def edit_prompt(prompt_id: int):
                 new_version.system_prompt = data['system_prompt']
             if 'user_prompt_template' in data:
                 new_version.user_prompt_template = data['user_prompt_template']
+            if 'template_lines' in data:
+                new_version.template_lines = data['template_lines'] or None
             if 'temperature' in data:
                 new_version.temperature = float(data['temperature'])
             if 'max_tokens' in data:
@@ -619,7 +624,7 @@ def test_prompt(prompt_id: int):
                 pass  # Use template as-is if variables don't match
 
             import asyncio
-            result = asyncio.run(ai_service._call_openai_api_with_config(prompt_text, config))
+            result = asyncio.run(ai_service._call_claude_api_with_config(prompt_text, config))
 
             if result:
                 return jsonify({'success': True, 'result': result})

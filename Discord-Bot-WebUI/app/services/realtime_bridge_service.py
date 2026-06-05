@@ -137,7 +137,9 @@ class RealtimeBridgeService:
             if heartbeat:
                 try:
                     last_heartbeat = datetime.fromisoformat(heartbeat)
-                    heartbeat_age = (datetime.utcnow() - last_heartbeat).seconds
+                    # Use total_seconds() (not .seconds, which wraps at 24h) and
+                    # clamp negatives from inter-container clock skew to 0.
+                    heartbeat_age = max(0, int((datetime.utcnow() - last_heartbeat).total_seconds()))
                 except:
                     pass
 

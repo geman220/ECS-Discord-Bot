@@ -243,6 +243,9 @@ services:
       context: ./Discord-Bot-WebUI
       dockerfile: Dockerfile.webui
     restart: unless-stopped
+    # Give the service time to drain its in-flight poll/post/persist cycle on
+    # SIGTERM (see run_realtime_service.shutdown) before Docker SIGKILLs it.
+    stop_grace_period: 30s
     logging: *default-logging
     command: python run_realtime_service.py --log-level INFO
     env_file:

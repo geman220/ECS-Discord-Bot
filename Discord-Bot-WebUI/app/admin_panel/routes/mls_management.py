@@ -252,6 +252,32 @@ def live_reporting_dashboard():
         # Get active sessions
         active_sessions = session.query(LiveReportingSession).filter_by(is_active=True).all()
 
+        # Flag silently-stalled sessions using the SAME thresholds as the
+        # monitor_stalled_sessions watchdog, so operators see them in-app
+        # (banner) instead of only in container logs / the event ring buffer.
+        stalled_sessions = []
+        for s in active_sessions:
+            started_at = s.started_at
+            last_update = s.last_update
+            if started_at and started_at.tzinfo is None:
+                started_at = started_at.replace(tzinfo=pytz.UTC)
+            if last_update and last_update.tzinfo is None:
+                last_update = last_update.replace(tzinfo=pytz.UTC)
+            age = (now - started_at).total_seconds() if started_at else 0
+            since_update = (now - last_update).total_seconds() if last_update else None
+            issue = None
+            if (s.update_count or 0) == 0 and age > 180:
+                issue = f"never polled ({age:.0f}s since start)"
+            elif since_update is not None and since_update > 300:
+                issue = f"polling stalled ({since_update:.0f}s since last update)"
+            if issue:
+                stalled_sessions.append({
+                    'session_id': s.id,
+                    'match_id': s.match_id,
+                    'competition': s.competition,
+                    'issue': issue,
+                })
+
         # Get recent sessions (last 24 hours)
         recent_cutoff = now - timedelta(hours=24)
         recent_sessions = session.query(LiveReportingSession).filter(
@@ -293,6 +319,7 @@ def live_reporting_dashboard():
                              realtime_health=realtime_health,
                              coordination_status=coordination_status,
                              active_sessions=active_sessions,
+                             stalled_sessions=stalled_sessions,
                              recent_sessions=recent_sessions,
                              upcoming_matches=upcoming_matches,
                              stats=stats)
@@ -303,6 +330,7 @@ def live_reporting_dashboard():
                              realtime_health={'health': 'unknown', 'heartbeat_age_seconds': None},
                              coordination_status={},
                              active_sessions=[],
+                             stalled_sessions=[],
                              recent_sessions=[],
                              upcoming_matches=[],
                              stats={'active_sessions': 0, 'recent_sessions': 0, 'upcoming_matches': 0, 'service_status': 'error'},

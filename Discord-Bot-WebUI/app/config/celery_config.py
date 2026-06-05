@@ -42,10 +42,7 @@ class CeleryConfig:
     # Task Registration and Imports
     imports = (
         'app.tasks.tasks_core',
-        'app.tasks.tasks_live_reporting',  # DEPRECATED - V1 legacy (has warnings)
-        # 'app.tasks.tasks_robust_live_reporting', # Removed - V2 is production version
-        # 'app.tasks.tasks_live_reporting_v2',  # DEPRECATED - Replaced by enterprise system
-        # 'app.tasks.live_reporting_orchestrator',  # DEPRECATED - V2 is self-scheduling
+        'app.tasks.tasks_live_reporting',  # V1 loop tasks are no-ops, but still exports the live force/schedule MLS-thread tasks
         'app.tasks.match_scheduler',  # ENTERPRISE - Match scheduling and live reporting coordination
         'app.tasks.tasks_live_reporting_recovery',
         'app.tasks.queue_health_monitor',
@@ -187,7 +184,6 @@ class CeleryConfig:
         'app.tasks.discord_cleanup.*': {'queue': 'discord'},  # Season rollover cleanup
         'app.tasks.tasks_core.*': {'queue': 'celery'},
         'app.tasks.tasks_live_reporting.*': {'queue': 'live_reporting'},
-        'app.tasks.live_reporting_orchestrator.*': {'queue': 'live_reporting'},  # Event-driven orchestration
         'app.tasks.tasks_match_updates.*': {'queue': 'discord'},
         'app.tasks.tasks_rsvp.*': {'queue': 'celery'},  # Default for RSVP tasks; individual tasks override with queue parameter
         'app.tasks.tasks_rsvp_ecs.*': {'queue': 'discord'},

@@ -21,6 +21,31 @@
 {% endblock %}
 
 {% block panel_content %}
+{# ---- Stalled-session alert: surfaces the monitor_stalled_sessions watchdog in-app ---- #}
+{% if stalled_sessions %}
+<div class="max-w-7xl mx-auto mb-6">
+  <div class="rounded-xl border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-900/20 p-4" role="alert">
+    <div class="flex items-start gap-3">
+      <i class="ti ti-alert-triangle text-red-600 dark:text-red-400 text-xl mt-0.5" aria-hidden="true"></i>
+      <div class="min-w-0">
+        <h3 class="text-sm font-semibold text-red-800 dark:text-red-200">
+          {{ stalled_sessions|length }} live session{{ 's' if stalled_sessions|length != 1 else '' }} stalled
+        </h3>
+        <p class="mt-0.5 text-xs text-red-700 dark:text-red-300">
+          These sessions are active but the real-time service isn't updating them — goals/cards may be going unreported. Check the realtime-live-reporting container.
+        </p>
+        <ul class="mt-2 space-y-1">
+          {% for s in stalled_sessions %}
+          <li class="text-xs font-mono text-red-800 dark:text-red-200">
+            <span class="font-semibold">{{ s.competition or 'match' }}</span> · match {{ s.match_id }} (session {{ s.session_id }}) — {{ s.issue }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {# RBAC: enforced at the route via @role_required(['Global Admin','Discord Admin']); no template-level guards in Classic. #}
