@@ -238,6 +238,11 @@ class SubstituteRequest(db.Model):
     cancelled_at = db.Column(db.DateTime, nullable=True)
     assignments_count = db.Column(db.Integer, nullable=True, default=0)
     fulfilled_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    # Provenance: which front-end created this request and (for Discord) where.
+    # 'web' = admin/coach via WebUI, 'mobile' = Flutter app, 'discord' = /subs bot command.
+    source = db.Column(db.String(20), nullable=True, default='web')
+    discord_channel_id = db.Column(db.String(20), nullable=True)
+    discord_message_id = db.Column(db.String(20), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 

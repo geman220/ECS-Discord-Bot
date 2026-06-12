@@ -1,0 +1,172 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Sub Availability Reconcile{% endblock %}
+{% block panel_description %}Match poll availability to open substitute requests{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.substitute_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Substitute Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Reconcile</span>
+    </div>
+</li>
+{% endblock %}
+
+{% macro contact_badge(status) %}
+  {% set map = {
+    'available': ('bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300', 'Said yes'),
+    'pending': ('bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300', 'Pending reply'),
+    'declined': ('bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300', 'Declined'),
+    'not_contacted': ('bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', 'Not contacted')
+  } %}
+  {% set cls, label = map.get(status, map['not_contacted']) %}
+  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ cls }}">{{ label }}</span>
+{% endmacro %}
+
+{% block panel_content %}
+<div class="space-y-6">
+
+{% if mode == 'list' %}
+  <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="text-base font-semibold text-gray-900 dark:text-white">Availability polls</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Pick a poll to see who's available for each open request.</p>
+    </div>
+    {% if polls %}
+    <ul class="divide-y divide-gray-100 dark:divide-gray-700">
+      {% for p in polls %}
+      <li class="flex items-center justify-between gap-3 px-4 py-3">
+        <div class="min-w-0">
+          <div class="truncate text-sm font-medium text-gray-900 dark:text-white">{{ p.title }}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400">
+            {% if p.match_date %}{{ p.match_date.strftime('%a %b %d, %Y') }} · {% endif %}
+            posted {{ p.created_at.strftime('%b %d') }}
+            {% if p.discord_message_url %} · <a href="{{ p.discord_message_url }}" target="_blank" rel="noopener" class="text-ecs-green hover:underline">view poll</a>{% endif %}
+          </div>
+        </div>
+        <a href="{{ url_for('admin_panel.substitute_reconcile', poll_id=p.id) }}"
+           class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green text-white text-sm font-medium hover:opacity-90">
+          <i class="ti ti-arrows-shuffle"></i> Reconcile
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+      No availability polls yet. Post one from Discord with <code class="px-1 rounded bg-gray-100 dark:bg-gray-700">/subs poll</code>.
+    </div>
+    {% endif %}
+  </div>
+
+{% else %}
+  {% set poll = data.poll %}
+  {# ---- Header ---- #}
+  <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ poll.title }}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          {% if poll.match_date %}{{ poll.match_date.strftime('%A, %b %d, %Y') }} · {% endif %}
+          {{ data.voters_total }} vote(s)
+          {% if poll.message_url %} · <a href="{{ poll.message_url }}" target="_blank" rel="noopener" class="text-ecs-green hover:underline">view poll in Discord</a>{% endif %}
+        </p>
+      </div>
+      <a href="{{ url_for('admin_panel.substitute_management') }}"
+         class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+        <i class="ti ti-clipboard-list"></i> Open the board to assign
+      </a>
+    </div>
+    {% if data.season_stale %}
+    <div class="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+      <i class="ti ti-alert-triangle mt-0.5"></i>
+      <span>This poll is from a previous season — its slots may not match the current schedule. Double-check before acting on it.</span>
+    </div>
+    {% endif %}
+    <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">
+      Read-only. Availability never auto-assigns — contact and assignment still happen on the board through the one notification path.
+    </p>
+  </div>
+
+  {# ---- Requests with candidates ---- #}
+  {% if data.requests %}
+    {% for req in data.requests %}
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ req.team_name }}</span>
+            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ req.league_type }}</span>
+          </div>
+          <div class="text-xs text-gray-500 dark:text-gray-400">
+            {{ req.match_label or req.match_date }}{% if req.positions %} · {{ req.positions }}{% endif %}
+          </div>
+        </div>
+        <div class="text-xs font-medium text-gray-600 dark:text-gray-300">
+          {{ req.assigned or 0 }}/{{ req.needed or 0 }} filled
+        </div>
+      </div>
+
+      {% if req.candidates %}
+      <ul class="divide-y divide-gray-100 dark:divide-gray-700">
+        {% for c in req.candidates %}
+        <li class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 {% if c.conflicts or not c.eligible %}bg-amber-50/40 dark:bg-amber-900/10{% endif %}">
+          <div class="min-w-0 flex items-center gap-2 flex-wrap">
+            <span class="text-sm text-gray-900 dark:text-white">{{ c.name }}</span>
+            {% if c.pronouns %}<span class="text-xs text-gray-400">({{ c.pronouns }})</span>{% endif %}
+            {% if not c.eligible %}
+              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="Voted but doesn't hold this league's Sub role">not in {{ req.league_type }} pool</span>
+            {% endif %}
+            {% for conflict in c.conflicts %}
+              <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><i class="ti ti-alert-triangle"></i>{{ conflict }}</span>
+            {% endfor %}
+          </div>
+          <div>{{ contact_badge(c.contact) }}</div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500">
+        No poll voters available for this match yet.
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+    No open requests overlap this poll's matches. Either nothing's been requested for these slots yet, or the requests are already filled.
+  </div>
+  {% endif %}
+
+  {# ---- Follow-ups ---- #}
+  {% if data.unmapped or data.ineligible_voters %}
+  <div class="grid gap-4 sm:grid-cols-2">
+    {% if data.unmapped %}
+    <div class="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
+      <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-1.5"><i class="ti ti-user-question"></i> Voted, but no linked account</h3>
+      <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">{{ data.unmapped|length }} Discord voter(s) aren't linked to a portal player, so they can't be assigned. Chase the link before relying on them.</p>
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        {% for did in data.unmapped %}<code class="text-xs px-1.5 py-0.5 rounded bg-white/60 dark:bg-black/20 text-amber-800 dark:text-amber-300">{{ did }}</code>{% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if data.ineligible_voters %}
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5"><i class="ti ti-user-off"></i> Voted, but not in a sub pool</h3>
+      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ data.ineligible_voters|length }} voter(s) don't hold a Premier/Classic Sub role this season.</p>
+      <ul class="mt-2 space-y-1">
+        {% for v in data.ineligible_voters %}<li class="text-xs text-gray-600 dark:text-gray-300">{{ v.name }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+{% endif %}
+</div>
+{% endblock %}

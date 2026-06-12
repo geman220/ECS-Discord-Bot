@@ -428,14 +428,14 @@ class SubstituteNotificationService:
             if subs_needed and subs_needed > 0:
                 sub_request.substitutes_needed = subs_needed
 
-            # Get "Active in Pool" ECS FC members (is_active=True AND
-            # approved_at IS NOT NULL). Pending-approval and on-break
-            # members are excluded from broadcasts.
+            # Get "Active in Pool" ECS FC members. The EcsFcSubPool model has
+            # no approval concept (no approved_at column) — is_active is the
+            # only gate. Referencing EcsFcSubPool.approved_at here previously
+            # raised AttributeError on every ECS FC broadcast.
             query = db.session.query(EcsFcSubPool).options(
                 joinedload(EcsFcSubPool.player).joinedload(Player.user)
             ).join(Player).join(User).filter(
                 EcsFcSubPool.is_active == True,
-                EcsFcSubPool.approved_at.isnot(None),
                 Player.is_current_player == True,
                 User.is_approved == True
             )

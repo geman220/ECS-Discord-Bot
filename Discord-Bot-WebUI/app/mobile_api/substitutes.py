@@ -19,6 +19,7 @@ from flask import jsonify, request, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import and_, or_
+from sqlalchemy.exc import IntegrityError
 
 from web_config import Config
 from app.mobile_api import mobile_api_v2
@@ -33,6 +34,7 @@ from app.models.substitutes import (
     SubstituteRequest, SubstituteResponse, SubstituteAssignment,
     SubstitutePool, SubstitutePoolHistory
 )
+from app.utils.pacific_time import pacific_today, pacific_now, pacific_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -231,7 +233,8 @@ def create_substitute_request():
             substitutes_needed=substitutes_needed,
             gender_preference=gender_preference,
             notes=notes,
-            status='OPEN'
+            status='OPEN',
+            source='mobile'
         )
 
         session.add(sub_request)
@@ -1286,6 +1289,553 @@ def post_discord_availability_poll():
         "expires_at": expires_at,
         "discord_message_url": message_url,
     }), 200
+
+
+# ============================================================================
+# Internal Endpoints - Discord /subs bot command (X-Bot-Token trust boundary)
+#
+# These mirror the existing /internal/discord-poll-vote pattern: the bot
+# authenticates with the shared FLASK_TOKEN secret (X-Bot-Token header), and
+# every authorization decision is re-run server-side against the resolved human
+# coach. The bot never holds a per-user JWT; Flask stays the single source of
+# truth. Phase 1 is Pub League only (Premier/Classic) — ECS FC is deferred
+# until its backend converges, so coach resolution filters to the current
+# 'Pub League' season.
+# ============================================================================
+
+def _bot_token_ok() -> bool:
+    """True if the request carries the shared bot secret (FLASK_TOKEN)."""
+    expected = os.getenv('FLASK_TOKEN')
+    token = request.headers.get('X-Bot-Token', '')
+    return bool(expected) and bool(token) and token == expected
+
+
+def _board_url():
+    """Public URL of the substitute board (admin-gated; non-admins are denied)."""
+    base = (getattr(Config, 'WEBUI_BASE_URL', '') or '').rstrip('/')
+    return f"{base}/admin-panel/substitute-management" if base else None
+
+
+def _current_pub_league_coach_teams(session, player):
+    """
+    Teams the player coaches THIS season in Pub League only.
+
+    get_coach_teams() is season-agnostic (player_teams has no season), so we
+    filter to teams whose league belongs to the current 'Pub League' season.
+    This drops stale prior-season coaching rows and excludes ECS FC.
+    """
+    from app.mobile_api.coach_rsvp import get_coach_teams
+    teams = get_coach_teams(session, player.user_id)
+    scoped = []
+    for team in teams:
+        league = getattr(team, 'league', None)
+        season = getattr(league, 'season', None) if league else None
+        if not season or not season.is_current:
+            continue
+        if season.league_type != 'Pub League':
+            continue
+        scoped.append(team)
+    return scoped
+
+
+@mobile_api_v2.route('/internal/subs/coach-context', methods=['GET'])
+def internal_subs_coach_context():
+    """
+    Resolve a Discord user to the Pub League teams they coach this season.
+
+    Auth: X-Bot-Token == FLASK_TOKEN.
+    Query: discord_id
+    Returns: {linked: bool, teams: [{team_id, team_name, league_name}]}
+        linked=False means no Player is linked to that Discord account, so the
+        bot should tell the user to link their portal account rather than fail
+        silently.
+    """
+    if not _bot_token_ok():
+        return jsonify({"msg": "unauthorized"}), 401
+
+    discord_id = str(request.args.get('discord_id') or '').strip()
+    if not discord_id:
+        return jsonify({"msg": "discord_id required"}), 400
+
+    with managed_session() as session:
+        player = session.query(Player).filter_by(discord_id=discord_id).first()
+        if not player:
+            return jsonify({"linked": False, "teams": []}), 200
+
+        teams = _current_pub_league_coach_teams(session, player)
+        return jsonify({
+            "linked": True,
+            "user_id": player.user_id,
+            "player_name": player.name,
+            "teams": [
+                {
+                    "team_id": t.id,
+                    "team_name": t.name,
+                    "league_name": t.league.name if t.league else None,
+                }
+                for t in teams
+            ],
+        }), 200
+
+
+@mobile_api_v2.route('/internal/subs/upcoming', methods=['GET'])
+def internal_subs_upcoming():
+    """
+    Upcoming matches for a team (for the /subs match picker).
+
+    Auth: X-Bot-Token == FLASK_TOKEN.
+    Query: team_id
+    Returns: {matches: [{match_id, date, time, opponent_name, is_home, location}]}
+    """
+    if not _bot_token_ok():
+        return jsonify({"msg": "unauthorized"}), 401
+
+    try:
+        team_id = int(request.args.get('team_id'))
+    except (TypeError, ValueError):
+        return jsonify({"msg": "team_id must be a valid integer"}), 400
+
+    with managed_session() as session:
+        matches = session.query(Match).filter(
+            ((Match.home_team_id == team_id) | (Match.away_team_id == team_id)) &
+            (Match.date >= pacific_today()) &
+            (Match.week_type == 'REGULAR') &
+            (Match.home_team_id != Match.away_team_id)  # exclude BYE/special self-match rows
+        ).order_by(Match.date, Match.time).limit(10).all()
+
+        # Resolve opponent names in one pass
+        opponent_ids = {
+            (m.away_team_id if m.home_team_id == team_id else m.home_team_id)
+            for m in matches
+        }
+        name_by_id = {}
+        if opponent_ids:
+            for t in session.query(Team).filter(Team.id.in_(opponent_ids)).all():
+                name_by_id[t.id] = t.name
+
+        out = []
+        for m in matches:
+            is_home = (m.home_team_id == team_id)
+            opp_id = m.away_team_id if is_home else m.home_team_id
+            out.append({
+                "match_id": m.id,
+                "date": m.date.isoformat() if m.date else None,
+                "time": m.time.strftime('%H:%M') if m.time else None,
+                "opponent_name": name_by_id.get(opp_id, 'TBD'),
+                "is_home": is_home,
+                "location": m.location,
+            })
+
+        return jsonify({"matches": out}), 200
+
+
+@mobile_api_v2.route('/internal/subs/requests', methods=['POST'])
+def internal_create_subs_request():
+    """
+    Create a substitute request on behalf of a coach from the Discord bot.
+
+    Auth: X-Bot-Token == FLASK_TOKEN. Authorization is re-run here:
+    acting_coach_user_id MUST be a coach for team_id (we do NOT accept admins
+    on this path — the point is honest attribution of the human coach).
+
+    Body: {
+        acting_coach_user_id, team_id, match_id,
+        substitutes_needed?, positions_needed?, notes?, gender_preference?,
+        discord_channel_id?, discord_message_id?
+    }
+
+    Idempotent: an existing OPEN/PENDING request for the same (match, team)
+    returns 200 with duplicate=True so the bot reports "already logged" on a
+    retry instead of surfacing an error.
+    """
+    if not _bot_token_ok():
+        return jsonify({"msg": "unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    try:
+        acting_user_id = int(data.get('acting_coach_user_id'))
+        team_id = int(data.get('team_id'))
+        match_id = int(data.get('match_id'))
+    except (TypeError, ValueError):
+        return jsonify({"msg": "acting_coach_user_id, team_id and match_id are required integers"}), 400
+
+    try:
+        # Clamp to a sane range — the Discord modal is free text, so "99" is
+        # possible input but never a real ask (a full side is ~11).
+        substitutes_needed = max(1, min(int(data.get('substitutes_needed', 1)), 10))
+    except (TypeError, ValueError):
+        substitutes_needed = 1
+
+    positions_needed = (data.get('positions_needed') or '').strip()
+    notes = (data.get('notes') or '').strip()
+    gender_preference = data.get('gender_preference')
+    discord_channel_id = (str(data.get('discord_channel_id') or '').strip() or None)
+    discord_message_id = (str(data.get('discord_message_id') or '').strip() or None)
+
+    with managed_session() as session:
+        # Re-run authorization server-side against the resolved coach.
+        if not is_coach_for_team(session, acting_user_id, team_id):
+            return jsonify({"msg": "Acting user is not a coach for this team"}), 403
+
+        match = session.query(Match).get(match_id)
+        if not match:
+            return jsonify({"msg": "Match not found"}), 404
+        if match.home_team_id != team_id and match.away_team_id != team_id:
+            return jsonify({"msg": "Team is not participating in this match"}), 400
+
+        existing = session.query(SubstituteRequest).filter(
+            SubstituteRequest.match_id == match_id,
+            SubstituteRequest.team_id == team_id,
+            SubstituteRequest.status.in_(['OPEN', 'PENDING'])
+        ).first()
+        if existing:
+            return jsonify({
+                "success": True,
+                "duplicate": True,
+                "message": "An open request already exists for this match/team",
+                "request": {"id": existing.id, "status": existing.status},
+                "board_url": _board_url(),
+            }), 200
+
+        team_obj = session.query(Team).options(joinedload(Team.league)).get(team_id)
+        league_type = team_obj.league.name if team_obj and team_obj.league else 'Premier'
+
+        sub_request = SubstituteRequest(
+            match_id=match_id,
+            team_id=team_id,
+            requested_by=acting_user_id,
+            league_type=league_type,
+            positions_needed=positions_needed,
+            substitutes_needed=substitutes_needed,
+            gender_preference=gender_preference,
+            notes=notes,
+            status='OPEN',
+            source='discord',
+            discord_channel_id=discord_channel_id,
+            discord_message_id=discord_message_id,
+        )
+        session.add(sub_request)
+        try:
+            session.commit()
+        except IntegrityError:
+            # Two near-simultaneous submissions raced past the existence check
+            # (e.g. coach double-submits the modal). Treat the loser like the
+            # normal duplicate path instead of surfacing a 500.
+            session.rollback()
+            existing = session.query(SubstituteRequest).filter(
+                SubstituteRequest.match_id == match_id,
+                SubstituteRequest.team_id == team_id,
+                SubstituteRequest.status.in_(['OPEN', 'PENDING'])
+            ).first()
+            return jsonify({
+                "success": True,
+                "duplicate": True,
+                "message": "An open request already exists for this match/team",
+                "request": {"id": existing.id, "status": existing.status} if existing else None,
+                "board_url": _board_url(),
+            }), 200
+
+        logger.info(
+            f"Substitute request created via Discord: {sub_request.id} "
+            f"(team={team_id}, match={match_id}, coach_user={acting_user_id})"
+        )
+
+        return jsonify({
+            "success": True,
+            "duplicate": False,
+            "message": "Substitute request created",
+            "request": {
+                "id": sub_request.id,
+                "match_id": sub_request.match_id,
+                "team_id": sub_request.team_id,
+                "league_type": sub_request.league_type,
+                "substitutes_needed": sub_request.substitutes_needed,
+                "status": sub_request.status,
+            },
+            "board_url": _board_url(),
+        }), 201
+
+
+def _format_slot_label(t) -> str:
+    """A time object -> '8:20am'."""
+    h = t.hour
+    ampm = 'am' if h < 12 else 'pm'
+    h12 = h % 12 or 12
+    return f"{h12}:{t.minute:02d}{ampm}"
+
+
+def _upcoming_sunday(today):
+    """The next Sunday on/after `today` (today if it is already Sunday)."""
+    from datetime import timedelta
+    return today + timedelta(days=(6 - today.weekday()) % 7)
+
+
+def _build_availability_buckets(session, target_date):
+    """
+    Group the current-season Pub League matches on `target_date` into
+    availability buckets — one option per league, split into early/late halves
+    when a league has more than two distinct kickoff times.
+
+    Returns (buckets, season). Each bucket is:
+        {label, league_type, slots: ['HH:MM', ...], match_ids: [int, ...]}
+    Because each bucket carries the real match_ids, reconciliation later is an
+    exact join (no time-string tolerance matching needed).
+    """
+    from collections import defaultdict
+    from app.models.core import Season
+
+    season = session.query(Season).filter_by(
+        league_type='Pub League', is_current=True
+    ).first()
+
+    matches = session.query(Match).filter(
+        Match.date == target_date,
+        Match.week_type == 'REGULAR',
+        Match.home_team_id != Match.away_team_id,  # exclude BYE/special self-match rows
+    ).all()
+    by_league = defaultdict(list)
+    for m in matches:
+        home = m.home_team
+        league = home.league if home else None
+        if not league or not league.season:
+            continue
+        if league.season.league_type != 'Pub League' or not league.season.is_current:
+            continue
+        if m.time is None:
+            continue
+        by_league[league.name].append(m)
+
+    buckets = []
+    for league_name in sorted(by_league.keys()):
+        ms = by_league[league_name]
+        times = sorted({m.time for m in ms})
+        if len(times) <= 2:
+            groups = [times]
+        else:
+            mid = len(times) // 2
+            groups = [times[:mid], times[mid:]]
+        multi = len(groups) > 1
+        for gi, group in enumerate(groups):
+            tset = set(group)
+            match_ids = sorted(m.id for m in ms if m.time in tset)
+            slots = [t.strftime('%H:%M') for t in group]
+            human = ' & '.join(_format_slot_label(t) for t in group)
+            if multi:
+                label = f"{league_name} {'early' if gi == 0 else 'late'} ({human})"
+            else:
+                label = f"{league_name} ({human})"
+            buckets.append({
+                'label': label[:55],
+                'league_type': league_name,
+                'slots': slots,
+                'match_ids': match_ids,
+            })
+    return buckets, season
+
+
+@mobile_api_v2.route('/internal/subs/poll', methods=['POST'])
+def internal_create_subs_poll():
+    """
+    Post a schedule-generated availability poll to #pl-subs from the bot.
+
+    Auth: X-Bot-Token. The acting user is resolved from discord_id and must
+    hold an admin role server-side (same gate as the WebUI poll endpoint).
+    The poll options are BUILT FROM the schedule for the target Sunday, so each
+    answer maps to real match_ids (persisted in DiscordPoll.slot_map), making
+    the later reconcile step an exact join instead of fuzzy time matching.
+
+    Body: {discord_id, match_date?, channel_key?='pl_subs', duration_hours?}
+    """
+    if not _bot_token_ok():
+        return jsonify({"msg": "unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    discord_id = str(data.get('discord_id') or '').strip()
+    if not discord_id:
+        return jsonify({"msg": "discord_id required"}), 400
+
+    channel_key = data.get('channel_key', 'pl_subs')
+    if channel_key not in DISCORD_POLL_CHANNELS:
+        allowed = ', '.join(sorted(DISCORD_POLL_CHANNELS.keys()))
+        return jsonify({"msg": f"channel_key must be one of: {allowed}"}), 400
+
+    with managed_session() as session:
+        player = session.query(Player).filter_by(discord_id=discord_id).first()
+        if not player:
+            return jsonify({"success": False, "reason": "not_linked"}), 200
+        user_id = player.user_id
+        if not is_admin_user(session, user_id):
+            return jsonify({"success": False, "reason": "not_authorized"}), 200
+
+        # Resolve target date (default: the upcoming Sunday)
+        match_date_raw = data.get('match_date')
+        if match_date_raw:
+            try:
+                target_date = datetime.strptime(str(match_date_raw), '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({"msg": "match_date must be ISO format YYYY-MM-DD"}), 400
+        else:
+            target_date = _upcoming_sunday(pacific_today())
+
+        # Idempotency: one live availability poll per Sunday. A retry after a
+        # timed-out first attempt (or two admins racing) must not post a second
+        # real poll to #pl-subs. Expired polls don't block a re-post.
+        existing_poll = session.query(DiscordPoll).filter(
+            DiscordPoll.poll_kind == 'availability',
+            DiscordPoll.match_date == target_date,
+            DiscordPoll.expires_at > datetime.utcnow(),
+        ).order_by(DiscordPoll.created_at.desc()).first()
+        if existing_poll:
+            return jsonify({
+                "success": False,
+                "reason": "duplicate",
+                "match_date": target_date.isoformat(),
+                "discord_message_url": existing_poll.discord_message_url,
+            }), 200
+
+        buckets, season = _build_availability_buckets(session, target_date)
+        if not buckets:
+            return jsonify({
+                "success": False,
+                "reason": "no_matches",
+                "match_date": target_date.isoformat(),
+            }), 200
+        buckets = buckets[:10]  # Discord poll cap
+
+        normalized_options = [{"text": b['label'], "emoji": None} for b in buckets]
+        title = (
+            f"Sub availability for Sunday {target_date.strftime('%b %d')} — "
+            f"which slot(s) can you play?"
+        )[:300]
+
+        # Duration: from now through end of the target day, clamped 1..168h.
+        # Both sides Pacific-aware — naive datetime.now() is UTC in the
+        # containers, which would close the poll hours before Sunday ends.
+        from datetime import timedelta as _td
+        hours_until = int((pacific_datetime(target_date, datetime.max.time())
+                           - pacific_now()).total_seconds() // 3600)
+        duration_hours = data.get('duration_hours')
+        if not isinstance(duration_hours, int) or isinstance(duration_hours, bool):
+            duration_hours = hours_until
+        duration_hours = max(1, min(duration_hours, 168))
+
+        # --- Resolve channel + mention roles (same registry as the web path) ---
+        cfg = DISCORD_POLL_CHANNELS[channel_key]
+        channel_id = os.getenv(cfg['channel_env_var']) or cfg.get('channel_id_default')
+        if not channel_id:
+            return jsonify({"msg": "Discord channel not configured"}), 500
+        role_rows = session.query(Role).filter(Role.name.in_(cfg['tag_role_names'])).all()
+        tag_role_ids = [str(r.discord_role_id) for r in role_rows if r.discord_role_id]
+        if not tag_role_ids:
+            found_names = {r.name for r in role_rows if r.discord_role_id}
+            missing = [n for n in cfg['tag_role_names'] if n not in found_names]
+            return jsonify({
+                "msg": f"Mention roles missing or lacking a discord_role_id: {', '.join(missing)}"
+            }), 500
+
+        # --- Call the bot to post the native poll ---
+        bot_payload = {
+            "channel_id": str(channel_id),
+            "tag_role_ids": tag_role_ids,
+            "question": title,
+            "answers": normalized_options,
+            "duration_hours": duration_hours,
+            "allow_multiselect": True,
+        }
+        bot_url = f"{Config.BOT_API_URL.rstrip('/')}/api/discord/post-poll"
+        try:
+            resp = requests.post(bot_url, json=bot_payload, timeout=15)
+        except requests.RequestException:
+            logger.exception("Discord bot unreachable at %s", bot_url)
+            return jsonify({"msg": "Discord bot unreachable"}), 502
+        if resp.status_code >= 400:
+            try:
+                detail = resp.json().get('detail') or resp.text[:200]
+            except ValueError:
+                detail = resp.text[:200] if resp.text else f"status {resp.status_code}"
+            return jsonify({"msg": f"Discord rejected poll: {detail}"}), 502
+        try:
+            bot_resp = resp.json()
+        except ValueError:
+            return jsonify({"msg": "Internal error posting poll"}), 500
+        if not bot_resp.get('success'):
+            return jsonify({"msg": "Discord rejected poll"}), 502
+
+        discord_message_id = str(bot_resp.get('message_id', ''))
+        bot_channel_id = str(bot_resp.get('channel_id', channel_id))
+        guild_id = bot_resp.get('guild_id') or None
+        message_url = bot_resp.get('message_url', '')
+        bot_answers = bot_resp.get('answers') or [
+            {"answer_id": i + 1, "text": o['text'], "emoji": o.get('emoji')}
+            for i, o in enumerate(normalized_options)
+        ]
+
+        # slot_map: answer_id (as STRING key) -> bucket meaning. Bot assigns
+        # answer_ids in option order starting at 1, so bucket index = id - 1.
+        slot_map = {}
+        for ans in bot_answers:
+            aid = int(ans['answer_id'])
+            if 1 <= aid <= len(buckets):
+                slot_map[str(aid)] = buckets[aid - 1]
+
+        expires_dt = bot_resp.get('expires_at', '')
+        try:
+            expires_parsed = datetime.fromisoformat(expires_dt.replace('Z', '+00:00')) if expires_dt else None
+            if expires_parsed is not None and expires_parsed.tzinfo is not None:
+                expires_parsed = expires_parsed.astimezone(tz=None).replace(tzinfo=None)
+        except (ValueError, TypeError, AttributeError):
+            expires_parsed = None
+        if expires_parsed is None:
+            expires_parsed = datetime.utcnow() + _td(hours=duration_hours)
+
+        try:
+            poll_row = DiscordPoll(
+                discord_message_id=discord_message_id,
+                channel_id=bot_channel_id,
+                channel_key=channel_key,
+                guild_id=guild_id,
+                title=title,
+                match_date=target_date,
+                options=bot_answers,
+                poll_kind='availability',
+                season_id=season.id if season else None,
+                slot_map=slot_map,
+                duration_hours=duration_hours,
+                allow_multiselect=True,
+                created_by_user_id=user_id,
+                expires_at=expires_parsed,
+                discord_message_url=message_url,
+            )
+            session.add(poll_row)
+            session.commit()
+        except Exception:
+            logger.exception("Failed to persist availability DiscordPoll row")
+
+        try:
+            AdminAuditLog.log_action(
+                user_id=user_id,
+                action='discord_poll_posted',
+                resource_type='discord_poll',
+                resource_id=discord_message_id,
+                new_value=json.dumps({
+                    'channel_key': channel_key,
+                    'poll_kind': 'availability',
+                    'match_date': target_date.isoformat(),
+                    'buckets': [b['label'] for b in buckets],
+                    'source': 'discord_subs_command',
+                }),
+                deferred=True,
+            )
+        except Exception:
+            logger.exception("Failed to write discord_poll_posted audit log")
+
+        return jsonify({
+            "success": True,
+            "discord_message_id": discord_message_id,
+            "discord_message_url": message_url,
+            "match_date": target_date.isoformat(),
+            "buckets": [b['label'] for b in buckets],
+        }), 200
 
 
 # ============================================================================

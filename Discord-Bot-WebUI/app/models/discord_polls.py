@@ -26,6 +26,14 @@ class DiscordPoll(db.Model):
     title = db.Column(db.Text, nullable=False)
     match_date = db.Column(db.Date, nullable=True, index=True)
     options = db.Column(JSONB, nullable=False)  # [{"answer_id": 1, "text": "...", "emoji": "..."}, ...]
+    # 'generic' = an ad-hoc poll; 'availability' = a reconcilable sub-availability
+    # poll whose slot_map ties each answer_id to real match_ids + league.
+    poll_kind = db.Column(db.String(20), nullable=True, default='generic')
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=True)
+    # slot_map: {"<answer_id>": {"league_type": "Premier", "label": "...",
+    #            "slots": ["08:20","09:30"], "match_ids": [123,124]}}
+    # Keys are STRINGS (JSON) — always look up via str(vote.answer_id).
+    slot_map = db.Column(JSONB, nullable=True)
     duration_hours = db.Column(db.Integer, nullable=False)
     allow_multiselect = db.Column(db.Boolean, nullable=False, default=False)
     created_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)

@@ -1428,7 +1428,8 @@ async def load_cogs():
         'match_dates_commands',
         'help_commands',
         'clearchat_commands',
-        'schedule_commands'
+        'schedule_commands',
+        'subs_commands'
     ]
     
     for extension in cog_extensions:

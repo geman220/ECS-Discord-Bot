@@ -372,3 +372,40 @@ def assign_substitute():
 
     flash('Substitute assigned successfully!', 'success')
     return redirect(url_for('admin_panel.substitute_management'))
+
+
+@admin_panel_bp.route('/substitute-reconcile')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def substitute_reconcile_list():
+    """List recent availability polls to reconcile against open requests."""
+    from app.models.discord_polls import DiscordPoll
+    polls = (
+        db.session.query(DiscordPoll)
+        .filter(DiscordPoll.poll_kind == 'availability')
+        .order_by(DiscordPoll.created_at.desc())
+        .limit(20)
+        .all()
+    )
+    return render_template(
+        'admin_panel/match_operations/substitute_reconcile_flowbite.html',
+        mode='list',
+        polls=polls,
+    )
+
+
+@admin_panel_bp.route('/substitute-reconcile/<int:poll_id>')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def substitute_reconcile(poll_id):
+    """Read-only reconcile view: poll voters matched to open requests per match."""
+    from app.services.substitute_reconcile_service import build_poll_reconcile
+    data = build_poll_reconcile(db.session, poll_id)
+    if not data:
+        flash('Availability poll not found.', 'error')
+        return redirect(url_for('admin_panel.substitute_reconcile_list'))
+    return render_template(
+        'admin_panel/match_operations/substitute_reconcile_flowbite.html',
+        mode='detail',
+        data=data,
+    )
