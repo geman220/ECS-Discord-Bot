@@ -261,7 +261,12 @@ class Player(db.Model):
         back_populates='player',
         cascade='all, delete-orphan'
     )
-    profile_last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # NOTE: intentionally NO onupdate= here. This timestamp must reflect only
+    # explicit profile edits/verifications (set directly in the profile routes),
+    # NOT incidental row writes. With onupdate, every login bumped this via the
+    # Discord status sync (check_discord_status -> discord_last_checked), which
+    # falsely showed "Last Updated: today" and defeated the 5-month review-due alert.
+    profile_last_updated = db.Column(db.DateTime, default=datetime.utcnow)
     last_known_emails = db.Column(db.Text, nullable=True)
     merge_history = db.Column(db.Text, nullable=True)
     # DEPRECATED: Use is_phone_verified instead. This field is unused and will be
