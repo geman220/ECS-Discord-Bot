@@ -1680,10 +1680,51 @@ document.addEventListener('DOMContentLoaded', function() {
             break_duration: document.getElementById('breakDuration').value,
             enable_rotation: document.getElementById('enableTimeRotation').checked,
             fields: Array.from(document.querySelectorAll('.field-name-input')).map(i => i.value).filter(v => v),
-            premier_team_count: document.getElementById('premierTeamCount')?.value || 8,
-            classic_team_count: document.getElementById('classicTeamCount')?.value || 4,
-            ecs_fc_team_count: document.getElementById('ecsFcTeamCount')?.value || 8
+            // NOTE: backend reads *_teams (not *_team_count); keep these names in sync.
+            premier_teams: parseInt(document.getElementById('premierTeamCount')?.value) || 8,
+            classic_teams: parseInt(document.getElementById('classicTeamCount')?.value) || 4,
+            ecs_fc_teams: parseInt(document.getElementById('ecsFcTeamCount')?.value) || 8
         };
+
+        // Build a clear "what will happen" summary so the admin sees exactly what is
+        // created / deleted / modified before committing.
+        const fieldCount = seasonData.fields.length || 2;
+        const isPub = seasonData.league_type === 'Pub League';
+        const teamLines = isPub
+            ? [`<li>• <strong>${seasonData.premier_teams}</strong> Premier teams + <strong>${seasonData.classic_teams}</strong> Classic teams</li>`]
+            : [`<li>• <strong>${seasonData.ecs_fc_teams}</strong> ECS FC teams</li>`];
+        const totalTeams = isPub ? (seasonData.premier_teams + seasonData.classic_teams) : seasonData.ecs_fc_teams;
+        const rolloverWarning = seasonData.set_as_current
+            ? `<div class="mt-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-2 text-amber-800 dark:text-amber-300">
+                 <strong>Set as current = season rollover.</strong> The previous season's player team
+                 assignments are archived to history, players are moved to the new season, season stats
+                 reset to 0, and (Pub League only) the old Premier/Classic team Discord channels & roles
+                 are deleted. ECS FC channels are left untouched.
+               </div>`
+            : `<p class="mt-3 text-gray-500">Not set as current — the existing season is left as-is (no rollover).</p>`;
+
+        const confirmCreate = await Swal.fire({
+            icon: 'question',
+            title: 'Create this season?',
+            html: `<div class="text-left text-sm">
+                     <p class="font-semibold">"${seasonData.name || 'Untitled'}" — ${seasonData.league_type}</p>
+                     <p class="mt-2 font-medium">Will CREATE:</p>
+                     <ul class="mt-1 space-y-1">
+                       ${teamLines.join('')}
+                       <li>• A full schedule starting ${seasonData.start_date || '(no date)'} (${seasonData.total_weeks} weeks, ${fieldCount} fields)</li>
+                       <li>• <strong>${totalTeams}</strong> Discord channels + player/coach roles (created in the background)</li>
+                     </ul>
+                     ${rolloverWarning}
+                   </div>`,
+            showCancelButton: true,
+            confirmButtonText: 'Create season',
+            confirmButtonColor: '#1a472a',
+            cancelButtonText: 'Back',
+            width: 540,
+            background: isDark() ? '#1f2937' : '#ffffff',
+            color: isDark() ? '#f3f4f6' : '#111827',
+        });
+        if (!confirmCreate.isConfirmed) return;
 
         Swal.fire({
             title: 'Creating Season...',

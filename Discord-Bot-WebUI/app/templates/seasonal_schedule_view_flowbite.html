@@ -169,7 +169,8 @@
     <div id="scheduleContainer" class="space-y-4">
         {% for week_num, week_data in schedule_by_week.items() %}
         <div class="week-container rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden"
-             data-week="{{ week_num }}" data-week-type="{{ week_data.week_type }}">
+             data-week="{{ week_num }}" data-week-type="{{ week_data.week_type }}"
+             data-week-date="{{ week_data.date.strftime('%b %d, %Y') if week_data.date else '' }}">
             {# Week Header — feature-card style header bar #}
             <div class="week-header px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 flex flex-wrap justify-between items-center gap-3 cursor-pointer"
                  data-week-toggle="{{ week_num }}">
@@ -206,7 +207,9 @@
                             </select>
                             <input type="date" class="week-edit-date input-ecs h-9 text-sm w-auto"
                                    value="{{ week_data.date.strftime('%Y-%m-%d') }}">
-                            <input type="time" class="week-edit-time input-ecs h-9 text-sm w-auto">
+                            <input type="time" class="week-edit-time input-ecs h-9 text-sm w-auto"
+                                   title="New start time for the first match — all later matches this week shift by the same amount">
+                            <span class="hidden sm:inline text-[11px] text-gray-400 dark:text-gray-500 self-center">all match times shift together</span>
                             <button type="button" class="js-save-week inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-500/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" aria-label="Save week">
                                 <i class="ti ti-check" aria-hidden="true"></i>
                             </button>
@@ -235,6 +238,12 @@
                     </button>
                     <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg js-edit-week focus:outline-none focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Edit Week" aria-label="Edit week">
                         <i class="ti ti-edit" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg js-move-week-up focus:outline-none focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Move Week Earlier" aria-label="Move week earlier">
+                        <i class="ti ti-arrow-up" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg js-move-week-down focus:outline-none focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Move Week Later" aria-label="Move week later">
+                        <i class="ti ti-arrow-down" aria-hidden="true"></i>
                     </button>
                     <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-500/15 rounded-lg js-add-match-btn focus:outline-none focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Add Match" aria-label="Add match">
                         <i class="ti ti-plus" aria-hidden="true"></i>
@@ -996,8 +1005,94 @@ document.addEventListener('DOMContentLoaded', function() {
             const weekNum = this.dataset.week;
             const container = this.closest('.week-container');
             const form = container?.querySelector('.week-edit-form');
-            if (form) form.classList.toggle('hidden');
+            if (!form) return;
+            // Pre-fill the time field with the week's earliest match time so the admin
+            // sees the current start (changing it cascades to every match in the week).
+            const timeInput = form.querySelector('.week-edit-time');
+            if (timeInput && !timeInput.value) {
+                const times = Array.from(container.querySelectorAll('.match-row [data-time], .match-row .match-time'))
+                    .map(el => el.dataset.time || el.textContent.trim())
+                    .filter(Boolean)
+                    .sort();
+                if (times.length) timeInput.value = times[0].slice(0, 5);
+            }
+            form.classList.toggle('hidden');
         });
+    });
+
+    // Move a week earlier/later (reorders the season; calendar dates stay put and the
+    // week's content moves into the new date-slot). Built from the current DOM order.
+    function currentWeekOrder() {
+        return Array.from(document.querySelectorAll('#scheduleContainer .week-container'))
+            .map(c => parseInt(c.dataset.week))
+            .filter(n => !isNaN(n));
+    }
+    function weekInfo(weekNum) {
+        const c = document.querySelector(`#scheduleContainer .week-container[data-week="${weekNum}"]`);
+        if (!c) return { num: weekNum, type: 'REGULAR', date: '', matches: 0 };
+        return {
+            num: weekNum,
+            type: c.dataset.weekType || 'REGULAR',
+            date: c.dataset.weekDate || '',
+            matches: c.querySelectorAll('.match-row').length
+        };
+    }
+    async function moveWeek(weekNum, direction) {
+        const order = currentWeekOrder();
+        const idx = order.indexOf(parseInt(weekNum));
+        const swap = direction === 'up' ? idx - 1 : idx + 1;
+        if (idx < 0 || swap < 0 || swap >= order.length) return;
+        const me = weekInfo(order[idx]);
+        const other = weekInfo(order[swap]);
+        // Show exactly what will change before doing it.
+        const confirmMove = await Swal.fire({
+            icon: 'question',
+            title: `Move Week ${me.num} ${direction === 'up' ? 'earlier' : 'later'}?`,
+            html: `<div class="text-left text-sm">
+                     <p>Calendar dates stay fixed — the <strong>content</strong> swaps slots:</p>
+                     <ul class="mt-2 space-y-1">
+                       <li>• Week ${me.num} <em>(${me.type}${me.matches ? ', ' + me.matches + ' matches' : ''})</em>
+                           → moves to <strong>${other.date || 'Week ' + other.num + "'s slot"}</strong></li>
+                       <li>• Week ${other.num} <em>(${other.type}${other.matches ? ', ' + other.matches + ' matches' : ''})</em>
+                           → moves to <strong>${me.date || 'Week ' + me.num + "'s slot"}</strong></li>
+                     </ul>
+                     <p class="mt-2 text-gray-500">All match dates, times and RSVP views update automatically.</p>
+                   </div>`,
+            showCancelButton: true,
+            confirmButtonText: 'Move week',
+            confirmButtonColor: '#1a472a',
+            cancelButtonText: 'Cancel',
+            background: isDark() ? '#1f2937' : '#ffffff',
+            color: isDark() ? '#f3f4f6' : '#111827',
+        });
+        if (!confirmMove.isConfirmed) return;
+        [order[idx], order[swap]] = [order[swap], order[idx]];
+        try {
+            const response = await fetch('/auto-schedule/reorder-weeks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+                body: JSON.stringify({ season_id: {{ season.id }}, week_order: order })
+            });
+            const data = await response.json();
+            if (data.success) {
+                sessionStorage.setItem('scheduleScrollPos', window.scrollY);
+                window.location.reload();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.error || 'Failed to move week',
+                    background: isDark() ? '#1f2937' : '#ffffff', color: isDark() ? '#f3f4f6' : '#111827',
+                    confirmButtonColor: '#1a472a' });
+            }
+        } catch (error) {
+            Swal.fire({ icon: 'error', title: 'Error', text: error.message,
+                background: isDark() ? '#1f2937' : '#ffffff', color: isDark() ? '#f3f4f6' : '#111827',
+                confirmButtonColor: '#1a472a' });
+        }
+    }
+    document.querySelectorAll('.js-move-week-up').forEach(btn => {
+        btn.addEventListener('click', function(e) { e.stopPropagation(); moveWeek(this.dataset.week, 'up'); });
+    });
+    document.querySelectorAll('.js-move-week-down').forEach(btn => {
+        btn.addEventListener('click', function(e) { e.stopPropagation(); moveWeek(this.dataset.week, 'down'); });
     });
 
     // Week edit: cancel
@@ -1038,6 +1133,41 @@ document.addEventListener('DOMContentLoaded', function() {
                     color: isDark() ? '#f3f4f6' : '#111827',
                 });
                 if (!result.isConfirmed) return;
+            }
+
+            // Time-cascade preview: show exactly how every match time will shift.
+            if (newTime) {
+                const times = Array.from(container.querySelectorAll('.match-row [data-time], .match-row .match-time'))
+                    .map(el => (el.dataset.time || el.textContent.trim()).slice(0, 5))
+                    .filter(t => /^\d{2}:\d{2}$/.test(t));
+                const distinct = [...new Set(times)].sort();
+                if (distinct.length) {
+                    const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+                    const toStr = mins => {
+                        const v = ((mins % 1440) + 1440) % 1440;
+                        return String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0');
+                    };
+                    const delta = toMin(newTime.slice(0, 5)) - toMin(distinct[0]);
+                    if (delta !== 0) {
+                        const rows = distinct.map(t => `<li>• ${t} → <strong>${toStr(toMin(t) + delta)}</strong></li>`).join('');
+                        const sign = delta > 0 ? `+${delta}` : `${delta}`;
+                        const res = await Swal.fire({
+                            icon: 'question',
+                            title: 'Shift all match times?',
+                            html: `<div class="text-left text-sm">
+                                     <p>Every match in Week ${weekNum} shifts by <strong>${sign} min</strong>:</p>
+                                     <ul class="mt-2 space-y-1">${rows}</ul>
+                                   </div>`,
+                            showCancelButton: true,
+                            confirmButtonText: 'Apply shift',
+                            confirmButtonColor: '#1a472a',
+                            cancelButtonText: 'Cancel',
+                            background: isDark() ? '#1f2937' : '#ffffff',
+                            color: isDark() ? '#f3f4f6' : '#111827',
+                        });
+                        if (!res.isConfirmed) return;
+                    }
+                }
             }
 
             const payload = {
@@ -1387,15 +1517,21 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
             const weekNum = this.dataset.week;
+            const wc = this.closest('.week-container');
+            const matchCount = wc ? wc.querySelectorAll('.match-row').length : 0;
+            const wkDate = wc?.dataset.weekDate ? ` (${wc.dataset.weekDate})` : '';
 
             Swal.fire({
                 title: 'Delete Week ' + weekNum + '?',
-                text: 'This will delete all matches in this week.',
+                html: `<div class="text-left text-sm">
+                         <p>This permanently deletes <strong>${matchCount} match${matchCount === 1 ? '' : 'es'}</strong> in Week ${weekNum}${wkDate}, across all divisions, along with their RSVPs and any reported results.</p>
+                         <p class="mt-2 text-red-600 dark:text-red-400 font-semibold">This cannot be undone.</p>
+                       </div>`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#dc2626',
                 cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Yes, delete it',
+                confirmButtonText: `Delete ${matchCount} match${matchCount === 1 ? '' : 'es'}`,
                 background: isDark() ? '#1f2937' : '#ffffff',
                 color: isDark() ? '#f3f4f6' : '#111827'
             }).then(async (result) => {

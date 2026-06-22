@@ -30,7 +30,8 @@ logger = logging.getLogger(__name__)
 user_roles = db.Table(
     'user_roles',
     db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
-    db.Column('role_id', db.Integer, db.ForeignKey('roles.id'), primary_key=True)
+    db.Column('role_id', db.Integer, db.ForeignKey('roles.id'), primary_key=True),
+    db.Index('idx_user_roles_role_id', 'role_id')
 )
 
 # Association table for many-to-many relationship between Role and Permission
@@ -75,6 +76,12 @@ class League(db.Model):
 class User(UserMixin, db.Model):
     """Model representing a user in the system."""
     __tablename__ = 'users'
+    __table_args__ = (
+        # Dashboard approval-pending counts filter heavily on approval_status.
+        db.Index('idx_users_approval_status_created_at', 'approval_status', 'created_at'),
+        db.Index('idx_users_created_at', 'created_at'),
+        db.Index('idx_users_last_login', 'last_login'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)

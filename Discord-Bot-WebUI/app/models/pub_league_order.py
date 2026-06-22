@@ -54,10 +54,10 @@ class PubLeagueOrder(db.Model):
     __tablename__ = 'pub_league_order'
 
     id = db.Column(db.Integer, primary_key=True)
-    woo_order_id = db.Column(db.Integer, unique=True, nullable=False, index=True)
+    woo_order_id = db.Column(db.Integer, unique=True, nullable=False)
 
     # Security token for order verification (HMAC-SHA256 from WooCommerce plugin)
-    verification_token = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    verification_token = db.Column(db.String(64), unique=True, nullable=False)
 
     # Customer info from WooCommerce billing
     customer_email = db.Column(db.String(255), nullable=True)
@@ -266,7 +266,7 @@ class PubLeagueOrderClaim(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     # Secure claim token (64 characters)
-    claim_token = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    claim_token = db.Column(db.String(64), unique=True, nullable=False)
 
     # Source order and line item
     order_id = db.Column(

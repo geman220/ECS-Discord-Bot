@@ -141,68 +141,82 @@ def view_seasonal_schedule(season_id):
         League.season_id == season_id
     ).order_by(Match.date, Match.time).all()
     
-    # Organize matches by week
+    # Organize matches by week.
+    # Batch-load schedules, teams, leagues and week configs up front to avoid an N+1
+    # storm (previously ~4 queries per match -> hundreds of queries / multi-second loads).
+    league_ids = [league.id for league in leagues]
+    league_map = {league.id: league for league in leagues}
+
+    schedule_ids = [m.schedule_id for m in matches if m.schedule_id]
+    schedules = {}
+    if schedule_ids:
+        schedules = {s.id: s for s in session.query(Schedule).filter(
+            Schedule.id.in_(schedule_ids)
+        ).all()}
+
+    needed_team_ids = set()
+    for m in matches:
+        needed_team_ids.add(m.home_team_id)
+        needed_team_ids.add(m.away_team_id)
+    teams_map = {}
+    if needed_team_ids:
+        teams_map = {t.id: t for t in session.query(Team).filter(
+            Team.id.in_(needed_team_ids)
+        ).all()}
+
+    all_week_configs = []
+    if league_ids:
+        all_week_configs = session.query(WeekConfiguration).filter(
+            WeekConfiguration.league_id.in_(league_ids)
+        ).order_by(WeekConfiguration.week_order).all()
+    wc_map = {(wc.league_id, wc.week_order): wc for wc in all_week_configs}
+
     schedule_by_week = {}
-    
+
     for match in matches:
-        schedule = session.query(Schedule).get(match.schedule_id)
+        schedule = schedules.get(match.schedule_id)
         if not schedule:
             continue
-            
+
         week_num = schedule.week
         if isinstance(week_num, str):
             try:
                 week_num = int(week_num)
             except ValueError:
                 week_num = 1
-        
+
+        # Attach team/league info from the pre-loaded maps (no per-match queries).
+        match.home_team = teams_map.get(match.home_team_id)
+        match.away_team = teams_map.get(match.away_team_id)
+        if match.home_team is not None:
+            match.home_team.league = league_map.get(match.home_team.league_id)
+
         if week_num not in schedule_by_week:
-            # Get week configuration if it exists
-            # Note: WeekConfiguration uses league_id, so we need to check each league
-            match_league_id = match.home_team.league_id if hasattr(match, 'home_team') and match.home_team else None
-            week_config = None
-            if match_league_id:
-                week_config = session.query(WeekConfiguration).filter_by(
-                    league_id=match_league_id,
-                    week_order=week_num
-                ).first()
-            
-            week_type = 'REGULAR'
-            if week_config:
-                week_type = week_config.week_type
-            
+            match_league_id = match.home_team.league_id if match.home_team else None
+            week_config = wc_map.get((match_league_id, week_num)) if match_league_id else None
+            week_type = week_config.week_type if week_config else 'REGULAR'
+
             schedule_by_week[week_num] = {
                 'date': match.date,
                 'week_type': week_type,
                 'matches': []
             }
-        
-        # Add match with team information
-        match.home_team = session.query(Team).get(match.home_team_id)
-        match.away_team = session.query(Team).get(match.away_team_id)
-        match.home_team.league = session.query(League).get(match.home_team.league_id)
-        
+
         # Add special week information to match object for template
         match.week_type = getattr(match, 'week_type', schedule_by_week[week_num]['week_type'])
         match.is_special_week = getattr(match, 'is_special_week', False)
         match.is_playoff_game = getattr(match, 'is_playoff_game', False)
-        
+
         schedule_by_week[week_num]['matches'].append(match)
 
     # Add BYE/matchless weeks from WeekConfiguration that have no matches
-    league_ids = [league.id for league in leagues]
-    if league_ids:
-        all_week_configs = session.query(WeekConfiguration).filter(
-            WeekConfiguration.league_id.in_(league_ids)
-        ).order_by(WeekConfiguration.week_order).all()
-
-        for wc in all_week_configs:
-            if wc.week_order and wc.week_order not in schedule_by_week:
-                schedule_by_week[wc.week_order] = {
-                    'date': wc.week_date or pacific_today(),
-                    'week_type': wc.week_type or 'REGULAR',
-                    'matches': []
-                }
+    for wc in all_week_configs:
+        if wc.week_order and wc.week_order not in schedule_by_week:
+            schedule_by_week[wc.week_order] = {
+                'date': wc.week_date or pacific_today(),
+                'week_type': wc.week_type or 'REGULAR',
+                'matches': []
+            }
 
     # Sort by week number
     schedule_by_week = dict(sorted(schedule_by_week.items()))
@@ -746,19 +760,36 @@ def update_week():
         if week_config and new_date:
             week_config.week_date = datetime.strptime(new_date, '%Y-%m-%d').date()
 
+        # Compute a time-shift delta so changing the week's start time CASCADES to every
+        # slot while preserving the gaps between them (e.g. 08:20->08:00 shifts the 09:30
+        # slot to 09:10). new_start_time is interpreted as the new time of the EARLIEST
+        # match in the week.
+        time_delta = None
+        if new_start_time:
+            new_first = datetime.strptime(new_start_time, '%H:%M').time()
+            existing_times = [m.time for m in matches if m.time]
+            current_first = min(existing_times) if existing_times else new_first
+            anchor = datetime(2000, 1, 1)
+            time_delta = (datetime.combine(anchor.date(), new_first)
+                          - datetime.combine(anchor.date(), current_first))
+
+        def _shift(t):
+            anchor = datetime(2000, 1, 1)
+            return (datetime.combine(anchor.date(), t) + time_delta).time()
+
         # Update matches and schedules
         for match in matches:
             if new_date:
                 match.date = datetime.strptime(new_date, '%Y-%m-%d').date()
-            if new_start_time:
-                match.time = datetime.strptime(new_start_time, '%H:%M').time()
+            if time_delta is not None and match.time:
+                match.time = _shift(match.time)
 
             # Update corresponding schedule
             schedule = session.query(Schedule).get(match.schedule_id)
             if schedule:
                 if new_date:
                     schedule.date = match.date
-                if new_start_time:
+                if time_delta is not None:
                     schedule.time = match.time
 
                 # Update paired schedule
@@ -771,7 +802,7 @@ def update_week():
                 if paired_schedule:
                     if new_date:
                         paired_schedule.date = match.date
-                    if new_start_time:
+                    if time_delta is not None:
                         paired_schedule.time = match.time
 
         session.commit()
@@ -931,42 +962,93 @@ def shift_weeks_down():
 @role_required(['Pub League Admin', 'Global Admin'])
 def reorder_weeks():
     """
-    Reorder weeks within a season.
+    Reorder the weeks of a season by moving week CONTENT (week type + its matches)
+    between fixed calendar date-slots.
+
+    Mental model: each position in the season owns a fixed date (week 1 = season start,
+    week 2 = +7 days, ...). Reordering keeps those dates put and shuffles which content
+    sits in each slot. So "move the BYE from week 3 to week 5" turns into: the BYE lands
+    on week 5's date, and the regular weeks in between shift back one slot - exactly what
+    an admin expects, with every match date/time and both schedule rows kept in sync.
+
+    Payload:
+        season_id (preferred) or league_id
+        week_order: list of CURRENT week numbers in their NEW sequence,
+                    e.g. [1, 2, 4, 5, 3, 6, ...] to move week 3 to the 5th slot.
     """
     session = g.db_session
-    
+
     try:
         data = request.get_json()
+        season_id = data.get('season_id')
         league_id = data.get('league_id')
-        week_order = data.get('week_order')  # List of week numbers in new order
-        
-        if not league_id or not week_order:
-            return jsonify({'success': False, 'error': 'League ID and week order are required'})
-        
-        # Update week configurations
-        for new_position, old_week_number in enumerate(week_order, 1):
-            week_config = session.query(WeekConfiguration).filter_by(
-                league_id=league_id,
-                week_order=old_week_number
-            ).first()
-            
-            if week_config:
-                week_config.week_order = new_position
-            
-            # Update schedules
-            schedules = session.query(Schedule).join(
-                Team, Schedule.team_id == Team.id
-            ).filter(
-                Team.league_id == league_id,
-                Schedule.week == old_week_number
-            ).all()
-            
-            for schedule in schedules:
-                schedule.week = new_position
-        
+        new_sequence = data.get('week_order')
+
+        if not new_sequence or (not season_id and not league_id):
+            return jsonify({'success': False, 'error': 'season_id (or league_id) and week_order are required'})
+
+        new_sequence = [int(w) for w in new_sequence]
+
+        if season_id:
+            leagues = session.query(League).filter_by(season_id=season_id).all()
+        else:
+            league = session.query(League).get(league_id)
+            leagues = [league] if league else []
+        if not leagues:
+            return jsonify({'success': False, 'error': 'No leagues found to reorder'})
+
+        for league in leagues:
+            # Fixed date-slots for this league, ordered by current week_order.
+            configs = session.query(WeekConfiguration).filter_by(
+                league_id=league.id
+            ).order_by(WeekConfiguration.week_order).all()
+            if not configs:
+                continue
+            config_by_wk = {c.week_order: c for c in configs}
+            slot_dates = [c.week_date for c in configs]  # position-indexed, stays put
+
+            # Only remap weeks that actually exist in this league; preserve any extras.
+            seq = [w for w in new_sequence if w in config_by_wk]
+            for w in sorted(config_by_wk):
+                if w not in seq:
+                    seq.append(w)
+
+            # Capture each week's matches + schedules BEFORE mutating, keyed by old week,
+            # so renumbering can't re-match already-moved rows.
+            week_matches = {}
+            week_schedules = {}
+            for old_wk in seq:
+                week_matches[old_wk] = session.query(Match).join(
+                    Schedule, Match.schedule_id == Schedule.id
+                ).join(Team, Schedule.team_id == Team.id).filter(
+                    Team.league_id == league.id,
+                    Schedule.week == str(old_wk)
+                ).all()
+                week_schedules[old_wk] = session.query(Schedule).join(
+                    Team, Schedule.team_id == Team.id
+                ).filter(
+                    Team.league_id == league.id,
+                    Schedule.week == str(old_wk)
+                ).all()
+
+            # Apply: content of old_wk moves to position i (1-based) and that slot's date.
+            for i, old_wk in enumerate(seq):
+                new_pos = i + 1
+                target_date = slot_dates[i] if i < len(slot_dates) else slot_dates[-1]
+
+                cfg = config_by_wk[old_wk]
+                cfg.week_order = new_pos
+                cfg.week_date = target_date
+
+                for m in week_matches[old_wk]:
+                    m.date = target_date
+                for s in week_schedules[old_wk]:
+                    s.week = str(new_pos)
+                    s.date = target_date
+
         session.commit()
         return jsonify({'success': True, 'message': 'Weeks reordered successfully'})
-        
+
     except Exception as e:
         session.rollback()
         logger.error(f"Error reordering weeks: {str(e)}")
@@ -1708,6 +1790,25 @@ def create_season_wizard():
                 session.rollback()
                 return jsonify({'error': 'Internal Server Error'}), 500
         
+        # Validate team counts up front. The scheduler builds back-to-back double
+        # round-robins, which requires an EVEN number of teams per division so every team
+        # can play two games each week. Any even count (4, 6, 8, 10, 12, ...) is supported.
+        def _even_error(count, label):
+            if count < 2 or count % 2 != 0:
+                return (f"{label} needs an even number of teams (at least 2) so each team "
+                        f"can play back-to-back games. You chose {count}.")
+            return None
+
+        team_count_error = None
+        if league_type == 'Pub League':
+            team_count_error = (_even_error(int(data.get('classic_teams', 4)), 'Classic division')
+                                or _even_error(int(data.get('premier_teams', 8)), 'Premier division'))
+        elif league_type == 'ECS FC':
+            team_count_error = _even_error(int(data.get('ecs_fc_teams', 8)), 'ECS FC')
+        if team_count_error:
+            session.rollback()
+            return jsonify({'error': team_count_error}), 400
+
         # Create placeholder teams based on user selection
         # Classic teams get A, B, C, D first, then Premier continues with E, F, G, H, etc.
         created_teams = []

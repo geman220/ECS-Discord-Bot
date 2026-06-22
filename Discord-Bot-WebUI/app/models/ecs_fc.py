@@ -69,6 +69,7 @@ class EcsFcMatch(db.Model):
             "status IN ('SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'POSTPONED', 'BYE')",
             name='chk_ecs_fc_matches_status'
         ),
+        db.Index('idx_ecs_fc_matches_team_id_match_date', 'team_id', 'match_date'),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -178,6 +179,8 @@ class EcsFcMatch(db.Model):
 class EcsFcAvailability(db.Model):
     """Model for ECS FC player availability responses."""
     __tablename__ = 'ecs_fc_availability'
+    # (ecs_fc_match_id, player_id) is already indexed by the
+    # uq_ecs_fc_availability_match_player unique constraint — no extra index needed.
 
     id = db.Column(db.Integer, primary_key=True)
     # Note: Database column is 'ecs_fc_match_id' but we use 'match_id' as the Python attribute

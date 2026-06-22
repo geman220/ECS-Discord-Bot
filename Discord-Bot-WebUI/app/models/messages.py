@@ -26,7 +26,7 @@ class DirectMessage(db.Model):
     __tablename__ = 'direct_messages'
 
     id = db.Column(db.Integer, primary_key=True)
-    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     recipient_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     content = db.Column(db.Text, nullable=False)
     is_read = db.Column(db.Boolean, default=False, index=True)
@@ -56,6 +56,7 @@ class DirectMessage(db.Model):
     __table_args__ = (
         db.Index('ix_dm_conversation', 'sender_id', 'recipient_id'),
         db.Index('ix_dm_unread', 'recipient_id', 'is_read'),
+        db.Index('idx_direct_messages_sender_id_recipient_id_created_at', 'sender_id', 'recipient_id', db.text('created_at DESC')),
     )
 
     def _get_sender_badges(self):

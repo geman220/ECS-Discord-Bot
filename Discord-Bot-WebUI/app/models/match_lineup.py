@@ -49,8 +49,7 @@ class MatchLineup(db.Model):
     # No FK constraint — ECS FC lineups use negative match_id convention
     match_id = db.Column(
         db.Integer,
-        nullable=False,
-        index=True
+        nullable=False
     )
     team_id = db.Column(
         db.Integer,

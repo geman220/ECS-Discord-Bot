@@ -29,7 +29,8 @@ from app.models.matches import Match
 player_league = db.Table(
     'player_league',
     db.Column('player_id', db.Integer, db.ForeignKey('player.id'), primary_key=True),
-    db.Column('league_id', db.Integer, db.ForeignKey('league.id'), primary_key=True)
+    db.Column('league_id', db.Integer, db.ForeignKey('league.id'), primary_key=True),
+    db.Index('idx_player_league_league_id', 'league_id')
 )
 
 # Association table for many-to-many relationship between Player and Team
@@ -38,7 +39,10 @@ player_teams = db.Table(
     db.Column('player_id', db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), primary_key=True),
     db.Column('team_id', db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), primary_key=True),
     db.Column('is_coach', db.Boolean, default=False),
-    db.Column('position', db.String(20), default='bench')
+    db.Column('position', db.String(20), default='bench'),
+    # Composite PK leads with player_id, so team_id needs its own index for
+    # roster/standings joins that group or filter by team.
+    db.Index('idx_player_teams_team_id', 'team_id'),
 )
 
 
@@ -148,6 +152,9 @@ class Team(db.Model):
 class PlayerOrderHistory(db.Model):
     """Model to track a player's order history (e.g., WooCommerce orders)."""
     __tablename__ = 'player_order_history'
+    __table_args__ = (
+        db.Index('idx_player_order_history_player_id', 'player_id'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
@@ -168,6 +175,12 @@ class PlayerOrderHistory(db.Model):
 
 class Player(db.Model):
     """Model representing a player."""
+    __tablename__ = 'player'
+    __table_args__ = (
+        db.Index('idx_player_user_id', 'user_id'),
+        db.Index('idx_player_primary_league_id', 'primary_league_id'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     is_phone_verified = db.Column(db.Boolean, default=False)
@@ -555,6 +568,11 @@ class Player(db.Model):
 class PlayerTeamSeason(db.Model):
     """Model linking a player, team, and season for assignments."""
     __tablename__ = 'player_team_season'
+    __table_args__ = (
+        # (player_id, team_id) is already covered by player_team_season_unique's
+        # leading columns; only season_id needs its own index.
+        db.Index('idx_player_team_season_season_id', 'season_id'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
@@ -573,7 +591,10 @@ class PlayerTeamSeason(db.Model):
 class PlayerTeamHistory(db.Model):
     """Model for tracking the history of player-team associations."""
     __tablename__ = 'player_team_history'
-    
+    __table_args__ = (
+        db.Index('idx_player_team_history_player_id_joined_date', 'player_id', db.text('joined_date DESC')),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'))
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'))

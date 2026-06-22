@@ -130,7 +130,10 @@ class HelpTopic(db.Model):
 class Prediction(db.Model):
     """Model representing a user's prediction for a match."""
     __tablename__ = 'predictions'
-    
+    __table_args__ = (
+        db.Index('idx_predictions_match_id_discord_user_id', 'match_id', 'discord_user_id'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.String, nullable=False)
     discord_user_id = db.Column(db.String, nullable=False)

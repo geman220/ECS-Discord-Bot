@@ -215,6 +215,11 @@ class WalletPassType(db.Model):
 class WalletPass(db.Model):
     """Tracks all issued wallet passes"""
     __tablename__ = 'wallet_pass'
+    __table_args__ = (
+        db.Index('idx_wallet_pass_barcode_data', 'barcode_data'),
+        db.Index('idx_wallet_pass_player_id_status', 'player_id', 'status'),
+        db.Index('idx_wallet_pass_user_id_status', 'user_id', 'status'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     serial_number = db.Column(db.String(100), unique=True, nullable=False)
@@ -229,7 +234,7 @@ class WalletPass(db.Model):
 
     # WooCommerce integration
     woo_order_id = db.Column(db.Integer, nullable=True, index=True)
-    download_token = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    download_token = db.Column(db.String(64), unique=True, nullable=False)
 
     # Validity
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=True)

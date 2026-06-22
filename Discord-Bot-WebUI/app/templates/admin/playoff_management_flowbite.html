@@ -104,7 +104,7 @@
     </div>
 
     <!-- Playoff Matches Assignment -->
-    <form method="POST" action="{{ url_for('admin.assign_playoff_matches', league_id=league.id) }}">
+    <form method="POST" action="{{ url_for('playoff.assign_playoff_matches', league_id=league.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {% for week_num, matches in playoff_matches.items() %}

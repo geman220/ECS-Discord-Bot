@@ -45,6 +45,9 @@ class MobileSession(db.Model):
 class MobileScreenView(db.Model):
     """Tracks individual screen/page views within a session."""
     __tablename__ = 'mobile_screen_views'
+    __table_args__ = (
+        db.Index('idx_mobile_screen_views_entered_at_screen_name', 'entered_at', 'screen_name'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.String(100), db.ForeignKey('mobile_sessions.session_id', ondelete='CASCADE'),
@@ -63,6 +66,9 @@ class MobileScreenView(db.Model):
 class MobileFeatureUsage(db.Model):
     """Tracks feature usage events from the mobile app."""
     __tablename__ = 'mobile_feature_usage'
+    __table_args__ = (
+        db.Index('idx_mobile_feature_usage_used_at_feature_name_user_id', 'used_at', 'feature_name', 'user_id'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True, index=True)

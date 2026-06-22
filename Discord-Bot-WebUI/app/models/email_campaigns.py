@@ -91,7 +91,7 @@ class EmailCampaignRecipient(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     campaign_id = db.Column(db.Integer, db.ForeignKey('email_campaigns.id', ondelete='CASCADE'),
-                            nullable=False, index=True)
+                            nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     # Snapshot of recipient name at send time
@@ -109,6 +109,7 @@ class EmailCampaignRecipient(db.Model):
 
     __table_args__ = (
         db.Index('ix_email_campaign_recipients_campaign_status', 'campaign_id', 'status'),
+        db.Index('idx_email_campaign_recipients_campaign_id_status_recipient_name', 'campaign_id', 'status', 'recipient_name'),
     )
 
     def to_dict(self):

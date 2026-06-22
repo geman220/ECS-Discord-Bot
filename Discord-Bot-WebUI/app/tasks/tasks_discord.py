@@ -1403,6 +1403,7 @@ async def _execute_create_team_discord_async(data):
         'message': channel_result.get('message', 'Discord resources created'),
         'channel_id': channel_result.get('channel_id'),
         'player_role_id': channel_result.get('player_role_id'),
+        'coach_role_id': channel_result.get('coach_role_id'),
         'team_id': data['team_id']
     }
 
@@ -1418,7 +1419,9 @@ def _update_team_after_discord_creation(session, result):
             team.discord_channel_id = result['channel_id']
         if result.get('player_role_id'):
             team.discord_player_role_id = result['player_role_id']
-    
+        if result.get('coach_role_id'):
+            team.discord_coach_role_id = result['coach_role_id']
+
     return {'success': True, 'message': 'Discord resources created'}
 
 

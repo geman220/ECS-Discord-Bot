@@ -4,7 +4,11 @@ from app.core import db
 class UserFCMToken(db.Model):
     """Model for storing Firebase Cloud Messaging tokens for push notifications - 2025 Enhanced"""
     __tablename__ = 'user_fcm_tokens'
-    
+    __table_args__ = (
+        db.Index('idx_user_fcm_tokens_user_id_is_active', 'user_id', 'is_active'),
+        db.Index('idx_user_fcm_tokens_is_active_last_used', 'is_active', 'last_used'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     fcm_token = db.Column(db.String(500), nullable=False, unique=True)  # Increased length for modern tokens

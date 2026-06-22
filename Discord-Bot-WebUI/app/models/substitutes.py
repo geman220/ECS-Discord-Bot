@@ -26,7 +26,12 @@ from app.core import db
 class EcsFcSubRequest(db.Model):
     """Model for ECS FC substitute requests."""
     __tablename__ = 'ecs_fc_sub_requests'
-    
+    __table_args__ = (
+        db.Index('idx_ecs_fc_sub_requests_match_id_status', 'match_id', 'status'),
+        db.Index('idx_ecs_fc_sub_requests_status_created_at', 'status', 'created_at'),
+        db.Index('idx_ecs_fc_sub_requests_team_id_status', 'team_id', 'status'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('ecs_fc_matches.id'), nullable=False)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
@@ -72,6 +77,7 @@ class EcsFcSubResponse(db.Model):
 
     __table_args__ = (
         db.UniqueConstraint('request_id', 'player_id', name='uq_ecs_fc_sub_response_request_player'),
+        db.Index('idx_ecs_fc_sub_responses_player_id', 'player_id'),
     )
 
     def generate_token(self, expiry_hours=48):
@@ -115,6 +121,7 @@ class EcsFcSubAssignment(db.Model):
 
     __table_args__ = (
         db.UniqueConstraint('request_id', 'player_id', name='uq_ecs_fc_sub_assignment_request_player'),
+        db.Index('idx_ecs_fc_sub_assignments_player_id', 'player_id'),
     )
 
 
@@ -185,7 +192,11 @@ class SubstitutePool(db.Model):
 class SubstitutePoolHistory(db.Model):
     """Model for substitute pool history."""
     __tablename__ = 'substitute_pool_history'
-    
+    __table_args__ = (
+        db.Index('idx_substitute_pool_history_pool_id', 'pool_id'),
+        db.Index('idx_substitute_pool_history_league_id', 'league_id'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     pool_id = db.Column(db.Integer, db.ForeignKey('substitute_pools.id'), nullable=False)
     action = db.Column(db.String(50), nullable=False)
@@ -223,7 +234,12 @@ class SubstitutePoolHistory(db.Model):
 class SubstituteRequest(db.Model):
     """Model for general substitute requests."""
     __tablename__ = 'substitute_requests'
-    
+    __table_args__ = (
+        db.Index('idx_substitute_requests_match_id_team_id_status', 'match_id', 'team_id', 'status'),
+        db.Index('idx_substitute_requests_team_id_status_created_at', 'team_id', 'status', 'created_at'),
+        db.Index('idx_substitute_requests_status_created_at', 'status', 'created_at'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     league_type = db.Column(db.String(255), nullable=False)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=True)
@@ -280,6 +296,7 @@ class SubstituteResponse(db.Model):
 
     __table_args__ = (
         db.UniqueConstraint('request_id', 'player_id', name='uq_substitute_response_request_player'),
+        db.Index('idx_substitute_responses_player_id_notification_sent_at', 'player_id', db.text('notification_sent_at DESC')),
     )
 
     def generate_token(self, expiry_hours=48):

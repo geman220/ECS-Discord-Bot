@@ -62,6 +62,9 @@ class PlayerSeasonStats(db.Model):
     # Unique constraint: one stat record per player/season/league combo
     __table_args__ = (
         db.UniqueConstraint('player_id', 'season_id', 'league_id', name='uq_player_season_league_stats'),
+        # season_id-only filters (season-wide stat aggregation) aren't served by
+        # the player_id-leading unique index above.
+        db.Index('idx_player_season_stats_season_id_league_id', 'season_id', 'league_id'),
     )
 
     @classmethod
@@ -125,6 +128,9 @@ class PlayerSeasonStats(db.Model):
 class PlayerCareerStats(db.Model):
     """Model for storing a player's career statistics."""
     __tablename__ = 'player_career_stats'
+    __table_args__ = (
+        db.Index('idx_player_career_stats_player_id', 'player_id'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
@@ -156,6 +162,10 @@ class PlayerCareerStats(db.Model):
 class Standings(db.Model):
     """Model representing team standings for a season."""
     __tablename__ = 'standings'
+    __table_args__ = (
+        db.Index('idx_standings_team_id_season_id', 'team_id', 'season_id'),
+        db.Index('idx_standings_season_id', 'season_id'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
@@ -498,6 +508,9 @@ class StatChangeType(enum.Enum):
 class PlayerStatAudit(db.Model):
     """Model for auditing changes to player statistics."""
     __tablename__ = 'player_stat_audit'
+    __table_args__ = (
+        db.Index('idx_player_stat_audit_player_id_timestamp', 'player_id', db.text('timestamp DESC')),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)

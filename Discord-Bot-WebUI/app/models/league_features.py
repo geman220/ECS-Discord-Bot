@@ -102,6 +102,7 @@ class LeaguePollResponse(db.Model):
     
     __table_args__ = (
         db.UniqueConstraint('poll_id', 'player_id', name='uq_poll_player_response'),
+        db.Index('idx_league_poll_responses_player_id', 'player_id'),
     )
     
     def __repr__(self):
@@ -111,7 +112,10 @@ class LeaguePollResponse(db.Model):
 class LeaguePollDiscordMessage(db.Model):
     """Model representing Discord messages sent for a league poll."""
     __tablename__ = 'league_poll_discord_messages'
-    
+    __table_args__ = (
+        db.Index('idx_league_poll_discord_messages_poll_id', 'poll_id'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     poll_id = db.Column(db.Integer, db.ForeignKey('league_polls.id', ondelete='CASCADE'), nullable=False)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), nullable=False)
@@ -154,6 +158,7 @@ class DraftOrderHistory(db.Model):
     __table_args__ = (
         db.UniqueConstraint('season_id', 'league_id', 'player_id', name='uq_draft_order_player_season_league'),
         db.UniqueConstraint('season_id', 'league_id', 'draft_position', name='uq_draft_order_position_season_league'),
+        db.Index('idx_draft_order_history_player_id', 'player_id'),
     )
     
     def __repr__(self):

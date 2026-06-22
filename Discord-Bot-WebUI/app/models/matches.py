@@ -26,6 +26,11 @@ logger = logging.getLogger(__name__)
 
 class Schedule(db.Model):
     """Model representing a schedule for matches."""
+    __table_args__ = (
+        db.Index('idx_schedule_team_id', 'team_id'),
+        db.Index('idx_schedule_season_id', 'season_id'),
+        db.Index('idx_schedule_week', 'week'),
+    )
     id = db.Column(db.Integer, primary_key=True)
     week = db.Column(db.String(10), nullable=False)
     date = db.Column(db.Date, nullable=False)
@@ -44,6 +49,9 @@ class Schedule(db.Model):
 class Match(db.Model):
     """Model representing a match between two teams."""
     __tablename__ = 'matches'
+    __table_args__ = (
+        db.Index('idx_matches_schedule_id', 'schedule_id'),
+    )
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False)
     time = db.Column(db.Time, nullable=False)
@@ -238,6 +246,8 @@ class Match(db.Model):
 
 class Availability(db.Model):
     """Model representing a player's availability for a match."""
+    # match_id and player_id are already covered by the leading columns of the
+    # pre-existing composites idx_availability_match_player / _player_match.
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=True)
@@ -299,6 +309,7 @@ class TemporarySubAssignment(db.Model):
     __table_args__ = (
         db.UniqueConstraint('match_id', 'player_id', name='uq_temp_sub_match_player'),
         db.Index('idx_temp_sub_match_active', 'match_id', 'is_active'),
+        db.Index('idx_temporary_sub_assignments_player_id', 'player_id'),
     )
 
     def __repr__(self):
@@ -382,7 +393,10 @@ class AutoScheduleConfig(db.Model):
 class ScheduleTemplate(db.Model):
     """Model for storing generated schedule templates before committing to actual schedule."""
     __tablename__ = 'schedule_templates'
-    
+    __table_args__ = (
+        db.Index('idx_schedule_templates_league_id_is_committed', 'league_id', 'is_committed'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
     week_number = db.Column(db.Integer, nullable=False)

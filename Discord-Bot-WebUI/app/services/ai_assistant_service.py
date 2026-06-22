@@ -280,7 +280,7 @@ class AIAssistantService:
             return None
 
         from app.models.admin_config import AdminConfig
-        model = AdminConfig.get_setting('ai_assistant_claude_model', 'claude-sonnet-4-20250514')
+        model = AdminConfig.get_setting('ai_assistant_claude_model', 'claude-sonnet-4-6')
 
         messages = []
         if conversation_history:

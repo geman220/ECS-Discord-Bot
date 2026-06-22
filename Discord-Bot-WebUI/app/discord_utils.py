@@ -552,6 +552,15 @@ async def create_discord_channel_async_only(team_name: str, league_name: str, te
             if not player_role_id:
                 return {'success': False, 'message': f"Failed to create player role '{player_role_name}'"}
 
+            # Per-team coach role. assign_roles_to_player()/rename_team_roles_async_only()
+            # already expect a "{prefix}-{team}-Coach" role to exist; create it here so
+            # coaches can actually receive their team role and team.discord_coach_role_id
+            # is populated for later rename/cleanup.
+            coach_role_name = f"{role_prefix}-{team_name}-Coach"
+            coach_role_id = await get_or_create_role(guild_id, coach_role_name, session)
+            if not coach_role_id:
+                logger.warning(f"Failed to create coach role '{coach_role_name}' for {team_name}; continuing")
+
             # Get admin and leadership roles (same for both league types)
             wg_admin_role_id = await get_or_create_role(guild_id, "WG: ECS FC ADMIN", session)
             # Use appropriate leadership role based on league type
@@ -565,6 +574,12 @@ async def create_discord_channel_async_only(team_name: str, league_name: str, te
                 {"id": str(guild_id), "type": 0, "deny": str(VIEW_CHANNEL), "allow": "0"},
                 {"id": str(player_role_id), "type": 0, "allow": str(TEAM_PLAYER_PERMISSIONS), "deny": "0"},
             ]
+
+            # Coaches get elevated (mod) permissions, but scoped to their own team channel.
+            if coach_role_id:
+                permission_overwrites.append(
+                    {"id": str(coach_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"}
+                )
 
             # Add admin permissions if roles exist
             if wg_admin_role_id:
@@ -591,6 +606,7 @@ async def create_discord_channel_async_only(team_name: str, league_name: str, te
                     'success': True,
                     'channel_id': channel_id,
                     'player_role_id': player_role_id,
+                    'coach_role_id': coach_role_id,
                     'message': f'Channel created for {team_name} in {category_name}'
                 }
             else:

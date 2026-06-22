@@ -61,7 +61,7 @@ class ISpyShot(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     season_id = db.Column(db.Integer, db.ForeignKey('ispy_seasons.id'), nullable=False)
-    author_discord_id = db.Column(db.String(20), nullable=False, index=True)
+    author_discord_id = db.Column(db.String(20), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('ispy_categories.id'), nullable=False)
     location = db.Column(db.String(40), nullable=False)
     image_url = db.Column(db.String(500), nullable=False)
@@ -100,6 +100,7 @@ class ISpyShot(db.Model):
         Index('idx_ispy_shots_author_submitted', 'author_discord_id', 'submitted_at'),
         Index('idx_ispy_shots_season_status', 'season_id', 'status'),
         Index('idx_ispy_shots_author_hash', 'author_discord_id', 'image_hash'),
+        Index('idx_ispy_shots_author_status_submitted', 'author_discord_id', 'status', 'submitted_at'),
     )
     
     def calculate_points(self):
@@ -137,7 +138,6 @@ class ISpyShotTarget(db.Model):
     # Indexes
     __table_args__ = (
         Index('idx_ispy_shot_targets_unique', 'shot_id', 'target_discord_id', unique=True),
-        Index('idx_ispy_shot_targets_target', 'target_discord_id'),
     )
     
     def __repr__(self):
@@ -153,7 +153,7 @@ class ISpyCooldown(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     shot_id = db.Column(db.Integer, db.ForeignKey('ispy_shots.id'), nullable=False)
-    target_discord_id = db.Column(db.String(20), nullable=False, index=True)
+    target_discord_id = db.Column(db.String(20), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('ispy_categories.id'), nullable=True)  # NULL for global cooldown
     cooldown_type = db.Column(db.String(10), nullable=False)  # 'global' or 'venue'
     expires_at = db.Column(db.DateTime, nullable=False, index=True)
@@ -163,7 +163,7 @@ class ISpyCooldown(db.Model):
     __table_args__ = (
         Index('idx_ispy_cooldowns_active', 'target_discord_id', 'expires_at'),
         Index('idx_ispy_cooldowns_venue', 'target_discord_id', 'category_id', 'expires_at'),
-        Index('idx_ispy_cooldowns_cleanup', 'expires_at'),
+        Index('idx_ispy_cooldowns_shot_id_cooldown_type', 'shot_id', 'cooldown_type'),
     )
     
     @classmethod

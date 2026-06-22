@@ -17,6 +17,9 @@ from app.core import db
 class UserSession(db.Model):
     """Model for tracking active user sessions."""
     __tablename__ = 'user_sessions'
+    __table_args__ = (
+        db.Index('idx_user_sessions_user_id_is_active_last_activity', 'user_id', 'is_active', 'last_activity'),
+    )
 
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)

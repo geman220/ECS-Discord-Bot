@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 class Notification(db.Model):
     """Model representing a system notification for a user."""
     __tablename__ = 'notifications'
+    __table_args__ = (
+        db.Index('idx_notifications_user_id_read_created_at', 'user_id', 'read', db.text('created_at DESC')),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -63,6 +66,12 @@ class Announcement(db.Model):
 class ScheduledMessage(db.Model):
     """Model representing a scheduled message for a match."""
     __tablename__ = 'scheduled_message'
+    __table_args__ = (
+        db.Index('idx_scheduled_message_match_id', 'match_id'),
+        db.Index('idx_scheduled_message_home_message_id', 'home_message_id'),
+        db.Index('idx_scheduled_message_away_message_id', 'away_message_id'),
+        db.Index('idx_scheduled_message_status_scheduled_send_time', 'status', 'scheduled_send_time'),
+    )
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id', ondelete='CASCADE'), nullable=True)  # Nullable for ECS FC; CASCADE so match deletion can't orphan this row
     scheduled_send_time = db.Column(db.DateTime, nullable=False)
@@ -94,7 +103,10 @@ class ScheduledMessage(db.Model):
 class Feedback(db.Model):
     """Model representing user feedback."""
     __tablename__ = 'feedback'
-    
+    __table_args__ = (
+        db.Index('idx_feedback_user_id', 'user_id'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     name = db.Column(db.String(150), nullable=True)
@@ -136,6 +148,9 @@ class Feedback(db.Model):
 class FeedbackReply(db.Model):
     """Model representing a reply to a feedback ticket."""
     __tablename__ = 'feedback_replies'
+    __table_args__ = (
+        db.Index('idx_feedback_replies_feedback_id_created_at', 'feedback_id', 'created_at'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     feedback_id = db.Column(db.Integer, db.ForeignKey('feedback.id'), nullable=False)
@@ -154,6 +169,9 @@ class FeedbackReply(db.Model):
 class Note(db.Model):
     """Model representing a note attached to a feedback ticket."""
     __tablename__ = 'notes'
+    __table_args__ = (
+        db.Index('idx_notes_feedback_id', 'feedback_id'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     feedback_id = db.Column(db.Integer, db.ForeignKey('feedback.id'), nullable=False)
@@ -409,6 +427,9 @@ class MatchReminderLog(db.Model):
 class RsvpDmReminderLog(db.Model):
     """Audit log for RSVP reminder DMs sent to players."""
     __tablename__ = 'rsvp_dm_reminder_log'
+    __table_args__ = (
+        db.Index('idx_rsvp_dm_reminder_log_dedup', 'delivery_status', 'player_id', 'match_id', 'match_type'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)

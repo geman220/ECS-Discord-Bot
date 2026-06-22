@@ -199,12 +199,20 @@ class AutoScheduleGenerator:
         Returns:
             List of weeks, where each week contains a list of (home_team_id, away_team_id) tuples
         """
+        if self.num_teams % 2 != 0:
+            raise ValueError(
+                f"Scheduling requires an even number of teams, got {self.num_teams}. "
+                f"Add or remove a team so each team can play back-to-back games."
+            )
         if self.num_teams == 4:
             return self._generate_4_team_pairings()
         elif self.num_teams == 8:
             return self._generate_8_team_pairings()
         else:
-            raise ValueError(f"Scheduling requires 4 or 8 teams, got {self.num_teams}")
+            # Generic constraint-validated double round-robin for any other even size
+            # (6, 10, 12, 14, 16, ...). Guarantees the same competitive constraints as
+            # the hand-built 4/8 templates and optimizes time-slot / field fairness.
+            return self._generate_generic_pairings()
 
     def _generate_4_team_pairings(self) -> List[List[Tuple[int, int]]]:
         """
@@ -316,6 +324,316 @@ class AutoScheduleGenerator:
         self._log_schedule_balance(weeks, team_ids)
 
         return weeks
+
+    # ------------------------------------------------------------------
+    # Generic scheduler for any even team count (6, 10, 12, 14, 16, ...).
+    # Verified to satisfy the same competitive constraints as the 4/8 templates:
+    #   - double round-robin (each pair plays exactly twice)
+    #   - each team plays 2 games per week in DIFFERENT time slots
+    #   - no consecutive-week rematch
+    #   - balanced home/away (each team N-1 home, N-1 away)
+    #   - full single round-robin before any opponent repeats
+    # Time-slot/field/morning-afternoon fairness are optimized (best of many randomized
+    # attempts) and reported, since perfect fairness is impossible for some sizes.
+    # The match ordering it returns encodes slot = index // num_fields and
+    # field = index % num_fields, matching the downstream fallback in
+    # _assign_matches_to_fields (North for even field index, South for odd).
+    # ------------------------------------------------------------------
+
+    def _circle_method_rounds(self, teams: List[int]) -> List[List[Tuple[int, int]]]:
+        """Single round-robin via the circle method. Returns N-1 rounds; each round is a
+        perfect matching (list of (home, away)). Each unordered pair appears once."""
+        n = len(teams)
+        arr = list(teams)
+        fixed = arr[0]
+        rot = arr[1:]
+        rounds = []
+        for r in range(n - 1):
+            order = [fixed] + rot
+            pairs = []
+            for i in range(n // 2):
+                a = order[i]
+                b = order[n - 1 - i]
+                if (i + r) % 2 == 0:
+                    pairs.append((a, b))
+                else:
+                    pairs.append((b, a))
+            rounds.append(pairs)
+            rot = [rot[-1]] + rot[:-1]
+        return rounds
+
+    def _place_generic_week(self, round_a, round_b, num_fields, slot_count,
+                            team_slot, team_field, team_window):
+        """Place one week's matches (two perfect matchings) into slot_count time slots x
+        num_fields fields. Hard: each team's two games land in different slots. Soft:
+        prefer back-to-back (adjacent) slots and balance season-long slot/field/window
+        counts. Returns an ordered list of length num_teams (index encodes slot/field),
+        or None if no valid placement was found."""
+        from itertools import permutations
+
+        matches = list(round_a) + list(round_b)
+        capacity = slot_count * num_fields
+        if len(matches) != capacity:
+            return None
+
+        order = matches[:]
+        random.shuffle(order)
+        used = [False] * len(order)
+        grid = [None] * capacity
+        slot_members = defaultdict(set)
+
+        def team_slots_used(team):
+            return [s for s in range(slot_count) if team in slot_members[s]]
+
+        def backtrack(pos):
+            if pos == capacity:
+                return True
+            slot = pos // num_fields
+            cand = []
+            for i, m in enumerate(order):
+                if used[i]:
+                    continue
+                h, a = m
+                if h in slot_members[slot] or a in slot_members[slot]:
+                    continue
+                btb_cost = 0
+                for t in (h, a):
+                    su = team_slots_used(t)
+                    if su:
+                        btb_cost += -4 if abs(su[0] - slot) == 1 else 4
+                fair_cost = team_slot[h][slot] + team_slot[a][slot]
+                half = 0 if slot < slot_count / 2 else 1
+                window_cost = 3 * (team_window[h][half] + team_window[a][half])
+                cand.append((btb_cost + fair_cost + window_cost, random.random(), i))
+            cand.sort()
+            for _, _, i in cand:
+                m = order[i]
+                h, a = m
+                used[i] = True
+                slot_members[slot].add(h)
+                slot_members[slot].add(a)
+                grid[pos] = m
+                if backtrack(pos + 1):
+                    return True
+                grid[pos] = None
+                slot_members[slot].discard(h)
+                slot_members[slot].discard(a)
+                used[i] = False
+            return False
+
+        if not backtrack(0):
+            return None
+
+        # Assign fields within each slot to balance per-team field counts.
+        ordered = [None] * capacity
+        for slot in range(slot_count):
+            slot_matches = [grid[slot * num_fields + f] for f in range(num_fields)]
+            best, best_cost = None, None
+            for perm in permutations(range(num_fields)):
+                cost = 0
+                for f, mi in enumerate(perm):
+                    h, a = slot_matches[mi]
+                    cost += team_field[h][f] + team_field[a][f]
+                if best_cost is None or cost < best_cost:
+                    best_cost, best = cost, perm
+            for f, mi in enumerate(best):
+                ordered[slot * num_fields + f] = slot_matches[mi]
+        return ordered
+
+    def _generate_generic_pairings(self) -> List[List[Tuple[int, int]]]:
+        """Build a constraint-validated double round-robin for any even team count."""
+        n = self.num_teams
+        team_ids = [team.id for team in self.teams]
+        num_fields = max(1, len(self.fields))
+        if n % num_fields != 0:
+            # Fields must evenly divide the matches/week (= n). Fall back to 2 fields,
+            # which always works for an even team count.
+            logger.warning(
+                f"{num_fields} fields do not evenly divide {n} matches/week; "
+                f"using 2 fields (North/South) for generation."
+            )
+            num_fields = 2
+            self.fields = ['North', 'South']
+        slot_count = n // num_fields
+
+        attempts = 1200
+        best_weeks = None
+        best_score = None
+        last_weeks = None
+
+        for _ in range(attempts):
+            shuffled = random.sample(team_ids, n)
+            leg1 = self._circle_method_rounds(shuffled)
+            random.shuffle(leg1)
+            leg2 = [[(a, h) for (h, a) in rnd] for rnd in leg1]
+            random.shuffle(leg2)
+            rounds = leg1 + leg2  # leg1 entirely first guarantees C7
+
+            team_slot = {t: [0] * slot_count for t in team_ids}
+            team_field = {t: [0] * num_fields for t in team_ids}
+            team_window = {t: [0, 0] for t in team_ids}
+            weeks = []
+            ok = True
+            for w in range(0, len(rounds), 2):
+                placed = self._place_generic_week(
+                    rounds[w], rounds[w + 1], num_fields, slot_count,
+                    team_slot, team_field, team_window
+                )
+                if placed is None:
+                    ok = False
+                    break
+                for p, (h, a) in enumerate(placed):
+                    slot = p // num_fields
+                    field = p % num_fields
+                    half = 0 if slot < slot_count / 2 else 1
+                    team_slot[h][slot] += 1
+                    team_slot[a][slot] += 1
+                    team_field[h][field] += 1
+                    team_field[a][field] += 1
+                    team_window[h][half] += 1
+                    team_window[a][half] += 1
+                weeks.append(placed)
+            if not ok:
+                continue
+
+            hard, score, summary = self._evaluate_generic(weeks, team_ids, num_fields, slot_count)
+            last_weeks = weeks
+            if not hard and (best_score is None or score < best_score):
+                best_score = score
+                best_weeks = weeks
+                best_summary = summary
+                if score <= -0.99:  # ~100% back-to-back and zero fairness deviation
+                    break
+
+        if best_weeks is None:
+            # No fully valid schedule found - re-validate the last attempt to raise
+            # a detailed ScheduleConstraintError (should not happen for even N).
+            hard, _, _ = self._evaluate_generic(last_weeks or [], team_ids, num_fields, slot_count)
+            raise ScheduleConstraintError(hard or ["Could not generate a valid schedule"])
+
+        logger.info(f"Generic schedule for {n}-team league: {best_summary}")
+        return best_weeks
+
+    def _evaluate_generic(self, weeks, team_ids, num_fields, slot_count):
+        """Validate hard constraints and score fairness for a generic schedule.
+        Returns (hard_violations, fairness_score, summary_string)."""
+        n = len(team_ids)
+        hard = []
+
+        # C1: each pair plays exactly twice
+        pair = defaultdict(int)
+        for week in weeks:
+            for h, a in week:
+                pair[self._get_pair_key(h, a)] += 1
+        for k, c in pair.items():
+            if c != 2:
+                hard.append(f"C1: pair {k} plays {c} times (expected 2)")
+
+        # C2 + different-slot: 2 games per week, in different slots
+        for wi, week in enumerate(weeks):
+            gpt = defaultdict(int)
+            slots = defaultdict(list)
+            for p, (h, a) in enumerate(week):
+                gpt[h] += 1
+                gpt[a] += 1
+                slots[h].append(p // num_fields)
+                slots[a].append(p // num_fields)
+            for t in team_ids:
+                if gpt[t] != 2:
+                    hard.append(f"C2: team {t} plays {gpt[t]} games in week {wi+1}")
+                if len(set(slots[t])) != len(slots[t]):
+                    hard.append(f"C2: team {t} has two games in the same slot in week {wi+1}")
+
+        # C3: no consecutive-week rematch
+        for w in range(1, len(weeks)):
+            prev = defaultdict(set)
+            for h, a in weeks[w - 1]:
+                prev[h].add(a)
+                prev[a].add(h)
+            cur = defaultdict(set)
+            for h, a in weeks[w]:
+                cur[h].add(a)
+                cur[a].add(h)
+            for t in team_ids:
+                if prev[t] & cur[t]:
+                    hard.append(f"C3: team {t} rematch in weeks {w} and {w+1}")
+
+        # C4: home/away balance
+        home = defaultdict(int)
+        away = defaultdict(int)
+        for week in weeks:
+            for h, a in week:
+                home[h] += 1
+                away[a] += 1
+        for t in team_ids:
+            if home[t] != n - 1 or away[t] != n - 1:
+                hard.append(f"C4: team {t} has {home[t]}H/{away[t]}A (expected {n-1}/{n-1})")
+
+        # C7: full single round-robin before any repeat (week granularity)
+        def opps_of(team, week):
+            out = []
+            for h, a in week:
+                if h == team:
+                    out.append(a)
+                elif a == team:
+                    out.append(h)
+            return out
+
+        for t in team_ids:
+            seen = set()
+            w_complete = None
+            for wi, week in enumerate(weeks):
+                for opp in opps_of(t, week):
+                    seen.add(opp)
+                if w_complete is None and len(seen) >= n - 1:
+                    w_complete = wi
+            if len(seen) != n - 1:
+                hard.append(f"C7: team {t} plays {len(seen)} opponents (expected {n-1})")
+                continue
+            seen = set()
+            for wi, week in enumerate(weeks):
+                wk = opps_of(t, week)
+                for opp in wk:
+                    if opp in seen and wi < w_complete:
+                        hard.append(f"C7: team {t} repeats an opponent before completing the round-robin")
+                        break
+                for opp in wk:
+                    seen.add(opp)
+
+        # Soft fairness scoring
+        field = {t: [0] * num_fields for t in team_ids}
+        slot = {t: [0] * slot_count for t in team_ids}
+        window = {t: [0, 0] for t in team_ids}
+        for week in weeks:
+            for p, (h, a) in enumerate(week):
+                s = p // num_fields
+                f = p % num_fields
+                half = 0 if s < slot_count / 2 else 1
+                for x in (h, a):
+                    field[x][f] += 1
+                    slot[x][s] += 1
+                    window[x][half] += 1
+        field_dev = max(max(field[t]) - min(field[t]) for t in team_ids)
+        slot_dev = max(max(slot[t]) - min(slot[t]) for t in team_ids)
+        even_slots = (slot_count % 2 == 0)
+        window_dev = max(abs(window[t][0] - window[t][1]) for t in team_ids) if even_slots else 0
+
+        btb_ok = btb_tot = 0
+        for week in weeks:
+            slots_of = defaultdict(list)
+            for p, (h, a) in enumerate(week):
+                slots_of[h].append(p // num_fields)
+                slots_of[a].append(p // num_fields)
+            for t in team_ids:
+                btb_tot += 1
+                s = sorted(slots_of[t])
+                if len(s) == 2 and abs(s[0] - s[1]) == 1:
+                    btb_ok += 1
+        btb_pct = (100 * btb_ok / btb_tot) if btb_tot else 0
+        score = field_dev + slot_dev + window_dev * 2 - btb_pct / 100.0
+        summary = (f"back-to-back={btb_pct:.0f}%, field_dev={field_dev}, "
+                   f"slot_dev={slot_dev}, morning/afternoon_dev={window_dev}")
+        return hard, score, summary
 
     def _balance_window_assignments(self, weeks: List[List[Tuple[int, int]]],
                                       team_ids: List[int]) -> List[List[Tuple[int, int]]]:
@@ -1154,33 +1472,38 @@ class AutoScheduleGenerator:
             List of time objects for each match slot
         """
         time_slots = []
-        
-        if self.league.name.lower() == 'premier':
-            # Fixed Premier League times per specification
-            time_slots = [
-                time(8, 20),   # Early window slot 1
-                time(9, 30),   # Early window slot 2  
-                time(10, 40),  # Late window slot 1
-                time(11, 50)   # Late window slot 2
-            ]
-            logger.info(f"Using Premier League specification times: {[str(t) for t in time_slots]}")
-        elif self.league.name.lower() == 'classic':
-            # Fixed Classic League times per specification
-            time_slots = [
-                time(13, 10),  # 1:10 PM - First time slot
-                time(14, 20)   # 2:20 PM - Second time slot (back-to-back)
-            ]
-            logger.info(f"Using Classic League specification times: {[str(t) for t in time_slots]}")
+
+        # Number of time slots needed = matches per week (= num_teams) / number of fields.
+        num_fields = max(1, len(self.fields)) if getattr(self, 'fields', None) else 2
+        needed = max(1, self.num_teams // num_fields)
+
+        # Standard back-to-back times per specification. For the common 4/8-team leagues
+        # these reproduce the historical fixed times exactly; for larger leagues we extend
+        # the same cadence so every slot has a time.
+        spec_times = {
+            'premier': ([time(8, 20), time(9, 30), time(10, 40), time(11, 50)], time(8, 20)),
+            'classic': ([time(13, 10), time(14, 20)], time(13, 10)),
+        }
+        league_key = self.league.name.lower()
+        if league_key in spec_times:
+            fixed, base = spec_times[league_key]
+            time_slots = list(fixed[:needed])
+            # Extend beyond the specified slots using the configured match duration.
+            if len(time_slots) < needed:
+                step = self.match_duration_minutes or 70
+                cursor = datetime.combine(pacific_today(), time_slots[-1] if time_slots else base)
+                while len(time_slots) < needed:
+                    cursor += timedelta(minutes=step)
+                    time_slots.append(cursor.time())
+            logger.info(f"Using {league_key.title()} times ({needed} slots): {[str(t) for t in time_slots]}")
         else:
-            # General case - use configured times
+            # General case - use configured start time and duration
             start_time = self.start_time or time(8, 0)
             current_time = datetime.combine(pacific_today(), start_time)
-            
-            num_time_slots = self.num_teams // 2
-            for i in range(num_time_slots):
+            for _ in range(needed):
                 time_slots.append(current_time.time())
-                current_time += timedelta(minutes=self.match_duration_minutes)
-        
+                current_time += timedelta(minutes=self.match_duration_minutes or 70)
+
         return time_slots
     
     def _assign_matches_to_fields(self, matches: List[Tuple[int, int]],
