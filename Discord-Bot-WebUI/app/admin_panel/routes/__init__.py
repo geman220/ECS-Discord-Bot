@@ -90,6 +90,16 @@ def register_all_routes(admin_panel_bp):
     # Phase 10: I-Spy Game Management
     from . import ispy_management
 
+    # Phase 11: Surveys & Polls (in-house survey/poll builder + distribution).
+    # Isolated so a fault in this newer module can't block the whole admin panel
+    # from booting; the nav link + search entry already degrade if it's absent.
+    try:
+        from . import surveys
+    except Exception:
+        import logging
+        logging.getLogger(__name__).error(
+            "Failed to register Surveys & Polls routes", exc_info=True)
+
     # All routes are automatically registered when modules are imported
     # due to the @admin_panel_bp.route decorators
     pass

@@ -7,7 +7,7 @@ This module provides a centralized admin panel for global administrators
 to manage application settings, features, and configurations.
 """
 
-from flask import Blueprint, url_for
+from flask import Blueprint, url_for, current_app
 
 # Create the admin panel blueprint
 admin_panel_bp = Blueprint(
@@ -294,9 +294,6 @@ def _build_admin_search_index():
         {'name': 'Email Broadcasts', 'category': 'Comms', 'description': 'Send bulk email broadcasts to members',
          'keywords': ['email', 'mass email', 'newsletter', 'bulk email'],
          'url': url_for('admin_panel.email_broadcasts_list'), 'icon': 'ti-mail-forward'},
-        {'name': 'Surveys & Polls', 'category': 'Comms', 'description': 'Build surveys/polls, collect responses, view metrics',
-         'keywords': ['survey', 'poll', 'questionnaire', 'feedback', 'form', 'end of season', 'vote'],
-         'url': url_for('admin_panel.surveys_list'), 'icon': 'ti-clipboard-list'},
         {'name': 'Email Templates', 'category': 'Comms', 'description': 'Design and manage email templates',
          'keywords': ['email design', 'html email', 'template editor'],
          'url': url_for('admin_panel.email_templates_list'), 'icon': 'ti-template'},
@@ -465,6 +462,16 @@ def _build_admin_search_index():
             })
     except Exception:
         pass
+
+    # Surveys link is optional — only advertise it if the route registered, so a
+    # missing module can't blank out the whole search index via a BuildError.
+    if 'admin_panel.surveys_list' in current_app.view_functions:
+        items.append({
+            'name': 'Surveys & Polls', 'category': 'Comms',
+            'description': 'Build surveys/polls, collect responses, view metrics',
+            'keywords': ['survey', 'poll', 'questionnaire', 'feedback', 'form', 'end of season', 'vote'],
+            'url': url_for('admin_panel.surveys_list'), 'icon': 'ti-clipboard-list',
+        })
 
     return items
 

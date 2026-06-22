@@ -137,6 +137,17 @@ def init_context_processors(app):
     _register_theme_colors_processor(app)
     _register_ai_assistant_processor(app)
     _register_nav_counts_processor(app)
+    _register_endpoint_helper(app)
+
+
+def _register_endpoint_helper(app):
+    """Expose endpoint_exists() to templates so optional nav links can degrade
+    gracefully instead of raising BuildError (which would 500 the whole page)
+    when a route module failed to register."""
+
+    @app.template_global()
+    def endpoint_exists(name):
+        return name in app.view_functions
 
 
 def _register_utility_processor(app):

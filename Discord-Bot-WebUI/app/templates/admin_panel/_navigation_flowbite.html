@@ -286,7 +286,7 @@
                     <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-clock text-gray-400 text-xs"></i>Scheduled Messages</a>
                     <a href="{{ url_for('admin_panel.campaigns_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-broadcast text-gray-400 text-xs"></i>Push Campaigns</a>
                     <a href="{{ url_for('admin_panel.email_broadcasts_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-mail-forward text-gray-400 text-xs"></i>Email Broadcasts</a>
-                    <a href="{{ url_for('admin_panel.surveys_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-clipboard-list text-gray-400 text-xs"></i>Surveys &amp; Polls</a>
+                    {% if endpoint_exists('admin_panel.surveys_list') %}<a href="{{ url_for('admin_panel.surveys_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-clipboard-list text-gray-400 text-xs"></i>Surveys &amp; Polls</a>{% endif %}
                     <a href="{{ url_for('admin_panel.email_templates_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-mail text-gray-400 text-xs"></i>Email Wrappers</a>
                     <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users-group text-gray-400 text-xs"></i>Notification Groups</a>
                     <a href="{{ url_for('admin_panel.direct_messaging') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-send text-gray-400 text-xs"></i>Direct Messaging</a>
@@ -721,9 +721,9 @@
                         <a href="{{ url_for('admin_panel.email_broadcasts_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-mail-forward text-gray-400"></i>Email Broadcasts
                         </a>
-                        <a href="{{ url_for('admin_panel.surveys_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        {% if endpoint_exists('admin_panel.surveys_list') %}<a href="{{ url_for('admin_panel.surveys_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-clipboard-list text-gray-400"></i>Surveys &amp; Polls
-                        </a>
+                        </a>{% endif %}
                         <a href="{{ url_for('admin_panel.email_templates_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-mail text-gray-400"></i>Email Wrappers
                         </a>
