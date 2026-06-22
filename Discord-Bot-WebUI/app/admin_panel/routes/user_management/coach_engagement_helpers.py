@@ -22,11 +22,12 @@ reliable for the CURRENT season; prior seasons degrade as rosters get rewritten.
 import logging
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, extract
 
 from app.models import (
     Team, Player, Match, League, Season, MatchLineup, PlayerEvent,
-    player_teams, CoachEngagementEvent, DiscordMessageStat,
+    player_teams, CoachEngagementEvent, DiscordMessageStat, Availability,
+    User, MobileSession,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,46 @@ RSVP_ACTION_TYPES = ('rsvp_view', 'rsvp_reminder', 'rsvp_override')
 # A coach is "carrying" the team if they own most of the tracked work AND the
 # team has other coaches who are doing materially less.
 CARRY_THRESHOLD_PCT = 60
+
+# --- Coach Score (0-100) -----------------------------------------------------
+# Blends three things into one comparable number:
+#   duties        — did they do the coaching work (reports, lineups, reminders)
+#   availability  — their OWN RSVP reliability (do they respond / show up)
+#   chat          — presence in their team's Discord channel
+# Targets are "full-credit" thresholds, weights sum to 1.0 — all tunable here.
+SCORE_WEIGHTS = {'duties': 0.40, 'availability': 0.35, 'chat': 0.25}
+DUTIES_TARGET_UNITS = 10.0   # weighted report/lineup/reminder units = full duties credit
+CHAT_TARGET_DAYS = 8.0       # active days in the team channel = full chat credit
+
+
+def _coach_score(m, total_matches, own_responded, own_yes):
+    """Return the 0-100 coach score + its component sub-scores and own-RSVP stats."""
+    duties_units = (m.get('matches_reported', 0) * 3
+                    + m.get('matches_verified', 0) * 1
+                    + m.get('lineups_set', 0) * 3
+                    + m.get('rsvp_reminders', 0) * 2
+                    + m.get('rsvp_views', 0) * 0.2)
+    duties = min(1.0, duties_units / DUTIES_TARGET_UNITS)
+    if total_matches > 0:
+        resp_rate = min(1.0, own_responded / total_matches)
+        yes_rate = min(1.0, own_yes / total_matches)
+        availability = 0.5 * resp_rate + 0.5 * yes_rate
+    else:
+        availability = 0.0
+    chat = min(1.0, m.get('discord_active_days', 0) / CHAT_TARGET_DAYS)
+    score = 100 * (SCORE_WEIGHTS['duties'] * duties
+                   + SCORE_WEIGHTS['availability'] * availability
+                   + SCORE_WEIGHTS['chat'] * chat)
+    return {
+        'coach_score': round(score),
+        'score_duties': round(duties * 100),
+        'score_availability': round(availability * 100),
+        'score_chat': round(chat * 100),
+        'own_rsvp_responded': own_responded,
+        'own_rsvp_yes': own_yes,
+        'own_rsvp_total': total_matches,
+        'own_rsvp_yes_pct': round(own_yes / total_matches * 100) if total_matches else 0,
+    }
 
 
 def list_engagement_seasons(session):
@@ -133,6 +174,7 @@ def get_coach_engagement(session, season_id=None):
     coach_index = {}
     coach_user_ids = set()
     coach_discord_ids = set()
+    player_to_entries = {}  # player_id -> [coach entry] (for own-RSVP attribution)
     for r in coach_rows:
         if not r.user_id:
             continue
@@ -150,6 +192,14 @@ def get_coach_engagement(session, season_id=None):
             'rsvp_active_days': 0,
             'discord_messages': 0,
             'discord_active_days': 0,
+            'discord_messages_all': 0,  # across ALL pub-league channels (not just team)
+            'own_rsvp_responded': 0,    # coach's OWN availability for their team's matches
+            'own_rsvp_yes': 0,
+            'last_web_login': None,     # User.last_login (webui)
+            'last_mobile_at': None,     # last Flutter app session
+            'last_discord_any_at': None,  # last message in ANY pub-league channel
+            'midweek_active_days': 0,   # distinct Mon-Fri chat days
+            'game_day_only': False,     # active in chat but only on weekends
             'last_discord_at': None,
             'last_report_at': None,
             'last_rsvp_at': None,
@@ -158,6 +208,8 @@ def get_coach_engagement(session, season_id=None):
         coaches_by_team[r.team_id].append(entry)
         coach_index[(r.team_id, r.user_id)] = entry
         coach_user_ids.add(r.user_id)
+        if r.player_id:
+            player_to_entries.setdefault(r.player_id, []).append(entry)
         if r.discord_id:
             coach_discord_ids.add(str(r.discord_id))
 
@@ -199,6 +251,26 @@ def get_coach_engagement(session, season_id=None):
 
     # match_id -> (home_team_id, away_team_id) for report attribution
     match_teams = {m.id: (m.home_team_id, m.away_team_id) for m in match_rows}
+
+    # --- coach's OWN RSVP for their team's matches ----------------------------
+    # A coach is a player too; do they respond / say yes to their own matches?
+    if match_ids and player_to_entries:
+        av_rows = (
+            session.query(Availability.player_id, Availability.response)
+            .filter(
+                Availability.match_id.in_(match_ids),
+                Availability.player_id.in_(list(player_to_entries.keys())),
+            )
+            .all()
+        )
+        for pid, response in av_rows:
+            resp = (response or '').lower()
+            if not resp or resp == 'no_response':
+                continue
+            for c in player_to_entries.get(pid, []):
+                c['own_rsvp_responded'] += 1
+                if resp == 'yes':
+                    c['own_rsvp_yes'] += 1
 
     # --- match reports via PlayerEvent.reported_by ----------------------------
     # Distinct (reporter_user, match) pairs → attribute to whichever of that
@@ -308,6 +380,78 @@ def get_coach_engagement(session, season_id=None):
             c['discord_active_days'] = max(c['discord_active_days'], int(row.days or 0))
             c['last_discord_at'] = _max_dt(c['last_discord_at'], row.last_at)
 
+        # Server-wide (all pub-league channels, not just the team channel) totals,
+        # so we can spot a coach who's chatty elsewhere but quiet in their own team.
+        all_rows = (
+            session.query(
+                DiscordMessageStat.discord_user_id,
+                func.sum(DiscordMessageStat.message_count).label('msgs'),
+            )
+            .filter(DiscordMessageStat.discord_user_id.in_(coach_discord_ids))
+            .group_by(DiscordMessageStat.discord_user_id)
+            .all()
+        )
+        all_by_did = {str(r.discord_user_id): int(r.msgs or 0) for r in all_rows}
+        for (tid, uid), c in coach_index.items():
+            if c['discord_id']:
+                c['discord_messages_all'] = all_by_did.get(str(c['discord_id']), 0)
+
+    # --- platform recency: webui login, mobile app, Discord, midweek ----------
+    user_to_entries = {}
+    did_to_entries = {}
+    for (tid, uid), c in coach_index.items():
+        user_to_entries.setdefault(uid, []).append(c)
+        if c['discord_id']:
+            did_to_entries.setdefault(str(c['discord_id']), []).append(c)
+
+    if coach_user_ids:
+        for uid, last_login in (
+            session.query(User.id, User.last_login)
+            .filter(User.id.in_(coach_user_ids)).all()
+        ):
+            for c in user_to_entries.get(uid, []):
+                c['last_web_login'] = last_login
+        for uid, last_m in (
+            session.query(MobileSession.user_id, func.max(MobileSession.started_at))
+            .filter(MobileSession.user_id.in_(coach_user_ids))
+            .group_by(MobileSession.user_id).all()
+        ):
+            for c in user_to_entries.get(uid, []):
+                c['last_mobile_at'] = last_m
+
+    if coach_discord_ids:
+        # Last activity in any PL channel + total distinct active days.
+        for did, last_at, active_days in (
+            session.query(
+                DiscordMessageStat.discord_user_id,
+                func.max(DiscordMessageStat.last_message_at),
+                func.count(func.distinct(DiscordMessageStat.stat_date)),
+            ).filter(DiscordMessageStat.discord_user_id.in_(coach_discord_ids))
+            .group_by(DiscordMessageStat.discord_user_id).all()
+        ):
+            for c in did_to_entries.get(str(did), []):
+                c['last_discord_any_at'] = last_at
+                c['_dm_active_days'] = int(active_days or 0)
+        # Distinct Mon-Fri active days (Postgres dow: 0=Sun..6=Sat).
+        midweek_map = {
+            str(did): int(d) for did, d in (
+                session.query(
+                    DiscordMessageStat.discord_user_id,
+                    func.count(func.distinct(DiscordMessageStat.stat_date)),
+                ).filter(
+                    DiscordMessageStat.discord_user_id.in_(coach_discord_ids),
+                    extract('dow', DiscordMessageStat.stat_date).in_([1, 2, 3, 4, 5]),
+                ).group_by(DiscordMessageStat.discord_user_id).all()
+            )
+        }
+        for did, entries in did_to_entries.items():
+            mid = midweek_map.get(did, 0)
+            for c in entries:
+                c['midweek_active_days'] = mid
+                # Active in chat but never midweek = only shows up on game day.
+                c['game_day_only'] = bool(c.get('_dm_active_days', 0) > 0 and mid == 0)
+                c.pop('_dm_active_days', None)
+
     # --- assemble per-team output --------------------------------------------
     teams_out = []
     total_coaches = 0
@@ -317,18 +461,30 @@ def get_coach_engagement(session, season_id=None):
 
     for t in team_rows:
         coaches = coaches_by_team.get(t.id, [])
+        team_matches = team_match_count.get(t.id, 0)
         for c in coaches:
             c['activity_score'] = _activity_score(c)
             c['last_active'] = _max_iso(
                 c['last_report_at'], c['last_rsvp_at'],
                 c['last_lineup_at'], c['last_discord_at'])
+            # "Last seen anywhere" also folds in webui login + app + any chat.
+            seen_dt = None
+            for f in ('last_report_at', 'last_rsvp_at', 'last_lineup_at', 'last_discord_at',
+                      'last_web_login', 'last_mobile_at', 'last_discord_any_at'):
+                seen_dt = _max_dt(seen_dt, c[f])
+            c['last_seen'] = _to_iso(seen_dt)
+            c['days_since_seen'] = (datetime.utcnow() - seen_dt).days if seen_dt else None
             c['is_inactive'] = c['activity_score'] == 0
+            # Overall 0-100 coach score (duties + own RSVP + chat presence).
+            c.update(_coach_score(c, team_matches,
+                                  c['own_rsvp_responded'], c['own_rsvp_yes']))
         team_score = sum(c['activity_score'] for c in coaches) or 0
         for c in coaches:
             c['contribution_pct'] = (
                 round(c['activity_score'] / team_score * 100) if team_score else 0)
             # clean up internal datetime objects → iso strings
-            for k in ('last_report_at', 'last_rsvp_at', 'last_lineup_at', 'last_discord_at'):
+            for k in ('last_report_at', 'last_rsvp_at', 'last_lineup_at', 'last_discord_at',
+                      'last_web_login', 'last_mobile_at', 'last_discord_any_at'):
                 c[k] = _to_iso(c[k])
             c.pop('discord_id', None)
 
@@ -371,6 +527,11 @@ def get_coach_engagement(session, season_id=None):
         x['team_name'],
     ))
 
+    all_coaches = [c for tm in teams_out for c in tm['coaches']]
+    all_scores = [c['coach_score'] for c in all_coaches]
+    avg_score = round(sum(all_scores) / len(all_scores)) if all_scores else 0
+    game_day_only_coaches = sum(1 for c in all_coaches if c.get('game_day_only'))
+
     return {
         'season': season.to_dict(),
         'available_seasons': list_engagement_seasons(session),
@@ -381,6 +542,8 @@ def get_coach_engagement(session, season_id=None):
             'inactive_coaches': inactive_coaches,
             'teams_with_carrier': teams_with_carrier,
             'teams_fully_active': teams_fully_active,
+            'avg_coach_score': avg_score,
+            'game_day_only_coaches': game_day_only_coaches,
         },
         'generated_at': datetime.utcnow().isoformat(),
     }
@@ -546,7 +709,7 @@ def get_discord_channel_metrics(session, season_id=None, days=None):
     }
 
 
-def _coach_team_metrics(session, team_id, user_id, discord_id):
+def _coach_team_metrics(session, team_id, user_id, discord_id, player_id=None):
     """Engagement metrics for ONE coach on ONE (season-specific) team."""
     match_rows = (
         session.query(
@@ -644,6 +807,32 @@ def _coach_team_metrics(session, team_id, user_id, discord_id):
             discord_active_days = int(dm.days or 0)
             last_dt = _max_dt(last_dt, dm.last_at)
 
+    # Server-wide (all pub-league channels) total for this coach.
+    discord_messages_all = 0
+    if discord_id:
+        all_total = (
+            session.query(func.sum(DiscordMessageStat.message_count))
+            .filter(DiscordMessageStat.discord_user_id == str(discord_id))
+            .scalar()
+        )
+        discord_messages_all = int(all_total or 0)
+
+    # Coach's OWN RSVP for this team's matches.
+    own_responded = own_yes = 0
+    if player_id and match_ids:
+        for (response,) in (
+            session.query(Availability.response)
+            .filter(Availability.match_id.in_(match_ids),
+                    Availability.player_id == player_id)
+            .all()
+        ):
+            resp = (response or '').lower()
+            if not resp or resp == 'no_response':
+                continue
+            own_responded += 1
+            if resp == 'yes':
+                own_yes += 1
+
     metrics = {
         'matches_reported': matches_reported,
         'matches_verified': matches_verified,
@@ -653,11 +842,13 @@ def _coach_team_metrics(session, team_id, user_id, discord_id):
         'rsvp_active_days': rsvp_active_days,
         'discord_messages': discord_messages,
         'discord_active_days': discord_active_days,
+        'discord_messages_all': discord_messages_all,
         'total_matches': total_matches,
         'reported_matches': reported_matches,
     }
     metrics['activity_score'] = _activity_score(metrics)
     metrics['last_active'] = _to_iso(last_dt)
+    metrics.update(_coach_score(metrics, total_matches, own_responded, own_yes))
     return metrics
 
 
@@ -727,7 +918,7 @@ def get_coach_history(session, player_id):
             seasons_coached += 1
             teams = []
             for tid in coached[sid]:
-                m = _coach_team_metrics(session, tid, user_id, discord_id)
+                m = _coach_team_metrics(session, tid, user_id, discord_id, player.id)
                 m['team_id'] = tid
                 m['team_name'] = team_name.get(tid, f'Team {tid}')
                 total_score += m['activity_score']
@@ -750,7 +941,8 @@ def get_coach_history(session, player_id):
 
     return {
         'player': {'id': player.id, 'name': player.name,
-                   'discord_linked': bool(discord_id), 'is_coach_now': bool(player.is_coach)},
+                   'discord_linked': bool(discord_id), 'is_coach_now': bool(player.is_coach),
+                   **_player_recency(session, user_id, discord_id)},
         'timeline': timeline,
         'summary': {
             'seasons_total': len(seasons),
@@ -758,6 +950,34 @@ def get_coach_history(session, player_id):
             'total_activity_score': total_score,
         },
         'generated_at': datetime.utcnow().isoformat(),
+    }
+
+
+def _player_recency(session, user_id, discord_id):
+    """Last-seen across webui login, mobile app, and any PL Discord channel."""
+    last_login = (
+        session.query(User.last_login).filter(User.id == user_id).scalar()
+        if user_id else None
+    )
+    last_mobile = (
+        session.query(func.max(MobileSession.started_at))
+        .filter(MobileSession.user_id == user_id).scalar()
+        if user_id else None
+    )
+    last_discord = (
+        session.query(func.max(DiscordMessageStat.last_message_at))
+        .filter(DiscordMessageStat.discord_user_id == str(discord_id)).scalar()
+        if discord_id else None
+    )
+    seen = None
+    for d in (last_login, last_mobile, last_discord):
+        seen = _max_dt(seen, d)
+    return {
+        'last_web_login': _to_iso(last_login),
+        'last_mobile_at': _to_iso(last_mobile),
+        'last_discord_any_at': _to_iso(last_discord),
+        'last_seen': _to_iso(seen),
+        'days_since_seen': (datetime.utcnow() - seen).days if seen else None,
     }
 
 

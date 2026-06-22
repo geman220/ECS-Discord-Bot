@@ -29,6 +29,12 @@
       Coached <span class="font-mono font-semibold">{{ sm.seasons_coached }}</span> of {{ sm.seasons_total }} seasons
       {% if p.is_coach_now %}&middot; <span class="text-ecs-green">flagged coach now</span>{% else %}&middot; <span class="text-gray-400">not flagged a coach currently</span>{% endif %}
     </p>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 flex flex-wrap gap-x-4 gap-y-1 font-mono">
+      <span><i class="ti ti-world"></i> web login: {{ p.last_web_login[:10] if p.last_web_login else '—' }}</span>
+      <span><i class="ti ti-device-mobile"></i> app: {{ p.last_mobile_at[:10] if p.last_mobile_at else '—' }}</span>
+      <span><i class="ti ti-brand-discord"></i> discord: {{ p.last_discord_any_at[:10] if p.last_discord_any_at else '—' }}</span>
+      <span class="{% if p.days_since_seen is not none and p.days_since_seen > 10 %}text-amber-600 dark:text-amber-400{% endif %}"><i class="ti ti-eye"></i> last seen: {{ p.last_seen[:10] if p.last_seen else '—' }}</span>
+    </p>
   </div>
   <a href="{{ url_for('admin_panel.coach_engagement') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
     <i class="ti ti-arrow-left"></i> Back
@@ -75,6 +81,8 @@
         <thead>
           <tr class="text-left text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
             <th class="px-4 sm:px-5 py-2 font-medium">Team</th>
+            <th class="px-3 py-2 font-medium text-center">Score</th>
+            <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Own RSVP</th>
             <th class="px-3 py-2 font-medium text-center">Reports</th>
             <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Verified</th>
             <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Lineups</th>
@@ -89,6 +97,16 @@
           <tr>
             <td class="px-4 sm:px-5 py-2.5 font-medium text-gray-900 dark:text-white">{{ t.team_name }}
               <span class="text-xs text-gray-400 font-mono">({{ t.reported_matches }}/{{ t.total_matches }} reported)</span>
+            </td>
+            <td class="px-3 py-2.5 text-center">
+              <span class="inline-flex items-center justify-center min-w-[2.5rem] px-2 py-0.5 rounded-md font-mono text-sm font-bold
+                {% if t.coach_score >= 70 %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300
+                {% elif t.coach_score >= 40 %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300
+                {% else %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300{% endif %}"
+                title="Duties {{ t.score_duties }} · Availability {{ t.score_availability }} · Chat {{ t.score_chat }}">{{ t.coach_score }}</span>
+            </td>
+            <td class="px-3 py-2.5 text-center font-mono hidden md:table-cell">
+              {% if t.own_rsvp_total %}<span class="{% if t.own_rsvp_yes_pct < 50 %}text-red-600 dark:text-red-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ t.own_rsvp_yes }}/{{ t.own_rsvp_total }}</span>{% else %}<span class="text-gray-300 dark:text-gray-600">—</span>{% endif %}
             </td>
             <td class="px-3 py-2.5 text-center font-mono {% if t.matches_reported == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ t.matches_reported }}</td>
             <td class="px-3 py-2.5 text-center font-mono hidden md:table-cell {% if t.matches_verified == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ t.matches_verified }}</td>

@@ -52,7 +52,12 @@
 
 <!-- ============ KPI band ============ -->
 <section class="mb-6">
-  <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+  <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Avg Score</span>
+      <div class="mt-2 font-mono text-3xl font-bold {% if summary.avg_coach_score >= 70 %}text-green-600 dark:text-green-400{% elif summary.avg_coach_score >= 40 %}text-amber-600 dark:text-amber-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ summary.avg_coach_score }}</div>
+      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">of 100</p>
+    </div>
     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
       <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Teams</span>
       <div class="mt-2 font-mono text-3xl font-bold text-ecs-green">{{ summary.teams }}</div>
@@ -85,10 +90,13 @@
     <i class="ti ti-info-circle"></i> How engagement is measured
   </summary>
   <div class="mt-3 text-xs text-blue-900/80 dark:text-blue-200/80 space-y-1.5">
-    <p><strong>Activity score</strong> weights core duties: match reports &amp; lineups (×3), reminders (×2), score verifies / RSVP-check days / chat days (×1). Contribution % is each coach's share of their team's total.</p>
+    <p><strong>Coach Score (0–100)</strong> blends three things: <em>duties</em> (40% — reports, lineups, reminders), <em>availability</em> (35% — the coach's OWN RSVP: do they respond and say yes to their team's matches), and <em>chat</em> (25% — presence in their team channel). Hover a score to see the breakdown. Green ≥70, amber 40–69, red &lt;40.</p>
+    <p><strong>Own RSVP</strong> is the coach's personal availability (yes / total matches) — a coach who never RSVPs or never says yes scores low here regardless of paperwork.</p>
+    <p><strong>Activity score / Contribution %</strong> measures workload share within the team (who's pulling weight vs. coach-in-name-only); the Coach Score measures overall how a coach is doing.</p>
+    <p><strong>Last seen</strong> is the most recent of their webui login, mobile-app session, or any pub-league Discord message (hover for the breakdown); it turns amber past ~10 days. <strong>"Game-day only"</strong> flags a coach who posts in their team channel only on weekends with no midweek presence — fine for a player, a yellow flag for a coach.</p>
     <p><strong>Reports &amp; lineups</strong> are attributed across both web and the Flutter mobile app.</p>
     <p><strong>RSVP checks</strong> are counted when a coach opens RSVPs on web or mobile. Checking only via the Discord embed can't be detected, so a low RSVP count isn't proof a coach never looked.</p>
-    <p><strong>Team chat</strong> counts messages in the team's Discord channel. This and RSVP-view tracking only accrue from when tracking was enabled — early-season history won't be present.</p>
+    <p><strong>Team chat</strong> counts a coach's messages in <em>their own team's</em> Discord channel — the main signal for whether they're present for their team. The small "all-PL" figure beneath it is their total across <em>all</em> pub-league channels, so you can spot a coach who's chatty in general chat but silent in their own team's channel. (Only pub-league channels are tracked, and this + RSVP-view tracking only accrue from when tracking was enabled.)</p>
   </div>
 </details>
 
@@ -132,14 +140,16 @@
         <thead>
           <tr class="text-left text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
             <th class="px-4 sm:px-5 py-2 font-medium">Coach</th>
-            <th class="px-3 py-2 font-medium w-48">Contribution</th>
+            <th class="px-3 py-2 font-medium text-center">Score</th>
+            <th class="px-3 py-2 font-medium w-40">Contribution</th>
             <th class="px-3 py-2 font-medium text-center">Reports</th>
             <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Verified</th>
             <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Lineups</th>
             <th class="px-3 py-2 font-medium text-center hidden md:table-cell">RSVP checks</th>
             <th class="px-3 py-2 font-medium text-center hidden lg:table-cell">Reminders</th>
-            <th class="px-3 py-2 font-medium text-center">Chat</th>
-            <th class="px-3 py-2 font-medium text-center hidden lg:table-cell">Last active</th>
+            <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Own RSVP</th>
+            <th class="px-3 py-2 font-medium text-center">Team chat</th>
+            <th class="px-3 py-2 font-medium text-center hidden lg:table-cell">Last seen</th>
             <th class="px-3 sm:px-5 py-2 font-medium text-right">Status</th>
           </tr>
         </thead>
@@ -154,6 +164,16 @@
               {% if not c.discord_linked %}
               <span class="text-xs text-gray-400 dark:text-gray-500"><i class="ti ti-brand-discord"></i> not linked</span>
               {% endif %}
+              {% if c.game_day_only %}
+              <span class="block text-xs text-amber-600 dark:text-amber-400" title="Active in their team chat only on weekends — no midweek presence"><i class="ti ti-calendar-week"></i> game-day only</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3 text-center">
+              <span class="inline-flex items-center justify-center min-w-[2.5rem] px-2 py-0.5 rounded-md font-mono text-sm font-bold
+                {% if c.coach_score >= 70 %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300
+                {% elif c.coach_score >= 40 %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300
+                {% else %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300{% endif %}"
+                title="Duties {{ c.score_duties }} · Availability {{ c.score_availability }} · Chat {{ c.score_chat }}">{{ c.coach_score }}</span>
             </td>
             <td class="px-3 py-3">
               <div class="flex items-center gap-2">
@@ -169,8 +189,22 @@
             <td class="px-3 py-3 text-center font-mono hidden md:table-cell {% if c.lineups_set == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.lineups_set }}</td>
             <td class="px-3 py-3 text-center font-mono hidden md:table-cell {% if c.rsvp_views == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.rsvp_views }}</td>
             <td class="px-3 py-3 text-center font-mono hidden lg:table-cell {% if c.rsvp_reminders == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.rsvp_reminders }}</td>
-            <td class="px-3 py-3 text-center font-mono {% if c.discord_messages == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.discord_messages }}</td>
-            <td class="px-3 py-3 text-center text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell font-mono">{{ c.last_active[:10] if c.last_active else '—' }}</td>
+            <td class="px-3 py-3 text-center font-mono hidden md:table-cell" title="Coach's own availability for their team's matches">
+              {% if c.own_rsvp_total %}
+              <span class="{% if c.own_rsvp_yes_pct < 50 %}text-red-600 dark:text-red-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.own_rsvp_yes }}/{{ c.own_rsvp_total }}</span>
+              <span class="block text-[10px] text-gray-400 dark:text-gray-500">{{ c.own_rsvp_yes_pct }}% yes</span>
+              {% else %}<span class="text-gray-300 dark:text-gray-600">—</span>{% endif %}
+            </td>
+            <td class="px-3 py-3 text-center font-mono">
+              <span class="{% if c.discord_messages == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.discord_messages }}</span>
+              {% if c.discord_messages_all > c.discord_messages %}
+              <span class="block text-[10px] text-gray-400 dark:text-gray-500" title="Messages across all pub-league channels">{{ c.discord_messages_all }} all&#8209;PL</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3 text-center text-xs hidden lg:table-cell font-mono {% if c.days_since_seen is not none and c.days_since_seen > 10 %}text-amber-600 dark:text-amber-400{% else %}text-gray-500 dark:text-gray-400{% endif %}"
+                title="Web login: {{ c.last_web_login[:10] if c.last_web_login else '—' }} · App: {{ c.last_mobile_at[:10] if c.last_mobile_at else '—' }} · Discord: {{ c.last_discord_any_at[:10] if c.last_discord_any_at else '—' }}">
+              {{ c.last_seen[:10] if c.last_seen else '—' }}
+            </td>
             <td class="px-3 sm:px-5 py-3 text-right">
               {% if c.is_inactive %}
               <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300">Inactive</span>
@@ -183,7 +217,7 @@
           </tr>
           {% endfor %}
           {% if not team.coaches %}
-          <tr><td colspan="10" class="px-5 py-4 text-center text-xs text-gray-400 dark:text-gray-500">No coaches assigned to this team.</td></tr>
+          <tr><td colspan="12" class="px-5 py-4 text-center text-xs text-gray-400 dark:text-gray-500">No coaches assigned to this team.</td></tr>
           {% endif %}
         </tbody>
       </table>
