@@ -94,7 +94,8 @@
     <p><strong>Own RSVP</strong> is the coach's personal availability (yes / total matches) — a coach who never RSVPs or never says yes scores low here regardless of paperwork.</p>
     <p><strong>Activity score / Contribution %</strong> measures workload share within the team (who's pulling weight vs. coach-in-name-only); the Coach Score measures overall how a coach is doing.</p>
     <p><strong>Last seen</strong> is the most recent of their webui login, mobile-app session, or any pub-league Discord message (hover for the breakdown); it turns amber past ~10 days. <strong>"Game-day only"</strong> flags a coach who posts in their team channel only on weekends with no midweek presence — fine for a player, a yellow flag for a coach.</p>
-    <p><strong>Reports &amp; lineups</strong> are attributed across both web and the Flutter mobile app.</p>
+    <p><strong>Reports &amp; lineups</strong> are attributed across both web and the Flutter mobile app. Note "X/Y reported" counts matches that have a <em>score</em> (from any source) — it won't equal the per-coach Reports/Verified columns, since a match can be reported by the opponent or entered score-only.</p>
+    <p><strong>Goals logged</strong> compares goal-scorer events to the team's actual scores in reported matches. A score of 2 implies 2 goals should have scorers; if they're missing, the score was entered but the scorers weren't. Own goals count, and a small tolerance is allowed — a flagged gap (≥3 missing) means a team is routinely skipping the detail, not an edge case.</p>
     <p><strong>RSVP checks</strong> are counted when a coach opens RSVPs on web or mobile. Checking only via the Discord embed can't be detected, so a low RSVP count isn't proof a coach never looked.</p>
     <p><strong>Team chat</strong> counts a coach's messages in <em>their own team's</em> Discord channel — the main signal for whether they're present for their team. The small "all-PL" figure beneath it is their total across <em>all</em> pub-league channels, so you can spot a coach who's chatty in general chat but silent in their own team's channel. (Only pub-league channels are tracked, and this + RSVP-view tracking only accrue from when tracking was enabled.)</p>
   </div>
@@ -119,6 +120,14 @@
         {% if team.unreported_matches > 0 %}
         <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300">
           <i class="ti ti-alert-triangle"></i>{{ team.unreported_matches }} unreported
+        </span>
+        {% endif %}
+        {% if team.goal_expected > 0 %}
+        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md {% if team.goal_detail_gap %}bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300 font-semibold{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %}"
+              title="Goal scorers logged vs. goals actually scored. A big gap means the score was entered but the scorers weren't.">
+          <i class="ti ti-ball-football"></i>
+          <span class="font-mono font-semibold">{{ team.goal_recorded }}/{{ team.goal_expected }}</span> goals logged
+          {% if team.goal_detail_gap %}&middot; {{ team.goal_missing }} missing{% endif %}
         </span>
         {% endif %}
         {% if team.has_carrier %}

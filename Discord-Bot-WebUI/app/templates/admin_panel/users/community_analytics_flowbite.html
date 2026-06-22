@@ -30,7 +30,8 @@
   <div class="flex items-center gap-2">
     <button type="button" id="backfillBtn"
             class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-            data-url="{{ url_for('admin_panel.community_analytics_backfill') }}">
+            data-url="{{ url_for('admin_panel.community_analytics_backfill') }}"
+            data-status-url="{{ url_for('admin_panel.community_analytics_backfill_status') }}">
       <i class="ti ti-history"></i> Backfill chat history
     </button>
     <form method="get" id="windowForm" class="flex items-center gap-2">
@@ -173,46 +174,89 @@
     if (sel) sel.addEventListener('change', function () { document.getElementById('windowForm').submit(); });
 
     var btn = document.getElementById('backfillBtn');
-    if (btn) {
-      btn.addEventListener('click', function () {
-        var csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
-        var run = function (days) {
-          var original = btn.innerHTML;
-          btn.disabled = true;
-          btn.classList.add('opacity-60', 'pointer-events-none');
-          btn.innerHTML = '<i class="ti ti-loader"></i> Starting…';
-          fetch(btn.dataset.url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-            body: JSON.stringify({ days: days })
-          }).then(function (r) { return r.json().catch(function () { return {}; }); })
-            .then(function (d) {
-              var ok = d && d.success;
-              var msg = (d && d.message) || (ok ? 'Backfill started.' : 'Could not start backfill.');
-              if (window.Swal) {
-                window.Swal.fire({ icon: ok ? 'success' : 'error', title: ok ? 'Backfill started' : 'Error', text: msg });
-              } else { alert(msg); }
-            }).catch(function () {
-              if (window.Swal) { window.Swal.fire({ icon: 'error', title: 'Error', text: 'Request failed.' }); }
-              else { alert('Request failed.'); }
-            }).finally(function () {
-              btn.disabled = false;
-              btn.classList.remove('opacity-60', 'pointer-events-none');
-              btn.innerHTML = original;
-            });
-        };
-        var days = parseInt((document.getElementById('days') || {}).value, 10) || 120;
-        if (window.Swal) {
-          window.Swal.fire({
-            title: 'Backfill chat history?',
-            text: 'Imports the last ' + days + ' days of pub-league channel history. Runs in the background; data appears in a few minutes.',
-            icon: 'question', showCancelButton: true, confirmButtonText: 'Run backfill'
-          }).then(function (res) { if (res.isConfirmed) run(days); });
-        } else if (confirm('Backfill the last ' + days + ' days of chat history?')) {
-          run(days);
-        }
-      });
+    if (!btn) return;
+    var original = btn.innerHTML;
+    var polling = false;
+
+    function notify(icon, title, text) {
+      if (window.Swal) { window.Swal.fire({ icon: icon, title: title, text: text }); }
+      else { alert(title + (text ? '\n\n' + text : '')); }
     }
+    function setRunning() {
+      btn.disabled = true;
+      btn.classList.add('opacity-60', 'pointer-events-none');
+      btn.innerHTML = '<i class="ti ti-loader"></i> Running…';
+    }
+    function setIdle() {
+      btn.disabled = false;
+      btn.classList.remove('opacity-60', 'pointer-events-none');
+      btn.innerHTML = original;
+    }
+    function summarize(last) {
+      if (!last) return 'Backfill finished.';
+      if (last.ok === false) return 'Backfill could not run: ' + (last.error || 'unknown error');
+      return 'Scanned ' + (last.channels_scanned || 0) + ' channels · ' +
+             (last.total_messages || 0).toLocaleString() + ' messages · ' +
+             (last.rows_sent || 0).toLocaleString() + ' rows written.';
+    }
+    function poll(reportDone) {
+      fetch(btn.dataset.statusUrl, { headers: { 'Accept': 'application/json' } })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (d) {
+          if (d && d.running) {
+            polling = true; setRunning();
+            setTimeout(function () { poll(true); }, 5000);
+          } else {
+            polling = false; setIdle();
+            if (reportDone) {
+              notify('success', 'Backfill complete', summarize(d && d.last));
+              if (window.Swal) {
+                window.Swal.fire({
+                  icon: 'success', title: 'Backfill complete',
+                  text: summarize(d && d.last) + ' Reload to see it?',
+                  showCancelButton: true, confirmButtonText: 'Reload'
+                }).then(function (res) { if (res.isConfirmed) window.location.reload(); });
+              }
+            }
+          }
+        }).catch(function () { polling = false; setIdle(); });
+    }
+
+    // On load: silently check — only start watching if a run is already in progress
+    // (a running poll then reports completion; idle = no popup for a stale result).
+    poll(false);
+
+    btn.addEventListener('click', function () {
+      if (polling) { notify('info', 'Already running', 'A backfill is in progress.'); return; }
+      var csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+      var days = parseInt((document.getElementById('days') || {}).value, 10) || 120;
+      var start = function () {
+        setRunning();
+        fetch(btn.dataset.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+          body: JSON.stringify({ days: days })
+        }).then(function (r) { return r.json().catch(function () { return {}; }); })
+          .then(function (d) {
+            if (d && d.success) {
+              polling = true;
+              setTimeout(function () { poll(true); }, 4000);
+            } else {
+              setIdle();
+              notify('error', 'Could not start', (d && d.message) || 'Backfill did not start.');
+            }
+          }).catch(function () { setIdle(); notify('error', 'Error', 'Request failed.'); });
+      };
+      if (window.Swal) {
+        window.Swal.fire({
+          title: 'Backfill chat history?',
+          text: 'Imports the last ' + days + ' days of pub-league channel history. Runs in the background — this dialog will tell you when it finishes.',
+          icon: 'question', showCancelButton: true, confirmButtonText: 'Run backfill'
+        }).then(function (res) { if (res.isConfirmed) start(); });
+      } else if (confirm('Backfill the last ' + days + ' days of chat history?')) {
+        start();
+      }
+    });
   });
 </script>
 {% endblock %}

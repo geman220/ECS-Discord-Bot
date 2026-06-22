@@ -25,7 +25,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, or_, extract
 
 from app.models import (
-    Team, Player, Match, League, Season, MatchLineup, PlayerEvent,
+    Team, Player, Match, League, Season, MatchLineup, PlayerEvent, PlayerEventType,
     player_teams, CoachEngagementEvent, DiscordMessageStat, Availability,
     User, MobileSession,
 )
@@ -44,6 +44,16 @@ WEIGHTS = {
     'discord_active_days': 1,
 }
 RSVP_ACTION_TYPES = ('rsvp_view', 'rsvp_reminder', 'rsvp_override')
+# Special/placeholder weeks that are never reported or RSVP'd as real games, so
+# they must not count toward report coverage, totals, or own-RSVP denominators.
+# (REGULAR / PLAYOFF / MIXED are real, reportable matches.)
+NON_REPORTABLE_WEEK_TYPES = ('FUN', 'TST', 'BYE', 'BONUS', 'PRACTICE')
+# "Goal detail" gap: a reported score implies that many goals, each of which
+# SHOULD have a recorded scorer (goal event). When a team's score far exceeds
+# the goal events logged for them, someone entered the score but skipped the
+# scorers. Own goals + a tolerance keep edge cases from false-flagging — only
+# flag when at least this many of a team's goals have no recorded scorer.
+GOAL_GAP_MIN_MISSING = 3
 # A coach is "carrying" the team if they own most of the tracked work AND the
 # team has other coaches who are doing materially less.
 CARRY_THRESHOLD_PCT = 60
@@ -181,6 +191,7 @@ def get_coach_engagement(session, season_id=None):
         entry = {
             'user_id': r.user_id,
             'player_id': r.player_id,
+            'team_id': r.team_id,
             'name': r.name,
             'discord_id': r.discord_id,
             'discord_linked': bool(r.discord_id),
@@ -225,6 +236,7 @@ def get_coach_engagement(session, season_id=None):
         .filter(
             or_(Match.home_team_id.in_(team_ids), Match.away_team_id.in_(team_ids)),
             Match.home_team_id != Match.away_team_id,  # drop BYE/special self-matches
+            Match.week_type.notin_(NON_REPORTABLE_WEEK_TYPES),  # exclude FUN/TST/BYE/etc.
         )
         .all()
     )
@@ -253,24 +265,38 @@ def get_coach_engagement(session, season_id=None):
     match_teams = {m.id: (m.home_team_id, m.away_team_id) for m in match_rows}
 
     # --- coach's OWN RSVP for their team's matches ----------------------------
-    # A coach is a player too; do they respond / say yes to their own matches?
+    # A coach is a player too; do they respond / say yes to their OWN team's
+    # matches? Scope strictly to the coached team's matches (a coach can be
+    # rostered elsewhere) and de-dupe by match so duplicate Availability rows
+    # can't push the count above the match total.
     if match_ids and player_to_entries:
+        resp_mids = {}  # (team_id, player_id) -> set(match_id) responded
+        yes_mids = {}   # (team_id, player_id) -> set(match_id) said yes
         av_rows = (
-            session.query(Availability.player_id, Availability.response)
+            session.query(Availability.player_id, Availability.match_id, Availability.response)
             .filter(
                 Availability.match_id.in_(match_ids),
                 Availability.player_id.in_(list(player_to_entries.keys())),
             )
             .all()
         )
-        for pid, response in av_rows:
+        for pid, mid, response in av_rows:
             resp = (response or '').lower()
             if not resp or resp == 'no_response':
                 continue
+            home_tid, away_tid = match_teams.get(mid, (None, None))
             for c in player_to_entries.get(pid, []):
-                c['own_rsvp_responded'] += 1
+                # only credit a match that actually belongs to this coach's team
+                if c['team_id'] not in (home_tid, away_tid):
+                    continue
+                key = (c['team_id'], pid)
+                resp_mids.setdefault(key, set()).add(mid)
                 if resp == 'yes':
-                    c['own_rsvp_yes'] += 1
+                    yes_mids.setdefault(key, set()).add(mid)
+        for c in [e for entries in player_to_entries.values() for e in entries]:
+            key = (c['team_id'], c['player_id'])
+            c['own_rsvp_responded'] = len(resp_mids.get(key, ()))
+            c['own_rsvp_yes'] = len(yes_mids.get(key, ()))
 
     # --- match reports via PlayerEvent.reported_by ----------------------------
     # Distinct (reporter_user, match) pairs → attribute to whichever of that
@@ -291,6 +317,51 @@ def get_coach_engagement(session, season_id=None):
                 key = (tid, reporter)
                 if key in coach_index:
                     coach_index[key]['matches_reported'] += 1
+
+    # --- goal-detail coverage: do scored goals have recorded scorers? ---------
+    # expected = sum of the team's own scores in REPORTED matches; recorded =
+    # goal events credited to the team (player goals + own goals for them).
+    team_expected_goals = {tid: 0 for tid in team_ids}
+    team_recorded_goals = {tid: 0 for tid in team_ids}
+    reported_match_ids = []
+    for m in match_rows:
+        if m.home_team_score is None or m.away_team_score is None:
+            continue
+        reported_match_ids.append(m.id)
+        if m.home_team_id in team_expected_goals:
+            team_expected_goals[m.home_team_id] += m.home_team_score or 0
+        if m.away_team_id in team_expected_goals:
+            team_expected_goals[m.away_team_id] += m.away_team_score or 0
+
+    if reported_match_ids:
+        # player_id -> their season team (to attribute a goal to a side)
+        ptmap = {}
+        for pid, tid in (
+            session.query(player_teams.c.player_id, player_teams.c.team_id)
+            .filter(player_teams.c.team_id.in_(team_ids)).all()
+        ):
+            ptmap.setdefault(pid, tid)
+        goal_rows = (
+            session.query(
+                PlayerEvent.match_id, PlayerEvent.player_id,
+                PlayerEvent.team_id, PlayerEvent.event_type,
+            )
+            .filter(
+                PlayerEvent.match_id.in_(reported_match_ids),
+                PlayerEvent.event_type.in_([PlayerEventType.GOAL, PlayerEventType.OWN_GOAL]),
+            )
+            .all()
+        )
+        for mid, pid, ev_team_id, et in goal_rows:
+            home_tid, away_tid = match_teams.get(mid, (None, None))
+            if et == PlayerEventType.OWN_GOAL:
+                # team_id on an own goal = the team it's credited to
+                if ev_team_id in team_recorded_goals:
+                    team_recorded_goals[ev_team_id] += 1
+            else:
+                scorer_team = ptmap.get(pid)
+                if scorer_team in (home_tid, away_tid) and scorer_team in team_recorded_goals:
+                    team_recorded_goals[scorer_team] += 1
 
     # --- lineups via MatchLineup ----------------------------------------------
     lineup_rows = (
@@ -505,6 +576,11 @@ def get_coach_engagement(session, season_id=None):
         if coaches and not team_inactive:
             teams_fully_active += 1
 
+        goal_exp = team_expected_goals.get(t.id, 0)
+        goal_rec = team_recorded_goals.get(t.id, 0)
+        goal_missing = max(0, goal_exp - goal_rec)
+        goal_gap = goal_missing >= GOAL_GAP_MIN_MISSING
+
         teams_out.append({
             'team_id': t.id,
             'team_name': t.name,
@@ -512,6 +588,11 @@ def get_coach_engagement(session, season_id=None):
             'total_matches': team_match_count.get(t.id, 0),
             'reported_matches': team_reported_count.get(t.id, 0),
             'unreported_matches': team_match_count.get(t.id, 0) - team_reported_count.get(t.id, 0),
+            'goal_expected': goal_exp,
+            'goal_recorded': goal_rec,
+            'goal_missing': goal_missing,
+            'goal_coverage_pct': round(goal_rec / goal_exp * 100) if goal_exp else 100,
+            'goal_detail_gap': goal_gap,
             'coaches': coaches,
             'coach_count': len(coaches),
             'inactive_coach_count': len(team_inactive),
@@ -531,6 +612,7 @@ def get_coach_engagement(session, season_id=None):
     all_scores = [c['coach_score'] for c in all_coaches]
     avg_score = round(sum(all_scores) / len(all_scores)) if all_scores else 0
     game_day_only_coaches = sum(1 for c in all_coaches if c.get('game_day_only'))
+    teams_with_goal_gap = sum(1 for tm in teams_out if tm.get('goal_detail_gap'))
 
     return {
         'season': season.to_dict(),
@@ -544,6 +626,7 @@ def get_coach_engagement(session, season_id=None):
             'teams_fully_active': teams_fully_active,
             'avg_coach_score': avg_score,
             'game_day_only_coaches': game_day_only_coaches,
+            'teams_with_goal_gap': teams_with_goal_gap,
         },
         'generated_at': datetime.utcnow().isoformat(),
     }
@@ -721,6 +804,7 @@ def _coach_team_metrics(session, team_id, user_id, discord_id, player_id=None):
         .filter(
             or_(Match.home_team_id == team_id, Match.away_team_id == team_id),
             Match.home_team_id != Match.away_team_id,
+            Match.week_type.notin_(NON_REPORTABLE_WEEK_TYPES),
         )
         .all()
     )
@@ -817,11 +901,12 @@ def _coach_team_metrics(session, team_id, user_id, discord_id, player_id=None):
         )
         discord_messages_all = int(all_total or 0)
 
-    # Coach's OWN RSVP for this team's matches.
-    own_responded = own_yes = 0
+    # Coach's OWN RSVP for this team's matches (de-duped by match).
+    own_resp_mids = set()
+    own_yes_mids = set()
     if player_id and match_ids:
-        for (response,) in (
-            session.query(Availability.response)
+        for mid, response in (
+            session.query(Availability.match_id, Availability.response)
             .filter(Availability.match_id.in_(match_ids),
                     Availability.player_id == player_id)
             .all()
@@ -829,9 +914,11 @@ def _coach_team_metrics(session, team_id, user_id, discord_id, player_id=None):
             resp = (response or '').lower()
             if not resp or resp == 'no_response':
                 continue
-            own_responded += 1
+            own_resp_mids.add(mid)
             if resp == 'yes':
-                own_yes += 1
+                own_yes_mids.add(mid)
+    own_responded = len(own_resp_mids)
+    own_yes = len(own_yes_mids)
 
     metrics = {
         'matches_reported': matches_reported,

@@ -109,6 +109,26 @@ def community_analytics_backfill():
         return jsonify({'success': False, 'message': 'Failed to start backfill.'}), 500
 
 
+@admin_panel_bp.route('/users/community-analytics/backfill/status')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def community_analytics_backfill_status():
+    """Proxy the bot's backfill status so the page can poll for completion."""
+    try:
+        bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
+        resp = requests.get(
+            f"{bot_api_url}/api/bot/backfill-chat-history/status", timeout=10)
+        if resp.status_code == 200:
+            return jsonify({'success': True, **resp.json()})
+        return jsonify({'success': False, 'message': f'Bot API returned {resp.status_code}'}), 502
+    except requests.RequestException as e:
+        logger.error(f"Backfill status failed to reach bot API: {e}")
+        return jsonify({'success': False, 'message': 'Could not reach the bot.'}), 502
+    except Exception as e:
+        logger.error(f"Error fetching backfill status: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Failed to fetch status.'}), 500
+
+
 @admin_panel_bp.route('/users/coach-engagement/data')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
