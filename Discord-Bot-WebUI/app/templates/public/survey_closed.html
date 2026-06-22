@@ -1,0 +1,19 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}{{ survey.title }} — ECS FC{% endblock %}
+
+{% block main_content %}
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden text-center">
+  <div class="px-6 pt-8 pb-6 bg-gradient-to-br from-gray-600 to-gray-800">
+    <div class="w-16 h-16 mx-auto rounded-full bg-white/20 flex items-center justify-center mb-3">
+      <i class="ti ti-lock text-3xl text-white"></i>
+    </div>
+    <h1 class="text-xl font-bold text-white">{{ survey.title }}</h1>
+  </div>
+  <div class="px-6 py-7">
+    <p class="text-sm text-gray-700 dark:text-gray-300">
+      This survey isn't accepting responses right now. Thanks for stopping by.
+    </p>
+  </div>
+</div>
+{% endblock %}

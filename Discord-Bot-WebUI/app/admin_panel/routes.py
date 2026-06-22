@@ -38,6 +38,7 @@ def register_all_routes(admin_panel_bp):
     from .routes import store_management
     from .routes import api_management
     from .routes import helpers
+    from .routes import surveys
     
     # All routes are automatically registered when modules are imported
     # due to the @admin_panel_bp.route decorators

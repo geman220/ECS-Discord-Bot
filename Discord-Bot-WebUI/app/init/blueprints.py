@@ -107,6 +107,7 @@ def _import_blueprints():
     from app.pub_league import pub_league_bp
     from app.routes.app_links import app_links_bp
     from app.routes.check_in_public import check_in_public_bp
+    from app.routes.survey_public import survey_public_bp
 
     return {
         'auth_bp': auth_bp,
@@ -169,6 +170,7 @@ def _import_blueprints():
         'pub_league_bp': pub_league_bp,
         'app_links_bp': app_links_bp,
         'check_in_public_bp': check_in_public_bp,
+        'survey_public_bp': survey_public_bp,
     }
 
 
@@ -389,6 +391,10 @@ def _register_additional_blueprints(app, bp, csrf):
     # Public check-in pages: GET /m/<token> + GET /check-in/<token>
     # Browser fallback for QR codes; iOS/Android intercept these via universal links.
     app.register_blueprint(bp['check_in_public_bp'])
+
+    # Public survey form: GET/POST /s/<token>. Honors per-survey login-gate +
+    # anonymity toggles; CSRF token is rendered in the form (no exemption).
+    app.register_blueprint(bp['survey_public_bp'])
 
 
 def _init_enterprise_systems(app):

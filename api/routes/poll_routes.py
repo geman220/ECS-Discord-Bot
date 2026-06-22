@@ -118,3 +118,80 @@ async def post_poll(
         "message_url": message_url,
         "answers": answers_with_ids,
     }
+
+
+class PostSurveyEmbedRequest(BaseModel):
+    channel_id: str
+    title: str = Field(..., min_length=1, max_length=256)
+    description: str = Field("", max_length=2000)
+    url: str = Field(..., min_length=1)
+    button_label: str = Field("Take Survey", min_length=1, max_length=80)
+    tag_role_ids: List[str] = Field(default_factory=list)
+
+
+@router.post("/api/discord/post-survey-embed")
+async def post_survey_embed(
+    payload: PostSurveyEmbedRequest,
+    bot: commands.Bot = Depends(get_bot),
+):
+    """Post an embed with a link button that opens the hosted survey form.
+
+    Used by Flask to publish a multi-question survey to a channel (e.g.
+    #pl-announcements). Mirrors post_poll's role-mention + error handling.
+    """
+    try:
+        channel = bot.get_channel(int(payload.channel_id))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=502, detail="Invalid channel_id")
+    if channel is None:
+        raise HTTPException(
+            status_code=502, detail=f"Channel {payload.channel_id} not found"
+        )
+
+    embed = discord.Embed(
+        title=payload.title,
+        description=payload.description or None,
+        color=discord.Color.from_str("#1a472a"),
+    )
+    view = discord.ui.View()
+    view.add_item(discord.ui.Button(label=payload.button_label, url=payload.url))
+
+    mentions = " ".join(f"<@&{rid}>" for rid in payload.tag_role_ids)
+
+    try:
+        sent = await channel.send(
+            content=mentions if mentions else None,
+            embed=embed,
+            view=view,
+            allowed_mentions=discord.AllowedMentions(
+                roles=True, everyone=False, users=False
+            ),
+        )
+    except discord.Forbidden as e:
+        logger.warning(
+            "Forbidden posting survey embed to channel %s: %s", payload.channel_id, e
+        )
+        raise HTTPException(
+            status_code=502, detail=f"Bot lacks permission to post embed: {e}"
+        )
+    except discord.HTTPException as e:
+        logger.error("Discord API error posting survey embed: %s", e)
+        raise HTTPException(
+            status_code=502, detail=f"Discord API error: {e.status} {e.text}"
+        )
+    except Exception as e:
+        logger.exception("Unexpected error posting survey embed")
+        raise HTTPException(status_code=500, detail=f"Failed to post embed: {e}")
+
+    guild_id = channel.guild.id if getattr(channel, "guild", None) else 0
+    message_url = (
+        f"https://discord.com/channels/{guild_id}/{channel.id}/{sent.id}"
+    )
+    return {
+        "success": True,
+        "message_id": str(sent.id),
+        "channel_id": str(channel.id),
+        "channel_name": channel.name,
+        "guild_id": str(guild_id),
+        "message_url": message_url,
+    }

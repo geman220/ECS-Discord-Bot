@@ -1,0 +1,125 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header %}
+
+{% block admin_title %}Distribute Survey{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <a href="{{ url_for('admin_panel.surveys_list') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Surveys</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Distribute</span></div></li>
+{% endblock %}
+
+{% block panel_content %}
+<div id="distribute-root" data-survey-id="{{ survey.id }}">
+{% call page_header(survey.title, subtitle="Distribute") %}
+  <a href="{{ url_for('admin_panel.survey_results', survey_id=survey.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-chart-bar"></i> Results</a>
+{% endcall %}
+
+<!-- Lifecycle -->
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 mb-5 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</span>
+    <div class="mt-1 flex items-center gap-2">
+      <span id="survey-status" class="inline-flex px-2.5 py-1 rounded-full text-sm font-medium capitalize bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ survey.status }}</span>
+      {% if not survey.is_accepting_responses and survey.status == 'open' %}
+      <span class="text-xs text-amber-600 dark:text-amber-400">(outside its scheduled window)</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <button type="button" data-lifecycle="open" class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-broadcast"></i> Open</button>
+    <button type="button" data-lifecycle="close" class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-lock"></i> Close</button>
+  </div>
+</div>
+
+<!-- Web link -->
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 mb-5">
+  <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-link text-ecs-green"></i> Shareable web link</h3>
+  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Post this anywhere — #pl-announcements, email, etc. {% if survey.require_login %}Respondents must log in.{% else %}Open to anyone with the link.{% endif %}</p>
+  <div class="mt-3 flex items-center gap-2">
+    <input type="text" id="public-url" readonly value="{{ public_url }}" class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+    <button type="button" id="copy-url-btn" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-copy"></i> Copy</button>
+  </div>
+</div>
+
+<!-- Channels -->
+{% set IFIELD = 'mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green' %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <!-- Email -->
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-mail text-ecs-green"></i> Email blast</h3>
+    <label class="block text-xs text-gray-500 dark:text-gray-400 mt-3">Audience</label>
+    <select id="email-audience" class="{{ IFIELD }}">
+      <option value="all_active">All active users</option>
+      <option value="current_season_players">Current season players</option>
+      <option value="ecs_members">ECS members</option>
+      {% for l in leagues %}<option value="league:{{ l.id }}">League: {{ l.name }}</option>{% endfor %}
+      {% for t in teams %}<option value="team:{{ t.id }}">Team: {{ t.name }}</option>{% endfor %}
+      {% for r in roles %}<option value="role:{{ r.name }}">Role: {{ r.name }}</option>{% endfor %}
+    </select>
+    <p id="email-preview" class="text-xs text-gray-500 dark:text-gray-400 mt-2"></p>
+    <button type="button" data-send="email" class="mt-3 inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-send"></i> Send email</button>
+  </div>
+
+  <!-- Push -->
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-bell text-ecs-green"></i> Push notification</h3>
+    <label class="block text-xs text-gray-500 dark:text-gray-400 mt-3">Audience</label>
+    <select id="push-audience" class="{{ IFIELD }}">
+      <option value="all">All app users</option>
+      {% for l in leagues %}<option value="league:{{ l.id }}">League: {{ l.name }}</option>{% endfor %}
+      {% for t in teams %}<option value="team:{{ t.id }}">Team: {{ t.name }}</option>{% endfor %}
+    </select>
+    <button type="button" data-send="push" class="mt-3 inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-send"></i> Send push</button>
+  </div>
+
+  <!-- Discord embed -->
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-brand-discord text-ecs-green"></i> Discord embed</h3>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Posts an embed with a "Take Survey" button.</p>
+    <label class="block text-xs text-gray-500 dark:text-gray-400 mt-3">Channel ID</label>
+    <input type="text" id="embed-channel" class="{{ IFIELD }}" placeholder="e.g. 1420461752344117300">
+    <button type="button" data-send="discord-embed" class="mt-3 inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-send"></i> Post embed</button>
+  </div>
+
+  <!-- Native Discord poll -->
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-chart-bar text-ecs-green"></i> Native Discord poll</h3>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">For surveys with exactly one choice question.</p>
+    <label class="block text-xs text-gray-500 dark:text-gray-400 mt-3">Channel ID</label>
+    <input type="text" id="poll-channel" class="{{ IFIELD }}" placeholder="e.g. 1420461752344117300">
+    <label class="block text-xs text-gray-500 dark:text-gray-400 mt-2">Duration (hours)</label>
+    <input type="number" id="poll-duration" class="{{ IFIELD }}" value="48" min="1" max="168">
+    <button type="button" data-send="native-poll" class="mt-3 inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-send"></i> Post poll</button>
+  </div>
+</div>
+
+<!-- Sent history -->
+{% if distributions %}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mt-5">
+  <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700"><h3 class="text-sm font-bold text-gray-900 dark:text-white">Sent history</h3></div>
+  <div class="overflow-x-auto"><table class="min-w-full text-sm">
+    <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
+      <tr><th class="px-4 py-2 text-left">Channel</th><th class="px-4 py-2 text-left">Audience</th><th class="px-4 py-2 text-right">Recipients</th><th class="px-4 py-2 text-left">Status</th><th class="px-4 py-2 text-left">When</th></tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+      {% for d in distributions %}
+      <tr>
+        <td class="px-4 py-2 capitalize text-gray-700 dark:text-gray-200">{{ d.channel.replace('_', ' ') }}</td>
+        <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ d.target_description or '—' }}</td>
+        <td class="px-4 py-2 text-right font-mono">{{ d.total_recipients or '—' }}</td>
+        <td class="px-4 py-2 capitalize text-gray-600 dark:text-gray-300">{{ d.status }}</td>
+        <td class="px-4 py-2 text-gray-500">{{ d.created_at.strftime('%b %-d, %-I:%M %p') if d.created_at else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='custom_js/survey-distribute.js') }}"></script>
+{% endblock %}

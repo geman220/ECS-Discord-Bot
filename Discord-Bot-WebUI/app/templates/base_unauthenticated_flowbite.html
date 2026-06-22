@@ -48,7 +48,7 @@
     </button>
 
     <!-- Main Content -->
-    <div class="w-full max-w-md px-4 py-8">
+    <div class="w-full {% block content_max_width %}max-w-md{% endblock %} px-4 py-8">
         {% block main_content %}{% endblock %}
     </div>
 

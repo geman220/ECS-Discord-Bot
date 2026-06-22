@@ -1,0 +1,95 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state %}
+
+{% block admin_title %}Surveys & Polls{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Surveys & Polls</span></div></li>
+{% endblock %}
+
+{% block panel_content %}
+{% call page_header("Surveys & Polls", subtitle="Communication / Surveys") %}
+  <div class="relative" id="template-menu">
+    <button type="button" data-action="toggle-template-menu" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+      <i class="ti ti-template"></i> Templates <i class="ti ti-chevron-down text-xs"></i>
+    </button>
+    <div id="template-dropdown" class="hidden absolute right-0 mt-1 w-56 z-20 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
+      <a href="{{ url_for('admin_panel.survey_builder_new', template='end_of_season') }}" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">End of Season Survey</a>
+      <a href="{{ url_for('admin_panel.survey_builder_new', template='coach_feedback') }}" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">Coach Feedback</a>
+      <a href="{{ url_for('admin_panel.survey_builder_new', template='event_feedback') }}" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">Event Feedback</a>
+    </div>
+  </div>
+  <a href="{{ url_for('admin_panel.survey_builder_new') }}"
+     class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800">
+    <i class="ti ti-plus"></i> New survey
+  </a>
+{% endcall %}
+
+<!-- KPIs -->
+<div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+  {{ stat_card('ti-clipboard-list', 'Total', status_counts.all, tone='primary') }}
+  {{ stat_card('ti-broadcast', 'Open', status_counts.open, tone='success') }}
+  {{ stat_card('ti-pencil', 'Drafts', status_counts.draft, tone='neutral') }}
+  {{ stat_card('ti-message-2-check', 'Responses', total_responses, tone='info') }}
+</div>
+
+<!-- Status filter -->
+<div class="flex flex-wrap gap-2 mb-4">
+  {% for key, label in [('', 'All'), ('draft','Draft'), ('open','Open'), ('closed','Closed'), ('archived','Archived')] %}
+  <a href="{{ url_for('admin_panel.surveys_list', status=key or None) }}"
+     class="px-3 py-1.5 rounded-lg text-sm font-medium border {{ 'bg-ecs-green text-white border-ecs-green' if status_filter == (key or None) else 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50' }}">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if surveys %}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
+        <tr>
+          <th class="px-4 py-3 text-left">Title</th>
+          <th class="px-4 py-3 text-left hidden md:table-cell">Type</th>
+          <th class="px-4 py-3 text-left hidden md:table-cell">Category</th>
+          <th class="px-4 py-3 text-left">Status</th>
+          <th class="px-4 py-3 text-right">Responses</th>
+          <th class="px-4 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+        {% for s in surveys %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+          <td class="px-4 py-3">
+            <a href="{{ url_for('admin_panel.survey_results', survey_id=s.id) }}" class="font-medium text-gray-900 dark:text-white hover:text-ecs-green">{{ s.title }}</a>
+            {% if s.is_anonymous %}<span class="ml-1.5 text-xs text-gray-400" title="Anonymous"><i class="ti ti-eye-off"></i></span>{% endif %}
+          </td>
+          <td class="px-4 py-3 hidden md:table-cell capitalize text-gray-600 dark:text-gray-300">{{ s.survey_type }}</td>
+          <td class="px-4 py-3 hidden md:table-cell text-gray-600 dark:text-gray-300">{{ s.category or '—' }}</td>
+          <td class="px-4 py-3">
+            {% set tone = {'open':'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300','draft':'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300','closed':'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300','archived':'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400','scheduled':'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'} %}
+            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize {{ tone.get(s.status, tone['draft']) }}">{{ s.status }}</span>
+          </td>
+          <td class="px-4 py-3 text-right font-mono text-gray-900 dark:text-white">{{ response_counts.get(s.id, 0) }}</td>
+          <td class="px-4 py-3 text-right whitespace-nowrap">
+            <a href="{{ url_for('admin_panel.survey_results', survey_id=s.id) }}" class="text-gray-500 hover:text-ecs-green p-1" title="Results"><i class="ti ti-chart-bar"></i></a>
+            <a href="{{ url_for('admin_panel.survey_distribute', survey_id=s.id) }}" class="text-gray-500 hover:text-ecs-green p-1" title="Distribute"><i class="ti ti-send"></i></a>
+            <a href="{{ url_for('admin_panel.survey_builder_edit', survey_id=s.id) }}" class="text-gray-500 hover:text-ecs-green p-1" title="Edit"><i class="ti ti-edit"></i></a>
+            <button type="button" data-survey-action="duplicate" data-survey-id="{{ s.id }}" class="text-gray-500 hover:text-ecs-green p-1" title="Duplicate"><i class="ti ti-copy"></i></button>
+            <button type="button" data-survey-action="delete" data-survey-id="{{ s.id }}" data-survey-title="{{ s.title }}" class="text-gray-500 hover:text-red-600 p-1" title="Delete"><i class="ti ti-trash"></i></button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+{{ empty_state('ti-clipboard-off', 'No surveys yet', 'Create your first survey or poll to start collecting responses.') }}
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='custom_js/surveys-list.js') }}"></script>
+{% endblock %}

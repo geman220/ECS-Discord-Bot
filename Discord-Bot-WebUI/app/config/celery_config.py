@@ -76,6 +76,7 @@ class CeleryConfig:
         'app.tasks.tasks_live_reporting_timers',  # V2 live-match timer reminders + autostop
         'app.tasks.check_in_tasks',  # Match check-in: nightly venue token backfill
         'app.tasks.wallet_refresh_tasks',  # Wallet pass auto-refresh + daily relevantDate sweep
+        'app.tasks.tasks_surveys',  # Survey auto-open/auto-close schedule sweep
     )
 
     # Task Settings - Industry Best Practices
@@ -313,6 +314,18 @@ class CeleryConfig:
                 'expires': 3540,
                 'time_limit': 300,
                 'soft_time_limit': 240
+            }
+        },
+        # Surveys: honor each survey's open_at/close_at window (auto-open
+        # scheduled surveys, auto-close expired ones). Idempotent; every 5 min.
+        'sweep-survey-schedule': {
+            'task': 'app.tasks.tasks_surveys.sweep_survey_schedule',
+            'schedule': crontab(minute='*/5'),
+            'options': {
+                'queue': 'celery',
+                'expires': 270,
+                'time_limit': 120,
+                'soft_time_limit': 90
             }
         },
         # Match check-in: nightly venue-token backfill so admins always have

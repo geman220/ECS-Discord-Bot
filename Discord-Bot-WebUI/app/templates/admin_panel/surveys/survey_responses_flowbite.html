@@ -1,0 +1,57 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+
+{% block admin_title %}Survey Responses{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <a href="{{ url_for('admin_panel.surveys_list') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Surveys</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Responses</span></div></li>
+{% endblock %}
+
+{% block panel_content %}
+{% call page_header(survey.title, subtitle="Individual responses") %}
+  <a href="{{ url_for('admin_panel.survey_results', survey_id=survey.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-chart-bar"></i> Results</a>
+  <a href="{{ url_for('admin_panel.survey_export_csv', survey_id=survey.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-download"></i> CSV</a>
+{% endcall %}
+
+{% if survey.is_anonymous %}
+<div class="mb-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 p-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+  <i class="ti ti-eye-off"></i> This survey is anonymous — respondent identities are not stored.
+</div>
+{% endif %}
+
+{% if responses %}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
+        <tr>
+          <th class="px-4 py-3 text-left">#</th>
+          {% if not survey.is_anonymous %}<th class="px-4 py-3 text-left">Respondent</th>{% endif %}
+          <th class="px-4 py-3 text-left hidden md:table-cell">Source</th>
+          <th class="px-4 py-3 text-left">Submitted</th>
+          <th class="px-4 py-3 text-right">Answers</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+        {% for r in responses %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+          <td class="px-4 py-3 font-mono text-gray-500">{{ r.id }}</td>
+          {% if not survey.is_anonymous %}
+          <td class="px-4 py-3 text-gray-900 dark:text-white">{{ r.player.name if r.player else (r.discord_id or '—') }}</td>
+          {% endif %}
+          <td class="px-4 py-3 hidden md:table-cell capitalize text-gray-600 dark:text-gray-300">{{ r.source }}</td>
+          <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ r.submitted_at.strftime('%b %-d, %Y %-I:%M %p') if r.submitted_at else '—' }}</td>
+          <td class="px-4 py-3 text-right font-mono text-gray-500">{{ r.answers | length }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+{{ empty_state('ti-inbox', 'No responses yet', 'Responses will appear here once people start submitting.') }}
+{% endif %}
+{% endblock %}

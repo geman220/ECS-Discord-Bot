@@ -1,0 +1,98 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card %}
+
+{% block admin_title %}Survey Results{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <a href="{{ url_for('admin_panel.surveys_list') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Surveys</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Results</span></div></li>
+{% endblock %}
+
+{% set CHART_TYPES = ['single_choice', 'dropdown', 'yes_no', 'multi_choice', 'ranking', 'rating', 'scale', 'nps', 'number'] %}
+
+{% block panel_content %}
+{% call page_header(survey.title, subtitle="Results") %}
+  <a href="{{ url_for('admin_panel.survey_responses_list', survey_id=survey.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-list"></i> Responses</a>
+  <a href="{{ url_for('admin_panel.survey_export_csv', survey_id=survey.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-download"></i> CSV</a>
+  {% if not survey.is_anonymous %}
+  <button type="button" id="contact-respondents-btn" data-survey-id="{{ survey.id }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-mail"></i> Contact respondents</button>
+  {% endif %}
+{% endcall %}
+
+<div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+  {{ stat_card('ti-message-2-check', 'Completed', summary.completed, tone='success') }}
+  {{ stat_card('ti-pencil', 'In progress', summary.in_progress, tone='neutral') }}
+  {{ stat_card('ti-users', 'Audience', summary.audience or '—', tone='info') }}
+  {{ stat_card('ti-percentage', 'Response rate', (summary.response_rate ~ '%') if summary.response_rate is not none else '—', tone='primary') }}
+</div>
+
+{% if trend and trend | length > 1 %}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 mb-4">
+  <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-3"><i class="ti ti-trending-up text-ecs-green"></i> Year-over-year — "{{ survey.category }}"</h3>
+  <div class="relative h-64"><canvas id="survey-trend-chart"></canvas></div>
+</div>
+{% endif %}
+
+<div class="space-y-4">
+{% for item in summary.questions %}
+{% set q = item.question %}
+{% set agg = item.aggregate %}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+  <div class="flex items-center justify-between gap-2 mb-3">
+    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ loop.index }}. {{ q.prompt }}</h3>
+    <span class="text-xs text-gray-400 capitalize shrink-0">{{ q.question_type.replace('_', ' ') }}</span>
+  </div>
+
+  {% if q.question_type in CHART_TYPES %}
+    {% if agg.type == 'numeric' %}
+    <div class="flex flex-wrap gap-6 text-sm mb-3">
+      <div><span class="text-xs text-gray-500 block">Average</span><span class="font-mono text-lg text-ecs-green">{{ agg.avg if agg.avg is not none else '—' }}</span></div>
+      <div><span class="text-xs text-gray-500 block">Min</span><span class="font-mono text-lg">{{ agg.min if agg.min is not none else '—' }}</span></div>
+      <div><span class="text-xs text-gray-500 block">Max</span><span class="font-mono text-lg">{{ agg.max if agg.max is not none else '—' }}</span></div>
+      <div><span class="text-xs text-gray-500 block">Responses</span><span class="font-mono text-lg">{{ agg.count }}</span></div>
+      {% if agg.nps is defined %}<div><span class="text-xs text-gray-500 block">NPS</span><span class="font-mono text-lg text-ecs-green">{{ agg.nps }}</span></div>{% endif %}
+    </div>
+    {% endif %}
+    {% if agg.count is defined and agg.count == 0 or (agg.counts is defined and not agg.counts) %}
+      <p class="text-sm text-gray-400">No responses yet.</p>
+    {% else %}
+      <div class="relative h-64"><canvas data-qindex="{{ loop.index0 }}"></canvas></div>
+    {% endif %}
+
+  {% elif agg.type == 'matrix' %}
+    <div class="overflow-x-auto"><table class="min-w-full text-sm border border-gray-200 dark:border-gray-700">
+      <tbody>
+        {% for row, cols in agg.grid.items() %}
+        <tr class="border-t border-gray-200 dark:border-gray-700">
+          <td class="p-2 font-medium text-gray-700 dark:text-gray-200">{{ row }}</td>
+          <td class="p-2 text-gray-600 dark:text-gray-300">{% for col, n in cols.items() %}<span class="inline-block mr-3">{{ col }}: <span class="font-mono">{{ n }}</span></span>{% endfor %}</td>
+        </tr>
+        {% else %}
+        <tr><td class="p-2 text-gray-400">No responses yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+
+  {% elif agg.type == 'text' %}
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ agg.count }} response{{ '' if agg.count == 1 else 's' }}</p>
+    <div class="space-y-1.5 max-h-72 overflow-y-auto">
+      {% for r in agg.responses %}
+      <div class="text-sm text-gray-700 dark:text-gray-200 p-2 rounded-lg bg-gray-50 dark:bg-gray-700/40">{{ r }}</div>
+      {% else %}
+      <p class="text-sm text-gray-400">No responses yet.</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script id="survey-summary" type="application/json">{{ summary | tojson }}</script>
+<script id="survey-trend" type="application/json">{{ trend | tojson }}</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='custom_js/survey-results.js') }}"></script>
+{% endblock %}

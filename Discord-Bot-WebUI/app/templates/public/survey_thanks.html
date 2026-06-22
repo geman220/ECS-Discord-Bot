@@ -1,0 +1,27 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Thanks — {{ survey.title }}{% endblock %}
+
+{% block main_content %}
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden text-center">
+  <div class="px-6 pt-8 pb-6 bg-gradient-to-br from-emerald-600 to-emerald-800">
+    <div class="w-16 h-16 mx-auto rounded-full bg-white/20 flex items-center justify-center mb-3">
+      <i class="ti ti-circle-check text-3xl text-white"></i>
+    </div>
+    <h1 class="text-xl font-bold text-white">
+      {% if already %}You've already responded{% else %}Thank you!{% endif %}
+    </h1>
+  </div>
+  <div class="px-6 py-7">
+    <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+      {% if already %}
+        We've already got your response to "{{ survey.title }}". Thanks!
+      {% elif survey.confirmation_message %}
+        {{ survey.confirmation_message }}
+      {% else %}
+        Your response to "{{ survey.title }}" has been recorded. We appreciate it!
+      {% endif %}
+    </p>
+  </div>
+</div>
+{% endblock %}

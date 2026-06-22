@@ -195,6 +195,11 @@ from .discord_polls import (
     DiscordPoll, DiscordPollVote
 )
 
+from .surveys import (
+    Survey, SurveyQuestion, SurveyOption,
+    SurveyResponse, SurveyResponseAnswer, SurveyDistribution
+)
+
 from .match_check_in import (
     MatchCheckInToken, MatchAttendance, LEAGUE_TYPES, CHECK_IN_SOURCES
 )
@@ -340,6 +345,10 @@ __all__ = [
 
     # Native Discord poll tracking
     'DiscordPoll', 'DiscordPollVote',
+
+    # Survey & poll system
+    'Survey', 'SurveyQuestion', 'SurveyOption',
+    'SurveyResponse', 'SurveyResponseAnswer', 'SurveyDistribution',
 
     # Match check-in models
     'MatchCheckInToken', 'MatchAttendance', 'LEAGUE_TYPES', 'CHECK_IN_SOURCES',
