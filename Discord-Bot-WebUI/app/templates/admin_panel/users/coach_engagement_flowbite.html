@@ -134,6 +134,7 @@
             <th class="px-4 sm:px-5 py-2 font-medium">Coach</th>
             <th class="px-3 py-2 font-medium w-48">Contribution</th>
             <th class="px-3 py-2 font-medium text-center">Reports</th>
+            <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Verified</th>
             <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Lineups</th>
             <th class="px-3 py-2 font-medium text-center hidden md:table-cell">RSVP checks</th>
             <th class="px-3 py-2 font-medium text-center hidden lg:table-cell">Reminders</th>
@@ -164,6 +165,7 @@
               </div>
             </td>
             <td class="px-3 py-3 text-center font-mono {% if c.matches_reported == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.matches_reported }}</td>
+            <td class="px-3 py-3 text-center font-mono hidden md:table-cell {% if c.matches_verified == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.matches_verified }}</td>
             <td class="px-3 py-3 text-center font-mono hidden md:table-cell {% if c.lineups_set == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.lineups_set }}</td>
             <td class="px-3 py-3 text-center font-mono hidden md:table-cell {% if c.rsvp_views == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.rsvp_views }}</td>
             <td class="px-3 py-3 text-center font-mono hidden lg:table-cell {% if c.rsvp_reminders == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.rsvp_reminders }}</td>
@@ -181,7 +183,7 @@
           </tr>
           {% endfor %}
           {% if not team.coaches %}
-          <tr><td colspan="9" class="px-5 py-4 text-center text-xs text-gray-400 dark:text-gray-500">No coaches assigned to this team.</td></tr>
+          <tr><td colspan="10" class="px-5 py-4 text-center text-xs text-gray-400 dark:text-gray-500">No coaches assigned to this team.</td></tr>
           {% endif %}
         </tbody>
       </table>

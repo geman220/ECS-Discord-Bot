@@ -436,16 +436,22 @@ def get_discord_channel_metrics(session, season_id=None, days=None):
             top_sender[r.channel_id] = (r.discord_user_id, int(r.msgs or 0))
 
     # --- community member leaderboard ----------------------------------------
-    member_rows = _window(
-        session.query(
-            DiscordMessageStat.discord_user_id,
-            func.sum(DiscordMessageStat.message_count).label('msgs'),
-            func.count(func.distinct(DiscordMessageStat.channel_id)).label('channels'),
-            func.max(DiscordMessageStat.last_message_at).label('last_at'),
-        ).group_by(DiscordMessageStat.discord_user_id)
+    # NB: apply the window filter BEFORE order_by/limit — SQLAlchemy forbids
+    # .filter() after .limit()/.offset().
+    member_rows = (
+        _window(
+            session.query(
+                DiscordMessageStat.discord_user_id,
+                func.sum(DiscordMessageStat.message_count).label('msgs'),
+                func.count(func.distinct(DiscordMessageStat.channel_id)).label('channels'),
+                func.max(DiscordMessageStat.last_message_at).label('last_at'),
+            )
+        )
+        .group_by(DiscordMessageStat.discord_user_id)
         .order_by(func.sum(DiscordMessageStat.message_count).desc())
         .limit(25)
-    ).all()
+        .all()
+    )
     discord_ids = [r.discord_user_id for r in member_rows] + [
         v[0] for v in top_sender.values()]
     name_map = {}

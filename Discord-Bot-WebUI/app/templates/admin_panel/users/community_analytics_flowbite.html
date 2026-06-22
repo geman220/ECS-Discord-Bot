@@ -27,14 +27,21 @@
     <h1 class="text-xl font-bold text-gray-900 dark:text-white">Community Analytics</h1>
     <p class="text-sm text-gray-500 dark:text-gray-400">Pub-league channels only · last {{ window_days }} days</p>
   </div>
-  <form method="get" id="windowForm" class="flex items-center gap-2">
-    <label for="days" class="text-xs font-medium text-gray-500 dark:text-gray-400">Window</label>
-    <select name="days" id="days" class="h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
-      {% for d in [30, 90, 180, 365] %}
-      <option value="{{ d }}" {% if d == window_days %}selected{% endif %}>{{ d }} days</option>
-      {% endfor %}
-    </select>
-  </form>
+  <div class="flex items-center gap-2">
+    <button type="button" id="backfillBtn"
+            class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            data-url="{{ url_for('admin_panel.community_analytics_backfill') }}">
+      <i class="ti ti-history"></i> Backfill chat history
+    </button>
+    <form method="get" id="windowForm" class="flex items-center gap-2">
+      <label for="days" class="text-xs font-medium text-gray-500 dark:text-gray-400">Window</label>
+      <select name="days" id="days" class="h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+        {% for d in [30, 90, 180, 365] %}
+        <option value="{{ d }}" {% if d == window_days %}selected{% endif %}>{{ d }} days</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
 </div>
 
 <!-- KPIs -->
@@ -164,6 +171,48 @@
   document.addEventListener('DOMContentLoaded', function () {
     var sel = document.getElementById('days');
     if (sel) sel.addEventListener('change', function () { document.getElementById('windowForm').submit(); });
+
+    var btn = document.getElementById('backfillBtn');
+    if (btn) {
+      btn.addEventListener('click', function () {
+        var csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+        var run = function (days) {
+          var original = btn.innerHTML;
+          btn.disabled = true;
+          btn.classList.add('opacity-60', 'pointer-events-none');
+          btn.innerHTML = '<i class="ti ti-loader"></i> Starting…';
+          fetch(btn.dataset.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+            body: JSON.stringify({ days: days })
+          }).then(function (r) { return r.json().catch(function () { return {}; }); })
+            .then(function (d) {
+              var ok = d && d.success;
+              var msg = (d && d.message) || (ok ? 'Backfill started.' : 'Could not start backfill.');
+              if (window.Swal) {
+                window.Swal.fire({ icon: ok ? 'success' : 'error', title: ok ? 'Backfill started' : 'Error', text: msg });
+              } else { alert(msg); }
+            }).catch(function () {
+              if (window.Swal) { window.Swal.fire({ icon: 'error', title: 'Error', text: 'Request failed.' }); }
+              else { alert('Request failed.'); }
+            }).finally(function () {
+              btn.disabled = false;
+              btn.classList.remove('opacity-60', 'pointer-events-none');
+              btn.innerHTML = original;
+            });
+        };
+        var days = parseInt((document.getElementById('days') || {}).value, 10) || 120;
+        if (window.Swal) {
+          window.Swal.fire({
+            title: 'Backfill chat history?',
+            text: 'Imports the last ' + days + ' days of pub-league channel history. Runs in the background; data appears in a few minutes.',
+            icon: 'question', showCancelButton: true, confirmButtonText: 'Run backfill'
+          }).then(function (res) { if (res.isConfirmed) run(days); });
+        } else if (confirm('Backfill the last ' + days + ' days of chat history?')) {
+          run(days);
+        }
+      });
+    }
   });
 </script>
 {% endblock %}

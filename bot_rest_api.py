@@ -482,6 +482,62 @@ async def sync_commands():
         logger.error(f"Error syncing commands: {e}")
         return {"success": False, "message": str(e)}
 
+
+@app.post("/api/bot/backfill-chat-history")
+async def backfill_chat_history(data: dict = None):
+    """Kick off a one-time pub-league chat-history backfill (admin-panel button).
+
+    Long-running, so it runs as a background task and returns immediately. Result
+    is stored on bot_state.backfill_last and readable via the status endpoint.
+    """
+    import asyncio
+    try:
+        bot = get_bot_instance()
+        if not bot or not bot.is_ready():
+            return {"success": False, "message": "Bot is not ready"}
+        if getattr(bot_state, 'backfill_running', False):
+            return {"success": False, "message": "A backfill is already running"}
+
+        days = 120
+        if isinstance(data, dict) and data.get('days') is not None:
+            try:
+                days = int(data['days'])
+            except (TypeError, ValueError):
+                days = 120
+
+        from engagement_commands import run_chat_history_backfill
+
+        async def _run():
+            bot_state.backfill_running = True
+            try:
+                result = await run_chat_history_backfill(bot, days)
+                bot_state.backfill_last = result
+                _log_bot_activity(
+                    f"Chat-history backfill done: {result.get('total_messages', 0)} msgs, "
+                    f"{result.get('rows_sent', 0)} rows ({result.get('days')}d)")
+            except Exception as e:
+                bot_state.backfill_last = {"ok": False, "error": str(e)}
+                logger.error(f"Backfill task failed: {e}")
+            finally:
+                bot_state.backfill_running = False
+
+        asyncio.get_event_loop().create_task(_run())
+        _log_bot_activity(f"Chat-history backfill started via admin panel ({days}d)")
+        return {"success": True, "message": f"Backfill started for the last {days} days. "
+                f"It runs in the background; refresh analytics in a few minutes."}
+    except Exception as e:
+        logger.error(f"Error starting backfill: {e}")
+        return {"success": False, "message": str(e)}
+
+
+@app.get("/api/bot/backfill-chat-history/status")
+async def backfill_chat_history_status():
+    """Report whether a backfill is running and the last result."""
+    return {
+        "running": bool(getattr(bot_state, 'backfill_running', False)),
+        "last": getattr(bot_state, 'backfill_last', None),
+    }
+
 def _log_bot_activity(message: str, level: str = "INFO"):
     """Add a log entry to bot state."""
     try:

@@ -10,7 +10,9 @@ Also exposes community-level Discord channel usage.
 """
 
 import logging
+import os
 
+import requests
 from flask import render_template, request, jsonify, flash, redirect, url_for, g
 from flask_login import login_required
 
@@ -82,6 +84,29 @@ def community_analytics():
         logger.error(f"Error loading community analytics: {e}", exc_info=True)
         flash('Community analytics unavailable. Check application logs for details.', 'error')
         return redirect(url_for('admin_panel.coach_engagement'))
+
+
+@admin_panel_bp.route('/users/community-analytics/backfill', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def community_analytics_backfill():
+    """Trigger the bot's one-time chat-history backfill (admin-panel button)."""
+    try:
+        days = (request.get_json(silent=True) or {}).get('days', 120)
+        bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
+        resp = requests.post(
+            f"{bot_api_url}/api/bot/backfill-chat-history",
+            json={'days': days}, timeout=10)
+        if resp.status_code == 200:
+            return jsonify(resp.json())
+        return jsonify({'success': False,
+                        'message': f'Bot API returned {resp.status_code}'}), 502
+    except requests.RequestException as e:
+        logger.error(f"Backfill trigger failed to reach bot API: {e}")
+        return jsonify({'success': False, 'message': 'Could not reach the bot.'}), 502
+    except Exception as e:
+        logger.error(f"Error triggering backfill: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Failed to start backfill.'}), 500
 
 
 @admin_panel_bp.route('/users/coach-engagement/data')
