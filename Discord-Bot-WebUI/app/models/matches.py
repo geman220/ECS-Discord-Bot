@@ -28,7 +28,6 @@ class Schedule(db.Model):
     """Model representing a schedule for matches."""
     __table_args__ = (
         db.Index('idx_schedule_team_id', 'team_id'),
-        db.Index('idx_schedule_season_id', 'season_id'),
         db.Index('idx_schedule_week', 'week'),
     )
     id = db.Column(db.Integer, primary_key=True)

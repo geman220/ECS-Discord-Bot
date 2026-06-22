@@ -54,7 +54,6 @@ class DirectMessage(db.Model):
 
     # Indexes for common queries
     __table_args__ = (
-        db.Index('ix_dm_conversation', 'sender_id', 'recipient_id'),
         db.Index('ix_dm_unread', 'recipient_id', 'is_read'),
         db.Index('idx_direct_messages_sender_id_recipient_id_created_at', 'sender_id', 'recipient_id', db.text('created_at DESC')),
     )

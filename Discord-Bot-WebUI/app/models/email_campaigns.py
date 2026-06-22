@@ -108,7 +108,6 @@ class EmailCampaignRecipient(db.Model):
     user = db.relationship('User', foreign_keys=[user_id])
 
     __table_args__ = (
-        db.Index('ix_email_campaign_recipients_campaign_status', 'campaign_id', 'status'),
         db.Index('idx_email_campaign_recipients_campaign_id_status_recipient_name', 'campaign_id', 'status', 'recipient_name'),
     )
 

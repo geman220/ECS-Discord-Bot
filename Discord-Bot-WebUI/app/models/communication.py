@@ -70,7 +70,6 @@ class ScheduledMessage(db.Model):
         db.Index('idx_scheduled_message_match_id', 'match_id'),
         db.Index('idx_scheduled_message_home_message_id', 'home_message_id'),
         db.Index('idx_scheduled_message_away_message_id', 'away_message_id'),
-        db.Index('idx_scheduled_message_status_scheduled_send_time', 'status', 'scheduled_send_time'),
     )
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id', ondelete='CASCADE'), nullable=True)  # Nullable for ECS FC; CASCADE so match deletion can't orphan this row
