@@ -589,7 +589,8 @@ def edit_user_comprehensive(user_id):
                                     player_team_season = PlayerTeamSeason(
                                         player_id=user.player.id,
                                         team_id=team_id,
-                                        season_id=team_to_add.league.season_id
+                                        season_id=team_to_add.league.season_id,
+                                        is_coach=bool(user.player.is_coach)  # best-effort; finalized at rollover
                                     )
                                     db.session.add(player_team_season)
                             logger.info(f"Added player {user.player.id} to team {team_id} (with history and season records)")

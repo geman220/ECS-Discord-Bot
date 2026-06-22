@@ -583,6 +583,11 @@ class PlayerTeamSeason(db.Model):
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), nullable=False)
     season_id = db.Column(db.Integer, db.ForeignKey('season.id', ondelete='CASCADE'), nullable=False)
+    # Durable per-season snapshot of whether this player COACHED this team that
+    # season. player_teams.is_coach is wiped at rollover, so this is the only
+    # historical record of season-specific coaching. Finalized at rollover from
+    # the season's final player_teams.is_coach; set best-effort at draft time.
+    is_coach = db.Column(db.Boolean, nullable=False, default=False, server_default='false')
 
     # passive_deletes=True trusts DB's ON DELETE CASCADE
     player = db.relationship('Player', back_populates='season_assignments', passive_deletes=True)

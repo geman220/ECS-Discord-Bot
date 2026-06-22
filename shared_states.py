@@ -39,6 +39,10 @@ class BotState:
         self.command_usage_by_name = {}
         # Track command response times (rolling window)
         self.response_times = []
+        # Buffer of per-(user, channel, day) message counts pending flush to the
+        # web app. Key: (discord_user_id, channel_id, 'YYYY-MM-DD').
+        # Value: {guild_id, channel_name, count, last_message_at}.
+        self.message_activity_buffer = {}
 
         # Restore persisted admin state (custom commands, permissions, etc.)
         self._load_persisted_state()
@@ -305,6 +309,80 @@ class BotState:
                 
         except Exception as e:
             logger.error(f"Error tracking message activity: {e}")
+
+    def buffer_message_for_flush(self, discord_user_id, channel_id, guild_id=None,
+                                 channel_name=None):
+        """Accumulate one human message for the periodic flush to the web app.
+
+        Daily-rollup keyed by (user, channel, UTC date). Bounded: if the buffer
+        grows past a sane cap before a flush, new keys are dropped (existing
+        keys still increment) so a flush outage can't exhaust memory.
+        """
+        try:
+            now = datetime.utcnow()
+            key = (str(discord_user_id), str(channel_id), now.strftime("%Y-%m-%d"))
+            entry = self.message_activity_buffer.get(key)
+            if entry is None:
+                if len(self.message_activity_buffer) >= 50000:
+                    return
+                entry = {
+                    'guild_id': str(guild_id) if guild_id else None,
+                    'channel_name': channel_name,
+                    'count': 0,
+                    'last_message_at': None,
+                }
+                self.message_activity_buffer[key] = entry
+            entry['count'] += 1
+            entry['last_message_at'] = now.isoformat()
+            if channel_name:
+                entry['channel_name'] = channel_name
+        except Exception as e:
+            logger.error(f"Error buffering message activity: {e}")
+
+    def drain_message_activity_buffer(self):
+        """Return buffered rows as a list of dicts and clear the buffer.
+
+        Called by the periodic flush task. On a failed POST the caller is
+        responsible for merging the rows back in via buffer_message_rows().
+        """
+        items = []
+        try:
+            buf = self.message_activity_buffer
+            self.message_activity_buffer = {}
+            for (user_id, channel_id, stat_date), entry in buf.items():
+                items.append({
+                    'discord_user_id': user_id,
+                    'channel_id': channel_id,
+                    'guild_id': entry.get('guild_id'),
+                    'channel_name': entry.get('channel_name'),
+                    'stat_date': stat_date,
+                    'message_count': entry.get('count', 0),
+                    'last_message_at': entry.get('last_message_at'),
+                })
+        except Exception as e:
+            logger.error(f"Error draining message activity buffer: {e}")
+        return items
+
+    def requeue_message_rows(self, items):
+        """Merge previously-drained rows back into the buffer after a failed flush."""
+        try:
+            for it in (items or []):
+                key = (str(it.get('discord_user_id')), str(it.get('channel_id')),
+                       str(it.get('stat_date')))
+                entry = self.message_activity_buffer.get(key)
+                if entry is None:
+                    if len(self.message_activity_buffer) >= 50000:
+                        continue
+                    self.message_activity_buffer[key] = {
+                        'guild_id': it.get('guild_id'),
+                        'channel_name': it.get('channel_name'),
+                        'count': int(it.get('message_count') or 0),
+                        'last_message_at': it.get('last_message_at'),
+                    }
+                else:
+                    entry['count'] += int(it.get('message_count') or 0)
+        except Exception as e:
+            logger.error(f"Error requeueing message rows: {e}")
 
     def track_member_join(self, member_id, guild_id):
         """Track member join activity."""

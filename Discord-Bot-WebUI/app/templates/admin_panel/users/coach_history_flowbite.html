@@ -1,0 +1,111 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}{{ history.player.name }} — Coaching History{% endblock %}
+{% block panel_description %}Season-by-season coaching participation for {{ history.player.name }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.coach_engagement') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Coach Engagement</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ history.player.name }}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% set p = history.player %}
+{% set sm = history.summary %}
+
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+  <div>
+    <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ p.name }}</h1>
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+      Coached <span class="font-mono font-semibold">{{ sm.seasons_coached }}</span> of {{ sm.seasons_total }} seasons
+      {% if p.is_coach_now %}&middot; <span class="text-ecs-green">flagged coach now</span>{% else %}&middot; <span class="text-gray-400">not flagged a coach currently</span>{% endif %}
+    </p>
+  </div>
+  <a href="{{ url_for('admin_panel.coach_engagement') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+    <i class="ti ti-arrow-left"></i> Back
+  </a>
+</div>
+
+<div class="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/5 p-3 mb-6 text-xs text-blue-900/80 dark:text-blue-200/80">
+  <i class="ti ti-info-circle"></i>
+  Coaching is a per-person flag re-applied each season at draft. Past-season coach status is recorded from the season it was tracked onward — seasons before tracking may show as "played" even if the person coached. Reports &amp; lineups are historical; chat &amp; RSVP-checks accrue only from when tracking was enabled.
+</div>
+
+<!-- timeline -->
+<div class="space-y-3">
+  {% for row in history.timeline %}
+  <div class="rounded-xl border bg-white dark:bg-gray-800 overflow-hidden
+              {% if row.status == 'coached' and row.level == 'inactive' %}border-red-300 dark:border-red-500/40
+              {% elif row.status == 'coached' and row.level == 'low' %}border-amber-300 dark:border-amber-500/40
+              {% elif row.status == 'coached' %}border-green-300 dark:border-green-500/40
+              {% else %}border-gray-200 dark:border-gray-700{% endif %}">
+    <div class="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 {% if row.status != 'absent' %}border-b border-gray-100 dark:border-gray-700/60{% endif %}">
+      <div class="flex items-center gap-3 min-w-0">
+        <span class="font-bold text-gray-900 dark:text-white truncate">{{ row.season.name }}</span>
+        <span class="text-xs text-gray-400">{{ row.season.league_type }}</span>
+        {% if row.season.is_current %}<span class="text-xs px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green font-semibold">current</span>{% endif %}
+      </div>
+      {% if row.status == 'coached' %}
+        {% if row.level == 'inactive' %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300"><i class="ti ti-user-off"></i>Coached — no activity</span>
+        {% elif row.level == 'low' %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300"><i class="ti ti-alert-triangle"></i>Coached — low activity</span>
+        {% else %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-300"><i class="ti ti-whistle"></i>Coached — active</span>
+        {% endif %}
+      {% elif row.status == 'played' %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"><i class="ti ti-user"></i>Player only</span>
+      {% else %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-50 dark:bg-gray-700/40 text-gray-400 dark:text-gray-500">Not in league</span>
+      {% endif %}
+    </div>
+
+    {% if row.status == 'coached' %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
+            <th class="px-4 sm:px-5 py-2 font-medium">Team</th>
+            <th class="px-3 py-2 font-medium text-center">Reports</th>
+            <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Lineups</th>
+            <th class="px-3 py-2 font-medium text-center hidden md:table-cell">RSVP checks</th>
+            <th class="px-3 py-2 font-medium text-center hidden lg:table-cell">Reminders</th>
+            <th class="px-3 py-2 font-medium text-center">Chat</th>
+            <th class="px-3 sm:px-5 py-2 font-medium text-right">Last active</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+          {% for t in row.teams %}
+          <tr>
+            <td class="px-4 sm:px-5 py-2.5 font-medium text-gray-900 dark:text-white">{{ t.team_name }}
+              <span class="text-xs text-gray-400 font-mono">({{ t.reported_matches }}/{{ t.total_matches }} reported)</span>
+            </td>
+            <td class="px-3 py-2.5 text-center font-mono {% if t.matches_reported == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ t.matches_reported }}</td>
+            <td class="px-3 py-2.5 text-center font-mono hidden md:table-cell {% if t.lineups_set == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ t.lineups_set }}</td>
+            <td class="px-3 py-2.5 text-center font-mono hidden md:table-cell {% if t.rsvp_views == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ t.rsvp_views }}</td>
+            <td class="px-3 py-2.5 text-center font-mono hidden lg:table-cell {% if t.rsvp_reminders == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ t.rsvp_reminders }}</td>
+            <td class="px-3 py-2.5 text-center font-mono {% if t.discord_messages == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ t.discord_messages }}</td>
+            <td class="px-3 sm:px-5 py-2.5 text-right text-xs text-gray-500 dark:text-gray-400 font-mono">{{ t.last_active[:10] if t.last_active else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% elif row.status == 'played' %}
+    <div class="px-4 sm:px-5 py-2.5 text-xs text-gray-500 dark:text-gray-400">
+      On {{ row.teams | map(attribute='team_name') | join(', ') }} — not flagged as a coach.
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

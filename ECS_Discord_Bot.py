@@ -12,7 +12,7 @@ import socket
 import contextlib
 from discord import app_commands
 from discord.ext import commands
-from common import bot_token, server_id
+from common import bot_token, server_id, is_pl_tracked_channel
 import uvicorn
 from bot_rest_api import app
 from shared_states import bot_ready
@@ -157,6 +157,15 @@ class ECSBot(commands.Bot):
             except asyncio.CancelledError:
                 pass
         
+        # Final flush of any buffered message-activity so the last few minutes
+        # of chat metrics aren't lost on a clean shutdown/restart.
+        try:
+            items = bot_state.drain_message_activity_buffer()
+            if items:
+                await _push_message_activity(items)
+        except Exception:
+            logger.debug("Final message-activity flush failed on close", exc_info=True)
+
         # Close the session to prevent resource leaks
         if self.session:
             await self.session.close()
@@ -433,6 +442,62 @@ async def periodic_sync():
         if sleep_time % chunk_size > 0 and not bot.is_closed():
             await asyncio.sleep(sleep_time % chunk_size)
         
+async def _push_message_activity(items) -> bool:
+    """POST a batch of buffered message-activity rollups to the web app.
+
+    Returns True on success (rows accepted). On failure the caller requeues the
+    rows so nothing is lost across a transient outage.
+    """
+    if not items:
+        return True
+    base = WEBUI_API_URL or os.getenv("WEBUI_API_URL") or "http://webui:5000/api"
+    url = f"{base.rstrip('/')}/v1/internal/discord-message-activity"
+    token = os.getenv("FLASK_TOKEN", "")
+    if not token:
+        logger.warning("FLASK_TOKEN not set; skipping message-activity flush (%d rows)", len(items))
+        return False
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15)) as http:
+            async with http.post(url, json={"items": items}, headers={"X-Bot-Token": token}) as resp:
+                if resp.status == 200:
+                    return True
+                text = await resp.text()
+                logger.warning(
+                    "Flask rejected message-activity flush status=%s body=%s",
+                    resp.status, text[:200],
+                )
+                return False
+    except Exception:
+        logger.exception("Failed to flush message activity (%d rows)", len(items))
+        return False
+
+
+async def periodic_message_activity_flush():
+    """Every ~5 minutes, drain the message-activity buffer and POST it.
+
+    Keeps Discord chat metrics in Postgres without a DB write per message. On a
+    failed flush the drained rows are merged back into the buffer for the next
+    attempt, so counts survive a transient web-app outage (bounded by the
+    buffer's own cap).
+    """
+    while True:
+        # Sleep first so we don't fire mid-startup before the web app is ready.
+        for _ in range(10):  # 10 x 30s = 5 minutes
+            if bot.is_closed():
+                return
+            await asyncio.sleep(30)
+        try:
+            items = bot_state.drain_message_activity_buffer()
+            if items:
+                ok = await _push_message_activity(items)
+                if not ok:
+                    bot_state.requeue_message_rows(items)
+                else:
+                    logger.debug("Flushed %d message-activity rows", len(items))
+        except Exception:
+            logger.exception("Error in periodic message-activity flush")
+
+
 async def sync_single_match_rsvps(match_id: int) -> Dict[str, Any]:
     """
     Sync RSVPs for a single match - used by the smart sync manager.
@@ -1429,7 +1494,8 @@ async def load_cogs():
         'help_commands',
         'clearchat_commands',
         'schedule_commands',
-        'subs_commands'
+        'subs_commands',
+        'engagement_commands'
     ]
     
     for extension in cog_extensions:
@@ -1549,6 +1615,11 @@ async def on_ready():
         periodic_check_task = asyncio.create_task(periodic_check())
         # Store task reference to prevent garbage collection
         bot._periodic_check_task = periodic_check_task
+
+        logger.info("Starting message-activity flush task...")
+        message_activity_task = asyncio.create_task(periodic_message_activity_flush())
+        # Store task reference to prevent garbage collection
+        bot._message_activity_task = message_activity_task
         
         # Initialize Smart RSVP Sync Manager for container-resilient syncing
         logger.info("Initializing Smart RSVP Sync Manager...")
@@ -1768,6 +1839,19 @@ async def on_message(message):
     # Track message activity
     if message.guild:
         bot_state.track_message_activity(message.guild.id)
+        # Buffer per-user/channel counts for the engagement analytics flush.
+        # Humans only, and only pub-league channels (team + PL general chats) —
+        # ECS FC / bridge / off-topic categories are ignored.
+        if not message.author.bot and is_pl_tracked_channel(message.channel):
+            try:
+                bot_state.buffer_message_for_flush(
+                    discord_user_id=message.author.id,
+                    channel_id=message.channel.id,
+                    guild_id=message.guild.id,
+                    channel_name=getattr(message.channel, 'name', None),
+                )
+            except Exception:
+                logging.debug("Failed to buffer message activity", exc_info=True)
 
     # Check if the message is sent in one of the verification channels.
     if message.channel.id in VERIFY_CHANNEL_IDS:

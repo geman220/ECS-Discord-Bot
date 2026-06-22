@@ -1,0 +1,169 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Community Analytics{% endblock %}
+{% block panel_description %}Pub-league Discord activity — which channels are alive, who's participating, and what's gone quiet{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.coach_engagement') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Coach Engagement</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Community Analytics</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% set t = metrics.totals %}
+{% set max_week = (metrics.weekly_trend | map(attribute='messages') | max) if metrics.weekly_trend else 0 %}
+
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+  <div>
+    <h1 class="text-xl font-bold text-gray-900 dark:text-white">Community Analytics</h1>
+    <p class="text-sm text-gray-500 dark:text-gray-400">Pub-league channels only · last {{ window_days }} days</p>
+  </div>
+  <form method="get" id="windowForm" class="flex items-center gap-2">
+    <label for="days" class="text-xs font-medium text-gray-500 dark:text-gray-400">Window</label>
+    <select name="days" id="days" class="h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+      {% for d in [30, 90, 180, 365] %}
+      <option value="{{ d }}" {% if d == window_days %}selected{% endif %}>{{ d }} days</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+<!-- KPIs -->
+<section class="mb-6 grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Messages</span>
+    <div class="mt-2 font-mono text-3xl font-bold text-ecs-green">{{ "{:,}".format(t.total_messages) }}</div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active Channels</span>
+    <div class="mt-2 font-mono text-3xl font-bold text-gray-900 dark:text-white">{{ t.channels_active }}</div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Participants</span>
+    <div class="mt-2 font-mono text-3xl font-bold text-gray-900 dark:text-white">{{ t.distinct_participants }}</div>
+  </div>
+  <div class="rounded-xl border p-4 {% if t.stale_channels > 0 %}border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/5{% else %}border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800{% endif %}">
+    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Stale Channels</span>
+    <div class="mt-2 font-mono text-3xl font-bold {% if t.stale_channels > 0 %}text-amber-600 dark:text-amber-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ t.stale_channels }}</div>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">quiet 14+ days</p>
+  </div>
+  <div class="rounded-xl border p-4 {% if t.silent_team_channels > 0 %}border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/5{% else %}border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800{% endif %}">
+    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Silent Teams</span>
+    <div class="mt-2 font-mono text-3xl font-bold {% if t.silent_team_channels > 0 %}text-red-600 dark:text-red-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ t.silent_team_channels }}</div>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">no messages</p>
+  </div>
+</section>
+
+<!-- Weekly trend -->
+{% if metrics.weekly_trend %}
+<section class="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+  <h3 class="text-sm font-bold text-gray-900 dark:text-white mb-3">Messages per week (last 12 weeks)</h3>
+  <div class="flex items-end gap-1.5 h-28">
+    {% for w in metrics.weekly_trend %}
+    <div class="flex-1 flex flex-col items-center justify-end h-full" title="{{ w.week[:10] }}: {{ w.messages }}">
+      <div class="w-full bg-ecs-green/80 dark:bg-ecs-green/60 rounded-t" style="height: {{ ((w.messages / max_week * 100) if max_week else 0)|round(0)|int }}%"></div>
+      <span class="mt-1 text-[10px] text-gray-400 font-mono">{{ w.week[5:10] }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+  <!-- Channels table -->
+  <div class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h3 class="text-sm font-bold text-gray-900 dark:text-white">Channel activity</h3>
+      <p class="text-xs text-gray-500 dark:text-gray-400">"1 voice" = one person sends most of the messages</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
+            <th class="px-4 sm:px-5 py-2 font-medium">Channel</th>
+            <th class="px-3 py-2 font-medium text-center">Msgs</th>
+            <th class="px-3 py-2 font-medium text-center hidden sm:table-cell">People</th>
+            <th class="px-3 py-2 font-medium hidden md:table-cell">Top sender</th>
+            <th class="px-3 sm:px-5 py-2 font-medium text-right">Last</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+          {% for ch in metrics.channels %}
+          <tr class="{% if ch.is_stale %}bg-amber-50/40 dark:bg-amber-500/5{% endif %}">
+            <td class="px-4 sm:px-5 py-2.5">
+              <span class="font-medium text-gray-900 dark:text-white">#{{ ch.channel_name }}</span>
+              {% if ch.is_team_channel %}<span class="ml-1 text-xs text-ecs-green">team</span>{% endif %}
+              {% if ch.is_stale %}<span class="ml-1 text-xs text-amber-600 dark:text-amber-400">· quiet {{ ch.days_since_active }}d</span>{% endif %}
+            </td>
+            <td class="px-3 py-2.5 text-center font-mono text-gray-900 dark:text-white">{{ "{:,}".format(ch.messages) }}</td>
+            <td class="px-3 py-2.5 text-center font-mono text-gray-700 dark:text-gray-300 hidden sm:table-cell">{{ ch.distinct_senders }}</td>
+            <td class="px-3 py-2.5 hidden md:table-cell">
+              {% if ch.top_sender_name %}
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-600 dark:text-gray-400 truncate max-w-[8rem]">{{ ch.top_sender_name }}</span>
+                <span class="font-mono text-xs {% if ch.top_sender_pct >= 70 %}text-amber-600 dark:text-amber-400 font-semibold{% else %}text-gray-400{% endif %}">{{ ch.top_sender_pct }}%</span>
+              </div>
+              {% else %}<span class="text-xs text-gray-300 dark:text-gray-600">—</span>{% endif %}
+            </td>
+            <td class="px-3 sm:px-5 py-2.5 text-right text-xs text-gray-500 dark:text-gray-400 font-mono">{{ ch.last_activity_at[:10] if ch.last_activity_at else '—' }}</td>
+          </tr>
+          {% endfor %}
+          {% if not metrics.channels %}
+          <tr><td colspan="5" class="px-5 py-6 text-center text-xs text-gray-400 dark:text-gray-500">No message activity recorded yet. Run <code>/backfill_chat_history</code> in Discord or wait for live tracking to accrue.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Right column: top members + silent teams -->
+  <div class="space-y-4">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-sm font-bold text-gray-900 dark:text-white">Most active members</h3>
+      </div>
+      <div class="divide-y divide-gray-100 dark:divide-gray-700/60">
+        {% for m in metrics.top_members[:15] %}
+        <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-2 text-sm">
+          <span class="text-gray-900 dark:text-white truncate">{{ loop.index }}. {{ m.name }}</span>
+          <span class="font-mono text-xs text-gray-500 dark:text-gray-400 shrink-0">{{ "{:,}".format(m.messages) }} · {{ m.channels }} ch</span>
+        </div>
+        {% else %}
+        <p class="px-4 py-4 text-xs text-gray-400 dark:text-gray-500">No data yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-sm font-bold text-gray-900 dark:text-white">Silent team channels</h3>
+      </div>
+      <div class="p-4 space-y-2">
+        {% for s in metrics.silent_team_channels %}
+        <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-volume-off text-red-400"></i>{{ s.team_name }}</div>
+        {% else %}
+        <p class="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><i class="ti ti-check text-green-500"></i> Every team channel has activity.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var sel = document.getElementById('days');
+    if (sel) sel.addEventListener('change', function () { document.getElementById('windowForm').submit(); });
+  });
+</script>
+{% endblock %}

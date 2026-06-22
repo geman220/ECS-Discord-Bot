@@ -233,7 +233,8 @@ def handle_draft_player_enhanced(data):
                 player_team_season = PlayerTeamSeason(
                     player_id=player_id,
                     team_id=team_id,
-                    season_id=season_id
+                    season_id=season_id,
+                    is_coach=bool(player.is_coach)  # best-effort; finalized at rollover
                 )
                 session.add(player_team_season)
                 print(f"📝 Created new PlayerTeamSeason record for {player_name} to {team_name}")

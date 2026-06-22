@@ -100,10 +100,28 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
         history_records = []
         discord_role_removals = []  # Collect player/team pairs for Discord role cleanup
 
+        # Snapshot the season's FINAL per-team coach flags before player_teams is
+        # wiped below. This is the only durable record of season-specific coaching
+        # (player_teams.is_coach is current-only), so it powers cross-season coach
+        # history. Keyed by (player_id, team_id).
+        old_team_ids = [tid for (tid,) in (
+            session.query(Team.id)
+            .join(League, Team.league_id == League.id)
+            .filter(League.season_id == old_season.id)
+            .all()
+        )]
+        coach_flag = {}
+        if old_team_ids:
+            for r in session.execute(
+                player_teams.select().where(player_teams.c.team_id.in_(old_team_ids))
+            ).fetchall():
+                coach_flag[(r.player_id, r.team_id)] = bool(r.is_coach)
+
         for player in players:
             # Get teams for the player that are in the old season.
             old_season_teams = [t for t in player.teams if t.league.season_id == old_season.id]
             for t in old_season_teams:
+                is_coach_snapshot = coach_flag.get((player.id, t.id), False)
                 # Check if this PlayerTeamSeason record already exists
                 existing_record = session.query(PlayerTeamSeason).filter_by(
                     player_id=player.id,
@@ -115,8 +133,12 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
                     history_records.append(PlayerTeamSeason(
                         player_id=player.id,
                         team_id=t.id,
-                        season_id=old_season.id
+                        season_id=old_season.id,
+                        is_coach=is_coach_snapshot
                     ))
+                elif existing_record.is_coach != is_coach_snapshot:
+                    # A row from draft time may carry a stale flag — finalize it.
+                    existing_record.is_coach = is_coach_snapshot
 
                 # Collect Discord role removal data if player has Discord ID
                 if player.discord_id:
@@ -474,17 +496,21 @@ def restore_season_memberships(session, target_season: Season) -> dict:
                 logger.warning(f"Skipping assignment: team {assignment.team_id} not found in target season")
                 continue
 
-            # Insert into player_teams, preserving coach status from Player model
+            # Insert into player_teams, restoring the season-specific coach flag
             try:
-                # Get the player's coach status
-                player = session.query(Player).get(assignment.player_id)
-                is_coach = player.is_coach if player else False
+                # Prefer the durable per-season snapshot; fall back to the global
+                # Player.is_coach only for legacy rows recorded before is_coach
+                # existed on PlayerTeamSeason.
+                is_coach = bool(getattr(assignment, 'is_coach', False))
+                if not is_coach:
+                    player = session.query(Player).get(assignment.player_id)
+                    is_coach = player.is_coach if player else False
 
                 session.execute(
                     player_teams.insert().values(
                         player_id=assignment.player_id,
                         team_id=assignment.team_id,
-                        is_coach=is_coach,  # Preserve coach status from Player model
+                        is_coach=is_coach,  # Season-specific coach status
                         position='bench'
                     )
                 )

@@ -42,6 +42,7 @@ from app.ecs_fc_schedule import EcsFcScheduleManager, is_user_ecs_fc_coach
 from app.forms import ReportMatchForm
 from app.teams_helpers import populate_team_stats, update_standings, process_events, process_own_goals
 from app.utils.user_helpers import safe_current_user
+from app.engagement_service import record_coach_engagement
 from app.decorators import role_required
 from app.admin_helpers import determine_match_league_type
 from app.utils.special_weeks import get_special_week_display_name
@@ -2421,6 +2422,10 @@ def get_match_rsvp_details(match_id):
         elif coach_check_away:
             coached_team_id = match.away_team_id
 
+    # True only when the requester actually coaches one of these teams (not an
+    # admin viewing) — used so engagement logging doesn't count admin views.
+    acting_as_coach_team_id = coached_team_id
+
     if not coached_team_id and not is_admin:
         return jsonify({'error': 'You are not authorized to view this match'}), 403
 
@@ -2466,6 +2471,10 @@ def get_match_rsvp_details(match_id):
             grouped[response].append(player_data)
         else:
             grouped['no_response'].append(player_data)
+
+    # Engagement: a coach (not an admin) checked their team's RSVPs on the web.
+    if acting_as_coach_team_id:
+        record_coach_engagement(user.id, acting_as_coach_team_id, 'rsvp_view', source='web')
 
     return jsonify({
         'match_id': match_id,
@@ -2568,6 +2577,10 @@ def coach_update_player_rsvp(match_id, player_id):
         if not player_on_team:
             return jsonify({'error': 'Player is not on your team'}), 403
 
+    # Engagement: coach is actively managing RSVPs (overriding a player's response).
+    if coached_team_id:
+        record_coach_engagement(user.id, coached_team_id, 'rsvp_override', source='web')
+
     # Get or create availability record
     availability = session.query(Availability).filter_by(
         match_id=match_id,
@@ -2669,6 +2682,9 @@ def send_match_rsvp_reminder(match_id):
     if not coached_team_id and not is_admin:
         return jsonify({'error': 'You are not authorized to send reminders for this match'}), 403
 
+    # True only when the requester actually coaches a team here (not an admin).
+    acting_as_coach_team_id = coached_team_id
+
     # For admins, use home team if not coaching
     if not coached_team_id:
         coached_team_id = match.home_team_id
@@ -2735,6 +2751,10 @@ def send_match_rsvp_reminder(match_id):
             f"RSVP reminder sent by user {user.id} for team {coached_team_id} match {match_id}. "
             f"Recipients: {len(recipients)}"
         )
+
+        # Engagement: coach proactively chased down RSVPs from the web.
+        if acting_as_coach_team_id:
+            record_coach_engagement(user.id, acting_as_coach_team_id, 'rsvp_reminder', source='web')
 
     except Exception as e:
         logger.error(f"Error sending RSVP reminder: {e}")

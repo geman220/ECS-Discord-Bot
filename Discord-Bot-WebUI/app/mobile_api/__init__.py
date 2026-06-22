@@ -91,6 +91,7 @@ def register_mobile_api_routes():
         check_in,
         points_events,
         admin_feedback,
+        engagement,
     )
 
 

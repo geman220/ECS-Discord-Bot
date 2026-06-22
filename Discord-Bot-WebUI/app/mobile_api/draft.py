@@ -500,7 +500,8 @@ def draft_player(league_name: str):
         player_team_season = PlayerTeamSeason(
             player_id=player_id,
             team_id=team_id,
-            season_id=league.season_id
+            season_id=league.season_id,
+            is_coach=bool(player.is_coach)  # best-effort; finalized at rollover
         )
         session.add(player_team_season)
         logger.info(f"Created PlayerTeamSeason record for {player.name} to {team.name} in season {league.season_id}")

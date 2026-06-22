@@ -1,5 +1,6 @@
 # Common.py
 
+import os
 import discord
 import json
 from datetime import datetime, timedelta, timezone
@@ -36,6 +37,41 @@ wp_username = BOT_CONFIG["wp_username"]
 wp_app_password = BOT_CONFIG["wp_app_password"]
 bot_version = BOT_CONFIG["bot_version"]
 match_channel_id = int(BOT_CONFIG["match_channel_id"])
+
+# Discord categories whose channels feed pub-league engagement / community
+# analytics. We scope to PUB LEAGUE only (team channels + the PL general chats)
+# and ignore ECS FC, bridge, and off-topic categories. Channel IDs churn (teams
+# are renamed yearly, channels get added/removed), but these CATEGORY names are
+# stable — so we gate by category, which stays dynamic without hard-coding IDs.
+# Override the list with the PL_TRACKED_CATEGORIES env var (comma-separated).
+_DEFAULT_PL_CATEGORIES = [
+    "ECS PL General Chats",
+    "ECS FC PL Premier",
+    "ECS FC PL Classic",
+]
+
+
+def pl_tracked_categories():
+    """Lowercased set of tracked pub-league category names."""
+    raw = os.getenv("PL_TRACKED_CATEGORIES", "")
+    cats = [c.strip() for c in raw.split(",") if c.strip()] if raw else list(_DEFAULT_PL_CATEGORIES)
+    return {c.lower() for c in cats}
+
+
+def is_pl_tracked_channel(channel):
+    """True if a channel sits in one of the tracked pub-league categories.
+
+    Uncategorized channels and everything outside the allowlist are excluded,
+    so only pub-league team + general-chat traffic feeds analytics.
+    """
+    try:
+        category = getattr(channel, "category", None)
+        name = getattr(category, "name", None) if category else None
+        if not name:
+            return False
+        return name.strip().lower() in pl_tracked_categories()
+    except Exception:
+        return False
 
 try:
     initialize_predictions_db()

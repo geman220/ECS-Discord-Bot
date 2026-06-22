@@ -628,7 +628,8 @@ class LeagueManagementService:
                         history = PlayerTeamSeason(
                             player_id=player.id,
                             team_id=team.id,
-                            season_id=old_season.id
+                            season_id=old_season.id,
+                            is_coach=bool(player.is_coach)  # best-effort snapshot
                         )
                         self.session.add(history)
 

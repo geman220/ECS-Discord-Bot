@@ -203,6 +203,10 @@ from .points_events import (
     PointsEventType, PointsEventAward
 )
 
+from .engagement import (
+    DiscordMessageStat, CoachEngagementEvent
+)
+
 # Make all models available at package level for backward compatibility
 __all__ = [
     # Database instance
@@ -342,4 +346,7 @@ __all__ = [
 
     # Points events models
     'PointsEventType', 'PointsEventAward',
+
+    # Engagement tracking models
+    'DiscordMessageStat', 'CoachEngagementEvent',
 ]

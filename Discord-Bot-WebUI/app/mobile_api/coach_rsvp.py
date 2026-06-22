@@ -22,6 +22,7 @@ from sqlalchemy import and_
 from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import User, Player, Team, Match, Availability, player_teams
+from app.engagement_service import record_coach_engagement
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +199,8 @@ def get_team_rsvp_overview(team_id: int):
 
     with managed_session() as session:
         # Check authorization - must be coach for this team or admin
-        if not is_coach_for_team(session, current_user_id, team_id) and not is_admin_user(session, current_user_id):
+        acting_as_coach = is_coach_for_team(session, current_user_id, team_id)
+        if not acting_as_coach and not is_admin_user(session, current_user_id):
             return jsonify({"msg": "You are not authorized to view this team's RSVPs"}), 403
 
         # Get team
@@ -244,6 +246,10 @@ def get_team_rsvp_overview(team_id: int):
                 "has_enough_players": rsvp_summary['yes'] >= 7  # Minimum for a match
             })
 
+        # Engagement: a coach (not just an admin) actually checked RSVPs.
+        if acting_as_coach:
+            record_coach_engagement(current_user_id, team_id, 'rsvp_view', source='mobile')
+
         return jsonify({
             "team": {
                 "id": team.id,
@@ -272,7 +278,8 @@ def get_match_rsvp_details(team_id: int, match_id: int):
 
     with managed_session() as session:
         # Check authorization
-        if not is_coach_for_team(session, current_user_id, team_id) and not is_admin_user(session, current_user_id):
+        acting_as_coach = is_coach_for_team(session, current_user_id, team_id)
+        if not acting_as_coach and not is_admin_user(session, current_user_id):
             return jsonify({"msg": "You are not authorized to view this team's RSVPs"}), 403
 
         # Get team with players
@@ -344,6 +351,10 @@ def get_match_rsvp_details(team_id: int, match_id: int):
         rsvp_summary = get_rsvp_summary(session, match_id, team_id)
 
         is_home = match.home_team_id == team_id
+
+        # Engagement: a coach (not just an admin) drilled into match RSVPs.
+        if acting_as_coach:
+            record_coach_engagement(current_user_id, team_id, 'rsvp_view', source='mobile')
 
         return jsonify({
             "match": {
@@ -500,6 +511,9 @@ def send_rsvp_reminder(team_id: int, match_id: int):
                 f"RSVP reminder sent by user {current_user_id} for team {team_id} match {match_id}. "
                 f"Recipients: {len(recipients)}, Channels: {channels_used}"
             )
+
+            # Engagement: coach proactively chased down RSVPs.
+            record_coach_engagement(current_user_id, team_id, 'rsvp_reminder', source='mobile')
 
             return jsonify({
                 "success": True,

@@ -464,7 +464,8 @@ def create_user():
                         player_team_season = PlayerTeamSeason(
                             player_id=player.id,
                             team_id=team.id,
-                            season_id=team.league.season_id
+                            season_id=team.league.season_id,
+                            is_coach=bool(player.is_coach)  # best-effort; finalized at rollover
                         )
                         session.add(player_team_season)
 

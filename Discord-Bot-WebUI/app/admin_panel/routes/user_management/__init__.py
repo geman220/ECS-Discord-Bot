@@ -30,4 +30,5 @@ def register_user_management_routes():
         analytics,
         comprehensive,
         duplicates,
+        coach_engagement,
     )
