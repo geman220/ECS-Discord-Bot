@@ -66,6 +66,7 @@ class SurveyService:
             category=data.get('category'),
             season_id=data.get('season_id'),
             status=data.get('status', 'draft'),
+            is_template=bool(data.get('is_template', False)),
             is_anonymous=bool(data.get('is_anonymous', False)),
             require_login=bool(data.get('require_login', True)),
             allow_multiple_submissions=bool(data.get('allow_multiple_submissions', False)),
@@ -100,6 +101,7 @@ class SurveyService:
         """
         for field in (
             'title', 'description', 'survey_type', 'category', 'season_id',
+            'is_template',
             'is_anonymous', 'require_login', 'allow_multiple_submissions',
             'one_per_player', 'allow_edit_after_submit', 'show_progress_bar',
             'randomize_questions', 'randomize_options', 'show_results_to_respondents',
@@ -213,6 +215,19 @@ class SurveyService:
         payload = survey.to_dict(include_questions=True)
         payload['title'] = new_title or f"{survey.title} (copy)"
         payload['status'] = 'draft'
+        for q in payload.get('questions', []):
+            q.pop('id', None)
+            q['logic'] = None
+            for o in q.get('options', []):
+                o.pop('id', None)
+        return self.create_survey(session, payload, created_by_id)
+
+    def instantiate_template(self, session, template, created_by_id, new_title=None):
+        """Create a NEW real survey (is_template=False) from a template."""
+        payload = template.to_dict(include_questions=True)
+        payload['title'] = new_title or template.title
+        payload['status'] = 'draft'
+        payload['is_template'] = False
         for q in payload.get('questions', []):
             q.pop('id', None)
             q['logic'] = None

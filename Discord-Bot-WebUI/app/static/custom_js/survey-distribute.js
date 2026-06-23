@@ -110,6 +110,33 @@
     if (p) p.finally(function () { send.disabled = false; });
   });
 
+  // Populate Discord channel pickers from the live (Pub League) channel list.
+  (function loadChannelPickers() {
+    var pickers = document.querySelectorAll('select[data-channel-picker]');
+    if (!pickers.length) return;
+    var saved = root.getAttribute('data-discord-channel') || '';
+    fetch('/admin-panel/api/surveys/discord-channels')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var chans = (data && data.channels) || [];
+        var opts = '<option value="">— Select a channel —</option>' +
+          chans.map(function (c) {
+            return '<option value="' + c.id + '">#' + c.name +
+              (c.category ? ' (' + c.category + ')' : '') + '</option>';
+          }).join('') +
+          '<option value="__custom__">Custom channel ID…</option>';
+        pickers.forEach(function (sel) {
+          sel.innerHTML = opts;
+          if (saved) sel.value = saved;
+        });
+      })
+      .catch(function () {
+        pickers.forEach(function (sel) {
+          sel.innerHTML = '<option value="">— Select —</option><option value="__custom__">Custom channel ID…</option>';
+        });
+      });
+  })();
+
   // Live email audience preview
   var emailSel = document.getElementById('email-audience');
   if (emailSel) {

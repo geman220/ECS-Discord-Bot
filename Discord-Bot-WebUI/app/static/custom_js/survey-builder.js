@@ -21,11 +21,15 @@
     try { return el ? JSON.parse(el.textContent) : []; } catch (e) { return []; }
   })();
   var BOOL_FIELDS = [
+    'is_template',
     'require_login', 'is_anonymous', 'one_per_player', 'allow_multiple_submissions',
     'allow_edit_after_submit', 'show_progress_bar', 'randomize_questions',
     'randomize_options', 'show_results_to_respondents', 'notify_email',
     'notify_discord', 'notify_push',
   ];
+
+  var bootstrapSettings = null;   // settings JSONB loaded from the survey
+  var discordChannelsLoaded = false;
 
   function $(id) { return document.getElementById(id); }
   function csrf() {
@@ -263,6 +267,18 @@
       questions: collectQuestions(),
     };
     BOOL_FIELDS.forEach(function (f) { data[f] = $('sv-' + f).checked; });
+
+    // Preserve any existing settings + merge the chosen Discord channel.
+    var settings = bootstrapSettings ? JSON.parse(JSON.stringify(bootstrapSettings)) : {};
+    var dch = $('sv-discord_channel');
+    if (dch && dch.value) {
+      settings.discord_channel_id = dch.value;
+      settings.discord_channel_name = dch.options[dch.selectedIndex] ? dch.options[dch.selectedIndex].text : '';
+    } else {
+      delete settings.discord_channel_id;
+      delete settings.discord_channel_name;
+    }
+    data.settings = settings;
     return data;
   }
 
@@ -274,9 +290,12 @@
       $('sv-require_login').checked = true;
       $('sv-one_per_player').checked = true;
       $('sv-show_progress_bar').checked = true;
+      // New-template flow (?as_template=1): pre-check "Save as template".
+      if (root.getAttribute('data-as-template')) $('sv-is_template').checked = true;
       return;
     }
     var s = JSON.parse(el.textContent);
+    bootstrapSettings = s.settings || {};
     $('sv-title').value = s.title || '';
     $('sv-description').value = s.description || '';
     $('sv-survey_type').value = s.survey_type || 'survey';
@@ -402,6 +421,43 @@
     surface.innerHTML = parts.join('');
   }
 
+  // ----- Discord channel selector (live, Pub League only) --------------- //
+  function loadDiscordChannels(selectedId) {
+    var sel = $('sv-discord_channel');
+    if (!sel || discordChannelsLoaded) {
+      if (sel && selectedId) sel.value = selectedId;
+      return;
+    }
+    discordChannelsLoaded = true;
+    fetch('/admin-panel/api/surveys/discord-channels')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var chans = (data && data.channels) || [];
+        if (!chans.length) {
+          sel.innerHTML = '<option value="">No channels found — pick one at send time</option>';
+          return;
+        }
+        sel.innerHTML = '<option value="">— Select a channel —</option>' +
+          chans.map(function (c) {
+            return '<option value="' + c.id + '">#' + escapeHtml(c.name) +
+              (c.category ? ' (' + escapeHtml(c.category) + ')' : '') + '</option>';
+          }).join('');
+        if (selectedId) sel.value = selectedId;
+      })
+      .catch(function () {
+        sel.innerHTML = '<option value="">Couldn\'t reach Discord — pick at send time</option>';
+      });
+  }
+
+  function toggleDiscordChannel() {
+    var on = $('sv-notify_discord').checked;
+    $('discord-channel-wrap').classList.toggle('hidden', !on);
+    if (on) {
+      var saved = bootstrapSettings && bootstrapSettings.discord_channel_id;
+      loadDiscordChannels(saved);
+    }
+  }
+
   function updateAccessHint() {
     var hint = $('access-hint');
     if (!hint) return;
@@ -440,6 +496,7 @@
   ['sv-require_login', 'sv-is_anonymous', 'sv-one_per_player'].forEach(function (id) {
     $(id).addEventListener('change', updateAccessHint);
   });
+  $('sv-notify_discord').addEventListener('change', toggleDiscordChannel);
 
   // While previewing, reflect settings changes live (edit pane is hidden, so
   // only the still-visible settings inputs fire here).
@@ -471,4 +528,5 @@
   loadBootstrap();
   populateTypeDropdown();
   updateAccessHint();
+  toggleDiscordChannel();  // reveal + populate the channel select if notify_discord is on
 })();

@@ -94,6 +94,37 @@ def survey_distribute(survey_id):
 # Helpers / shared JSON API
 # ---------------------------------------------------------------------------
 
+def _is_pub_league_channel(c):
+    """Heuristic: this server's Pub League channels sit under a 'Pub League'
+    category or use the pl- / pl_ name prefix (e.g. #pl-announcements)."""
+    cat = (c.get('category') or '').lower()
+    name = (c.get('name') or '').lower()
+    return 'pub league' in cat or name.startswith('pl-') or name.startswith('pl_')
+
+
+@admin_panel_bp.route('/api/surveys/discord-channels', methods=['GET'])
+@login_required
+@role_required(_ROLES)
+def survey_discord_channels():
+    """Live list of Pub League Discord channels, fetched from the bot.
+
+    Degrades gracefully (200 + empty list) if the bot is unavailable so the UI
+    can fall back to manual channel-ID entry.
+    """
+    try:
+        bot_url = f"{Config.BOT_API_URL.rstrip('/')}/api/discord/channels"
+        resp = requests.get(bot_url, timeout=10)
+        if resp.status_code >= 400:
+            return jsonify({'success': False, 'channels': [], 'error': 'Bot returned an error'})
+        all_ch = (resp.json() if resp.content else {}).get('channels', [])
+        pl = [c for c in all_ch if _is_pub_league_channel(c)]
+        # If naming didn't match (different server layout), show all so the
+        # picker is never empty — but flag that it isn't filtered.
+        return jsonify({'success': True, 'channels': pl or all_ch, 'filtered': bool(pl)})
+    except requests.RequestException:
+        return jsonify({'success': False, 'channels': [], 'error': 'Bot unreachable'})
+
+
 @admin_panel_bp.route('/api/surveys/<int:survey_id>/public-url', methods=['GET'])
 @login_required
 @role_required(_ROLES)

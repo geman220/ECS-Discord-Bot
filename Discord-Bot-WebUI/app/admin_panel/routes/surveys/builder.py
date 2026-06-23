@@ -92,7 +92,7 @@ def surveys_list():
     """Survey/poll list + KPI dashboard."""
     try:
         status_filter = request.args.get('status')
-        query = Survey.query
+        query = Survey.query.filter_by(is_template=False)
         if status_filter:
             query = query.filter_by(status=status_filter)
         surveys = query.order_by(Survey.created_at.desc()).all()
@@ -106,12 +106,13 @@ def surveys_list():
         ).all()
         counts = {sid: c for sid, c in rows}
 
+        base = Survey.query.filter_by(is_template=False)
         status_counts = {
-            'all': Survey.query.count(),
-            'draft': Survey.query.filter_by(status='draft').count(),
-            'open': Survey.query.filter_by(status='open').count(),
-            'closed': Survey.query.filter_by(status='closed').count(),
-            'archived': Survey.query.filter_by(status='archived').count(),
+            'all': base.count(),
+            'draft': base.filter_by(status='draft').count(),
+            'open': base.filter_by(status='open').count(),
+            'closed': base.filter_by(status='closed').count(),
+            'archived': base.filter_by(status='archived').count(),
         }
         total_responses = sum(counts.values())
 
@@ -134,10 +135,51 @@ def surveys_list():
 @login_required
 @role_required(_ROLES)
 def survey_builder_new():
-    """Builder page for a brand-new survey (optionally from a starter template)."""
+    """Builder page for a brand-new survey (optionally from a starter template,
+    or as a reusable template when ?as_template=1)."""
     template_key = request.args.get('template')
     starter = STARTER_TEMPLATES.get(template_key) if template_key else None
-    return _render_builder(survey=None, starter=starter)
+    as_template = request.args.get('as_template') in ('1', 'true', 'yes')
+    return _render_builder(survey=None, starter=starter, as_template=as_template)
+
+
+@admin_panel_bp.route('/surveys/templates')
+@login_required
+@role_required(_ROLES)
+def survey_templates_list():
+    """Manage reusable poll/survey templates."""
+    try:
+        templates = Survey.query.filter_by(is_template=True).order_by(Survey.title).all()
+        return render_template(
+            'admin_panel/surveys/survey_templates_flowbite.html',
+            templates=templates,
+            starters=[{'key': k, 'title': v['title'], 'survey_type': v.get('survey_type', 'survey')}
+                      for k, v in STARTER_TEMPLATES.items()],
+            page_title='Survey & Poll Templates',
+        )
+    except Exception as e:
+        logger.error(f"Error listing templates: {e}", exc_info=True)
+        flash('Error loading templates', 'error')
+        return redirect(url_for('admin_panel.surveys_list'))
+
+
+@admin_panel_bp.route('/api/surveys/<int:survey_id>/use-template', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def survey_use_template(survey_id):
+    """Clone a template into a new editable survey (is_template=False)."""
+    try:
+        template = Survey.query.get_or_404(survey_id)
+        if not template.is_template:
+            return jsonify({'success': False, 'error': 'Not a template.'}), 400
+        new_title = (request.get_json(silent=True) or {}).get('title')
+        survey = survey_service.instantiate_template(g.db_session, template, current_user.id, new_title)
+        return jsonify({'success': True, 'survey_id': survey.id,
+                        'redirect': url_for('admin_panel.survey_builder_edit', survey_id=survey.id)})
+    except Exception as e:
+        logger.error(f"Error using template {survey_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @admin_panel_bp.route('/surveys/<int:survey_id>/edit')
@@ -149,19 +191,22 @@ def survey_builder_edit(survey_id):
     return _render_builder(survey=survey)
 
 
-def _render_builder(survey, starter=None):
+def _render_builder(survey, starter=None, as_template=False):
     seasons = Season.query.order_by(Season.id.desc()).all()
     if survey:
         survey_json = survey.to_dict(include_questions=True)
     else:
         survey_json = starter  # may be None for a blank survey
+    is_template = bool(survey.is_template) if survey else as_template
     return render_template(
         'admin_panel/surveys/survey_builder_flowbite.html',
         survey=survey,
         survey_json=survey_json,
         seasons=seasons,
         question_types=list(QUESTION_TYPES),
-        page_title='Edit Survey' if survey else 'New Survey',
+        as_template=as_template,
+        is_template=is_template,
+        page_title=('Edit Template' if is_template else 'Edit Survey') if survey else ('New Template' if as_template else 'New Survey'),
     )
 
 
@@ -189,8 +234,9 @@ def survey_create():
         if not (data.get('title') or '').strip():
             return jsonify({'success': False, 'error': 'A title is required.'}), 400
         survey = survey_service.create_survey(g.db_session, data, current_user.id)
+        dest = 'admin_panel.survey_templates_list' if survey.is_template else 'admin_panel.surveys_list'
         return jsonify({'success': True, 'survey_id': survey.id,
-                        'redirect': url_for('admin_panel.surveys_list')})
+                        'redirect': url_for(dest)})
     except Exception as e:
         logger.error(f"Error creating survey: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500

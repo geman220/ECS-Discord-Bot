@@ -371,6 +371,36 @@ async def delete_league_event_announcement(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/api/discord/channels")
+async def list_discord_channels(
+    bot: commands.Bot = Depends(get_bot)
+):
+    """List the server's text channels with their category.
+
+    Returns every text channel; callers (e.g. the survey admin) filter to the
+    subset they want (Pub League). Each item: {id, name, category, position}.
+    """
+    guild_id = BOT_CONFIG.get('server_id')
+    if not guild_id:
+        raise HTTPException(status_code=500, detail="Server ID not configured")
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        try:
+            guild = await bot.fetch_guild(int(guild_id))
+        except Exception:
+            raise HTTPException(status_code=500, detail="Could not access Discord server")
+
+    channels = []
+    for ch in guild.text_channels:
+        channels.append({
+            "id": str(ch.id),
+            "name": ch.name,
+            "category": ch.category.name if ch.category else None,
+            "position": ch.position,
+        })
+    return {"success": True, "channels": channels}
+
+
 @router.get("/api/channels/by-name/{channel_name}")
 async def get_channel_by_name(
     channel_name: str,

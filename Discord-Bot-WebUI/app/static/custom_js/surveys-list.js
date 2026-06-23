@@ -24,6 +24,16 @@
     });
   }
 
+  function useTemplate(id) {
+    api('/admin-panel/api/surveys/' + id + '/use-template', 'POST').then(function (data) {
+      if (data.success) {
+        window.location.href = data.redirect || window.location.href;
+      } else {
+        window.Swal.fire('Error', data.error || 'Could not create survey from template', 'error');
+      }
+    });
+  }
+
   function del(id, title) {
     window.Swal.fire({
       title: 'Delete survey?',
@@ -57,6 +67,7 @@
     var action = btn.getAttribute('data-survey-action');
     var id = btn.getAttribute('data-survey-id');
     if (action === 'duplicate') duplicate(id);
+    else if (action === 'use') useTemplate(id);
     else if (action === 'delete') del(id, btn.getAttribute('data-survey-title'));
   });
 })();

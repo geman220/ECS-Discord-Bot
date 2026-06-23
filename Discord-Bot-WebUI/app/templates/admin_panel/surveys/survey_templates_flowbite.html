@@ -1,0 +1,75 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+
+{% block admin_title %}Survey & Poll Templates{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <a href="{{ url_for('admin_panel.surveys_list') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Surveys</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Templates</span></div></li>
+{% endblock %}
+
+{% block panel_content %}
+{% call page_header("Templates", subtitle="Surveys / Reusable templates") %}
+  <a href="{{ url_for('admin_panel.surveys_list') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Surveys</a>
+  <a href="{{ url_for('admin_panel.survey_builder_new', as_template=1) }}" class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-plus"></i> New template</a>
+{% endcall %}
+
+<!-- Your templates -->
+<div data-survey-list>
+{% if templates %}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
+        <tr>
+          <th class="px-4 py-3 text-left">Template</th>
+          <th class="px-4 py-3 text-left">Type</th>
+          <th class="px-4 py-3 text-left hidden md:table-cell">Category</th>
+          <th class="px-4 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+        {% for t in templates %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+          <td class="px-4 py-3"><a href="{{ url_for('admin_panel.survey_builder_edit', survey_id=t.id) }}" class="font-medium text-gray-900 dark:text-white hover:text-ecs-green">{{ t.title }}</a></td>
+          <td class="px-4 py-3">
+            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize {{ 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' if t.survey_type == 'poll' else 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' }}">{{ t.survey_type }} template</span>
+          </td>
+          <td class="px-4 py-3 hidden md:table-cell text-gray-600 dark:text-gray-300">{{ t.category or '—' }}</td>
+          <td class="px-4 py-3 text-right whitespace-nowrap">
+            <button type="button" data-survey-action="use" data-survey-id="{{ t.id }}" class="inline-flex items-center gap-1 text-ecs-green hover:underline text-sm px-1" title="Create a survey from this template"><i class="ti ti-wand"></i> Use</button>
+            <a href="{{ url_for('admin_panel.survey_builder_edit', survey_id=t.id) }}" class="text-gray-500 hover:text-ecs-green p-1" title="Edit"><i class="ti ti-edit"></i></a>
+            <button type="button" data-survey-action="duplicate" data-survey-id="{{ t.id }}" class="text-gray-500 hover:text-ecs-green p-1" title="Duplicate"><i class="ti ti-copy"></i></button>
+            <button type="button" data-survey-action="delete" data-survey-id="{{ t.id }}" data-survey-title="{{ t.title }}" class="text-gray-500 hover:text-red-600 p-1" title="Delete"><i class="ti ti-trash"></i></button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+{{ empty_state('ti-template-off', 'No templates yet', 'Save a survey or poll as a template, or start one below.') }}
+{% endif %}
+
+<!-- Built-in starters -->
+<h3 class="text-sm font-bold text-gray-900 dark:text-white mb-2">Built-in starters</h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+  {% for s in starters %}
+  <a href="{{ url_for('admin_panel.survey_builder_new', template=s.key) }}" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green transition-colors">
+    <div class="flex items-center justify-between">
+      <span class="font-medium text-gray-900 dark:text-white">{{ s.title }}</span>
+      <i class="ti ti-arrow-right text-gray-400"></i>
+    </div>
+    <span class="inline-flex mt-2 px-2 py-0.5 rounded-full text-xs font-medium capitalize bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ s.survey_type }}</span>
+  </a>
+  {% endfor %}
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='custom_js/surveys-list.js') }}"></script>
+{% endblock %}

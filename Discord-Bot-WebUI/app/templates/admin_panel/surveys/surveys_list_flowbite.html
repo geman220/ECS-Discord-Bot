@@ -14,7 +14,10 @@
     <button type="button" data-action="toggle-template-menu" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">
       <i class="ti ti-template"></i> Templates <i class="ti ti-chevron-down text-xs"></i>
     </button>
-    <div id="template-dropdown" class="hidden absolute right-0 mt-1 w-56 z-20 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
+    <div id="template-dropdown" class="hidden absolute right-0 mt-1 w-60 z-20 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
+      <a href="{{ url_for('admin_panel.survey_templates_list') }}" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-template"></i> Manage templates…</a>
+      <div class="my-1 border-t border-gray-100 dark:border-gray-700"></div>
+      <p class="px-3 py-1 text-xs uppercase text-gray-400">Built-in starters</p>
       <a href="{{ url_for('admin_panel.survey_builder_new', template='end_of_season') }}" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">End of Season Survey</a>
       <a href="{{ url_for('admin_panel.survey_builder_new', template='coach_feedback') }}" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">Coach Feedback</a>
       <a href="{{ url_for('admin_panel.survey_builder_new', template='event_feedback') }}" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">Event Feedback</a>

@@ -100,6 +100,10 @@ class Survey(db.Model):
     # draft | scheduled | open | closed | archived
     status = db.Column(db.String(20), nullable=False, default='draft', index=True)
 
+    # A reusable template (not a live survey). survey_type still flags it as a
+    # poll vs survey template. Cloned into a real survey via "Use template".
+    is_template = db.Column(db.Boolean, nullable=False, default=False, index=True)
+
     # ----- Toggles (the "robust settings" surface) ----------------------- #
     is_anonymous = db.Column(db.Boolean, nullable=False, default=False)            # strip identity from reports
     require_login = db.Column(db.Boolean, nullable=False, default=True)            # login-gated vs open link
@@ -179,6 +183,7 @@ class Survey(db.Model):
             'category': self.category,
             'season_id': self.season_id,
             'status': self.status,
+            'is_template': self.is_template,
             'is_anonymous': self.is_anonymous,
             'require_login': self.require_login,
             'allow_multiple_submissions': self.allow_multiple_submissions,
