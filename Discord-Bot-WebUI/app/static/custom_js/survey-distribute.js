@@ -44,6 +44,25 @@
 
   function setStatus(s) { var b = document.getElementById('survey-status'); if (b) b.textContent = s; }
 
+  // Resolve a channel picker (select with optional "custom ID" text field).
+  function channelValue(selectId) {
+    var sel = document.getElementById(selectId);
+    if (!sel) return '';
+    if (sel.value === '__custom__') {
+      var custom = document.getElementById(sel.getAttribute('data-custom'));
+      return custom ? custom.value.trim() : '';
+    }
+    return sel.value.trim();
+  }
+
+  // Reveal the custom-ID text field when "Custom channel ID…" is chosen.
+  document.addEventListener('change', function (e) {
+    var sel = e.target.closest('select[data-custom]');
+    if (!sel) return;
+    var custom = document.getElementById(sel.getAttribute('data-custom'));
+    if (custom) custom.classList.toggle('hidden', sel.value !== '__custom__');
+  });
+
   document.addEventListener('click', function (e) {
     // Lifecycle
     var life = e.target.closest('[data-lifecycle]');
@@ -76,12 +95,15 @@
                pushTarget(document.getElementById('push-audience').value))
         .then(function (res) { done(res, 'Push sent'); });
     } else if (channel === 'discord-embed') {
-      p = post('/admin-panel/api/surveys/' + sid + '/send/discord-embed',
-               { channel_id: document.getElementById('embed-channel').value.trim() })
+      var ec = channelValue('embed-channel');
+      if (!ec) { window.Swal.fire('Pick a channel', 'Choose a Discord channel first.', 'warning'); send.disabled = false; return; }
+      p = post('/admin-panel/api/surveys/' + sid + '/send/discord-embed', { channel_id: ec })
         .then(function (res) { done(res, 'Embed posted'); });
     } else if (channel === 'native-poll') {
+      var pc = channelValue('poll-channel');
+      if (!pc) { window.Swal.fire('Pick a channel', 'Choose a Discord channel first.', 'warning'); send.disabled = false; return; }
       p = post('/admin-panel/api/surveys/' + sid + '/send/native-poll',
-               { channel_id: document.getElementById('poll-channel').value.trim(),
+               { channel_id: pc,
                  duration_hours: parseInt(document.getElementById('poll-duration').value, 10) || 48 })
         .then(function (res) { done(res, 'Poll posted'); });
     }

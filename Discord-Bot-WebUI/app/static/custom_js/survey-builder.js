@@ -14,6 +14,12 @@
   var tpl = document.getElementById('question-card-template');
 
   var CHOICE_TYPES = ['single_choice', 'multi_choice', 'dropdown', 'ranking'];
+  // Question types offered when building a quick "poll" (vs the full survey set).
+  var POLL_TYPES = ['single_choice', 'multi_choice', 'yes_no'];
+  var ALL_TYPES = (function () {
+    var el = document.getElementById('question-types');
+    try { return el ? JSON.parse(el.textContent) : []; } catch (e) { return []; }
+  })();
   var BOOL_FIELDS = [
     'require_login', 'is_anonymous', 'one_per_player', 'allow_multiple_submissions',
     'allow_edit_after_submit', 'show_progress_bar', 'randomize_questions',
@@ -54,6 +60,8 @@
       addRow('<input type="text" class="cfg-cols flex-1 ' + fieldCls + '" placeholder="Columns (comma separated)" value="' + ((config.cols || []).join(', ')) + '">');
     } else if (type === 'multi_choice') {
       addRow('<span class="text-xs text-gray-500">Max selections (0 = unlimited)</span><input type="number" min="0" class="cfg-max_selections w-20 ' + fieldCls + '" value="' + (config.max_selections || 0) + '">');
+    } else if (type === 'nps') {
+      addRow('<span class="text-xs text-gray-400 italic">Net Promoter Score: a 0–10 "how likely to recommend" question. Scored as %promoters (9–10) − %detractors (0–6).</span>');
     }
   }
 
@@ -318,11 +326,125 @@
     });
   }
 
+  // ----- add-question type list (poll = simple subset, survey = full) --- //
+  function populateTypeDropdown() {
+    var sel = $('add-question-type');
+    var prev = sel.value;
+    var isPoll = $('sv-survey_type').value === 'poll';
+    var types = isPoll ? POLL_TYPES : (ALL_TYPES.length ? ALL_TYPES : POLL_TYPES);
+    sel.innerHTML = types.map(function (t) {
+      return '<option value="' + t + '">' + titleCase(t) + '</option>';
+    }).join('');
+    if (types.indexOf(prev) !== -1) sel.value = prev;
+  }
+
+  // ----- live preview (respondent's view) ------------------------------- //
+  var previewOn = false;
+
+  function previewQuestion(q, idx) {
+    var t = q.question_type, name = 'pq_' + idx, html = '';
+    var label = '<label class="block text-sm font-semibold text-gray-900 dark:text-white">' +
+      escapeHtml(q.prompt || 'Untitled question') +
+      (q.is_required ? ' <span class="text-red-500">*</span>' : '') + '</label>';
+    var help = q.help_text ? '<p class="text-xs text-gray-500 dark:text-gray-400">' + escapeHtml(q.help_text) + '</p>' : '';
+    var opts = (q.options || []);
+
+    function radioList(type) {
+      return opts.map(function (o) {
+        return '<label class="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700"><input type="' +
+          type + '" name="' + name + '" class="text-ecs-green"><span class="text-sm text-gray-700 dark:text-gray-200">' +
+          escapeHtml(o.label) + '</span></label>';
+      }).join('');
+    }
+    function numberBtns(lo, hi) {
+      var out = '';
+      for (var n = lo; n <= hi; n++) {
+        out += '<span class="inline-flex w-9 h-9 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300">' + n + '</span>';
+      }
+      return '<div class="flex flex-wrap gap-1.5">' + out + '</div>';
+    }
+
+    if (t === 'single_choice') html = '<div class="space-y-2">' + radioList('radio') + '</div>';
+    else if (t === 'multi_choice') html = '<div class="space-y-2">' + radioList('checkbox') + '</div>';
+    else if (t === 'dropdown') html = '<select class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"><option>— Select —</option>' + opts.map(function (o) { return '<option>' + escapeHtml(o.label) + '</option>'; }).join('') + '</select>';
+    else if (t === 'yes_no') html = '<div class="flex gap-3"><span class="flex-1 text-center p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">Yes</span><span class="flex-1 text-center p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm">No</span></div>';
+    else if (t === 'short_text' || t === 'email' || t === 'number' || t === 'date') html = '<input class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm" placeholder="' + escapeHtml((q.config && q.config.placeholder) || '') + '">';
+    else if (t === 'long_text') html = '<textarea rows="3" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"></textarea>';
+    else if (t === 'rating') html = numberBtns(1, (q.config && q.config.max) || 5);
+    else if (t === 'scale') html = numberBtns((q.config && q.config.min) != null ? q.config.min : 1, (q.config && q.config.max) != null ? q.config.max : 5);
+    else if (t === 'nps') html = numberBtns(0, 10);
+    else if (t === 'ranking') html = '<div class="space-y-2">' + opts.map(function (o) { return '<div class="flex items-center gap-3 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700"><span class="w-10 h-8 rounded border border-gray-200 dark:border-gray-700 inline-flex items-center justify-center text-xs text-gray-400">#</span><span class="text-sm text-gray-700 dark:text-gray-200">' + escapeHtml(o.label) + '</span></div>'; }).join('') + '</div>';
+    else if (t === 'matrix') {
+      var rows = (q.config && q.config.rows) || [], cols = (q.config && q.config.cols) || [];
+      html = '<table class="min-w-full text-sm border border-gray-200 dark:border-gray-700"><thead><tr><th></th>' + cols.map(function (c) { return '<th class="p-2 text-xs text-gray-600 dark:text-gray-300">' + escapeHtml(c) + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.map(function (r) { return '<tr class="border-t border-gray-200 dark:border-gray-700"><td class="p-2 text-gray-700 dark:text-gray-200">' + escapeHtml(r) + '</td>' + cols.map(function () { return '<td class="p-2 text-center"><input type="radio" class="text-ecs-green"></td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>';
+    }
+    return '<div class="space-y-2">' + label + help + html + '</div>';
+  }
+
+  function renderPreview() {
+    var data = collectSurvey();
+    var surface = $('preview-surface');
+    var parts = ['<div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-200 dark:border-gray-700 overflow-hidden">'];
+    // header
+    parts.push('<div class="px-5 pt-5 pb-4 bg-gradient-to-br from-emerald-600 to-emerald-800">');
+    parts.push('<h2 class="text-lg font-bold text-white">' + escapeHtml(data.title || 'Untitled survey') + '</h2>');
+    if (data.description) parts.push('<p class="text-emerald-100 text-sm mt-1">' + escapeHtml(data.description) + '</p>');
+    if (data.is_anonymous) parts.push('<p class="text-xs text-emerald-50/90 mt-2"><i class="ti ti-eye-off"></i> Your responses are anonymous.</p>');
+    parts.push('</div>');
+    if (data.show_progress_bar) parts.push('<div class="h-1.5 bg-gray-100 dark:bg-gray-700"><div class="h-full bg-ecs-green" style="width:35%"></div></div>');
+    // body
+    parts.push('<div class="px-5 py-5 space-y-6" style="pointer-events:none">');
+    if (!data.questions.length) parts.push('<p class="text-sm text-gray-400">No questions yet — add some to see them here.</p>');
+    data.questions.forEach(function (q, i) { parts.push(previewQuestion(q, i)); });
+    parts.push('<button class="w-full h-11 rounded-lg bg-ecs-green text-white text-sm font-semibold mt-2">Submit</button>');
+    parts.push('</div></div>');
+    if (data.confirmation_message) parts.push('<p class="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center"><i class="ti ti-circle-check"></i> After submit: "' + escapeHtml(data.confirmation_message) + '"</p>');
+    surface.innerHTML = parts.join('');
+  }
+
+  function updateAccessHint() {
+    var hint = $('access-hint');
+    if (!hint) return;
+    var login = $('sv-require_login').checked;
+    var anon = $('sv-is_anonymous').checked;
+    var onePer = $('sv-one_per_player').checked;
+    var msg = '';
+    if (anon && login) {
+      msg = 'Login-gated + anonymous: members must sign in, but responses are not tied to them.' +
+            (onePer ? ' One-per-person is still enforced via a private token.' : '');
+    } else if (anon && !login) {
+      msg = 'Open + anonymous: anyone with the link can respond.' +
+            (onePer ? ' Note: one-per-person can\'t be enforced without login.' : '');
+    } else if (login) {
+      msg = 'Members must sign in; responses are linked to them.';
+    }
+    hint.textContent = msg;
+  }
+
+  function setPreview(on) {
+    previewOn = on;
+    $('builder-edit').classList.toggle('hidden', on);
+    $('builder-preview').classList.toggle('hidden', !on);
+    $('survey-preview-label').textContent = on ? 'Edit' : 'Preview';
+    $('survey-preview-btn').querySelector('i').className = on ? 'ti ti-pencil' : 'ti ti-eye';
+    if (on) renderPreview();
+  }
+
   // ----- events --------------------------------------------------------- //
   $('add-question-btn').addEventListener('click', function () {
     addQuestion($('add-question-type').value);
   });
   $('survey-save-btn').addEventListener('click', save);
+  $('survey-preview-btn').addEventListener('click', function () { setPreview(!previewOn); });
+  $('sv-survey_type').addEventListener('change', populateTypeDropdown);
+  ['sv-require_login', 'sv-is_anonymous', 'sv-one_per_player'].forEach(function (id) {
+    $(id).addEventListener('change', updateAccessHint);
+  });
+
+  // While previewing, reflect settings changes live (edit pane is hidden, so
+  // only the still-visible settings inputs fire here).
+  root.addEventListener('change', function () { if (previewOn) renderPreview(); });
+  root.addEventListener('input', function () { if (previewOn) renderPreview(); });
 
   listEl.addEventListener('change', function (e) {
     if (e.target.classList && e.target.classList.contains('q-logic-ctrl')) {
@@ -347,4 +469,6 @@
   });
 
   loadBootstrap();
+  populateTypeDropdown();
+  updateAccessHint();
 })();

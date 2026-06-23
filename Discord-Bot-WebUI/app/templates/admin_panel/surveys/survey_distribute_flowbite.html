@@ -78,8 +78,13 @@
   <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
     <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-brand-discord text-ecs-green"></i> Discord embed</h3>
     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Posts an embed with a "Take Survey" button.</p>
-    <label class="block text-xs text-gray-500 dark:text-gray-400 mt-3">Channel ID</label>
-    <input type="text" id="embed-channel" class="{{ IFIELD }}" placeholder="e.g. 1420461752344117300">
+    <label class="block text-xs text-gray-500 dark:text-gray-400 mt-3">Channel</label>
+    <select id="embed-channel" data-custom="embed-channel-custom" class="{{ IFIELD }}">
+      <option value="">— Select a channel —</option>
+      {% for t in teams if t.discord_channel_id %}<option value="{{ t.discord_channel_id }}">{{ t.name }}</option>{% endfor %}
+      <option value="__custom__">Custom channel ID…</option>
+    </select>
+    <input type="text" id="embed-channel-custom" class="{{ IFIELD }} hidden" placeholder="Enter Discord channel ID">
     <button type="button" data-send="discord-embed" class="mt-3 inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-send"></i> Post embed</button>
   </div>
 
@@ -87,8 +92,13 @@
   <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
     <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-chart-bar text-ecs-green"></i> Native Discord poll</h3>
     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">For surveys with exactly one choice question.</p>
-    <label class="block text-xs text-gray-500 dark:text-gray-400 mt-3">Channel ID</label>
-    <input type="text" id="poll-channel" class="{{ IFIELD }}" placeholder="e.g. 1420461752344117300">
+    <label class="block text-xs text-gray-500 dark:text-gray-400 mt-3">Channel</label>
+    <select id="poll-channel" data-custom="poll-channel-custom" class="{{ IFIELD }}">
+      <option value="">— Select a channel —</option>
+      {% for t in teams if t.discord_channel_id %}<option value="{{ t.discord_channel_id }}">{{ t.name }}</option>{% endfor %}
+      <option value="__custom__">Custom channel ID…</option>
+    </select>
+    <input type="text" id="poll-channel-custom" class="{{ IFIELD }} hidden" placeholder="Enter Discord channel ID">
     <label class="block text-xs text-gray-500 dark:text-gray-400 mt-2">Duration (hours)</label>
     <input type="number" id="poll-duration" class="{{ IFIELD }}" value="48" min="1" max="168">
     <button type="button" data-send="native-poll" class="mt-3 inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-send"></i> Post poll</button>

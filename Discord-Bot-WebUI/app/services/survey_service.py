@@ -236,15 +236,31 @@ class SurveyService:
     # --------------------------------------------------------------------- #
     # Response intake
     # --------------------------------------------------------------------- #
+    @staticmethod
+    def _user_marker(user_id):
+        """Stable, non-reversible dedupe key for a logged-in user — lets an
+        anonymous-but-login-gated survey enforce one-per-person without ever
+        storing who answered."""
+        return hashlib.sha256(f'u:{user_id}'.encode()).hexdigest()
+
     def find_existing_response(self, session, survey, player_id=None, user_id=None,
                                discord_id=None):
         """Return a prior response for dedupe, or None.
 
-        Only meaningful for identified surveys with one_per_player set.
+        Identified surveys dedupe by player/user/discord. Anonymous surveys that
+        still require login dedupe by a hashed user marker (identity not stored).
         """
-        if survey.is_anonymous or not survey.one_per_player:
+        if not survey.one_per_player:
             return None
         q = session.query(SurveyResponse).filter(SurveyResponse.survey_id == survey.id)
+
+        if survey.is_anonymous:
+            # Only login-gated anonymous surveys can dedupe (we need a stable
+            # per-person key); open anonymous surveys cannot.
+            if survey.require_login and user_id:
+                return q.filter(SurveyResponse.ip_hash == self._user_marker(user_id)).first()
+            return None
+
         if player_id:
             return q.filter(SurveyResponse.player_id == player_id).first()
         if user_id:
@@ -344,7 +360,12 @@ class SurveyService:
             response.player_id = None
             response.user_id = None
             response.discord_id = None
-            if ip:
+            # For a login-gated anonymous survey, store a hashed per-user marker
+            # so one_per_player can dedupe without revealing identity. Otherwise
+            # fall back to a hashed IP for light open-survey dedupe.
+            if survey.require_login and user_id:
+                response.ip_hash = self._user_marker(user_id)
+            elif ip:
                 response.ip_hash = hashlib.sha256(str(ip).encode()).hexdigest()
 
         response.status = status
