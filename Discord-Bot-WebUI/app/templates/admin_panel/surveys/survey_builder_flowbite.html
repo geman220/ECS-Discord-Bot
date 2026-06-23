@@ -170,5 +170,5 @@
 {% block extra_js %}
 {% if survey_json %}<script id="survey-bootstrap" type="application/json">{{ survey_json | tojson }}</script>{% endif %}
 <script id="question-types" type="application/json">{{ question_types | tojson }}</script>
-<script src="{{ url_for('static', filename='custom_js/survey-builder.js') }}"></script>
+<script src="{{ asset_version('custom_js/survey-builder.js') }}"></script>
 {% endblock %}

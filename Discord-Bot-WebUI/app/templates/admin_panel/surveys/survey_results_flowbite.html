@@ -94,5 +94,5 @@
 <script id="survey-summary" type="application/json">{{ summary | tojson }}</script>
 <script id="survey-trend" type="application/json">{{ trend | tojson }}</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ url_for('static', filename='custom_js/survey-results.js') }}"></script>
+<script src="{{ asset_version('custom_js/survey-results.js') }}"></script>
 {% endblock %}
