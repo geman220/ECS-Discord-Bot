@@ -123,6 +123,12 @@
                 <i class="ti ti-shield me-3"></i>
                 Admin Panel
             </a>
+            {% elif safe_current_user.is_authenticated and 'ECS FC Coach' in user_roles %}
+            <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}"
+               class="list-group-item list-group-item-action">
+                <i class="ti ti-shield me-3"></i>
+                ECS FC Admin
+            </a>
             {% endif %}
 
             <!-- Wallet (if admin) -->

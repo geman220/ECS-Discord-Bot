@@ -117,6 +117,13 @@ def build_nav_sections(user_roles, admin_settings):
                 item('Admin Panel', 'ti-layout-dashboard', 'admin_panel.dashboard', badge='NEW', highlight=True),
                 item('Digital Wallets', 'ti-device-mobile', children=wallet_children),
             ]})
+        elif has_any('ECS FC Coach'):
+            # ECS FC Coaches get a single entry into their slice of the admin
+            # panel. admin_panel.dashboard auto-redirects coach-only users to the
+            # ECS FC Hub, where the simplified ECS-FC-only nav takes over.
+            sections.append({'title': 'Administration', 'items': [
+                item('ECS FC Admin', 'ti-shield', 'admin_panel.ecs_fc_dashboard', highlight=True),
+            ]})
 
         return sections
     except Exception as e:

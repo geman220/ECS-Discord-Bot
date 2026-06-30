@@ -87,7 +87,7 @@
                 </div>
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
                     <i class="ti ti-shield-check mr-1"></i>
-                    {% if user_roles and 'Global Admin' in user_roles %}Global Admin{% else %}Pub League Admin{% endif %}
+                    {% if user_roles and 'Global Admin' in user_roles %}Global Admin{% elif user_roles and 'Pub League Admin' in user_roles %}Pub League Admin{% else %}ECS FC Coach{% endif %}
                 </span>
                 <span class="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
                     {{ safe_current_user.name or safe_current_user.username }}

@@ -1340,7 +1340,7 @@ def ecs_fc_rsvp_status(match_id):
 
 @admin_panel_bp.route('/ecs-fc/post-missing-rsvps', methods=['POST'])
 @login_required
-@role_required(['Global Admin', 'Pub League Admin'])
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
 def ecs_fc_post_missing_rsvps():
     """
     Manually trigger posting of missing RSVP messages.
