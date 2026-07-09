@@ -66,6 +66,7 @@
 {% macro season_block(ov, icon, accent) %}
 {% set s = ov.season %}
 {% set pct = ((ov.matches_reported / ov.matches_total) * 100) | round(0, 'floor') | int if ov.matches_total else 0 %}
+{% set sched_url = url_for('schedule.manage_ecsfc_schedule', season_id=s.id) if s.league_type == 'ECS FC' else sched_url %}
 <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
   <!-- header -->
   <div class="flex flex-wrap items-center gap-2 px-4 sm:px-5 h-auto py-3 border-b border-gray-200 dark:border-gray-700">
@@ -73,24 +74,28 @@
     <h2 class="font-semibold text-gray-900 dark:text-white">{{ s.name }}</h2>
     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-ecs-green/10 text-ecs-green"><i class="ti ti-player-play text-[10px]"></i> Current</span>
     <span class="text-xs text-gray-400 dark:text-gray-500">{{ s.league_type }}</span>
+    {% if ov.schedule_supported %}
     {% if ov.schedule_generated %}
     <span class="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-ecs-green/10 text-ecs-green"><i class="ti ti-calendar-check text-[11px]"></i> Schedule ready</span>
     {% else %}
     <span class="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-calendar-off text-[11px]"></i> No schedule yet</span>
     {% endif %}
+    {% endif %}
   </div>
 
   <div class="p-4 sm:p-5 space-y-5">
     <!-- stat tiles -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="grid grid-cols-2 {{ 'lg:grid-cols-4' if ov.schedule_supported else 'sm:grid-cols-2' }} gap-3">
       {{ tile('ti-shield-half', 'Teams', ov.teams_total, (ov.divisions | map(attribute='name') | join(' + ')) or '—', 'green') }}
-      {{ tile('ti-whistle', 'Coaches', ov.coaches_total, 'Across divisions', 'gold') }}
+      {{ tile('ti-whistle', 'Coaches', ov.coaches_total, 'Role holders — review each season', 'gold') }}
+      {% if ov.schedule_supported %}
       {{ tile('ti-calendar', 'Weeks', ov.weeks, (ov.special_weeks|string) ~ ' special · ' ~ (ov.bye_weeks|string) ~ ' bye · ' ~ (ov.playoff_weeks|string) ~ ' playoff', 'blue') }}
       {{ tile('ti-clipboard-check', 'Results', ov.matches_reported ~ ' / ' ~ ov.matches_total, 'Reported', 'amber') }}
+      {% endif %}
     </div>
 
     <!-- results progress -->
-    {% if ov.matches_total %}
+    {% if ov.schedule_supported and ov.matches_total %}
     <div>
       <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
         <span>Results reported</span><span class="font-mono tabular-nums">{{ pct }}%</span>
@@ -113,7 +118,7 @@
             <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ d.name }}</div>
             <div class="text-xs text-gray-500 dark:text-gray-400 font-mono tabular-nums">{{ d.teams }} team{{ '' if d.teams == 1 else 's' }} · {{ d.coaches }} coach{{ '' if d.coaches == 1 else 'es' }}</div>
           </div>
-          <a href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=s.id) }}" class="shrink-0 text-xs font-semibold text-ecs-green hover:underline">Schedule</a>
+          <a href="{{ sched_url }}" class="shrink-0 text-xs font-semibold text-ecs-green hover:underline">Schedule</a>
         </div>
         {% endfor %}
       </div>
@@ -125,15 +130,19 @@
       <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Next steps</div>
       <ul class="divide-y divide-gray-100 dark:divide-gray-700">
         {{ step(ov.teams_total > 0, 'Teams created', 'Roll over or build the season to create teams.', url_for('admin_panel.season_rollover'), 'Rollover') }}
-        {{ step(ov.schedule_generated, 'Schedule generated', 'Set weeks (TST / Fun / BYE) and generate the schedule.', url_for('auto_schedule.view_seasonal_schedule', season_id=s.id), 'Edit schedule') }}
+        {% if ov.schedule_supported %}
+        {{ step(ov.schedule_generated, 'Schedule generated', 'Set weeks (TST / Fun / BYE) and generate the schedule.', sched_url, 'Edit schedule') }}
+        {% endif %}
         {{ step(ov.coaches_total > 0, 'Coaches assigned', 'Add Premier / Classic coaches (grants their Discord role).', url_for('admin_panel.season_coaches'), 'Assign') }}
+        {% if ov.schedule_supported %}
         {{ step(ov.matches_reported > 0, 'Results coming in', 'Scores post as matches are played.', None, None) }}
+        {% endif %}
       </ul>
     </div>
 
     <!-- actions -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-      {{ action(url_for('auto_schedule.view_seasonal_schedule', season_id=s.id), 'ti-calendar-event', 'Schedule & Dates', 'Weeks, TST/Fun/BYE, reschedule, move weeks', 'green') }}
+      {{ action(sched_url, 'ti-calendar-event', 'Schedule & Dates', 'Weeks, TST/Fun/BYE, reschedule, move weeks', 'green') }}
       {{ action(url_for('admin_panel.season_coaches'), 'ti-whistle', 'Division Coaches', 'Assign Premier / Classic coaches', 'gold') }}
       {{ action(url_for('admin_panel.league_management_teams'), 'ti-users-group', 'Teams', 'Rename, add, or remove teams', 'blue') }}
       {{ action(url_for('admin_panel.season_rollover'), 'ti-rotate-clockwise', 'Season Rollover', 'Start the next season', 'purple') }}

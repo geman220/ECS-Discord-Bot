@@ -822,15 +822,23 @@ def _season_overview(session, season):
         'teams_total': 0, 'coaches_total': 0,
         'matches_total': 0, 'matches_reported': 0, 'schedule_generated': False,
         'weeks': 0, 'special_weeks': 0, 'bye_weeks': 0, 'playoff_weeks': 0,
+        # Pub League fixtures live in Match + WeekConfiguration; ECS FC uses a
+        # separate EcsFcMatch table with no week configs, so the schedule/week/
+        # result tiles only apply to Pub League. The template hides them otherwise.
+        'schedule_supported': False,
     }
     if not season:
         return ov
+    ov['schedule_supported'] = (season.league_type == 'Pub League')
 
     leagues = session.query(League).filter_by(season_id=season.id).all()
     league_ids = [l.id for l in leagues]
     ov['league_ids'] = league_ids
 
-    # Division coach counts come from the team-independent 'Premier/Classic Coach' roles.
+    # 'Premier/Classic/ECS FC Coach' are team-INDEPENDENT roles that persist across
+    # seasons — so these are current role HOLDERS (re-curated each season on the
+    # Coaches panel), not a per-season draft count. Matched tolerantly by division
+    # name so a renamed league (e.g. 'Premier Division') doesn't silently show 0.
     coach_counts = {}
     for div_name in ('Premier', 'Classic', 'ECS FC'):
         try:
@@ -839,22 +847,39 @@ def _season_overview(session, season):
         except Exception:
             coach_counts[div_name] = 0
 
+    def _coaches_for(name):
+        n = (name or '').lower()
+        if 'premier' in n:
+            return coach_counts.get('Premier', 0)
+        if 'classic' in n:
+            return coach_counts.get('Classic', 0)
+        if 'ecs fc' in n or 'ecsfc' in n:
+            return coach_counts.get('ECS FC', 0)
+        return 0
+
     for lg in leagues:
         try:
             team_ct = session.query(Team).filter_by(league_id=lg.id).count()
         except Exception:
             team_ct = 0
-        coaches = coach_counts.get(lg.name, 0)
+        coaches = _coaches_for(lg.name)
         ov['teams_total'] += team_ct
         ov['coaches_total'] += coaches
         ov['divisions'].append({
             'name': lg.name, 'league_id': lg.id, 'teams': team_ct, 'coaches': coaches,
         })
 
-    if league_ids:
+    # Schedule/week/result metrics are Pub-League-shaped (Match + WeekConfiguration).
+    if league_ids and ov['schedule_supported']:
         try:
+            # Count only REAL, reportable fixtures — exclude the special/BYE/playoff
+            # placeholder self-match rows (home == away, is_special_week), mirroring
+            # the standings self-match invariant. Otherwise the denominator includes
+            # non-reportable rows and "results %" can never reach 100%.
             base = session.query(Match).join(Team, Match.home_team_id == Team.id).filter(
-                Team.league_id.in_(league_ids)
+                Team.league_id.in_(league_ids),
+                Match.home_team_id != Match.away_team_id,
+                Match.is_special_week.isnot(True),
             )
             ov['matches_total'] = base.count()
             ov['matches_reported'] = base.filter(

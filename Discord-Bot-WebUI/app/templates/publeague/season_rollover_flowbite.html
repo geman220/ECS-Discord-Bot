@@ -385,8 +385,12 @@
         var regular = Math.max(0, num(regularId));
         var playoff = Math.max(0, num(playoffId));
         var store = state.weekTypes[divKey] || (state.weekTypes[divKey] = {});
-        // Drop designations for weeks that no longer exist.
-        Object.keys(store).forEach(function (k) { if (parseInt(k, 10) > regular) delete store[k]; });
+        // NOTE: we intentionally do NOT delete store entries above `regular`.
+        // The `input` event fires on every keystroke, so clearing the field to
+        // retype it momentarily reads 0 and would wipe every tag. buildWeekConfigs
+        // and countTypes only ever read weeks 1..regular, so stale-high entries
+        // never leak into the payload — and keeping them means reducing then
+        // restoring the week count preserves your tags instead of losing them.
         container.innerHTML = '';
         for (var n = 1; n <= regular; n++) {
             var t = store[n] || 'REGULAR';

@@ -477,13 +477,25 @@ def update_match():
         original_home_team_id = match.home_team_id
         original_away_team_id = match.away_team_id
 
+        # The edit modals submit team IDs as <select>.value STRINGS, but the model
+        # stores ints. Coerce before comparing — '5' != 5 is always True in Python,
+        # which would otherwise make the guards below fire on EVERY edit (even a
+        # time/field-only change) to a reported match.
+        def _as_int(v):
+            try:
+                return int(v)
+            except (TypeError, ValueError):
+                return None
+        new_home = _as_int(data['home_team_id']) if 'home_team_id' in data else match.home_team_id
+        new_away = _as_int(data['away_team_id']) if 'away_team_id' in data else match.away_team_id
+
         # Guard: reassigning teams on a match that already has a reported result
         # would silently attach those scores (and PlayerEvents) to the wrong teams
         # and leave the match flagged verified. Refuse — the result must be cleared
         # first via the reporting flow (which decrements stats correctly).
         changing_teams = (
-            ('home_team_id' in data and data['home_team_id'] != match.home_team_id) or
-            ('away_team_id' in data and data['away_team_id'] != match.away_team_id)
+            ('home_team_id' in data and new_home != match.home_team_id) or
+            ('away_team_id' in data and new_away != match.away_team_id)
         )
         if changing_teams and match.reported:
             return jsonify({
@@ -493,8 +505,6 @@ def update_match():
             }), 400
 
         # Guard: a regular (non-special) match can never be a team playing itself.
-        new_home = data.get('home_team_id', match.home_team_id)
-        new_away = data.get('away_team_id', match.away_team_id)
         if (new_home is not None and new_away is not None
                 and new_home == new_away and not match.is_special_week):
             return jsonify({
