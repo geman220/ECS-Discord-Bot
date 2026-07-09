@@ -137,7 +137,9 @@
                 </button>
                 <div class="{{ '' if league_ops_active else 'hidden' }} pl-4 mt-1 space-y-0.5 border-l-2 border-gray-200 dark:border-gray-600 ml-5">
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase">League Management</div>
-                    <a href="{{ url_for('publeague.season.rollover_wizard') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-rotate-clockwise text-gray-400 text-xs"></i>Season Rollover</a>
+                    <a href="{{ url_for('admin_panel.season_rollover') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-rotate-clockwise text-gray-400 text-xs"></i>Season Rollover</a>
+                    <a href="{{ url_for('admin_panel.season_manage') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-adjustments text-gray-400 text-xs"></i>Manage Season</a>
+                    <a href="{{ url_for('admin_panel.season_coaches') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-whistle text-gray-400 text-xs"></i>Division Coaches</a>
                     <a href="{{ url_for('auto_schedule.current_season_schedule') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-calendar-event text-gray-400 text-xs"></i>Edit Schedule</a>
                     <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-calendar-stats text-gray-400 text-xs"></i>All Seasons</a>
                     <a href="{{ url_for('admin_panel.league_management_teams') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-shirt-sport text-gray-400 text-xs"></i>All Teams</a>
@@ -414,7 +416,7 @@
                         {# Left Column #}
                         <div>
                             <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">League Management</div>
-                            <a href="{{ url_for('publeague.season.rollover_wizard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <a href="{{ url_for('admin_panel.season_rollover') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <i class="ti ti-rotate-clockwise text-gray-400"></i>Season Rollover
                             </a>
                             <a href="{{ url_for('auto_schedule.current_season_schedule') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">

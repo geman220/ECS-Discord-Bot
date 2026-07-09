@@ -377,6 +377,13 @@ def get_match_lineup(match_id, team_id):
         if not ctx:
             return jsonify({'msg': 'Match not found'}), 404
 
+        # Team-scoped: only a coach of THIS team (or an admin) may view the pitch
+        # view — it exposes the full roster + every player's RSVP. Mirrors the
+        # write endpoints below; without this any authenticated user could read
+        # any team's lineup.
+        if not check_coach_permission(current_user_id, ctx['team_id'], session_db):
+            return jsonify({'msg': 'You are not authorized to view this team\'s lineup'}), 403
+
         lineup = session_db.query(MatchLineup).filter_by(
             match_id=ctx['lineup_match_id'],
             team_id=ctx['team_id']

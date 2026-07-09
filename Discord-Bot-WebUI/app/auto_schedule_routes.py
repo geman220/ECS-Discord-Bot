@@ -477,6 +477,31 @@ def update_match():
         original_home_team_id = match.home_team_id
         original_away_team_id = match.away_team_id
 
+        # Guard: reassigning teams on a match that already has a reported result
+        # would silently attach those scores (and PlayerEvents) to the wrong teams
+        # and leave the match flagged verified. Refuse — the result must be cleared
+        # first via the reporting flow (which decrements stats correctly).
+        changing_teams = (
+            ('home_team_id' in data and data['home_team_id'] != match.home_team_id) or
+            ('away_team_id' in data and data['away_team_id'] != match.away_team_id)
+        )
+        if changing_teams and match.reported:
+            return jsonify({
+                'success': False,
+                'error': ('This match already has a reported result — reassigning teams '
+                          'would attach those scores to the wrong teams. Clear the result first.')
+            }), 400
+
+        # Guard: a regular (non-special) match can never be a team playing itself.
+        new_home = data.get('home_team_id', match.home_team_id)
+        new_away = data.get('away_team_id', match.away_team_id)
+        if (new_home is not None and new_away is not None
+                and new_home == new_away and not match.is_special_week):
+            return jsonify({
+                'success': False,
+                'error': 'Home and away teams cannot be the same for a regular match.'
+            }), 400
+
         # Update match
         if 'time' in data:
             match.time = datetime.strptime(data['time'], '%H:%M').time()
@@ -643,6 +668,20 @@ def update_week():
                         Team.league_id.in_(season_league_ids)
                     )
                 ).all()
+
+                # Guard: converting a week to BYE DELETES its matches. If any carry a
+                # reported result, that would hard-delete their PlayerEvents without
+                # decrementing season/career stats (permanent inflation, no recompute
+                # path). Refuse until those results are cleared.
+                _reported = [m for m in all_week_matches
+                             if m.home_team_score is not None and m.away_team_score is not None]
+                if _reported:
+                    return jsonify({
+                        'success': False,
+                        'error': (f'This week has {len(_reported)} match(es) with reported results. '
+                                  f'Converting it to a BYE would leave their goals/cards counted in '
+                                  f'player stats. Clear those results first.')
+                    }), 400
 
                 # Capture the week date before deleting (for creating BYE entries)
                 bye_date = None
@@ -1072,6 +1111,19 @@ def delete_match():
         if not match:
             return jsonify({'success': False, 'error': 'Match not found'})
 
+        # Guard: deleting a match that has a reported result would hard-delete its
+        # PlayerEvents WITHOUT decrementing season/career totals (there is no
+        # recompute-from-events path), so those goals/assists/cards stay counted
+        # forever. Refuse — clear the result via the reporting flow first, which
+        # decrements stats correctly, then delete the empty fixture.
+        if match.reported:
+            return jsonify({
+                'success': False,
+                'error': ('This match has a reported result. Deleting it now would leave its '
+                          'goals/assists/cards permanently counted in player stats. Clear the '
+                          'result first (via match reporting), then delete the fixture.')
+            }), 400
+
         # Import all models that might reference matches
         from app.models import (
             Schedule, Availability, ScheduledMessage, PlayerEvent,
@@ -1439,7 +1491,25 @@ def delete_week(league_id):
             Team.league_id == league_id,
             Schedule.week == week_number
         ).all()
-        
+
+        # Guard: refuse if any match in this week has a reported result — a bulk
+        # delete would hard-delete those PlayerEvents without decrementing season/
+        # career stats, permanently inflating totals. Clear results first.
+        _sched_ids = [s.id for s in schedules]
+        if _sched_ids:
+            reported_ct = session.query(Match).filter(
+                Match.schedule_id.in_(_sched_ids),
+                Match.home_team_score.isnot(None),
+                Match.away_team_score.isnot(None),
+            ).count()
+            if reported_ct:
+                return jsonify({
+                    'success': False,
+                    'error': (f'This week has {reported_ct} match(es) with reported results. '
+                              f'Deleting it would leave their goals/cards counted in player '
+                              f'stats. Clear those results first, then delete the week.')
+                }), 400
+
         # Delete matches and schedules
         for schedule in schedules:
             # Delete any matches associated with this schedule
@@ -1486,6 +1556,28 @@ def delete_week_all():
 
         # Get all leagues in this season
         season_leagues = session.query(League).filter_by(season_id=season_id).all()
+
+        # Guard: refuse if any match in this week (across ALL leagues) has a reported
+        # result — a bulk delete would inflate season/career stats permanently. Clear
+        # results first. (Same protection as delete_week, applied season-wide.)
+        _league_ids = [l.id for l in season_leagues]
+        if _league_ids:
+            _week_sched_ids = [r[0] for r in session.query(Schedule.id).join(
+                Team, Schedule.team_id == Team.id
+            ).filter(Team.league_id.in_(_league_ids), Schedule.week == week_number).all()]
+            if _week_sched_ids:
+                reported_ct = session.query(Match).filter(
+                    Match.schedule_id.in_(_week_sched_ids),
+                    Match.home_team_score.isnot(None),
+                    Match.away_team_score.isnot(None),
+                ).count()
+                if reported_ct:
+                    return jsonify({
+                        'success': False,
+                        'error': (f'This week has {reported_ct} match(es) with reported results '
+                                  f'across the season. Deleting it would leave their goals/cards '
+                                  f'counted in player stats. Clear those results first.')
+                    }), 400
 
         deleted_matches = 0
         for league in season_leagues:
@@ -1680,7 +1772,28 @@ def _execute_season_creation(session, data):
         
         if existing:
             return {'error': f'Season "{season_name}" already exists for {league_type}'}, 400
-        
+
+        # Validate team counts BEFORE any destructive work. The scheduler builds
+        # back-to-back double round-robins, which require an EVEN number of teams
+        # (>= 2) per division. This MUST run before the deactivation + rollover_league
+        # below (rollover_league COMMITS internally), otherwise a bad team count would
+        # leave a half-rolled-over DB that the later session.rollback() cannot undo.
+        def _even_error(count, label):
+            if count < 2 or count % 2 != 0:
+                return (f"{label} needs an even number of teams (at least 2) so each team "
+                        f"can play back-to-back games. You chose {count}.")
+            return None
+
+        _tc_error = None
+        if league_type == 'Pub League':
+            _tc_error = (_even_error(int(data.get('classic_teams', 4)), 'Classic division')
+                         or _even_error(int(data.get('premier_teams', 8)), 'Premier division'))
+        elif league_type == 'ECS FC':
+            _tc_error = _even_error(int(data.get('ecs_fc_teams', 8)), 'ECS FC')
+        if _tc_error:
+            # Nothing has been mutated yet — safe hard stop.
+            return {'error': _tc_error}, 400
+
         # Handle rollover if setting as current season
         old_season = None
         if set_as_current:
@@ -1850,24 +1963,8 @@ def _execute_season_creation(session, data):
                 session.rollback()
                 return {'error': 'Internal Server Error'}, 500
         
-        # Validate team counts up front. The scheduler builds back-to-back double
-        # round-robins, which requires an EVEN number of teams per division so every team
-        # can play two games each week. Any even count (4, 6, 8, 10, 12, ...) is supported.
-        def _even_error(count, label):
-            if count < 2 or count % 2 != 0:
-                return (f"{label} needs an even number of teams (at least 2) so each team "
-                        f"can play back-to-back games. You chose {count}.")
-            return None
-
-        team_count_error = None
-        if league_type == 'Pub League':
-            team_count_error = (_even_error(int(data.get('classic_teams', 4)), 'Classic division')
-                                or _even_error(int(data.get('premier_teams', 8)), 'Premier division'))
-        elif league_type == 'ECS FC':
-            team_count_error = _even_error(int(data.get('ecs_fc_teams', 8)), 'ECS FC')
-        if team_count_error:
-            session.rollback()
-            return {'error': team_count_error}, 400
+        # (Team-count validation moved above — it now runs BEFORE the destructive
+        # deactivation/rollover_league commit, so a bad count can't strand the DB.)
 
         # Create placeholder teams based on user selection
         # Classic teams get A, B, C, D first, then Premier continues with E, F, G, H, etc.

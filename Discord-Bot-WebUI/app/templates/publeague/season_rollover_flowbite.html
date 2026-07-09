@@ -1,9 +1,10 @@
-{% extends "base_flowbite.html" %}
+{% extends "admin_panel/base_flowbite.html" %}
 {% from "macros/_modern_kit.html" import page_header %}
-{% block title %}Guided Season Rollover{% endblock %}
+{% block admin_title %}Guided Season Rollover{% endblock %}
+{% block panel_description %}Preview, back up, and execute a season rollover safely{% endblock %}
 
-{% block main_content %}
-<div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8" data-page="season-rollover">
+{% block panel_content %}
+<div class="space-y-4 sm:space-y-5" data-page="season-rollover">
     {{ page_header("Guided Season Rollover", subtitle="Preview → Backup → Execute — a safe, step-by-step rollover") }}
 
     <!-- Current seasons context -->
@@ -293,7 +294,7 @@
 </div>
 {% endblock %}
 
-{% block custom_js %}
+{% block extra_js %}
 {{ super() }}
 <script>
 (function () {
@@ -462,6 +463,19 @@
         html += tile('ti-shield-plus', 'New teams created', String(p.total_teams), (p.new_leagues || []).join(' + '));
         html += '</div>';
 
+        // What will be CLEARED / changed (previously hidden side effects)
+        if (p.will_clear && p.will_clear.length) {
+            html += '<div class="rounded-lg border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 p-3 text-sm">';
+            html += '<div class="text-xs font-semibold uppercase tracking-wide text-red-700 dark:text-red-400 mb-1.5 flex items-center gap-1.5"><i class="ti ti-eraser"></i> Will be cleared / changed</div>';
+            html += '<ul class="space-y-1 text-gray-700 dark:text-gray-200">';
+            p.will_clear.forEach(function (w) { html += '<li class="flex items-start gap-2"><i class="ti ti-point-filled text-red-500 mt-0.5"></i><span>' + escapeHtml(w) + '</span></li>'; });
+            html += '<li class="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400 pt-1"><i class="ti ti-info-circle mt-0.5"></i><span>'
+                 + String(p.roster_rows_cleared || 0) + ' roster membership(s), '
+                 + String(p.coaches_to_clear || 0) + ' coach assignment(s) cleared; '
+                 + String(p.players_repointed || 0) + ' player(s) re-pointed to the new season.</span></li>';
+            html += '</ul></div>';
+        }
+
         // Preservation note
         html += '<div class="rounded-lg border border-ecs-green/40 bg-ecs-green/5 dark:bg-ecs-green/10 p-3 text-sm text-gray-700 dark:text-gray-200 flex items-start gap-2">'
              + '<i class="ti ti-shield-check text-ecs-green text-lg mt-0.5"></i>'
@@ -482,7 +496,7 @@
             } else if (dc.delete_channels) {
                 html += '<div class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><i class="ti ti-trash mt-0.5"></i><span>No old team channels found to delete.</span></div>';
             } else {
-                html += '<div class="flex items-start gap-2 text-gray-700 dark:text-gray-200"><i class="ti ti-lock text-ecs-green mt-0.5"></i><span>Last season\'s channels will be <strong>kept</strong>.</span></div>';
+                html += '<div class="flex items-start gap-2 text-gray-700 dark:text-gray-200"><i class="ti ti-lock text-ecs-green mt-0.5"></i><span>Last season\'s channels will be <strong>kept</strong> — but each player\'s old team <strong>role is still removed</strong> (roles always roll over).</span></div>';
             }
             html += '</div>';
         }
@@ -625,10 +639,17 @@
         window.Swal.fire(swalTheme({
             icon: 'warning',
             title: 'Execute rollover?',
-            text: 'This will create the new season and roll over all players. Continue?',
+            html: 'This clears <strong>every current roster and coach assignment</strong>, re-points all players to the new season, and removes old team Discord roles. Career stats &amp; history are preserved.<br><br>Type <strong>ROLLOVER</strong> to confirm.',
+            input: 'text',
+            inputPlaceholder: 'ROLLOVER',
             showCancelButton: true,
             confirmButtonText: 'Execute',
-            confirmButtonColor: '#dc2626'
+            confirmButtonColor: '#dc2626',
+            inputValidator: function (value) {
+                if ((value || '').trim().toUpperCase() !== 'ROLLOVER') {
+                    return 'Type ROLLOVER to confirm.';
+                }
+            }
         })).then(function (res) {
             if (!res.isConfirmed) return;
             window.Swal.fire(swalTheme({ title: 'Executing rollover…', text: 'Creating season, migrating players, generating schedule.', allowOutsideClick: false, didOpen: function () { window.Swal.showLoading(); } }));
@@ -638,7 +659,8 @@
                 body: JSON.stringify({
                     season: payload,
                     backup_filename: state.backupFilename,
-                    skip_backup: state.skipBackup
+                    skip_backup: state.skipBackup,
+                    confirm: 'ROLLOVER'
                 })
             }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); }).then(function (resp) {
                 window.Swal.close();
@@ -690,7 +712,7 @@
         window.Swal.fire(swalTheme({
             icon: 'warning',
             title: 'Restore this backup?',
-            html: 'This will <strong>overwrite the entire database</strong> with <code>' + escapeHtml(filename) + '</code>.<br>Type <strong>RESTORE</strong> to confirm.',
+            html: 'This reverts the <strong>ENTIRE database</strong> to <code>' + escapeHtml(filename) + '</code>. <strong>Everything created since that backup</strong> — new signups, payments, match results, RSVPs, messages — will be <strong>permanently lost</strong>, not just the rollover.<br><br>Restart the app + workers afterward. Type <strong>RESTORE</strong> to confirm.',
             input: 'text',
             inputPlaceholder: 'RESTORE',
             showCancelButton: true,

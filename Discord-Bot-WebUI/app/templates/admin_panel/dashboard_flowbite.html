@@ -40,7 +40,7 @@
          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-history text-base" aria-hidden="true"></i><span class="hidden sm:inline">Audit log</span>
       </a>
-      <a href="{{ url_for('publeague.season.rollover_wizard') }}"
+      <a href="{{ url_for('admin_panel.season_rollover') }}"
          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-rotate-clockwise text-base" aria-hidden="true"></i> Season Rollover
       </a>
@@ -160,7 +160,7 @@
       </div>
       <div class="p-2">
         {% for label, icon, endpoint in [
-            ('Season Rollover', 'ti-rotate-clockwise', 'publeague.season.rollover_wizard'),
+            ('Season Rollover', 'ti-rotate-clockwise', 'admin_panel.season_rollover'),
             ('All Seasons', 'ti-calendar-stats', 'admin_panel.league_management_seasons'),
             ('All Teams', 'ti-shirt-sport', 'admin_panel.league_management_teams'),
             ('Match Dashboard', 'ti-trophy', 'admin_panel.match_operations') ] %}
@@ -293,7 +293,7 @@
         {% if current_pub_league %}
           {{ empty_state('ti-calendar-off', 'No upcoming matches', 'Nothing scheduled in the next 7 days.', action={'label': 'View full schedule', 'url': url_for('auto_schedule.current_season_schedule'), 'icon': 'ti-calendar'}) }}
         {% else %}
-          {{ empty_state('ti-calendar-off', 'No active season', 'Create one with Season Rollover to schedule matches.', action={'label': 'Go to Season Rollover', 'url': url_for('publeague.season.rollover_wizard'), 'icon': 'ti-rotate-clockwise'}) }}
+          {{ empty_state('ti-calendar-off', 'No active season', 'Create one with Season Rollover to schedule matches.', action={'label': 'Go to Season Rollover', 'url': url_for('admin_panel.season_rollover'), 'icon': 'ti-rotate-clockwise'}) }}
         {% endif %}
       {% endif %}
     </section>
@@ -416,7 +416,7 @@
         <!-- Pub League Quick Links -->
         {% call card(title="Pub League", subtitle="Season and team management") %}
         <div class="space-y-1">
-            <a href="{{ url_for('publeague.season.rollover_wizard') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+            <a href="{{ url_for('admin_panel.season_rollover') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
                 <i class="ti ti-rotate-clockwise text-gray-400 group-hover:text-ecs-green"></i>
                 <span class="text-gray-700 dark:text-gray-300">Season Rollover</span>
                 <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>
@@ -539,7 +539,7 @@
             View Full Schedule <i class="ti ti-arrow-right ml-1"></i>
         </a>
         {% else %}
-        <a href="{{ url_for('publeague.season.rollover_wizard') }}" class="inline-flex items-center mt-3 text-sm text-ecs-green hover:underline">
+        <a href="{{ url_for('admin_panel.season_rollover') }}" class="inline-flex items-center mt-3 text-sm text-ecs-green hover:underline">
             Create a Season <i class="ti ti-arrow-right ml-1"></i>
         </a>
         {% endif %}

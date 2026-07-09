@@ -215,12 +215,40 @@ def delete_team():
             return redirect(url_for('publeague.manage_teams'))
 
         team_name = team.name
-        
-        # Enqueue Discord cleanup task.
+
+        # Guard: never delete a team that carries history/results.
+        #   - matches & standings FKs are NO ACTION, so the delete would ERROR
+        #     mid-request — AFTER Discord cleanup already fired, stranding Discord.
+        #   - player_team_season → team is ON DELETE CASCADE, so deleting a team
+        #     with history would SILENTLY destroy the roster snapshots that career
+        #     & attendance stats depend on.
+        # Only truly-empty placeholder teams (never played, no history) may be deleted.
+        from app.models.matches import Match
+        from app.models.stats import Standings
+        from app.models import PlayerTeamSeason
+        blocking = []
+        match_ct = session.query(Match).filter(
+            (Match.home_team_id == team.id) | (Match.away_team_id == team.id)
+        ).count()
+        if match_ct:
+            blocking.append(f'{match_ct} match(es)')
+        if session.query(Standings).filter_by(team_id=team.id).count():
+            blocking.append('standings')
+        history_ct = session.query(PlayerTeamSeason).filter_by(team_id=team.id).count()
+        if history_ct:
+            blocking.append(f'{history_ct} season-history record(s)')
+        if blocking:
+            show_error(
+                f'Cannot delete "{team_name}" — it has {", ".join(blocking)}. Deleting it '
+                f'would destroy historical stats/standings. Keep the team for the record.'
+            )
+            return redirect(url_for('publeague.manage_teams'))
+
+        # Enqueue Discord cleanup ONLY now that we know the delete will proceed.
         cleanup_team_discord_resources_task.delay(team_id)
 
         session.delete(team)
-        
+
         show_success(f'Team "{team_name}" deleted. Discord cleanup in progress...')
         return redirect(url_for('publeague.manage_teams'))
     except Exception as e:

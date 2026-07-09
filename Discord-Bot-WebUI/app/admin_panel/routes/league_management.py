@@ -726,3 +726,133 @@ def league_management_search_players():
             'success': False,
             'message': 'Failed to search players'
         }), 500
+
+
+# =============================================================================
+# Season Rollover (rendered inside the admin-panel shell)
+# =============================================================================
+
+@admin_panel_bp.route('/seasons/rollover', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def season_rollover():
+    """Guided Season Rollover wizard, rendered inside the admin-panel shell.
+
+    Served on the admin_panel blueprint so it gets the full admin sidebar +
+    top nav (both gated on request.blueprint == 'admin_panel'). The JSON
+    preview/backup/execute/restore endpoints remain on publeague.season and are
+    called by absolute URL from the page JS, so nothing else has to move.
+    """
+    from app.models import Season
+
+    is_global_admin = False
+    try:
+        is_global_admin = current_user.has_role('Global Admin')
+    except Exception:
+        is_global_admin = False
+
+    pub_current = db.session.query(Season).filter_by(
+        league_type='Pub League', is_current=True
+    ).first()
+    ecs_current = db.session.query(Season).filter_by(
+        league_type='ECS FC', is_current=True
+    ).first()
+
+    return render_template(
+        'publeague/season_rollover_flowbite.html',
+        title='Guided Season Rollover',
+        is_global_admin=is_global_admin,
+        pub_current=pub_current,
+        ecs_current=ecs_current,
+    )
+
+
+# =============================================================================
+# Division Coaches panel (assign Premier / Classic coaches, team-independent)
+# =============================================================================
+
+def _division_coach_list(role):
+    """Serialize the users holding a division-coach role, name-sorted."""
+    if not role:
+        return []
+    out = []
+    for u in role.users:
+        name = (u.player.name if u.player else None) or u.username
+        out.append({
+            'user_id': u.id,
+            'name': name,
+            'has_discord': bool(u.player and u.player.discord_id),
+        })
+    return sorted(out, key=lambda x: (x['name'] or '').lower())
+
+
+@admin_panel_bp.route('/seasons/coaches', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def season_coaches():
+    """Assign coaches to Premier / Classic divisions.
+
+    These grant the team-INDEPENDENT 'Premier Coach' / 'Classic Coach' roles,
+    which drive the division coach Discord role up front (before drafting).
+    Add/remove is done through the existing admin_panel.assign_user_role
+    endpoint, which queues the Discord role re-sync.
+    """
+    from app.models import Role
+
+    premier_role = db.session.query(Role).filter_by(name='Premier Coach').first()
+    classic_role = db.session.query(Role).filter_by(name='Classic Coach').first()
+
+    return render_template(
+        'admin_panel/seasons/coaches_flowbite.html',
+        premier_role_id=premier_role.id if premier_role else None,
+        classic_role_id=classic_role.id if classic_role else None,
+        premier_coaches=_division_coach_list(premier_role),
+        classic_coaches=_division_coach_list(classic_role),
+    )
+
+
+@admin_panel_bp.route('/seasons/manage', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def season_manage():
+    """Post-rollover 'Manage Season' hub — one place to edit a season after it's
+    been rolled over. Links to the existing schedule/reschedule editor and team
+    management, plus the division Coaches panel and the rollover wizard."""
+    from app.models import Season
+
+    pub_current = db.session.query(Season).filter_by(
+        league_type='Pub League', is_current=True
+    ).first()
+    ecs_current = db.session.query(Season).filter_by(
+        league_type='ECS FC', is_current=True
+    ).first()
+
+    return render_template(
+        'admin_panel/seasons/manage_flowbite.html',
+        pub_current=pub_current,
+        ecs_current=ecs_current,
+    )
+
+
+@admin_panel_bp.route('/seasons/coaches/search', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def season_coaches_search():
+    """Search players (with a linked user account) by name, for the Coaches panel."""
+    from app.models import Player
+
+    q = (request.args.get('q') or '').strip()
+    if len(q) < 2:
+        return jsonify({'success': True, 'results': []})
+
+    players = db.session.query(Player).filter(
+        Player.name.ilike(f'%{q}%'),
+        Player.user_id.isnot(None),
+    ).order_by(Player.name).limit(20).all()
+
+    results = [{
+        'user_id': p.user_id,
+        'name': p.name,
+        'has_discord': bool(p.discord_id),
+    } for p in players]
+    return jsonify({'success': True, 'results': results})

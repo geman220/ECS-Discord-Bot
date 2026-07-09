@@ -861,28 +861,20 @@ def set_current_season(season_id):
 
 def restore_players_to_previous_leagues(session, previous_season):
     """
-    Restore players to their previous league assignments when reverting a season.
-    
-    Args:
-        session: Database session
-        previous_season: The season to restore players to
+    NOT IMPLEMENTED — do not wire this to any "revert rollover" action.
+
+    This was a stub whose Premier/Classic branches were `pass` and which then
+    logged success. Wiring a revert button to it would silently restore NOTHING
+    while reporting success — a data-integrity landmine. The correct source of
+    truth for reverting is the ``PlayerTeamSeason`` snapshot written by
+    ``rollover_league`` (see ``restore_season_memberships``), or a database
+    backup restore. Fail loudly until implemented against that snapshot.
     """
-    # Get the leagues for the previous season
-    previous_leagues = session.query(League).filter_by(season_id=previous_season.id).all()
-    
-    # For each league in the previous season, restore players who should be in that league
-    for league in previous_leagues:
-        # Find players who have NULL league assignments and should be in this league
-        # This is a simplified approach - in a real scenario, you'd need to track
-        # the original league assignments before the rollover
-        if league.name == 'Premier':
-            # Restore players who had Premier as their league (this is a basic heuristic)
-            pass  # Would need more complex logic to determine original assignments
-        elif league.name == 'Classic':
-            # Restore players who had Classic as their league
-            pass  # Would need more complex logic to determine original assignments
-    
-    logger.info(f"Restored players to previous season leagues: {previous_season.name}")
+    raise NotImplementedError(
+        "restore_players_to_previous_leagues is not implemented. Revert via a "
+        "database backup restore or PlayerTeamSeason-based restore_season_memberships, "
+        "not this stub."
+    )
 
 
 @season_bp.route('/delete/<int:season_id>', methods=['POST'])
@@ -1089,28 +1081,10 @@ def delete_season(season_id):
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def rollover_wizard():
-    """Render the guided Season Rollover wizard page."""
-    session = g.db_session
-    is_global_admin = False
-    try:
-        is_global_admin = current_user.has_role('Global Admin')
-    except Exception:
-        is_global_admin = False
-
-    pub_current = session.query(Season).filter_by(
-        league_type='Pub League', is_current=True
-    ).first()
-    ecs_current = session.query(Season).filter_by(
-        league_type='ECS FC', is_current=True
-    ).first()
-
-    return render_template(
-        'publeague/season_rollover_flowbite.html',
-        title='Guided Season Rollover',
-        is_global_admin=is_global_admin,
-        pub_current=pub_current,
-        ecs_current=ecs_current,
-    )
+    """Deprecated URL — the wizard now renders inside the admin-panel shell at
+    admin_panel.season_rollover. Redirect so old bookmarks/links keep working.
+    (The JSON companion routes below stay on this blueprint.)"""
+    return redirect(url_for('admin_panel.season_rollover'))
 
 
 @season_bp.route('/rollover/preview', methods=['POST'])
@@ -1197,13 +1171,24 @@ def rollover_execute():
     if not skip_backup:
         import os
         path = _safe_backup_path(backup_filename) if backup_filename else None
-        if not path or not os.path.isfile(path):
+        # Require a real, non-empty backup file — a 0-byte or stale placeholder must
+        # not satisfy the gate (that would give false confidence a backup exists).
+        if not path or not os.path.isfile(path) or os.path.getsize(path) == 0:
             return jsonify({
                 'success': False,
-                'error': ('A database backup is required before executing. Create a '
-                          'backup first, or resend with skip_backup=true to proceed '
-                          'without one.')
+                'error': ('A valid (non-empty) database backup is required before '
+                          'executing. Create a fresh backup first, or resend with '
+                          'skip_backup=true to explicitly proceed without one.')
             }), 400
+
+    # Deliberate-confirmation gate. Rollover is destructive and (without a backup)
+    # irreversible, so require the admin to type ROLLOVER — mirroring the restore
+    # gate, which the far-less-destructive restore already had.
+    if str(data.get('confirm') or '').strip().upper() != 'ROLLOVER':
+        return jsonify({
+            'success': False,
+            'error': 'Rollover not confirmed. Type ROLLOVER to confirm this destructive action.'
+        }), 400
 
     # The wizard payload nested under "season" carries the exact shape the
     # Season Builder posts; fall back to the top-level data for flexibility.

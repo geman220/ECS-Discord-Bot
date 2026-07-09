@@ -895,7 +895,27 @@ class LeagueManagementService:
 
             team_name = team.name
 
-            # Queue Discord cleanup first
+            # Guard: never delete a team carrying history/results. matches/standings
+            # FKs are NO ACTION (delete errors mid-request), and player_team_season
+            # is ON DELETE CASCADE (silent history destruction). Only empty
+            # placeholder teams may be deleted. Checked BEFORE queuing Discord cleanup.
+            from app.models.matches import Match
+            from app.models.stats import Standings
+            from app.models import PlayerTeamSeason
+            blocking = []
+            if self.session.query(Match).filter(
+                (Match.home_team_id == team.id) | (Match.away_team_id == team.id)
+            ).count():
+                blocking.append('matches')
+            if self.session.query(Standings).filter_by(team_id=team.id).count():
+                blocking.append('standings')
+            if self.session.query(PlayerTeamSeason).filter_by(team_id=team.id).count():
+                blocking.append('season history')
+            if blocking:
+                return False, (f'Cannot delete "{team_name}" — it has {", ".join(blocking)}. '
+                               f'Deleting it would destroy historical stats. Keep the team for the record.')
+
+            # Queue Discord cleanup only now that the delete will proceed
             if cleanup_discord and team.discord_channel_id:
                 self._queue_discord_team_cleanup_task(team)
 

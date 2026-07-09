@@ -797,12 +797,18 @@ def live_report_match(match_id):
                 reporting_team_id = team_id
                 break
     
-    # If not a coach, use any team the player is on
+    # A non-coach player on the team is NOT allowed to live-report — only a coach
+    # of one of the two teams (set above), or an admin. This closes the case where
+    # a coach of one division who ALSO plays in the other could report the team
+    # they merely play on (e.g. a Classic coach who plays Premier reporting their
+    # Premier match).
     if not reporting_team_id:
-        if match.home_team_id in user_team_ids:
-            reporting_team_id = match.home_team_id
-        elif match.away_team_id in user_team_ids:
-            reporting_team_id = match.away_team_id
+        user_roles = [role.name for role in safe_current_user.roles]
+        if 'Global Admin' in user_roles or 'Pub League Admin' in user_roles:
+            reporting_team_id = match.home_team_id if match.home_team_id in user_team_ids else match.away_team_id
+        else:
+            logger.warning(f"User {safe_current_user.id} not authorized to live-report match {match_id} (not a coach of either team)")
+            return redirect(url_for('match_pages.view_match', match_id=match_id))
     
     # Get player lists for both teams (includes assigned temp subs)
     from app.utils.substitute_helpers import get_match_eligible_players

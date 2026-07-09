@@ -233,6 +233,34 @@ def build_rollover_preview(session, league_type: str, new_season_name: str,
             Team.discord_channel_id.isnot(None)
         ).count()
 
+    # --- Other side effects the executor performs (previously hidden) -------
+    # Surface the changes rollover_league actually makes so preview == execute:
+    #   * every current roster row (player_teams) for old-season teams is cleared
+    #   * per-team coach assignments are cleared (snapshotted to history first)
+    #   * ALL players in the old leagues (active AND inactive) get re-pointed to
+    #     the new season's leagues
+    roster_rows_cleared = 0
+    coaches_to_clear = 0
+    players_repointed = 0
+    if old_season:
+        from app.models import player_teams as _pt
+        _old_team_ids = [tid for (tid,) in session.query(Team.id).join(
+            League, Team.league_id == League.id
+        ).filter(League.season_id == old_season.id).all()]
+        if _old_team_ids:
+            roster_rows_cleared = len(session.execute(
+                _pt.select().where(_pt.c.team_id.in_(_old_team_ids))
+            ).fetchall())
+            coaches_to_clear = len(session.execute(
+                _pt.select().where(_pt.c.team_id.in_(_old_team_ids),
+                                   _pt.c.is_coach == True)  # noqa: E712
+            ).fetchall())
+    if old_league_ids:
+        players_repointed = session.query(Player).filter(
+            (Player.league_id.in_(old_league_ids)) |
+            (Player.primary_league_id.in_(old_league_ids))
+        ).count()
+
     # --- New leagues + teams to be created ---------------------------------
     if league_type == 'Pub League':
         new_leagues = ['Premier', 'Classic']
@@ -298,6 +326,18 @@ def build_rollover_preview(session, league_type: str, new_season_name: str,
         'current_season': current_season_info,
         'players_to_deactivate': players_to_deactivate,
         'teams_to_archive': teams_to_archive,
+        'roster_rows_cleared': roster_rows_cleared,
+        'coaches_to_clear': coaches_to_clear,
+        'players_repointed': players_repointed,
+        'will_clear': [
+            'Every current team roster is cleared — players start unassigned and '
+            're-activate when they buy their season pass',
+            'All per-team coach assignments are cleared (snapshotted to season history first)',
+            'Every player in the current leagues is re-pointed to the new season '
+            '(active AND inactive)',
+            'Old team Discord ROLES are always removed from players — even when you '
+            'keep the channels',
+        ],
         'preserved': {
             'career_stats': True,
             'player_profiles': True,
@@ -387,7 +427,15 @@ def create_database_backup() -> dict:
     env, _dbname = _pg_env_and_dbname()
     try:
         result = subprocess.run(
-            ['pg_dump', '-f', backup_path],
+            # --clean --if-exists: emit DROP ... IF EXISTS before each CREATE so the
+            #   dump can be restored ONTO the live (already-populated) database, not
+            #   just an empty one. Without this, restore aborts on the first
+            #   "relation already exists" and the rollback does nothing.
+            # --no-owner --no-privileges: the managed-Postgres app user is not a
+            #   superuser, so ALTER ... OWNER / GRANT lines would otherwise error and
+            #   (under ON_ERROR_STOP) abort the restore.
+            ['pg_dump', '--clean', '--if-exists', '--no-owner', '--no-privileges',
+             '-f', backup_path],
             capture_output=True, text=True, timeout=_BACKUP_TIMEOUT, env=env
         )
     except FileNotFoundError:
@@ -483,7 +531,12 @@ def restore_database_backup(filename: str) -> dict:
     env, _dbname = _pg_env_and_dbname()
     try:
         result = subprocess.run(
-            ['psql', '-v', 'ON_ERROR_STOP=1', '-f', path],
+            # --single-transaction: all-or-nothing. Combined with ON_ERROR_STOP=1, any
+            #   error mid-restore rolls the ENTIRE restore back instead of leaving a
+            #   half-restored database (worse than before). Relies on the dump being
+            #   --clean --if-exists (see create_database_backup) so the DROP+CREATE
+            #   sequence replays cleanly over existing objects inside the one txn.
+            ['psql', '--single-transaction', '-v', 'ON_ERROR_STOP=1', '-f', path],
             capture_output=True, text=True, timeout=_RESTORE_TIMEOUT, env=env
         )
     except FileNotFoundError:

@@ -45,27 +45,26 @@ def validate_ecs_fc_coach_access(team_id: int) -> bool:
     """
     # Check for role impersonation first, then fall back to real roles
     from app.role_impersonation import is_impersonation_active, get_effective_roles
-    
+
     if is_impersonation_active():
         effective_roles = get_effective_roles()
     else:
         effective_roles = [role.name for role in safe_current_user.roles]
-    
-    # Check if user has proper ECS FC permissions through roles
-    has_ecs_fc_access = (
-        'Global Admin' in effective_roles or
-        'Pub League Admin' in effective_roles or
-        'ECS FC Coach' in effective_roles
-    )
-    
-    if not has_ecs_fc_access:
+
+    # Admins may manage any ECS FC team.
+    if 'Global Admin' in effective_roles or 'Pub League Admin' in effective_roles:
+        return True
+
+    # Otherwise the user must be an ECS FC Coach AND coach THIS specific team.
+    # (Previously this only checked for the 'ECS FC Coach' role and ignored
+    # team_id, so any ECS FC coach could manage EVERY ECS FC team.)
+    if 'ECS FC Coach' not in effective_roles:
         return False
-    
-    # Don't allow if user is ONLY a player role
-    if effective_roles == ['pl-classic'] or effective_roles == ['pl-ecs-fc'] or effective_roles == ['pl-premier']:
+
+    try:
+        return team_id in is_user_ecs_fc_coach(safe_current_user.id)
+    except Exception:
         return False
-    
-    return True
 
 
 @ecs_fc_api.route('/matches', methods=['POST'])

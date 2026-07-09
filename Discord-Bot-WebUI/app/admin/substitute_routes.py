@@ -399,17 +399,14 @@ def request_sub():
             except Exception as alt_e:
                 logger.error(f"Alternate coach check failed: {str(alt_e)}")
         
-        # Final check
+        # Final check. The team-scoped checks above already grant a genuine coach
+        # of this team. We deliberately do NOT fall back to "has the Pub League
+        # Coach role" — that let any coach request subs for a team they don't
+        # coach (e.g. a Classic coach acting on a Premier match they play in).
         if not is_coach:
             if current_app.debug or current_app.config.get('ENV') == 'development':
                 # Development mode - still allow it but log warning
                 logger.warning(f"Development mode: Allowing sub request for user {safe_current_user.id} despite not being coach")
-                is_coach = True
-            elif match and (team_id == match.home_team_id or team_id == match.away_team_id):
-                # If it's a valid team for this match and user has Pub League Coach role, 
-                # we'll allow it even without direct relationship since database schema
-                # might not fully represent coaching relationships
-                logger.warning(f"Coach role override: Allowing request for {safe_current_user.id} for team {team_id}")
                 is_coach = True
             else:
                 show_error('You are not authorized to request subs for this team.')

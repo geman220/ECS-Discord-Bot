@@ -269,7 +269,19 @@ async def _execute_player_role_update_async(data):
     if 'ECS FC Sub' in user_roles:
         if 'ECS-FC-LEAGUE-SUB' not in expected_roles:
             expected_roles.append('ECS-FC-LEAGUE-SUB')
-    
+
+    # Add DIVISION coach roles from an explicit, team-INDEPENDENT assignment
+    # (the "Premier Coach" / "Classic Coach" Flask roles, managed on the rollover
+    # Coaches panel). This lets a coach get their division coach role UP FRONT —
+    # before any team exists or drafting happens — exactly the way the
+    # Premier/Classic Sub roles above work. The per-team block below ALSO grants
+    # these once a coach is rostered on a specific team, so the division coach
+    # role = (on the division coach list) OR (is_coach on a team in that division).
+    if 'Premier Coach' in user_roles and 'ECS-FC-PL-PREMIER-COACH' not in expected_roles:
+        expected_roles.append('ECS-FC-PL-PREMIER-COACH')
+    if 'Classic Coach' in user_roles and 'ECS-FC-PL-CLASSIC-COACH' not in expected_roles:
+        expected_roles.append('ECS-FC-PL-CLASSIC-COACH')
+
     # Add coach roles PER TEAM the player actually coaches. Coach status is a
     # property of a specific (player, team) membership (player_teams.is_coach),
     # NOT a global flag — so the division coach role (and its coaches channel) is

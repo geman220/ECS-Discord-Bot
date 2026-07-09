@@ -1,0 +1,238 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from "macros/_modern_kit.html" import page_header %}
+{% block admin_title %}Division Coaches{% endblock %}
+{% block panel_description %}Assign Premier and Classic coaches independent of team drafting{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="inline-flex items-center"><span class="text-gray-400">/</span></li>
+<li class="inline-flex items-center text-gray-500 dark:text-gray-400">Division Coaches</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="space-y-4 sm:space-y-5" data-page="season-coaches">
+  {{ page_header("Division Coaches", subtitle="Assign coaches to Premier or Classic — grants their coach Discord role right away, no team needed") }}
+
+  {% if not premier_role_id or not classic_role_id %}
+  <div class="rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-300 flex items-start gap-2">
+    <i class="ti ti-alert-triangle-filled mt-0.5" aria-hidden="true"></i>
+    <div>The <strong>Premier Coach</strong> / <strong>Classic Coach</strong> roles aren't set up yet. Run <code class="font-mono">sql_create_division_coach_roles.sql</code> in the database, then reload this page.</div>
+  </div>
+  {% endif %}
+
+  <p class="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
+    <i class="ti ti-info-circle mt-0.5 text-gray-400" aria-hidden="true"></i>
+    Adding a coach here grants the division coach role and coaches channel immediately — before any team is drafted. When you later draft the coach onto their actual team, that stays consistent. Someone who plays one division but coaches the other should be added to the division they <em>coach</em>.
+  </p>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+    {% for col in [
+      {'key': 'premier', 'label': 'Premier', 'icon': 'ti-crown', 'tone': 'text-ecs-green', 'role_id': premier_role_id, 'coaches': premier_coaches},
+      {'key': 'classic', 'label': 'Classic', 'icon': 'ti-shield', 'tone': 'text-ecs-gold-500 dark:text-ecs-gold-400', 'role_id': classic_role_id, 'coaches': classic_coaches}
+    ] %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden"
+             data-coach-col="{{ col.key }}" data-role-id="{{ col.role_id or '' }}">
+      <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+          <i class="ti {{ col.icon }} {{ col.tone }}" aria-hidden="true"></i> {{ col.label }} Coaches
+        </h2>
+        <span data-coach-count class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ col.coaches|length }}</span>
+      </div>
+
+      <div class="p-4 space-y-3">
+        <!-- Search to add -->
+        <div class="relative">
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <i class="ti ti-search text-gray-400 text-sm" aria-hidden="true"></i>
+            </div>
+            <input type="text" data-coach-search autocomplete="off"
+                   placeholder="Search a player to add as {{ col.label }} coach…"
+                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full pl-9 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+          </div>
+          <div data-coach-results class="hidden absolute z-20 mt-1 w-full max-h-60 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-lg"></div>
+        </div>
+
+        <!-- Current coaches -->
+        <ul data-coach-list class="divide-y divide-gray-100 dark:divide-gray-700 rounded-lg border border-gray-100 dark:border-gray-700">
+          {% for c in col.coaches %}
+          <li class="flex items-center justify-between gap-2 px-3 py-2" data-user-id="{{ c.user_id }}">
+            <span class="flex items-center gap-2 min-w-0">
+              <i class="ti ti-whistle {{ col.tone }} shrink-0" aria-hidden="true"></i>
+              <span class="text-sm text-gray-900 dark:text-white truncate">{{ c.name }}</span>
+              {% if not c.has_discord %}<span class="shrink-0 text-[10px] uppercase tracking-wide text-gray-400" title="No linked Discord account">no discord</span>{% endif %}
+            </span>
+            <button type="button" data-coach-remove data-user-id="{{ c.user_id }}"
+                    class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    title="Remove coach">
+              <i class="ti ti-x text-sm" aria-hidden="true"></i>
+            </button>
+          </li>
+          {% endfor %}
+        </ul>
+        <p data-coach-empty class="{% if col.coaches %}hidden {% endif %}text-sm text-gray-500 dark:text-gray-400 text-center py-3">No {{ col.label }} coaches yet.</p>
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+(function () {
+  'use strict';
+  var ASSIGN_URL = "{{ url_for('admin_panel.assign_user_role') }}";
+  var SEARCH_URL = "{{ url_for('admin_panel.season_coaches_search') }}";
+
+  function csrf() {
+    var m = document.querySelector('meta[name="csrf-token"]');
+    return m ? m.getAttribute('content') : '';
+  }
+
+  function assignRole(userId, roleId, action) {
+    var body = new URLSearchParams();
+    body.set('user_id', userId);
+    body.set('role_id', roleId);
+    body.set('action', action);
+    return fetch(ASSIGN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrf() },
+      body: body.toString()
+    }).then(function (r) { return r.json().catch(function () { return { success: false }; }); });
+  }
+
+  function toast(msg, ok) {
+    if (window.Swal) {
+      window.Swal.fire({ toast: true, position: 'top-end', timer: 2600, showConfirmButton: false,
+        icon: ok ? 'success' : 'error', title: msg });
+    }
+  }
+
+  document.querySelectorAll('[data-coach-col]').forEach(function (col) {
+    var roleId = col.getAttribute('data-role-id');
+    var label = col.getAttribute('data-coach-col');
+    var search = col.querySelector('[data-coach-search]');
+    var results = col.querySelector('[data-coach-results]');
+    var list = col.querySelector('[data-coach-list]');
+    var empty = col.querySelector('[data-coach-empty]');
+    var countEl = col.querySelector('[data-coach-count]');
+    if (!roleId) { if (search) search.disabled = true; return; }
+
+    function refreshEmpty() {
+      var n = list.querySelectorAll('li[data-user-id]').length;
+      countEl.textContent = n;
+      empty.classList.toggle('hidden', n > 0);
+    }
+    function inList(userId) {
+      return !!list.querySelector('li[data-user-id="' + userId + '"]');
+    }
+
+    function addRow(userId, name, hasDiscord) {
+      var li = document.createElement('li');
+      li.className = 'flex items-center justify-between gap-2 px-3 py-2';
+      li.setAttribute('data-user-id', userId);
+      var left = document.createElement('span');
+      left.className = 'flex items-center gap-2 min-w-0';
+      var icon = document.createElement('i');
+      icon.className = 'ti ti-whistle shrink-0';
+      var nameEl = document.createElement('span');
+      nameEl.className = 'text-sm text-gray-900 dark:text-white truncate';
+      nameEl.textContent = name;
+      left.appendChild(icon); left.appendChild(nameEl);
+      if (!hasDiscord) {
+        var nd = document.createElement('span');
+        nd.className = 'shrink-0 text-[10px] uppercase tracking-wide text-gray-400';
+        nd.title = 'No linked Discord account';
+        nd.textContent = 'no discord';
+        left.appendChild(nd);
+      }
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('data-coach-remove', '');
+      btn.setAttribute('data-user-id', userId);
+      btn.className = 'shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500';
+      btn.title = 'Remove coach';
+      btn.innerHTML = '<i class="ti ti-x text-sm" aria-hidden="true"></i>';
+      li.appendChild(left); li.appendChild(btn);
+      list.appendChild(li);
+      refreshEmpty();
+    }
+
+    // Debounced search
+    var timer = null;
+    search.addEventListener('input', function () {
+      var q = search.value.trim();
+      if (timer) clearTimeout(timer);
+      if (q.length < 2) { results.classList.add('hidden'); results.innerHTML = ''; return; }
+      timer = setTimeout(function () {
+        fetch(SEARCH_URL + '?q=' + encodeURIComponent(q), { headers: { 'X-CSRFToken': csrf() } })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            results.innerHTML = '';
+            var rows = (data && data.results) || [];
+            if (!rows.length) { results.classList.add('hidden'); return; }
+            rows.forEach(function (p) {
+              var already = inList(p.user_id);
+              var item = document.createElement('button');
+              item.type = 'button';
+              item.className = 'w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-600 ' + (already ? 'opacity-50 cursor-not-allowed' : '');
+              var nm = document.createElement('span');
+              nm.className = 'truncate text-gray-900 dark:text-white';
+              nm.textContent = p.name;
+              item.appendChild(nm);
+              var tag = document.createElement('span');
+              tag.className = 'shrink-0 text-xs ' + (already ? 'text-gray-400' : 'text-ecs-green');
+              tag.textContent = already ? 'added' : '+ add';
+              item.appendChild(tag);
+              if (!already) {
+                item.addEventListener('click', function () {
+                  item.disabled = true;
+                  assignRole(p.user_id, roleId, 'add').then(function (res) {
+                    if (res && res.success) {
+                      addRow(p.user_id, p.name, p.has_discord);
+                      toast((p.name || 'Coach') + ' added to ' + label, true);
+                      search.value = ''; results.classList.add('hidden'); results.innerHTML = '';
+                    } else {
+                      toast((res && res.message) || 'Could not add coach', false);
+                      item.disabled = false;
+                    }
+                  });
+                });
+              }
+              results.appendChild(item);
+            });
+            results.classList.remove('hidden');
+          })
+          .catch(function () { results.classList.add('hidden'); });
+      }, 250);
+    });
+
+    // Remove (event delegation on the list)
+    list.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-coach-remove]');
+      if (!btn) return;
+      var li = btn.closest('li[data-user-id]');
+      var userId = btn.getAttribute('data-user-id');
+      var name = li ? (li.querySelector('.truncate') || {}).textContent : '';
+      btn.disabled = true;
+      assignRole(userId, roleId, 'remove').then(function (res) {
+        if (res && res.success) {
+          if (li) li.remove();
+          refreshEmpty();
+          toast((name || 'Coach') + ' removed from ' + label, true);
+        } else {
+          toast((res && res.message) || 'Could not remove coach', false);
+          btn.disabled = false;
+        }
+      });
+    });
+
+    // Hide results when clicking away
+    document.addEventListener('click', function (e) {
+      if (!col.contains(e.target)) { results.classList.add('hidden'); }
+    });
+  });
+})();
+</script>
+{% endblock %}

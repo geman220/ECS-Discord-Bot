@@ -1,0 +1,92 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from "macros/_modern_kit.html" import page_header %}
+{% block admin_title %}Manage Season{% endblock %}
+{% block panel_description %}Edit a rolled-over season — schedule, teams, and coaches{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="inline-flex items-center"><span class="text-gray-400">/</span></li>
+<li class="inline-flex items-center text-gray-500 dark:text-gray-400">Manage Season</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="space-y-4 sm:space-y-5" data-page="season-manage">
+  {{ page_header("Manage Season", subtitle="Make changes after a rollover — dates, teams, and coaches") }}
+
+  <!-- Current season context -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-center gap-3">
+      <i class="ti ti-beer text-2xl text-ecs-green" aria-hidden="true"></i>
+      <div class="min-w-0">
+        <div class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Current Pub League</div>
+        <div class="font-semibold text-gray-900 dark:text-white truncate">{{ pub_current.name if pub_current else 'None set' }}</div>
+      </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-center gap-3">
+      <i class="ti ti-ball-football text-2xl text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+      <div class="min-w-0">
+        <div class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Current ECS FC</div>
+        <div class="font-semibold text-gray-900 dark:text-white truncate">{{ ecs_current.name if ecs_current else 'None set' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit actions -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+
+    <!-- Schedule & dates -->
+    {% if pub_current %}
+    <a href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=pub_current.id) }}"
+       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-start gap-3 hover:border-ecs-green hover:shadow-sm transition-all">
+      <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-ecs-green/10 text-ecs-green"><i class="ti ti-calendar-event text-xl" aria-hidden="true"></i></span>
+      <div class="min-w-0">
+        <div class="font-semibold text-gray-900 dark:text-white">Schedule &amp; Dates</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Edit match dates/times, move or add weeks, reschedule.</div>
+      </div>
+      <i class="ti ti-arrow-right ml-auto text-gray-300 group-hover:text-ecs-green" aria-hidden="true"></i>
+    </a>
+    {% else %}
+    <div class="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-4 flex items-start gap-3 opacity-60">
+      <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-400"><i class="ti ti-calendar-event text-xl" aria-hidden="true"></i></span>
+      <div class="min-w-0">
+        <div class="font-semibold text-gray-900 dark:text-white">Schedule &amp; Dates</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">No current Pub League season — roll one over first.</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Division coaches -->
+    <a href="{{ url_for('admin_panel.season_coaches') }}"
+       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-start gap-3 hover:border-ecs-green hover:shadow-sm transition-all">
+      <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400"><i class="ti ti-whistle text-xl" aria-hidden="true"></i></span>
+      <div class="min-w-0">
+        <div class="font-semibold text-gray-900 dark:text-white">Division Coaches</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Assign Premier / Classic coaches (grants their coach role now).</div>
+      </div>
+      <i class="ti ti-arrow-right ml-auto text-gray-300 group-hover:text-ecs-green" aria-hidden="true"></i>
+    </a>
+
+    <!-- Teams -->
+    <a href="{{ url_for('admin_panel.league_management_teams') }}"
+       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-start gap-3 hover:border-ecs-green hover:shadow-sm transition-all">
+      <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400"><i class="ti ti-users-group text-xl" aria-hidden="true"></i></span>
+      <div class="min-w-0">
+        <div class="font-semibold text-gray-900 dark:text-white">Teams</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Rename, add, or remove teams in the current season.</div>
+      </div>
+      <i class="ti ti-arrow-right ml-auto text-gray-300 group-hover:text-ecs-green" aria-hidden="true"></i>
+    </a>
+
+    <!-- Rollover -->
+    <a href="{{ url_for('admin_panel.season_rollover') }}"
+       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-start gap-3 hover:border-ecs-green hover:shadow-sm transition-all">
+      <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400"><i class="ti ti-rotate-clockwise text-xl" aria-hidden="true"></i></span>
+      <div class="min-w-0">
+        <div class="font-semibold text-gray-900 dark:text-white">Season Rollover</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Start a new season from the current one (preview → backup → execute).</div>
+      </div>
+      <i class="ti ti-arrow-right ml-auto text-gray-300 group-hover:text-ecs-green" aria-hidden="true"></i>
+    </a>
+
+  </div>
+</div>
+{% endblock %}
