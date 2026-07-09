@@ -1,92 +1,163 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from "macros/_modern_kit.html" import page_header %}
 {% block admin_title %}Manage Season{% endblock %}
-{% block panel_description %}Edit a rolled-over season — schedule, teams, and coaches{% endblock %}
+{% block panel_description %}Live status of the current season — teams, schedule, coaches, and results{% endblock %}
 
 {% block breadcrumb_items %}
 <li class="inline-flex items-center"><span class="text-gray-400">/</span></li>
 <li class="inline-flex items-center text-gray-500 dark:text-gray-400">Manage Season</li>
 {% endblock %}
 
-{% block panel_content %}
-<div class="space-y-4 sm:space-y-5" data-page="season-manage">
-  {{ page_header("Manage Season", subtitle="Make changes after a rollover — dates, teams, and coaches") }}
+{# ---- reusable stat tile ---- #}
+{% macro tile(icon, label, value, sub, tone='gray') %}
+{% set tones = {
+  'green': 'text-ecs-green',
+  'gold':  'text-ecs-gold-500 dark:text-ecs-gold-400',
+  'blue':  'text-blue-600 dark:text-blue-400',
+  'amber': 'text-amber-600 dark:text-amber-400',
+  'gray':  'text-gray-500 dark:text-gray-400'
+} %}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+  <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+    <i class="ti {{ icon }} text-base {{ tones[tone] }}" aria-hidden="true"></i>{{ label }}
+  </div>
+  <div class="mt-2 font-mono text-2xl sm:text-3xl font-bold leading-none tabular-nums text-gray-900 dark:text-white">{{ value }}</div>
+  {% if sub %}<div class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">{{ sub }}</div>{% endif %}
+</div>
+{% endmacro %}
 
-  <!-- Current season context -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-center gap-3">
-      <i class="ti ti-beer text-2xl text-ecs-green" aria-hidden="true"></i>
-      <div class="min-w-0">
-        <div class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Current Pub League</div>
-        <div class="font-semibold text-gray-900 dark:text-white truncate">{{ pub_current.name if pub_current else 'None set' }}</div>
-      </div>
-    </div>
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-center gap-3">
-      <i class="ti ti-ball-football text-2xl text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
-      <div class="min-w-0">
-        <div class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Current ECS FC</div>
-        <div class="font-semibold text-gray-900 dark:text-white truncate">{{ ecs_current.name if ecs_current else 'None set' }}</div>
-      </div>
-    </div>
+{# ---- checklist row ---- #}
+{% macro step(done, label, hint, url=None, cta=None) %}
+<li class="flex items-center gap-3 py-2">
+  {% if done %}
+  <i class="ti ti-circle-check-filled text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+  {% else %}
+  <i class="ti ti-circle text-lg text-gray-300 dark:text-gray-600 shrink-0" aria-hidden="true"></i>
+  {% endif %}
+  <div class="min-w-0 flex-1">
+    <div class="text-sm font-medium {{ 'text-gray-500 line-through dark:text-gray-500' if done else 'text-gray-900 dark:text-white' }}">{{ label }}</div>
+    {% if hint and not done %}<div class="text-xs text-gray-500 dark:text-gray-400">{{ hint }}</div>{% endif %}
+  </div>
+  {% if url and not done %}
+  <a href="{{ url }}" class="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-ecs-green hover:underline">{{ cta or 'Do it' }} <i class="ti ti-arrow-right"></i></a>
+  {% endif %}
+</li>
+{% endmacro %}
+
+{# ---- action link card ---- #}
+{% macro action(url, icon, title, desc, tone='green') %}
+{% set tones = {
+  'green': 'bg-ecs-green/10 text-ecs-green',
+  'gold':  'bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400',
+  'blue':  'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  'purple':'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+} %}
+<a href="{{ url }}" class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-start gap-3 hover:border-ecs-green hover:shadow-sm transition-all min-h-[44px]">
+  <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg {{ tones[tone] }}"><i class="ti {{ icon }} text-xl" aria-hidden="true"></i></span>
+  <div class="min-w-0">
+    <div class="font-semibold text-gray-900 dark:text-white">{{ title }}</div>
+    <div class="text-sm text-gray-500 dark:text-gray-400">{{ desc }}</div>
+  </div>
+  <i class="ti ti-arrow-right ml-auto self-center text-gray-300 group-hover:text-ecs-green" aria-hidden="true"></i>
+</a>
+{% endmacro %}
+
+{# ---- full season block ---- #}
+{% macro season_block(ov, icon, accent) %}
+{% set s = ov.season %}
+{% set pct = ((ov.matches_reported / ov.matches_total) * 100) | round(0, 'floor') | int if ov.matches_total else 0 %}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  <!-- header -->
+  <div class="flex flex-wrap items-center gap-2 px-4 sm:px-5 h-auto py-3 border-b border-gray-200 dark:border-gray-700">
+    <i class="ti {{ icon }} text-xl {{ accent }}" aria-hidden="true"></i>
+    <h2 class="font-semibold text-gray-900 dark:text-white">{{ s.name }}</h2>
+    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-ecs-green/10 text-ecs-green"><i class="ti ti-player-play text-[10px]"></i> Current</span>
+    <span class="text-xs text-gray-400 dark:text-gray-500">{{ s.league_type }}</span>
+    {% if ov.schedule_generated %}
+    <span class="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-ecs-green/10 text-ecs-green"><i class="ti ti-calendar-check text-[11px]"></i> Schedule ready</span>
+    {% else %}
+    <span class="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-calendar-off text-[11px]"></i> No schedule yet</span>
+    {% endif %}
   </div>
 
-  <!-- Edit actions -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+  <div class="p-4 sm:p-5 space-y-5">
+    <!-- stat tiles -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {{ tile('ti-shield-half', 'Teams', ov.teams_total, (ov.divisions | map(attribute='name') | join(' + ')) or '—', 'green') }}
+      {{ tile('ti-whistle', 'Coaches', ov.coaches_total, 'Across divisions', 'gold') }}
+      {{ tile('ti-calendar', 'Weeks', ov.weeks, (ov.special_weeks|string) ~ ' special · ' ~ (ov.bye_weeks|string) ~ ' bye · ' ~ (ov.playoff_weeks|string) ~ ' playoff', 'blue') }}
+      {{ tile('ti-clipboard-check', 'Results', ov.matches_reported ~ ' / ' ~ ov.matches_total, 'Reported', 'amber') }}
+    </div>
 
-    <!-- Schedule & dates -->
-    {% if pub_current %}
-    <a href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=pub_current.id) }}"
-       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-start gap-3 hover:border-ecs-green hover:shadow-sm transition-all">
-      <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-ecs-green/10 text-ecs-green"><i class="ti ti-calendar-event text-xl" aria-hidden="true"></i></span>
-      <div class="min-w-0">
-        <div class="font-semibold text-gray-900 dark:text-white">Schedule &amp; Dates</div>
-        <div class="text-sm text-gray-500 dark:text-gray-400">Edit match dates/times, move or add weeks, reschedule.</div>
+    <!-- results progress -->
+    {% if ov.matches_total %}
+    <div>
+      <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+        <span>Results reported</span><span class="font-mono tabular-nums">{{ pct }}%</span>
       </div>
-      <i class="ti ti-arrow-right ml-auto text-gray-300 group-hover:text-ecs-green" aria-hidden="true"></i>
-    </a>
-    {% else %}
-    <div class="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-4 flex items-start gap-3 opacity-60">
-      <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-400"><i class="ti ti-calendar-event text-xl" aria-hidden="true"></i></span>
-      <div class="min-w-0">
-        <div class="font-semibold text-gray-900 dark:text-white">Schedule &amp; Dates</div>
-        <div class="text-sm text-gray-500 dark:text-gray-400">No current Pub League season — roll one over first.</div>
+      <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="progressbar" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Results reported">
+        <div class="h-full rounded-full bg-ecs-green" style="width: {{ pct }}%"></div>
       </div>
     </div>
     {% endif %}
 
-    <!-- Division coaches -->
-    <a href="{{ url_for('admin_panel.season_coaches') }}"
-       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-start gap-3 hover:border-ecs-green hover:shadow-sm transition-all">
-      <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400"><i class="ti ti-whistle text-xl" aria-hidden="true"></i></span>
-      <div class="min-w-0">
-        <div class="font-semibold text-gray-900 dark:text-white">Division Coaches</div>
-        <div class="text-sm text-gray-500 dark:text-gray-400">Assign Premier / Classic coaches (grants their coach role now).</div>
+    <!-- divisions -->
+    {% if ov.divisions %}
+    <div>
+      <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Divisions</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {% for d in ov.divisions %}
+        <div class="flex items-center gap-3 rounded-lg border border-gray-100 dark:border-gray-700 px-3 py-2">
+          <i class="ti ti-shield {{ accent }} shrink-0" aria-hidden="true"></i>
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ d.name }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 font-mono tabular-nums">{{ d.teams }} team{{ '' if d.teams == 1 else 's' }} · {{ d.coaches }} coach{{ '' if d.coaches == 1 else 'es' }}</div>
+          </div>
+          <a href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=s.id) }}" class="shrink-0 text-xs font-semibold text-ecs-green hover:underline">Schedule</a>
+        </div>
+        {% endfor %}
       </div>
-      <i class="ti ti-arrow-right ml-auto text-gray-300 group-hover:text-ecs-green" aria-hidden="true"></i>
-    </a>
+    </div>
+    {% endif %}
 
-    <!-- Teams -->
-    <a href="{{ url_for('admin_panel.league_management_teams') }}"
-       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-start gap-3 hover:border-ecs-green hover:shadow-sm transition-all">
-      <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400"><i class="ti ti-users-group text-xl" aria-hidden="true"></i></span>
-      <div class="min-w-0">
-        <div class="font-semibold text-gray-900 dark:text-white">Teams</div>
-        <div class="text-sm text-gray-500 dark:text-gray-400">Rename, add, or remove teams in the current season.</div>
-      </div>
-      <i class="ti ti-arrow-right ml-auto text-gray-300 group-hover:text-ecs-green" aria-hidden="true"></i>
-    </a>
+    <!-- next steps -->
+    <div>
+      <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Next steps</div>
+      <ul class="divide-y divide-gray-100 dark:divide-gray-700">
+        {{ step(ov.teams_total > 0, 'Teams created', 'Roll over or build the season to create teams.', url_for('admin_panel.season_rollover'), 'Rollover') }}
+        {{ step(ov.schedule_generated, 'Schedule generated', 'Set weeks (TST / Fun / BYE) and generate the schedule.', url_for('auto_schedule.view_seasonal_schedule', season_id=s.id), 'Edit schedule') }}
+        {{ step(ov.coaches_total > 0, 'Coaches assigned', 'Add Premier / Classic coaches (grants their Discord role).', url_for('admin_panel.season_coaches'), 'Assign') }}
+        {{ step(ov.matches_reported > 0, 'Results coming in', 'Scores post as matches are played.', None, None) }}
+      </ul>
+    </div>
 
-    <!-- Rollover -->
-    <a href="{{ url_for('admin_panel.season_rollover') }}"
-       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-start gap-3 hover:border-ecs-green hover:shadow-sm transition-all">
-      <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400"><i class="ti ti-rotate-clockwise text-xl" aria-hidden="true"></i></span>
-      <div class="min-w-0">
-        <div class="font-semibold text-gray-900 dark:text-white">Season Rollover</div>
-        <div class="text-sm text-gray-500 dark:text-gray-400">Start a new season from the current one (preview → backup → execute).</div>
-      </div>
-      <i class="ti ti-arrow-right ml-auto text-gray-300 group-hover:text-ecs-green" aria-hidden="true"></i>
-    </a>
-
+    <!-- actions -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+      {{ action(url_for('auto_schedule.view_seasonal_schedule', season_id=s.id), 'ti-calendar-event', 'Schedule & Dates', 'Weeks, TST/Fun/BYE, reschedule, move weeks', 'green') }}
+      {{ action(url_for('admin_panel.season_coaches'), 'ti-whistle', 'Division Coaches', 'Assign Premier / Classic coaches', 'gold') }}
+      {{ action(url_for('admin_panel.league_management_teams'), 'ti-users-group', 'Teams', 'Rename, add, or remove teams', 'blue') }}
+      {{ action(url_for('admin_panel.season_rollover'), 'ti-rotate-clockwise', 'Season Rollover', 'Start the next season', 'purple') }}
+    </div>
   </div>
+</section>
+{% endmacro %}
+
+{% block panel_content %}
+<div class="space-y-5" data-page="season-manage">
+  {{ page_header("Manage Season", subtitle="Everything about the current season in one place") }}
+
+  {% if not pub.season and not ecs.season %}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-center">
+    <i class="ti ti-calendar-off text-4xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
+    <h2 class="mt-3 font-semibold text-gray-900 dark:text-white">No current season</h2>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Roll one over to create teams and a schedule.</p>
+    <a href="{{ url_for('admin_panel.season_rollover') }}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold">
+      <i class="ti ti-rotate-clockwise"></i> Go to Season Rollover
+    </a>
+  </div>
+  {% endif %}
+
+  {% if pub.season %}{{ season_block(pub, 'ti-beer', 'text-ecs-green') }}{% endif %}
+  {% if ecs.season %}{{ season_block(ecs, 'ti-ball-football', 'text-ecs-gold-500 dark:text-ecs-gold-400') }}{% endif %}
 </div>
 {% endblock %}

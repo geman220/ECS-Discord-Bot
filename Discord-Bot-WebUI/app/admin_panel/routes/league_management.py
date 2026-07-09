@@ -811,13 +811,81 @@ def season_coaches():
     )
 
 
+def _season_overview(session, season):
+    """Defensive dashboard stats for a season (each metric guarded independently
+    so one failing query never breaks the page — mirrors build_attention_queue)."""
+    from app.models import League, Team, Role
+    from app.models.matches import Match, WeekConfiguration
+
+    ov = {
+        'season': season, 'divisions': [], 'league_ids': [],
+        'teams_total': 0, 'coaches_total': 0,
+        'matches_total': 0, 'matches_reported': 0, 'schedule_generated': False,
+        'weeks': 0, 'special_weeks': 0, 'bye_weeks': 0, 'playoff_weeks': 0,
+    }
+    if not season:
+        return ov
+
+    leagues = session.query(League).filter_by(season_id=season.id).all()
+    league_ids = [l.id for l in leagues]
+    ov['league_ids'] = league_ids
+
+    # Division coach counts come from the team-independent 'Premier/Classic Coach' roles.
+    coach_counts = {}
+    for div_name in ('Premier', 'Classic', 'ECS FC'):
+        try:
+            r = session.query(Role).filter_by(name=f'{div_name} Coach').first()
+            coach_counts[div_name] = len(r.users) if r else 0
+        except Exception:
+            coach_counts[div_name] = 0
+
+    for lg in leagues:
+        try:
+            team_ct = session.query(Team).filter_by(league_id=lg.id).count()
+        except Exception:
+            team_ct = 0
+        coaches = coach_counts.get(lg.name, 0)
+        ov['teams_total'] += team_ct
+        ov['coaches_total'] += coaches
+        ov['divisions'].append({
+            'name': lg.name, 'league_id': lg.id, 'teams': team_ct, 'coaches': coaches,
+        })
+
+    if league_ids:
+        try:
+            base = session.query(Match).join(Team, Match.home_team_id == Team.id).filter(
+                Team.league_id.in_(league_ids)
+            )
+            ov['matches_total'] = base.count()
+            ov['matches_reported'] = base.filter(
+                Match.home_team_score.isnot(None), Match.away_team_score.isnot(None)
+            ).count()
+            ov['schedule_generated'] = ov['matches_total'] > 0
+        except Exception:
+            pass
+        try:
+            wcs = session.query(WeekConfiguration).filter(
+                WeekConfiguration.league_id.in_(league_ids)
+            ).all()
+            ov['weeks'] = len({w.week_order for w in wcs})
+            ov['special_weeks'] = len({w.week_order for w in wcs if (w.week_type or '') in ('TST', 'FUN')})
+            ov['bye_weeks'] = len({w.week_order for w in wcs if (w.week_type or '') == 'BYE'})
+            ov['playoff_weeks'] = len({w.week_order for w in wcs
+                                       if (w.week_type or '') == 'PLAYOFF' or getattr(w, 'is_playoff_week', False)})
+        except Exception:
+            pass
+
+    return ov
+
+
 @admin_panel_bp.route('/seasons/manage', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def season_manage():
-    """Post-rollover 'Manage Season' hub — one place to edit a season after it's
-    been rolled over. Links to the existing schedule/reschedule editor and team
-    management, plus the division Coaches panel and the rollover wizard."""
+    """Post-rollover 'Manage Season' dashboard — live status of the current season
+    (teams, schedule, coaches, results) plus inline actions and a next-steps
+    checklist. Editing links out to the existing schedule/team editors and the
+    Coaches panel."""
     from app.models import Season
 
     pub_current = db.session.query(Season).filter_by(
@@ -831,6 +899,8 @@ def season_manage():
         'admin_panel/seasons/manage_flowbite.html',
         pub_current=pub_current,
         ecs_current=ecs_current,
+        pub=_season_overview(db.session, pub_current),
+        ecs=_season_overview(db.session, ecs_current),
     )
 
 

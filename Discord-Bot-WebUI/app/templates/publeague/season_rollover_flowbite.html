@@ -96,10 +96,32 @@
                                     <input type="number" id="ro-premier-playoff" min="0" value="2" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
                                 </div>
                             </div>
-                            <div class="flex flex-wrap gap-4 text-sm">
-                                <label class="inline-flex items-center gap-2"><input type="checkbox" id="ro-premier-fun" checked class="rounded border-gray-300 text-ecs-green focus:ring-ecs-green"> Fun week</label>
-                                <label class="inline-flex items-center gap-2"><input type="checkbox" id="ro-premier-tst" checked class="rounded border-gray-300 text-ecs-green focus:ring-ecs-green"> TST week</label>
-                                <label class="inline-flex items-center gap-2"><input type="checkbox" id="ro-premier-bonus" checked class="rounded border-gray-300 text-ecs-green focus:ring-ecs-green"> Bonus week</label>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><i class="ti ti-arrow-down"></i> Tag TST / Fun / BYE weeks in the designer below.</p>
+                        </div>
+                    </div>
+
+                    <!-- Per-week designer (Classic + Premier) -->
+                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                            <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-calendar-cog text-ecs-green"></i> Season weeks</h4>
+                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400">
+                                <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-gray-300 dark:bg-gray-600"></span>Regular</span>
+                                <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-blue-400"></span>TST</span>
+                                <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-pink-400"></span>Fun</span>
+                                <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-amber-400"></span>BYE</span>
+                                <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-teal-400"></span>Practice</span>
+                                <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-purple-400"></span>Playoff</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Set each week's type. Playoff weeks are added automatically at the end.</p>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="text-xs font-semibold uppercase tracking-wide text-ecs-green mb-1.5">Classic</div>
+                                <div id="ro-classic-weeks" class="ro-week-strip flex flex-wrap gap-1.5" data-div="classic"></div>
+                            </div>
+                            <div>
+                                <div class="text-xs font-semibold uppercase tracking-wide text-ecs-gold-500 dark:text-ecs-gold-400 mb-1.5">Premier</div>
+                                <div id="ro-premier-weeks" class="ro-week-strip flex flex-wrap gap-1.5" data-div="premier"></div>
                             </div>
                         </div>
                     </div>
@@ -121,6 +143,11 @@
                                 <input type="number" id="ro-ecs-playoff" min="0" value="1" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
                             </div>
                         </div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 mt-4">
+                        <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-1"><i class="ti ti-calendar-cog text-ecs-green"></i> Season weeks</h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Set each week's type. Playoff weeks are added automatically at the end.</p>
+                        <div id="ro-ecs-weeks" class="ro-week-strip flex flex-wrap gap-1.5" data-div="ecs_fc"></div>
                     </div>
                 </div>
 
@@ -329,20 +356,86 @@
     var state = {
         backupFilename: null,
         skipBackup: false,
-        lastPayload: null
+        lastPayload: null,
+        // Per-division per-week type designations (regular weeks only; playoff
+        // weeks are appended automatically). { classic:{1:'REGULAR',6:'TST',...}, ... }
+        weekTypes: { classic: {}, premier: {}, ecs_fc: {} }
     };
 
     var val = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
     var num = function (id) { return parseInt(val(id), 10) || 0; };
     var checked = function (id) { var el = document.getElementById(id); return !!(el && el.checked); };
 
-    function buildWeekConfigs(regular, playoff, specials) {
-        var weeks = [];
-        var n = 1;
-        for (var i = 0; i < regular; i++) { weeks.push({ week_number: n++, type: 'REGULAR' }); }
-        (specials || []).forEach(function (t) { weeks.push({ week_number: n++, type: t }); });
+    // ---- Per-week designer ----
+    var WEEK_TYPES = [
+        { v: 'REGULAR',  label: 'Regular',  cls: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600' },
+        { v: 'TST',      label: 'TST',      cls: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-500/40' },
+        { v: 'FUN',      label: 'Fun',      cls: 'bg-pink-50 dark:bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-300 dark:border-pink-500/40' },
+        { v: 'BYE',      label: 'BYE',      cls: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-500/40' },
+        { v: 'PRACTICE', label: 'Practice', cls: 'bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-300 dark:border-teal-500/40' }
+    ];
+    var CHIP_BASE = 'ro-week-chip inline-flex flex-col items-stretch rounded-lg border px-1.5 pt-1 pb-1 min-w-[68px] ';
+    function weekTypeCls(t) {
+        for (var i = 0; i < WEEK_TYPES.length; i++) { if (WEEK_TYPES[i].v === t) return WEEK_TYPES[i].cls; }
+        return WEEK_TYPES[0].cls;
+    }
+    function renderWeekStrip(divKey, regularId, playoffId, containerId) {
+        var container = document.getElementById(containerId);
+        if (!container) return;
+        var regular = Math.max(0, num(regularId));
+        var playoff = Math.max(0, num(playoffId));
+        var store = state.weekTypes[divKey] || (state.weekTypes[divKey] = {});
+        // Drop designations for weeks that no longer exist.
+        Object.keys(store).forEach(function (k) { if (parseInt(k, 10) > regular) delete store[k]; });
+        container.innerHTML = '';
+        for (var n = 1; n <= regular; n++) {
+            var t = store[n] || 'REGULAR';
+            store[n] = t;
+            var chip = document.createElement('div');
+            chip.className = CHIP_BASE + weekTypeCls(t);
+            var lbl = document.createElement('div');
+            lbl.className = 'text-[10px] font-mono font-bold text-center opacity-70';
+            lbl.textContent = 'Wk ' + n;
+            var sel = document.createElement('select');
+            sel.className = 'ro-week-type text-xs bg-transparent border-0 focus:ring-0 py-0.5 pl-1 pr-5 font-semibold cursor-pointer';
+            sel.setAttribute('aria-label', 'Week ' + n + ' type');
+            WEEK_TYPES.forEach(function (wt) {
+                var o = document.createElement('option');
+                o.value = wt.v; o.textContent = wt.label;
+                if (wt.v === t) o.selected = true;
+                sel.appendChild(o);
+            });
+            (function (nn, chipEl) {
+                sel.addEventListener('change', function () {
+                    store[nn] = this.value;
+                    chipEl.className = CHIP_BASE + weekTypeCls(this.value);
+                });
+            })(n, chip);
+            chip.appendChild(lbl); chip.appendChild(sel);
+            container.appendChild(chip);
+        }
+        for (var p = 1; p <= playoff; p++) {
+            var pc = document.createElement('div');
+            pc.className = CHIP_BASE + 'items-center justify-center bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-500/40';
+            var pl = document.createElement('div'); pl.className = 'text-[10px] font-mono font-bold opacity-70'; pl.textContent = 'Wk ' + (regular + p);
+            var pv = document.createElement('div'); pv.className = 'text-xs font-semibold py-0.5'; pv.textContent = 'Playoff';
+            pc.appendChild(pl); pc.appendChild(pv);
+            container.appendChild(pc);
+        }
+    }
+    function buildWeekConfigs(divKey, regularId, playoffId) {
+        var regular = Math.max(0, num(regularId));
+        var playoff = Math.max(0, num(playoffId));
+        var store = state.weekTypes[divKey] || {};
+        var weeks = [], n = 1;
+        for (var i = 1; i <= regular; i++) { weeks.push({ week_number: n++, type: store[i] || 'REGULAR' }); }
         for (var p = 0; p < playoff; p++) { weeks.push({ week_number: n++, type: 'PLAYOFF' }); }
         return weeks;
+    }
+    function renderAllWeekStrips() {
+        renderWeekStrip('classic', 'ro-classic-regular', 'ro-classic-playoff', 'ro-classic-weeks');
+        renderWeekStrip('premier', 'ro-premier-regular', 'ro-premier-playoff', 'ro-premier-weeks');
+        renderWeekStrip('ecs_fc', 'ro-ecs-regular', 'ro-ecs-playoff', 'ro-ecs-weeks');
     }
 
     // Build the full payload consumed by _execute_season_creation.
@@ -363,6 +456,8 @@
             create_discord_channels: checked('ro-create-discord')
         };
 
+        var hasType = function (arr, t) { for (var i = 0; i < arr.length; i++) { if (arr[i].type === t) return true; } return false; };
+
         if (leagueType === 'Pub League') {
             payload.classic_teams = num('ro-classic-teams');
             payload.premier_teams = num('ro-premier-teams');
@@ -370,22 +465,20 @@
             payload.premier_regular_weeks = num('ro-premier-regular');
             payload.classic_playoff_weeks = num('ro-classic-playoff');
             payload.premier_playoff_weeks = num('ro-premier-playoff');
-            payload.premier_has_fun_week = checked('ro-premier-fun');
-            payload.premier_has_tst_week = checked('ro-premier-tst');
-            payload.premier_has_bonus_week = checked('ro-premier-bonus');
 
-            var premierSpecials = [];
-            if (payload.premier_has_fun_week) premierSpecials.push('FUN');
-            if (payload.premier_has_tst_week) premierSpecials.push('TST');
-            if (payload.premier_has_bonus_week) premierSpecials.push('BONUS');
+            // Explicit per-week designations straight from the designer.
+            payload.classic_week_configs = buildWeekConfigs('classic', 'ro-classic-regular', 'ro-classic-playoff');
+            payload.premier_week_configs = buildWeekConfigs('premier', 'ro-premier-regular', 'ro-premier-playoff');
 
-            payload.classic_week_configs = buildWeekConfigs(payload.classic_regular_weeks, payload.classic_playoff_weeks, []);
-            payload.premier_week_configs = buildWeekConfigs(payload.premier_regular_weeks, payload.premier_playoff_weeks, premierSpecials);
+            // Keep the season-config special-week flags consistent with the designer.
+            payload.premier_has_fun_week = hasType(payload.premier_week_configs, 'FUN');
+            payload.premier_has_tst_week = hasType(payload.premier_week_configs, 'TST');
+            payload.classic_has_practice_sessions = hasType(payload.classic_week_configs, 'PRACTICE');
         } else {
             payload.ecs_fc_teams = num('ro-ecs-teams');
             payload.ecs_fc_regular_weeks = num('ro-ecs-regular');
             payload.ecs_fc_playoff_weeks = num('ro-ecs-playoff');
-            payload.ecs_fc_week_configs = buildWeekConfigs(payload.ecs_fc_regular_weeks, payload.ecs_fc_playoff_weeks, []);
+            payload.ecs_fc_week_configs = buildWeekConfigs('ecs_fc', 'ro-ecs-regular', 'ro-ecs-playoff');
         }
         return payload;
     }
@@ -394,16 +487,31 @@
         var leagueType = val('ro-league-type');
         var teamCounts = {};
         var weekSummary = {};
+        // Count PLAYING (REGULAR-tagged) vs SPECIAL (TST/Fun/BYE/Practice) weeks from
+        // the designer, so the preview's week totals + match estimate are accurate
+        // (specials now live INSIDE the regular-week slots, not appended after them).
+        var countTypes = function (divKey, regularId) {
+            var regular = Math.max(0, num(regularId));
+            var store = state.weekTypes[divKey] || {};
+            var playing = 0, special = 0;
+            for (var i = 1; i <= regular; i++) {
+                if ((store[i] || 'REGULAR') === 'REGULAR') playing++; else special++;
+            }
+            return { playing: playing, special: special };
+        };
+
         if (leagueType === 'Pub League') {
             teamCounts = { classic: num('ro-classic-teams'), premier: num('ro-premier-teams') };
-            var premierSpecials = (checked('ro-premier-fun') ? 1 : 0) + (checked('ro-premier-tst') ? 1 : 0) + (checked('ro-premier-bonus') ? 1 : 0);
+            var cCt = countTypes('classic', 'ro-classic-regular');
+            var pCt = countTypes('premier', 'ro-premier-regular');
             weekSummary = {
-                classic: { regular_weeks: num('ro-classic-regular'), playoff_weeks: num('ro-classic-playoff'), special_weeks: 0 },
-                premier: { regular_weeks: num('ro-premier-regular'), playoff_weeks: num('ro-premier-playoff'), special_weeks: premierSpecials }
+                classic: { regular_weeks: cCt.playing, playoff_weeks: num('ro-classic-playoff'), special_weeks: cCt.special },
+                premier: { regular_weeks: pCt.playing, playoff_weeks: num('ro-premier-playoff'), special_weeks: pCt.special }
             };
         } else {
             teamCounts = { ecs_fc: num('ro-ecs-teams') };
-            weekSummary = { ecs_fc: { regular_weeks: num('ro-ecs-regular'), playoff_weeks: num('ro-ecs-playoff'), special_weeks: 0 } };
+            var eCt = countTypes('ecs_fc', 'ro-ecs-regular');
+            weekSummary = { ecs_fc: { regular_weeks: eCt.playing, playoff_weeks: num('ro-ecs-playoff'), special_weeks: eCt.special } };
         }
         return {
             league_type: leagueType,
@@ -754,6 +862,19 @@
                 document.getElementById('ro-ecs-fields').classList.toggle('hidden', isPub);
             });
         }
+
+        // --- Week designer: initial render + live re-render on week-count changes ---
+        renderAllWeekStrips();
+        [['classic', 'ro-classic-regular', 'ro-classic-playoff', 'ro-classic-weeks'],
+         ['premier', 'ro-premier-regular', 'ro-premier-playoff', 'ro-premier-weeks'],
+         ['ecs_fc', 'ro-ecs-regular', 'ro-ecs-playoff', 'ro-ecs-weeks']].forEach(function (cfg) {
+            [cfg[1], cfg[2]].forEach(function (inputId) {
+                var el = document.getElementById(inputId);
+                if (el) el.addEventListener('input', function () {
+                    renderWeekStrip(cfg[0], cfg[1], cfg[2], cfg[3]);
+                });
+            });
+        });
 
         var handlers = {
             'rollover-goto-preview': function () { actionGotoPreview(); },
