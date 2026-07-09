@@ -13,25 +13,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev \
     curl \
     ca-certificates \
-    gnupg \
     fonts-dejavu-core \
     fonts-liberation \
     fontconfig \
+    postgresql-client \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
-    # PostgreSQL client (pg_dump/psql) for in-app DB backup + restore. Uses the
-    # PGDG apt repo to get v17: a newer pg_dump can dump/restore ANY current DO
-    # Postgres (it only refuses a server NEWER than itself), so v17 is safe
-    # regardless of your managed-DB version. Bump the version if DO ships >17.
-    && install -d /usr/share/postgresql-common/pgdg \
-    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-         -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
-    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
-         > /etc/apt/sources.list.d/pgdg.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends postgresql-client-17 \
     && rm -rf /var/lib/apt/lists/* \
     && fc-cache -f -v
+# NOTE: `postgresql-client` here is Debian trixie's default (PostgreSQL 17),
+# which pg_dump/psql use for the in-app DB backup + restore. A newer client can
+# dump/restore any older-or-equal server, so v17 covers any current DO Postgres.
 
 # Copy package.json first for better caching
 COPY package.json package-lock.json* ./
