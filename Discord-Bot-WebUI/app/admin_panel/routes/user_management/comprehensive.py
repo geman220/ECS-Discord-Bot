@@ -357,6 +357,14 @@ def edit_user_comprehensive(user_id):
             secondary_team_id = request.form.get('secondary_team_id')
             tertiary_team_id = request.form.get('tertiary_team_id')
 
+            # Per-tier "coach of this team" flags — coach status is team-scoped
+            # (player_teams.is_coach), so a player can coach one tier's team while
+            # only playing on another. Discord coach access follows the coached
+            # team's league. Only meaningful when that tier has a team selected.
+            primary_team_coach = 'primary_team_coach' in request.form
+            secondary_team_coach = 'secondary_team_coach' in request.form
+            tertiary_team_coach = 'tertiary_team_coach' in request.form
+
             # Ignore stale team IDs from hidden form dropdowns when no league is selected
             if not primary_league_type:
                 team_id = None
@@ -611,6 +619,39 @@ def edit_user_comprehensive(user_id):
                     player_data = _build_player_socket_data(user.player)
                     for event in draft_socket_events:
                         event['player'] = player_data
+
+                # Apply per-tier coach status. Coach is scoped to the specific team
+                # of each tier (player_teams.is_coach) — so a Premier player who
+                # coaches a Classic team gets coach access for Classic only, not
+                # Premier. Runs after teams are assigned so the rows exist.
+                # SAFETY: only touch coaching when the modal explicitly manages it
+                # (manage_team_coaches=1 + pre-populated checkboxes), so a normal
+                # save that never showed the coach controls can't silently clear it.
+                if request.form.get('manage_team_coaches') == '1':
+                    from sqlalchemy import text as _coach_text
+                    _tier_coach = {}
+                    if team_id:
+                        _tier_coach[int(team_id)] = primary_team_coach
+                    if secondary_team_id:
+                        _tier_coach[int(secondary_team_id)] = secondary_team_coach
+                    if tertiary_team_id:
+                        _tier_coach[int(tertiary_team_id)] = tertiary_team_coach
+                    for _tid, _isc in _tier_coach.items():
+                        db.session.execute(
+                            _coach_text("UPDATE player_teams SET is_coach = :ic WHERE player_id = :pid AND team_id = :tid"),
+                            {"ic": _isc, "pid": user.player.id, "tid": _tid}
+                        )
+                    if _tier_coach:
+                        # Player-level flag = "coaches at least one team" — recompute
+                        # from the actual per-team state (covers ECS FC teams too).
+                        _any_coach = db.session.execute(
+                            _coach_text("SELECT 1 FROM player_teams WHERE player_id = :pid AND is_coach = true LIMIT 1"),
+                            {"pid": user.player.id}
+                        ).first() is not None
+                        user.player.is_coach = _any_coach
+                        user.player.discord_needs_update = True
+                        if user.player.discord_id:
+                            defer_discord_sync(user.player.id, only_add=False)
 
             # Update roles - including auto league-to-role mapping
             if role_ids:

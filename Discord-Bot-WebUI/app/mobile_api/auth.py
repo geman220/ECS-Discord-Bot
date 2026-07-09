@@ -66,15 +66,24 @@ def _process_claim_code(session_db, user, discord_id, claim_code):
         if not profile.is_valid():
             return {"status": "expired", "message": "This code has expired"}
 
-        # Find or create Player record
+        # Find or create Player record.
+        # Claiming a quick/tryout profile only creates a TEMP, PENDING profile so
+        # the person can fill in their info and an admin can review/approve/deny/note
+        # them. It must NOT grant any status by itself:
+        #   - is_approved (app access) stays whatever the admin decides — the
+        #     approval gate below still blocks a token until an admin approves.
+        #   - is_current_player ("current") is driven ONLY by a purchased
+        #     WooCommerce season pass, so it stays False here.
+        #   - is_sub is a real substitute-pool flag, not an onboarding default.
+        # Both default to False in the model; set explicitly for clarity.
         player = session_db.query(Player).filter_by(user_id=user.id).first()
         if not player:
             player = Player(
                 name=user.username,
                 user_id=user.id,
                 discord_id=discord_id,
-                is_current_player=True,
-                is_sub=True
+                is_current_player=False,
+                is_sub=False
             )
             session_db.add(player)
             session_db.flush()  # Need player.id for claim()
@@ -304,7 +313,12 @@ def login():
             return jsonify({"msg": "Bad username or password"}), 401
 
         if not user.is_approved:
-            return jsonify({"msg": "Account not approved"}), 403
+            # Machine-readable code so the client can show a "pending approval"
+            # screen — matches the Discord-OAuth and /refresh_token paths.
+            return jsonify({
+                "msg": "Your account is pending admin approval. You'll be able to sign in once an admin approves your membership.",
+                "code": "ACCOUNT_NOT_APPROVED"
+            }), 403
 
         # If 2FA is enabled, prompt for 2FA verification
         if user.is_2fa_enabled:

@@ -615,6 +615,17 @@ def user_details_api(user_id):
             primary_league_name = user.player.primary_league.name if user.player.primary_league else None
             other_league_names = [lg.name for lg in user.player.other_leagues] if user.player.other_leagues else []
 
+            # Per-team coach status (team_id -> is_coach) for the modal's per-tier
+            # coach checkboxes — coach is scoped to a specific team membership, so
+            # this lets the modal pre-check the right team's coach box.
+            from app.models import player_teams as _pt
+            team_coach_map = {
+                str(row.team_id): bool(row.is_coach)
+                for row in db.session.execute(
+                    _pt.select().where(_pt.c.player_id == user.player.id)
+                ).fetchall()
+            }
+
             user_data['has_player'] = True
             user_data['player'] = {
                 'id': user.player.id,
@@ -634,7 +645,8 @@ def user_details_api(user_id):
                 'phone': user.player.phone,
                 'pronouns': user.player.pronouns,
                 'favorite_position': user.player.favorite_position,
-                'profile_picture_url': user.player.profile_picture_url
+                'profile_picture_url': user.player.profile_picture_url,
+                'team_coach_map': team_coach_map
             }
         else:
             user_data['has_player'] = False

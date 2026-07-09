@@ -75,6 +75,18 @@ def get_current_season_teams(session, player):
         List of current season team dictionaries with id, name, and league_name
     """
     try:
+        # Live per-team coach status from the player_teams association (the source
+        # of truth an admin edits). Used to scope coach Discord roles to the
+        # SPECIFIC team(s) a player coaches — so a Premier player who coaches a
+        # Classic team gets only Classic coach access, not Premier.
+        from app.models import player_teams as _pt
+        coach_map = {
+            row.team_id: bool(row.is_coach)
+            for row in session.execute(
+                _pt.select().where(_pt.c.player_id == player.id)
+            ).fetchall()
+        }
+
         # Get ALL current seasons (Pub League AND ECS FC can both be current)
         current_seasons = session.query(Season).filter_by(is_current=True).all()
         logger.info(f"[DEBUG] Player {player.id}: Found {len(current_seasons)} current seasons: {[(s.id, s.name, s.league_type) for s in current_seasons]}")
@@ -94,7 +106,7 @@ def get_current_season_teams(session, player):
             logger.info(f"[DEBUG] Player {player.id}: Found {len(current_season_teams)} teams via PlayerTeamSeason: {[(t.id, t.name, t.league.name if t.league else None) for t in current_season_teams]}")
 
             if current_season_teams:
-                result = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None}
+                result = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None, 'is_coach': coach_map.get(team.id, False)}
                         for team in current_season_teams]
                 logger.info(f"[DEBUG] Player {player.id}: Returning teams: {result}")
                 return result
@@ -107,7 +119,7 @@ def get_current_season_teams(session, player):
                             if team.league_id in current_season_league_ids]
 
             if current_teams:
-                result = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None}
+                result = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None, 'is_coach': coach_map.get(team.id, False)}
                         for team in current_teams]
                 logger.info(f"[DEBUG] Player {player.id}: Fallback returning teams: {result}")
                 return result
@@ -258,22 +270,21 @@ async def _execute_player_role_update_async(data):
         if 'ECS-FC-LEAGUE-SUB' not in expected_roles:
             expected_roles.append('ECS-FC-LEAGUE-SUB')
     
-    # Add coach roles based on leagues (not teams) if player is coach
-    if data.get('is_coach'):
-        # Priority 1: Flask user roles for coach assignments
-        if 'pl-premier' in user_roles:
-            if 'ECS-FC-PL-PREMIER-COACH' not in expected_roles:
-                expected_roles.append('ECS-FC-PL-PREMIER-COACH')
-        if 'pl-classic' in user_roles:
-            if 'ECS-FC-PL-CLASSIC-COACH' not in expected_roles:
-                expected_roles.append('ECS-FC-PL-CLASSIC-COACH')
-
-        # Priority 2: Database league associations for coach assignments
-        for league_name in league_names:
-            if league_name.lower() == 'premier' and 'ECS-FC-PL-PREMIER-COACH' not in expected_roles:
-                expected_roles.append('ECS-FC-PL-PREMIER-COACH')
-            elif league_name.lower() == 'classic' and 'ECS-FC-PL-CLASSIC-COACH' not in expected_roles:
-                expected_roles.append('ECS-FC-PL-CLASSIC-COACH')
+    # Add coach roles PER TEAM the player actually coaches. Coach status is a
+    # property of a specific (player, team) membership (player_teams.is_coach),
+    # NOT a global flag — so the division coach role (and its coaches channel) is
+    # scoped to the coached team's league only. A Premier player who coaches a
+    # Classic team therefore gets ECS-FC-PL-CLASSIC-COACH and NOT
+    # ECS-FC-PL-PREMIER-COACH. (Previously this used the global is_coach flag +
+    # every league the player was in, which granted both coach channels.)
+    for team in data.get('teams', []):
+        if not team.get('is_coach'):
+            continue
+        coached_league = (team.get('league_name') or '').lower()
+        if coached_league == 'premier' and 'ECS-FC-PL-PREMIER-COACH' not in expected_roles:
+            expected_roles.append('ECS-FC-PL-PREMIER-COACH')
+        elif coached_league == 'classic' and 'ECS-FC-PL-CLASSIC-COACH' not in expected_roles:
+            expected_roles.append('ECS-FC-PL-CLASSIC-COACH')
 
     # Add referee role if player is a referee
     if data.get('is_ref'):

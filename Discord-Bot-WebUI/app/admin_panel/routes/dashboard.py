@@ -70,7 +70,7 @@ def build_attention_queue(user):
     if is_full_admin:
         try:
             n = User.query.filter_by(approval_status='pending').count()
-            add('approvals', 'Pending approvals', n, 'warning', safe_url('admin_panel.manage_users'))
+            add('approvals', 'Pending approvals', n, 'warning', safe_url('admin_panel.user_approvals'))
         except Exception as e:
             logger.warning(f"attention/approvals: {e}")
 

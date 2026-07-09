@@ -248,6 +248,24 @@ class MobileAdminService(BaseService):
                     except Exception as e:
                         logger.error(f"Failed to remove ECS FC Coach status for player {player.id}: {e}")
 
+                # (B2) Same for the "Pub League Coach" role — set is_coach on the
+                # player's CURRENT Pub League team so the division-scoped
+                # (…-PREMIER-COACH / …-CLASSIC-COACH) Discord roles compute. Mobile
+                # has no per-team coach picker, so this infers the team from the
+                # current Pub League season (normally exactly one team). The
+                # plays-one-division / coaches-another edge case can only be set
+                # precisely on the web per-team picker — see docs.
+                if any(r.name == 'Pub League Coach' for r in applied_added):
+                    try:
+                        self._sync_pub_league_coach_status(locked_user, is_adding_role=True)
+                    except Exception as e:
+                        logger.error(f"Failed to sync Pub League Coach status for player {player.id}: {e}")
+                if any(r.name == 'Pub League Coach' for r in applied_removed):
+                    try:
+                        self._sync_pub_league_coach_status(locked_user, is_adding_role=False)
+                    except Exception as e:
+                        logger.error(f"Failed to remove Pub League Coach status for player {player.id}: {e}")
+
                 # (C) Queue team-based Discord sync (deferred until after commit)
                 if player.discord_id:
                     discord_queue.add_role_sync(player.id, only_add=False)
@@ -278,6 +296,101 @@ class MobileAdminService(BaseService):
             "roles": updated_roles,
             "added": added_names,
             "removed": removed_names,
+            "discord_sync_queued": discord_sync_queued
+        })
+
+    def set_team_coach_status(
+        self,
+        player_id: int,
+        team_id: int,
+        is_coach: bool
+    ) -> ServiceResult[Dict[str, Any]]:
+        """
+        Set coach status for a player on ONE specific team (team-scoped).
+
+        This is the precise, per-team equivalent of the web edit-user modal's
+        coach picker. Unlike role-based coach assignment, it can express the
+        edge case where a player plays in one division but coaches a team in
+        another — the Flutter app should use this for its per-team coach toggle.
+
+        Writes player_teams.is_coach for (player_id, team_id), recomputes the
+        player-level Player.is_coach flag ("coaches >=1 team"), and queues a
+        Discord role sync so the division-scoped coach role recomputes.
+
+        Args:
+            player_id: The player's ID
+            team_id: The team the coach flag applies to
+            is_coach: True to make coach of this team, False to remove
+
+        Returns:
+            ServiceResult with the updated per-team + player-level coach state
+        """
+        from sqlalchemy import text
+        from app.models.players import player_teams
+
+        player = self.session.query(Player).options(
+            joinedload(Player.user)
+        ).get(player_id)
+
+        if not player:
+            return ServiceResult.fail("Player not found", "PLAYER_NOT_FOUND")
+        if not player.user:
+            return ServiceResult.fail(
+                "Player does not have a user account", "NO_USER_ACCOUNT"
+            )
+
+        # The player must actually be on the team for a coach flag to mean anything.
+        on_team = self.session.execute(
+            player_teams.select().where(
+                player_teams.c.player_id == player_id,
+                player_teams.c.team_id == team_id,
+            )
+        ).first()
+        if not on_team:
+            return ServiceResult.fail(
+                "Player is not assigned to that team", "PLAYER_NOT_ON_TEAM"
+            )
+
+        discord_queue = DeferredDiscordQueue()
+
+        try:
+            with lock_user_for_role_update(player.user.id, session=self.session):
+                self.session.execute(
+                    text("UPDATE player_teams SET is_coach = :ic "
+                         "WHERE player_id = :pid AND team_id = :tid"),
+                    {"ic": is_coach, "pid": player_id, "tid": team_id}
+                )
+
+                # Player-level flag = "coaches at least one team".
+                any_coach = self.session.execute(
+                    text("SELECT 1 FROM player_teams "
+                         "WHERE player_id = :pid AND is_coach = true LIMIT 1"),
+                    {"pid": player_id}
+                ).first() is not None
+                player.is_coach = any_coach
+                player.discord_needs_update = True
+
+                if player.discord_id:
+                    discord_queue.add_role_sync(player.id, only_add=False)
+
+                self.session.commit()
+
+        except LockAcquisitionError:
+            self.session.rollback()
+            return ServiceResult.fail(
+                "User is being modified by another request. Please try again.",
+                "LOCK_CONFLICT"
+            )
+
+        discord_sync_queued = bool(discord_queue._operations)
+        discord_queue.execute_all()
+
+        return ServiceResult.ok({
+            "player_id": player.id,
+            "player_name": player.name,
+            "team_id": team_id,
+            "is_coach": is_coach,
+            "player_is_coach": any_coach,
             "discord_sync_queued": discord_sync_queued
         })
 
@@ -326,6 +439,62 @@ class MobileAdminService(BaseService):
             )
 
         logger.info(f"Updated is_coach={is_adding_role} for player {player.id} on ECS FC teams: {ecs_fc_team_ids}")
+
+    def _sync_pub_league_coach_status(self, user, is_adding_role: bool) -> None:
+        """
+        Sync the "Pub League Coach" role to player_teams.is_coach for the
+        player's CURRENT Pub League team(s).
+
+        Mirrors _sync_ecs_fc_coach_status but scopes to teams in the current
+        Pub League season (Season.league_type == 'Pub League', is_current). This
+        is what makes the division-scoped Discord coach roles
+        (ECS-FC-PL-PREMIER-COACH / ECS-FC-PL-CLASSIC-COACH) compute for coaches
+        created via the mobile app, which has no per-team coach picker.
+
+        Limitation: a player who plays in one division but coaches a team in the
+        other cannot be expressed through the role alone — that must be set on
+        the web per-team coach picker (edit-user modal / profile page).
+
+        Args:
+            user: User object (player relationship loaded)
+            is_adding_role: True when adding the Coach role, False when removing
+        """
+        from sqlalchemy import text
+        from app.models.players import player_teams, Team
+        from app.models.core import League, Season
+
+        if not user.player:
+            logger.info(f"User {user.id} has no player profile, skipping Pub League coach sync")
+            return
+
+        player = user.player
+
+        pub_league_team_ids = self.session.query(player_teams.c.team_id).join(
+            Team, Team.id == player_teams.c.team_id
+        ).join(
+            League, League.id == Team.league_id
+        ).join(
+            Season, Season.id == League.season_id
+        ).filter(
+            player_teams.c.player_id == player.id,
+            Season.league_type == 'Pub League',
+            Season.is_current.is_(True),
+        ).all()
+
+        pub_league_team_ids = [t[0] for t in pub_league_team_ids]
+
+        if not pub_league_team_ids:
+            logger.info(f"Player {player.id} is not on any current Pub League teams, skipping coach sync")
+            return
+
+        for team_id in pub_league_team_ids:
+            self.session.execute(
+                text("UPDATE player_teams SET is_coach = :is_coach "
+                     "WHERE player_id = :player_id AND team_id = :team_id"),
+                {"is_coach": is_adding_role, "player_id": player.id, "team_id": team_id}
+            )
+
+        logger.info(f"Updated is_coach={is_adding_role} for player {player.id} on Pub League teams: {pub_league_team_ids}")
 
     def get_assignable_roles(self) -> ServiceResult[List[Dict[str, Any]]]:
         """

@@ -420,6 +420,7 @@
 <form method="POST" action="" id="editUserForm">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" id="editUserId" name="user_id">
+  <input type="hidden" name="manage_team_coaches" value="1">
   <div class="p-4 sm:p-5 space-y-4">
     <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
       <h6 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center"><i class="ti ti-user-circle mr-2 text-ecs-green" aria-hidden="true"></i>Account Information</h6>
@@ -493,6 +494,10 @@
               <option value="">Select Team</option>
               {% for league in leagues %}{% for team in league.teams %}<option value="{{ team.id }}" data-league="{{ league.id }}" data-league-name="{{ league.name }}">{{ team.name }}</option>{% endfor %}{% endfor %}
             </select>
+            <label class="flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+              <input type="checkbox" id="editPrimaryTeamCoach" name="primary_team_coach" value="1" class="w-4 h-4 rounded border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
+              <span class="inline-flex items-center gap-1"><i class="ti ti-whistle text-ecs-gold-500" aria-hidden="true"></i> Coach of this team</span>
+            </label>
           </div>
           <div id="primaryEcsFcTeams" class="hidden grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
             {% for league in leagues %}{% if 'ECS FC' in league.name %}{% for team in league.teams %}
@@ -516,6 +521,10 @@
               <option value="">Select Team</option>
               {% for league in leagues %}{% for team in league.teams %}<option value="{{ team.id }}" data-league="{{ league.id }}" data-league-name="{{ league.name }}">{{ team.name }}</option>{% endfor %}{% endfor %}
             </select>
+            <label class="flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+              <input type="checkbox" id="editSecondaryTeamCoach" name="secondary_team_coach" value="1" class="w-4 h-4 rounded border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
+              <span class="inline-flex items-center gap-1"><i class="ti ti-whistle text-ecs-gold-500" aria-hidden="true"></i> Coach of this team</span>
+            </label>
           </div>
           <div id="secondaryEcsFcTeams" class="hidden grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
             {% for league in leagues %}{% if 'ECS FC' in league.name %}{% for team in league.teams %}
@@ -539,6 +548,10 @@
               <option value="">Select Team</option>
               {% for league in leagues %}{% for team in league.teams %}<option value="{{ team.id }}" data-league="{{ league.id }}" data-league-name="{{ league.name }}">{{ team.name }}</option>{% endfor %}{% endfor %}
             </select>
+            <label class="flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+              <input type="checkbox" id="editTertiaryTeamCoach" name="tertiary_team_coach" value="1" class="w-4 h-4 rounded border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
+              <span class="inline-flex items-center gap-1"><i class="ti ti-whistle text-ecs-gold-500" aria-hidden="true"></i> Coach of this team</span>
+            </label>
           </div>
           <div id="tertiaryEcsFcTeams" class="hidden grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
             {% for league in leagues %}{% if 'ECS FC' in league.name %}{% for team in league.teams %}
@@ -926,6 +939,7 @@
             <form method="POST" action="" id="editUserForm">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" id="editUserId" name="user_id">
+                <input type="hidden" name="manage_team_coaches" value="1">
 
                 <!-- Modal Header -->
                 <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 bg-ecs-green text-white rounded-t-lg">
@@ -1037,6 +1051,10 @@
                                         {% endfor %}
                                         {% endfor %}
                                     </select>
+                                    <label class="flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                                        <input type="checkbox" id="editPrimaryTeamCoach" name="primary_team_coach" value="1" class="w-4 h-4 rounded border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
+                                        <span class="inline-flex items-center gap-1"><i class="ti ti-whistle text-ecs-gold-500" aria-hidden="true"></i> Coach of this team</span>
+                                    </label>
                                 </div>
                                 <!-- Multiple team checkboxes for ECS FC -->
                                 <div id="primaryEcsFcTeams" class="hidden grid grid-cols-2 md:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
@@ -1075,6 +1093,10 @@
                                         {% endfor %}
                                         {% endfor %}
                                     </select>
+                                    <label class="flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                                        <input type="checkbox" id="editSecondaryTeamCoach" name="secondary_team_coach" value="1" class="w-4 h-4 rounded border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
+                                        <span class="inline-flex items-center gap-1"><i class="ti ti-whistle text-ecs-gold-500" aria-hidden="true"></i> Coach of this team</span>
+                                    </label>
                                 </div>
                                 <!-- Multiple team checkboxes for ECS FC -->
                                 <div id="secondaryEcsFcTeams" class="hidden grid grid-cols-2 md:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
@@ -1113,6 +1135,10 @@
                                         {% endfor %}
                                         {% endfor %}
                                     </select>
+                                    <label class="flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                                        <input type="checkbox" id="editTertiaryTeamCoach" name="tertiary_team_coach" value="1" class="w-4 h-4 rounded border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
+                                        <span class="inline-flex items-center gap-1"><i class="ti ti-whistle text-ecs-gold-500" aria-hidden="true"></i> Coach of this team</span>
+                                    </label>
                                 </div>
                                 <!-- Multiple team checkboxes for ECS FC -->
                                 <div id="tertiaryEcsFcTeams" class="hidden grid grid-cols-2 md:grid-cols-3 gap-1 max-h-32 overflow-y-auto">

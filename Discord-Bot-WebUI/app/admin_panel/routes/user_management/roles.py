@@ -77,6 +77,60 @@ def sync_ecs_fc_coach_status(user, is_adding_role: bool):
     logger.info(f"Updated is_coach={is_adding_role} for player {player.id} on ECS FC teams: {ecs_fc_team_ids}")
 
 
+def sync_pub_league_coach_status(user, is_adding_role: bool):
+    """
+    Sync the "Pub League Coach" role to player_teams.is_coach for the player's
+    CURRENT Pub League team(s).
+
+    Scopes to teams in the current Pub League season (Season.league_type ==
+    'Pub League', is_current) so the division-scoped Discord coach roles
+    (ECS-FC-PL-PREMIER-COACH / ECS-FC-PL-CLASSIC-COACH) compute correctly.
+
+    Limitation: a player who plays in one division but coaches a team in the
+    other cannot be expressed through the role alone — use the per-team coach
+    picker (edit-user modal / profile page) for that case.
+
+    Args:
+        user: User object with player relationship loaded
+        is_adding_role: True if adding the role, False if removing
+    """
+    from app.models.players import player_teams, Team
+    from app.models.core import League, Season
+    from sqlalchemy import text
+
+    if not user.player:
+        logger.info(f"User {user.id} has no player profile, skipping Pub League coach sync")
+        return
+
+    player = user.player
+
+    pub_league_team_ids = db.session.query(player_teams.c.team_id).join(
+        Team, Team.id == player_teams.c.team_id
+    ).join(
+        League, League.id == Team.league_id
+    ).join(
+        Season, Season.id == League.season_id
+    ).filter(
+        player_teams.c.player_id == player.id,
+        Season.league_type == 'Pub League',
+        Season.is_current.is_(True),
+    ).all()
+
+    pub_league_team_ids = [t[0] for t in pub_league_team_ids]
+
+    if not pub_league_team_ids:
+        logger.info(f"Player {player.id} is not on any current Pub League teams, skipping coach sync")
+        return
+
+    for team_id in pub_league_team_ids:
+        db.session.execute(
+            text("UPDATE player_teams SET is_coach = :is_coach WHERE player_id = :player_id AND team_id = :team_id"),
+            {"is_coach": is_adding_role, "player_id": player.id, "team_id": team_id}
+        )
+
+    logger.info(f"Updated is_coach={is_adding_role} for player {player.id} on Pub League teams: {pub_league_team_ids}")
+
+
 @admin_panel_bp.route('/users/roles')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -210,6 +264,22 @@ def assign_user_roles():
                     sync_ecs_fc_coach_status(user, is_adding_role=False)
                 except Exception as e:
                     logger.error(f"Failed to remove ECS FC Coach status for user {user.id}: {e}")
+
+            # Sync Pub League Coach role to player_teams.is_coach (current Pub League team)
+            pub_league_coach_added = any(role.name == 'Pub League Coach' for role in roles_added)
+            pub_league_coach_removed = any(role.name == 'Pub League Coach' for role in roles_removed)
+
+            if pub_league_coach_added:
+                try:
+                    sync_pub_league_coach_status(user, is_adding_role=True)
+                except Exception as e:
+                    logger.error(f"Failed to sync Pub League Coach status for user {user.id}: {e}")
+
+            if pub_league_coach_removed:
+                try:
+                    sync_pub_league_coach_status(user, is_adding_role=False)
+                except Exception as e:
+                    logger.error(f"Failed to remove Pub League Coach status for user {user.id}: {e}")
 
             # Queue Discord role sync for AFTER transaction commits
             if user.player and user.player.discord_id:
@@ -415,6 +485,13 @@ def assign_user_role():
                     sync_ecs_fc_coach_status(user, is_adding_role=(action == 'add'))
                 except Exception as e:
                     logger.error(f"Failed to sync ECS FC Coach status for user {user.id}: {e}")
+
+            # Sync Pub League Coach role to player_teams.is_coach (current Pub League team)
+            if role.name == 'Pub League Coach':
+                try:
+                    sync_pub_league_coach_status(user, is_adding_role=(action == 'add'))
+                except Exception as e:
+                    logger.error(f"Failed to sync Pub League Coach status for user {user.id}: {e}")
 
             # Queue Discord role sync for AFTER transaction commits
             if user.player and user.player.discord_id:

@@ -207,11 +207,34 @@ function setLeagueTier(tier, leagueType, teamData) {
         });
     } else if (teamData) {
         const teamSelect = document.getElementById(`edit${cap}Team`);
-        if (teamSelect) teamSelect.value = teamData;
+        if (teamSelect) {
+            teamSelect.value = teamData;
+            // Pre-check the per-tier "Coach of this team" box from the stored
+            // per-team coach map, and keep it in sync if the admin changes the team.
+            const coachCb = document.getElementById(`edit${cap}TeamCoach`);
+            if (coachCb) {
+                coachCb.checked = !!(window._teamCoachMap && window._teamCoachMap[String(teamData)]);
+            }
+            if (!teamSelect.dataset.coachSyncBound) {
+                teamSelect.dataset.coachSyncBound = '1';
+                teamSelect.addEventListener('change', function () {
+                    const cb = document.getElementById(`edit${cap}TeamCoach`);
+                    if (cb) cb.checked = !!(window._teamCoachMap && window._teamCoachMap[String(this.value)]);
+                });
+            }
+        }
     }
 }
 
 function populateLeagueTiers(player) {
+    // Store per-team coach status for the per-tier coach checkboxes, and reset the
+    // boxes so stale state from a previously-edited user never carries over.
+    window._teamCoachMap = (player && player.team_coach_map) || {};
+    ['Primary', 'Secondary', 'Tertiary'].forEach(function (cap) {
+        const cb = document.getElementById('edit' + cap + 'TeamCoach');
+        if (cb) cb.checked = false;
+    });
+
     const allTeamIds = player.team_ids || [];
 
     // Build team info map from DOM options

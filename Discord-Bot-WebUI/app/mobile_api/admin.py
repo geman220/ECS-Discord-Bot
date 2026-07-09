@@ -118,6 +118,68 @@ def update_player_roles(player_id: int):
         }), 200
 
 
+@mobile_api_v2.route('/admin/players/<int:player_id>/teams/<int:team_id>/coach', methods=['PUT'])
+@jwt_required()
+@jwt_role_required(ADMIN_ROLES)
+def set_team_coach_status(player_id: int, team_id: int):
+    """
+    Set (team-scoped) coach status for a player on ONE team.
+
+    This is the precise, per-team coach control — the mobile equivalent of the
+    web edit-user modal's coach picker. Use this (not a role assignment) so the
+    division-scoped Discord coach role (…-PREMIER-COACH / …-CLASSIC-COACH) is
+    driven by the exact team coached, including the play-one-division /
+    coach-another edge case.
+
+    Args:
+        player_id: Player ID
+        team_id: The team the coach flag applies to
+
+    Expected JSON:
+        is_coach: bool — true to make coach of this team, false to remove
+
+    Returns:
+        JSON with the updated per-team + player-level coach state
+    """
+    data = request.get_json()
+    if not data or 'is_coach' not in data:
+        return jsonify({"msg": "Missing 'is_coach' boolean"}), 400
+
+    is_coach = data.get('is_coach')
+    if not isinstance(is_coach, bool):
+        return jsonify({"msg": "'is_coach' must be a boolean"}), 400
+
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        service = MobileAdminService(session)
+        result = service.set_team_coach_status(
+            player_id=player_id,
+            team_id=team_id,
+            is_coach=is_coach
+        )
+
+        if not result.success:
+            status_code = 400
+            if result.error_code in ("PLAYER_NOT_FOUND", "NO_USER_ACCOUNT", "PLAYER_NOT_ON_TEAM"):
+                status_code = 404
+            return jsonify({"msg": result.message}), status_code
+
+        _log_role_change(
+            session=session,
+            admin_user_id=current_user_id,
+            target_player_id=player_id,
+            added=['coach:%s' % team_id] if is_coach else [],
+            removed=[] if is_coach else ['coach:%s' % team_id]
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Coach status updated",
+            **result.data
+        }), 200
+
+
 @mobile_api_v2.route('/admin/roles', methods=['GET'])
 @jwt_required()
 @jwt_role_required(ADMIN_ROLES)

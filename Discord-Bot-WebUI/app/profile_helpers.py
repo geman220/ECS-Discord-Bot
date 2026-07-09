@@ -45,24 +45,49 @@ def handle_coach_status_update(player, user):
 
     try:
         logger.debug("Entering handle_coach_status_update")
-        is_coach = 'is_coach' in request.form
-        logger.debug(f"Received is_coach: {is_coach}")
-
-        # Update the global coach flag
-        player.is_coach = is_coach
-        player.discord_needs_update = True
-
-        session.add(player)
-
-        # Update coach status in the player_teams association table for all teams
         from app.models import player_teams
         from sqlalchemy import text
 
-        # Update all team relationships for this player to have the same coach status
-        session.execute(
-            text("UPDATE player_teams SET is_coach = :is_coach WHERE player_id = :player_id"),
-            {"is_coach": is_coach, "player_id": player.id}
-        )
+        # The player's current team memberships.
+        member_team_ids = [
+            row.team_id for row in session.execute(
+                player_teams.select().where(player_teams.c.player_id == player.id)
+            ).fetchall()
+        ]
+
+        # New team-scoped form: `coach_scoped=1` + `coach_team_ids` (the teams the
+        # player coaches). Coach status is per (player, team) — every other team of
+        # theirs is set non-coach — so a player can coach one team while only
+        # playing on another, and Discord coach access is scoped to the coached
+        # team's league.
+        if request.form.get('coach_scoped') == '1':
+            coach_team_ids = set()
+            for raw in request.form.getlist('coach_team_ids'):
+                try:
+                    coach_team_ids.add(int(raw))
+                except (TypeError, ValueError):
+                    continue
+            coach_team_ids &= set(member_team_ids)  # only teams they're actually on
+            for tid in member_team_ids:
+                session.execute(
+                    text("UPDATE player_teams SET is_coach = :ic WHERE player_id = :pid AND team_id = :tid"),
+                    {"ic": tid in coach_team_ids, "pid": player.id, "tid": tid}
+                )
+            is_coach = len(coach_team_ids) > 0  # "coaches at least one team"
+            logger.info(f"Per-team coach update for player {player.id}: coaches teams {sorted(coach_team_ids)}")
+        else:
+            # Legacy fallback: a single global checkbox applies to all their teams
+            # (preserved so any older caller keeps working unchanged).
+            is_coach = 'is_coach' in request.form
+            session.execute(
+                text("UPDATE player_teams SET is_coach = :is_coach WHERE player_id = :player_id"),
+                {"is_coach": is_coach, "player_id": player.id}
+            )
+
+        # Player-level flag = "coaches at least one team".
+        player.is_coach = is_coach
+        player.discord_needs_update = True
+        session.add(player)
 
         # Queue for deferred Discord operations
         discord_queue = DeferredDiscordQueue()
