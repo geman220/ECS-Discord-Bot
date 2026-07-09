@@ -86,10 +86,10 @@
                             <div class="flex items-center gap-2">
                                 <label for="ro-week-count" class="text-xs text-gray-500 dark:text-gray-400">Weeks</label>
                                 <input type="number" id="ro-week-count" min="1" value="10" class="w-16 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green text-sm py-1">
-                                <button type="button" id="ro-rebuild-weeks" class="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[36px] text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"><i class="ti ti-refresh"></i> Rebuild</button>
+                                <button type="button" id="ro-rebuild-weeks" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"><i class="ti ti-refresh"></i> Rebuild</button>
                             </div>
                         </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Each row is a date; set the type <strong>per division</strong> (they can differ — e.g. Premier playoff while Classic still plays). <strong>Regular</strong> = normal match week (round-robin games); <strong>TST / Fun / BYE</strong> = special weeks with no league games; <strong>Playoff</strong> = bracket. Regular game weeks auto-number, skipping specials. Classic regular weeks can toggle <strong>Practice</strong> (practice sessions + games). Reorder with the arrows.</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Each row is a date; set the type <strong>per division</strong> (they can differ — e.g. Premier playoff while Classic still plays). <strong>Regular</strong> = normal match week (round-robin games); <strong>TST / Fun / BYE</strong> = special weeks with no league games; <strong>Playoff</strong> = bracket. Regular game weeks auto-number, skipping specials. On a Classic regular week, check <strong>Practice</strong> — the first time block is practice, the second is a match. Drag the handle or use the arrows to reorder.</p>
                         <div class="hidden sm:grid grid-cols-[22px_58px_1fr_1fr_92px] gap-2 px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
                             <span></span>
                             <span>Date</span>
@@ -115,7 +115,7 @@
                             <div class="flex items-center gap-2">
                                 <label for="ro-ecs-week-count" class="text-xs text-gray-500 dark:text-gray-400">Weeks</label>
                                 <input type="number" id="ro-ecs-week-count" min="1" value="10" class="w-16 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green text-sm py-1">
-                                <button type="button" id="ro-ecs-rebuild-weeks" class="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[36px] text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"><i class="ti ti-refresh"></i> Rebuild</button>
+                                <button type="button" id="ro-ecs-rebuild-weeks" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"><i class="ti ti-refresh"></i> Rebuild</button>
                             </div>
                         </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Each row is a date. Regular game weeks auto-number, skipping special weeks. Reorder with the arrows.</p>
@@ -413,7 +413,7 @@
         wrap.appendChild(buildTypeSelect(current, label, div, idx));
         if (gwLabel) {
             var b = document.createElement('div');
-            b.className = 'text-[9px] font-mono text-center opacity-60';
+            b.className = 'text-[10px] font-mono text-center opacity-60';
             b.textContent = gwLabel;
             wrap.appendChild(b);
         }
@@ -454,14 +454,18 @@
             // Classic cell — a regular Classic week can carry practice sessions.
             var cCell = typeCell(w.classic, 'Classic week ' + (i + 1) + ' type', 'classic', i, cGW[i]);
             if (w.classic === 'REGULAR') {
-                var pBtn = document.createElement('button');
-                pBtn.type = 'button';
-                pBtn.setAttribute('data-wk-act', 'practice');
-                pBtn.setAttribute('data-wk-idx', i);
-                pBtn.className = 'mt-1 w-full inline-flex items-center justify-center gap-1 text-[10px] font-semibold rounded px-1 py-0.5 border ' + (w.classicPractice ? 'bg-teal-100 text-teal-700 border-teal-300 dark:bg-teal-500/20 dark:text-teal-300 dark:border-teal-500/40' : 'text-gray-400 border-gray-200 dark:border-gray-600 hover:text-teal-600 hover:border-teal-300');
-                pBtn.title = 'Toggle Classic practice sessions this week';
-                pBtn.innerHTML = '<i class="ti ti-whistle text-[10px]"></i> ' + (w.classicPractice ? 'Practice ✓' : 'Practice');
-                cCell.appendChild(pBtn);
+                var pLabel = document.createElement('label');
+                pLabel.className = 'mt-1 flex items-center justify-center gap-1.5 text-[10px] font-medium text-gray-500 dark:text-gray-400 cursor-pointer';
+                pLabel.title = 'Classic practice sessions this week (first block practice, then a match)';
+                var pCb = document.createElement('input');
+                pCb.type = 'checkbox';
+                pCb.checked = !!w.classicPractice;
+                pCb.setAttribute('data-wk-act', 'practice');
+                pCb.setAttribute('data-wk-idx', i);
+                pCb.className = 'w-3.5 h-3.5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-500';
+                pLabel.appendChild(pCb);
+                pLabel.appendChild(document.createTextNode('Practice'));
+                cCell.appendChild(pLabel);
             }
             row.appendChild(cCell);
             row.appendChild(moveButtons(i, total));
@@ -965,26 +969,26 @@
             var list = document.getElementById(listId);
             if (!list) return;
             list.addEventListener('change', function (e) {
-                var sel = e.target.closest ? e.target.closest('.ro-wk-type') : null;
-                if (!sel) return;
-                var idx = parseInt(sel.getAttribute('data-wk-idx'), 10);
-                var div = sel.getAttribute('data-wk-div');
-                if (isPub) { if (state.pubWeeks[idx]) state.pubWeeks[idx][div] = sel.value; renderPubWeeks(); }
-                else { state.ecsWeeks[idx] = sel.value; renderEcsWeeks(); }
+                var t = e.target;
+                if (t && t.classList && t.classList.contains('ro-wk-type')) {
+                    var idx = parseInt(t.getAttribute('data-wk-idx'), 10);
+                    var div = t.getAttribute('data-wk-div');
+                    if (isPub) { if (state.pubWeeks[idx]) state.pubWeeks[idx][div] = t.value; renderPubWeeks(); }
+                    else { state.ecsWeeks[idx] = t.value; renderEcsWeeks(); }
+                    return;
+                }
+                if (t && t.getAttribute && t.getAttribute('data-wk-act') === 'practice') {
+                    var pi = parseInt(t.getAttribute('data-wk-idx'), 10);
+                    if (isPub && state.pubWeeks[pi]) state.pubWeeks[pi].classicPractice = !!t.checked;
+                    // the checkbox shows its own state — no re-render needed
+                }
             });
             list.addEventListener('click', function (e) {
-                var btn = e.target.closest ? e.target.closest('[data-wk-act]') : null;
+                var btn = e.target.closest ? e.target.closest('button[data-wk-act]') : null;
                 if (!btn) return;
                 var idx = parseInt(btn.getAttribute('data-wk-idx'), 10);
                 var act = btn.getAttribute('data-wk-act');
                 var arr = isPub ? state.pubWeeks : state.ecsWeeks;
-                if (act === 'practice') {
-                    if (isPub && state.pubWeeks[idx]) {
-                        state.pubWeeks[idx].classicPractice = !state.pubWeeks[idx].classicPractice;
-                        renderPubWeeks();
-                    }
-                    return;  // toggle only — never changes the week count
-                }
                 if (act === 'up' && idx > 0) { var a = arr[idx - 1]; arr[idx - 1] = arr[idx]; arr[idx] = a; }
                 else if (act === 'down' && idx < arr.length - 1) { var b = arr[idx + 1]; arr[idx + 1] = arr[idx]; arr[idx] = b; }
                 else if (act === 'remove' && arr.length > 1) { arr.splice(idx, 1); }
@@ -997,7 +1001,7 @@
             var dragIdx = null;
             var clearMarks = function () {
                 var rows = list.querySelectorAll('.ro-wk-row');
-                for (var k = 0; k < rows.length; k++) rows[k].classList.remove('opacity-40', 'ring-2', 'ring-ecs-green');
+                for (var k = 0; k < rows.length; k++) rows[k].classList.remove('opacity-40', 'bg-ecs-green/10');
             };
             list.addEventListener('dragstart', function (e) {
                 var row = e.target.closest ? e.target.closest('.ro-wk-row') : null;
@@ -1011,8 +1015,8 @@
                 if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
                 var row = e.target.closest ? e.target.closest('.ro-wk-row') : null;
                 var rows = list.querySelectorAll('.ro-wk-row');
-                for (var k = 0; k < rows.length; k++) rows[k].classList.remove('ring-2', 'ring-ecs-green');
-                if (row && !row.classList.contains('opacity-40')) row.classList.add('ring-2', 'ring-ecs-green');
+                for (var k = 0; k < rows.length; k++) rows[k].classList.remove('bg-ecs-green/10');
+                if (row && !row.classList.contains('opacity-40')) row.classList.add('bg-ecs-green/10');
             });
             list.addEventListener('drop', function (e) {
                 e.preventDefault();
