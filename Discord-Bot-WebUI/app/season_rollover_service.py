@@ -164,7 +164,9 @@ def _division_schedule_preview(label_prefix_offset: int, team_count: int,
 
 def build_rollover_preview(session, league_type: str, new_season_name: str,
                            start_date, team_counts: dict,
-                           week_config_summary: dict) -> dict:
+                           week_config_summary: dict,
+                           delete_discord_channels: bool = True,
+                           create_discord_channels: bool = True) -> dict:
     """
     Compute a full DRY-RUN preview of a season rollover WITHOUT committing.
 
@@ -218,10 +220,18 @@ def build_rollover_preview(session, league_type: str, new_season_name: str,
 
     # --- Teams whose memberships will be archived to PlayerTeamSeason --------
     teams_to_archive = 0
+    channels_to_delete = 0
     if old_season:
         teams_to_archive = session.query(Team).join(
             League, Team.league_id == League.id
         ).filter(League.season_id == old_season.id).count()
+        # Old teams that actually have a Discord channel (only these get deleted).
+        channels_to_delete = session.query(Team).join(
+            League, Team.league_id == League.id
+        ).filter(
+            League.season_id == old_season.id,
+            Team.discord_channel_id.isnot(None)
+        ).count()
 
     # --- New leagues + teams to be created ---------------------------------
     if league_type == 'Pub League':
@@ -298,6 +308,13 @@ def build_rollover_preview(session, league_type: str, new_season_name: str,
         'team_names': all_team_names,
         'divisions': divisions,
         'total_estimated_matches': total_estimated_matches,
+        'discord': {
+            # Deleting last season's team channels/roles is Pub-League-only.
+            'delete_channels': bool(delete_discord_channels) and league_type == 'Pub League',
+            'channels_to_delete': channels_to_delete,
+            'create_channels': bool(create_discord_channels),
+            'channels_to_create': total_teams,
+        },
         'warnings': warnings,
         'notes': [
             'This is a preview only — no data has been changed.',

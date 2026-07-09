@@ -1656,6 +1656,12 @@ def _execute_season_creation(session, data):
         season_name = data['season_name']
         league_type = data['league_type']
         set_as_current = data.get('set_as_current', False)
+        # Discord side-effect toggles (default True = existing behavior, so the
+        # Season Builder wizard is unchanged). The guided rollover sends these to
+        # choose whether to DELETE last season's team channels/roles and whether
+        # to CREATE channels for the new placeholder teams.
+        delete_discord_channels = data.get('delete_discord_channels', True)
+        create_discord_channels = data.get('create_discord_channels', True)
         season_start_date = datetime.strptime(data['season_start_date'], '%Y-%m-%d').date()
 
         # Extract division-specific week configurations from new payload format
@@ -1825,8 +1831,10 @@ def _execute_season_creation(session, data):
                 rollover_performed = True
                 logger.info(f"Rollover completed from {old_season.name} to {new_season.name}")
                 
-                # Queue Discord cleanup for Pub League seasons only
-                if old_season.league_type == 'Pub League':
+                # Queue Discord cleanup for Pub League seasons only, and only if
+                # the caller opted in (delete_discord_channels). This DELETES the
+                # old season's team channels + roles — off = keep them.
+                if old_season.league_type == 'Pub League' and delete_discord_channels:
                     try:
                         cleanup_pub_league_discord_resources_celery_task.delay(old_season.id)
                         discord_cleanup_queued = True
@@ -1834,6 +1842,8 @@ def _execute_season_creation(session, data):
                     except Exception as e:
                         logger.error(f"Failed to queue Discord cleanup: {e}")
                         # Don't fail the entire operation if Discord cleanup fails to queue
+                elif old_season.league_type == 'Pub League':
+                    logger.info(f"Discord channel cleanup skipped for {old_season.name} (delete toggle off)")
                         
             except Exception as e:
                 logger.error(f"Rollover failed: {e}")
@@ -2153,19 +2163,24 @@ def _execute_season_creation(session, data):
         # Ensure the database transaction is fully committed before queuing tasks
         session.close()
         
-        # Queue Discord channel creation tasks for all teams
-        # Add a small delay to ensure database commits are visible to workers
-        import time as time_module
-        time_module.sleep(0.5)
-        
-        logger.info(f"About to queue Discord resources for {len(created_teams)} teams: {created_teams}")
-        for team_id in created_teams:
-            try:
-                task_result = create_team_discord_resources_task.delay(team_id)
-                logger.info(f"Queued Discord resource creation for team ID {team_id}, task ID: {task_result.id}")
-            except Exception as e:
-                logger.error(f"Failed to queue Discord task for team {team_id}: {e}")
-                # Don't fail the entire operation if Discord task queueing fails
+        # Queue Discord channel creation tasks for all teams — only if the caller
+        # opted in (create_discord_channels). Off = create the team rows but no
+        # Discord channels/roles (admin can add them later).
+        if create_discord_channels:
+            # Add a small delay to ensure database commits are visible to workers
+            import time as time_module
+            time_module.sleep(0.5)
+
+            logger.info(f"About to queue Discord resources for {len(created_teams)} teams: {created_teams}")
+            for team_id in created_teams:
+                try:
+                    task_result = create_team_discord_resources_task.delay(team_id)
+                    logger.info(f"Queued Discord resource creation for team ID {team_id}, task ID: {task_result.id}")
+                except Exception as e:
+                    logger.error(f"Failed to queue Discord task for team {team_id}: {e}")
+                    # Don't fail the entire operation if Discord task queueing fails
+        else:
+            logger.info(f"Discord channel creation skipped for {len(created_teams)} new teams (create toggle off)")
         
         # Build success message
         message_parts = [f'Season "{season_name}" created successfully with {len(created_teams)} teams']

@@ -148,6 +148,21 @@
                     </div>
                 </details>
 
+                <!-- Discord channel handling -->
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-2">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                        <i class="ti ti-brand-discord" aria-hidden="true"></i> Discord channels
+                    </p>
+                    <label class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <input type="checkbox" id="ro-create-discord" checked class="mt-0.5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+                        <span><strong>Create</strong> Discord channels &amp; roles for the new teams (Team A, Team B, …).</span>
+                    </label>
+                    <label class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <input type="checkbox" id="ro-delete-discord" checked class="mt-0.5 rounded border-gray-300 text-red-600 focus:ring-red-500">
+                        <span><strong>Delete</strong> last season's team channels &amp; roles. <span class="text-red-600 dark:text-red-400">This removes their chat history and can't be undone.</span> Uncheck to keep them.</span>
+                    </label>
+                </div>
+
                 <div class="flex justify-end pt-2">
                     <button type="button" data-action="rollover-goto-preview"
                             class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
@@ -342,7 +357,9 @@
             match_duration: num('ro-match-duration') || 70,
             break_duration: 10,
             enable_time_rotation: true,
-            fields: val('ro-fields') || 'North,South'
+            fields: val('ro-fields') || 'North,South',
+            delete_discord_channels: checked('ro-delete-discord'),
+            create_discord_channels: checked('ro-create-discord')
         };
 
         if (leagueType === 'Pub League') {
@@ -392,7 +409,9 @@
             new_season_name: val('ro-season-name').trim(),
             start_date: val('ro-start-date'),
             team_counts: teamCounts,
-            week_config_summary: weekSummary
+            week_config_summary: weekSummary,
+            delete_discord_channels: checked('ro-delete-discord'),
+            create_discord_channels: checked('ro-create-discord')
         };
     }
 
@@ -447,6 +466,26 @@
         html += '<div class="rounded-lg border border-ecs-green/40 bg-ecs-green/5 dark:bg-ecs-green/10 p-3 text-sm text-gray-700 dark:text-gray-200 flex items-start gap-2">'
              + '<i class="ti ti-shield-check text-ecs-green text-lg mt-0.5"></i>'
              + '<span><strong>Career stats and player profiles are preserved.</strong> Old team memberships are snapshotted to season history before players are cleared.</span></div>';
+
+        // Discord channel handling
+        if (p.discord) {
+            var dc = p.discord;
+            html += '<div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-sm space-y-1.5">';
+            html += '<div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5"><i class="ti ti-brand-discord"></i> Discord channels</div>';
+            if (dc.create_channels) {
+                html += '<div class="flex items-start gap-2 text-gray-700 dark:text-gray-200"><i class="ti ti-plus text-ecs-green mt-0.5"></i><span><strong>' + dc.channels_to_create + '</strong> new team channel' + (dc.channels_to_create === 1 ? '' : 's') + ' + roles will be created.</span></div>';
+            } else {
+                html += '<div class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><i class="ti ti-minus mt-0.5"></i><span>New team channels will <strong>not</strong> be created.</span></div>';
+            }
+            if (dc.delete_channels && dc.channels_to_delete > 0) {
+                html += '<div class="flex items-start gap-2 text-red-600 dark:text-red-400"><i class="ti ti-trash mt-0.5"></i><span><strong>' + dc.channels_to_delete + '</strong> old team channel' + (dc.channels_to_delete === 1 ? '' : 's') + ' + roles will be <strong>DELETED</strong> — chat history removed, cannot be undone.</span></div>';
+            } else if (dc.delete_channels) {
+                html += '<div class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><i class="ti ti-trash mt-0.5"></i><span>No old team channels found to delete.</span></div>';
+            } else {
+                html += '<div class="flex items-start gap-2 text-gray-700 dark:text-gray-200"><i class="ti ti-lock text-ecs-green mt-0.5"></i><span>Last season\'s channels will be <strong>kept</strong>.</span></div>';
+            }
+            html += '</div>';
+        }
 
         // Divisions
         html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';

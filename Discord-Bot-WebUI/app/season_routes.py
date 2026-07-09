@@ -1134,6 +1134,8 @@ def rollover_preview():
             start_date=data.get('start_date'),
             team_counts=data.get('team_counts') or {},
             week_config_summary=data.get('week_config_summary') or {},
+            delete_discord_channels=data.get('delete_discord_channels', True),
+            create_discord_channels=data.get('create_discord_channels', True),
         )
         return jsonify(preview)
     except Exception as e:
