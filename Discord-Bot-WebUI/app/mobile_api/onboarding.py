@@ -141,7 +141,9 @@ def onboarding_submit():
             player = Player(
                 user_id=current_user_id,
                 name=data.get('name') or user.username,
-                is_current_player=True,
+                # Not "paid/active this season" until a pass is linked — a signup
+                # (even this defensive recreate) is never a current player for free.
+                is_current_player=False,
                 is_sub=True,
             )
             session.add(player)

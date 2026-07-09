@@ -228,7 +228,10 @@ def create_user_for_player(player_info, session):
         new_user = User(
             email=player_info['email'],
             username=player_info['name'] or player_info['email'],
-            is_approved=True
+            # No auto-approve — imported/synced buyers land in the admin approval
+            # queue for individual review before they're active.
+            is_approved=False,
+            approval_status='pending'
         )
         new_user.set_password(random_password)
         session.add(new_user)

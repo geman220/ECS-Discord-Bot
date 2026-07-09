@@ -101,7 +101,9 @@ def authenticate_socket_connection(auth=None):
                 logger.debug(f"🔌 [AUTH] Flask-Login check failed: {e}")
 
         if not token:
-            logger.warning("🔌 [AUTH] No JWT token found in any source")
+            # Expected for anonymous/pre-auth socket connections (connection is still
+            # allowed below). Debug-level so it doesn't flood the logs.
+            logger.debug("🔌 [AUTH] No JWT token found in any source")
             return {
                 'authenticated': False,
                 'user_id': None,
@@ -233,8 +235,14 @@ def handle_connect(auth):
             logger.info(f"🔌 [CONNECT] Successfully authenticated {username} (ID: {user_id})")
 
         else:
-            # Authentication failed - still allow connection but inform client
-            logger.warning(f"🔌 [CONNECT] Authentication failed: {auth_result.get('error')}")
+            # Authentication failed - still allow connection but inform client.
+            # A missing token is the normal anonymous case (debug); anything else
+            # (bad/expired token) is worth an info-level line.
+            _err = auth_result.get('error')
+            if _err == 'No authentication token provided':
+                logger.debug(f"🔌 [CONNECT] Anonymous connection (no token)")
+            else:
+                logger.info(f"🔌 [CONNECT] Authentication failed: {_err}")
 
             emit('authentication_failed', {
                 'error': auth_result.get('error'),

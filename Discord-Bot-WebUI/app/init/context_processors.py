@@ -145,6 +145,55 @@ def init_context_processors(app):
     _register_ai_assistant_processor(app)
     _register_nav_counts_processor(app)
     _register_endpoint_helper(app)
+    _register_pending_access_processor(app)
+
+
+def _register_pending_access_processor(app):
+    """Expose ``pending_access`` to every template.
+
+    Non-None only for an authenticated, non-admin user who is NOT an active
+    league member (pending admin approval and/or hasn't paid for the season).
+    Templates render a slim banner from it (see base_flowbite.html). Fails
+    closed to None on any error so a data hiccup never shows a spurious banner.
+    """
+
+    @app.context_processor
+    def inject_pending_access():
+        try:
+            user = safe_current_user
+            if not (user and user.is_authenticated):
+                return dict(pending_access=None)
+
+            # Only show the banner when the access gate is enabled. Same flag +
+            # default (True/locked-down) the gate uses.
+            from app.models.admin_config import AdminConfig
+            if not AdminConfig.get_setting('league_access_gating_enabled', True):
+                return dict(pending_access=None)
+
+            # Admin / staff never see the banner.
+            from app.init.access_gating import (
+                _BYPASS_ROLES, _is_approved_member,
+            )
+            roles = getattr(g, '_cached_user_roles', None) or []
+            if any(r in _BYPASS_ROLES for r in roles):
+                return dict(pending_access=None)
+
+            # Approved members never see the banner — access is approval-based,
+            # so an approved-but-unpaid member is a normal, fully-access user and
+            # is NOT nagged. The banner is only for not-yet-approved signups.
+            if _is_approved_member(user):
+                return dict(pending_access=None)
+
+            # Denied applicants can't log in, so everyone left here is pending
+            # admin approval.
+            player = getattr(user, 'player', None)
+            return dict(pending_access={
+                'is_approved': bool(getattr(user, 'is_approved', False)),
+                'is_paid': bool(player and getattr(player, 'is_current_player', False)),
+            })
+        except Exception as e:
+            logger.debug(f"pending_access banner check failed: {e}")
+            return dict(pending_access=None)
 
 
 def _register_endpoint_helper(app):

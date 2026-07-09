@@ -9,9 +9,9 @@ league rollovers, setting the current season, and deleting seasons along with
 their associated leagues and teams.
 """
 
-from flask import Blueprint, render_template, redirect, url_for, request, g
+from flask import Blueprint, render_template, redirect, url_for, request, g, jsonify
 from app.alert_helpers import show_success, show_error, show_warning, show_info
-from flask_login import login_required
+from flask_login import login_required, current_user
 from sqlalchemy import func
 from typing import Optional
 import logging
@@ -604,12 +604,36 @@ def create_pub_league_season(session, season_name: str) -> Optional[Season]:
 
     if old_season:
         old_season.is_current = False
+
+        # Deactivate last season's Pub League roster BEFORE the rollover migrates
+        # league_ids. A new season starts with NOBODY active — activation is
+        # per-player and pass-driven (buying/linking a Classic|Premier pass calls
+        # PlayerActivationService.activate_player_for_league, which flips
+        # is_current_player back to True). Scoped strictly to the OLD Pub League
+        # season's leagues via league_id/primary_league_id, so ECS FC players
+        # (a different season/league_type) are never touched. Profiles, career
+        # stats, and PlayerTeamSeason history are all preserved by rollover_league.
+        old_pl_league_ids = [
+            l.id for l in session.query(League).filter_by(season_id=old_season.id).all()
+        ]
+        if old_pl_league_ids:
+            deactivated = session.query(Player).filter(
+                (Player.league_id.in_(old_pl_league_ids)) |
+                (Player.primary_league_id.in_(old_pl_league_ids)),
+                Player.is_current_player == True
+            ).update({Player.is_current_player: False}, synchronize_session=False)
+            session.flush()
+            logger.info(
+                f"Season rollover: deactivated {deactivated} Pub League players "
+                f"(is_current_player=False); they re-activate on pass purchase"
+            )
+
         rollover_league(session, old_season, new_season)
     else:
         # No old current season found - still need to commit the new season/leagues
         logger.warning("No current Pub League season found for rollover")
         session.commit()
-        
+
     # Additional safety check: Ensure ALL Pub League players (active + inactive) are in the new season
     # This handles edge cases where rollover might have missed some players
     # We migrate ALL players so inactive ones are ready if they return later
@@ -1050,5 +1074,173 @@ def delete_season(season_id):
         session.rollback()
         show_error(f'Failed to delete season "{season_name}". Please check logs for details.')
         raise
-    
+
     return redirect(url_for('publeague.season.manage_seasons'))
+
+
+# ===========================================================================
+# Guided Season Rollover
+# ===========================================================================
+# A step-by-step admin flow (preview -> backup -> execute, plus restore) that
+# wraps the same end-to-end season creation the Season Builder wizard uses.
+# Routes are mounted under /publeague/seasons (see app/publeague.py).
+
+@season_bp.route('/rollover', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def rollover_wizard():
+    """Render the guided Season Rollover wizard page."""
+    session = g.db_session
+    is_global_admin = False
+    try:
+        is_global_admin = current_user.has_role('Global Admin')
+    except Exception:
+        is_global_admin = False
+
+    pub_current = session.query(Season).filter_by(
+        league_type='Pub League', is_current=True
+    ).first()
+    ecs_current = session.query(Season).filter_by(
+        league_type='ECS FC', is_current=True
+    ).first()
+
+    return render_template(
+        'publeague/season_rollover_flowbite.html',
+        title='Guided Season Rollover',
+        is_global_admin=is_global_admin,
+        pub_current=pub_current,
+        ecs_current=ecs_current,
+    )
+
+
+@season_bp.route('/rollover/preview', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def rollover_preview():
+    """Return a read-only dry-run preview of the proposed rollover (no writes)."""
+    from app.season_rollover_service import build_rollover_preview
+
+    session = g.db_session
+    try:
+        data = request.get_json() or {}
+        league_type = data.get('league_type')
+        if league_type not in ('Pub League', 'ECS FC'):
+            return jsonify({'success': False, 'error': 'Invalid league type.'}), 400
+
+        preview = build_rollover_preview(
+            session=session,
+            league_type=league_type,
+            new_season_name=(data.get('new_season_name') or '').strip(),
+            start_date=data.get('start_date'),
+            team_counts=data.get('team_counts') or {},
+            week_config_summary=data.get('week_config_summary') or {},
+        )
+        return jsonify(preview)
+    except Exception as e:
+        logger.error(f"Rollover preview failed: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Failed to build preview.'}), 500
+
+
+@season_bp.route('/rollover/backup', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def rollover_backup():
+    """Create a persistent pg_dump backup before executing the rollover."""
+    from app.season_rollover_service import create_database_backup
+
+    try:
+        result = create_database_backup()
+        status = 200 if result.get('success') else 500
+        return jsonify(result), status
+    except Exception as e:
+        logger.error(f"Rollover backup failed: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Backup failed.'}), 500
+
+
+@season_bp.route('/rollover/backups', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def rollover_backups():
+    """List existing backup files (newest first)."""
+    from app.season_rollover_service import list_backups
+
+    try:
+        return jsonify({'success': True, 'backups': list_backups()})
+    except Exception as e:
+        logger.error(f"Listing backups failed: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Could not list backups.'}), 500
+
+
+@season_bp.route('/rollover/execute', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def rollover_execute():
+    """
+    Execute the actual rollover: reuses the shared ``_execute_season_creation``
+    helper (the same code the Season Builder wizard runs). Requires that a
+    backup was created first (``backup_filename`` must exist) OR an explicit
+    ``skip_backup=true`` acknowledgement.
+    """
+    from app.season_rollover_service import _safe_backup_path
+    from app.auto_schedule_routes import _execute_season_creation
+
+    session = g.db_session
+    data = request.get_json() or {}
+
+    backup_filename = data.get('backup_filename')
+    skip_backup = bool(data.get('skip_backup'))
+
+    # Backup gate: either a verified backup exists, or the admin explicitly
+    # acknowledged skipping it.
+    if not skip_backup:
+        import os
+        path = _safe_backup_path(backup_filename) if backup_filename else None
+        if not path or not os.path.isfile(path):
+            return jsonify({
+                'success': False,
+                'error': ('A database backup is required before executing. Create a '
+                          'backup first, or resend with skip_backup=true to proceed '
+                          'without one.')
+            }), 400
+
+    # The wizard payload nested under "season" carries the exact shape the
+    # Season Builder posts; fall back to the top-level data for flexibility.
+    season_payload = data.get('season') or data.get('payload') or data
+    try:
+        payload, status = _execute_season_creation(session, season_payload)
+        return jsonify(payload), status
+    except Exception as e:
+        logger.error(f"Rollover execute failed: {e}", exc_info=True)
+        session.rollback()
+        return jsonify({'error': 'An error occurred while executing the rollover.'}), 500
+
+
+@season_bp.route('/rollover/restore', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def rollover_restore():
+    """
+    DESTRUCTIVE: restore the database from a backup file. Global-Admin-only and
+    gated on an explicit confirm token (``confirm`` == 'RESTORE').
+    """
+    from app.season_rollover_service import restore_database_backup
+
+    data = request.get_json() or {}
+    filename = data.get('filename')
+    confirm = data.get('confirm')
+
+    if confirm != 'RESTORE':
+        return jsonify({
+            'success': False,
+            'error': 'Restore not confirmed. Type RESTORE to confirm this destructive action.'
+        }), 400
+    if not filename:
+        return jsonify({'success': False, 'error': 'No backup filename provided.'}), 400
+
+    try:
+        result = restore_database_backup(filename)
+        status = 200 if result.get('success') else 500
+        return jsonify(result), status
+    except Exception as e:
+        logger.error(f"Rollover restore failed: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Restore failed.'}), 500

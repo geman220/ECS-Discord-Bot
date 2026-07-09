@@ -16,37 +16,37 @@
                 <div class="w-8 h-8 rounded-full flex items-center justify-center bg-ecs-green text-white dark:bg-ecs-gold text-sm font-medium mb-1 transition-colors">
                     <i class="ti ti-receipt text-sm"></i>
                 </div>
-                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Order</span>
+                <span class="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 text-center leading-tight">Order</span>
             </div>
             <div class="flex flex-col items-center flex-1" data-step-indicator="2">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
                     <i class="ti ti-brand-discord text-sm"></i>
                 </div>
-                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Login</span>
+                <span class="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 text-center leading-tight">Login</span>
             </div>
             <div class="flex flex-col items-center flex-1" data-step-indicator="3">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
                     <i class="ti ti-users text-sm"></i>
                 </div>
-                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Assign</span>
+                <span class="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 text-center leading-tight">Assign</span>
             </div>
             <div class="flex flex-col items-center flex-1" data-step-indicator="4">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
                     <i class="ti ti-arrows-exchange text-sm"></i>
                 </div>
-                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Review</span>
+                <span class="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 text-center leading-tight">Review</span>
             </div>
             <div class="flex flex-col items-center flex-1" data-step-indicator="5">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
                     <i class="ti ti-user text-sm"></i>
                 </div>
-                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Profile</span>
+                <span class="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 text-center leading-tight">Profile</span>
             </div>
             <div class="flex flex-col items-center flex-1" data-step-indicator="6">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
                     <i class="ti ti-wallet text-sm"></i>
                 </div>
-                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Pass</span>
+                <span class="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 text-center leading-tight">Pass</span>
             </div>
         </div>
     </div>
@@ -59,6 +59,9 @@
         <input type="hidden" id="currentStep" value="{{ initial_step }}">
         <input type="hidden" id="hasConflicts" value="{{ 'true' if conflicts else 'false' }}">
         <input type="hidden" id="profileNeedsUpdate" value="{{ 'true' if profile_needs_update else 'false' }}">
+        <input type="hidden" id="profileReviewMode" value="{{ profile_review_mode }}">
+        <input type="hidden" id="isApproved" value="{{ 'true' if is_approved else 'false' }}">
+        <input type="hidden" id="isCurrentPlayer" value="{{ 'true' if is_current_player else 'false' }}">
 
         <!-- Step 1: Order Verification -->
         <div class="wizard-step{% if initial_step != 1 %} hidden{% endif %}" data-step="1">
@@ -139,15 +142,15 @@
                         <i class="ti ti-user-check text-6xl text-gray-300 dark:text-gray-600"></i>
                     </div>
                     <p class="text-gray-600 dark:text-gray-400 mb-6">
-                        To link your Pub League pass, we need to verify your identity through Discord.
+                        Sign in with Discord to link your pass — or, if it's your first time, this is how you sign up. Same button either way.
                     </p>
-                    <a href="{{ url_for('auth.discord_login', next=request.url) }}"
-                       class="inline-flex items-center justify-center gap-2 w-full px-6 py-3 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition-colors">
+                    <a href="{{ url_for('auth.discord_register', next=request.url) }}"
+                       class="inline-flex items-center justify-center gap-2 w-full min-h-[44px] px-6 py-3 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-brand-discord text-xl"></i>
-                        Login with Discord
+                        Continue with Discord
                     </a>
                     <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                        Don't have a Discord account? <a href="https://discord.com/register" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">Create one here</a>
+                        No Discord account yet? <a href="https://discord.com/register" target="_blank" rel="noopener" class="text-indigo-600 dark:text-indigo-400 hover:underline">Create one first</a>, then come back and tap Continue.
                     </p>
                 </div>
             </div>
@@ -190,28 +193,32 @@
                             </div>
                             <div class="p-4 space-y-3">
                                 <!-- Assignment Options -->
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div class="assign-options space-y-2">
+                                    <!-- Primary action -->
                                     <button type="button"
                                             data-action="pub-league-link-self"
                                             data-line-item-id="{{ item.id }}"
-                                            class="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-ecs-green hover:bg-ecs-green/90 dark:bg-ecs-gold dark:hover:bg-ecs-gold/90 rounded-lg transition-colors">
-                                        <i class="ti ti-user-plus"></i>
+                                            class="w-full flex items-center justify-center gap-2 min-h-[44px] px-4 py-3.5 text-base font-semibold text-white bg-ecs-green hover:bg-ecs-green/90 dark:bg-ecs-gold dark:hover:bg-ecs-gold/90 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-ecs-green">
+                                        <i class="ti ti-user-plus text-lg"></i>
                                         Assign to Me
                                     </button>
-                                    <button type="button"
-                                            data-action="pub-league-show-search"
-                                            data-line-item-id="{{ item.id }}"
-                                            class="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors">
-                                        <i class="ti ti-search"></i>
-                                        Find Someone
-                                    </button>
-                                    <button type="button"
-                                            data-action="pub-league-show-claim"
-                                            data-line-item-id="{{ item.id }}"
-                                            class="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors">
-                                        <i class="ti ti-link"></i>
-                                        Send Link
-                                    </button>
+                                    <!-- Secondary actions -->
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <button type="button"
+                                                data-action="pub-league-show-search"
+                                                data-line-item-id="{{ item.id }}"
+                                                class="flex items-center justify-center gap-2 min-h-[44px] px-3 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-ecs-green">
+                                            <i class="ti ti-search"></i>
+                                            Find Someone
+                                        </button>
+                                        <button type="button"
+                                                data-action="pub-league-show-claim"
+                                                data-line-item-id="{{ item.id }}"
+                                                class="flex items-center justify-center gap-2 min-h-[44px] px-3 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-ecs-green">
+                                            <i class="ti ti-gift"></i>
+                                            Gift this pass
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <!-- Search Panel (hidden by default) -->
@@ -221,7 +228,8 @@
                                     </label>
                                     <div class="relative">
                                         <input type="text"
-                                               class="user-search-input block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green pr-10"
+                                               inputmode="search"
+                                               class="user-search-input block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green pr-10"
                                                placeholder="Start typing..."
                                                data-line-item-id="{{ item.id }}">
                                         <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -242,7 +250,8 @@
                                                 Recipient's Name (optional)
                                             </label>
                                             <input type="text"
-                                                   class="claim-name block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                                                   autocomplete="name"
+                                                   class="claim-name block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
                                                    placeholder="Their name">
                                         </div>
                                         <div>
@@ -250,13 +259,15 @@
                                                 Recipient's Email (optional)
                                             </label>
                                             <input type="email"
-                                                   class="claim-email block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                                                   inputmode="email"
+                                                   autocomplete="email"
+                                                   class="claim-email block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
                                                    placeholder="their@email.com">
                                         </div>
                                         <button type="button"
                                                 data-action="pub-league-send-claim"
                                                 data-line-item-id="{{ item.id }}"
-                                                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                                                class="w-full flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-ecs-green disabled:opacity-50 disabled:cursor-not-allowed">
                                             <i class="ti ti-send"></i>
                                             Create Claim Link
                                         </button>
@@ -319,17 +330,17 @@
                                 <i class="ti ti-alert-triangle text-amber-500 text-xl"></i>
                                 <span class="font-medium text-gray-900 dark:text-white">{{ conflict.display_name }} Mismatch</span>
                             </div>
-                            <div class="grid grid-cols-3 gap-4 items-center mb-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 items-center mb-4">
                                 <div class="text-center p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
                                     <span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Your Portal Profile</span>
-                                    <span class="text-lg font-bold text-gray-900 dark:text-white">{{ conflict.portal_value or '-' }}</span>
+                                    <span class="text-lg font-bold text-gray-900 dark:text-white break-words">{{ conflict.portal_value or '-' }}</span>
                                 </div>
                                 <div class="flex justify-center">
-                                    <i class="ti ti-arrows-exchange text-2xl text-gray-400"></i>
+                                    <i class="ti ti-arrows-exchange text-2xl text-gray-400 rotate-90 sm:rotate-0"></i>
                                 </div>
                                 <div class="text-center p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
                                     <span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Your Order Says</span>
-                                    <span class="text-lg font-bold text-gray-900 dark:text-white">{{ conflict.order_value or '-' }}</span>
+                                    <span class="text-lg font-bold text-gray-900 dark:text-white break-words">{{ conflict.order_value or '-' }}</span>
                                 </div>
                             </div>
                             <div class="flex gap-3">
@@ -337,16 +348,16 @@
                                         data-action="pub-league-resolve-conflict"
                                         data-field="{{ conflict.field }}"
                                         data-choice="portal"
-                                        class="conflict-btn flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700 transition-colors">
-                                    Keep {{ conflict.portal_value or 'Portal' }}
+                                        class="conflict-btn flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700 transition-colors">
+                                    <span class="conflict-btn-label">Keep {{ conflict.portal_value or 'Portal' }}</span>
                                 </button>
                                 <button type="button"
                                         data-action="pub-league-resolve-conflict"
                                         data-field="{{ conflict.field }}"
                                         data-choice="order"
                                         data-order-value="{{ conflict.order_value }}"
-                                        class="conflict-btn flex-1 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-800 transition-colors">
-                                    Update to {{ conflict.order_value or 'Order' }}
+                                        class="conflict-btn flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-800 transition-colors">
+                                    <span class="conflict-btn-label">Update to {{ conflict.order_value or 'Order' }}</span>
                                 </button>
                             </div>
                         </div>
@@ -374,94 +385,230 @@
             </div>
         </div>
 
-        <!-- Step 5: Profile Update -->
-        <div class="wizard-step{% if initial_step != 5 %} hidden{% endif %}" data-step="5">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div class="px-4 py-4 border-b border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                            <i class="ti ti-user-edit text-blue-600 dark:text-blue-400"></i>
-                        </div>
-                        <div>
-                            <h2 class="font-semibold text-gray-900 dark:text-white">Update Your Profile</h2>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">It's been a while since your last update</p>
-                        </div>
+        <!-- Step 5: Confirm Your Profile -->
+        <div class="wizard-step{% if initial_step != 5 %} hidden{% endif %}" data-step="5" data-review-mode="{{ profile_review_mode }}">
+            <div class="mb-4">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-id-badge-2 text-ecs-green dark:text-ecs-gold"></i>
+                    {% if profile_review_mode == 'compact' %}Quick check{% else %}Let's confirm your details{% endif %}
+                </h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {% if profile_review_mode == 'compact' %}
+                    Take a quick look and confirm everything still looks right. This is what coaches and admins use to reach you.
+                    {% else %}
+                    Please read through each section and confirm it's accurate. Coaches and league admins use this to build teams and get in touch with you.
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- Section A: Identity & Contact -->
+            <div class="profile-section bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4" data-section="identity">
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                        <i class="ti ti-user text-blue-600 dark:text-blue-400"></i>
                     </div>
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Identity &amp; Contact</h3>
                 </div>
-                <div class="p-4">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Please verify your information is still accurate. This helps coaches and league admins contact you.
-                    </p>
-
-                    <div class="space-y-4">
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label for="profileName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+                        <input type="text" id="profileName" autocomplete="name" autocapitalize="words"
+                               class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                               placeholder="Your full name"
+                               value="{{ profile_prefill.name or '' }}">
+                    </div>
+                    <div>
+                        <label for="profilePhone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mobile Phone</label>
+                        <input type="tel" id="profilePhone" inputmode="tel" autocomplete="tel"
+                               class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                               placeholder="(555) 123-4567"
+                               value="{{ profile_prefill.phone or '' }}">
+                        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Only used to reach you about matches. We never share it.</p>
+                    </div>
+                    <div>
+                        <label for="profilePronouns" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pronouns</label>
+                        <select id="profilePronouns"
+                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="">Prefer not to say</option>
+                            {% for value, label in pronoun_choices %}
+                            <option value="{{ value }}" {% if profile_prefill.pronouns == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                <i class="ti ti-user text-gray-400"></i> Full Name
-                            </label>
-                            <input type="text" id="profileName"
-                                   class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
-                                   placeholder="Your full name"
-                                   value="{{ current_user.player.name if current_user.is_authenticated and current_user.player else '' }}">
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    <i class="ti ti-shirt text-gray-400"></i> Jersey Size
-                                </label>
-                                <select id="profileJerseySize"
-                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
-                                    <option value="">Select size</option>
-                                    <option value="XS" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == 'XS' %}selected{% endif %}>XS</option>
-                                    <option value="S" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == 'S' %}selected{% endif %}>S</option>
-                                    <option value="M" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == 'M' %}selected{% endif %}>M</option>
-                                    <option value="L" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == 'L' %}selected{% endif %}>L</option>
-                                    <option value="XL" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == 'XL' %}selected{% endif %}>XL</option>
-                                    <option value="2XL" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == '2XL' %}selected{% endif %}>2XL</option>
-                                    <option value="3XL" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == '3XL' %}selected{% endif %}>3XL</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    <i class="ti ti-message-circle text-gray-400"></i> Pronouns
-                                </label>
-                                <select id="profilePronouns"
-                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
-                                    <option value="">Select pronouns</option>
-                                    <option value="he/him" {% if current_user.is_authenticated and current_user.player and current_user.player.pronouns == 'he/him' %}selected{% endif %}>He/Him</option>
-                                    <option value="she/her" {% if current_user.is_authenticated and current_user.player and current_user.player.pronouns == 'she/her' %}selected{% endif %}>She/Her</option>
-                                    <option value="they/them" {% if current_user.is_authenticated and current_user.player and current_user.player.pronouns == 'they/them' %}selected{% endif %}>They/Them</option>
-                                    <option value="other" {% if current_user.is_authenticated and current_user.player and current_user.player.pronouns == 'other' %}selected{% endif %}>Other</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                <i class="ti ti-star text-gray-400"></i> Favorite Position
-                            </label>
-                            <select id="profileFavoritePosition"
-                                    class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
-                                <option value="">No preference</option>
-                                <option value="goalkeeper" {% if current_user.is_authenticated and current_user.player and current_user.player.favorite_position == 'goalkeeper' %}selected{% endif %}>Goalkeeper</option>
-                                <option value="defender" {% if current_user.is_authenticated and current_user.player and current_user.player.favorite_position == 'defender' %}selected{% endif %}>Defender</option>
-                                <option value="midfielder" {% if current_user.is_authenticated and current_user.player and current_user.player.favorite_position == 'midfielder' %}selected{% endif %}>Midfielder</option>
-                                <option value="forward" {% if current_user.is_authenticated and current_user.player and current_user.player.favorite_position == 'forward' %}selected{% endif %}>Forward</option>
+                            <label for="profileJerseySize" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jersey Size</label>
+                            <select id="profileJerseySize"
+                                    class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="">Select</option>
+                                {% for size in ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] %}
+                                <option value="{{ size }}" {% if profile_prefill.jersey_size == size %}selected{% endif %}>{{ size }}</option>
+                                {% endfor %}
                             </select>
                         </div>
+                        <div>
+                            <label for="profileJerseyNumber" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jersey #</label>
+                            <input type="number" id="profileJerseyNumber" inputmode="numeric" min="0" max="99"
+                                   class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                                   placeholder="—"
+                                   value="{{ profile_prefill.jersey_number if profile_prefill.jersey_number not in (None, '') else '' }}">
+                        </div>
                     </div>
                 </div>
+                {% if profile_review_mode != 'compact' %}
+                <label class="flex items-start gap-3 px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer">
+                    <input type="checkbox" class="profile-confirm mt-0.5 w-5 h-5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green dark:border-gray-600 dark:bg-gray-700" data-section="identity">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">My name, contact and jersey info above is correct.</span>
+                </label>
+                {% endif %}
             </div>
+
+            <!-- Section B: Playing -->
+            <div class="profile-section bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4" data-section="playing">
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                        <i class="ti ti-ball-football text-purple-600 dark:text-purple-400"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 dark:text-white">How You Play</h3>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label for="profileFavoritePosition" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Favorite Position</label>
+                        <select id="profileFavoritePosition"
+                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="">No preference</option>
+                            {% for value, label in soccer_positions %}
+                            <option value="{{ value }}" {% if profile_prefill.favorite_position == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="profileOtherPositions" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Other Positions You Enjoy</label>
+                        <select id="profileOtherPositions" multiple size="4"
+                                class="block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            {% for value, label in soccer_positions %}
+                            <option value="{{ value }}" {% if value in profile_prefill.other_positions %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Tap to select more than one.</p>
+                    </div>
+                    <div>
+                        <label for="profilePositionsNotToPlay" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Positions You'd Rather Avoid</label>
+                        <select id="profilePositionsNotToPlay" multiple size="4"
+                                class="block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            {% for value, label in soccer_positions %}
+                            <option value="{{ value }}" {% if value in profile_prefill.positions_not_to_play %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="profileFrequencyGoal" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Playing in Goal</label>
+                        <select id="profileFrequencyGoal"
+                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="">Select an option</option>
+                            {% for value, label in goal_frequency_choices %}
+                            <option value="{{ value }}" {% if profile_prefill.frequency_play_goal == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                {% if profile_review_mode != 'compact' %}
+                <label class="flex items-start gap-3 px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer">
+                    <input type="checkbox" class="profile-confirm mt-0.5 w-5 h-5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green dark:border-gray-600 dark:bg-gray-700" data-section="playing">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">My position preferences above are correct.</span>
+                </label>
+                {% endif %}
+            </div>
+
+            <!-- Section C: Availability -->
+            <div class="profile-section bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4" data-section="availability">
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                        <i class="ti ti-calendar-check text-amber-600 dark:text-amber-400"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Availability</h3>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label for="profileAvailability" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Weeks You Expect to Be Available</label>
+                        <select id="profileAvailability"
+                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="">Select</option>
+                            {% for value, label in availability_choices %}
+                            <option value="{{ value }}" {% if profile_prefill.expected_weeks_available == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="profileWillingToReferee" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Up for Refereeing?</label>
+                        <select id="profileWillingToReferee"
+                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="">Select</option>
+                            {% for value, label in willing_to_referee_choices %}
+                            <option value="{{ value }}" {% if profile_prefill.willing_to_referee == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                {% if profile_review_mode != 'compact' %}
+                <label class="flex items-start gap-3 px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer">
+                    <input type="checkbox" class="profile-confirm mt-0.5 w-5 h-5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green dark:border-gray-600 dark:bg-gray-700" data-section="availability">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">My availability above is correct.</span>
+                </label>
+                {% endif %}
+            </div>
+
+            {% if profile_review_mode == 'compact' %}
+            <label class="flex items-start gap-3 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm cursor-pointer">
+                <input type="checkbox" class="profile-confirm mt-0.5 w-5 h-5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green dark:border-gray-600 dark:bg-gray-700" data-section="all">
+                <span class="text-sm text-gray-700 dark:text-gray-300">Everything above looks right.</span>
+            </label>
+            {% endif %}
         </div>
 
         <!-- Step 6: Download Pass -->
         <div class="wizard-step{% if initial_step != 6 %} hidden{% endif %}" data-step="6">
-            <div class="bg-gradient-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6">
+            <!-- Approved hero -->
+            <div id="step6HeroApproved" class="bg-gradient-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6 {% if not is_approved %}hidden{% endif %}">
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
-                    <i class="ti ti-confetti text-3xl"></i>
+                    <i class="ti ti-ticket text-3xl"></i>
                 </div>
-                <h1 class="text-2xl font-bold mb-2">You're All Set!</h1>
-                <p class="text-white/80">Your Pub League pass is ready</p>
+                <h1 class="text-2xl font-bold mb-2 flex items-center justify-center gap-2">
+                    <i class="ti ti-ticket"></i>
+                    You're all set{% if order.season_name %} for {{ order.season_name }}{% endif %}!
+                </h1>
+                <p class="text-white/80">Grab your pass below and we'll see you on the pitch.</p>
+            </div>
+
+            <!-- Pending-approval hero -->
+            <div id="step6HeroPending" class="bg-gradient-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6 {% if is_approved %}hidden{% endif %}">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
+                    <i class="ti ti-circle-check text-3xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold mb-2">Payment received. You're in the queue!</h1>
+                <p class="text-white/80">
+                    Your pass is ready to download now. One of our admins just needs to approve your membership before your full league access switches on. We'll let you know the moment that happens.
+                </p>
+            </div>
+
+            <!-- Pending-approval details card -->
+            <div id="step6PendingCard" class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 mb-6 {% if is_approved %}hidden{% endif %}">
+                <div class="flex items-start gap-3">
+                    <i class="ti ti-hourglass-high text-amber-500 text-xl flex-shrink-0 mt-0.5"></i>
+                    <div class="text-sm text-amber-800 dark:text-amber-300">
+                        <p class="font-medium mb-1">What happens next</p>
+                        <ul class="list-disc list-inside space-y-1 text-amber-700 dark:text-amber-400">
+                            <li>Your payment is recorded and your pass is yours to keep.</li>
+                            <li>An admin reviews new members regularly, so this usually doesn't take long.</li>
+                            <li>Once approved, your Discord roles and full league access turn on automatically.</li>
+                            <li>Feel free to review or update your profile while you wait.</li>
+                        </ul>
+                        <a href="{{ url_for('main.index') }}" class="inline-flex items-center gap-1 mt-3 text-sm font-medium text-amber-800 dark:text-amber-300 hover:underline">
+                            <i class="ti ti-layout-dashboard"></i>
+                            Check your status on your dashboard
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -491,9 +638,13 @@
                             <div>
                                 <p class="font-medium mb-1">What's next?</p>
                                 <ul class="list-disc list-inside space-y-1 text-blue-600 dark:text-blue-400">
-                                    <li>Your pass is stored in your phone's wallet</li>
+                                    <li>Your pass lives in your phone's wallet</li>
                                     <li>Show it at check-in on game days</li>
-                                    <li>Your Discord roles have been updated</li>
+                                    {% if is_approved %}
+                                    <li>Your Discord league roles are all set</li>
+                                    {% else %}
+                                    <li>Your Discord league roles turn on once an admin approves your membership</li>
+                                    {% endif %}
                                 </ul>
                             </div>
                         </div>
@@ -513,19 +664,22 @@
     </div>
 
     <!-- Navigation Footer -->
-    <div id="wizardNav" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-3 z-40">
-        <button type="button" id="prevBtn"
-                class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled>
-            <i class="ti ti-chevron-left"></i>
-            <span>Back</span>
-        </button>
+    <div id="wizardNav" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-40">
+        <div class="flex items-center justify-between gap-3">
+            <button type="button" id="prevBtn"
+                    class="flex items-center gap-2 min-h-[44px] px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-ecs-green disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+                <i class="ti ti-chevron-left"></i>
+                <span>Back</span>
+            </button>
 
-        <button type="button" id="nextBtn"
-                class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-ecs-green hover:bg-ecs-green/90 dark:bg-ecs-gold dark:hover:bg-ecs-gold/90 rounded-lg transition-colors">
-            <span>Continue</span>
-            <i class="ti ti-chevron-right"></i>
-        </button>
+            <button type="button" id="nextBtn"
+                    class="flex-1 flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 text-sm font-medium text-white bg-ecs-green hover:bg-ecs-green/90 dark:bg-ecs-gold dark:hover:bg-ecs-gold/90 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-ecs-green">
+                <span>Continue</span>
+                <i class="ti ti-chevron-right"></i>
+            </button>
+        </div>
+        <p id="nextHelper" class="hidden mt-2 text-center text-xs text-gray-500 dark:text-gray-400"></p>
     </div>
 
     <!-- Loading Overlay -->
@@ -552,6 +706,9 @@ document.addEventListener('DOMContentLoaded', function() {
         wooOrderId: parseInt(document.getElementById('wooOrderId').value),
         hasConflicts: document.getElementById('hasConflicts').value === 'true',
         profileNeedsUpdate: document.getElementById('profileNeedsUpdate').value === 'true',
+        profileReviewMode: document.getElementById('profileReviewMode').value || 'full',
+        isApproved: document.getElementById('isApproved').value === 'true',
+        isCurrentPlayer: document.getElementById('isCurrentPlayer').value === 'true',
         totalSteps: 6,
         conflictResolutions: [],
         assignedLineItems: [],
@@ -562,11 +719,33 @@ document.addEventListener('DOMContentLoaded', function() {
     const progressBar = document.getElementById('progressBar');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
+    const nextHelper = document.getElementById('nextHelper');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingMessage = document.getElementById('loadingMessage');
 
+    // Authentication flag (reliable at init time, before body dataset is set below)
+    const isAuthenticated = '{{ "true" if current_user.is_authenticated else "false" }}' === 'true';
+
+    // Build the ordered list of steps that actually apply to this user's path,
+    // mirroring the skip logic in goToNextStep/goToPrevStep.
+    function getActiveSteps() {
+        const steps = [1];
+        if (!isAuthenticated) steps.push(2);
+        steps.push(3);
+        if (state.hasConflicts) steps.push(4);
+        if (state.profileNeedsUpdate) steps.push(5);
+        steps.push(6);
+        return steps;
+    }
+
     // Initialize
     updateStepUI(state.currentStep);
+
+    // If we land straight on the final step (order already fully linked),
+    // kick off pass generation and the correct status messaging now.
+    if (state.currentStep === 6) {
+        generatePasses();
+    }
 
     // Update UI for current step
     function updateStepUI(step) {
@@ -579,22 +758,31 @@ document.addEventListener('DOMContentLoaded', function() {
             currentStepEl.classList.remove('hidden');
         }
 
-        // Update progress bar
-        progressBar.style.width = `${(step / state.totalSteps) * 100}%`;
+        // Progress reflects position among the steps that actually apply to this path
+        const activeSteps = getActiveSteps();
+        let activeIdx = activeSteps.indexOf(step);
+        if (activeIdx === -1) {
+            // Current step isn't in the active list (shouldn't happen) - approximate
+            activeIdx = activeSteps.filter(s => s <= step).length - 1;
+        }
+        progressBar.style.width = `${((activeIdx + 1) / activeSteps.length) * 100}%`;
 
-        // Update step indicators
+        // Update step indicators - light up active steps at-or-before current
         document.querySelectorAll('[data-step-indicator]').forEach(el => {
             const stepNum = parseInt(el.dataset.stepIndicator);
             const dot = el.querySelector('div');
 
             dot.classList.remove('bg-ecs-green', 'text-white', 'dark:bg-ecs-gold', 'bg-gray-200', 'dark:bg-gray-700', 'text-gray-500', 'dark:text-gray-400');
 
-            if (stepNum <= step) {
+            if (activeSteps.includes(stepNum) && stepNum <= step) {
                 dot.classList.add('bg-ecs-green', 'text-white', 'dark:bg-ecs-gold');
             } else {
                 dot.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-500', 'dark:text-gray-400');
             }
         });
+
+        // Reset the helper line by default; step-specific branches re-show it
+        nextHelper.classList.add('hidden');
 
         // Update buttons
         prevBtn.disabled = step <= 1 || step === 2 || step === 6;
@@ -607,10 +795,22 @@ document.addEventListener('DOMContentLoaded', function() {
             nextBtn.classList.add('hidden');
             prevBtn.classList.add('hidden');
         } else if (step === 3) {
-            // Assignment step - show next only when all assigned
+            // Assignment step - Continue enabled only when every pass is handled
+            nextBtn.classList.remove('hidden');
+            prevBtn.classList.remove('hidden');
+            nextBtn.querySelector('span').textContent = 'Continue';
             const unassignedCount = document.querySelectorAll('.pass-item:not(.assigned)').length;
             nextBtn.disabled = unassignedCount > 0;
-            nextBtn.querySelector('span').textContent = unassignedCount > 0 ? `Assign ${unassignedCount} Pass${unassignedCount > 1 ? 'es' : ''}` : 'Continue';
+            if (unassignedCount > 0) {
+                nextHelper.textContent = 'Assign or gift each pass to continue';
+                nextHelper.classList.remove('hidden');
+            }
+        } else if (step === 5) {
+            // Profile confirmation - Continue gated until each section is confirmed
+            nextBtn.classList.remove('hidden');
+            prevBtn.classList.remove('hidden');
+            nextBtn.querySelector('span').textContent = 'Confirm & Continue';
+            updateProfileGate();
         } else {
             nextBtn.classList.remove('hidden');
             prevBtn.classList.remove('hidden');
@@ -621,6 +821,29 @@ document.addEventListener('DOMContentLoaded', function() {
         state.currentStep = step;
         document.getElementById('currentStep').value = step;
     }
+
+    // Gate the Continue button on step 5 until every confirmation box is ticked.
+    function updateProfileGate() {
+        if (state.currentStep !== 5) return;
+        const boxes = Array.from(document.querySelectorAll('.profile-confirm'));
+        const allChecked = boxes.length > 0 && boxes.every(b => b.checked);
+        nextBtn.disabled = !allChecked;
+        if (!allChecked) {
+            nextHelper.textContent = state.profileReviewMode === 'compact'
+                ? 'Confirm your info to continue'
+                : 'Confirm each section to continue';
+            nextHelper.classList.remove('hidden');
+        } else {
+            nextHelper.classList.add('hidden');
+        }
+    }
+
+    // Re-evaluate the gate whenever a confirmation box changes.
+    document.addEventListener('change', function(e) {
+        if (e.target.classList && e.target.classList.contains('profile-confirm')) {
+            updateProfileGate();
+        }
+    });
 
     // Navigate to next step
     function goToNextStep() {
@@ -704,7 +927,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Link pass to self
-    async function linkPassToSelf(lineItemId) {
+    async function linkPassToSelf(lineItemId, btn) {
+        if (btn) btn.disabled = true;
         showLoading('Linking pass to your account...');
         try {
             const response = await fetch('/pub-league/link-order/link-self', {
@@ -721,6 +945,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const data = await response.json();
             if (data.success) {
+                // Keep the final-step status in sync with reality
+                if (typeof data.is_approved === 'boolean') state.isApproved = data.is_approved;
+                if (typeof data.is_current_player === 'boolean') state.isCurrentPlayer = data.is_current_player;
                 // Update UI
                 const passItem = document.querySelector(`.pass-item[data-line-item-id="${lineItemId}"]`);
                 if (passItem) {
@@ -732,7 +959,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         status.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-900/50', 'dark:text-green-400');
                     }
                     // Hide assignment options
-                    const buttons = passItem.querySelector('.grid');
+                    const buttons = passItem.querySelector('.assign-options');
                     if (buttons) buttons.classList.add('hidden');
                 }
                 state.assignedLineItems.push(lineItemId);
@@ -755,6 +982,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: 'Error',
                 text: error.message || 'Failed to link pass. Please try again.'
             });
+            if (btn) btn.disabled = false;
         } finally {
             hideLoading();
         }
@@ -762,6 +990,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Search users
     let searchTimeout;
+    // Escape user-controlled strings before inserting into innerHTML/Swal html.
+    // Player names / discord usernames are set by other users and must never be
+    // rendered raw (stored XSS). Claim URLs use url-safe tokens so they're inert,
+    // but names in claim UI are escaped here too.
+    function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
     async function searchUsers(query, lineItemId) {
         if (query.length < 2) return;
 
@@ -783,8 +1021,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="ti ti-user text-gray-500 dark:text-gray-400"></i>
                         </div>
                         <div>
-                            <p class="font-medium text-gray-900 dark:text-white text-sm">${user.name}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">${user.discord_username || user.email || ''}</p>
+                            <p class="font-medium text-gray-900 dark:text-white text-sm">${escapeHtml(user.name)}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(user.discord_username || user.email || '')}</p>
                         </div>
                     </button>
                 `).join('');
@@ -797,7 +1035,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Assign pass to user
-    async function assignPassToUser(lineItemId, playerId) {
+    async function assignPassToUser(lineItemId, playerId, btn) {
+        if (btn) btn.disabled = true;
         showLoading('Assigning pass...');
         try {
             const response = await fetch('/pub-league/link-order/assign', {
@@ -824,7 +1063,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         status.classList.remove('bg-amber-100', 'text-amber-800', 'dark:bg-amber-900/50', 'dark:text-amber-400');
                         status.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-900/50', 'dark:text-green-400');
                     }
-                    passItem.querySelector('.grid')?.classList.add('hidden');
+                    passItem.querySelector('.assign-options')?.classList.add('hidden');
                     passItem.querySelector('.search-panel')?.classList.add('hidden');
                 }
                 state.assignedLineItems.push(lineItemId);
@@ -847,13 +1086,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: 'Error',
                 text: error.message || 'Failed to assign pass. Please try again.'
             });
+            if (btn) btn.disabled = false;
         } finally {
             hideLoading();
         }
     }
 
     // Send claim link
-    async function sendClaimLink(lineItemId, name, email) {
+    async function sendClaimLink(lineItemId, name, email, btn) {
+        if (btn) btn.disabled = true;
         showLoading('Creating claim link...');
         try {
             const response = await fetch('/pub-league/link-order/send-claim', {
@@ -881,7 +1122,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         status.classList.remove('bg-amber-100', 'text-amber-800', 'dark:bg-amber-900/50', 'dark:text-amber-400');
                         status.classList.add('bg-blue-100', 'text-blue-800', 'dark:bg-blue-900/50', 'dark:text-blue-400');
                     }
-                    passItem.querySelector('.grid')?.classList.add('hidden');
+                    passItem.querySelector('.assign-options')?.classList.add('hidden');
                     passItem.querySelector('.claim-panel')?.classList.add('hidden');
                 }
 
@@ -899,8 +1140,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     icon: 'success',
                     title: 'Claim Link Created!',
                     html: `
-                        <p class="mb-3">Share this link with ${name || 'the recipient'}:</p>
-                        <input type="text" value="${data.claim_url}" class="w-full p-2 border rounded text-sm" readonly onclick="this.select()">
+                        <p class="mb-3">Share this link with ${escapeHtml(name || 'the recipient')}:</p>
+                        <input type="text" value="${escapeHtml(data.claim_url)}" class="w-full p-2 border rounded text-base" readonly onclick="this.select()">
                         <p class="mt-2 text-sm text-gray-500">Link expires in 7 days</p>
                     `,
                     confirmButtonText: 'Copy Link',
@@ -929,6 +1170,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: 'Error',
                 text: error.message || 'Failed to create claim link. Please try again.'
             });
+            if (btn) btn.disabled = false;
         } finally {
             hideLoading();
         }
@@ -945,9 +1187,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
                     <div class="flex items-center gap-2">
                         <i class="ti ti-link text-blue-600 dark:text-blue-400"></i>
-                        <span class="text-sm text-gray-900 dark:text-white">Link for ${claim.name}</span>
+                        <span class="text-sm text-gray-900 dark:text-white">Link for ${escapeHtml(claim.name)}</span>
                     </div>
-                    <button type="button" onclick="navigator.clipboard.writeText('${claim.url}')" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                    <button type="button" data-action="pub-league-copy-claim" data-url="${escapeHtml(claim.url)}" class="inline-flex items-center gap-1 min-h-[44px] px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                        <i class="ti ti-copy"></i>
                         Copy
                     </button>
                 </div>
@@ -959,7 +1202,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function checkAllAssigned() {
         const unassignedCount = document.querySelectorAll('.pass-item:not(.assigned)').length;
         nextBtn.disabled = unassignedCount > 0;
-        nextBtn.querySelector('span').textContent = unassignedCount > 0 ? `Assign ${unassignedCount} Pass${unassignedCount > 1 ? 'es' : ''}` : 'Continue';
+        nextBtn.querySelector('span').textContent = 'Continue';
+        if (unassignedCount > 0) {
+            nextHelper.textContent = 'Assign or gift each pass to continue';
+            nextHelper.classList.remove('hidden');
+        } else {
+            nextHelper.classList.add('hidden');
+        }
     }
 
     // Submit conflict resolutions
@@ -996,6 +1245,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Collect selected values from a multi-select element
+    function getMultiSelectValues(id) {
+        const el = document.getElementById(id);
+        if (!el) return [];
+        return Array.from(el.selectedOptions).map(o => o.value);
+    }
+
     // Submit profile update
     async function submitProfileUpdate() {
         showLoading('Updating profile...');
@@ -1008,9 +1264,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({
                     name: document.getElementById('profileName').value,
-                    jersey_size: document.getElementById('profileJerseySize').value,
                     pronouns: document.getElementById('profilePronouns').value,
-                    favorite_position: document.getElementById('profileFavoritePosition').value
+                    phone: document.getElementById('profilePhone').value,
+                    jersey_size: document.getElementById('profileJerseySize').value,
+                    jersey_number: document.getElementById('profileJerseyNumber').value,
+                    favorite_position: document.getElementById('profileFavoritePosition').value,
+                    other_positions: getMultiSelectValues('profileOtherPositions'),
+                    positions_not_to_play: getMultiSelectValues('profilePositionsNotToPlay'),
+                    frequency_play_goal: document.getElementById('profileFrequencyGoal').value,
+                    expected_weeks_available: document.getElementById('profileAvailability').value,
+                    willing_to_referee: document.getElementById('profileWillingToReferee').value
                 })
             });
 
@@ -1031,8 +1294,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Show the correct final-step messaging (paid & approved vs. pending approval)
+    function applyFinalStatus() {
+        const approvedHero = document.getElementById('step6HeroApproved');
+        const pendingHero = document.getElementById('step6HeroPending');
+        const pendingCard = document.getElementById('step6PendingCard');
+        if (state.isApproved) {
+            approvedHero && approvedHero.classList.remove('hidden');
+            pendingHero && pendingHero.classList.add('hidden');
+            pendingCard && pendingCard.classList.add('hidden');
+        } else {
+            approvedHero && approvedHero.classList.add('hidden');
+            pendingHero && pendingHero.classList.remove('hidden');
+            pendingCard && pendingCard.classList.remove('hidden');
+        }
+    }
+
     // Generate passes for download
     async function generatePasses() {
+        applyFinalStatus();
         const container = document.getElementById('passDownloads');
         container.innerHTML = '<div class="text-center py-6"><div class="animate-spin inline-flex items-center justify-center w-10 h-10 rounded-full border-4 border-gray-200 border-t-ecs-green mb-4"></div><p class="text-gray-600 dark:text-gray-400">Generating your pass...</p></div>';
 
@@ -1121,7 +1401,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         switch (action) {
             case 'pub-league-link-self':
-                linkPassToSelf(lineItemId);
+                linkPassToSelf(lineItemId, target);
+                break;
+
+            case 'pub-league-copy-claim':
+                if (target.dataset.url) {
+                    navigator.clipboard.writeText(target.dataset.url);
+                    if (window.Swal) Swal.fire({ icon: 'success', title: 'Copied!', timer: 1200, showConfirmButton: false });
+                }
                 break;
 
             case 'pub-league-show-search':
@@ -1145,14 +1432,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
             case 'pub-league-select-user':
                 const playerId = target.dataset.playerId;
-                assignPassToUser(lineItemId, playerId);
+                assignPassToUser(lineItemId, playerId, target);
                 break;
 
             case 'pub-league-send-claim':
                 const passItem = target.closest('.pass-item');
                 const name = passItem.querySelector('.claim-name')?.value || '';
                 const email = passItem.querySelector('.claim-email')?.value || '';
-                sendClaimLink(lineItemId, name, email);
+                sendClaimLink(lineItemId, name, email, target);
                 break;
 
             case 'pub-league-resolve-conflict':
@@ -1171,12 +1458,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     order_value: orderValue
                 });
 
-                // Update UI
+                // Update UI - ring highlight plus an explicit check on the chosen option
                 const conflictItem = target.closest('.conflict-item');
                 conflictItem.querySelectorAll('.conflict-btn').forEach(btn => {
                     btn.classList.remove('ring-2', 'ring-ecs-green', 'dark:ring-ecs-gold');
+                    btn.querySelector('.conflict-check')?.remove();
                 });
                 target.classList.add('ring-2', 'ring-ecs-green', 'dark:ring-ecs-gold');
+                if (!target.querySelector('.conflict-check')) {
+                    const check = document.createElement('i');
+                    check.className = 'conflict-check ti ti-check';
+                    target.querySelector('.conflict-btn-label')?.before(check);
+                }
                 break;
         }
     });

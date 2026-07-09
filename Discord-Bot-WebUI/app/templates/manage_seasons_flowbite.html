@@ -17,6 +17,15 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
     {{ page_header("Season Management", subtitle="Competition lifecycle / Pub League + ECS FC") }}
 
+    <!-- Guided rollover entry point -->
+    <div class="mb-6">
+        <a href="{{ url_for('publeague.season.rollover_wizard') }}"
+           class="inline-flex items-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-gold-500 hover:bg-ecs-gold-600 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-gold-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-wand" aria-hidden="true"></i> Guided Season Rollover
+            <span class="hidden sm:inline text-xs font-normal opacity-90">— preview, backup &amp; execute</span>
+        </a>
+    </div>
+
     <!-- KPI band -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         {{ stat_card("ti-trophy", "Active Season", (pl_current.year if pl_current and pl_current.year else (pl_current.name.split(' ')[0] if pl_current else "—")), sublabel=("Pub League — " ~ pl_current.name if pl_current else "none set"), tone="primary") }}
@@ -90,6 +99,11 @@
                 <span class="ml-auto text-xs text-gray-400 dark:text-gray-500 hidden sm:inline">Creates Premier + Classic divisions</span>
             </div>
             <div class="p-4 sm:p-5">
+                <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-info-circle" aria-hidden="true"></i>
+                    This quick-create makes the season + divisions only — no teams or schedule. To roll over with a preview, an automatic backup, teams, and a generated schedule, use
+                    <a href="{{ url_for('publeague.season.rollover_wizard') }}" class="text-ecs-green font-medium hover:underline">Guided Season Rollover</a> instead.
+                </p>
                 <form method="POST" action="{{ url_for('publeague.season.manage_seasons') }}" id="pubLeagueSeasonForm" class="flex flex-col sm:flex-row sm:items-end gap-3">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="flex-1 min-w-0">
@@ -442,6 +456,10 @@
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Season Management</h1>
         <p class="text-gray-500 dark:text-gray-400">Create and manage seasons for Pub League and ECS FC</p>
+        <a href="{{ url_for('publeague.season.rollover_wizard') }}"
+           class="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white font-medium transition-colors">
+            <i class="ti ti-wand"></i> Guided Season Rollover
+        </a>
     </div>
 
     <!-- Tab Navigation -->

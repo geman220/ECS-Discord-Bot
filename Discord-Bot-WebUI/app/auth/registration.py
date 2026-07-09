@@ -47,6 +47,7 @@ def register():
                 username=form.username.data,
                 email=form.email.data,
                 is_approved=False,
+                approval_status='pending',  # explicit: real approval gate
                 roles=roles
             )
             user.set_password(form.password.data)
@@ -251,7 +252,12 @@ def register_with_discord():
         new_user = User(
             username=username,
             email=discord_email,
-            is_approved=True,  # Auto-approve Discord users
+            # Admin approval is now a REAL gate: web Discord signups land
+            # unapproved + pending so they appear in the approvals queue. They
+            # can still log in (only DENIED is blocked) but the league-access
+            # gate confines them to profile / purchase / pending-status until an
+            # admin approves them and they pay for the season.
+            is_approved=False,
             approval_status='pending',  # Set to pending for approval workflow
             roles=[unverified_role]   # Assign pl-unverified role
         )
@@ -275,7 +281,11 @@ def register_with_discord():
                 name=username,
                 user_id=new_user.id,
                 discord_id=discord_id,
-                is_current_player=True,
+                # is_current_player = "paid/active THIS season" and is granted ONLY by
+                # linking a Classic/Premier pass (PlayerActivationService), never by
+                # self-registration. Setting it True here let a signup be "paid" for
+                # free, so approval would make them fully active without buying a pass.
+                is_current_player=False,
                 is_sub=True  # Set is_sub flag since pl-unverified role is assigned
             )
             db_session.add(player)
@@ -348,6 +358,16 @@ def register_with_discord():
                 'text': 'Please join our Discord server and complete your profile.',
                 'icon': 'success',
             }
+
+        # If they started from the Pub League purchase wizard, link_order stashed
+        # the order_id + token in the session — send them straight back to finish
+        # linking their pass. Otherwise a first-time buyer would land on the
+        # dashboard with their order unlinked. Internal redirect only (no open
+        # redirect risk).
+        pl_order_id = flask_session.get('pub_league_order_id')
+        pl_token = flask_session.get('pub_league_token')
+        if pl_order_id and pl_token:
+            return redirect(url_for('pub_league.link_order', order_id=pl_order_id, token=pl_token))
 
         # Redirect to main index which will handle onboarding and show the sweet alert
         return redirect(url_for('main.index'))

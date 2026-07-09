@@ -180,6 +180,7 @@
         <div class="flex flex-col md:flex-row gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <form method="get" class="flex-1 flex gap-2">
                 <input type="hidden" name="status" value="{{ status_filter }}">
+                <input type="hidden" name="season" value="{{ season_filter }}">
                 <div class="relative flex-1 min-w-[180px]">
                     <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
                     <input type="text" name="search" value="{{ search or '' }}" placeholder="Search by name, email, or order ID…"
@@ -190,6 +191,18 @@
                     <i class="ti ti-search text-base" aria-hidden="true"></i>
                 </button>
             </form>
+            <div class="w-full md:w-52">
+                <select id="seasonFilter" aria-label="Filter by season"
+                        class="w-full h-10 px-3 text-sm rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-1 focus:ring-ecs-green focus:border-ecs-green">
+                    <option value="current" {{ 'selected' if season_filter == 'current' else '' }}>Current Season{% if current_season %} ({{ current_season.name }}){% endif %}</option>
+                    {% for s in season_options %}
+                        {% if not (current_season and s.id == current_season.id) %}
+                        <option value="{{ s.id }}" {{ 'selected' if season_filter == s.id|string else '' }}>{{ s.name }}</option>
+                        {% endif %}
+                    {% endfor %}
+                    <option value="all" {{ 'selected' if season_filter == 'all' else '' }}>All Seasons</option>
+                </select>
+            </div>
             <div class="w-full md:w-52">
                 <select id="statusFilter"
                         class="w-full h-10 px-3 text-sm rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-1 focus:ring-ecs-green focus:border-ecs-green">
@@ -333,7 +346,7 @@
         {% if orders.pages > 1 %}
         <nav class="flex items-center justify-center gap-1 px-4 py-4 border-t border-gray-200 dark:border-gray-700" aria-label="Pagination">
             {% if orders.has_prev %}
-            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.prev_num, status=status_filter, search=search) }}" aria-label="Previous page"
+            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.prev_num, status=status_filter, search=search, season=season_filter) }}" aria-label="Previous page"
                class="inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-chevron-left text-base" aria-hidden="true"></i>
             </a>
@@ -343,7 +356,7 @@
                     {% if page_num == orders.page %}
                     <span aria-current="page" class="inline-flex items-center justify-center min-w-[2.5rem] h-10 px-2 text-sm font-semibold text-white bg-ecs-green rounded-lg font-mono">{{ page_num }}</span>
                     {% else %}
-                    <a href="{{ url_for('pub_league_orders_admin.orders_list', page=page_num, status=status_filter, search=search) }}"
+                    <a href="{{ url_for('pub_league_orders_admin.orders_list', page=page_num, status=status_filter, search=search, season=season_filter) }}"
                        class="inline-flex items-center justify-center min-w-[2.5rem] h-10 px-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-ecs-green">{{ page_num }}</a>
                     {% endif %}
                 {% else %}
@@ -351,7 +364,7 @@
                 {% endif %}
             {% endfor %}
             {% if orders.has_next %}
-            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.next_num, status=status_filter, search=search) }}" aria-label="Next page"
+            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.next_num, status=status_filter, search=search, season=season_filter) }}" aria-label="Next page"
                class="inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-chevron-right text-base" aria-hidden="true"></i>
             </a>
@@ -500,11 +513,24 @@
                 <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Search</label>
                 <form method="get" class="flex gap-2">
                     <input type="hidden" name="status" value="{{ status_filter }}">
+                    <input type="hidden" name="season" value="{{ season_filter }}">
                     <input type="text" name="search" value="{{ search or '' }}" placeholder="Search by name, email, or order ID..." class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
                     <button type="submit" class="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </button>
                 </form>
+            </div>
+            <div class="w-full md:w-48">
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Season</label>
+                <select id="seasonFilter" aria-label="Filter by season" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="current" {{ 'selected' if season_filter == 'current' else '' }}>Current Season{% if current_season %} ({{ current_season.name }}){% endif %}</option>
+                    {% for s in season_options %}
+                        {% if not (current_season and s.id == current_season.id) %}
+                        <option value="{{ s.id }}" {{ 'selected' if season_filter == s.id|string else '' }}>{{ s.name }}</option>
+                        {% endif %}
+                    {% endfor %}
+                    <option value="all" {{ 'selected' if season_filter == 'all' else '' }}>All Seasons</option>
+                </select>
             </div>
             <div class="w-full md:w-48">
                 <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Status Filter</label>
@@ -638,7 +664,7 @@
         {% if orders.pages > 1 %}
         <nav class="flex items-center justify-center gap-1 mt-6">
             {% if orders.has_prev %}
-            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.prev_num, status=status_filter, search=search) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.prev_num, status=status_filter, search=search, season=season_filter) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </a>
             {% endif %}
@@ -648,7 +674,7 @@
                     {% if page_num == orders.page %}
                     <span class="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg">{{ page_num }}</span>
                     {% else %}
-                    <a href="{{ url_for('pub_league_orders_admin.orders_list', page=page_num, status=status_filter, search=search) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{{ page_num }}</a>
+                    <a href="{{ url_for('pub_league_orders_admin.orders_list', page=page_num, status=status_filter, search=search, season=season_filter) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{{ page_num }}</a>
                     {% endif %}
                 {% else %}
                 <span class="px-3 py-2 text-sm text-gray-400 dark:text-gray-500">...</span>
@@ -656,7 +682,7 @@
             {% endfor %}
 
             {% if orders.has_next %}
-            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.next_num, status=status_filter, search=search) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.next_num, status=status_filter, search=search, season=season_filter) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </a>
             {% endif %}
@@ -700,6 +726,17 @@ document.addEventListener('DOMContentLoaded', function() {
         statusFilter.addEventListener('change', function() {
             const url = new URL(window.location.href);
             url.searchParams.set('status', this.value);
+            url.searchParams.delete('page');
+            window.location.href = url.toString();
+        });
+    }
+
+    // Season filter change
+    const seasonFilter = document.getElementById('seasonFilter');
+    if (seasonFilter) {
+        seasonFilter.addEventListener('change', function() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('season', this.value);
             url.searchParams.delete('page');
             window.location.href = url.toString();
         });

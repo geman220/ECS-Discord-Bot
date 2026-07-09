@@ -468,6 +468,110 @@ class PlayerActivationService:
         threshold = datetime.utcnow() - timedelta(days=days)
         return player.profile_last_updated > threshold
 
+    # Fields we consider load-bearing for a "complete" Pub League profile.
+    # A player missing any of these should be routed through the full,
+    # forced profile review (not the compact one-tap confirm).
+    PROFILE_KEY_FIELDS = ('jersey_size', 'favorite_position', 'expected_weeks_available')
+
+    @staticmethod
+    def profile_is_complete(player: Player) -> bool:
+        """
+        Determine whether the player has filled in the key details we need.
+
+        This is deliberately stricter than freshness: a profile can be
+        recently touched but still be missing the fields coaches and admins
+        rely on. Missing any key field means the player must go through the
+        full profile review rather than the compact confirm.
+
+        Args:
+            player: Player to check
+
+        Returns:
+            True if all key fields (and a phone number) are set.
+        """
+        if not player:
+            return False
+
+        for field in PlayerActivationService.PROFILE_KEY_FIELDS:
+            if not getattr(player, field, None):
+                return False
+
+        # Phone lives in an encrypted column; check the raw column so we
+        # don't pay for a decrypt just to test presence.
+        if not getattr(player, 'encrypted_phone', None):
+            return False
+
+        return True
+
+    @staticmethod
+    def profile_needs_full_review(player: Player) -> bool:
+        """
+        True when the player should be forced through the multi-section
+        profile review (new / incomplete / stale), False when a compact
+        one-tap confirm is enough (complete AND fresh).
+
+        Args:
+            player: Player to evaluate (may be None for a brand-new buyer)
+
+        Returns:
+            True if the full review should be forced.
+        """
+        if not player:
+            return True
+
+        if not PlayerActivationService.profile_is_complete(player):
+            return True
+
+        # Complete but stale -> still make them read it.
+        return not PlayerActivationService.check_profile_freshness(player)
+
+    @staticmethod
+    def ensure_player_for_user(user: User, order_data: dict = None) -> Player:
+        """
+        Guarantee the logged-in user has a Player record so the purchase /
+        link flow never dead-ends on "No player profile found".
+
+        Most buyers arrive here after Discord OAuth, which already creates a
+        Player. This is the safety net for the rare case where a user reaches
+        pass assignment with no Player: we create a minimal one (name pulled
+        from the order billing name, falling back to their username) linked to
+        their account, so they can flow straight into profile confirmation.
+
+        Args:
+            user: The authenticated User (must be a real, session-bound model)
+            order_data: Optional WooCommerce order data to source a name from
+
+        Returns:
+            The existing or newly created Player.
+        """
+        existing = getattr(user, 'player', None)
+        if existing:
+            return existing
+
+        session = getattr(g, 'db_session', db.session)
+
+        # Prefer the name from the order's billing details, then the username.
+        name = None
+        if order_data:
+            billing = order_data.get('billing', {}) or {}
+            first = (billing.get('first_name') or '').strip()
+            last = (billing.get('last_name') or '').strip()
+            name = f"{first} {last}".strip() or None
+        if not name:
+            name = (getattr(user, 'username', None) or '').strip() or 'New Player'
+
+        player = Player(
+            name=name[:100],
+            user_id=user.id,
+            is_current_player=False,
+            profile_last_updated=datetime.utcnow(),
+        )
+        session.add(player)
+        session.commit()
+
+        logger.info(f"Created minimal Player {player.id} for user {user.id} during pass linking")
+        return player
+
 
 class RoleSyncService:
     """

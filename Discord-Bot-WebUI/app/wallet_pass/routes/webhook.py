@@ -117,20 +117,26 @@ def handle_order_completed():
         logger.info("Empty webhook request received (likely ping) - responding OK")
         return jsonify({'status': 'ok', 'message': 'Webhook endpoint ready'}), 200
 
-    # Verify webhook signature (optional but recommended)
+    # --- Authentication gate (fail closed) ------------------------------------
+    # Accept the request only if it carries EITHER a valid WooCommerce HMAC
+    # signature OR the shared secret header. If the secret isn't configured at
+    # all, reject rather than silently accepting (previously the checks were
+    # skipped when the secret was empty, leaving the endpoint open).
     signature = request.headers.get('X-WC-Webhook-Signature', '')
-    if signature and os.getenv('WALLET_WEBHOOK_SECRET'):
-        if not verify_webhook_signature(request.data, signature):
-            logger.warning("Invalid webhook signature")
-            return jsonify({'error': 'Invalid signature'}), 401
-
-    # Also check custom header secret for simpler setups
     header_secret = request.headers.get('X-Webhook-Secret', '')
     expected_secret = os.getenv('WALLET_WEBHOOK_SECRET', '')
-    if expected_secret and header_secret != expected_secret:
-        if not signature:  # Only fail if no WC signature either
-            logger.warning("Invalid webhook secret header")
-            return jsonify({'error': 'Unauthorized'}), 401
+
+    if not expected_secret:
+        logger.error("WALLET_WEBHOOK_SECRET not configured - rejecting webhook (fail closed)")
+        return jsonify({'error': 'Webhook not configured'}), 503
+
+    signature_ok = bool(signature) and verify_webhook_signature(request.data, signature)
+    secret_ok = bool(header_secret) and hmac.compare_digest(header_secret, expected_secret)
+
+    if not (signature_ok or secret_ok):
+        logger.warning("Webhook rejected: missing/invalid signature and secret header")
+        return jsonify({'error': 'Unauthorized'}), 401
+    # --------------------------------------------------------------------------
 
     try:
         # Log raw data for debugging

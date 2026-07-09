@@ -242,6 +242,30 @@
         {% endif %}
         {% endwith %}
 
+        <!-- Membership pending / activation banner (non-admin, non-active users) -->
+        {% if pending_access and request.endpoint != 'main.pending_status' %}
+        <div class="px-4 pt-2 lg:px-6">
+          <a href="{{ url_for('main.pending_status') }}"
+             class="flex items-center gap-2 p-3 text-sm rounded-lg border transition-colors
+                    text-amber-800 bg-amber-50 border-amber-200 hover:bg-amber-100
+                    dark:text-amber-300 dark:bg-amber-500/10 dark:border-amber-500/30 dark:hover:bg-amber-500/20"
+             role="alert">
+            <i class="ti ti-clock-hour-4 text-base shrink-0" aria-hidden="true"></i>
+            <span class="min-w-0 flex-1">
+              {% if not pending_access.is_approved and not pending_access.is_paid %}
+                Your membership is pending approval and you don't have a season pass yet.
+              {% elif not pending_access.is_approved %}
+                Your membership is pending admin approval.
+              {% else %}
+                Buy or claim a season pass to activate your spot.
+              {% endif %}
+              <span class="font-semibold underline">View status</span>
+            </span>
+            <i class="ti ti-chevron-right text-base shrink-0" aria-hidden="true"></i>
+          </a>
+        </div>
+        {% endif %}
+
         <!-- Main Content -->
         <main id="main-content" class="flex-1 p-4 lg:p-6" tabindex="-1">
             {% block main_content %}

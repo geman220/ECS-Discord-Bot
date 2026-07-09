@@ -26,6 +26,10 @@ from app.models import (
     PubLeagueOrder, PubLeagueOrderLineItem, PubLeagueOrderClaim,
     PubLeagueOrderStatus, PubLeagueLineItemStatus, PubLeagueClaimStatus
 )
+from app.forms import (
+    soccer_positions, goal_frequency_choices, availability_choices,
+    pronoun_choices, willing_to_referee_choices
+)
 from . import pub_league_bp
 from .services import (
     PubLeagueOrderService, PlayerActivationService,
@@ -33,6 +37,22 @@ from .services import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Whitelists derived once from the canonical form option lists so the
+# profile-confirmation endpoint only ever persists known-good values.
+_ALLOWED_POSITIONS = {value for value, _ in soccer_positions}
+_ALLOWED_GOAL_FREQUENCY = {value for value, _ in goal_frequency_choices}
+_ALLOWED_AVAILABILITY = {value for value, _ in availability_choices}
+_ALLOWED_PRONOUNS = {value for value, _ in pronoun_choices}
+_ALLOWED_REFEREE = {value for value, _ in willing_to_referee_choices}
+_ALLOWED_JERSEY_SIZES = {'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'}
+
+
+def _parse_pg_array(value):
+    """Parse a Postgres-style '{a,b}' text column into a clean list."""
+    if not value:
+        return []
+    return [v for v in value.strip('{}').split(',') if v]
 
 
 def get_db_session():
@@ -109,7 +129,7 @@ def link_order():
     if not current_user.is_authenticated:
         initial_step = 2  # Login step
     elif order.is_fully_linked():
-        initial_step = 7  # Download step (all passes already linked)
+        initial_step = 6  # Download step (all passes already linked)
     else:
         initial_step = 3  # Assignment step
 
@@ -117,12 +137,47 @@ def link_order():
     line_items = list(order.line_items.all())
     unassigned_items = [item for item in line_items if not item.is_assigned()]
 
+    # Logged-in user context -------------------------------------------------
+    player = safe_current_user.player if current_user.is_authenticated else None
+
+    # Membership (is_approved) is admin-granted and separate from payment.
+    # A brand-new buyer ends up PAID (is_current_player) but PENDING APPROVAL.
+    is_approved = bool(current_user.is_authenticated and getattr(current_user, 'is_approved', False))
+    is_current_player = bool(player and player.is_current_player)
+
     # Check for profile conflicts if logged in
     conflicts = []
-    profile_needs_update = False
-    if current_user.is_authenticated and safe_current_user.player:
-        conflicts = ProfileConflictService.detect_conflicts(safe_current_user.player, order_data or {})
-        profile_needs_update = not PlayerActivationService.check_profile_freshness(safe_current_user.player)
+    if player:
+        conflicts = ProfileConflictService.detect_conflicts(player, order_data or {})
+
+    # The confirm-your-profile step is ALWAYS part of the authenticated path
+    # now. If the profile is complete AND fresh we show a compact one-tap
+    # confirm; otherwise we force the full multi-section review.
+    profile_needs_update = current_user.is_authenticated
+    profile_review_mode = 'full'
+    if player:
+        profile_review_mode = 'full' if PlayerActivationService.profile_needs_full_review(player) else 'compact'
+
+    # Prefill values for the profile-confirmation step. Fall back to the
+    # order billing name for a first-timer who has no Player yet.
+    fallback_name = ''
+    if order_data:
+        billing = order_data.get('billing', {}) or {}
+        fallback_name = f"{(billing.get('first_name') or '').strip()} {(billing.get('last_name') or '').strip()}".strip()
+
+    profile_prefill = {
+        'name': (player.name if player else '') or fallback_name,
+        'pronouns': player.pronouns if player else '',
+        'phone': (player.phone if player else '') or '',
+        'jersey_size': player.jersey_size if player else '',
+        'jersey_number': player.jersey_number if player else '',
+        'favorite_position': player.favorite_position if player else '',
+        'other_positions': _parse_pg_array(player.other_positions) if player else [],
+        'positions_not_to_play': _parse_pg_array(player.positions_not_to_play) if player else [],
+        'frequency_play_goal': player.frequency_play_goal if player else '',
+        'expected_weeks_available': player.expected_weeks_available if player else '',
+        'willing_to_referee': player.willing_to_referee if player else '',
+    }
 
     return render_template(
         'pub_league/link_order_flowbite.html',
@@ -133,6 +188,16 @@ def link_order():
         initial_step=initial_step,
         conflicts=conflicts,
         profile_needs_update=profile_needs_update,
+        profile_review_mode=profile_review_mode,
+        profile_prefill=profile_prefill,
+        is_approved=is_approved,
+        is_current_player=is_current_player,
+        # Option lists for the profile-confirmation selects
+        soccer_positions=soccer_positions,
+        goal_frequency_choices=goal_frequency_choices,
+        availability_choices=availability_choices,
+        pronoun_choices=pronoun_choices,
+        willing_to_referee_choices=willing_to_referee_choices,
     )
 
 
@@ -231,13 +296,14 @@ def link_self():
         if line_item.is_assigned():
             return jsonify({'success': False, 'message': 'This pass has already been assigned'}), 400
 
-        # Get current user's player
-        player = safe_current_user.player
-        if not player:
-            return jsonify({'success': False, 'message': 'No player profile found'}), 400
+        # Get the actual, session-bound User model.
+        user = session.query(User).get(safe_current_user.id)
+        if not user:
+            return jsonify({'success': False, 'message': 'Account not found'}), 400
 
-        # Get the actual User model (not the proxy)
-        user = player.user
+        # Never dead-end a first-timer: create a minimal Player if they don't
+        # have one yet, then continue straight into assignment.
+        player = PlayerActivationService.ensure_player_for_user(user, order.woo_order_data)
 
         # Link the pass
         PubLeagueOrderService.link_pass_to_player(line_item, player, user)
@@ -259,7 +325,11 @@ def link_self():
             'success': True,
             'message': 'Pass linked successfully',
             'line_item': line_item.to_dict(),
-            'order': order.to_dict()
+            'order': order.to_dict(),
+            # Membership (is_approved) is separate from payment; surface both
+            # so the final screen can reflect the real state.
+            'is_approved': bool(getattr(user, 'is_approved', False)),
+            'is_current_player': bool(player.is_current_player),
         })
 
     except Exception as e:
@@ -535,7 +605,9 @@ def activate_player():
         return jsonify({
             'success': True,
             'message': f'Activated for {division} division',
-            'division': division
+            'division': division,
+            'is_approved': bool(user and getattr(user, 'is_approved', False)),
+            'is_current_player': bool(player.is_current_player),
         })
 
     except Exception as e:
@@ -547,40 +619,89 @@ def activate_player():
 @login_required
 def update_profile():
     """
-    Update player profile (called when profile is stale).
+    Persist the player's confirmed profile from the multi-section review step.
 
-    Request JSON:
-        name: Player name
-        jersey_size: Jersey size
-        favorite_position: Favorite position
-        other_positions: Other positions
-        pronouns: Pronouns
+    Accepts (all optional): name, pronouns, phone, jersey_size, jersey_number,
+    favorite_position, other_positions[], positions_not_to_play[],
+    frequency_play_goal, expected_weeks_available, willing_to_referee.
+
+    All select values are whitelisted against the canonical form option lists.
+    Stamps profile_last_updated so the review-due logic resets.
 
     Returns:
-        Success status
+        {success: bool}
     """
     data = request.get_json() or {}
 
     try:
-        player = safe_current_user.player
-        if not player:
-            return jsonify({'success': False, 'message': 'No player profile found'}), 400
-
         session = get_db_session()
 
-        # Update fields if provided
-        if data.get('name'):
-            player.name = data['name']
-        if data.get('jersey_size'):
-            player.jersey_size = data['jersey_size']
-        if data.get('favorite_position'):
-            player.favorite_position = data['favorite_position']
-        if data.get('other_positions'):
-            player.other_positions = data['other_positions']
-        if data.get('pronouns'):
-            player.pronouns = data['pronouns']
+        # Never dead-end: create a Player if this user somehow has none.
+        user = session.query(User).get(safe_current_user.id)
+        if not user:
+            return jsonify({'success': False, 'message': 'Account not found'}), 400
+        player = PlayerActivationService.ensure_player_for_user(user)
 
-        # Update profile_last_updated
+        # --- Identity & Contact ---
+        name = (data.get('name') or '').strip()
+        if name:
+            player.name = name[:100]
+
+        pronouns = (data.get('pronouns') or '').strip()
+        if pronouns in _ALLOWED_PRONOUNS:
+            player.pronouns = pronouns
+
+        # Phone uses the encrypting setter; only write when a value is given so
+        # we don't wipe an existing number on an accidental blank.
+        phone = (data.get('phone') or '').strip()
+        if phone:
+            player.phone = phone[:20]
+
+        jersey_size = (data.get('jersey_size') or '').strip()
+        if jersey_size in _ALLOWED_JERSEY_SIZES:
+            player.jersey_size = jersey_size
+
+        jersey_number_raw = data.get('jersey_number')
+        if jersey_number_raw not in (None, ''):
+            try:
+                _jn = int(jersey_number_raw)
+                # Range-guard: the column is a 4-byte int; an out-of-range value
+                # only fails at commit() and would then lose the WHOLE profile
+                # update. Jersey numbers are 0-99.
+                if 0 <= _jn <= 99:
+                    player.jersey_number = _jn
+            except (TypeError, ValueError):
+                pass  # ignore non-numeric jersey numbers
+
+        # --- Playing ---
+        favorite_position = (data.get('favorite_position') or '').strip()
+        if favorite_position in _ALLOWED_POSITIONS:
+            player.favorite_position = favorite_position
+
+        other_positions = data.get('other_positions')
+        if isinstance(other_positions, list):
+            cleaned = [p for p in other_positions if p in _ALLOWED_POSITIONS]
+            player.other_positions = ('{' + ','.join(cleaned) + '}') if cleaned else None
+
+        positions_not_to_play = data.get('positions_not_to_play')
+        if isinstance(positions_not_to_play, list):
+            cleaned = [p for p in positions_not_to_play if p in _ALLOWED_POSITIONS]
+            player.positions_not_to_play = ('{' + ','.join(cleaned) + '}') if cleaned else None
+
+        frequency_play_goal = (data.get('frequency_play_goal') or '').strip()
+        if frequency_play_goal in _ALLOWED_GOAL_FREQUENCY:
+            player.frequency_play_goal = frequency_play_goal
+
+        # --- Availability ---
+        expected_weeks_available = (data.get('expected_weeks_available') or '').strip()
+        if expected_weeks_available in _ALLOWED_AVAILABILITY:
+            player.expected_weeks_available = expected_weeks_available
+
+        willing_to_referee = (data.get('willing_to_referee') or '').strip()
+        if willing_to_referee in _ALLOWED_REFEREE:
+            player.willing_to_referee = willing_to_referee
+
+        # Stamp the review so the 5-month "please update" alert resets.
         player.profile_last_updated = datetime.utcnow()
 
         session.commit()
@@ -725,12 +846,14 @@ def process_claim():
         return jsonify({'success': False, 'message': 'Missing claim token'}), 400
 
     try:
-        player = safe_current_user.player
-        if not player:
-            return jsonify({'success': False, 'message': 'No player profile found. Please complete your profile first.'}), 400
+        db_session = get_db_session()
 
-        # Get the actual User model (not the proxy)
-        user = player.user
+        # Never dead-end a first-time claimer: create a minimal Player if
+        # they don't have one, then proceed.
+        user = db_session.query(User).get(safe_current_user.id)
+        if not user:
+            return jsonify({'success': False, 'message': 'Account not found'}), 400
+        player = PlayerActivationService.ensure_player_for_user(user)
 
         # Process the claim
         line_item = PubLeagueOrderService.process_claim(claim_token, player, user)
@@ -753,6 +876,8 @@ def process_claim():
             'success': True,
             'message': 'Pass claimed successfully!',
             'line_item': line_item.to_dict(),
+            'is_approved': bool(getattr(user, 'is_approved', False)),
+            'is_current_player': bool(player.is_current_player),
             'wallet_pass': {
                 'id': wallet_pass.id,
                 'download_token': wallet_pass.download_token,

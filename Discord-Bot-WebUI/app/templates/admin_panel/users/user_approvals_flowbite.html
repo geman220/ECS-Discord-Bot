@@ -186,6 +186,11 @@
               <div class="ml-3 min-w-0">
                 <button type="button" class="block max-w-[14rem] truncate text-left font-semibold text-gray-900 dark:text-white hover:text-ecs-green focus:outline-none focus:underline" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</button>
                 <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.player.name if user.player else 'No player record' }}</p>
+                {% if user.player and user.player.is_current_player %}
+                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400" title="Season pass active — awaiting membership approval"><i class="ti ti-ticket text-[11px]" aria-hidden="true"></i>Paid</span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="No active season pass yet"><i class="ti ti-ticket-off text-[11px]" aria-hidden="true"></i>Not paid</span>
+                {% endif %}
               </div>
             </div>
           </td>
@@ -498,6 +503,11 @@
                         <div class="ml-3 min-w-0">
                             <p class="font-medium text-gray-900 dark:text-white cursor-pointer hover:text-ecs-green truncate" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.player.name if user.player else 'No player record' }}</p>
+                {% if user.player and user.player.is_current_player %}
+                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400" title="Season pass active — awaiting membership approval"><i class="ti ti-ticket text-[11px]" aria-hidden="true"></i>Paid</span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="No active season pass yet"><i class="ti ti-ticket-off text-[11px]" aria-hidden="true"></i>Not paid</span>
+                {% endif %}
                             <p class="text-xs text-gray-500 dark:text-gray-400 truncate md:hidden">{{ user.email }}</p>
                             <p class="text-xs text-gray-400 dark:text-gray-500 lg:hidden">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}{% if user.preferred_league %} · {{ user.preferred_league.replace('pub_league_', '').replace('_', ' ').title() }}{% endif %}</p>
                         </div>

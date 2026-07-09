@@ -288,7 +288,10 @@ def create_user_and_player_profile(player_info, league):
             user = User(
                 email=player_info['email'].lower(),
                 username=player_info['name'],
-                is_approved=True
+                # No auto-approve — imported/synced buyers land in the admin
+                # approval queue for individual review before they're active.
+                is_approved=False,
+                approval_status='pending'
             )
             user.set_password(random_password)
             session.add(user)

@@ -244,6 +244,18 @@ def discord_callback():
             if claim_code:
                 claim_result = _process_claim_code(session_db, user, discord_user['id'], claim_code)
 
+            # Approval gate — NO auto-approve. A new / not-yet-approved Discord
+            # account is created and linked (so it lands in the admin approval
+            # queue), but gets NO token or app access until an admin approves it.
+            # Existing approved members pass straight through. Mirrors the gates on
+            # /login and /refresh_token.
+            if not user.is_approved:
+                session_db.commit()  # persist the pending account + any claim link
+                return jsonify({
+                    "msg": "Your account is pending admin approval. You'll be able to sign in once an admin approves your membership.",
+                    "code": "ACCOUNT_NOT_APPROVED"
+                }), 403
+
             # Create session record and JWT tokens
             session_id = create_user_session(session_db, user.id)
             session_db.commit()

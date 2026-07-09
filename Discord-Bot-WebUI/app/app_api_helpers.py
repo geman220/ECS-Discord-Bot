@@ -196,8 +196,15 @@ def process_discord_user(session, user_data: Dict) -> User:
     user = User(
         email=email,
         username=username,
-        is_approved=True,           # Discord-authenticated users are auto-approved
-        approval_status='pending',  # …but still need league approval
+        # NO AUTO-APPROVAL — an admin must approve every player. A first-time
+        # Discord auth (web OR mobile) creates a PENDING account. The mobile API
+        # hard-gates on is_approved (login / refresh_token / discord_callback all
+        # return 403 ACCOUNT_NOT_APPROVED), so this new user lands in the admin
+        # approval queue but gets NO token/access until an admin approves — which
+        # is exactly the intended gate. Existing approved members are unaffected
+        # (this only runs on first-time account creation).
+        is_approved=False,
+        approval_status='pending',
         roles=[unverified_role],
         has_completed_onboarding=False,
         has_skipped_profile_creation=False,
@@ -225,7 +232,9 @@ def process_discord_user(session, user_data: Dict) -> User:
             name=username,
             user_id=user.id,
             discord_id=discord_id,
-            is_current_player=True,
+            # Not "paid/active" until a Classic/Premier pass is linked — a fresh
+            # signup is never a current player for free (see access_gating model).
+            is_current_player=False,
             is_sub=True,
         )
         session.add(player)

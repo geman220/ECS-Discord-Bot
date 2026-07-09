@@ -104,6 +104,12 @@ def create_app(config_object='web_config.Config'):
     init_jwt(app)
     init_request_handlers(app, csrf)
 
+    # League access gating: confine pending/unpaid users to a safe allowlist.
+    # Registered right after init_request_handlers so it runs AFTER the
+    # db-session before_request (g.db_session + g._cached_user_roles available).
+    from app.init.access_gating import register_access_gating
+    register_access_gating(app)
+
     # Phase 5: Blueprints and routes
     init_blueprints(app, csrf)
     init_context_processors(app)

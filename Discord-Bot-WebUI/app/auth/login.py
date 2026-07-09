@@ -109,9 +109,12 @@ def login():
             show_error('Invalid email or password')
             return render_template('login_flowbite.html', title='Login', form=form)
 
-        if not user.is_approved:
-            logger.debug("User not approved")
-            show_info('Your account is not approved yet.')
+        # Only DENIED applicants are blocked at login. Pending (awaiting admin
+        # approval) and unpaid users log in fine — the league-access gate then
+        # confines them to their profile / purchase flow / pending-status page.
+        if getattr(user, 'approval_status', None) == 'denied':
+            logger.debug("User application was denied")
+            show_error('Your application was not approved. Please contact an admin if you believe this is a mistake.')
             return render_template('login_flowbite.html', title='Login', form=form)
 
         # If 2FA is enabled, redirect to 2FA verification.

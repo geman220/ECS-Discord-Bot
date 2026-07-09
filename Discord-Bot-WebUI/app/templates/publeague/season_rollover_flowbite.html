@@ -1,0 +1,727 @@
+{% extends "base_flowbite.html" %}
+{% from "macros/_modern_kit.html" import page_header %}
+{% block title %}Guided Season Rollover{% endblock %}
+
+{% block main_content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8" data-page="season-rollover">
+    {{ page_header("Guided Season Rollover", subtitle="Preview → Backup → Execute — a safe, step-by-step rollover") }}
+
+    <!-- Current seasons context -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-center gap-3">
+            <i class="ti ti-beer text-2xl text-ecs-green" aria-hidden="true"></i>
+            <div class="min-w-0">
+                <div class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Current Pub League</div>
+                <div class="font-semibold text-gray-900 dark:text-white truncate">{{ pub_current.name if pub_current else 'None set' }}</div>
+            </div>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-center gap-3">
+            <i class="ti ti-ball-football text-2xl text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+            <div class="min-w-0">
+                <div class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Current ECS FC</div>
+                <div class="font-semibold text-gray-900 dark:text-white truncate">{{ ecs_current.name if ecs_current else 'None set' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stepper -->
+    <ol class="flex items-center w-full mb-6 text-xs sm:text-sm font-medium text-center text-gray-500 dark:text-gray-400">
+        {% for n, label in [(1,'Configure'), (2,'Preview'), (3,'Backup'), (4,'Execute')] %}
+        <li class="rollover-step-indicator flex items-center {% if not loop.last %}w-full{% endif %}" data-step="{{ n }}">
+            <span class="step-badge flex items-center justify-center w-8 h-8 rounded-full shrink-0 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800">{{ n }}</span>
+            <span class="ml-2 hidden sm:inline whitespace-nowrap">{{ label }}</span>
+            {% if not loop.last %}<span class="flex-1 h-0.5 mx-2 bg-gray-200 dark:bg-gray-700"></span>{% endif %}
+        </li>
+        {% endfor %}
+    </ol>
+
+    <!-- ============================ STEP 1: CONFIGURE ============================ -->
+    <section class="rollover-panel" data-step="1">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <i class="ti ti-settings text-ecs-green" aria-hidden="true"></i>
+                <span class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">1. Configure the new season</span>
+            </div>
+            <div class="p-4 sm:p-5 space-y-5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="ro-league-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">League Type</label>
+                        <select id="ro-league-type" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="Pub League">Pub League (Premier + Classic)</option>
+                            <option value="ECS FC">ECS FC</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="ro-season-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">New Season Name</label>
+                        <input type="text" id="ro-season-name" placeholder="e.g. 2026 Fall" required
+                               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                    </div>
+                    <div>
+                        <label for="ro-start-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Season Start Date</label>
+                        <input type="date" id="ro-start-date" required
+                               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                    </div>
+                </div>
+
+                <!-- Pub League division settings -->
+                <div id="ro-pub-fields" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                            <h4 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><i class="ti ti-shield-half text-ecs-green"></i> Classic Division</h4>
+                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Teams (even number)</label>
+                            <input type="number" id="ro-classic-teams" min="2" step="2" value="4" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green mb-3">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Regular weeks</label>
+                                    <input type="number" id="ro-classic-regular" min="1" value="8" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Playoff weeks</label>
+                                    <input type="number" id="ro-classic-playoff" min="0" value="1" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                            <h4 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><i class="ti ti-shield-half text-ecs-gold-500"></i> Premier Division</h4>
+                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Teams (even number)</label>
+                            <input type="number" id="ro-premier-teams" min="2" step="2" value="8" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green mb-3">
+                            <div class="grid grid-cols-2 gap-2 mb-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Regular weeks</label>
+                                    <input type="number" id="ro-premier-regular" min="1" value="7" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Playoff weeks</label>
+                                    <input type="number" id="ro-premier-playoff" min="0" value="2" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-4 text-sm">
+                                <label class="inline-flex items-center gap-2"><input type="checkbox" id="ro-premier-fun" checked class="rounded border-gray-300 text-ecs-green focus:ring-ecs-green"> Fun week</label>
+                                <label class="inline-flex items-center gap-2"><input type="checkbox" id="ro-premier-tst" checked class="rounded border-gray-300 text-ecs-green focus:ring-ecs-green"> TST week</label>
+                                <label class="inline-flex items-center gap-2"><input type="checkbox" id="ro-premier-bonus" checked class="rounded border-gray-300 text-ecs-green focus:ring-ecs-green"> Bonus week</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ECS FC settings -->
+                <div id="ro-ecs-fields" class="hidden">
+                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 max-w-md">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><i class="ti ti-shield-half text-ecs-green"></i> ECS FC</h4>
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Teams (even number)</label>
+                        <input type="number" id="ro-ecs-teams" min="2" step="2" value="8" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green mb-3">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Regular weeks</label>
+                                <input type="number" id="ro-ecs-regular" min="1" value="8" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Playoff weeks</label>
+                                <input type="number" id="ro-ecs-playoff" min="0" value="1" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced schedule settings -->
+                <details class="rounded-lg border border-gray-200 dark:border-gray-700">
+                    <summary class="flex items-center gap-2 p-3 cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        <i class="ti ti-adjustments text-gray-400"></i> Advanced schedule settings
+                    </summary>
+                    <div class="p-4 pt-0 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="ro-premier-time" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Premier / ECS FC start time</label>
+                            <input type="time" id="ro-premier-time" value="08:20" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                        <div>
+                            <label for="ro-classic-time" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Classic start time</label>
+                            <input type="time" id="ro-classic-time" value="13:10" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                        <div>
+                            <label for="ro-match-duration" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Match duration (min)</label>
+                            <input type="number" id="ro-match-duration" min="10" value="70" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                        <div>
+                            <label for="ro-fields" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Fields (comma-separated)</label>
+                            <input type="text" id="ro-fields" value="North,South" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                    </div>
+                </details>
+
+                <div class="flex justify-end pt-2">
+                    <button type="button" data-action="rollover-goto-preview"
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-eye" aria-hidden="true"></i> Preview Rollover
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================ STEP 2: PREVIEW ============================ -->
+    <section class="rollover-panel hidden" data-step="2">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <i class="ti ti-eye text-ecs-green" aria-hidden="true"></i>
+                <span class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">2. Review what will happen</span>
+            </div>
+            <div class="p-4 sm:p-5">
+                <div class="flex items-start gap-2 mb-4 rounded-lg bg-ecs-green/10 border border-ecs-green/30 p-3 text-sm text-ecs-green-800 dark:text-ecs-green-300">
+                    <i class="ti ti-shield-check mt-0.5" aria-hidden="true"></i>
+                    <span>This is a preview only — <strong>nothing has changed yet</strong>. No data is written until you confirm in the Execute step.</span>
+                </div>
+                <div id="ro-preview-body" class="space-y-4"></div>
+                <div class="flex flex-wrap justify-between gap-3 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" data-action="rollover-back" data-goto="1"
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700">
+                        <i class="ti ti-arrow-left"></i> Back
+                    </button>
+                    <button type="button" data-action="rollover-goto-backup"
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        Looks Good — Continue <i class="ti ti-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================ STEP 3: BACKUP ============================ -->
+    <section class="rollover-panel hidden" data-step="3">
+        <div class="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-500/10">
+                <i class="ti ti-database-export text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+                <span class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">3. Create a database backup first</span>
+            </div>
+            <div class="p-4 sm:p-5 space-y-4">
+                <p class="text-sm text-gray-600 dark:text-gray-300">
+                    A rollover changes team assignments and player league membership across the whole database.
+                    Create a full backup now so it can be restored if anything goes wrong.
+                </p>
+                {% if not is_global_admin %}
+                <div class="flex items-start gap-3 rounded-lg border p-3 bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/40 text-amber-800 dark:text-amber-300 text-sm">
+                    <i class="ti ti-info-circle text-lg shrink-0 mt-0.5"></i>
+                    <span>Only a Global Admin can create or restore backups. Ask a Global Admin to create one, or acknowledge skipping it below.</span>
+                </div>
+                {% endif %}
+                <div class="flex flex-wrap gap-3">
+                    {% if is_global_admin %}
+                    <button type="button" data-action="rollover-create-backup"
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-database-export"></i> Create Backup Now
+                    </button>
+                    {% endif %}
+                    <button type="button" data-action="rollover-skip-backup"
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg text-amber-700 bg-white border border-amber-400 hover:bg-amber-50 dark:bg-gray-800 dark:text-amber-300 dark:border-amber-500/50 dark:hover:bg-amber-500/10">
+                        <i class="ti ti-alert-triangle"></i> Skip Backup (not recommended)
+                    </button>
+                </div>
+                <div id="ro-backup-result" role="status" aria-live="polite" class="hidden rounded-lg border p-4 text-sm"></div>
+                <div class="flex justify-between gap-3 pt-2">
+                    <button type="button" data-action="rollover-back" data-goto="2"
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700">
+                        <i class="ti ti-arrow-left"></i> Back
+                    </button>
+                    <button type="button" id="ro-goto-execute-btn" data-action="rollover-goto-execute" disabled
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green text-white opacity-50 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        Continue to Execute <i class="ti ti-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================ STEP 4: EXECUTE ============================ -->
+    <section class="rollover-panel hidden" data-step="4">
+        <div class="rounded-xl border border-red-300 dark:border-red-500/40 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-500/10">
+                <i class="ti ti-player-play text-red-600 dark:text-red-400" aria-hidden="true"></i>
+                <span class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">4. Confirm &amp; execute</span>
+            </div>
+            <div class="p-4 sm:p-5 space-y-4">
+                <div id="ro-execute-summary" class="text-sm text-gray-600 dark:text-gray-300"></div>
+                <p class="text-red-600 dark:text-red-400 font-semibold text-sm">This creates the new season, rolls over players, and generates the schedule. It cannot be automatically undone.</p>
+                <div id="ro-execute-result" role="status" aria-live="polite" class="hidden rounded-lg border p-4 text-sm"></div>
+                <div class="flex justify-between gap-3 pt-2">
+                    <button type="button" data-action="rollover-back" data-goto="3"
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700">
+                        <i class="ti ti-arrow-left"></i> Back
+                    </button>
+                    <button type="button" data-action="rollover-execute"
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-player-play"></i> Execute Rollover
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {% if is_global_admin %}
+    <!-- ============================ RESTORE SECTION ============================ -->
+    <section class="mt-8">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+                <i class="ti ti-database-import text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+                <span class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Restore a Backup</span>
+                <span class="ml-auto text-xs text-red-500 font-semibold hidden sm:inline">Global Admin only · destructive</span>
+            </div>
+            <div class="p-4 sm:p-5 space-y-3">
+                <p class="text-sm text-gray-600 dark:text-gray-300">Restoring overwrites the entire database with the selected backup. Use only if a rollover went wrong.</p>
+                <div id="ro-backups-list" class="space-y-2 text-sm text-gray-500 dark:text-gray-400">Loading backups…</div>
+                <button type="button" data-action="rollover-refresh-backups"
+                        class="inline-flex items-center gap-1.5 text-sm font-medium text-ecs-green hover:underline">
+                    <i class="ti ti-refresh"></i> Refresh list
+                </button>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+(function () {
+    'use strict';
+
+    function getCsrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    }
+
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    var isDark = document.documentElement.classList.contains('dark');
+    function swalTheme(opts) {
+        opts = opts || {};
+        opts.background = isDark ? '#1f2937' : '#ffffff';
+        opts.color = isDark ? '#f3f4f6' : '#111827';
+        return opts;
+    }
+
+    var IS_GLOBAL_ADMIN = {{ 'true' if is_global_admin else 'false' }};
+
+    // Shared state
+    var state = {
+        backupFilename: null,
+        skipBackup: false,
+        lastPayload: null
+    };
+
+    var val = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
+    var num = function (id) { return parseInt(val(id), 10) || 0; };
+    var checked = function (id) { var el = document.getElementById(id); return !!(el && el.checked); };
+
+    function buildWeekConfigs(regular, playoff, specials) {
+        var weeks = [];
+        var n = 1;
+        for (var i = 0; i < regular; i++) { weeks.push({ week_number: n++, type: 'REGULAR' }); }
+        (specials || []).forEach(function (t) { weeks.push({ week_number: n++, type: t }); });
+        for (var p = 0; p < playoff; p++) { weeks.push({ week_number: n++, type: 'PLAYOFF' }); }
+        return weeks;
+    }
+
+    // Build the full payload consumed by _execute_season_creation.
+    function buildSeasonPayload() {
+        var leagueType = val('ro-league-type');
+        var payload = {
+            season_name: val('ro-season-name').trim(),
+            league_type: leagueType,
+            set_as_current: true,
+            season_start_date: val('ro-start-date'),
+            premier_start_time: val('ro-premier-time') || '08:20',
+            classic_start_time: val('ro-classic-time') || '13:10',
+            match_duration: num('ro-match-duration') || 70,
+            break_duration: 10,
+            enable_time_rotation: true,
+            fields: val('ro-fields') || 'North,South'
+        };
+
+        if (leagueType === 'Pub League') {
+            payload.classic_teams = num('ro-classic-teams');
+            payload.premier_teams = num('ro-premier-teams');
+            payload.classic_regular_weeks = num('ro-classic-regular');
+            payload.premier_regular_weeks = num('ro-premier-regular');
+            payload.classic_playoff_weeks = num('ro-classic-playoff');
+            payload.premier_playoff_weeks = num('ro-premier-playoff');
+            payload.premier_has_fun_week = checked('ro-premier-fun');
+            payload.premier_has_tst_week = checked('ro-premier-tst');
+            payload.premier_has_bonus_week = checked('ro-premier-bonus');
+
+            var premierSpecials = [];
+            if (payload.premier_has_fun_week) premierSpecials.push('FUN');
+            if (payload.premier_has_tst_week) premierSpecials.push('TST');
+            if (payload.premier_has_bonus_week) premierSpecials.push('BONUS');
+
+            payload.classic_week_configs = buildWeekConfigs(payload.classic_regular_weeks, payload.classic_playoff_weeks, []);
+            payload.premier_week_configs = buildWeekConfigs(payload.premier_regular_weeks, payload.premier_playoff_weeks, premierSpecials);
+        } else {
+            payload.ecs_fc_teams = num('ro-ecs-teams');
+            payload.ecs_fc_regular_weeks = num('ro-ecs-regular');
+            payload.ecs_fc_playoff_weeks = num('ro-ecs-playoff');
+            payload.ecs_fc_week_configs = buildWeekConfigs(payload.ecs_fc_regular_weeks, payload.ecs_fc_playoff_weeks, []);
+        }
+        return payload;
+    }
+
+    function buildPreviewRequest() {
+        var leagueType = val('ro-league-type');
+        var teamCounts = {};
+        var weekSummary = {};
+        if (leagueType === 'Pub League') {
+            teamCounts = { classic: num('ro-classic-teams'), premier: num('ro-premier-teams') };
+            var premierSpecials = (checked('ro-premier-fun') ? 1 : 0) + (checked('ro-premier-tst') ? 1 : 0) + (checked('ro-premier-bonus') ? 1 : 0);
+            weekSummary = {
+                classic: { regular_weeks: num('ro-classic-regular'), playoff_weeks: num('ro-classic-playoff'), special_weeks: 0 },
+                premier: { regular_weeks: num('ro-premier-regular'), playoff_weeks: num('ro-premier-playoff'), special_weeks: premierSpecials }
+            };
+        } else {
+            teamCounts = { ecs_fc: num('ro-ecs-teams') };
+            weekSummary = { ecs_fc: { regular_weeks: num('ro-ecs-regular'), playoff_weeks: num('ro-ecs-playoff'), special_weeks: 0 } };
+        }
+        return {
+            league_type: leagueType,
+            new_season_name: val('ro-season-name').trim(),
+            start_date: val('ro-start-date'),
+            team_counts: teamCounts,
+            week_config_summary: weekSummary
+        };
+    }
+
+    // --- Step navigation ---
+    function gotoStep(step) {
+        document.querySelectorAll('.rollover-panel').forEach(function (p) {
+            p.classList.toggle('hidden', parseInt(p.getAttribute('data-step'), 10) !== step);
+        });
+        document.querySelectorAll('.rollover-step-indicator').forEach(function (ind) {
+            var n = parseInt(ind.getAttribute('data-step'), 10);
+            var badge = ind.querySelector('.step-badge');
+            if (!badge) return;
+            badge.classList.remove('border-ecs-green', 'bg-ecs-green', 'text-white', 'border-gray-300', 'dark:border-gray-600');
+            if (n < step) {
+                badge.classList.add('border-ecs-green', 'bg-ecs-green', 'text-white');
+            } else if (n === step) {
+                badge.classList.add('border-ecs-green', 'text-ecs-green', 'font-bold');
+            } else {
+                badge.classList.add('border-gray-300', 'dark:border-gray-600');
+            }
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function validateStep1() {
+        if (!val('ro-season-name').trim()) return 'Please enter a season name.';
+        if (!val('ro-start-date')) return 'Please choose a start date.';
+        return null;
+    }
+
+    // --- Renderers ---
+    function renderPreview(p) {
+        var body = document.getElementById('ro-preview-body');
+        var html = '';
+
+        if (p.warnings && p.warnings.length) {
+            html += '<div class="rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-3 text-amber-800 dark:text-amber-300 text-sm space-y-1">';
+            p.warnings.forEach(function (w) { html += '<div class="flex items-start gap-2"><i class="ti ti-alert-triangle mt-0.5"></i><span>' + escapeHtml(w) + '</span></div>'; });
+            html += '</div>';
+        }
+
+        // Impact tiles
+        html += '<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">';
+        var replacing = p.current_season ? escapeHtml(p.current_season.name) : 'None';
+        html += tile('ti-refresh', 'Replacing', replacing, 'This season is rolled over');
+        html += tile('ti-user-off', 'Players deactivated', String(p.players_to_deactivate), 'Re-activate on pass purchase');
+        html += tile('ti-archive', 'Teams archived', String(p.teams_to_archive), 'Saved to season history');
+        html += tile('ti-shield-plus', 'New teams created', String(p.total_teams), (p.new_leagues || []).join(' + '));
+        html += '</div>';
+
+        // Preservation note
+        html += '<div class="rounded-lg border border-ecs-green/40 bg-ecs-green/5 dark:bg-ecs-green/10 p-3 text-sm text-gray-700 dark:text-gray-200 flex items-start gap-2">'
+             + '<i class="ti ti-shield-check text-ecs-green text-lg mt-0.5"></i>'
+             + '<span><strong>Career stats and player profiles are preserved.</strong> Old team memberships are snapshotted to season history before players are cleared.</span></div>';
+
+        // Divisions
+        html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';
+        Object.keys(p.divisions || {}).forEach(function (name) {
+            var d = p.divisions[name];
+            html += '<div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">';
+            html += '<div class="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2"><i class="ti ti-shield-half text-ecs-green"></i>' + escapeHtml(name) + '</div>';
+            html += '<div class="text-xs text-gray-500 dark:text-gray-400 space-y-1 mb-2">';
+            html += '<div><span class="font-mono font-semibold text-gray-900 dark:text-white">' + d.team_count + '</span> teams · <span class="font-mono font-semibold text-gray-900 dark:text-white">' + d.total_weeks + '</span> weeks · ~<span class="font-mono font-semibold text-gray-900 dark:text-white">' + d.matches_per_week + '</span> matches/week</div>';
+            if (!d.even_ok) {
+                html += '<div class="text-amber-600 dark:text-amber-400"><i class="ti ti-alert-triangle"></i> Needs an even team count</div>';
+            }
+            html += '</div>';
+            if (d.sample_matchups && d.sample_matchups.length) {
+                html += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Sample matchups:</div>';
+                html += '<div class="flex flex-wrap gap-1.5">';
+                d.sample_matchups.forEach(function (m) {
+                    html += '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">' + escapeHtml(m) + '</span>';
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+        });
+        html += '</div>';
+
+        body.innerHTML = html;
+    }
+
+    function tile(icon, label, value, sub) {
+        return '<div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">'
+            + '<div class="flex items-center gap-1.5 text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400"><i class="ti ' + icon + '"></i>' + escapeHtml(label) + '</div>'
+            + '<div class="text-xl font-extrabold text-gray-900 dark:text-white mt-1 truncate">' + escapeHtml(value) + '</div>'
+            + '<div class="text-xs text-gray-400 dark:text-gray-500 truncate">' + escapeHtml(sub) + '</div></div>';
+    }
+
+    function setResultBox(el, ok, message) {
+        el.classList.remove('hidden', 'border-green-300', 'bg-green-50', 'text-green-800', 'border-red-300', 'bg-red-50', 'text-red-800',
+            'dark:bg-green-500/10', 'dark:text-green-300', 'dark:bg-red-500/10', 'dark:text-red-300', 'dark:border-green-500/40', 'dark:border-red-500/40');
+        if (ok) {
+            el.classList.add('border-green-300', 'bg-green-50', 'text-green-800', 'dark:bg-green-500/10', 'dark:text-green-300', 'dark:border-green-500/40');
+        } else {
+            el.classList.add('border-red-300', 'bg-red-50', 'text-red-800', 'dark:bg-red-500/10', 'dark:text-red-300', 'dark:border-red-500/40');
+        }
+        el.innerHTML = message;
+    }
+
+    function enableExecuteButton() {
+        var btn = document.getElementById('ro-goto-execute-btn');
+        if (!btn) return;
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        btn.classList.add('hover:bg-ecs-green-700');
+    }
+
+    function fmtBytes(b) {
+        b = b || 0;
+        if (b < 1024) return b + ' B';
+        if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+        return (b / 1048576).toFixed(1) + ' MB';
+    }
+
+    // --- Actions ---
+    function actionGotoPreview() {
+        var err = validateStep1();
+        if (err) { window.Swal.fire(swalTheme({ icon: 'warning', title: 'Missing info', text: err })); return; }
+        var req = buildPreviewRequest();
+        window.Swal.fire(swalTheme({ title: 'Building preview…', allowOutsideClick: false, didOpen: function () { window.Swal.showLoading(); } }));
+        fetch('/publeague/seasons/rollover/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+            body: JSON.stringify(req)
+        }).then(function (r) { return r.json(); }).then(function (data) {
+            window.Swal.close();
+            if (!data.success) { window.Swal.fire(swalTheme({ icon: 'error', title: 'Preview failed', text: data.error || 'Unknown error' })); return; }
+            renderPreview(data);
+            gotoStep(2);
+        }).catch(function () {
+            window.Swal.fire(swalTheme({ icon: 'error', title: 'Preview failed', text: 'Could not reach the server.' }));
+        });
+    }
+
+    function actionCreateBackup() {
+        window.Swal.fire(swalTheme({ title: 'Creating backup…', text: 'Running pg_dump — this can take a moment.', allowOutsideClick: false, didOpen: function () { window.Swal.showLoading(); } }));
+        fetch('/publeague/seasons/rollover/backup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() }
+        }).then(function (r) { return r.json(); }).then(function (data) {
+            window.Swal.close();
+            var box = document.getElementById('ro-backup-result');
+            if (data.success) {
+                state.backupFilename = data.filename;
+                state.skipBackup = false;
+                setResultBox(box, true, '<i class="ti ti-circle-check"></i> Backup created: <strong>' + escapeHtml(data.filename) + '</strong> (' + fmtBytes(data.size_bytes) + ')');
+                enableExecuteButton();
+                if (IS_GLOBAL_ADMIN) refreshBackups();
+            } else {
+                setResultBox(box, false, '<i class="ti ti-alert-triangle"></i> ' + escapeHtml(data.error || data.message || 'Backup failed.'));
+            }
+        }).catch(function () {
+            window.Swal.close();
+            var box = document.getElementById('ro-backup-result');
+            setResultBox(box, false, '<i class="ti ti-alert-triangle"></i> Could not reach the server.');
+        });
+    }
+
+    function actionSkipBackup() {
+        window.Swal.fire(swalTheme({
+            icon: 'warning',
+            title: 'Skip the backup?',
+            text: 'Proceeding without a backup means the rollover cannot be automatically restored if something goes wrong.',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, skip it',
+            confirmButtonColor: '#d97706'
+        })).then(function (res) {
+            if (!res.isConfirmed) return;
+            state.skipBackup = true;
+            state.backupFilename = null;
+            var box = document.getElementById('ro-backup-result');
+            setResultBox(box, false, '<i class="ti ti-alert-triangle"></i> Backup skipped. You are proceeding without a restore point.');
+            enableExecuteButton();
+        });
+    }
+
+    function actionGotoExecute() {
+        state.lastPayload = buildSeasonPayload();
+        var p = state.lastPayload;
+        var summary = document.getElementById('ro-execute-summary');
+        var backupNote = state.skipBackup
+            ? '<span class="text-amber-600 dark:text-amber-400 font-semibold">No backup (skipped)</span>'
+            : ('Backup: <strong>' + escapeHtml(state.backupFilename || '') + '</strong>');
+        summary.innerHTML = 'About to create <strong>' + escapeHtml(p.season_name) + '</strong> (' + escapeHtml(p.league_type) + ') as the current season and generate its schedule.<br>' + backupNote;
+        gotoStep(4);
+    }
+
+    function actionExecute() {
+        var payload = state.lastPayload || buildSeasonPayload();
+        window.Swal.fire(swalTheme({
+            icon: 'warning',
+            title: 'Execute rollover?',
+            text: 'This will create the new season and roll over all players. Continue?',
+            showCancelButton: true,
+            confirmButtonText: 'Execute',
+            confirmButtonColor: '#dc2626'
+        })).then(function (res) {
+            if (!res.isConfirmed) return;
+            window.Swal.fire(swalTheme({ title: 'Executing rollover…', text: 'Creating season, migrating players, generating schedule.', allowOutsideClick: false, didOpen: function () { window.Swal.showLoading(); } }));
+            fetch('/publeague/seasons/rollover/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: JSON.stringify({
+                    season: payload,
+                    backup_filename: state.backupFilename,
+                    skip_backup: state.skipBackup
+                })
+            }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); }).then(function (resp) {
+                window.Swal.close();
+                var box = document.getElementById('ro-execute-result');
+                var data = resp.data || {};
+                if (resp.ok && data.success) {
+                    setResultBox(box, true, '<i class="ti ti-circle-check"></i> ' + escapeHtml(data.message || 'Rollover complete.'));
+                    window.Swal.fire(swalTheme({
+                        icon: 'success', title: 'Rollover complete', text: data.message || 'The new season has been created.'
+                    })).then(function () {
+                        if (data.redirect_url) window.location.href = data.redirect_url;
+                    });
+                } else {
+                    var msg = data.error || data.message || 'Rollover failed.';
+                    setResultBox(box, false, '<i class="ti ti-alert-triangle"></i> ' + escapeHtml(msg));
+                    window.Swal.fire(swalTheme({ icon: 'error', title: 'Rollover failed', text: msg }));
+                }
+            }).catch(function () {
+                window.Swal.close();
+                window.Swal.fire(swalTheme({ icon: 'error', title: 'Rollover failed', text: 'Could not reach the server.' }));
+            });
+        });
+    }
+
+    // --- Restore ---
+    function refreshBackups() {
+        var list = document.getElementById('ro-backups-list');
+        if (!list) return;
+        list.innerHTML = 'Loading backups…';
+        fetch('/publeague/seasons/rollover/backups', { headers: { 'X-CSRFToken': getCsrfToken() } })
+            .then(function (r) { return r.json(); }).then(function (data) {
+                if (!data.success) { list.innerHTML = '<span class="text-red-500">Could not load backups.</span>'; return; }
+                if (!data.backups.length) { list.innerHTML = '<span>No backups found yet.</span>'; return; }
+                var html = '';
+                data.backups.forEach(function (b) {
+                    html += '<div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">'
+                        + '<div class="min-w-0"><div class="font-mono text-xs text-gray-900 dark:text-white truncate">' + escapeHtml(b.filename) + '</div>'
+                        + '<div class="text-xs text-gray-400">' + escapeHtml(b.created_at) + ' · ' + fmtBytes(b.size_bytes) + '</div></div>'
+                        + '<button type="button" data-action="rollover-restore" data-filename="' + escapeHtml(b.filename) + '" '
+                        + 'class="inline-flex items-center gap-1.5 min-h-[44px] px-3 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">'
+                        + '<i class="ti ti-database-import"></i> Restore</button></div>';
+                });
+                list.innerHTML = html;
+            }).catch(function () { list.innerHTML = '<span class="text-red-500">Could not load backups.</span>'; });
+    }
+
+    function actionRestore(element) {
+        var filename = element.getAttribute('data-filename');
+        window.Swal.fire(swalTheme({
+            icon: 'warning',
+            title: 'Restore this backup?',
+            html: 'This will <strong>overwrite the entire database</strong> with <code>' + escapeHtml(filename) + '</code>.<br>Type <strong>RESTORE</strong> to confirm.',
+            input: 'text',
+            inputPlaceholder: 'RESTORE',
+            showCancelButton: true,
+            confirmButtonText: 'Restore',
+            confirmButtonColor: '#dc2626',
+            preConfirm: function (v) {
+                if (v !== 'RESTORE') { window.Swal.showValidationMessage('You must type RESTORE to confirm.'); }
+                return v;
+            }
+        })).then(function (res) {
+            if (!res.isConfirmed) return;
+            window.Swal.fire(swalTheme({ title: 'Restoring…', text: 'Running psql restore.', allowOutsideClick: false, didOpen: function () { window.Swal.showLoading(); } }));
+            fetch('/publeague/seasons/rollover/restore', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: JSON.stringify({ filename: filename, confirm: 'RESTORE' })
+            }).then(function (r) { return r.json(); }).then(function (data) {
+                window.Swal.close();
+                if (data.success) {
+                    window.Swal.fire(swalTheme({ icon: 'success', title: 'Database restored', text: 'The database was restored from ' + filename + '.' }));
+                } else {
+                    window.Swal.fire(swalTheme({ icon: 'error', title: 'Restore failed', text: data.error || 'Unknown error' }));
+                }
+            }).catch(function () {
+                window.Swal.close();
+                window.Swal.fire(swalTheme({ icon: 'error', title: 'Restore failed', text: 'Could not reach the server.' }));
+            });
+        });
+    }
+
+    // --- Wire up ---
+    document.addEventListener('DOMContentLoaded', function () {
+        // League type toggle
+        var typeSel = document.getElementById('ro-league-type');
+        if (typeSel) {
+            typeSel.addEventListener('change', function () {
+                var isPub = this.value === 'Pub League';
+                document.getElementById('ro-pub-fields').classList.toggle('hidden', !isPub);
+                document.getElementById('ro-ecs-fields').classList.toggle('hidden', isPub);
+            });
+        }
+
+        var handlers = {
+            'rollover-goto-preview': function () { actionGotoPreview(); },
+            'rollover-goto-backup': function () { gotoStep(3); },
+            'rollover-create-backup': function () { actionCreateBackup(); },
+            'rollover-skip-backup': function () { actionSkipBackup(); },
+            'rollover-goto-execute': function () { actionGotoExecute(); },
+            'rollover-execute': function () { actionExecute(); },
+            'rollover-back': function (el) { gotoStep(parseInt(el.getAttribute('data-goto'), 10) || 1); },
+            'rollover-refresh-backups': function () { refreshBackups(); },
+            'rollover-restore': function (el) { actionRestore(el); }
+        };
+
+        if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {
+            Object.keys(handlers).forEach(function (action) {
+                window.EventDelegation.register(action, function (element, event) { handlers[action](element, event); });
+            });
+        } else {
+            // Fallback: direct delegated click binding if EventDelegation is unavailable.
+            document.addEventListener('click', function (e) {
+                var el = e.target.closest('[data-action]');
+                if (!el) return;
+                var action = el.getAttribute('data-action');
+                if (handlers[action]) { e.preventDefault(); handlers[action](el, e); }
+            });
+        }
+
+        if (IS_GLOBAL_ADMIN) refreshBackups();
+    });
+})();
+</script>
+{% endblock %}

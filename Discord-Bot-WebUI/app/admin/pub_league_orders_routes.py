@@ -21,7 +21,7 @@ from app.core import db
 from app.models import (
     PubLeagueOrder, PubLeagueOrderLineItem, PubLeagueOrderClaim,
     PubLeagueOrderStatus, PubLeagueLineItemStatus, PubLeagueClaimStatus,
-    Player, User
+    Player, User, Season
 )
 from app.decorators import role_required
 from app.utils.user_helpers import safe_current_user
@@ -42,6 +42,42 @@ def orders_list():
         search = request.args.get('search', '').strip()
         page = request.args.get('page', 1, type=int)
         per_page = 25
+
+        # Season scope — default to the CURRENT Pub League season so the list is
+        # not clogged with last season's orders. This "ties to rollover": whichever
+        # season is is_current becomes the default view automatically, no config.
+        # 'all' shows every season; a numeric id shows one specific season.
+        current_season = db.session.query(Season).filter_by(
+            league_type='Pub League', is_current=True
+        ).first()
+        season_filter = request.args.get('season', 'current')
+        is_current_view = False
+        if season_filter == 'all':
+            selected_season_id = None
+        elif season_filter == 'current':
+            selected_season_id = current_season.id if current_season else None
+            is_current_view = True
+        else:
+            try:
+                selected_season_id = int(season_filter)
+                is_current_view = bool(current_season and selected_season_id == current_season.id)
+            except (TypeError, ValueError):
+                selected_season_id = current_season.id if current_season else None
+                season_filter = 'current'
+                is_current_view = True
+
+        # Season scope condition, reused for both the list and the stat counts.
+        # The current view also surfaces orphan/unmatched orders (season_id IS NULL)
+        # that need admin attention; a specific past season shows only that season.
+        season_condition = None
+        if season_filter != 'all' and selected_season_id is not None:
+            if is_current_view:
+                season_condition = or_(
+                    PubLeagueOrder.season_id == selected_season_id,
+                    PubLeagueOrder.season_id.is_(None)
+                )
+            else:
+                season_condition = PubLeagueOrder.season_id == selected_season_id
 
         # Subquery for divisions - aggregates distinct divisions per order
         # Use string_agg for PostgreSQL (group_concat is MySQL)
@@ -81,6 +117,10 @@ def orders_list():
                 )
             )
 
+        # Apply season scope
+        if season_condition is not None:
+            query = query.filter(season_condition)
+
         # Order by created_at descending
         query = query.order_by(desc(PubLeagueOrder.created_at))
 
@@ -115,25 +155,33 @@ def orders_list():
 
         orders = PaginationWrapper(orders_with_divisions, pagination)
 
-        # Calculate statistics
+        # Statistics — scoped to the SELECTED season so the counts match the list.
+        def _order_count(status=None):
+            q = db.session.query(func.count(PubLeagueOrder.id))
+            if season_condition is not None:
+                q = q.filter(season_condition)
+            if status is not None:
+                q = q.filter(PubLeagueOrder.status == status)
+            return q.scalar() or 0
+
         stats = {
-            'total': db.session.query(PubLeagueOrder).count(),
-            'not_started': db.session.query(PubLeagueOrder).filter_by(
-                status=PubLeagueOrderStatus.NOT_STARTED.value
-            ).count(),
-            'pending': db.session.query(PubLeagueOrder).filter_by(
-                status=PubLeagueOrderStatus.PENDING.value
-            ).count(),
-            'partial': db.session.query(PubLeagueOrder).filter_by(
-                status=PubLeagueOrderStatus.PARTIALLY_LINKED.value
-            ).count(),
-            'fully_linked': db.session.query(PubLeagueOrder).filter_by(
-                status=PubLeagueOrderStatus.FULLY_LINKED.value
-            ).count(),
-            'cancelled': db.session.query(PubLeagueOrder).filter_by(
-                status=PubLeagueOrderStatus.CANCELLED.value
-            ).count(),
+            'total': _order_count(),
+            'not_started': _order_count(PubLeagueOrderStatus.NOT_STARTED.value),
+            'pending': _order_count(PubLeagueOrderStatus.PENDING.value),
+            'partial': _order_count(PubLeagueOrderStatus.PARTIALLY_LINKED.value),
+            'fully_linked': _order_count(PubLeagueOrderStatus.FULLY_LINKED.value),
+            'cancelled': _order_count(PubLeagueOrderStatus.CANCELLED.value),
         }
+
+        # Season options for the filter dropdown — only seasons that actually
+        # have orders, newest first.
+        season_options = [
+            {'id': sid, 'name': sname or f'Season {sid}'}
+            for sid, sname in db.session.query(
+                PubLeagueOrder.season_id, PubLeagueOrder.season_name
+            ).filter(PubLeagueOrder.season_id.isnot(None)).distinct().all()
+        ]
+        season_options.sort(key=lambda s: s['id'], reverse=True)
 
         # Get user roles for template
         user_roles = [role.name for role in safe_current_user.roles] if safe_current_user.is_authenticated else []
@@ -150,6 +198,10 @@ def orders_list():
             stats=stats,
             status_filter=status_filter,
             search=search,
+            season_filter=season_filter,
+            selected_season_id=selected_season_id,
+            season_options=season_options,
+            current_season=current_season,
             user_roles=user_roles,
             PubLeagueOrderStatus=PubLeagueOrderStatus,
             premier_product_slug=premier_product_slug,
@@ -165,6 +217,10 @@ def orders_list():
             orders=None,
             stats={},
             error=str(e),
+            season_filter='current',
+            selected_season_id=None,
+            season_options=[],
+            current_season=None,
             user_roles=[],
             now=datetime.utcnow()
         )

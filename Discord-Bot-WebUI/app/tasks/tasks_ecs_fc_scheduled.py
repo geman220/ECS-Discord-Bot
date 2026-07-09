@@ -244,9 +244,10 @@ def schedule_ecs_fc_reminders(self, session, days_ahead: int = 90) -> Dict[str, 
                 skipped_count += 1
                 continue
             
-            # Schedule reminder
+            # Schedule reminder (pass the task's session — g.db_session is not
+            # available in the Celery worker context)
             try:
-                EcsFcScheduleManager._schedule_rsvp_reminder(match)
+                EcsFcScheduleManager._schedule_rsvp_reminder(match, session=session)
                 scheduled_count += 1
             except Exception as e:
                 logger.error(f"Error scheduling reminder for match {match.id}: {str(e)}")

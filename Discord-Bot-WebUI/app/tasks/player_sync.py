@@ -237,23 +237,51 @@ def sync_players_with_woocommerce(self, user_id=None):
 
                     # Check if the player already exists using optimized lookup - no need to load full objects
                     existing_player_id = None
-                    
+                    matched_by = None
+
                     # First try email lookup (most reliable)
                     if player_info.get('email'):
                         email_key = player_info['email'].strip().lower()
                         existing_player_id = player_email_lookup.get(email_key)
-                    
+                        if existing_player_id:
+                            matched_by = 'email'
+
                     # If no email match, try name-based lookup
                     if not existing_player_id and player_info.get('name'):
                         name_key = player_info['name'].strip().lower().replace(' ', '').replace('-', '').replace('.', '')
                         if name_key:
                             existing_player_id = player_name_lookup.get(name_key)
-                    
+                            if existing_player_id:
+                                matched_by = 'name'
+
                     # Load the actual player object only if we found a match
                     existing_player = None
                     if existing_player_id:
                         existing_player = session.query(Player).get(existing_player_id)
-                    
+
+                    # Reconstruct match metadata. The matcher was refactored to the dict
+                    # lookups above, but the downstream review records still reference a
+                    # `match_result` with type/confidence/flags. Without this, every matched
+                    # order raised NameError and the entire sync task failed silently.
+                    match_result = {
+                        'match_type': matched_by if existing_player else 'no_match',
+                        'confidence': (
+                            'high' if matched_by == 'email'
+                            else 'medium' if matched_by == 'name'
+                            else 'none'
+                        ),
+                        'flags': []
+                    }
+                    # Only flag a genuine email mismatch: matched by name AND the player
+                    # already has a different account email than the order carries.
+                    if existing_player and matched_by == 'name' and player_info.get('email'):
+                        try:
+                            player_email = existing_player.user.email if existing_player.user else None
+                        except Exception:
+                            player_email = None
+                        if player_email and player_email.strip().lower() != player_info['email'].strip().lower():
+                            match_result['flags'].append('email_mismatch')
+
                     if existing_player:
                         existing_players.add(existing_player.id)
                         

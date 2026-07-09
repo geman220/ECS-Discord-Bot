@@ -494,7 +494,7 @@ class EcsFcScheduleManager:
             return False, f"Error sending reminders: {str(e)}"
     
     @staticmethod
-    def _schedule_rsvp_reminder(match: EcsFcMatch):
+    def _schedule_rsvp_reminder(match: EcsFcMatch, session=None):
         """
         Schedule automatic RSVP reminder for an ECS FC match.
 
@@ -507,6 +507,16 @@ class EcsFcScheduleManager:
         """
         try:
             from app.models import ScheduledMessage
+
+            # Resolve a DB session that works in BOTH web (g.db_session) and Celery
+            # worker contexts. This previously used g.db_session unconditionally, which
+            # is absent in the celery task schedule_ecs_fc_reminders and raised
+            # AttributeError('db_session') for every match.
+            if session is None:
+                session = getattr(g, 'db_session', None)
+            if session is None:
+                logger.error(f"No DB session available to schedule RSVP reminder for match {match.id}")
+                return
 
             # Calculate when to post RSVP
             # RSVP should go out the day after the previous match (same weekday - 6 days)
@@ -530,7 +540,7 @@ class EcsFcScheduleManager:
             send_time = ideal_post_time
             
             # Check if a scheduled message already exists for this match
-            existing = g.db_session.query(ScheduledMessage).filter(
+            existing = session.query(ScheduledMessage).filter(
                 ScheduledMessage.message_metadata.op('->>')('ecs_fc_match_id') == str(match.id)
             ).first()
             
@@ -561,15 +571,19 @@ class EcsFcScheduleManager:
                 created_by=match.created_by
             )
             
-            g.db_session.add(scheduled_message)
-            g.db_session.commit()
-            
+            session.add(scheduled_message)
+            session.commit()
+
             logger.info(f"Scheduled RSVP reminder for ECS FC match {match.id} at {send_time}")
-            
+
         except Exception as e:
             logger.error(f"Error scheduling RSVP reminder for match {match.id}: {str(e)}")
             # Don't fail the match creation if scheduling fails
-            g.db_session.rollback()
+            try:
+                if session is not None:
+                    session.rollback()
+            except Exception:
+                pass
     
     @staticmethod
     def _send_match_notification(match: EcsFcMatch, action: str):

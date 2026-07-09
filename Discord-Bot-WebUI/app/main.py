@@ -1073,6 +1073,51 @@ def my_profile():
         return redirect(url_for('players.desktop_profile_update', player_id=player.id))
 
 
+@main.route('/pending-status', endpoint='pending_status', methods=['GET'])
+@login_required
+def pending_status():
+    """
+    Landing page for logged-in users who are not yet active league members.
+
+    Shows their two gates — league MEMBERSHIP (admin approval) and PAID/active
+    THIS season (a linked pass sets Player.is_current_player) — plus a profile
+    summary, their wallet pass (if any), and clear next-step guidance. Reached
+    by redirect from the league-access gate; also linked from the site-wide
+    "membership pending" banner.
+    """
+    db_session = g.db_session
+    user = safe_current_user
+    player = db_session.query(Player).filter_by(user_id=user.id).first()
+
+    is_approved = bool(getattr(user, 'is_approved', False))
+    is_paid = bool(player and player.is_current_player)
+
+    # Access is approval-based: an approved member (even if unpaid this season)
+    # is a normal full-access user and should never sit on this page. Only
+    # not-yet-approved users belong here.
+    if is_approved:
+        return redirect(url_for('main.index'))
+
+    # Passes are bought on the external WooCommerce shop; the claim/link-order
+    # pages require a token/order_id from the post-purchase email, so the CTA
+    # points at the shop itself.
+    try:
+        from app.models.admin_config import AdminConfig
+        shop_url = AdminConfig.get_setting('woocommerce_shop_url', 'https://weareecs.com') or 'https://weareecs.com'
+    except Exception:
+        shop_url = 'https://weareecs.com'
+
+    return render_template(
+        'pending_status_flowbite.html',
+        title='Membership Status',
+        player=player,
+        is_approved=is_approved,
+        is_paid=is_paid,
+        approval_status=getattr(user, 'approval_status', 'pending'),
+        shop_url=shop_url,
+    )
+
+
 @main.route('/onboarding', methods=['GET', 'POST'])
 @login_required
 def onboarding():

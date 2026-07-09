@@ -19,8 +19,8 @@ from typing import Optional
 from sqlalchemy import func, or_, Integer as SAInteger
 
 from app.models import (
-    League, Team, Season, AutoScheduleConfig, ScheduleTemplate, 
-    Schedule, Match, WeekConfiguration, SeasonConfiguration
+    League, Team, Season, AutoScheduleConfig, ScheduleTemplate,
+    Schedule, Match, WeekConfiguration, SeasonConfiguration, Player
 )
 from app.auto_schedule_generator import AutoScheduleGenerator
 from app.decorators import role_required
@@ -1619,12 +1619,39 @@ def league_overview(league_id: int):
 def create_season_wizard():
     """
     Create a new season through the wizard process.
+
+    Thin route wrapper: delegates the end-to-end season creation (season +
+    leagues + configs + rollover + placeholder teams + schedule generation) to
+    the shared helper ``_execute_season_creation`` so the guided Season Rollover
+    flow can reuse the exact same logic.
     """
     session = g.db_session
-    
+    data = request.get_json()
+    payload, status = _execute_season_creation(session, data)
+    return jsonify(payload), status
+
+
+def _execute_season_creation(session, data):
+    """
+    Core season-creation logic shared by the Season Builder wizard route
+    (``create_season_wizard``) and the guided Season Rollover ``execute`` route.
+
+    Performs, in a single flow: creates the Season, Leagues, AutoScheduleConfig
+    + SeasonConfiguration, deactivates the old Pub League roster, runs
+    ``rollover_league`` (history snapshot + player migration + fresh zeroed
+    stats, preserving career stats/profiles), creates the placeholder
+    Team A/B/C…, commits, then generates the schedule.
+
+    Args:
+        session: Active database session (``g.db_session``).
+        data (dict): The wizard payload (same shape the Season Builder posts).
+
+    Returns:
+        tuple[dict, int]: A ``(response_body, http_status)`` pair following the
+        ``{'success': bool, ...}`` / ``{'error': ...}`` convention the
+        front-end already expects. Callers should ``jsonify`` the body.
+    """
     try:
-        data = request.get_json()
-        
         # Create the season
         season_name = data['season_name']
         league_type = data['league_type']
@@ -1646,7 +1673,7 @@ def create_season_wizard():
         ).first()
         
         if existing:
-            return jsonify({'error': f'Season "{season_name}" already exists for {league_type}'}), 400
+            return {'error': f'Season "{season_name}" already exists for {league_type}'}, 400
         
         # Handle rollover if setting as current season
         old_season = None
@@ -1771,6 +1798,29 @@ def create_season_wizard():
         
         if set_as_current and old_season:
             try:
+                # Pub League rolls its roster each season: deactivate last season's
+                # active players BEFORE rollover_league migrates their league_id, so the
+                # new season starts with NOBODY active. Players re-activate individually
+                # when they buy/link their Classic|Premier pass
+                # (PlayerActivationService.activate_player_for_league). Scoped to the OLD
+                # Pub League season's leagues so ECS FC players are never touched — ECS FC
+                # does not rotate. Mirrors create_pub_league_season in season_routes.py.
+                if old_season.league_type == 'Pub League':
+                    old_pl_league_ids = [
+                        l.id for l in session.query(League).filter_by(season_id=old_season.id).all()
+                    ]
+                    if old_pl_league_ids:
+                        deactivated = session.query(Player).filter(
+                            (Player.league_id.in_(old_pl_league_ids)) |
+                            (Player.primary_league_id.in_(old_pl_league_ids)),
+                            Player.is_current_player == True
+                        ).update({Player.is_current_player: False}, synchronize_session=False)
+                        session.flush()
+                        logger.info(
+                            f"Season rollover (wizard): deactivated {deactivated} Pub League "
+                            f"players; they re-activate on pass purchase"
+                        )
+
                 rollover_league(session, old_season, new_season)
                 rollover_performed = True
                 logger.info(f"Rollover completed from {old_season.name} to {new_season.name}")
@@ -1788,7 +1838,7 @@ def create_season_wizard():
             except Exception as e:
                 logger.error(f"Rollover failed: {e}")
                 session.rollback()
-                return jsonify({'error': 'Internal Server Error'}), 500
+                return {'error': 'Internal Server Error'}, 500
         
         # Validate team counts up front. The scheduler builds back-to-back double
         # round-robins, which requires an EVEN number of teams per division so every team
@@ -1807,7 +1857,7 @@ def create_season_wizard():
             team_count_error = _even_error(int(data.get('ecs_fc_teams', 8)), 'ECS FC')
         if team_count_error:
             session.rollback()
-            return jsonify({'error': team_count_error}), 400
+            return {'error': team_count_error}, 400
 
         # Create placeholder teams based on user selection
         # Classic teams get A, B, C, D first, then Premier continues with E, F, G, H, etc.
@@ -2135,23 +2185,23 @@ def create_season_wizard():
         
         # Check if any leagues failed
         if failed_leagues:
-            return jsonify({
+            return {
                 'success': False,
                 'error': f'Season created but schedule generation failed for: {", ".join(failed_leagues)}. Please check the logs and regenerate schedules for these leagues.',
                 'message': '. '.join(message_parts),
                 'redirect_url': url_for('auto_schedule.schedule_manager')
-            }), 400
-        
-        return jsonify({
+            }, 400
+
+        return {
             'success': True,
             'message': '. '.join(message_parts),
             'redirect_url': url_for('auto_schedule.schedule_manager')
-        })
-        
+        }, 200
+
     except Exception as e:
         logger.error(f"Error creating season: {e}")
         session.rollback()
-        return jsonify({'error': 'An error occurred while creating the season'}), 500
+        return {'error': 'An error occurred while creating the season'}, 500
 
 
 @auto_schedule_bp.route('/league/<int:league_id>/auto-schedule', methods=['GET', 'POST'])

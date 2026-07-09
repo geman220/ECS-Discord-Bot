@@ -139,7 +139,7 @@
                 <button type="button"
                         id="claimBtn"
                         data-action="pub-league-process-claim"
-                        class="w-full flex items-center justify-center gap-2 px-6 py-4 text-white bg-ecs-green hover:bg-ecs-green/90 dark:bg-ecs-gold dark:hover:bg-ecs-gold/90 rounded-xl font-medium text-lg transition-colors">
+                        class="w-full flex items-center justify-center gap-2 min-h-[44px] px-6 py-4 text-white bg-ecs-green hover:bg-ecs-green/90 dark:bg-ecs-gold dark:hover:bg-ecs-gold/90 rounded-xl font-medium text-lg transition-colors focus-visible:ring-2 focus-visible:ring-ecs-green disabled:opacity-50 disabled:cursor-not-allowed">
                     <i class="ti ti-gift text-xl"></i>
                     Claim My Pass
                 </button>
@@ -155,10 +155,27 @@
         <div id="claimSuccess" class="hidden">
             <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white text-center mb-6">
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
-                    <i class="ti ti-check text-4xl"></i>
+                    <i class="ti ti-ticket text-4xl"></i>
                 </div>
                 <h1 class="text-2xl font-bold mb-2">Pass Claimed!</h1>
-                <p class="text-white/80">Your Pub League pass is ready</p>
+                <p id="claimSuccessSubtitle" class="text-white/80">Your Pub League pass is ready</p>
+            </div>
+
+            <!-- Pending-approval note (revealed by JS when membership isn't approved yet) -->
+            <div id="claimPendingNote" class="hidden bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 mb-6">
+                <div class="flex items-start gap-3">
+                    <i class="ti ti-hourglass-high text-amber-500 text-xl flex-shrink-0 mt-0.5"></i>
+                    <div class="text-sm text-amber-800 dark:text-amber-300">
+                        <p class="font-medium mb-1">Almost there</p>
+                        <p class="text-amber-700 dark:text-amber-400">
+                            Your pass is yours to download now. An admin just needs to approve your membership before your full league access and Discord roles switch on. We'll let you know the moment that's done.
+                        </p>
+                        <a href="{{ url_for('main.index') }}" class="inline-flex items-center gap-1 mt-3 text-sm font-medium text-amber-800 dark:text-amber-300 hover:underline">
+                            <i class="ti ti-layout-dashboard"></i>
+                            Check your status on your dashboard
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -235,6 +252,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function processClaim() {
+        // Guard against double-invoke (button has both a direct listener and delegation)
+        if (claimBtn && claimBtn.disabled) return;
+        if (claimBtn) claimBtn.disabled = true;
         showLoading('Claiming your pass...');
 
         try {
@@ -259,6 +279,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
                 claimSuccess.classList.remove('hidden');
+
+                // Reflect membership status: paid & approved vs. pending approval
+                if (data.is_approved === false) {
+                    const pendingNote = document.getElementById('claimPendingNote');
+                    const subtitle = document.getElementById('claimSuccessSubtitle');
+                    if (pendingNote) pendingNote.classList.remove('hidden');
+                    if (subtitle) subtitle.textContent = 'Payment received - membership pending approval';
+                    const rolesLine = Array.from(document.querySelectorAll('#claimSuccess li'))
+                        .find(li => li.textContent.indexOf('Discord roles') !== -1);
+                    if (rolesLine) rolesLine.textContent = 'Your Discord roles turn on once an admin approves your membership';
+                }
 
                 // Show download options
                 const passDownload = document.getElementById('passDownload');
@@ -309,6 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 text: error.message || 'There was an error claiming your pass. Please try again.',
                 confirmButtonColor: '#1a472a'
             });
+            if (claimBtn) claimBtn.disabled = false;
         } finally {
             hideLoading();
         }

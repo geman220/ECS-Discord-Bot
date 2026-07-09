@@ -254,7 +254,15 @@ def approve_user(user_id: int):
                     if current_league:
                         user.player.primary_league_id = current_league.id
                         user.player.league_id = current_league.id
-                        user.player.is_current_player = True
+                        # Two-axis model: approval grants MEMBERSHIP (is_approved).
+                        # For pay-per-season Pub League divisions (Classic/Premier),
+                        # "active this season" (is_current_player) is granted by
+                        # PAYMENT — linking a pass — NOT by approval, so we do not
+                        # flip it here (that would let an approved-but-unpaid user in
+                        # for free). ECS FC and subs have no season pass, so approval
+                        # activates them directly.
+                        if league_type not in ('classic', 'premier'):
+                            user.player.is_current_player = True
                         logger.info(f"Assigned player {user.player.id} to current season league {current_league.id} ({league_name})")
 
                         # Clear draft cache so player appears immediately.
@@ -363,8 +371,13 @@ def deny_user(user_id: int):
             if unverified_role and unverified_role in user.roles:
                 user.roles.remove(unverified_role)
 
-            # Update user approval status
+            # Update user approval status. Also revoke is_approved so denial
+            # actually blocks access — previously deny left is_approved untouched,
+            # so a denied Discord user (created with is_approved=True) could still
+            # log in and use the app. approval_status and is_approved now move
+            # together: denied => not approved.
             user.approval_status = 'denied'
+            user.is_approved = False
             user.approval_league = None
             user.approved_by = current_user_safe.id
             user.approved_at = datetime.utcnow()

@@ -1787,9 +1787,11 @@ def commit_sync_changes():
                     new_user = User(
                         username=generate_unique_username(player_data['info']['name'], session),
                         email=unique_email,
-                        is_approved=True,  # Auto-approve WooCommerce synced users
-                        approval_status='approved',
-                        approved_at=datetime.utcnow()
+                        # No auto-approve — WooCommerce-synced buyers land in the
+                        # admin approval queue for individual review (they paid,
+                        # but an admin must approve them for the league).
+                        is_approved=False,
+                        approval_status='pending'
                     )
                     # Set a default password that forces reset on first login
                     new_user.set_password('ChangeMe123!')  # They'll reset via Discord bot
@@ -1939,9 +1941,11 @@ def commit_sync_changes():
                     new_user = User(
                         username=generate_unique_username(player_data['existing_player']['name'], session),
                         email=unique_email,
-                        is_approved=True,  # Auto-approve WooCommerce synced users
-                        approval_status='approved',
-                        approved_at=datetime.utcnow()
+                        # No auto-approve — WooCommerce-synced buyers land in the
+                        # admin approval queue for individual review (they paid,
+                        # but an admin must approve them for the league).
+                        is_approved=False,
+                        approval_status='pending'
                     )
                     new_user.set_password('ChangeMe123!')  # Default password
                     session.add(new_user)

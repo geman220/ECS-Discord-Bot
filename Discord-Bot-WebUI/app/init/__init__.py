@@ -22,6 +22,7 @@ from app.init.context_processors import init_context_processors
 from app.init.error_handlers import install_error_handlers
 from app.init.request_handlers import init_request_handlers
 from app.init.template_helpers import init_template_helpers
+from app.init.access_gating import register_access_gating
 
 __all__ = [
     'init_logging',
@@ -39,4 +40,5 @@ __all__ = [
     'install_error_handlers',
     'init_request_handlers',
     'init_template_helpers',
+    'register_access_gating',
 ]

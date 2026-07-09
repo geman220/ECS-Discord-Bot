@@ -676,7 +676,9 @@ def _update_player_profile(db_session, user, discord_id, discord_email, discord_
             additional_info=additional_info,
             player_notes=player_notes,
             interested_in_sub=available_for_subbing,
-            is_current_player=True
+            # Waitlist registrants are NOT active players — is_current_player is
+            # granted only by paying/linking a pass, never by joining the waitlist.
+            is_current_player=False
         )
         db_session.add(player)
         db_session.flush()
@@ -700,7 +702,8 @@ def _update_player_profile(db_session, user, discord_id, discord_email, discord_
         player.player_notes = player_notes
         player.interested_in_sub = available_for_subbing
         player.discord_id = discord_id
-        player.is_current_player = True
+        # Joining the waitlist does not make someone an active/paid player.
+        player.is_current_player = False
 
     db_session.flush()
 

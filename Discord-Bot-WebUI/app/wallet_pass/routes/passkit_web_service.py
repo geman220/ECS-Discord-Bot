@@ -30,6 +30,7 @@ The device then comes back through GET /v1/passes/... to fetch the new
 """
 
 import logging
+import re
 from datetime import datetime, timezone
 from email.utils import format_datetime, parsedate_to_datetime
 
@@ -79,6 +80,17 @@ def _resolve_pass(pass_type_identifier: str, serial_number: str, session) -> Wal
         candidates.append(serial_number[len('ecs-v1-'):])
     if serial_number.startswith('ecs-pub-'):
         candidates.append(serial_number[len('ecs-pub-'):])
+    # Apple passes embed serialNumber as "ecsfc-{pass_type.code}-{uuid}"
+    # (see generators/apple.py), but the DB stores the bare UUID. Strip that
+    # prefix by taking the trailing UUID. This was the cause of the PassKit
+    # register 404s for ecsfc-ecs_membership-* / ecsfc-pub_league-* serials.
+    if len(serial_number) > 36 and serial_number.startswith('ecsfc-'):
+        potential_uuid = serial_number[-36:]
+        if re.match(
+            r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$',
+            potential_uuid,
+        ):
+            candidates.append(potential_uuid)
     for candidate in candidates:
         wp = session.query(WalletPass).filter(
             WalletPass.serial_number == candidate

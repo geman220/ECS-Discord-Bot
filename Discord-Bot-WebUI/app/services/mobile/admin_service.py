@@ -22,6 +22,7 @@ from app.models import User, Player, Role, League, Season, player_league
 from app.tasks.tasks_discord import assign_roles_to_player_task
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
 from app.utils.deferred_discord import DeferredDiscordQueue
+from app.services.discord_role_sync_service import sync_role_assignment, sync_role_removal
 
 logger = logging.getLogger(__name__)
 
@@ -194,23 +195,60 @@ class MobileAdminService(BaseService):
         try:
             # Acquire lock on user for role modification
             with lock_user_for_role_update(user.id, session=self.session) as locked_user:
-                # Apply changes
+                # Apply changes (track the actual role objects applied, not just names,
+                # so we can push the direct Discord-role mappings below).
                 added_names = []
                 removed_names = []
+                applied_added = []
+                applied_removed = []
 
                 for role in roles_to_add:
                     if role not in locked_user.roles:
                         locked_user.roles.append(role)
                         added_names.append(role.name)
+                        applied_added.append(role)
                         logger.info(f"Added role '{role.name}' to player {player.id}")
 
                 for role in roles_to_remove:
                     if role in locked_user.roles:
                         locked_user.roles.remove(role)
                         removed_names.append(role.name)
+                        applied_removed.append(role)
                         logger.info(f"Removed role '{role.name}' from player {player.id}")
 
-                # Queue Discord sync (deferred until after commit)
+                # (A) Push DIRECT Flask->Discord role mappings (Role.discord_role_id).
+                # This is what the web path does and the mobile path was missing, which
+                # is why roles like Coach saved in Flask but never changed in Discord.
+                for role in applied_added:
+                    if role.discord_role_id and role.sync_enabled:
+                        try:
+                            sync_role_assignment(locked_user, role)
+                            logger.info(f"Synced Discord role {role.name} for player {player.id}")
+                        except Exception as e:
+                            logger.error(f"Failed to sync Discord role {role.name}: {e}")
+
+                for role in applied_removed:
+                    if role.discord_role_id and role.sync_enabled:
+                        try:
+                            sync_role_removal(locked_user, role)
+                            logger.info(f"Removed Discord role {role.name} for player {player.id}")
+                        except Exception as e:
+                            logger.error(f"Failed to remove Discord role {role.name}: {e}")
+
+                # (B) Sync ECS FC Coach role to player_teams.is_coach so the team-based
+                # sync below computes the *-COACH Discord roles correctly.
+                if any(r.name == 'ECS FC Coach' for r in applied_added):
+                    try:
+                        self._sync_ecs_fc_coach_status(locked_user, is_adding_role=True)
+                    except Exception as e:
+                        logger.error(f"Failed to sync ECS FC Coach status for player {player.id}: {e}")
+                if any(r.name == 'ECS FC Coach' for r in applied_removed):
+                    try:
+                        self._sync_ecs_fc_coach_status(locked_user, is_adding_role=False)
+                    except Exception as e:
+                        logger.error(f"Failed to remove ECS FC Coach status for player {player.id}: {e}")
+
+                # (C) Queue team-based Discord sync (deferred until after commit)
                 if player.discord_id:
                     discord_queue.add_role_sync(player.id, only_add=False)
 
@@ -242,6 +280,52 @@ class MobileAdminService(BaseService):
             "removed": removed_names,
             "discord_sync_queued": discord_sync_queued
         })
+
+    def _sync_ecs_fc_coach_status(self, user, is_adding_role: bool) -> None:
+        """
+        Sync the "ECS FC Coach" role to player_teams.is_coach.
+
+        Mirrors app.admin_panel.routes.user_management.roles.sync_ecs_fc_coach_status
+        but uses this service's session so the update stays inside the same
+        transaction as the role change.
+
+        Args:
+            user: User object (player relationship loaded)
+            is_adding_role: True when adding the Coach role, False when removing
+        """
+        from sqlalchemy import text
+        from app.models.players import player_teams, Team
+        from app.models.core import League
+
+        if not user.player:
+            logger.info(f"User {user.id} has no player profile, skipping ECS FC coach sync")
+            return
+
+        player = user.player
+
+        ecs_fc_team_ids = self.session.query(player_teams.c.team_id).join(
+            Team, Team.id == player_teams.c.team_id
+        ).join(
+            League, League.id == Team.league_id
+        ).filter(
+            player_teams.c.player_id == player.id,
+            League.name.contains('ECS FC')
+        ).all()
+
+        ecs_fc_team_ids = [t[0] for t in ecs_fc_team_ids]
+
+        if not ecs_fc_team_ids:
+            logger.info(f"Player {player.id} is not on any ECS FC teams, skipping coach sync")
+            return
+
+        for team_id in ecs_fc_team_ids:
+            self.session.execute(
+                text("UPDATE player_teams SET is_coach = :is_coach "
+                     "WHERE player_id = :player_id AND team_id = :team_id"),
+                {"is_coach": is_adding_role, "player_id": player.id, "team_id": team_id}
+            )
+
+        logger.info(f"Updated is_coach={is_adding_role} for player {player.id} on ECS FC teams: {ecs_fc_team_ids}")
 
     def get_assignable_roles(self) -> ServiceResult[List[Dict[str, Any]]]:
         """
