@@ -44,8 +44,8 @@
         I-Spy / Seasons / {% if season %}Edit{% else %}Create{% endif %}
       </p>
       <div class="flex items-center gap-3 flex-wrap">
-        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">
-          {% if season %}{{ season.name }}{% else %}Create New Season{% endif %}
+        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2 min-w-0">
+          <i class="ti ti-calendar text-ecs-green shrink-0" aria-hidden="true"></i><span class="truncate">{% if season %}{{ season.name }}{% else %}Create New Season{% endif %}</span>
         </h1>
         {% if season %}
           {% if season.is_active %}

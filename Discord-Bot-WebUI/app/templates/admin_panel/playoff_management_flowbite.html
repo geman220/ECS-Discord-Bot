@@ -30,7 +30,7 @@
     <div class="p-4 sm:p-6 flex flex-col lg:flex-row lg:items-center gap-5 lg:gap-8">
       <div class="flex-1 min-w-0">
         <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Postseason · brackets · seeding</p>
-        <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Playoff Management</h1>
+        <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-trophy text-ecs-green shrink-0" aria-hidden="true"></i>Playoff Management</h1>
         <p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400 max-w-xl">
           {% if total_n > 0 %}
           {{ total_n }} playoff {{ 'match' if total_n == 1 else 'matches' }} flagged this season across {{ teams_n }} qualified {{ 'team' if teams_n == 1 else 'teams' }}.

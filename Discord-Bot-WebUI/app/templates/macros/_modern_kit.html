@@ -41,13 +41,18 @@
   - title    : main heading text (string)
   - subtitle : optional eyebrow/context line shown above the title (string)
 --------------------------------------------------------------------------- #}
-{% macro page_header(title, subtitle=None, caller=none) %}
+{% macro page_header(title, subtitle=None, icon=None, caller=none) %}
+{# icon: Tabler name (e.g. 'ti-whistle'). Omit to auto-derive from the page's nav
+   icon via the page_header_icon() global; pass False to force no icon. #}
+{% set _hicon = page_header_icon() if icon is none else icon %}
 <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5 sm:mb-6">
   <div class="min-w-0">
     {% if subtitle %}
     <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 truncate">{{ subtitle }}</p>
     {% endif %}
-    <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ title }}</h1>
+    <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2 min-w-0">
+      {% if _hicon %}<i class="ti {{ _hicon }} text-ecs-green shrink-0" aria-hidden="true"></i>{% endif %}<span class="truncate">{{ title }}</span>
+    </h1>
   </div>
   {% if caller %}
   <div class="flex items-center gap-2 shrink-0">{{ caller() }}</div>

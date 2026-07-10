@@ -24,7 +24,7 @@
 
 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
   <div>
-    <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ p.name }}</h1>
+    <h1 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-whistle text-ecs-green shrink-0" aria-hidden="true"></i>{{ p.name }}</h1>
     <p class="text-sm text-gray-500 dark:text-gray-400">
       Coached <span class="font-mono font-semibold">{{ sm.seasons_coached }}</span> of {{ sm.seasons_total }} seasons
       {% if p.is_coach_now %}&middot; <span class="text-ecs-green">flagged coach now</span>{% else %}&middot; <span class="text-gray-400">not flagged a coach currently</span>{% endif %}

@@ -43,8 +43,8 @@
                 Store Catalog
                 {% if action == 'edit' and item %}<span class="font-mono text-gray-400 dark:text-gray-500">/ #{{ item.id }}</span>{% endif %}
             </p>
-            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">
-                {{ 'Edit Item' if action == 'edit' else 'Add New Item' }}
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2 min-w-0">
+                <i class="ti ti-package text-ecs-green shrink-0" aria-hidden="true"></i><span class="truncate">{{ 'Edit Item' if action == 'edit' else 'Add New Item' }}</span>
             </h1>
         </div>
         <div class="flex items-center gap-2 shrink-0">
