@@ -100,6 +100,44 @@
                         <div id="ro-week-list" class="space-y-1"></div>
                         <button type="button" id="ro-add-week" class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-ecs-green hover:underline"><i class="ti ti-plus"></i> Add week</button>
                     </div>
+
+                    <!-- Division Coaches — pre-filled with current coaches; add/remove applies live -->
+                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                            <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-whistle text-ecs-gold-500 dark:text-ecs-gold-400"></i> Division Coaches</h4>
+                            <span class="text-xs text-gray-400 dark:text-gray-500">applies immediately · change later on the Coaches panel</span>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Pre-filled with your current coaches. Add or remove here — changes apply <strong>now</strong> and carry into the new season (coaches aren't tied to a team).</p>
+                        {% if not premier_role_id or not classic_role_id %}
+                        <div class="rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">The <strong>Premier Coach</strong> / <strong>Classic Coach</strong> roles aren't set up yet — run <code class="font-mono">sql_create_division_coach_roles.sql</code>.</div>
+                        {% endif %}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {% for col in [
+                              {'key':'premier','label':'Premier','tone':'text-ecs-gold-500 dark:text-ecs-gold-400','role_id':premier_role_id,'coaches':premier_coaches},
+                              {'key':'classic','label':'Classic','tone':'text-ecs-green','role_id':classic_role_id,'coaches':classic_coaches}
+                            ] %}
+                            <div data-rocoach-col="{{ col.key }}" data-role-id="{{ col.role_id or '' }}">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <span class="text-xs font-semibold uppercase tracking-wide {{ col.tone }}">{{ col.label }} Coaches</span>
+                                    <span data-rocoach-count class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ col.coaches|length }}</span>
+                                </div>
+                                <div class="relative mb-2">
+                                    <input type="text" data-rocoach-search autocomplete="off" placeholder="Search a player to add…" class="block w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green py-2 pl-3">
+                                    <div data-rocoach-results class="hidden absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-lg"></div>
+                                </div>
+                                <ul data-rocoach-list class="divide-y divide-gray-100 dark:divide-gray-700 rounded-lg border border-gray-100 dark:border-gray-700">
+                                    {% for c in col.coaches %}
+                                    <li class="flex items-center justify-between gap-2 px-3 py-2" data-user-id="{{ c.user_id }}">
+                                        <span class="flex items-center gap-2 min-w-0"><i class="ti ti-whistle {{ col.tone }} shrink-0"></i><span class="text-sm text-gray-900 dark:text-white truncate">{{ c.name }}</span></span>
+                                        <button type="button" data-rocoach-remove data-user-id="{{ c.user_id }}" title="Remove coach" class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500"><i class="ti ti-x text-sm"></i></button>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                <p data-rocoach-empty class="{% if col.coaches %}hidden {% endif %}text-xs text-gray-500 dark:text-gray-400 text-center py-2">No {{ col.label }} coaches yet.</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
 
                 <!-- ECS FC settings -->
@@ -336,7 +374,9 @@
         // Unified dated season calendar. pubWeeks: one entry per calendar week
         // with a type PER DIVISION; ecsWeeks: one type per calendar week.
         pubWeeks: [],   // [{ premier: 'REGULAR', classic: 'REGULAR' }, ...]
-        ecsWeeks: []    // [ 'REGULAR', ... ]
+        ecsWeeks: [],   // [ 'REGULAR', ... ]
+        // Cached live Discord read (prefetched so the preview/verify is instant).
+        discord: { status: 'idle', data: null, error: null, forType: null }
     };
 
     var val = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
@@ -659,6 +699,11 @@
              + '<i class="ti ti-shield-check text-ecs-green text-lg mt-0.5"></i>'
              + '<span><strong>Career stats and player profiles are preserved.</strong> Old team memberships are snapshotted to season history before players are cleared.</span></div>';
 
+        // Coach-assignment note — division coaches are NOT part of this flow.
+        html += '<div class="rounded-lg border border-ecs-gold-500/40 bg-ecs-gold-500/5 dark:bg-ecs-gold-500/10 p-3 text-sm text-gray-700 dark:text-gray-200 flex items-start gap-2">'
+             + '<i class="ti ti-whistle text-ecs-gold-500 dark:text-ecs-gold-400 text-lg mt-0.5"></i>'
+             + '<span><strong>Division coaches (Premier / Classic) are NOT cleared here</strong> — only per-team roster coaching resets. Their coach role carries over and isn\'t tied to a team. Assign or review them on the <a href="/admin-panel/seasons/coaches" class="text-ecs-green font-semibold hover:underline">Coaches panel</a> any time.</span></div>';
+
         // Discord channel handling
         if (p.discord) {
             var dc = p.discord;
@@ -666,16 +711,24 @@
             html += '<div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5"><i class="ti ti-brand-discord"></i> Discord channels</div>';
             if (dc.create_channels) {
                 html += '<div class="flex items-start gap-2 text-gray-700 dark:text-gray-200"><i class="ti ti-plus text-ecs-green mt-0.5"></i><span><strong>' + dc.channels_to_create + '</strong> new team channel' + (dc.channels_to_create === 1 ? '' : 's') + ' + roles will be created.</span></div>';
+                if (p.team_names && p.team_names.length) {
+                    html += '<div class="pl-6 flex flex-wrap gap-1">' + p.team_names.map(function (n) { return '<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green text-[11px] font-mono">' + escapeHtml(n) + '</span>'; }).join('') + '</div>';
+                }
             } else {
                 html += '<div class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><i class="ti ti-minus mt-0.5"></i><span>New team channels will <strong>not</strong> be created.</span></div>';
             }
             if (dc.delete_channels && dc.channels_to_delete > 0) {
                 html += '<div class="flex items-start gap-2 text-red-600 dark:text-red-400"><i class="ti ti-trash mt-0.5"></i><span><strong>' + dc.channels_to_delete + '</strong> old team channel' + (dc.channels_to_delete === 1 ? '' : 's') + ' + roles will be <strong>DELETED</strong> — chat history removed, cannot be undone.</span></div>';
+                if (p.old_teams && p.old_teams.length) {
+                    var delNames = p.old_teams.filter(function (t) { return t.has_channel || t.has_roles; }).map(function (t) { return escapeHtml(t.name); });
+                    if (delNames.length) html += '<div class="pl-6 flex flex-wrap gap-1">' + delNames.map(function (n) { return '<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300 text-[11px] font-mono">' + n + '</span>'; }).join('') + '</div>';
+                }
             } else if (dc.delete_channels) {
                 html += '<div class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><i class="ti ti-trash mt-0.5"></i><span>No old team channels found to delete.</span></div>';
             } else {
                 html += '<div class="flex items-start gap-2 text-gray-700 dark:text-gray-200"><i class="ti ti-lock text-ecs-green mt-0.5"></i><span>Last season\'s channels will be <strong>kept</strong> — but each player\'s old team <strong>role is still removed</strong> (roles always roll over).</span></div>';
             }
+            html += '<div class="pt-1"><button type="button" data-action="rollover-discord-check" class="inline-flex items-center gap-1.5 min-h-[44px] px-3 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-ecs-green hover:text-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-brand-discord"></i> Verify against Discord (live)</button><div id="ro-discord-live" class="mt-2"></div></div>';
             html += '</div>';
         }
 
@@ -704,6 +757,10 @@
         html += '</div>';
 
         body.innerHTML = html;
+        // The live Discord read was prefetched on load — render it (or its
+        // loading/error state) into the just-created #ro-discord-live instantly.
+        renderDiscordLive();
+        if (state.discord.status === 'idle') prefetchDiscordCheck();
     }
 
     function tile(icon, label, value, sub) {
@@ -845,12 +902,21 @@
                 var box = document.getElementById('ro-execute-result');
                 var data = resp.data || {};
                 if (resp.ok && data.success) {
-                    setResultBox(box, true, '<i class="ti ti-circle-check"></i> ' + escapeHtml(data.message || 'Rollover complete.'));
+                    var verifyHtml = '<i class="ti ti-circle-check"></i> ' + escapeHtml(data.message || 'Rollover complete.')
+                        + '<div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">'
+                        + '<div class="flex flex-wrap items-center justify-between gap-2 mb-2"><span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"><i class="ti ti-brand-discord"></i> Self-verify against Discord</span>'
+                        + '<button type="button" data-action="rollover-verify" class="inline-flex items-center gap-1 min-h-[44px] px-2.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 hover:border-ecs-green hover:text-ecs-green"><i class="ti ti-refresh"></i> Re-verify</button></div>'
+                        + '<div id="ro-verify-live"></div>'
+                        + (data.redirect_url ? '<a href="' + escapeHtml(data.redirect_url) + '" class="inline-flex items-center gap-1 mt-3 text-sm font-semibold text-ecs-green hover:underline">Go to the season <i class="ti ti-arrow-right"></i></a>' : '')
+                        + '</div>';
+                    setResultBox(box, true, verifyHtml);
+                    // Closed loop: poll Discord until the async cleanup + creation
+                    // actually complete, driving the progress bars live.
+                    startVerifyLoop();
                     window.Swal.fire(swalTheme({
-                        icon: 'success', title: 'Rollover complete', text: data.message || 'The new season has been created.'
-                    })).then(function () {
-                        if (data.redirect_url) window.location.href = data.redirect_url;
-                    });
+                        icon: 'success', title: 'Rollover complete',
+                        text: (data.message || 'The new season was created.') + ' Verifying Discord below…'
+                    }));
                 } else {
                     var msg = data.error || data.message || 'Rollover failed.';
                     setResultBox(box, false, '<i class="ti ti-alert-triangle"></i> ' + escapeHtml(msg));
@@ -877,9 +943,14 @@
                     html += '<div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">'
                         + '<div class="min-w-0"><div class="font-mono text-xs text-gray-900 dark:text-white truncate">' + escapeHtml(b.filename) + '</div>'
                         + '<div class="text-xs text-gray-400">' + escapeHtml(b.created_at) + ' · ' + fmtBytes(b.size_bytes) + '</div></div>'
+                        + '<div class="flex items-center gap-2 shrink-0">'
                         + '<button type="button" data-action="rollover-restore" data-filename="' + escapeHtml(b.filename) + '" '
                         + 'class="inline-flex items-center gap-1.5 min-h-[44px] px-3 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">'
-                        + '<i class="ti ti-database-import"></i> Restore</button></div>';
+                        + '<i class="ti ti-database-import"></i> Restore</button>'
+                        + '<button type="button" data-action="rollover-delete-backup" data-filename="' + escapeHtml(b.filename) + '" title="Delete this backup" aria-label="Delete backup" '
+                        + 'class="inline-flex items-center justify-center min-h-[44px] w-11 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-500 hover:text-red-600 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-500">'
+                        + '<i class="ti ti-trash"></i></button>'
+                        + '</div></div>';
                 });
                 list.innerHTML = html;
             }).catch(function () { list.innerHTML = '<span class="text-red-500">Could not load backups.</span>'; });
@@ -921,8 +992,246 @@
         });
     }
 
+    function actionDeleteBackup(element) {
+        var filename = element.getAttribute('data-filename');
+        window.Swal.fire(swalTheme({
+            icon: 'warning',
+            title: 'Delete this backup?',
+            html: 'Delete <code>' + escapeHtml(filename) + '</code>? This removes the backup <strong>file only</strong> — it does not touch the database.',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            confirmButtonColor: '#dc2626'
+        })).then(function (res) {
+            if (!res.isConfirmed) return;
+            fetch('/publeague/seasons/rollover/backup/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: JSON.stringify({ filename: filename })
+            }).then(function (r) { return r.json(); }).then(function (data) {
+                if (data.success) {
+                    refreshBackups();
+                    window.Swal.fire(swalTheme({ icon: 'success', title: 'Backup deleted', timer: 1400, showConfirmButton: false }));
+                } else {
+                    window.Swal.fire(swalTheme({ icon: 'error', title: 'Could not delete', text: data.error || 'Failed.' }));
+                }
+            }).catch(function () {
+                window.Swal.fire(swalTheme({ icon: 'error', title: 'Could not delete', text: 'Could not reach the server.' }));
+            });
+        });
+    }
+
+    // --- Live Discord read (prefetched + cached so it's instant) ---
+    // Renders one season's teams with per-resource pills. mode:
+    //   'delete'  (pre-execute): these exist and WILL be deleted
+    //   'created' (post-execute): these SHOULD now exist (verify creation)
+    //   'cleaned' (post-execute): these should be GONE (verify cleanup)
+    function discordTeamsHtml(seasonObj, mode) {
+        if (!seasonObj || !seasonObj.teams || !seasonObj.teams.length) return '<span class="text-xs text-gray-400">No teams.</span>';
+        function pill(x, lbl) {
+            if (!x) return '<span class="text-gray-300 dark:text-gray-600">no ' + lbl + '</span>';
+            var ok, txt;
+            if (mode === 'cleaned') { ok = !x.exists; txt = ok ? (lbl + ' removed') : (lbl + ' still there'); }
+            else if (mode === 'created') { ok = x.exists; txt = ok ? lbl : (lbl + ' missing'); }
+            else { // 'delete'
+                if (x.exists) return '<span class="text-ecs-green"><i class="ti ti-check"></i> ' + lbl + '</span>';
+                return '<span class="text-gray-400"><i class="ti ti-minus"></i> ' + lbl + ' (already gone)</span>';
+            }
+            if (ok) return '<span class="text-ecs-green"><i class="ti ti-check"></i> ' + txt + '</span>';
+            return '<span class="text-red-500"><i class="ti ti-alert-triangle"></i> ' + txt + '</span>';
+        }
+        var html = '<div class="rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700 text-xs">';
+        seasonObj.teams.forEach(function (t) {
+            html += '<div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-1.5"><span class="font-mono font-semibold text-gray-900 dark:text-white mr-1">' + escapeHtml(t.name) + '</span>'
+                + pill(t.channel, 'channel') + pill(t.player_role, 'player role') + pill(t.coach_role, 'coach role') + '</div>';
+        });
+        return html + '</div>';
+    }
+
+    // Kick off the live read in the background and cache it. Re-fetches if forced
+    // or if the league type changed since the last read.
+    function prefetchDiscordCheck(force) {
+        var lt = val('ro-league-type') || 'Pub League';
+        if (!force && state.discord.status === 'loading') return;
+        if (!force && state.discord.status === 'ready' && state.discord.forType === lt) { renderDiscordLive(); return; }
+        state.discord = { status: 'loading', data: null, error: null, forType: lt };
+        renderDiscordLive();
+        fetch('/publeague/seasons/rollover/discord-check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+            body: JSON.stringify({ league_type: lt })
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            if (d && d.available) state.discord = { status: 'ready', data: d, error: null, forType: lt };
+            else state.discord = { status: 'error', data: null, error: (d && d.error) || 'Discord read unavailable.', forType: lt };
+            renderDiscordLive();
+        }).catch(function () {
+            state.discord = { status: 'error', data: null, error: 'Could not reach the server.', forType: lt };
+            renderDiscordLive();
+        });
+    }
+
+    // Preview panel: what currently exists (and will be deleted).
+    function renderDiscordLive() {
+        var out = document.getElementById('ro-discord-live');
+        if (!out) return;
+        var st = state.discord;
+        if (st.status === 'loading') { out.innerHTML = '<span class="text-xs text-gray-400"><i class="ti ti-loader"></i> Reading from Discord…</span>'; return; }
+        if (st.status === 'error') { out.innerHTML = '<span class="text-xs text-amber-600 dark:text-amber-400"><i class="ti ti-alert-triangle"></i> ' + escapeHtml(st.error) + '</span>'; return; }
+        if (st.status !== 'ready') { out.innerHTML = ''; return; }
+        out.innerHTML = discordTeamsHtml(st.data.current, 'delete')
+            + '<p class="mt-1 text-[11px] text-gray-400">Live from Discord — ✓ exists and will be removed.</p>';
+    }
+
+    // Manual "re-check" button in the preview.
+    function actionDiscordCheck() { prefetchDiscordCheck(true); }
+
+    // Post-execute self-verification: current season CREATED + previous CLEANED.
+    // ---- Closed-loop post-execute verification (polls until Discord catches up) ----
+    // Cleanup = the previous season's stored channels/roles now GONE.
+    // Creation = the new season's teams that now have a live channel/role.
+    function progressStats(d) {
+        var prev = (d && d.previous && d.previous.teams) || [];
+        var cur = (d && d.current && d.current.teams) || [];
+        var clTotal = 0, clDone = 0;
+        prev.forEach(function (t) { if (t.channel) { clTotal++; if (!t.channel.exists) clDone++; } });
+        var crTotal = cur.length, crDone = 0;
+        cur.forEach(function (t) { if (t.channel && t.channel.exists) crDone++; });
+        function roles(teams, wantGone) {
+            var tot = 0, done = 0;
+            teams.forEach(function (t) { ['player_role', 'coach_role'].forEach(function (k) { if (t[k]) { tot++; if (wantGone ? !t[k].exists : t[k].exists) done++; } }); });
+            return { tot: tot, done: done };
+        }
+        return {
+            cleanup: { total: clTotal, done: clDone, pct: clTotal ? Math.round(clDone / clTotal * 100) : 100, roles: roles(prev, true) },
+            creation: { total: crTotal, done: crDone, pct: crTotal ? Math.round(crDone / crTotal * 100) : 100, roles: roles(cur, false) }
+        };
+    }
+    function renderVerifyProgress(d) {
+        var out = document.getElementById('ro-verify-live');
+        if (!out) return;
+        if (!d || !d.available) { out.innerHTML = '<span class="text-xs text-amber-600 dark:text-amber-400"><i class="ti ti-alert-triangle"></i> ' + escapeHtml((d && d.error) || 'Discord read unavailable.') + '</span>'; stopVerifyLoop(); return; }
+        var s = progressStats(d);
+        var allDone = s.cleanup.pct >= 100 && s.creation.pct >= 100;
+        function bar(label, icon, st, verb) {
+            var color = st.pct >= 100 ? 'bg-ecs-green' : 'bg-blue-500';
+            var roles = st.roles.tot ? ' · ' + st.roles.done + '/' + st.roles.tot + ' roles' : '';
+            return '<div class="mb-2">'
+                + '<div class="flex items-center justify-between text-xs mb-0.5"><span class="text-gray-600 dark:text-gray-300"><i class="ti ' + icon + '"></i> ' + label + '</span><span class="font-mono tabular-nums">' + st.done + '/' + st.total + ' ' + verb + roles + '</span></div>'
+                + '<div class="w-full h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="progressbar" aria-valuenow="' + st.pct + '" aria-valuemin="0" aria-valuemax="100"><div class="h-full ' + color + ' transition-all duration-300" style="width:' + st.pct + '%"></div></div></div>';
+        }
+        var html = bar('Cleanup — old channels removed', 'ti-trash', s.cleanup, 'removed')
+                 + bar('Creation — new channels created', 'ti-plus', s.creation, 'created');
+        if (allDone) html += '<div class="mt-1 text-xs font-semibold text-ecs-green flex items-center gap-1"><i class="ti ti-circle-check-filled"></i> Verified — old channels &amp; roles removed and new ones created.</div>';
+        else html += '<div class="mt-1 text-[11px] text-gray-400 flex items-center gap-1"><i class="ti ti-loader"></i> Discord is processing asynchronously… updating live.</div>';
+        out.innerHTML = html;
+    }
+    var verifyPoll = { timer: null, tries: 0, max: 40 };  // ~40 x 3s ≈ 2 min
+    function stopVerifyLoop() { if (verifyPoll.timer) { clearTimeout(verifyPoll.timer); verifyPoll.timer = null; } }
+    function pollVerifyOnce() {
+        verifyPoll.tries++;
+        fetch('/publeague/seasons/rollover/discord-check', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+            body: JSON.stringify({ league_type: val('ro-league-type') })
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            renderVerifyProgress(d);
+            if (!d || !d.available) return;
+            var s = progressStats(d);
+            var done = s.cleanup.pct >= 100 && s.creation.pct >= 100;
+            if (!done && verifyPoll.tries < verifyPoll.max) verifyPoll.timer = setTimeout(pollVerifyOnce, 3000);
+        }).catch(function () {
+            var out = document.getElementById('ro-verify-live'); if (out) out.innerHTML = '<span class="text-xs text-red-500">Could not reach the server.</span>';
+        });
+    }
+    function startVerifyLoop() { stopVerifyLoop(); verifyPoll.tries = 0; pollVerifyOnce(); }
+    function actionVerifyRollover() { startVerifyLoop(); }
+
+    // --- In-wizard Division Coaches (search + add/remove, applied live) ---
+    function wireRoCoaches() {
+        var SEARCH = '/admin-panel/seasons/coaches/search';
+        var ASSIGN = '/admin-panel/users/assign-role';
+        function assign(userId, roleId, action) {
+            var body = new URLSearchParams();
+            body.set('user_id', userId); body.set('role_id', roleId); body.set('action', action);
+            return fetch(ASSIGN, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCsrfToken() }, body: body.toString() })
+                .then(function (r) { return r.json().catch(function () { return { success: false }; }); });
+        }
+        function toast(msg, ok) {
+            if (window.Swal) window.Swal.fire(swalTheme({ toast: true, position: 'top-end', timer: 2200, showConfirmButton: false, icon: ok ? 'success' : 'error', title: msg }));
+        }
+        document.querySelectorAll('[data-rocoach-col]').forEach(function (col) {
+            var roleId = col.getAttribute('data-role-id');
+            var label = col.getAttribute('data-rocoach-col');
+            var search = col.querySelector('[data-rocoach-search]');
+            var results = col.querySelector('[data-rocoach-results]');
+            var list = col.querySelector('[data-rocoach-list]');
+            var empty = col.querySelector('[data-rocoach-empty]');
+            var countEl = col.querySelector('[data-rocoach-count]');
+            if (!roleId) { if (search) search.disabled = true; return; }
+            function refresh() { var n = list.querySelectorAll('li[data-user-id]').length; countEl.textContent = n; empty.classList.toggle('hidden', n > 0); }
+            function inList(uid) { return !!list.querySelector('li[data-user-id="' + uid + '"]'); }
+            function addRow(uid, name) {
+                var li = document.createElement('li');
+                li.className = 'flex items-center justify-between gap-2 px-3 py-2';
+                li.setAttribute('data-user-id', uid);
+                var left = document.createElement('span'); left.className = 'flex items-center gap-2 min-w-0';
+                var ic = document.createElement('i'); ic.className = 'ti ti-whistle shrink-0';
+                var nm = document.createElement('span'); nm.className = 'text-sm text-gray-900 dark:text-white truncate'; nm.textContent = name;
+                left.appendChild(ic); left.appendChild(nm);
+                var btn = document.createElement('button'); btn.type = 'button'; btn.setAttribute('data-rocoach-remove', ''); btn.setAttribute('data-user-id', uid);
+                btn.className = 'shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500';
+                btn.title = 'Remove coach'; btn.innerHTML = '<i class="ti ti-x text-sm"></i>';
+                li.appendChild(left); li.appendChild(btn); list.appendChild(li); refresh();
+            }
+            var timer = null;
+            search.addEventListener('input', function () {
+                var q = search.value.trim();
+                if (timer) clearTimeout(timer);
+                if (q.length < 2) { results.classList.add('hidden'); results.innerHTML = ''; return; }
+                timer = setTimeout(function () {
+                    fetch(SEARCH + '?q=' + encodeURIComponent(q), { headers: { 'X-CSRFToken': getCsrfToken() } })
+                        .then(function (r) { return r.json(); }).then(function (data) {
+                            results.innerHTML = '';
+                            var rows = (data && data.results) || [];
+                            if (!rows.length) { results.classList.add('hidden'); return; }
+                            rows.forEach(function (p) {
+                                var already = inList(p.user_id);
+                                var item = document.createElement('button'); item.type = 'button';
+                                item.className = 'w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-600 ' + (already ? 'opacity-50 cursor-not-allowed' : '');
+                                var nm = document.createElement('span'); nm.className = 'truncate text-gray-900 dark:text-white'; nm.textContent = p.name; item.appendChild(nm);
+                                var tag = document.createElement('span'); tag.className = 'shrink-0 text-xs ' + (already ? 'text-gray-400' : 'text-ecs-green'); tag.textContent = already ? 'added' : '+ add'; item.appendChild(tag);
+                                if (!already) item.addEventListener('click', function () {
+                                    item.disabled = true;
+                                    assign(p.user_id, roleId, 'add').then(function (res) {
+                                        if (res && res.success) { addRow(p.user_id, p.name); toast((p.name || 'Coach') + ' added to ' + label, true); search.value = ''; results.classList.add('hidden'); results.innerHTML = ''; }
+                                        else { toast((res && res.message) || 'Could not add', false); item.disabled = false; }
+                                    });
+                                });
+                                results.appendChild(item);
+                            });
+                            results.classList.remove('hidden');
+                        }).catch(function () { results.classList.add('hidden'); });
+                }, 250);
+            });
+            list.addEventListener('click', function (e) {
+                var btn = e.target.closest ? e.target.closest('[data-rocoach-remove]') : null;
+                if (!btn) return;
+                var li = btn.closest('li[data-user-id]');
+                var uid = btn.getAttribute('data-user-id');
+                var name = li ? (li.querySelector('.truncate') || {}).textContent : '';
+                btn.disabled = true;
+                assign(uid, roleId, 'remove').then(function (res) {
+                    if (res && res.success) { if (li) li.remove(); refresh(); toast((name || 'Coach') + ' removed from ' + label, true); }
+                    else { toast((res && res.message) || 'Could not remove', false); btn.disabled = false; }
+                });
+            });
+            document.addEventListener('click', function (e) { if (!col.contains(e.target)) results.classList.add('hidden'); });
+        });
+    }
+
     // --- Wire up ---
     document.addEventListener('DOMContentLoaded', function () {
+        wireRoCoaches();
+        // Preload the live Discord read in the background so the preview is instant.
+        prefetchDiscordCheck();
         // League type toggle
         var typeSel = document.getElementById('ro-league-type');
         if (typeSel) {
@@ -930,6 +1239,7 @@
                 var isPub = this.value === 'Pub League';
                 document.getElementById('ro-pub-fields').classList.toggle('hidden', !isPub);
                 document.getElementById('ro-ecs-fields').classList.toggle('hidden', isPub);
+                prefetchDiscordCheck(true);  // different league type → re-read
             });
         }
 
@@ -1049,7 +1359,10 @@
             'rollover-execute': function () { actionExecute(); },
             'rollover-back': function (el) { gotoStep(parseInt(el.getAttribute('data-goto'), 10) || 1); },
             'rollover-refresh-backups': function () { refreshBackups(); },
-            'rollover-restore': function (el) { actionRestore(el); }
+            'rollover-restore': function (el) { actionRestore(el); },
+            'rollover-delete-backup': function (el) { actionDeleteBackup(el); },
+            'rollover-discord-check': function () { actionDiscordCheck(); },
+            'rollover-verify': function () { actionVerifyRollover(); }
         };
 
         if (window.EventDelegation && typeof window.EventDelegation.register === 'function') {

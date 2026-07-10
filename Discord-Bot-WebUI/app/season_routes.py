@@ -1147,6 +1147,99 @@ def rollover_backups():
         return jsonify({'success': False, 'error': 'Could not list backups.'}), 500
 
 
+@season_bp.route('/rollover/backup/delete', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def rollover_backup_delete():
+    """Delete a single backup file. Global-Admin-only (they're large + destructive
+    to lose the wrong one, but this is just removing a file, not the DB)."""
+    from app.season_rollover_service import delete_database_backup
+
+    data = request.get_json() or {}
+    filename = data.get('filename')
+    if not filename:
+        return jsonify({'success': False, 'error': 'No backup filename provided.'}), 400
+    try:
+        result = delete_database_backup(filename)
+        return jsonify(result), (200 if result.get('success') else 400)
+    except Exception as e:
+        logger.error(f"Rollover backup delete failed: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Delete failed.'}), 500
+
+
+@season_bp.route('/rollover/discord-check', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def rollover_discord_check():
+    """LIVE read from the Discord bot: cross-reference the current season's stored
+    channel/role IDs against what actually exists in the guild, so admins see the
+    ground truth of what will be removed and any DB<->Discord drift (a stored
+    channel/role that's already gone). Read-only; never mutates Discord."""
+    import os
+    import requests
+
+    data = request.get_json() or {}
+    league_type = data.get('league_type') or 'Pub League'
+    session = g.db_session
+
+    bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
+    guild_id = os.getenv('SERVER_ID')
+    if not guild_id:
+        return jsonify({'success': False, 'available': False,
+                        'error': 'Discord guild (SERVER_ID) is not configured.'})
+
+    try:
+        ch = requests.get(f"{bot_api_url}/api/server/guilds/{guild_id}/channels", timeout=8)
+        rl = requests.get(f"{bot_api_url}/api/server/guilds/{guild_id}/roles", timeout=8)
+        if ch.status_code != 200 or rl.status_code != 200:
+            return jsonify({'success': False, 'available': False,
+                            'error': f'Bot API returned {ch.status_code}/{rl.status_code}.'})
+        live_channels = {str(c.get('id')): c.get('name') for c in (ch.json() or [])}
+        live_roles = {str(r.get('id')): r.get('name') for r in (rl.json() or [])}
+    except Exception as e:
+        logger.warning(f"Live Discord check failed: {e}")
+        return jsonify({'success': False, 'available': False,
+                        'error': 'Could not reach the Discord bot (is it running?).'})
+
+    def _res(rid, table):
+        if not rid:
+            return None
+        rid = str(rid)
+        return {'id': rid, 'name': table.get(rid), 'exists': rid in table}
+
+    def _season_teams(season):
+        if not season:
+            return None
+        teams = session.query(Team).join(
+            League, Team.league_id == League.id
+        ).filter(League.season_id == season.id).order_by(Team.name).all()
+        return {
+            'name': season.name,
+            'teams': [{
+                'name': t.name,
+                'channel': _res(t.discord_channel_id, live_channels),
+                'player_role': _res(t.discord_player_role_id, live_roles),
+                'coach_role': _res(t.discord_coach_role_id, live_roles),
+            } for t in teams],
+        }
+
+    # current = the live season (pre-execute: the one to be deleted; post-execute:
+    # the newly-created one — verify it was CREATED). previous = the most recent
+    # non-current season (post-execute: the just-rolled one — verify it was CLEANED).
+    current = session.query(Season).filter_by(
+        league_type=league_type, is_current=True
+    ).first()
+    previous = session.query(Season).filter(
+        Season.league_type == league_type, Season.is_current.is_(False)
+    ).order_by(Season.id.desc()).first()
+
+    return jsonify({
+        'success': True, 'available': True,
+        'current': _season_teams(current),
+        'previous': _season_teams(previous),
+    })
+
+
 @season_bp.route('/rollover/execute', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])

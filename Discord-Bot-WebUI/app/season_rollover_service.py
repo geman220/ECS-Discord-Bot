@@ -39,6 +39,10 @@ _MAX_SAMPLE_MATCHUPS = 4
 _BACKUP_TIMEOUT = 600
 _RESTORE_TIMEOUT = 900
 
+# Rollover backups are large (~half a GB) and taken ~once a season, so we keep
+# only the newest few and prune the rest. Override with ROLLOVER_BACKUP_KEEP.
+_KEEP_BACKUPS = int(os.getenv('ROLLOVER_BACKUP_KEEP', '3') or 3)
+
 
 # ---------------------------------------------------------------------------
 # Backup storage helpers
@@ -221,17 +225,21 @@ def build_rollover_preview(session, league_type: str, new_season_name: str,
     # --- Teams whose memberships will be archived to PlayerTeamSeason --------
     teams_to_archive = 0
     channels_to_delete = 0
+    old_teams = []  # exact teams whose Discord channel/roles the cleanup task deletes
     if old_season:
-        teams_to_archive = session.query(Team).join(
+        _ots = session.query(Team).join(
             League, Team.league_id == League.id
-        ).filter(League.season_id == old_season.id).count()
-        # Old teams that actually have a Discord channel (only these get deleted).
-        channels_to_delete = session.query(Team).join(
-            League, Team.league_id == League.id
-        ).filter(
-            League.season_id == old_season.id,
-            Team.discord_channel_id.isnot(None)
-        ).count()
+        ).filter(League.season_id == old_season.id).order_by(Team.name).all()
+        teams_to_archive = len(_ots)
+        for _t in _ots:
+            _has_ch = bool(_t.discord_channel_id)
+            if _has_ch:
+                channels_to_delete += 1
+            old_teams.append({
+                'name': _t.name,
+                'has_channel': _has_ch,
+                'has_roles': bool(_t.discord_player_role_id or _t.discord_coach_role_id),
+            })
 
     # --- Other side effects the executor performs (previously hidden) -------
     # Surface the changes rollover_league actually makes so preview == execute:
@@ -346,6 +354,7 @@ def build_rollover_preview(session, league_type: str, new_season_name: str,
         'new_leagues': new_leagues,
         'total_teams': total_teams,
         'team_names': all_team_names,
+        'old_teams': old_teams,
         'divisions': divisions,
         'total_estimated_matches': total_estimated_matches,
         'discord': {
@@ -470,6 +479,9 @@ def create_database_backup() -> dict:
     logger.info(f"Created rollover backup: {filename} ({size_bytes} bytes)")
     _audit('rollover_backup_created', f'Created backup {filename} ({size_bytes} bytes)')
 
+    # Keep only the newest few backups — they're large and taken once a season.
+    _prune_old_backups()
+
     return {'success': True, 'path': backup_path, 'filename': filename,
             'size_bytes': size_bytes, 'error': None}
 
@@ -509,6 +521,47 @@ def list_backups() -> list:
     for e in entries:
         e.pop('created_ts', None)
     return entries
+
+
+def _prune_old_backups(keep: int = _KEEP_BACKUPS) -> None:
+    """Delete backups beyond the newest ``keep`` — they're large + once-a-season.
+
+    Never raises into the caller (backup success shouldn't hinge on cleanup).
+    """
+    try:
+        entries = list_backups()  # newest first
+    except Exception as e:
+        logger.warning(f"Could not list backups to prune: {e}")
+        return
+    for entry in entries[max(0, keep):]:
+        name = entry.get('filename')
+        try:
+            path = _safe_backup_path(name)
+            if path and os.path.isfile(path):
+                os.remove(path)
+                logger.info(f"Pruned old rollover backup: {name}")
+        except OSError as e:
+            logger.warning(f"Could not prune backup {name}: {e}")
+
+
+def delete_database_backup(filename: str) -> dict:
+    """
+    Delete a single backup file. Path-validated (no traversal); the route MUST be
+    Global-Admin-only.
+    """
+    path = _safe_backup_path(filename)
+    if not path:
+        return {'success': False, 'error': 'Invalid backup filename.'}
+    if not os.path.isfile(path):
+        return {'success': False, 'error': 'Backup file not found.'}
+    try:
+        os.remove(path)
+        logger.info(f"Deleted rollover backup: {os.path.basename(path)}")
+        _audit('rollover_backup_deleted', f'Deleted backup {os.path.basename(path)}')
+        return {'success': True, 'error': None}
+    except OSError as e:
+        logger.error(f"Could not delete backup {os.path.basename(path)}: {e}")
+        return {'success': False, 'error': f'Could not delete backup: {e}'}
 
 
 def restore_database_backup(filename: str) -> dict:

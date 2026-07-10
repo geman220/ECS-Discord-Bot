@@ -743,7 +743,7 @@ def season_rollover():
     preview/backup/execute/restore endpoints remain on publeague.season and are
     called by absolute URL from the page JS, so nothing else has to move.
     """
-    from app.models import Season
+    from app.models import Season, Role
 
     is_global_admin = False
     try:
@@ -758,12 +758,22 @@ def season_rollover():
         league_type='ECS FC', is_current=True
     ).first()
 
+    # Division coaches to pre-fill the in-wizard Coaches step. These are the
+    # team-independent 'Premier/Classic Coach' roles (they persist across rollover);
+    # add/remove here applies live via admin_panel.assign_user_role.
+    premier_role = db.session.query(Role).filter_by(name='Premier Coach').first()
+    classic_role = db.session.query(Role).filter_by(name='Classic Coach').first()
+
     return render_template(
         'publeague/season_rollover_flowbite.html',
         title='Guided Season Rollover',
         is_global_admin=is_global_admin,
         pub_current=pub_current,
         ecs_current=ecs_current,
+        premier_role_id=premier_role.id if premier_role else None,
+        classic_role_id=classic_role.id if classic_role else None,
+        premier_coaches=_division_coach_list(premier_role),
+        classic_coaches=_division_coach_list(classic_role),
     )
 
 
