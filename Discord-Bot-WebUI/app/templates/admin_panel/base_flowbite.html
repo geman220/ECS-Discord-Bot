@@ -137,6 +137,10 @@
         </ol>
     </nav>
 
+    <!-- Section tabs (unifies fragmented single-function pages into one tabbed surface) -->
+    {% from 'admin_panel/_section_tabs.html' import admin_section_tabs %}
+    {{ admin_section_tabs(request.endpoint) }}
+
     <!-- Page Content -->
     <div>
         {% block panel_content %}{% endblock %}

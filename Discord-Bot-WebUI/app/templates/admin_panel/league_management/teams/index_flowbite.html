@@ -32,13 +32,6 @@
 {% set total_players = teams|map(attribute='players')|map('length')|sum %}
 
 {% call page_header('Teams', subtitle='League Management') %}
-  <a href="{{ url_for('admin_panel.team_rosters') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
-            border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium
-            hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-            focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-    <i class="ti ti-list-details" aria-hidden="true"></i><span>Manage Rosters</span>
-  </a>
   <button type="button" onclick="openCreateModal()"
           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                  bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
@@ -323,9 +316,6 @@
                 <option value="Pub League" {% if current_league_type == 'Pub League' %}selected{% endif %}>Pub League</option>
                 <option value="ECS FC" {% if current_league_type == 'ECS FC' %}selected{% endif %}>ECS FC</option>
             </select>
-            <a href="{{ url_for('admin_panel.team_rosters') }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
-                <i class="ti ti-list-details mr-1"></i>Manage Rosters
-            </a>
             <button onclick="openCreateModal()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
                 <i class="ti ti-plus mr-1"></i>Add Team
             </button>

@@ -211,6 +211,12 @@ def _extract_player_role_data(session, player_id: int):
             if league.name:
                 league_names.append(league.name)
         
+        # Approval status gates league-role assignment (pending/denied users get
+        # no managed roles). Default to 'approved' when there is no linked user so
+        # we never strip roles on genuinely-missing data — the gate only bites on
+        # an EXPLICIT 'pending'/'denied'. (DB: users.approval_status NOT NULL.)
+        approval_status = getattr(player.user, 'approval_status', 'approved') if player.user else 'approved'
+
         return {
             'player_id': player_id,
             'discord_id': player.discord_id,
@@ -218,6 +224,7 @@ def _extract_player_role_data(session, player_id: int):
             'is_active': player.is_current_player,
             'is_coach': player.is_coach,
             'is_ref': player.is_ref,
+            'approval_status': approval_status,
             'current_roles': player.discord_roles or [],
             'teams': teams,
             'user_roles': user_roles,
@@ -234,7 +241,12 @@ async def _execute_player_role_update_async(data):
     # Calculate expected roles based on team data
     expected_roles = []
     
-    # Add team roles based on teams
+    # Add team roles based on teams (Pub League only). ECS FC teams are
+    # intentionally excluded: their Discord role is created with a DIFFERENT
+    # prefix (ECS-FC-LEAGUE-<team>-Player, see discord_utils.py create path), so
+    # emitting an ECS-FC-PL-<team>-Player here would expect a role that doesn't
+    # exist. The app_managed ECS-FC-PL-<team>-Player entry below likewise never
+    # matches an ECS FC player's real role, so nothing is wrongly stripped.
     for team in data.get('teams', []):
         if team.get('league_name') in ['Premier', 'Classic']:
             # Add player role
@@ -302,7 +314,17 @@ async def _execute_player_role_update_async(data):
     if data.get('is_ref'):
         if 'Referee' not in expected_roles:
             expected_roles.append('Referee')
-    
+
+    # Approval gate: only APPROVED users keep app-managed league/team/coach/sub/
+    # referee roles. Pending or denied users get an empty expected set, so the
+    # reconcile below strips those managed roles and never grants them on sync
+    # (mirrors the authoritative get_expected_roles in discord_utils.py). Verified
+    # against prod data — every rostered/division player is 'approved', so this
+    # strips no current player; it only withholds roles from not-yet-approved /
+    # denied accounts. Non-managed roles the player holds are untouched.
+    if data.get('approval_status', 'approved') != 'approved':
+        expected_roles = []
+
     # Get app managed roles (these are roles our app can modify)
     app_managed_roles = [
         'ECS-FC-PL-PREMIER',
@@ -454,12 +476,26 @@ async def _update_player_discord_roles_async(session, player_id: int) -> Dict[st
         return {'success': False, 'message': 'Discord API error', 'error': str(e)}
 
 
-def _extract_batch_role_update_data(session, discord_ids: List[str]):
+def _extract_batch_role_update_data(session, discord_ids: List[str] = None):
     """Extract player data for batch Discord role updates using optimized batch processing."""
     try:
+        if not discord_ids:
+            # No-arg callers — the admin "Sync All Roles" buttons mark all
+            # out-of-sync players discord_needs_update=True then dispatch
+            # process_discord_role_updates.delay() with no ids. Previously this
+            # raised TypeError (required positional) and silently no-op'd while
+            # reporting success. Load the flagged players so the reconcile runs.
+            discord_ids = [
+                str(p.discord_id) for p in session.query(Player).filter(
+                    Player.discord_id.isnot(None),
+                    Player.discord_needs_update == True  # noqa: E712 (SQLAlchemy)
+                ).all()
+            ]
+        if not discord_ids:
+            return {'players': []}
         # Use optimized batch processing from query optimizer
         players_data = efficient_player_discord_batch(session, discord_ids)
-        
+
         logger.info(f"Extracted batch role update data for {len(players_data)} players from {len(discord_ids)} Discord IDs using optimized processing")
         return {'players': players_data}
         
@@ -531,7 +567,7 @@ def _update_players_after_batch_role_sync(session, result):
     name='app.tasks.tasks_discord.process_discord_role_updates',
     queue='discord'
 )
-async def process_discord_role_updates(self, session, discord_ids: List[str]) -> Dict[str, Any]:
+async def process_discord_role_updates(self, session, discord_ids: List[str] = None) -> Dict[str, Any]:
     """
     Process Discord role updates for multiple players using two-phase pattern.
     
@@ -577,7 +613,11 @@ def _extract_assign_roles_data(session, player_id: int, team_id: Optional[int] =
     user_roles = []
     if player.user and player.user.roles:
         user_roles = [role.name for role in player.user.roles]
-    
+
+    # Approval gate input (see _execute_assign_roles_async). Default 'approved'
+    # when there is no linked user so missing data never strips.
+    approval_status = getattr(player.user, 'approval_status', 'approved') if player.user else 'approved'
+
     return {
         'player_id': player_id,
         'discord_id': player.discord_id,
@@ -585,6 +625,7 @@ def _extract_assign_roles_data(session, player_id: int, team_id: Optional[int] =
         'is_active': player.is_current_player,
         'is_coach': player.is_coach,
         'is_ref': player.is_ref,
+        'approval_status': approval_status,
         'current_roles': player.discord_roles or [],
         'teams': teams,
         'user_roles': user_roles,
@@ -648,19 +689,36 @@ async def _execute_assign_roles_async(data):
         if 'Classic Coach' in user_roles and 'ECS-FC-PL-CLASSIC-COACH' not in expected_roles:
             expected_roles.append('ECS-FC-PL-CLASSIC-COACH')
 
-        # Add coach roles based on leagues if player is coach
-        if data.get('is_coach'):
-            if 'pl-premier' in user_roles:
-                if 'ECS-FC-PL-PREMIER-COACH' not in expected_roles:
-                    expected_roles.append('ECS-FC-PL-PREMIER-COACH')
-            if 'pl-classic' in user_roles:
-                if 'ECS-FC-PL-CLASSIC-COACH' not in expected_roles:
-                    expected_roles.append('ECS-FC-PL-CLASSIC-COACH')
+        # Per-team coach roles, scoped to the league of each team the player
+        # actually coaches (player_teams.is_coach) — PARITY with the main
+        # calculator _execute_player_role_update_async. The old logic used the
+        # GLOBAL player.is_coach flag + every pl-premier/pl-classic Flask role,
+        # which over-granted (a Premier player coaching a Classic team got BOTH
+        # coach roles) and diverged from the batch reconcile, causing the coach
+        # role to flap on (this path) / off (batch reconcile).
+        for team in data.get('teams', []):
+            if not team.get('is_coach'):
+                continue
+            coached_league = (team.get('league_name') or '').lower()
+            if coached_league == 'premier' and 'ECS-FC-PL-PREMIER-COACH' not in expected_roles:
+                expected_roles.append('ECS-FC-PL-PREMIER-COACH')
+            elif coached_league == 'classic' and 'ECS-FC-PL-CLASSIC-COACH' not in expected_roles:
+                expected_roles.append('ECS-FC-PL-CLASSIC-COACH')
 
         # Add referee role if player is a referee
         if data.get('is_ref'):
             if 'Referee' not in expected_roles:
                 expected_roles.append('Referee')
+
+    # Approval gate: only APPROVED users keep app-managed roles. Pending/denied
+    # get an empty expected set (parity with _execute_player_role_update_async and
+    # the authoritative get_expected_roles). With only_add this simply grants
+    # nothing; with a reconcile (only_add=False) it also strips managed roles.
+    # Applies to BOTH the target-team and all-teams paths. Verified against prod:
+    # no current/rostered player is non-approved, so this withholds roles only
+    # from pending/denied accounts and strips no active player.
+    if data.get('approval_status', 'approved') != 'approved':
+        expected_roles = []
 
     # Prepare data for async-only function
     player_data = {
@@ -1265,6 +1323,24 @@ async def _execute_remove_roles_async(data):
         if team and team.get('league_name') in ['Premier', 'Classic', 'ECS FC']:
             roles_to_remove.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
             roles_to_remove.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Coach")
+
+    # Full offboarding (team_id is None: deny / deactivate / set-pending) must ALSO
+    # strip division, sub, division-coach, and referee roles. Without this the user
+    # keeps division-wide, sub-pool, and referee CHANNEL ACCESS after being removed,
+    # because the team-scoped list above never contains those (they have no team
+    # name and Referee has no ECS-FC-PL- prefix). Targeted removals (team_id set,
+    # e.g. draft-remove) intentionally stay scoped to the one team.
+    if data.get('team_id') is None:
+        roles_to_remove.extend([
+            'ECS-FC-PL-PREMIER',
+            'ECS-FC-PL-CLASSIC',
+            'ECS-FC-PL-PREMIER-SUB',
+            'ECS-FC-PL-CLASSIC-SUB',
+            'ECS-FC-LEAGUE-SUB',
+            'ECS-FC-PL-PREMIER-COACH',
+            'ECS-FC-PL-CLASSIC-COACH',
+            'Referee',
+        ])
 
     # Prepare data for role removal
     player_data = {

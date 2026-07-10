@@ -131,18 +131,20 @@ class QueryOptimizer:
         cache_key = f"player_teams:current:{player.id}"
         
         def load_teams(session):
+            from app.models import PlayerTeamSeason
             current_season_id = QueryOptimizer.get_current_season_id(session)
             if not current_season_id:
                 return []
-            
-            # Use efficient query with current season filter
+
+            # Explicit PlayerTeamSeason join. The previous string join
+            # .join('player_team_seasons') (plus an unjoined Season filter) is
+            # invalid in SQLAlchemy 2.0 and raised on every call, silently
+            # dropping all players from the role-status view.
             teams = session.query(Team).join(
-                'player_team_seasons'  # Assuming this relationship exists
+                PlayerTeamSeason, PlayerTeamSeason.team_id == Team.id
             ).filter(
-                and_(
-                    Player.id == player.id,
-                    Season.id == current_season_id
-                )
+                PlayerTeamSeason.player_id == player.id,
+                PlayerTeamSeason.season_id == current_season_id
             ).options(
                 joinedload(Team.league)
             ).all()
@@ -171,12 +173,16 @@ class QueryOptimizer:
         """
         if not player_ids:
             return {}
-        
+
+        from app.models import PlayerTeamSeason
         current_season_id = QueryOptimizer.get_current_season_id(session)
         if not current_season_id:
             return {player_id: [] for player_id in player_ids}
-        
-        # Single query to get all player-team relationships
+
+        # Single query to get all player-team relationships. (Explicit join —
+        # the old string .join('player_team_seasons') was invalid in SQLAlchemy
+        # 2.0 and raised on every call. This helper is currently unused but kept
+        # crash-safe so a future caller doesn't hit the same landmine.)
         results = session.query(
             Player.id.label('player_id'),
             Team.id.label('team_id'),
@@ -184,8 +190,7 @@ class QueryOptimizer:
             League.id.label('league_id'),
             League.name.label('league_name')
         ).join(
-            # Assuming PlayerTeamSeason table exists
-            'player_team_seasons'
+            PlayerTeamSeason, PlayerTeamSeason.player_id == Player.id
         ).join(
             Team, Team.id == PlayerTeamSeason.team_id
         ).outerjoin(
@@ -235,24 +240,29 @@ class QueryOptimizer:
                 selectinload(Player.user).selectinload(User.roles)
             ).all()
             
-            # Get batch team mappings efficiently
-            player_ids = [p.id for p in players]
-            teams_mapping = QueryOptimizer.bulk_get_player_teams_mapping(session, player_ids)
-            
-            # Build result data
+            # Build each player's role-data dict from the SAME single-player
+            # extractor so batch role computation is byte-identical to the
+            # per-player task. This guarantees every field the calculator reads
+            # (player_id, teams w/ is_coach+league_name, user_roles, league_names,
+            # is_ref, is_active, is_coach, current_roles) is present. Building it by
+            # hand previously omitted player_id (calculator did data['player_id'] ->
+            # KeyError, silent no-op) and is_ref/league_names (reconcile would strip
+            # Referee + DB-league division roles).
+            from app.tasks.tasks_discord import _extract_player_role_data
+
             for player in players:
-                user_roles = []
-                if player.user and player.user.roles:
-                    user_roles = [role.name for role in player.user.roles]
-                
-                all_players_data.append({
-                    'id': player.id,
-                    'discord_id': player.discord_id,
-                    'name': player.name,
-                    'teams': teams_mapping.get(player.id, []),
-                    'user_roles': user_roles,
-                    'current_roles': player.discord_roles or []
-                })
+                try:
+                    pdata = _extract_player_role_data(session, player.id)
+                except Exception as e:
+                    logger.warning(f"Batch role extract failed for player {player.id}: {e}")
+                    continue
+                # 'id' is read by the batch executor/finalizer; 'player_id' by the
+                # shared calculator. force_update=True: every batch caller is a full
+                # reconcile (add + remove) — add-only would silently leave revoked
+                # coach/sub/old-team roles in Discord (rollover cleanup, pool removal).
+                pdata['id'] = player.id
+                pdata['force_update'] = True
+                all_players_data.append(pdata)
             
             # Clear session between batches
             session.expunge_all()

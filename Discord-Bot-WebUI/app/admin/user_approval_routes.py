@@ -248,10 +248,12 @@ def _legacy_ux_test_flow_impl():
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def user_approvals():
+    """Retired — consolidated into admin_panel.user_approvals (canonical). Redirect for bookmarks.
+
+    The body below is unreachable and kept only until a dead-code pass removes it; the
+    canonical approvals page fully re-implements this workflow.
     """
-    Display the user approval management interface.
-    Shows pending users waiting for league approval.
-    """
+    return redirect(url_for('admin_panel.user_approvals'))
     db_session = g.db_session
     current_user = safe_current_user
     

@@ -33,10 +33,12 @@ logger = logging.getLogger(__name__)
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def user_waitlist():
+    """Retired — consolidated into admin_panel.user_waitlist (canonical). Redirect for bookmarks.
+
+    The body below is unreachable and kept only until a dead-code pass removes it; the
+    canonical waitlist page fully re-implements this workflow.
     """
-    Display the user waitlist management interface.
-    Shows users on the waitlist.
-    """
+    return redirect(url_for('admin_panel.user_waitlist'))
     db_session = g.db_session
     current_user = safe_current_user
     

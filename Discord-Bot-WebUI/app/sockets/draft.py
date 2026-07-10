@@ -547,10 +547,18 @@ def handle_remove_player_enhanced(data):
                     player.primary_team_id = None
                     print(f"🗑️ Cleared primary team for {player.name}")
 
-                # PlayerTeamSeason rows are preserved as the historical record
-                # of who played for which team in which season. They are NOT
-                # deleted when a player is removed from a team via draft. (Same
-                # invariant as the admin "edit user" flow.)
+                # Delete the CURRENT-season PlayerTeamSeason row for this team.
+                # get_current_season_teams (the role calculator's team source)
+                # reads PTS for the current season, so a preserved row would make
+                # any later batch reconcile (coach-sync, bulk approve, team sync)
+                # RE-GRANT this team's Discord role to a player we just removed.
+                # PAST-season PTS rows (different season_id) are the historical
+                # record and are intentionally left untouched.
+                from app.models import PlayerTeamSeason
+                if league and league.season_id:
+                    session.query(PlayerTeamSeason).filter_by(
+                        player_id=player_id, team_id=team_id, season_id=league.season_id
+                    ).delete(synchronize_session=False)
 
                 # Remove from draft history and adjust subsequent picks
                 try:
@@ -649,9 +657,15 @@ def handle_remove_player_enhanced(data):
 
             # ---- Session released; safe to do emit + cache + Celery below ----
 
-            # Queue Discord role update task AFTER commit
-            from app.tasks.tasks_discord import assign_roles_to_player_task
-            assign_roles_to_player_task.delay(player_id=player_id, only_add=False)
+            # Queue a TARGETED role removal for just this team's role. A full
+            # reconcile (assign_roles_to_player_task / update_player_discord_roles)
+            # does NOT strip it: the player's current-season PlayerTeamSeason row
+            # is preserved (design invariant above), so get_current_season_teams
+            # still reports this team and the role stays "expected". remove_player_
+            # roles_task with team_id removes only ECS-FC-PL-<team>-Player, leaving
+            # the player's other teams' roles intact.
+            from app.tasks.tasks_discord import remove_player_roles_task
+            remove_player_roles_task.delay(player_id=player_id, team_id=team_id_local)
 
             # Success response with full enhanced player data
             response_data = {
@@ -677,15 +691,10 @@ def handle_remove_player_enhanced(data):
                 print(f"⚠️ Cache invalidation failed (non-critical): {cache_error}")
                 logger.warning(f"Cache invalidation failed: {cache_error}")
 
-            # Trigger Discord role update task (will remove roles since player is no longer on team)
-            from app.tasks.tasks_discord import update_player_discord_roles
-            try:
-                task = update_player_discord_roles.delay(player_id)
-                print(f"🤖 Discord role update task queued: {task.id}")
-                logger.info(f"🤖 Discord role update task queued for player {player_id}: {task.id}")
-            except Exception as e:
-                print(f"⚠️ Failed to queue Discord role update: {str(e)}")
-                logger.warning(f"Failed to queue Discord role update: {str(e)}")
+            # (Role removal is handled by the targeted remove_player_roles_task
+            # queued above — a full update_player_discord_roles reconcile here
+            # would NOT remove the team role while the current-season
+            # PlayerTeamSeason row is preserved, and could even re-add it.)
 
         except Exception as e:
             print(f"💥 Database error during player removal: {str(e)}")

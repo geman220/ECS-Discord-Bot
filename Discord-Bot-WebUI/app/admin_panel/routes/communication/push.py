@@ -363,17 +363,32 @@ def send_push_notification_form():
             flash('No users with active push tokens match the selected target.', 'warning')
             return redirect(url_for('admin_panel.send_push_notification_form'))
 
-        notifications_created = 0
+        # Deliver to the resolved recipients' devices via FCM.
+        user_ids = [u.id for u in target_users]
+        tokens = [
+            row[0] for row in db.session.query(UserFCMToken.fcm_token).filter(
+                UserFCMToken.user_id.in_(user_ids),
+                UserFCMToken.is_active == True
+            ).all()
+        ]
+
+        from app.services.notification_service import notification_service
+        extra_data = {'priority': 'normal'}
+        if action_url:
+            extra_data['action_url'] = action_url
+            extra_data['deep_link'] = action_url
+        result = notification_service.send_general_notification(tokens, title, body, extra_data) if tokens else {}
+        delivered = result.get('success', 0)
+        failed = result.get('failure', 0)
+
+        # Mirror to in-app notifications so recipients also see it in-app / in history.
         for user in target_users:
-            notification = Notification(
+            db.session.add(Notification(
                 user_id=user.id,
                 content=f"{title}: {body}",
                 notification_type='push',
                 icon='ti ti-bell',
-            )
-            db.session.add(notification)
-            notifications_created += 1
-
+            ))
         db.session.commit()
 
         AdminAuditLog.log_action(
@@ -381,12 +396,17 @@ def send_push_notification_form():
             action='send_push_notification',
             resource_type='push_notifications',
             resource_id='bulk',
-            new_value=f'Sent "{title}" to {notifications_created} users (target: {target_type})',
+            new_value=f'Push "{title}" to {len(tokens)} device(s) (target: {target_type}): {delivered} delivered, {failed} failed',
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
 
-        flash(f'Push notification "{title}" sent to {notifications_created} users!', 'success')
+        if delivered and not failed:
+            flash(f'Push "{title}" delivered to {delivered} device(s).', 'success')
+        elif delivered:
+            flash(f'Push "{title}" delivered to {delivered} device(s); {failed} failed.', 'warning')
+        else:
+            flash(f'"{title}" saved to {len(target_users)} in-app inbox(es), but no device delivery occurred. Check push service connectivity.', 'warning')
         return redirect(url_for('admin_panel.push_notifications_dashboard'))
 
     except Exception as e:
@@ -498,8 +518,12 @@ def push_notifications_settings():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def send_push_notification():
-    """Send a push notification (legacy form handler)."""
+    """Send a push notification to devices via FCM, honoring the compose form's audience
+    targeting, and mirror it to in-app notifications so it appears in history."""
     try:
+        from app.services.notification_service import notification_service
+        from app.services.push_targeting_service import push_targeting_service
+
         title = request.form.get('title')
         body = request.form.get('body')
 
@@ -507,29 +531,67 @@ def send_push_notification():
             flash('Title and body are required.', 'error')
             return redirect(url_for('admin_panel.push_notifications'))
 
-        target_users = User.query.join(UserFCMToken).filter(
-            UserFCMToken.is_active == True
-        ).distinct().all()
+        target_type = request.form.get('target_type', 'all')
+        platform = request.form.get('platform_filter', 'all')
+        priority = request.form.get('priority', 'normal')
+        action_url = request.form.get('action_url') or None
 
-        notifications_created = 0
-        for user in target_users:
-            notification = Notification(
-                user_id=user.id, content=f"{title}: {body}",
+        # Map the compose form's audience fields to targeting IDs.
+        if target_type == 'team':
+            target_ids = request.form.getlist('team_ids', type=int)
+        elif target_type == 'league':
+            target_ids = request.form.getlist('league_ids', type=int)
+        elif target_type == 'role':
+            target_ids = request.form.getlist('role_names')
+        elif target_type == 'pool':
+            target_ids = [request.form.get('pool_type', 'all')]
+        elif target_type == 'group':
+            group_id = request.form.get('notification_group_id', type=int)
+            target_ids = [group_id] if group_id else []
+        else:  # 'all' or 'platform'
+            target_ids = []
+
+        # Resolve the audience to actual device tokens.
+        tokens = push_targeting_service.resolve_targets(target_type, target_ids, platform)
+        if not tokens:
+            flash('No devices with active push tokens match the selected audience.', 'warning')
+            return redirect(url_for('admin_panel.push_notifications'))
+
+        # Deliver to devices via FCM.
+        extra_data = {'priority': priority}
+        if action_url:
+            extra_data['action_url'] = action_url
+            extra_data['deep_link'] = action_url
+        result = notification_service.send_general_notification(tokens, title, body, extra_data)
+        delivered = result.get('success', 0)
+        failed = result.get('failure', 0)
+
+        # Mirror to in-app notifications for the same recipients (keeps the history feed accurate).
+        recipient_user_ids = [
+            row[0] for row in db.session.query(UserFCMToken.user_id).filter(
+                UserFCMToken.fcm_token.in_(tokens)
+            ).distinct().all()
+        ]
+        for uid in recipient_user_ids:
+            db.session.add(Notification(
+                user_id=uid, content=f"{title}: {body}",
                 notification_type='push', icon='ti ti-bell'
-            )
-            db.session.add(notification)
-            notifications_created += 1
-
+            ))
         db.session.commit()
 
         AdminAuditLog.log_action(
             user_id=current_user.id, action='SEND_PUSH_NOTIFICATION',
             resource_type='Notification', resource_id='bulk',
-            new_value=f'Sent push notification "{title}" to {notifications_created} users',
+            new_value=f'Push "{title}" to {len(tokens)} device(s) ({target_type}): {delivered} delivered, {failed} failed',
             ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent')
         )
 
-        flash(f'Push notification "{title}" sent to {notifications_created} users!', 'success')
+        if delivered and not failed:
+            flash(f'Push "{title}" delivered to {delivered} device(s).', 'success')
+        elif delivered:
+            flash(f'Push "{title}" delivered to {delivered} device(s); {failed} failed.', 'warning')
+        else:
+            flash(f'Push "{title}" could not be delivered ({failed} device(s) failed). Check push service connectivity.', 'error')
         return redirect(url_for('admin_panel.push_notifications'))
     except Exception as e:
         logger.error(f"Error sending push notification: {e}")

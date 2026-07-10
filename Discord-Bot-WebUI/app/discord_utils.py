@@ -1350,33 +1350,63 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
             logger.info(f"Player {player.id} assigned ECS-FC-PL-PREMIER-SUB based on Flask role 'Premier Sub'")
         
         if 'ECS FC Sub' in user_roles:
-            roles.append(normalize_name("ECS-FC-PL-ECS-FC-SUB"))
-            logger.info(f"Player {player.id} assigned ECS-FC-PL-ECS-FC-SUB based on Flask role 'ECS FC Sub'")
+            # Canonical name is ECS-FC-LEAGUE-SUB — the name used by both task
+            # calculators AND every managed/remove list. Emitting ECS-FC-PL-ECS-FC-SUB
+            # here created a SECOND, differently-named sub role that no managed list
+            # covers, so it was never stripped when the sub left the pool.
+            roles.append(normalize_name("ECS-FC-LEAGUE-SUB"))
+            logger.info(f"Player {player.id} assigned ECS-FC-LEAGUE-SUB based on Flask role 'ECS FC Sub'")
 
-    # Check if the player has the "Pub League Coach" role in the Flask app
-    has_coach_role_in_flask = "Pub League Coach" in user_roles
-    
-    # Use database is_coach flag as the authoritative source for Discord role assignment
     should_have_coach_status = player.is_coach
-    
-    # Log determination for debugging
-    logger.info(f"Player {player.id} has database is_coach={player.is_coach}, Flask 'Pub League Coach'={has_coach_role_in_flask}")
-    logger.info(f"Final determination - should have coach status: {should_have_coach_status}")
 
-    # Add coach roles if approved and has coach status
-    if approval_status == 'approved' and should_have_coach_status:
-        # Add coach roles based on the user's Flask league roles
-        if 'pl-classic' in user_roles:
-            roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
-            logger.info(f"Player {player.id} assigned ECS-FC-PL-CLASSIC-COACH based on Flask role 'pl-classic' and coach status")
-        
-        if 'pl-premier' in user_roles:
+    # Coach roles (approved only). PARITY with the task calculators: the Premier/
+    # Classic coach role is scoped PER-TEAM (player_teams.is_coach on a team in that
+    # division) OR granted by the team-independent 'Premier Coach'/'Classic Coach'
+    # Flask role — NOT the global is_coach + pl-<div> derivation, which over-granted
+    # (a Premier player coaching a Classic team got both) and diverged from the batch
+    # reconcile, causing coach roles to flap. Falls back to the legacy global
+    # derivation only when no DB session is available to read player_teams.
+    if approval_status == 'approved':
+        # Team-independent division-coach Flask roles.
+        if 'Premier Coach' in user_roles:
             roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
-            logger.info(f"Player {player.id} assigned ECS-FC-PL-PREMIER-COACH based on Flask role 'pl-premier' and coach status")
-        
-        if 'pl-ecs-fc' in user_roles:
+        if 'Classic Coach' in user_roles:
+            roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
+
+        # Per-team is_coach scoped to each coached team's league.
+        coach_leagues = None
+        if session is not None:
+            try:
+                from app.models import player_teams as _pt
+                coach_leagues = set()
+                for row in session.execute(
+                    _pt.select().where(_pt.c.player_id == player.id)
+                ).fetchall():
+                    if getattr(row, 'is_coach', False):
+                        t = session.query(Team).get(row.team_id)
+                        if t and t.league and t.league.name:
+                            coach_leagues.add(t.league.name.strip().lower())
+            except Exception as e:
+                logger.warning(f"get_expected_roles per-team coach lookup failed for {player.id}: {e}")
+                coach_leagues = None
+
+        if coach_leagues is None:
+            # Fallback: legacy global derivation (no session / lookup failed).
+            if should_have_coach_status:
+                if 'pl-premier' in user_roles:
+                    roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
+                if 'pl-classic' in user_roles:
+                    roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
+        else:
+            if 'premier' in coach_leagues:
+                roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
+            if 'classic' in coach_leagues:
+                roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
+
+        # ECS FC coach role is NOT in the task reconcile's managed list, so it never
+        # flaps — keep the existing global-derived grant (leaves ECS FC as-is).
+        if should_have_coach_status and 'pl-ecs-fc' in user_roles:
             roles.append(normalize_name("ECS-FC-PL-ECS-FC-COACH"))
-            logger.info(f"Player {player.id} assigned ECS-FC-PL-ECS-FC-COACH based on Flask role 'pl-ecs-fc' and coach status")
 
     # Determine leagues associated with the player (fallback for backward compatibility)
     leagues_for_user = set()
