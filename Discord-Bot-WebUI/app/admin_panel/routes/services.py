@@ -46,41 +46,13 @@ logger = logging.getLogger(__name__)
 @login_required 
 @role_required(['Global Admin', 'Pub League Admin'])
 def store_management_overview():
-    """Store management hub."""
-    try:
-        from app.models.store import StoreItem, StoreOrder
-        
-        # Check if tables exist and handle gracefully
-        try:
-            total_items = StoreItem.query.count()
-            total_orders = StoreOrder.query.count()
-            pending_orders = StoreOrder.query.filter_by(status='PENDING').count()
-            completed_orders = StoreOrder.query.filter_by(status='DELIVERED').count()
-            recent_orders = StoreOrder.query.order_by(StoreOrder.order_date.desc()).limit(10).all()
-        except Exception as db_error:
-            logger.warning(f"Store database tables not found or accessible: {db_error}")
-            # Provide default values when tables don't exist
-            total_items = 0
-            total_orders = 0
-            pending_orders = 0
-            completed_orders = 0
-            recent_orders = []
-        
-        stats = {
-            'total_items': total_items,
-            'total_orders': total_orders,
-            'pending_orders': pending_orders,
-            'completed_orders': completed_orders,
-            'revenue_total': 0  # StoreOrder doesn't have total field - would need price * quantity calculation
-        }
-        
-        return render_template('admin_panel/store_management_flowbite.html',
-                             stats=stats,
-                             recent_orders=recent_orders)
-    except Exception as e:
-        logger.error(f"Error loading store management: {e}")
-        flash('Store management unavailable. Check database connectivity and store models.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
+    """Legacy alias — superseded by the richer store_management hub (/store).
+
+    Kept as a redirect so the old /store-overview URL keeps resolving. The canonical
+    store_management page is a strict superset (status breakdown, popular items,
+    recent-activity feed) and is what the nav + Store tabs point at.
+    """
+    return redirect(url_for('admin_panel.store_management'), code=302)
 
 
 # Cache Management Routes
