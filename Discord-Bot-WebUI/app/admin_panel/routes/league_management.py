@@ -1058,19 +1058,10 @@ def season_coaches_discord_status():
         return jsonify({'success': False, 'available': False,
                         'error': 'Discord guild (SERVER_ID) is not configured.'})
 
-    try:
-        rl = requests.get(f"{bot_api_url}/api/server/guilds/{guild_id}/roles", timeout=8)
-        if rl.status_code != 200:
-            return jsonify({'success': False, 'available': False,
-                            'error': f'Bot API returned {rl.status_code}.'})
-        live_roles = {str(r.get('id')): r.get('name') for r in (rl.json() or [])}
-        name_to_id = {name: rid for rid, name in live_roles.items()}
-    except Exception as e:
-        logger.warning(f"Coach Discord status check failed (roles): {e}")
-        return jsonify({'success': False, 'available': False,
-                        'error': 'Could not reach the Discord bot (is it running?).'})
-
+    # The bot's /members/<id>/roles endpoint returns role NAMES (not IDs), so we
+    # compare expected coach role names directly — no /roles lookup needed.
     statuses = {}
+    reachable = False
     for uid, info in want.items():
         did = info['discord_id']
         if not did:
@@ -1079,19 +1070,33 @@ def season_coaches_discord_status():
         try:
             mr = requests.get(
                 f"{bot_api_url}/api/server/guilds/{guild_id}/members/{did}/roles", timeout=8)
+            if mr.status_code == 404:
+                # Member not resolvable in the guild (left / never joined).
+                reachable = True
+                statuses[uid] = 'missing'
+                continue
             if mr.status_code != 200:
                 statuses[uid] = 'unknown'
                 continue
+            reachable = True
             data = mr.json() or {}
-            raw = data.get('roles', data if isinstance(data, list) else [])
-            member_role_ids = set()
-            for r in (raw or []):
-                member_role_ids.add(str(r.get('id')) if isinstance(r, dict) else str(r))
-            expected_ids = {name_to_id.get(n) for n in info['roles']}
-            expected_ids.discard(None)
-            statuses[uid] = 'ok' if (member_role_ids & expected_ids) else 'missing'
+            raw = data.get('roles', []) or []
+            member_role_names = set()
+            for r in raw:
+                if isinstance(r, dict):
+                    if r.get('name'):
+                        member_role_names.add(str(r['name']))
+                else:
+                    member_role_names.add(str(r))
+            statuses[uid] = 'ok' if (member_role_names & info['roles']) else 'missing'
         except Exception as e:
             logger.warning(f"Coach Discord status check failed for user {uid}: {e}")
             statuses[uid] = 'unknown'
+
+    if want and not reachable:
+        # Never reached the bot for anyone — report unavailable so the UI stays quiet
+        # rather than painting every coach amber.
+        return jsonify({'success': False, 'available': False,
+                        'error': 'Could not reach the Discord bot (is it running?).'})
 
     return jsonify({'success': True, 'available': True, 'statuses': statuses})
