@@ -367,6 +367,22 @@ class CeleryConfig:
                 'priority': 8
             }
         },
+        # Daily catch-up import of newly-confirmed Sounders fixtures from ESPN.
+        # Regular-season slate is loaded manually via "Fetch ESPN"; this exists
+        # so knockout/playoff games (Leagues Cup, MLS Cup, US Open Cup, etc.)
+        # that only appear at ESPN once Sounders advance get imported without a
+        # human remembering to re-fetch. Dedups by ESPN id, so it's idempotent.
+        'auto-import-espn-matches': {
+            'task': 'app.tasks.match_scheduler.auto_import_espn_matches',
+            'schedule': crontab(hour=8, minute=15),  # Once daily, 08:15 UTC
+            'options': {
+                'queue': 'live_reporting',
+                'expires': 3600,
+                'time_limit': 300,
+                'soft_time_limit': 240,
+                'priority': 5
+            }
+        },
         # Live Reporting Recovery - Check for matches that should be reporting but aren't
         'check-missing-live-reporting': {
             'task': 'app.tasks.tasks_live_reporting_recovery.recover_missing_tasks',

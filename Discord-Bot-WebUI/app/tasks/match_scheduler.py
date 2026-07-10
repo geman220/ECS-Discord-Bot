@@ -21,6 +21,114 @@ from app.models.live_reporting_session import LiveReportingSession
 logger = logging.getLogger(__name__)
 
 
+@celery_task(max_retries=2, default_retry_delay=300)
+def auto_import_espn_matches(self, session):
+    """
+    Daily catch-up import of newly-confirmed Sounders fixtures from ESPN.
+
+    Fetches upcoming (fixture=true) matches across every competition in
+    COMPETITION_MAPPINGS and inserts any that aren't already in MLSMatch.
+    Existing matches are skipped (dedup by ESPN match_id), so this is safe to
+    run repeatedly.
+
+    Why this exists: knockout / playoff fixtures (Leagues Cup, MLS Cup,
+    US Open Cup, CONCACAF, etc.) only appear at ESPN once Sounders advance and
+    the bracket is drawn. Without this, an admin has to remember to re-click
+    "Fetch ESPN" during a cup/playoff run or the match never enters the DB.
+    This is NOT playoff-specific — it picks up any newly-confirmed fixture in
+    any competition (including rescheduled regular-season games).
+
+    Thread creation / live reporting is NOT scheduled here — inserting the row
+    is enough. The every-10-min `schedule_upcoming_matches` beat job picks up
+    any MLSMatch inside its 7-day window and schedules those tasks.
+    """
+    from datetime import timezone
+    from app.api_utils import async_to_sync, extract_match_details
+    from app.services.espn_service import get_espn_service
+    from app.db_utils import insert_mls_match
+    from app.utils.competition_mappings import COMPETITION_MAPPINGS
+    from app.models.external import MLSMatch
+
+    espn_service = get_espn_service()
+    now = datetime.now(timezone.utc)
+    imported = []
+    errors = 0
+
+    for competition_name, competition_code in COMPETITION_MAPPINGS.items():
+        try:
+            team_endpoint = f"sports/soccer/{competition_code}/teams/9726/schedule?fixture=true"
+            team_data = async_to_sync(espn_service.fetch_data(endpoint=team_endpoint))
+            if not team_data or 'events' not in team_data:
+                continue
+
+            for event in team_data['events']:
+                try:
+                    match_details = extract_match_details(event)
+
+                    # Dedup: skip anything already imported.
+                    existing = session.query(MLSMatch).filter_by(
+                        match_id=match_details['match_id']
+                    ).first()
+                    if existing:
+                        continue
+
+                    # fixture=true should only return upcoming games, but guard
+                    # against a stray past event anyway.
+                    match_dt = match_details['date_time']
+                    if match_dt.tzinfo is None:
+                        match_dt = match_dt.replace(tzinfo=timezone.utc)
+                    if match_dt < now:
+                        continue
+
+                    match = insert_mls_match(
+                        session,
+                        match_details['match_id'],
+                        match_details['opponent'],
+                        match_details['date_time'],
+                        match_details['is_home_game'],
+                        match_details['match_summary_link'],
+                        match_details['match_stats_link'],
+                        match_details['match_commentary_link'],
+                        match_details['venue'],
+                        competition_code,
+                        espn_match_id=match_details['match_id'],
+                        broadcast=match_details.get('broadcast')
+                    )
+                    session.commit()
+
+                    if match:
+                        imported.append({
+                            'match_id': match_details['match_id'],
+                            'opponent': match_details['opponent'],
+                            'competition': competition_name,
+                            'date_time': match_details['date_time'].isoformat(),
+                        })
+                        logger.info(
+                            f"Auto-imported new {competition_name} match vs "
+                            f"{match_details['opponent']} on {match_details['date_time']}"
+                        )
+
+                except Exception as e:
+                    session.rollback()
+                    errors += 1
+                    logger.error(f"Error auto-importing ESPN event: {e}")
+                    continue
+
+        except Exception as e:
+            errors += 1
+            logger.error(f"Error fetching {competition_name} for auto-import: {e}")
+            continue
+
+    if imported:
+        logger.info(f"ESPN auto-import: added {len(imported)} new match(es)")
+    return {
+        'success': True,
+        'imported_count': len(imported),
+        'imported': imported,
+        'errors': errors,
+    }
+
+
 @celery_task(bind=True, max_retries=3, default_retry_delay=60)
 def schedule_upcoming_matches(self, session):
     """

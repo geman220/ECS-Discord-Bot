@@ -683,7 +683,7 @@ def mls_fetch_espn():
 
         for competition_name, competition_code in COMPETITION_MAPPINGS.items():
             try:
-                team_endpoint = f"sports/soccer/{competition_code}/teams/9726/schedule"
+                team_endpoint = f"sports/soccer/{competition_code}/teams/9726/schedule?fixture=true"
                 team_data = async_to_sync(espn_service.fetch_data(endpoint=team_endpoint))
 
                 if team_data and 'events' in team_data:
@@ -786,7 +786,7 @@ def mls_espn_preview():
 
         for competition_name, competition_code in COMPETITION_MAPPINGS.items():
             try:
-                team_endpoint = f"sports/soccer/{competition_code}/teams/9726/schedule"
+                team_endpoint = f"sports/soccer/{competition_code}/teams/9726/schedule?fixture=true"
                 team_data = async_to_sync(espn_service.fetch_data(endpoint=team_endpoint))
 
                 if team_data and 'events' in team_data:
@@ -1033,7 +1033,7 @@ def mls_espn_confirm():
             # Re-fetch all competitions (cache hit within Redis TTL)
             for competition_name, competition_code in COMPETITION_MAPPINGS.items():
                 try:
-                    team_endpoint = f"sports/soccer/{competition_code}/teams/9726/schedule"
+                    team_endpoint = f"sports/soccer/{competition_code}/teams/9726/schedule?fixture=true"
                     team_data = async_to_sync(espn_service.fetch_data(endpoint=team_endpoint))
 
                     if team_data and 'events' in team_data:
