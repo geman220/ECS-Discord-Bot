@@ -864,8 +864,15 @@ async def reconcile_rsvps(match_id, team_id, discord_rsvps, flask_rsvps, channel
         discord_response = discord_rsvps.get(user_id)
         flask_response = flask_rsvps.get(user_id)
         
-        # Skip users who aren't on the team
-        is_team_member = await is_user_on_team(user_id, team_id)
+        # Skip users who aren't on the team. Users present in flask_rsvps are
+        # already confirmed team members (get_flask_rsvps filters by team_id via
+        # the player_teams join), so only the discord-only reactors need the
+        # membership POST — avoiding an is_user_on_team call per roster member on
+        # every full sync (startup / force-sync across all managed messages).
+        if flask_response:
+            is_team_member = True
+        else:
+            is_team_member = await is_user_on_team(user_id, team_id)
         if not is_team_member:
             continue
         

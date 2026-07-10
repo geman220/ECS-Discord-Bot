@@ -168,7 +168,7 @@ def exchange_discord_code(code, redirect_uri, code_verifier=None):
     logger.info(f"Sending token request to Discord with redirect_uri={redirect_uri}")
     
     try:
-        response = requests.post(DISCORD_TOKEN_URL, data=data, headers=headers)
+        response = requests.post(DISCORD_TOKEN_URL, data=data, headers=headers, timeout=(5, 10))
         response.raise_for_status()
         token_data = response.json()
         logger.info("Successfully exchanged code for Discord token")
@@ -195,7 +195,7 @@ def get_discord_user_data(access_token):
     
     try:
         logger.info("Fetching user data from Discord")
-        response = requests.get(DISCORD_API_URL, headers=headers)
+        response = requests.get(DISCORD_API_URL, headers=headers, timeout=(5, 10))
         response.raise_for_status()
         user_data = response.json()
         logger.info(f"Successfully fetched Discord user data: id={user_data.get('id')}, username={user_data.get('username')}")

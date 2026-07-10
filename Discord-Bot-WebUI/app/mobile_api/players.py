@@ -123,6 +123,17 @@ def get_players():
             players = []
 
         base_url = request.host_url.rstrip('/')
+
+        # Batch the player_teams association rows for the whole page once, so we
+        # don't query it individually per (player, team) inside the loop below.
+        coach_map = {}
+        if include_teams and players:
+            page_player_ids = [p.id for p in players]
+            for row in session_db.query(
+                player_teams.c.player_id, player_teams.c.team_id, player_teams.c.is_coach
+            ).filter(player_teams.c.player_id.in_(page_player_ids)).all():
+                coach_map[(row.player_id, row.team_id)] = row.is_coach
+
         players_data = []
         for player in players:
             player_data = {
@@ -147,14 +158,11 @@ def get_players():
                 )
                 player_data["all_teams"] = []
                 for team in player.teams:
-                    team_assoc = session_db.query(player_teams).filter_by(
-                        player_id=player.id, team_id=team.id
-                    ).first()
                     player_data["all_teams"].append({
                         "id": team.id,
                         "name": team.name,
                         "league": team.league.name if team.league else None,
-                        "is_coach": getattr(team_assoc, 'is_coach', False) if team_assoc else False,
+                        "is_coach": coach_map.get((player.id, team.id), False),
                     })
             players_data.append(player_data)
 

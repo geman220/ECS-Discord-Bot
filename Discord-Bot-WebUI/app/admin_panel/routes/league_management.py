@@ -963,6 +963,12 @@ def season_coaches_search():
     return jsonify({'success': True, 'results': results})
 
 
+# Redis hash: {user_id: 'ok'|'missing'} — cached live Discord coach-role status so
+# the Coaches panel doesn't re-poll the bot for every coach on every page load.
+_COACH_STATUS_CACHE_KEY = 'coach_discord_status'
+_COACH_STATUS_CACHE_TTL = 900  # 15 min
+
+
 @admin_panel_bp.route('/seasons/coaches/sync-discord', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
@@ -979,12 +985,24 @@ def season_coaches_sync_discord():
     from app.models import Role
     from app.tasks.tasks_discord import process_discord_role_updates
 
+    # ?all=1 re-syncs everyone; default only syncs coaches NOT already confirmed
+    # (cached status != 'ok'), so we don't re-push roles that are already correct.
+    sync_all = (request.args.get('all') or '').lower() in ('1', 'true', 'yes')
+
+    cached = {}
+    try:
+        from app.utils.safe_redis import get_safe_redis
+        cached = get_safe_redis().hgetall(_COACH_STATUS_CACHE_KEY) or {}
+    except Exception:
+        cached = {}
+
     premier_role = db.session.query(Role).filter_by(name='Premier Coach').first()
     classic_role = db.session.query(Role).filter_by(name='Classic Coach').first()
 
     seen = set()
     discord_ids = []
     no_discord = 0
+    skipped_ok = 0
     for role in (premier_role, classic_role):
         if not role:
             continue
@@ -993,10 +1011,13 @@ def season_coaches_sync_discord():
                 continue
             seen.add(u.id)
             did = u.player.discord_id if u.player else None
-            if did:
-                discord_ids.append(str(did))
-            else:
+            if not did:
                 no_discord += 1
+                continue
+            if not sync_all and str(cached.get(str(u.id))) == 'ok':
+                skipped_ok += 1
+                continue
+            discord_ids.append(str(did))
 
     # Fire ONE batched task rather than N competing ones. The bot paces the
     # per-member Discord writes internally, so we don't trip Discord's role
@@ -1006,6 +1027,12 @@ def season_coaches_sync_discord():
     if discord_ids:
         try:
             process_discord_role_updates.delay(discord_ids)
+            # Invalidate the status cache so the page re-verifies (cheap now that
+            # the bot reads member roles from its cache, no Discord API calls).
+            try:
+                get_safe_redis().delete(_COACH_STATUS_CACHE_KEY)
+            except Exception:
+                pass
         except Exception as e:
             logger.error(f"Failed to queue batched coach Discord sync: {e}")
             errors = queued
@@ -1015,6 +1042,7 @@ def season_coaches_sync_discord():
         'success': errors == 0,
         'total': len(seen),
         'queued': queued,
+        'skipped_ok': skipped_ok,
         'no_discord': no_discord,
         'errors': errors,
     })
@@ -1026,14 +1054,20 @@ def season_coaches_sync_discord():
 def season_coaches_discord_status():
     """Live-verify each division coach actually holds their coach role in Discord.
 
-    Reads the guild's roles and each coach's member roles straight from the bot
-    (same source the sync uses), so the Coaches panel can show a real green/amber
-    status per coach instead of trusting the Flask DB. Returns a map of
+    Reads each coach's member roles straight from the bot (same source the sync
+    uses), so the Coaches panel can show a real green/amber status per coach
+    instead of trusting the Flask DB. Returns a map of
     user_id -> 'ok' | 'missing' | 'no_discord' | 'unknown'.
+
+    Cached in Redis (15 min): a normal load returns cached verdicts and only
+    polls the bot for coaches with no cached result. Pass ?refresh=1 to re-poll
+    everyone (the "Re-check" button).
     """
     import os
     import requests
     from app.models import Role
+
+    refresh = (request.args.get('refresh') or '').lower() in ('1', 'true', 'yes')
 
     premier_role = db.session.query(Role).filter_by(name='Premier Coach').first()
     classic_role = db.session.query(Role).filter_by(name='Classic Coach').first()
@@ -1058,22 +1092,39 @@ def season_coaches_discord_status():
         return jsonify({'success': False, 'available': False,
                         'error': 'Discord guild (SERVER_ID) is not configured.'})
 
-    # The bot's /members/<id>/roles endpoint returns role NAMES (not IDs), so we
-    # compare expected coach role names directly — no /roles lookup needed.
+    redis = None
+    cached = {}
+    try:
+        from app.utils.safe_redis import get_safe_redis
+        redis = get_safe_redis()
+        if not refresh:
+            cached = redis.hgetall(_COACH_STATUS_CACHE_KEY) or {}
+    except Exception:
+        redis, cached = None, {}
+
+    # Serve cached verdicts; only poll the bot for coaches we don't have yet.
     statuses = {}
-    reachable = False
+    to_poll = {}
     for uid, info in want.items():
-        did = info['discord_id']
-        if not did:
+        if not info['discord_id']:
             statuses[uid] = 'no_discord'
-            continue
+        elif str(uid) in cached:
+            statuses[uid] = str(cached[str(uid)])
+        else:
+            to_poll[uid] = info
+
+    # The bot's /members/<id>/roles endpoint returns role NAMES (not IDs), so we
+    # compare expected coach role names directly.
+    reachable = not to_poll  # nothing to poll => cache fully served this request
+    fresh = {}
+    for uid, info in to_poll.items():
+        did = info['discord_id']
         try:
             mr = requests.get(
                 f"{bot_api_url}/api/server/guilds/{guild_id}/members/{did}/roles", timeout=8)
             if mr.status_code == 404:
-                # Member not resolvable in the guild (left / never joined).
                 reachable = True
-                statuses[uid] = 'missing'
+                statuses[uid] = fresh[uid] = 'missing'
                 continue
             if mr.status_code != 200:
                 statuses[uid] = 'unknown'
@@ -1088,15 +1139,25 @@ def season_coaches_discord_status():
                         member_role_names.add(str(r['name']))
                 else:
                     member_role_names.add(str(r))
-            statuses[uid] = 'ok' if (member_role_names & info['roles']) else 'missing'
+            statuses[uid] = fresh[uid] = 'ok' if (member_role_names & info['roles']) else 'missing'
         except Exception as e:
             logger.warning(f"Coach Discord status check failed for user {uid}: {e}")
             statuses[uid] = 'unknown'
 
-    if want and not reachable:
-        # Never reached the bot for anyone — report unavailable so the UI stays quiet
-        # rather than painting every coach amber.
+    if to_poll and not reachable:
+        # Had to poll but reached the bot for nobody — report unavailable so the
+        # UI stays quiet rather than painting everyone amber.
         return jsonify({'success': False, 'available': False,
                         'error': 'Could not reach the Discord bot (is it running?).'})
 
-    return jsonify({'success': True, 'available': True, 'statuses': statuses})
+    # Persist the freshly-polled ok/missing verdicts (skip 'unknown' so a transient
+    # blip isn't cached as fact).
+    if fresh and redis:
+        try:
+            redis.hset(_COACH_STATUS_CACHE_KEY, mapping={str(k): v for k, v in fresh.items()})
+            redis.expire(_COACH_STATUS_CACHE_KEY, _COACH_STATUS_CACHE_TTL)
+        except Exception:
+            pass
+
+    return jsonify({'success': True, 'available': True, 'statuses': statuses,
+                    'from_cache': bool(cached) and not refresh})

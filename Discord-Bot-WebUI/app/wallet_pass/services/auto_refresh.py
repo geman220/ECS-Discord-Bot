@@ -154,27 +154,29 @@ def _fire_wallet_refresh_tasks(session):
 
     try:
         from app.tasks.wallet_refresh_tasks import (
-            push_wallet_refresh_for_player,
+            push_wallet_refresh_batch,
             push_wallet_refresh_for_match,
         )
     except Exception as e:
         logger.warning(f"wallet auto-refresh: tasks not available: {e}")
         return
 
+    # Coalesce per-player refreshes into ONE batched task instead of one task per
+    # player — a bulk commit (e.g. approving/deactivating hundreds of users) would
+    # otherwise fan out hundreds of wallet-refresh tasks.
     seen_players = set()
+    players_payload = []
     for item in bag['players']:
         pid = item.get('player_id')
         if not pid or pid in seen_players:
             continue
         seen_players.add(pid)
+        players_payload.append({'player_id': pid, 'void': item.get('became_inactive', False)})
+    if players_payload:
         try:
-            push_wallet_refresh_for_player.delay(
-                player_id=pid,
-                void=item.get('became_inactive', False),
-                reason='player_attr_change',
-            )
+            push_wallet_refresh_batch.delay(players=players_payload, reason='player_attr_change')
         except Exception as e:
-            logger.warning(f"wallet auto-refresh: failed to enqueue for player {pid}: {e}")
+            logger.warning(f"wallet auto-refresh: failed to enqueue batch for {len(players_payload)} players: {e}")
 
     seen_matches = set()
     for item in bag['matches']:

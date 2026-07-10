@@ -55,23 +55,63 @@ class DeferredDiscordQueue:
         ))
 
     def execute_all(self) -> int:
-        """Dispatch all queued operations to Celery. Empties the queue."""
+        """Dispatch all queued operations to Celery. Empties the queue.
+
+        assign_roles ops are COALESCED into a single batched reconcile task
+        (process_discord_role_updates) rather than one task per player. Bulk admin
+        actions (approve / role-assign 100-300 users) queue one assign op each, and
+        the old per-op .delay() fan-out spawned N concurrent role-sync tasks that
+        tripped Discord's rate limiter. Every add_role_sync caller uses
+        only_add=False, so a full add+remove reconcile is the correct semantics.
+        remove_roles / DM ops are left per-player (rare, usually single-user).
+        """
         if not self._operations:
             return 0
 
         from app.tasks.tasks_discord import (
-            assign_roles_to_player_task,
+            process_discord_role_updates,
             remove_player_roles_task,
         )
 
-        executed = 0
+        # Split assign ops (batched) from the rest.
+        assign_player_ids = []
+        seen_assign = set()
+        other_ops = []
         for op in self._operations:
+            if op.operation_type == 'assign_roles':
+                if op.player_id not in seen_assign:
+                    seen_assign.add(op.player_id)
+                    assign_player_ids.append(op.player_id)
+            else:
+                other_ops.append(op)
+
+        dispatched = 0
+
+        # One batched reconcile task for all assign_roles players.
+        if assign_player_ids:
             try:
-                if op.operation_type == 'assign_roles':
-                    assign_roles_to_player_task.delay(
-                        player_id=op.player_id, **op.kwargs
-                    )
-                elif op.operation_type == 'remove_roles':
+                from app.core.session_manager import managed_session
+                from app.models import Player
+                with managed_session() as s:
+                    discord_ids = [
+                        str(did) for (did,) in s.query(Player.discord_id).filter(
+                            Player.id.in_(assign_player_ids),
+                            Player.discord_id.isnot(None),
+                        ).all()
+                    ]
+                if discord_ids:
+                    process_discord_role_updates.delay(discord_ids)
+                    dispatched += 1
+            except Exception as e:
+                logger.error(
+                    f"Failed to dispatch batched role sync for "
+                    f"{len(assign_player_ids)} players: {e}"
+                )
+
+        # Remaining ops (removals, DMs) stay per-player.
+        for op in other_ops:
+            try:
+                if op.operation_type == 'remove_roles':
                     remove_player_roles_task.delay(
                         player_id=op.player_id, **op.kwargs
                     )
@@ -81,7 +121,7 @@ class DeferredDiscordQueue:
                 else:
                     logger.warning(f"Unknown operation type: {op.operation_type}")
                     continue
-                executed += 1
+                dispatched += 1
             except Exception as e:
                 logger.error(
                     f"Failed to dispatch Discord op {op.operation_type} "
@@ -89,9 +129,12 @@ class DeferredDiscordQueue:
                 )
 
         self._operations.clear()
-        if executed:
-            logger.info(f"Dispatched {executed} deferred Discord operations")
-        return executed
+        if dispatched:
+            logger.info(
+                f"Dispatched {dispatched} deferred Discord task(s) "
+                f"({len(assign_player_ids)} players batched for role sync)"
+            )
+        return dispatched
 
     def clear(self):
         self._operations.clear()

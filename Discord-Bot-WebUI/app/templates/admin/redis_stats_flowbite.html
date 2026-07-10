@@ -163,8 +163,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function startAutoRefresh() {
         if (autoRefreshInterval) clearInterval(autoRefreshInterval);
         autoRefreshInterval = setInterval(function() {
+            if (document.hidden) return;  // don't hammer Redis from a backgrounded tab
             location.reload();
-        }, 5000);
+        }, 15000);
     }
     function stopAutoRefresh() {
         if (autoRefreshInterval) {

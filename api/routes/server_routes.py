@@ -249,11 +249,17 @@ async def get_member_roles(guild_id: int, user_id: int, bot: commands.Bot = Depe
         raise HTTPException(status_code=404, detail="Guild not found")
     
     try:
-        member = await guild.fetch_member(user_id)
+        # Cache-first: reading roles off the cached member costs no Discord API
+        # call. Only fall back to a (rate-limited) fetch_member if the member
+        # isn't in the gateway member cache. This endpoint is polled for role
+        # verification, so avoiding fetch_member here prevents 429 storms.
+        member = guild.get_member(user_id)
+        if member is None:
+            member = await guild.fetch_member(user_id)
         if not member:
             logger.error(f"Member with ID {user_id} not found in guild {guild_id}.")
             raise HTTPException(status_code=404, detail="Member not found")
-        
+
         # Return a list of role names
         role_names = [role.name for role in member.roles]
         return {
@@ -281,7 +287,11 @@ async def add_role_to_member(guild_id: int, user_id: int, role_id: int, bot: com
         raise HTTPException(status_code=404, detail="Guild not found")
 
     try:
-        member = await guild.fetch_member(user_id)
+        # Cache-first: add_roles only needs a member object, so avoid a
+        # rate-limited fetch_member on every grant. Fall back to fetch on cache miss.
+        member = guild.get_member(user_id)
+        if member is None:
+            member = await guild.fetch_member(user_id)
     except discord.NotFound:
         raise HTTPException(status_code=404, detail="Member not found")
     except discord.Forbidden:
@@ -324,7 +334,11 @@ async def remove_role_from_member(guild_id: int, user_id: int, role_id: int, bot
         raise HTTPException(status_code=404, detail="Guild not found")
 
     try:
-        member = await guild.fetch_member(user_id)
+        # Cache-first: remove_roles only needs a member object, so avoid a
+        # rate-limited fetch_member on every removal. Fall back to fetch on miss.
+        member = guild.get_member(user_id)
+        if member is None:
+            member = await guild.fetch_member(user_id)
     except discord.NotFound:
         raise HTTPException(status_code=404, detail="Member not found")
     except discord.Forbidden:
@@ -368,7 +382,11 @@ async def get_member(guild_id: int, user_id: int, bot: commands.Bot = Depends(ge
         raise HTTPException(status_code=404, detail="Guild not found")
     
     try:
-        member = await guild.fetch_member(user_id)
+        # Cache-first — this endpoint is polled for verification; only hit the
+        # Discord REST API (fetch_member) when the member isn't cached.
+        member = guild.get_member(user_id)
+        if member is None:
+            member = await guild.fetch_member(user_id)
         return {
             "id": str(member.id),
             "user_id": str(user_id),
@@ -404,7 +422,11 @@ async def check_member_status(guild_id: int, user_id: int, bot: commands.Bot = D
         raise HTTPException(status_code=404, detail="Guild not found")
     
     try:
-        member = await guild.fetch_member(user_id)
+        # Cache-first membership check — only fall back to the rate-limited
+        # fetch_member when the member isn't in the gateway cache.
+        member = guild.get_member(user_id)
+        if member is None:
+            member = await guild.fetch_member(user_id)
         return {
             "user_id": str(user_id),
             "guild_id": str(guild_id),

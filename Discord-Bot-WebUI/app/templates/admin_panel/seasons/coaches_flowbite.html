@@ -24,12 +24,19 @@
       <i class="ti ti-info-circle mt-0.5 text-gray-400 shrink-0" aria-hidden="true"></i>
       <span>Adding a coach here grants the division coach role and coaches channel immediately — before any team is drafted. When you later draft the coach onto their actual team, that stays consistent. Someone who plays one division but coaches the other should be added to the division they <em>coach</em>.</span>
     </p>
-    <button type="button" id="syncCoachesBtn"
-            data-url="{{ url_for('admin_panel.season_coaches_sync_discord') }}"
-            class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
-            title="Re-push every coach's Discord role — use if roles didn't appear in Discord">
-      <i class="ti ti-brand-discord" aria-hidden="true"></i> Sync roles to Discord
-    </button>
+    <div class="shrink-0 flex items-center gap-2">
+      <button type="button" id="recheckCoachesBtn"
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+              title="Re-check every coach's live Discord role status">
+        <i class="ti ti-refresh" aria-hidden="true"></i> Re-check
+      </button>
+      <button type="button" id="syncCoachesBtn"
+              data-url="{{ url_for('admin_panel.season_coaches_sync_discord') }}"
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+              title="Push Discord roles only for coaches not already confirmed (green)">
+        <i class="ti ti-brand-discord" aria-hidden="true"></i> Sync missing
+      </button>
+    </div>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
@@ -135,11 +142,12 @@
     el.innerHTML = '<i class="ti ' + m.icon + ' ' + m.cls + ' text-base" aria-hidden="true"></i>';
   }
 
-  function loadDiscordStatus() {
+  function loadDiscordStatus(refresh) {
     var badges = document.querySelectorAll('[data-coach-status]');
     if (!badges.length) return;
     badges.forEach(function (b) { renderStatus(b, 'checking'); });
-    fetch(STATUS_URL, { headers: { 'X-CSRFToken': csrf() } })
+    var url = STATUS_URL + (refresh ? '?refresh=1' : '');
+    fetch(url, { headers: { 'X-CSRFToken': csrf() } })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data || !data.available) {
@@ -308,11 +316,18 @@
           syncBtn.disabled = false;
           syncBtn.innerHTML = original;
           if (data && data.success) {
-            var extra = data.no_discord ? (' · ' + data.no_discord + ' skipped (no Discord)') : '';
-            toast('Queued Discord sync for ' + data.queued + ' coach' + (data.queued === 1 ? '' : 'es') + extra, true);
-            // Roles take a few seconds to land in Discord — re-verify after a beat.
-            document.querySelectorAll('[data-coach-status]').forEach(function (b) { renderStatus(b, 'checking'); });
-            setTimeout(loadDiscordStatus, 5000);
+            var bits = [];
+            if (data.skipped_ok) bits.push(data.skipped_ok + ' already ok');
+            if (data.no_discord) bits.push(data.no_discord + ' no Discord');
+            var extra = bits.length ? (' · ' + bits.join(' · ')) : '';
+            if (data.queued === 0) {
+              toast('All coaches already confirmed' + extra, true);
+            } else {
+              toast('Queued Discord sync for ' + data.queued + ' coach' + (data.queued === 1 ? '' : 'es') + extra, true);
+              // Roles take a few seconds to land in Discord — re-verify after a beat.
+              document.querySelectorAll('[data-coach-status]').forEach(function (b) { renderStatus(b, 'checking'); });
+              setTimeout(loadDiscordStatus, 5000);
+            }
           } else {
             toast((data && data.errors ? data.errors + ' failed to queue' : 'Sync failed'), false);
           }
@@ -325,7 +340,15 @@
     });
   }
 
-  // Verify live Discord role status on page load.
+  // Manual "Re-check" — force a fresh poll of every coach (bypasses the cache).
+  var recheckBtn = document.getElementById('recheckCoachesBtn');
+  if (recheckBtn) {
+    recheckBtn.addEventListener('click', function () {
+      loadDiscordStatus(true);
+    });
+  }
+
+  // Verify live Discord role status on page load (served from cache when warm).
   loadDiscordStatus();
 })();
 </script>

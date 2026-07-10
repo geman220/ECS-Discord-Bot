@@ -302,32 +302,38 @@ def team_details(team_id):
     player_choices = {}
     practice_dates_added = set()  # Track practice sessions already added
 
+    # For historical seasons, batch EVERY team's roster in one query instead of
+    # two roster queries per match (N+1). Current seasons use the eager-loaded
+    # team.players relationship below, so no batch is needed there.
+    historical_rosters = {}
+    if season and not season.is_current and all_matches:
+        hist_team_ids = set()
+        for m in all_matches:
+            if m.home_team_id:
+                hist_team_ids.add(m.home_team_id)
+            if m.away_team_id:
+                hist_team_ids.add(m.away_team_id)
+        if hist_team_ids:
+            roster_rows = (
+                session.query(PlayerTeamSeason.team_id, Player.id, Player.name)
+                .join(Player, Player.id == PlayerTeamSeason.player_id)
+                .filter(
+                    PlayerTeamSeason.team_id.in_(hist_team_ids),
+                    PlayerTeamSeason.season_id == season.id,
+                )
+                .all()
+            )
+            for r_team_id, r_pid, r_pname in roster_rows:
+                historical_rosters.setdefault(r_team_id, {})[r_pid] = r_pname
+
     for match in all_matches:
         home_team_name = match.home_team.name if match.home_team else 'Unknown'
         away_team_name = match.away_team.name if match.away_team else 'Unknown'
 
         # Load players differently for historical vs. current seasons.
         if season and not season.is_current:
-            home_players = (
-                session.query(Player)
-                .join(PlayerTeamSeason)
-                .filter(
-                    PlayerTeamSeason.team_id == match.home_team_id,
-                    PlayerTeamSeason.season_id == season.id
-                )
-                .all()
-            )
-            away_players = (
-                session.query(Player)
-                .join(PlayerTeamSeason)
-                .filter(
-                    PlayerTeamSeason.team_id == match.away_team_id,
-                    PlayerTeamSeason.season_id == season.id
-                )
-                .all()
-            )
-            home_team_players = {p.id: p.name for p in home_players}
-            away_team_players = {p.id: p.name for p in away_players}
+            home_team_players = historical_rosters.get(match.home_team_id, {})
+            away_team_players = historical_rosters.get(match.away_team_id, {})
         else:
             home_team_players = {p.id: p.name for p in match.home_team.players} if match.home_team else {}
             away_team_players = {p.id: p.name for p in match.away_team.players} if match.away_team else {}
@@ -1798,72 +1804,36 @@ def assign_discord_roles_to_team(team_id):
     logger.info(f"Starting manual Discord role assignment for team {team.name} (ID: {team_id})")
     logger.info(f"Found {len(players_with_discord)} players with Discord IDs: {[p.name for p in players_with_discord]}")
     
-    # Import the existing Celery task for role assignment
-    from app.tasks.tasks_discord import assign_roles_to_player_task
-    
-    # Track results
-    assignment_results = []
-    success_count = 0
-    error_count = 0
-    
-    # Process each player with Discord ID
-    for player in players_with_discord:
-        try:
-            logger.info(f"Assigning roles to player {player.name} (ID: {player.id}, Discord: {player.discord_id})")
-            
-            # Use the existing Celery task to assign roles
-            # team_id=None means process all teams for this player (not just one specific team)
-            # only_add=False means it will also remove roles that shouldn't be there
-            task_result = assign_roles_to_player_task.delay(
-                player.id, 
-                team_id=None,  # Process all teams, not just this specific team
-                only_add=False  # Allow role removal for proper sync
-            )
-            
-            # For manual assignment, we want to know the result immediately
-            # In production, you might want to make this async and poll for results
-            result = task_result.get(timeout=30)  # Wait up to 30 seconds for result
-            
-            if result.get('success'):
-                success_count += 1
-                assignment_results.append({
-                    'player_name': player.name,
-                    'status': 'success',
-                    'roles_added': result.get('roles_added', []),
-                    'roles_removed': result.get('roles_removed', [])
-                })
-                logger.info(f"Successfully assigned roles to {player.name}: added {result.get('roles_added', [])}, removed {result.get('roles_removed', [])}")
-            else:
-                error_count += 1
-                assignment_results.append({
-                    'player_name': player.name,
-                    'status': 'error',
-                    'error': result.get('message', 'Unknown error')
-                })
-                logger.error(f"Failed to assign roles to {player.name}: {result.get('message', 'Unknown error')}")
-                
-        except Exception as e:
-            error_count += 1
-            assignment_results.append({
-                'player_name': player.name,
-                'status': 'error',
-                'error': str(e)
-            })
-            logger.error(f"Exception while assigning roles to {player.name}: {e}", exc_info=True)
-    
-    # Log final results
-    logger.info(f"Manual Discord role assignment completed for team {team.name}")
-    logger.info(f"Results: {success_count} successful, {error_count} errors")
-    
-    # Return results
+    # Batch ALL players into ONE role-sync task instead of firing (and blocking
+    # on) one task per player. The old loop called assign_roles_to_player_task
+    # .delay() per player and then task_result.get(timeout=30) — tying up a web
+    # worker for up to 30s × N players and fanning out N concurrent Discord role
+    # writes that tripped the rate limiter. process_discord_role_updates takes a
+    # list of discord IDs, paces the writes internally, and reconciles each
+    # player's full role set (adds + removes).
+    from app.tasks.tasks_discord import process_discord_role_updates
+
+    discord_ids = [str(p.discord_id) for p in players_with_discord]
+    try:
+        process_discord_role_updates.delay(discord_ids)
+    except Exception as e:
+        logger.error(f"Failed to queue Discord role sync for team {team.name}: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': 'Could not queue the Discord role sync (is the task broker running?).'
+        }), 500
+
+    logger.info(f"Queued batched Discord role sync for {len(discord_ids)} players on team {team.name}")
+
+    # processed_count / message kept for the existing team-detail.js consumer.
     return jsonify({
         'success': True,
-        'message': f'Discord role assignment completed for {team.name}',
+        'message': f'Queued Discord role sync for {len(discord_ids)} player(s) on {team.name}. Roles update in the background.',
         'team_name': team.name,
-        'processed_count': success_count,
-        'error_count': error_count,
+        'processed_count': len(discord_ids),
+        'error_count': 0,
         'total_players': len(players_with_discord),
-        'results': assignment_results
+        'queued': True,
     })
 
 

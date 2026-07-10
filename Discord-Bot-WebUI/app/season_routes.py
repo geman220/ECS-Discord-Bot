@@ -385,19 +385,25 @@ def _queue_discord_role_removals(role_removals: list) -> int:
     """
     queued = 0
     try:
-        from app.tasks.tasks_discord import remove_player_roles_task
+        from app.tasks.tasks_discord import process_discord_role_updates
 
+        # Rollover touches EVERY player, so the old one-remove-task-per-(player,team)
+        # fan-out was the single biggest source of Discord 429s. Dedupe to one entry
+        # per player and fire a SINGLE batched reconcile task. By the time it runs the
+        # rosters are cleared, so reconciling each player to their expected role set
+        # removes the stale team roles (and the bot paces the writes internally).
+        seen = set()
+        discord_ids = []
         for removal in role_removals:
-            try:
-                remove_player_roles_task.delay(
-                    player_id=removal['player_id'],
-                    team_id=removal['team_id']
-                )
-                queued += 1
-            except Exception as e:
-                logger.warning(f"Failed to queue role removal for player {removal['player_id']}: {e}")
+            did = removal.get('discord_id')
+            if did and str(did) not in seen:
+                seen.add(str(did))
+                discord_ids.append(str(did))
 
-        logger.info(f"Queued {queued} Discord role removal tasks")
+        if discord_ids:
+            process_discord_role_updates.delay(discord_ids)
+            queued = len(discord_ids)
+            logger.info(f"Queued 1 batched Discord role reconcile for {queued} players (rollover cleanup)")
 
     except ImportError:
         logger.warning("Discord tasks not available - Discord roles will not be cleaned up automatically")

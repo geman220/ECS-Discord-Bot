@@ -921,6 +921,7 @@
             autoRefreshToggle.addEventListener('change', function() {
                 if (this.checked) {
                     autoRefreshInterval = setInterval(function() {
+                        if (document.hidden) return;  // don't reload from a backgrounded tab
                         location.reload();
                     }, 30000);
                     updateLastUpdated();

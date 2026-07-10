@@ -776,7 +776,7 @@ def check_redis_health() -> bool:
 def check_celery_health() -> bool:
     """Check Celery worker health."""
     try:
-        response = requests.get('http://flower:5555/api/workers')
+        response = requests.get('http://flower:5555/api/workers', timeout=3)
         workers = response.json()
         return any(worker.get('status', False) for worker in workers.values())
     except Exception as e:
@@ -800,7 +800,7 @@ def check_task_status() -> Dict[str, Any]:
         A dictionary containing task status metrics.
     """
     try:
-        response = requests.get('http://flower:5555/api/tasks')
+        response = requests.get('http://flower:5555/api/tasks', timeout=3)
         tasks = response.json()
         return {
             'total': len(tasks),

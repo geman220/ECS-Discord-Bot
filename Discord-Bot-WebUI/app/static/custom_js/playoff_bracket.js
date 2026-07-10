@@ -445,6 +445,7 @@ export class PlayoffBracket {
         if (!this.autoRefreshEnabled) return;
 
         this.refreshInterval = setInterval(async () => {
+            if (document.hidden) return;  // skip polling while the tab is hidden
             console.log('Auto-refreshing bracket data...');
             try {
                 await this.fetchBracketData();

@@ -857,24 +857,36 @@ def index():
         announcements = fetch_announcements()
         player_choices_per_match = {}
 
+        # Batch every relevant team's roster in ONE query instead of a roster
+        # query (plus a lazy p.teams access) per match — an N+1 across the whole
+        # homepage match list.
+        all_team_ids = set()
+        for matches_dict in [next_matches, previous_matches]:
+            for matches_list in matches_dict.values():
+                for match_data in matches_list:
+                    if match_data.get('home_team_id'):
+                        all_team_ids.add(match_data['home_team_id'])
+                    if match_data.get('opponent_team_id'):
+                        all_team_ids.add(match_data['opponent_team_id'])
+        roster_by_team = {}
+        if all_team_ids:
+            for r_team_id, r_pid, r_pname in (
+                session.query(player_teams.c.team_id, Player.id, Player.name)
+                .join(Player, Player.id == player_teams.c.player_id)
+                .filter(player_teams.c.team_id.in_(all_team_ids))
+                .all()
+            ):
+                roster_by_team.setdefault(r_team_id, {})[r_pid] = r_pname
+
         for matches_dict in [next_matches, previous_matches]:
             for date_key, matches_list in matches_dict.items():
                 for match_data in matches_list:
                     match = match_data['match']
                     home_team_id = match_data['home_team_id']
                     opp_team_id = match_data['opponent_team_id']
-
-                    players = (
-                        session.query(Player)
-                        .join(player_teams, player_teams.c.player_id == Player.id)
-                        .filter(player_teams.c.team_id.in_([home_team_id, opp_team_id]))
-                        .all()
-                    )
-                    home_players = [p for p in players if any(t.id == home_team_id for t in p.teams)]
-                    away_players = [p for p in players if any(t.id == opp_team_id for t in p.teams)]
                     player_choices_per_match[match.id] = {
-                        match_data['home_team_name']: {p.id: p.name for p in home_players},
-                        match_data['opponent_name']: {p.id: p.name for p in away_players}
+                        match_data['home_team_name']: roster_by_team.get(home_team_id, {}),
+                        match_data['opponent_name']: roster_by_team.get(opp_team_id, {})
                     }
 
         # Pre-process match data for the template

@@ -87,7 +87,7 @@ def exchange_discord_code(code: str, redirect_uri: str, code_verifier: str) -> D
         }
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
-        response = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)
+        response = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers, timeout=(5, 10))
         
         if not response.ok:
             logger.error(f"Discord token exchange error: {response.status_code} {response.text}")
@@ -117,7 +117,7 @@ def get_discord_user_data(access_token: str) -> Dict:
     """
     try:
         headers = {'Authorization': f'Bearer {access_token}'}
-        response = requests.get('https://discord.com/api/users/@me', headers=headers)
+        response = requests.get('https://discord.com/api/users/@me', headers=headers, timeout=(5, 10))
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:

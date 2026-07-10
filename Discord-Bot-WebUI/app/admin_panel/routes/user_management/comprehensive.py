@@ -30,7 +30,7 @@ from app.utils.db_utils import transactional
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
 from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal
 from app.utils.deferred_cache import defer_clear_league_cache
-from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
+from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task, process_discord_role_updates
 
 logger = logging.getLogger(__name__)
 
@@ -1162,17 +1162,23 @@ def bulk_user_comprehensive_actions():
                 users_to_remove_roles.append(user)
                 count += 1
 
-        # Trigger Discord sync for affected users
-        for user in users_to_sync:
-            if user.player and user.player.discord_id:
-                assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+        # Batch the role-sync group into ONE reconcile task (was one task per user —
+        # a fan-out that tripped Discord's rate limiter on large bulk actions). All
+        # use only_add=False, so full add+remove reconcile is correct. Removals stay
+        # per-user (explicit strip; usually a smaller set).
+        sync_discord_ids = [
+            str(user.player.discord_id) for user in users_to_sync
+            if user.player and user.player.discord_id
+        ]
+        if sync_discord_ids:
+            process_discord_role_updates.delay(sync_discord_ids)
 
         for user in users_to_remove_roles:
             if user.player and user.player.discord_id:
                 remove_player_roles_task.delay(player_id=user.player.id)
 
         if users_to_sync or users_to_remove_roles:
-            logger.info(f"Bulk action '{action}': triggered Discord sync for {len(users_to_sync)} users, role removal for {len(users_to_remove_roles)} users")
+            logger.info(f"Bulk action '{action}': batched Discord sync for {len(sync_discord_ids)} users, role removal for {len(users_to_remove_roles)} users")
 
         # Log the action
         AdminAuditLog.log_action(
@@ -1248,17 +1254,20 @@ def bulk_update_users():
         else:
             return jsonify({'success': False, 'message': 'Invalid action'})
 
-        # Trigger Discord sync for affected users
-        for user in users_to_sync:
-            if user.player and user.player.discord_id:
-                assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+        # Batch the role-sync group into ONE reconcile task (was one task per user).
+        sync_discord_ids = [
+            str(user.player.discord_id) for user in users_to_sync
+            if user.player and user.player.discord_id
+        ]
+        if sync_discord_ids:
+            process_discord_role_updates.delay(sync_discord_ids)
 
         for user in users_to_remove_roles:
             if user.player and user.player.discord_id:
                 remove_player_roles_task.delay(player_id=user.player.id)
 
         if users_to_sync or users_to_remove_roles:
-            logger.info(f"Bulk update '{action}': triggered Discord sync for {len(users_to_sync)} users, role removal for {len(users_to_remove_roles)} users")
+            logger.info(f"Bulk update '{action}': batched Discord sync for {len(sync_discord_ids)} users, role removal for {len(users_to_remove_roles)} users")
 
         # Log the action
         AdminAuditLog.log_action(

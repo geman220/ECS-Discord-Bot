@@ -1939,10 +1939,11 @@ def handle_incoming_text_command(phone_number, message_text):
         ).first()
         
         if ecs_response:
-            # Process as ECS FC sub response
-            result = process_sub_response.apply_async(
-                args=[player.id, message_text, 'SMS']
-            ).get(timeout=10)
+            # Process in-process (same pattern as the unified path above) rather
+            # than apply_async().get(timeout=10), which blocked this SMS webhook
+            # worker on a broker round-trip. The @celery_task decorator injects the
+            # session on a direct call.
+            result = process_sub_response(player.id, message_text, 'SMS')
             
             if result.get('success'):
                 is_available = cmd in ['yes', 'y', 'available', '1']

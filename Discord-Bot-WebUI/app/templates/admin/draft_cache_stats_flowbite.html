@@ -206,8 +206,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function startAutoRefresh() {
         if (autoRefreshInterval) clearInterval(autoRefreshInterval);
         autoRefreshInterval = setInterval(function() {
+            if (document.hidden) return;  // pause polling while the tab is hidden
             location.reload();
-        }, 10000);
+        }, 30000);
     }
     function stopAutoRefresh() {
         if (autoRefreshInterval) {

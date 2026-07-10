@@ -648,12 +648,20 @@ def update_discord_rsvp_task(self, session, match_id: int, discord_id: str, new_
                     # Get the Discord message IDs from the scheduled message
                     scheduled_message = session.query(ScheduledMessage).filter_by(match_id=match_id).first()
                     if scheduled_message and (scheduled_message.home_message_id or scheduled_message.away_message_id):
-                        # Try both home and away message IDs (user might be on either team)
+                        # Pair each message id with its channel in the bot's
+                        # "channel_id-message_id" form. Passing a BARE message id
+                        # makes the bot brute-force up to ~200 internal HTTP lookups
+                        # to reverse-find the channel (and miss, since real match ids
+                        # exceed that range) on every RSVP change. If we can't resolve
+                        # a channel, skip the reaction check entirely (falls through to
+                        # the normal Discord update) rather than trigger that scan.
                         message_ids_to_check = []
-                        if scheduled_message.home_message_id:
-                            message_ids_to_check.append(scheduled_message.home_message_id)
-                        if scheduled_message.away_message_id:
-                            message_ids_to_check.append(scheduled_message.away_message_id)
+                        home_channel_id = match.home_team.discord_channel_id if match.home_team else None
+                        away_channel_id = match.away_team.discord_channel_id if match.away_team else None
+                        if scheduled_message.home_message_id and home_channel_id:
+                            message_ids_to_check.append(f"{home_channel_id}-{scheduled_message.home_message_id}")
+                        if scheduled_message.away_message_id and away_channel_id:
+                            message_ids_to_check.append(f"{away_channel_id}-{scheduled_message.away_message_id}")
                         
                         # Check reactions on the first available message
                         import requests

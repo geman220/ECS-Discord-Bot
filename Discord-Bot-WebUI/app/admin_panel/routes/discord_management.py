@@ -362,9 +362,12 @@ def discord_check_role_status(task_id):
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def discord_update_player_roles(player_id):
-    """Update a specific player's Discord roles."""
+    """Queue a Discord role update for one player (runs in the background)."""
     try:
-        task_result = update_player_discord_roles.delay(player_id).get(timeout=30)
+        # Fire-and-forget: queue the task and return immediately instead of
+        # blocking the web worker on .get(timeout=30). The JS caller only reads
+        # success/error, not the task result, so nothing downstream needs the wait.
+        update_player_discord_roles.delay(player_id)
 
         # Log the action
         AdminAuditLog.log_action(
@@ -372,23 +375,17 @@ def discord_update_player_roles(player_id):
             action='discord_role_update',
             resource_type='player',
             resource_id=str(player_id),
-            new_value=f"Role update: {task_result.get('success', False)}",
+            new_value="Role update queued",
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
 
-        if task_result.get('success'):
-            return jsonify({
-                'success': True,
-                'player_data': task_result.get('player_data')
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': task_result.get('message', 'Unknown error occurred')
-            }), 400
+        return jsonify({
+            'success': True,
+            'message': 'Role sync queued — updates apply in the background.'
+        })
     except Exception as e:
-        logger.error(f"Error updating roles for player {player_id}: {e}")
+        logger.error(f"Error queuing role update for player {player_id}: {e}")
         return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 

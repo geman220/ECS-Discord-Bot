@@ -67,6 +67,58 @@ def push_wallet_refresh_for_player(self, session, player_id: int, void: bool = F
 
 
 @celery_task(
+    name='app.tasks.wallet_refresh_tasks.push_wallet_refresh_batch',
+    bind=True,
+    queue='celery',
+    max_retries=2,
+)
+def push_wallet_refresh_batch(self, session, players=None, reason=''):
+    """Refresh (or void) wallet passes for MANY players in one task.
+
+    Used by the after_commit listener so a bulk operation (e.g. approving or
+    deactivating hundreds of users in one transaction) dispatches a single task
+    instead of one push_wallet_refresh_for_player task per player. `players` is a
+    list of {'player_id': int, 'void': bool}. Each player is handled independently
+    so one failure doesn't abort the rest.
+    """
+    from app.models import Player
+    from app.models.wallet import WalletPass
+    from app.wallet_pass.services.push_service import trigger_wallet_refresh
+
+    players = players or []
+    total_passes = 0
+    for entry in players:
+        pid = entry.get('player_id')
+        if not pid:
+            continue
+        void = entry.get('void', False)
+        try:
+            player = session.query(Player).get(pid)
+            if not player:
+                continue
+            passes = session.query(WalletPass).filter(
+                WalletPass.status == 'active',
+                (WalletPass.player_id == pid) |
+                ((WalletPass.player_id.is_(None)) & (WalletPass.user_id == player.user_id))
+            ).all()
+            for wp in passes:
+                if void:
+                    wp.void(reason=reason or 'player deactivated')
+                    session.commit()
+                trigger_wallet_refresh(wp, commit=False)
+            session.commit()
+            total_passes += len(passes)
+        except Exception as e:
+            logger.error(f"wallet batch refresh for player {pid} failed: {e}", exc_info=True)
+            try:
+                session.rollback()
+            except Exception:
+                pass
+    logger.info(f"wallet batch refresh: {len(players)} player(s), {total_passes} pass(es), reason={reason or 'attr_change'}")
+    return {'success': True, 'players': len(players), 'passes': total_passes}
+
+
+@celery_task(
     name='app.tasks.wallet_refresh_tasks.push_wallet_refresh_for_match',
     bind=True,
     queue='celery',

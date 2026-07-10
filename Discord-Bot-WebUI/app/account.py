@@ -134,14 +134,14 @@ def link_discord_account(code, discord_client_id, discord_client_secret, redirec
         'redirect_uri': redirect_uri,
     }
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    token_response = requests.post(DISCORD_TOKEN_URL, data=token_data, headers=headers)
+    token_response = requests.post(DISCORD_TOKEN_URL, data=token_data, headers=headers, timeout=(5, 10))
     token_json = token_response.json()
     
     if 'access_token' not in token_json:
         return False, "Failed to retrieve access token"
         
     headers = {'Authorization': f'Bearer {token_json["access_token"]}'}
-    user_response = requests.get(DISCORD_API_URL, headers=headers)
+    user_response = requests.get(DISCORD_API_URL, headers=headers, timeout=(5, 10))
     user_json = user_response.json()
     
     discord_id = user_json.get('id')

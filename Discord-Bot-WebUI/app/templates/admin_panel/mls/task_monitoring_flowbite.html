@@ -686,7 +686,7 @@ function toggleAutoRefresh() {
 
 function startAutoRefresh() {
     refreshInterval = setInterval(() => {
-        if (autoRefresh) location.reload();
+        if (autoRefresh && !document.hidden) location.reload();
     }, 30000);
 }
 

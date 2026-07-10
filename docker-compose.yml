@@ -471,13 +471,18 @@ services:
     image: mher/flower
     logging: *default-logging
     restart: unless-stopped
-    command: celery --broker=redis://redis:6379/0 flower --port=5555 --persistent=True --db=/data/flower.db
+    # No --persistent/--db: the gdbm-backed state file corrupts on any unclean
+    # shutdown (OOM / kill -9 / host reboot) and then crash-loops Flower on boot
+    # ("_gdbm.error: Database needs recovery"). Flower is only a monitoring
+    # dashboard, so we keep events in memory (capped) instead — history resets on
+    # restart, but it can never corrupt. Workers/logs remain the source of truth.
+    command: celery --broker=redis://redis:6379/0 flower --port=5555 --max-tasks=10000
     environment:
       - FLOWER_UNAUTHENTICATED_API=true
       - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
     volumes:
-      - flower_data:/data  # Persist task history across restarts
+      - flower_data:/data  # Unused now that persistence is off; kept to avoid a compose diff churn
     depends_on:
       redis:
         condition: service_healthy

@@ -1028,20 +1028,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Auto-refresh countdown
+// Cosmetic "next refresh" countdown only. The data itself is kept current by the
+// visibility-gated 10s JSON poller (load) below, so we no longer full-page reload
+// here — that reload was redundant and hammered the server every 30s per open tab.
 let countdown = 30;
 const countdownEl = document.getElementById('countdown');
-const refreshIcon = document.getElementById('refreshIcon');
 
 setInterval(() => {
-    countdown--;
+    if (document.hidden) return;
+    countdown = countdown <= 1 ? 30 : countdown - 1;
     if (countdownEl) countdownEl.textContent = countdown;
-
-    if (countdown <= 0) {
-        countdown = 30;
-        if (refreshIcon) refreshIcon.classList.add('animate-spin');
-        location.reload();
-    }
 }, 1000);
 
 async function startReporting(matchId) {
