@@ -19,10 +19,18 @@
   </div>
   {% endif %}
 
-  <p class="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
-    <i class="ti ti-info-circle mt-0.5 text-gray-400" aria-hidden="true"></i>
-    Adding a coach here grants the division coach role and coaches channel immediately — before any team is drafted. When you later draft the coach onto their actual team, that stays consistent. Someone who plays one division but coaches the other should be added to the division they <em>coach</em>.
-  </p>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <p class="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2 min-w-0">
+      <i class="ti ti-info-circle mt-0.5 text-gray-400 shrink-0" aria-hidden="true"></i>
+      <span>Adding a coach here grants the division coach role and coaches channel immediately — before any team is drafted. When you later draft the coach onto their actual team, that stays consistent. Someone who plays one division but coaches the other should be added to the division they <em>coach</em>.</span>
+    </p>
+    <button type="button" id="syncCoachesBtn"
+            data-url="{{ url_for('admin_panel.season_coaches_sync_discord') }}"
+            class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+            title="Re-push every coach's Discord role — use if roles didn't appear in Discord">
+      <i class="ti ti-brand-discord" aria-hidden="true"></i> Sync roles to Discord
+    </button>
+  </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
     {% for col in [
@@ -233,6 +241,36 @@
       if (!col.contains(e.target)) { results.classList.add('hidden'); }
     });
   });
+
+  // Force-push all coach Discord roles (recovery for missed syncs).
+  var syncBtn = document.getElementById('syncCoachesBtn');
+  if (syncBtn) {
+    syncBtn.addEventListener('click', function () {
+      var original = syncBtn.innerHTML;
+      syncBtn.disabled = true;
+      syncBtn.innerHTML = '<i class="ti ti-loader animate-spin" aria-hidden="true"></i> Syncing…';
+      fetch(syncBtn.dataset.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() }
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          syncBtn.disabled = false;
+          syncBtn.innerHTML = original;
+          if (data && data.success) {
+            var extra = data.no_discord ? (' · ' + data.no_discord + ' skipped (no Discord)') : '';
+            toast('Queued Discord sync for ' + data.queued + ' coach' + (data.queued === 1 ? '' : 'es') + extra, true);
+          } else {
+            toast((data && data.errors ? data.errors + ' failed to queue' : 'Sync failed'), false);
+          }
+        })
+        .catch(function () {
+          syncBtn.disabled = false;
+          syncBtn.innerHTML = original;
+          toast('Sync request failed', false);
+        });
+    });
+  }
 })();
 </script>
 {% endblock %}

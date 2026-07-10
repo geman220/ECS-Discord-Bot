@@ -2622,6 +2622,111 @@ def commit_schedule(league_id: int):
         return jsonify({'error': 'An error occurred while committing the schedule'}), 500
 
 
+@auto_schedule_bp.route('/season/<int:season_id>/generate-schedules', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def generate_season_schedules(season_id: int):
+    """One-click (re)generate + commit match schedules for every league in a season.
+
+    Recovery path for a rollover where the season, teams and WeekConfiguration
+    rows were created but the template->match commit failed (leaving "0 matches"
+    weeks). Safe to re-run:
+      * league already has real matches            -> skipped (already generated)
+      * league has saved (uncommitted) templates   -> just commit them to matches
+      * league has neither                          -> rebuild templates from its
+                                                       WeekConfiguration rows, then commit
+    Each league is committed independently (save_templates/commit each call
+    session.commit()), so one league failing does not roll back the others.
+    """
+    session = g.db_session
+    season = session.query(Season).get(season_id)
+    if not season:
+        return jsonify({'success': False, 'error': 'Season not found'}), 404
+
+    leagues = session.query(League).filter_by(season_id=season_id).all()
+    if not leagues:
+        return jsonify({'success': False, 'error': 'No leagues found for this season'}), 400
+
+    def _match_count(team_ids):
+        # Count only real, reportable fixtures (exclude special/BYE self-match rows).
+        if not team_ids:
+            return 0
+        return session.query(Match).join(
+            Schedule, Match.schedule_id == Schedule.id
+        ).filter(
+            Schedule.team_id.in_(team_ids),
+            Match.home_team_id != Match.away_team_id,
+        ).count()
+
+    results = []
+    for league in leagues:
+        entry = {'league': league.name, 'league_id': league.id, 'ok': False,
+                 'matches': 0, 'action': None, 'error': None}
+        try:
+            team_ids = [t.id for t in session.query(Team).filter_by(league_id=league.id).all()]
+
+            existing = _match_count(team_ids)
+            if existing > 0:
+                entry.update(ok=True, matches=existing, action='already-generated')
+                results.append(entry)
+                continue
+
+            generator = AutoScheduleGenerator(league.id, session)
+
+            # Did the failed run leave saved (uncommitted) templates we can just commit?
+            uncommitted = session.query(ScheduleTemplate).filter_by(
+                league_id=league.id, is_committed=False
+            ).count()
+
+            if uncommitted == 0:
+                # No templates on file -> rebuild from the existing week configuration.
+                auto_config = session.query(AutoScheduleConfig).filter_by(league_id=league.id).first()
+                week_configs = session.query(WeekConfiguration).filter_by(
+                    league_id=league.id
+                ).order_by(WeekConfiguration.week_order).all()
+                if not auto_config or not week_configs:
+                    entry['error'] = 'No saved templates and missing config/weeks to rebuild from'
+                    results.append(entry)
+                    continue
+
+                # Mirror _execute_season_creation's per-division start time selection.
+                if league.name.lower() == 'premier':
+                    start_time = auto_config.premier_start_time
+                elif league.name.lower() == 'classic':
+                    start_time = auto_config.classic_start_time
+                else:
+                    start_time = getattr(auto_config, 'start_time', None) or auto_config.premier_start_time
+
+                season_config = session.query(SeasonConfiguration).filter_by(league_id=league.id).first()
+                if season_config:
+                    generator.set_season_configuration(season_config)
+                generator.set_config(
+                    start_time=start_time,
+                    match_duration_minutes=auto_config.match_duration_minutes,
+                    weeks_count=auto_config.weeks_count,
+                    fields=','.join(auto_config.get_field_list()),
+                )
+                templates = generator.generate_schedule_templates(week_configs)
+                generator.save_templates(templates)
+                entry['action'] = 'regenerated+committed'
+            else:
+                entry['action'] = 'committed'
+
+            generator.commit_templates_to_schedule()
+            entry.update(ok=True, matches=_match_count(team_ids))
+            results.append(entry)
+        except Exception as e:
+            logger.error(f"generate_season_schedules: {league.name}: {e}", exc_info=True)
+            session.rollback()
+            entry['error'] = str(e)
+            results.append(entry)
+
+    ok = all(r['ok'] for r in results)
+    total = sum(r['matches'] for r in results)
+    return jsonify({'success': ok, 'season_id': season_id,
+                    'total_matches': total, 'results': results})
+
+
 @auto_schedule_bp.route('/league/<int:league_id>/delete-schedule', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])

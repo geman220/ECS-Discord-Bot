@@ -636,6 +636,18 @@ async def _execute_assign_roles_async(data):
             if 'ECS-FC-LEAGUE-SUB' not in expected_roles:
                 expected_roles.append('ECS-FC-LEAGUE-SUB')
         
+        # Add DIVISION coach roles from the explicit, team-INDEPENDENT "Premier
+        # Coach" / "Classic Coach" Flask roles (managed on the Coaches panel).
+        # This mirrors the sub-role handling above and the main role calculator
+        # (_execute_player_role_update_async) so a division coach gets their
+        # coach role UP FRONT — before any team is drafted. Without this, the
+        # admin-panel role-assign path (which routes through this function) never
+        # granted division coaches their Discord role.
+        if 'Premier Coach' in user_roles and 'ECS-FC-PL-PREMIER-COACH' not in expected_roles:
+            expected_roles.append('ECS-FC-PL-PREMIER-COACH')
+        if 'Classic Coach' in user_roles and 'ECS-FC-PL-CLASSIC-COACH' not in expected_roles:
+            expected_roles.append('ECS-FC-PL-CLASSIC-COACH')
+
         # Add coach roles based on leagues if player is coach
         if data.get('is_coach'):
             if 'pl-premier' in user_roles:

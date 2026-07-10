@@ -51,6 +51,11 @@ class AutoScheduleGenerator:
         self.league = session.query(League).filter_by(id=league_id).first()
         if not self.league:
             raise ValueError(f"League with ID {league_id} not found")
+        # The league belongs to a season — commit_templates_to_schedule stamps
+        # each created Match/Schedule with this. Without it, committing templates
+        # raised AttributeError: 'AutoScheduleGenerator' object has no attribute
+        # 'season_id' and schedule generation failed after the season was created.
+        self.season_id = self.league.season_id
         
         # Filter out placeholder teams (FUN WEEK, BYE, TST) - these are no longer real Team entities
         self.all_teams = list(self.league.teams)

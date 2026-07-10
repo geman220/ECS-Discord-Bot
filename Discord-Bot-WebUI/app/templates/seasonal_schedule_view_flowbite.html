@@ -77,6 +77,26 @@
         {% endif %}
     </div>
 
+    {# ===== Recovery banner: weeks exist but no matches were generated ===== #}
+    {% if is_sched_admin and schedule_by_week and ns.total_matches == 0 %}
+    <div class="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-4 sm:p-5 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div class="flex items-start gap-3 min-w-0 flex-1">
+                <i class="ti ti-alert-triangle text-2xl text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">Weeks are set up, but no matches have been generated yet</p>
+                    <p class="mt-0.5 text-xs text-amber-800 dark:text-amber-300/90">This happens when a rollover created the season and weeks but the schedule build didn&rsquo;t finish. Generate the matches for every league in one click &mdash; it uses the weeks already shown below and is safe to run again.</p>
+                </div>
+            </div>
+            <button type="button" id="generateSchedulesBtn"
+                    data-url="{{ url_for('auto_schedule.generate_season_schedules', season_id=season.id) }}"
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 shrink-0">
+                <i class="ti ti-calendar-plus" aria-hidden="true"></i> Generate Schedule
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
     {# ===== KPI band: real season figures ===== #}
     {% if schedule_by_week %}
     <section aria-label="Season metrics" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -955,6 +975,60 @@ document.addEventListener('DOMContentLoaded', function() {
     if (savedScroll) {
         window.scrollTo(0, parseInt(savedScroll, 10));
         sessionStorage.removeItem('scheduleScrollPos');
+    }
+
+    // One-click: generate/commit match schedules for every league in the season.
+    // Recovery for a rollover that created weeks but no matches.
+    const genBtn = document.getElementById('generateSchedulesBtn');
+    if (genBtn) {
+        genBtn.addEventListener('click', async function() {
+            const confirmed = await Swal.fire({
+                icon: 'question',
+                title: 'Generate schedule?',
+                text: 'This builds the matches for every league using the weeks already configured. Safe to run again if something is missing.',
+                showCancelButton: true,
+                confirmButtonText: 'Generate',
+                confirmButtonColor: '#d97706',
+            });
+            if (!confirmed.isConfirmed) return;
+
+            const original = genBtn.innerHTML;
+            genBtn.disabled = true;
+            genBtn.innerHTML = '<i class="ti ti-loader animate-spin" aria-hidden="true"></i> Generating…';
+            try {
+                const res = await fetch(genBtn.dataset.url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+                });
+                const data = await res.json();
+                const rows = (data.results || []).map(r =>
+                    r.ok
+                        ? `<div>✅ <strong>${r.league}</strong> — ${r.matches} matches${r.action === 'already-generated' ? ' (already had a schedule)' : ''}</div>`
+                        : `<div>❌ <strong>${r.league}</strong> — ${r.error || 'failed'}</div>`
+                ).join('');
+                if (data.success) {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: `Generated ${data.total_matches} matches`,
+                        html: `<div class="text-left text-sm space-y-1">${rows}</div>`,
+                        confirmButtonColor: '#16a34a',
+                    });
+                    window.location.reload();
+                } else {
+                    genBtn.disabled = false;
+                    genBtn.innerHTML = original;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Some leagues could not be generated',
+                        html: `<div class="text-left text-sm space-y-1">${rows || (data.error || 'Unknown error')}</div>`,
+                    });
+                }
+            } catch (err) {
+                genBtn.disabled = false;
+                genBtn.innerHTML = original;
+                Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+            }
+        });
     }
 
     // Toggle edit mode

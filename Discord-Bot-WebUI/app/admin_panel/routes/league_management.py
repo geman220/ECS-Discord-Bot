@@ -961,3 +961,52 @@ def season_coaches_search():
         'has_discord': bool(p.discord_id),
     } for p in players]
     return jsonify({'success': True, 'results': results})
+
+
+@admin_panel_bp.route('/seasons/coaches/sync-discord', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def season_coaches_sync_discord():
+    """Force-push the division coach Discord roles for everyone currently holding
+    the Premier/Classic Coach Flask roles.
+
+    Use this after assigning coaches, or when the normal per-assign sync didn't
+    land (e.g. the broker was down during a rollover, or roles were assigned
+    before the coach-role mapping fix). It re-runs the CORRECT role calculator
+    (update_player_discord_roles), which grants ECS-FC-PL-PREMIER-COACH /
+    ECS-FC-PL-CLASSIC-COACH team-independently from the Flask coach roles.
+    """
+    from app.models import Role
+    from app.tasks.tasks_discord import update_player_discord_roles
+
+    premier_role = db.session.query(Role).filter_by(name='Premier Coach').first()
+    classic_role = db.session.query(Role).filter_by(name='Classic Coach').first()
+
+    seen, users = set(), []
+    for role in (premier_role, classic_role):
+        if not role:
+            continue
+        for u in role.users:
+            if u.id not in seen:
+                seen.add(u.id)
+                users.append(u)
+
+    queued, no_discord, errors = 0, 0, 0
+    for u in users:
+        if not (u.player and u.player.discord_id):
+            no_discord += 1
+            continue
+        try:
+            update_player_discord_roles.delay(u.player.id)
+            queued += 1
+        except Exception as e:
+            logger.error(f"Failed to queue coach Discord sync for user {u.id}: {e}")
+            errors += 1
+
+    return jsonify({
+        'success': errors == 0,
+        'total': len(users),
+        'queued': queued,
+        'no_discord': no_discord,
+        'errors': errors,
+    })
