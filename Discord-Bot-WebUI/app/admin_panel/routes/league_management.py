@@ -977,36 +977,121 @@ def season_coaches_sync_discord():
     ECS-FC-PL-CLASSIC-COACH team-independently from the Flask coach roles.
     """
     from app.models import Role
-    from app.tasks.tasks_discord import update_player_discord_roles
+    from app.tasks.tasks_discord import process_discord_role_updates
 
     premier_role = db.session.query(Role).filter_by(name='Premier Coach').first()
     classic_role = db.session.query(Role).filter_by(name='Classic Coach').first()
 
-    seen, users = set(), []
+    seen = set()
+    discord_ids = []
+    no_discord = 0
     for role in (premier_role, classic_role):
         if not role:
             continue
         for u in role.users:
-            if u.id not in seen:
-                seen.add(u.id)
-                users.append(u)
+            if u.id in seen:
+                continue
+            seen.add(u.id)
+            did = u.player.discord_id if u.player else None
+            if did:
+                discord_ids.append(str(did))
+            else:
+                no_discord += 1
 
-    queued, no_discord, errors = 0, 0, 0
-    for u in users:
-        if not (u.player and u.player.discord_id):
-            no_discord += 1
-            continue
+    # Fire ONE batched task rather than N competing ones. The bot paces the
+    # per-member Discord writes internally, so we don't trip Discord's role
+    # rate limiter (which serialized — and slowed — the old per-user approach).
+    queued = len(discord_ids)
+    errors = 0
+    if discord_ids:
         try:
-            update_player_discord_roles.delay(u.player.id)
-            queued += 1
+            process_discord_role_updates.delay(discord_ids)
         except Exception as e:
-            logger.error(f"Failed to queue coach Discord sync for user {u.id}: {e}")
-            errors += 1
+            logger.error(f"Failed to queue batched coach Discord sync: {e}")
+            errors = queued
+            queued = 0
 
     return jsonify({
         'success': errors == 0,
-        'total': len(users),
+        'total': len(seen),
         'queued': queued,
         'no_discord': no_discord,
         'errors': errors,
     })
+
+
+@admin_panel_bp.route('/seasons/coaches/discord-status', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def season_coaches_discord_status():
+    """Live-verify each division coach actually holds their coach role in Discord.
+
+    Reads the guild's roles and each coach's member roles straight from the bot
+    (same source the sync uses), so the Coaches panel can show a real green/amber
+    status per coach instead of trusting the Flask DB. Returns a map of
+    user_id -> 'ok' | 'missing' | 'no_discord' | 'unknown'.
+    """
+    import os
+    import requests
+    from app.models import Role
+
+    premier_role = db.session.query(Role).filter_by(name='Premier Coach').first()
+    classic_role = db.session.query(Role).filter_by(name='Classic Coach').first()
+
+    # Map each coach -> the Discord coach role(s) they're expected to hold.
+    want = {}
+
+    def _collect(role, discord_role_name):
+        if not role:
+            return
+        for u in role.users:
+            info = want.setdefault(u.id, {'discord_id': None, 'roles': set()})
+            info['discord_id'] = u.player.discord_id if u.player else None
+            info['roles'].add(discord_role_name)
+
+    _collect(premier_role, 'ECS-FC-PL-PREMIER-COACH')
+    _collect(classic_role, 'ECS-FC-PL-CLASSIC-COACH')
+
+    bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
+    guild_id = os.getenv('SERVER_ID')
+    if not guild_id:
+        return jsonify({'success': False, 'available': False,
+                        'error': 'Discord guild (SERVER_ID) is not configured.'})
+
+    try:
+        rl = requests.get(f"{bot_api_url}/api/server/guilds/{guild_id}/roles", timeout=8)
+        if rl.status_code != 200:
+            return jsonify({'success': False, 'available': False,
+                            'error': f'Bot API returned {rl.status_code}.'})
+        live_roles = {str(r.get('id')): r.get('name') for r in (rl.json() or [])}
+        name_to_id = {name: rid for rid, name in live_roles.items()}
+    except Exception as e:
+        logger.warning(f"Coach Discord status check failed (roles): {e}")
+        return jsonify({'success': False, 'available': False,
+                        'error': 'Could not reach the Discord bot (is it running?).'})
+
+    statuses = {}
+    for uid, info in want.items():
+        did = info['discord_id']
+        if not did:
+            statuses[uid] = 'no_discord'
+            continue
+        try:
+            mr = requests.get(
+                f"{bot_api_url}/api/server/guilds/{guild_id}/members/{did}/roles", timeout=8)
+            if mr.status_code != 200:
+                statuses[uid] = 'unknown'
+                continue
+            data = mr.json() or {}
+            raw = data.get('roles', data if isinstance(data, list) else [])
+            member_role_ids = set()
+            for r in (raw or []):
+                member_role_ids.add(str(r.get('id')) if isinstance(r, dict) else str(r))
+            expected_ids = {name_to_id.get(n) for n in info['roles']}
+            expected_ids.discard(None)
+            statuses[uid] = 'ok' if (member_role_ids & expected_ids) else 'missing'
+        except Exception as e:
+            logger.warning(f"Coach Discord status check failed for user {uid}: {e}")
+            statuses[uid] = 'unknown'
+
+    return jsonify({'success': True, 'available': True, 'statuses': statuses})

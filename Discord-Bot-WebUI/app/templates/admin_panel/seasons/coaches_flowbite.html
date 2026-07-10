@@ -69,6 +69,7 @@
               <span class="text-sm text-gray-900 dark:text-white truncate">{{ c.name }}</span>
               {% if not c.has_discord %}<span class="shrink-0 text-[10px] uppercase tracking-wide text-gray-400" title="No linked Discord account">no discord</span>{% endif %}
             </span>
+            <span data-coach-status data-user-id="{{ c.user_id }}" class="shrink-0 inline-flex items-center"></span>
             <button type="button" data-coach-remove data-user-id="{{ c.user_id }}"
                     class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500"
                     title="Remove coach">
@@ -92,6 +93,7 @@
   'use strict';
   var ASSIGN_URL = "{{ url_for('admin_panel.assign_user_role') }}";
   var SEARCH_URL = "{{ url_for('admin_panel.season_coaches_search') }}";
+  var STATUS_URL = "{{ url_for('admin_panel.season_coaches_discord_status') }}";
 
   function csrf() {
     var m = document.querySelector('meta[name="csrf-token"]');
@@ -115,6 +117,47 @@
       window.Swal.fire({ toast: true, position: 'top-end', timer: 2600, showConfirmButton: false,
         icon: ok ? 'success' : 'error', title: msg });
     }
+  }
+
+  // Live Discord role verification badges.
+  var STATUS_META = {
+    checking: { icon: 'ti-loader animate-spin', cls: 'text-gray-400', title: 'Checking Discord…' },
+    ok:       { icon: 'ti-circle-check-filled',  cls: 'text-green-500', title: 'Has their Discord coach role' },
+    missing:  { icon: 'ti-alert-circle-filled',  cls: 'text-amber-500', title: 'Missing in Discord — click “Sync roles to Discord”' },
+    no_discord:{ icon: 'ti-plug-connected-x',    cls: 'text-gray-300 dark:text-gray-600', title: 'No linked Discord account' },
+    unknown:  { icon: 'ti-help-circle',          cls: 'text-gray-300 dark:text-gray-600', title: 'Could not verify' }
+  };
+
+  function renderStatus(el, state) {
+    if (!el) return;
+    var m = STATUS_META[state] || STATUS_META.unknown;
+    el.title = m.title;
+    el.innerHTML = '<i class="ti ' + m.icon + ' ' + m.cls + ' text-base" aria-hidden="true"></i>';
+  }
+
+  function loadDiscordStatus() {
+    var badges = document.querySelectorAll('[data-coach-status]');
+    if (!badges.length) return;
+    badges.forEach(function (b) { renderStatus(b, 'checking'); });
+    fetch(STATUS_URL, { headers: { 'X-CSRFToken': csrf() } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.available) {
+          // Bot unreachable / not configured — clear badges, don't cry wolf.
+          badges.forEach(function (b) { b.innerHTML = ''; b.title = ''; });
+          return;
+        }
+        var statuses = data.statuses || {};
+        document.querySelectorAll('[data-coach-status]').forEach(function (b) {
+          var uid = b.getAttribute('data-user-id');
+          renderStatus(b, statuses[uid] || 'unknown');
+        });
+      })
+      .catch(function () {
+        document.querySelectorAll('[data-coach-status]').forEach(function (b) {
+          b.innerHTML = ''; b.title = '';
+        });
+      });
   }
 
   document.querySelectorAll('[data-coach-col]').forEach(function (col) {
@@ -155,6 +198,10 @@
         nd.textContent = 'no discord';
         left.appendChild(nd);
       }
+      var status = document.createElement('span');
+      status.setAttribute('data-coach-status', '');
+      status.setAttribute('data-user-id', userId);
+      status.className = 'shrink-0 inline-flex items-center';
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.setAttribute('data-coach-remove', '');
@@ -162,9 +209,12 @@
       btn.className = 'shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500';
       btn.title = 'Remove coach';
       btn.innerHTML = '<i class="ti ti-x text-sm" aria-hidden="true"></i>';
-      li.appendChild(left); li.appendChild(btn);
+      li.appendChild(left); li.appendChild(status); li.appendChild(btn);
       list.appendChild(li);
       refreshEmpty();
+      // A freshly added coach's role sync is in flight — verify shortly.
+      renderStatus(status, 'checking');
+      setTimeout(loadDiscordStatus, 4000);
     }
 
     // Debounced search
@@ -260,6 +310,9 @@
           if (data && data.success) {
             var extra = data.no_discord ? (' · ' + data.no_discord + ' skipped (no Discord)') : '';
             toast('Queued Discord sync for ' + data.queued + ' coach' + (data.queued === 1 ? '' : 'es') + extra, true);
+            // Roles take a few seconds to land in Discord — re-verify after a beat.
+            document.querySelectorAll('[data-coach-status]').forEach(function (b) { renderStatus(b, 'checking'); });
+            setTimeout(loadDiscordStatus, 5000);
           } else {
             toast((data && data.errors ? data.errors + ' failed to queue' : 'Sync failed'), false);
           }
@@ -271,6 +324,9 @@
         });
     });
   }
+
+  // Verify live Discord role status on page load.
+  loadDiscordStatus();
 })();
 </script>
 {% endblock %}
