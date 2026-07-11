@@ -21,6 +21,43 @@ logger = logging.getLogger(__name__)
 app_links_bp = Blueprint('app_links', __name__)
 
 
+def _season_pass_deeplinks_enabled() -> bool:
+    """
+    Whether iOS should route the season-pass URLs (/pub-league/buy|link-order|claim)
+    to the native app.
+
+    This is a ROLLOUT SAFETY SWITCH, off by default. On iOS the app declares only
+    the DOMAIN in its entitlement; the SERVER'S AASA decides which paths open the
+    app. So the moment these paths are listed, iOS hands them to *whatever* version
+    of the app is installed — including an OLD build with no season-pass screens,
+    which dead-ends the buyer.
+
+    Sequence to flip it on safely:
+      1. Ship the app version that HANDLES these paths, and get it approved and
+         live in BOTH the App Store and Play Store.
+      2. THEN set AdminConfig `season_pass_deeplinks_enabled = true`.
+    Until then, these URLs open in the browser for everyone (the web flow works
+    end-to-end), and no installed app can grab them.
+
+    (Android needs no such switch: its assetlinks.json only authorizes the domain,
+    and the app's own intent filters — which live in the binary — decide which
+    paths it claims. An old Android app simply doesn't declare these paths.)
+
+    Fails to False (browser) on any error — the safe direction.
+    """
+    try:
+        from app.models.admin_config import AdminConfig
+        val = AdminConfig.get_setting('season_pass_deeplinks_enabled', False)
+        # Parse defensively: get_setting only returns a real bool when the row's
+        # data_type is 'boolean'. Stored as a plain string it comes back as
+        # "false", and bool("false") is True — so an OFF flag would read as ON.
+        if isinstance(val, str):
+            return val.strip().lower() in ('true', '1', 'yes', 'on')
+        return bool(val)
+    except Exception:
+        return False
+
+
 @app_links_bp.route('/.well-known/apple-app-site-association')
 def apple_app_site_association():
     """
@@ -36,12 +73,44 @@ def apple_app_site_association():
     - /match/* - Pub League match pages
     - /m/* - Member identity (player QR scan)
     - /check-in/* - Venue check-in (printed QR sign / NFC sticker at the pitch)
-    - /pub-league/link-order* - Season-pass linking after a WooCommerce purchase
-    - /pub-league/claim* - Claiming a season pass someone bought for you
+    - /pub-league/buy|link-order|claim* - Season pass (gated by
+      season_pass_deeplinks_enabled; see _season_pass_deeplinks_enabled)
     """
     # Get app identifiers from environment
     ios_team_id = os.getenv('IOS_TEAM_ID', 'XXXXXXXXXX')
     ios_bundle_id = os.getenv('IOS_BUNDLE_ID', 'com.example.ecsfc')
+
+    paths = [
+        # Substitute response pages (both systems)
+        "/ecs-fc/sub-response/*",
+        "/sub-rsvp/*",
+        # Match detail pages
+        "/ecs-fc/matches/*",
+        "/match/*",
+        # RSVP pages
+        "/ecs-fc/rsvp/*",
+        "/rsvp/*",
+        # OAuth callback bridge — Universal Link target so Discord's
+        # HTTPS redirect lands in the app instead of Safari.
+        "/oauth/callback*",
+        # Member identity card (player QR camera-app scans)
+        "/m/*",
+        # Venue check-in (printed QR / NFC at the pitch)
+        "/check-in/*",
+    ]
+
+    # Season-pass paths are gated so we never route them to an app version that
+    # can't handle them (iOS routes by SERVER config, not app version). Flip the
+    # flag on only once the season-pass app build is live in both stores.
+    if _season_pass_deeplinks_enabled():
+        paths += [
+            # /buy is the QR target; link-order/claim are the tapped return + email
+            # links. iOS only fires a Universal Link on a *tap*, so the post-payment
+            # redirect is handled by an ecs-fc-scheme:// bounce (see pub_league/routes.py).
+            "/pub-league/buy*",
+            "/pub-league/link-order*",
+            "/pub-league/claim*",
+        ]
 
     # iOS Universal Links configuration
     association = {
@@ -50,37 +119,7 @@ def apple_app_site_association():
             "details": [
                 {
                     "appID": f"{ios_team_id}.{ios_bundle_id}",
-                    "paths": [
-                        # Substitute response pages (both systems)
-                        "/ecs-fc/sub-response/*",
-                        "/sub-rsvp/*",
-                        # Match detail pages
-                        "/ecs-fc/matches/*",
-                        "/match/*",
-                        # RSVP pages
-                        "/ecs-fc/rsvp/*",
-                        "/rsvp/*",
-                        # OAuth callback bridge — Universal Link target so Discord's
-                        # HTTPS redirect lands in the app instead of Safari.
-                        "/oauth/callback*",
-                        # Member identity card (player QR camera-app scans)
-                        "/m/*",
-                        # Venue check-in (printed QR / NFC at the pitch)
-                        "/check-in/*",
-                        # Season pass. /buy is the QR target at the pre-season
-                        # party: tapping it opens the app (or the browser) and
-                        # sends the buyer into WooCommerce's own checkout.
-                        #
-                        # Note iOS only fires a Universal Link on a *tapped* link.
-                        # WooCommerce 302s the buyer to /link-order after payment,
-                        # and a redirect does NOT trigger the app — so the return
-                        # hop is handled by an ecs-fc-scheme:// bounce instead
-                        # (see pub_league/routes.py). These paths cover the cases
-                        # that ARE taps: the QR, and the emailed claim links.
-                        "/pub-league/buy*",
-                        "/pub-league/link-order*",
-                        "/pub-league/claim*"
-                    ]
+                    "paths": paths,
                 }
             ]
         },

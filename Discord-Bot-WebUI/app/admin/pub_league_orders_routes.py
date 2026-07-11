@@ -812,7 +812,7 @@ def _mask_email(email: str) -> str:
 
 def _buy_url(division: str = None) -> str:
     """
-    The Universal Link a QR encodes.
+    The Universal Link a QR encodes — a PLAIN /pub-league/buy.
 
     Deliberately carries NO season and NO product id — only (optionally) the
     division. Everything else is resolved at scan time from whichever Pub League
@@ -820,11 +820,19 @@ def _buy_url(division: str = None) -> str:
     scan it this season and it lands on the 2026-fall product, scan the same
     code next season and it lands on 2027-spring.
 
-    src=app is always included: it's a no-op in a browser, and in the app it's
-    what makes WooCommerce's post-payment redirect bounce the buyer back into
-    the app instead of stranding them in the browser sheet.
+    Crucially it must NOT carry src=app. The QR serves BOTH populations:
+      * App installed -> the OS opens the app (it claims /pub-league/buy*). The
+        app shows a native picker and, when it opens WooCommerce checkout, adds
+        src=app ITSELF (via buy-options' checkout_url) so the post-payment
+        redirect bounces back into the app.
+      * No app -> the browser opens the web picker and the whole purchase stays
+        in the browser.
+    If the QR itself carried src=app, a browser-only buyer would get the
+    app-return cookie set and, after paying, be bounced to ecs-fc-scheme:// —
+    which does nothing without the app, stranding them on an interstitial. So
+    src=app is added by the APP, never baked into the shared QR.
     """
-    kwargs = {'src': 'app', '_external': True}
+    kwargs = {'_external': True}
     if division:
         kwargs['division'] = division
     return url_for('pub_league.buy', **kwargs)
@@ -892,6 +900,8 @@ def buy_qr_print():
         for option in options
     ]
 
+    from app.routes.app_links import _season_pass_deeplinks_enabled
+
     return render_template(
         'admin/pub_league_buy_qr.html',
         season_name=season_name,
@@ -899,4 +909,45 @@ def buy_qr_print():
         picker_qr_png=url_for('pub_league_orders_admin.buy_qr_png'),
         picker_url=_buy_url(),
         any_available=any(d['product_url'] for d in divisions),
+        deeplinks_enabled=_season_pass_deeplinks_enabled(),
     )
+
+
+@pub_league_orders_admin_bp.route('/pub-league-orders/qr/toggle-deeplinks', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def toggle_deeplinks():
+    """
+    Flip the iOS season-pass deep-link switch (season_pass_deeplinks_enabled).
+
+    OFF (default): the season-pass URLs open in the phone BROWSER for everyone —
+    the reliable baseline that works on any phone, app or no app.
+    ON: iOS routes those URLs into the native app. Turn this on ONLY once the
+    season-pass app build is LIVE in the App Store — see the warning on the page
+    and the docstring in app/routes/app_links.py. (Android is unaffected; it's
+    gated by the app's own intent filters, not this flag.)
+    """
+    from app.models.admin_config import AdminConfig
+
+    data = request.get_json(silent=True) or {}
+    enabled = bool(data.get('enabled'))
+
+    AdminConfig.set_setting(
+        'season_pass_deeplinks_enabled',
+        'true' if enabled else 'false',
+        description='Route iOS season-pass Universal Links (/pub-league/buy|link-order|claim) '
+                    'into the native app. Turn on only when the app build is live in the App Store.',
+        category='mobile',
+        data_type='boolean',   # store as boolean so parsed_value returns a real bool
+        user_id=current_user.id,
+        auto_commit=True,
+    )
+
+    logger.info(f"Admin {current_user.id} set season_pass_deeplinks_enabled={enabled}")
+    return jsonify({
+        'success': True,
+        'enabled': enabled,
+        'message': ('iOS deep links ON — season-pass links now open the app.'
+                    if enabled else
+                    'iOS deep links OFF — season-pass links open in the browser.'),
+    })

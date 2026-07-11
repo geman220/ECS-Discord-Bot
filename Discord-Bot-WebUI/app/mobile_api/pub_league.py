@@ -317,15 +317,32 @@ def pub_league_link_self():
         if not line_item or line_item.order_id != order.id:
             return jsonify({'success': False, 'msg': 'Pass not found on this order'}), 404
 
+        player = PlayerActivationService.ensure_player_for_user(user, order.woo_order_data)
+
+        # IDEMPOTENT. A slow first request can leave the app unsure it succeeded, so
+        # it retries — and this endpoint must make that retry a clean success, not
+        # an error. If the pass is ALREADY this user's, just return the current
+        # state with 200. Only refuse (409) when it belongs to someone ELSE.
         if line_item.is_assigned():
+            mine = (
+                line_item.assigned_user_id == user.id
+                or (player and line_item.assigned_player_id == player.id)
+            )
+            if mine:
+                return jsonify({
+                    'success': True,
+                    'msg': 'Pass already linked to you',
+                    'already_linked': True,
+                    'line_item': line_item.to_dict(),
+                    'order': order.to_dict(),
+                    'is_approved': bool(user.is_approved),
+                    'is_current_player': bool(player.is_current_player),
+                }), 200
             return jsonify({
                 'success': False,
                 'code': 'ALREADY_ASSIGNED',
-                'msg': 'This pass has already been claimed.',
+                'msg': 'This pass has already been claimed by someone else.',
             }), 409
-
-        # Never dead-end a first-timer with no Player record.
-        player = PlayerActivationService.ensure_player_for_user(user, order.woo_order_data)
 
         PubLeagueOrderService.link_pass_to_player(line_item, player, user)
         PlayerActivationService.activate_player_for_league(
@@ -526,6 +543,29 @@ def pub_league_claim_process(claim_token):
             return jsonify({'success': False, 'msg': 'User not found'}), 404
 
         player = PlayerActivationService.ensure_player_for_user(user)
+
+        # IDEMPOTENT: a slow first claim can leave the app retrying. If THIS user
+        # already claimed this token, return success with the existing pass rather
+        # than a 409 — the claim is single-use and the retry must not look like a
+        # failure. Only a claim used by someone else (or expired) is a real error.
+        existing_claim = session.query(PubLeagueOrderClaim).filter_by(claim_token=claim_token).first()
+        if existing_claim and existing_claim.claimed_by_user_id == user.id and existing_claim.line_item:
+            li = existing_claim.line_item
+            wp = li.wallet_pass
+            return jsonify({
+                'success': True,
+                'msg': 'Pass already claimed by you',
+                'already_claimed': True,
+                'line_item': li.to_dict(),
+                'wallet_pass': ({
+                    'id': wp.id,
+                    'download_token': wp.download_token,
+                    'download_url': url_for('public_wallet.download_pass_by_token',
+                                            token=wp.download_token, _external=True),
+                } if wp else None),
+                'is_approved': bool(user.is_approved),
+                'is_current_player': bool(player.is_current_player),
+            }), 200
 
         try:
             line_item = PubLeagueOrderService.process_claim(claim_token, player, user)

@@ -39,6 +39,12 @@ def register_api_middleware(blueprint: Blueprint):
     _middleware_registered = True
 
     @blueprint.before_request
+    def _stamp_request_start():
+        """Record a monotonic start time so after_request can log duration."""
+        import time
+        g._api_req_start = time.monotonic()
+
+    @blueprint.before_request
     def validate_api_access():
         """
         Restrict API access to allowed hosts and mobile devices.
@@ -105,11 +111,31 @@ def register_api_middleware(blueprint: Blueprint):
         except Exception:
             pass
 
-        log_msg = f"[API] {request.method} {request.path} -> {response.status_code} | user={user_id}"
+        # Request duration, so slow endpoints are visible in the logs. This is
+        # the number you grep for when the app "hangs" — e.g. a link/activate call
+        # that takes seconds shows its real ms here.
+        dur_ms = None
+        try:
+            import time
+            start = getattr(g, '_api_req_start', None)
+            if start is not None:
+                dur_ms = int((time.monotonic() - start) * 1000)
+        except Exception:
+            pass
+
+        dur_str = f" | {dur_ms}ms" if dur_ms is not None else ""
+        log_msg = f"[API] {request.method} {request.path} -> {response.status_code} | user={user_id}{dur_str}"
         if request.args:
             log_msg += f" | params={dict(request.args)}"
 
-        if is_sub_or_rsvp:
+        # Surface anything genuinely slow at WARNING regardless of status, so a
+        # slow-but-200 endpoint (the "it works but hangs" case) isn't hidden at DEBUG.
+        SLOW_MS = 2000
+        is_slow = dur_ms is not None and dur_ms >= SLOW_MS
+
+        if is_slow:
+            logger.warning(f"SLOW {log_msg}")
+        elif is_sub_or_rsvp:
             logger.info(log_msg)
         elif response.status_code == 401:
             # Routine unauthenticated access — the auth layer already returned
@@ -118,6 +144,10 @@ def register_api_middleware(blueprint: Blueprint):
             logger.debug(log_msg)
         elif response.status_code >= 400:
             logger.warning(log_msg)
+        elif '/pub-league/' in request.path:
+            # The season-pass flow is the one under active scrutiny — log it at
+            # INFO with timing so we can see link/activate latency at a glance.
+            logger.info(log_msg)
 
         return response
 
