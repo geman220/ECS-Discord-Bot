@@ -177,6 +177,10 @@ class BasePassGenerator(ABC):
             'season_name': season_name,
             'validity_label': 'Season',
             'validity_value': season_name,
+            # A pub-league pass is per-season, so the {{validity}} field should
+            # show the full season ("2026 Fall"), not just the year. Overrides
+            # the year-based default from get_common_template_data.
+            'validity': season_name,
         })
         return common
 

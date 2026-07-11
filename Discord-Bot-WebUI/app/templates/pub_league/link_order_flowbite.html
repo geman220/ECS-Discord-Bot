@@ -555,6 +555,12 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <div>
+                        <label for="profilePlayerNotes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes for Coaches &amp; Admins</label>
+                        <textarea id="profilePlayerNotes" rows="3"
+                                  class="block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                                  placeholder="Anything you'd like coaches or admins to know (optional)">{{ profile_prefill.player_notes or '' }}</textarea>
+                    </div>
                 </div>
                 {% if profile_review_mode != 'compact' %}
                 <label class="flex items-start gap-3 px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer">
@@ -1299,7 +1305,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     positions_not_to_play: getMultiSelectValues('profilePositionsNotToPlay'),
                     frequency_play_goal: document.getElementById('profileFrequencyGoal').value,
                     expected_weeks_available: document.getElementById('profileAvailability').value,
-                    willing_to_referee: document.getElementById('profileWillingToReferee').value
+                    willing_to_referee: document.getElementById('profileWillingToReferee').value,
+                    player_notes: document.getElementById('profilePlayerNotes').value
                 })
             });
 

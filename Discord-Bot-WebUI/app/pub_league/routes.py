@@ -211,6 +211,7 @@ def link_order():
         'frequency_play_goal': player.frequency_play_goal if player else '',
         'expected_weeks_available': player.expected_weeks_available if player else '',
         'willing_to_referee': player.willing_to_referee if player else '',
+        'player_notes': (player.player_notes if player else '') or '',
     }
 
     # Line items that belong to THIS user. The final step needs this so it can
@@ -751,6 +752,11 @@ def update_profile():
         willing_to_referee = (data.get('willing_to_referee') or '').strip()
         if willing_to_referee in _ALLOWED_REFEREE:
             player.willing_to_referee = willing_to_referee
+
+        # Free-text notes for coaches/admins. Present as a key only when the
+        # client sends it, so we don't wipe existing notes on older payloads.
+        if 'player_notes' in data:
+            player.player_notes = (data.get('player_notes') or '').strip()[:2000]
 
         # Stamp the review so the 5-month "please update" alert resets.
         player.profile_last_updated = datetime.utcnow()
