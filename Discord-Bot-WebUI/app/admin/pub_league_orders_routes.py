@@ -14,7 +14,7 @@ from datetime import datetime
 
 from flask import Blueprint, render_template, request, jsonify, url_for
 from flask_login import login_required, current_user
-from sqlalchemy import desc, or_, func, distinct
+from sqlalchemy import desc, or_, and_, func, distinct
 from sqlalchemy.orm import joinedload
 
 from app.core import db
@@ -72,9 +72,21 @@ def orders_list():
         season_condition = None
         if season_filter != 'all' and selected_season_id is not None:
             if is_current_view:
+                # Current view = orders in the current season, PLUS genuine
+                # orphans that need attention. An orphan is a NULL season_id
+                # with no season_name (truly unmatched) or a name that IS the
+                # current season. We must NOT sweep in legacy orders that carry
+                # a PAST season_name (e.g. "2024 Spring") but never had their
+                # season_id backfilled — those were flooding the current view.
+                orphan_names = [PubLeagueOrder.season_name.is_(None), PubLeagueOrder.season_name == '']
+                if current_season and current_season.name:
+                    orphan_names.append(PubLeagueOrder.season_name == current_season.name)
                 season_condition = or_(
                     PubLeagueOrder.season_id == selected_season_id,
-                    PubLeagueOrder.season_id.is_(None)
+                    and_(
+                        PubLeagueOrder.season_id.is_(None),
+                        or_(*orphan_names)
+                    )
                 )
             else:
                 season_condition = PubLeagueOrder.season_id == selected_season_id

@@ -57,6 +57,7 @@
         <input type="hidden" id="orderId" value="{{ order.id }}">
         <input type="hidden" id="wooOrderId" value="{{ order.woo_order_id }}">
         <input type="hidden" id="currentStep" value="{{ initial_step }}">
+        <input type="hidden" id="myLineItemIds" value='{{ my_line_item_ids|tojson }}'>
         <input type="hidden" id="hasConflicts" value="{{ 'true' if conflicts else 'false' }}">
         <input type="hidden" id="profileNeedsUpdate" value="{{ 'true' if profile_needs_update else 'false' }}">
         <input type="hidden" id="profileReviewMode" value="{{ profile_review_mode }}">
@@ -801,11 +802,16 @@ document.addEventListener('DOMContentLoaded', function() {
         nextHelper.classList.add('hidden');
 
         // Update buttons
-        prevBtn.disabled = step <= 1 || step === 2 || step === 6;
+        prevBtn.disabled = step <= 1 || step === 2;
 
         if (step === 6) {
-            // Final step - hide nav
-            document.getElementById('wizardNav').classList.add('hidden');
+            // Final step - keep the nav so they can still go Back to fix
+            // something (e.g. their profile). Only Back is shown; the primary
+            // "Return to Dashboard" action lives in the step content.
+            document.getElementById('wizardNav').classList.remove('hidden');
+            nextBtn.classList.add('hidden');
+            prevBtn.classList.remove('hidden');
+            prevBtn.disabled = false;
         } else if (step === 2) {
             // Login step - hide next button (login is action)
             nextBtn.classList.add('hidden');
@@ -1337,12 +1343,20 @@ document.addEventListener('DOMContentLoaded', function() {
         container.innerHTML = '<div class="text-center py-6"><div class="animate-spin inline-flex items-center justify-center w-10 h-10 rounded-full border-4 border-gray-200 border-t-ecs-green mb-4"></div><p class="text-gray-600 dark:text-gray-400">Generating your pass...</p></div>';
 
         try {
-            // Get assigned line items that need passes
-            const assignedItems = document.querySelectorAll('.pass-item.assigned');
+            // Line items to generate passes for: those assigned during THIS
+            // session (DOM), unioned with the current user's own line items from
+            // the server (covers a fresh load of an already-linked order, where
+            // no in-page assignment cards are rendered).
+            const domIds = Array.from(document.querySelectorAll('.pass-item.assigned'))
+                .map(el => el.dataset.lineItemId);
+            let serverIds = [];
+            try {
+                serverIds = JSON.parse(document.getElementById('myLineItemIds')?.value || '[]').map(String);
+            } catch (e) { serverIds = []; }
+            const lineItemIds = [...new Set([...domIds, ...serverIds])];
             const passes = [];
 
-            for (const item of assignedItems) {
-                const lineItemId = item.dataset.lineItemId;
+            for (const lineItemId of lineItemIds) {
                 const response = await fetch('/pub-league/link-order/generate-pass', {
                     method: 'POST',
                     headers: {

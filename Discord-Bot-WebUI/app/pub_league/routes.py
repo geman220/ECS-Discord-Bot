@@ -201,12 +201,26 @@ def link_order():
         'willing_to_referee': player.willing_to_referee if player else '',
     }
 
+    # Line items that belong to THIS user. The final step needs this so it can
+    # offer the user's own pass download on a fresh page load (an already-linked
+    # order renders no in-page assignment cards, so the client-side "assigned"
+    # list is empty and would otherwise show the gift/"recipients" message).
+    my_line_item_ids = []
+    if current_user.is_authenticated:
+        uid = safe_current_user.id
+        pid = player.id if player else None
+        my_line_item_ids = [
+            li.id for li in line_items
+            if li.assigned_user_id == uid or (pid and li.assigned_player_id == pid)
+        ]
+
     return render_template(
         'pub_league/link_order_flowbite.html',
         order=order,
         order_data=order_data,
         line_items=line_items,
         unassigned_items=unassigned_items,
+        my_line_item_ids=my_line_item_ids,
         initial_step=initial_step,
         conflicts=conflicts,
         profile_needs_update=profile_needs_update,

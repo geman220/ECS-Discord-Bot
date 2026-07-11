@@ -59,6 +59,15 @@ def init_session(app, redis_manager):
             'SESSION_USE_SIGNER': True
         })
         Session(app)
+
+        # Backstop for a Redis outage. The client above RETRIES transient errors,
+        # which absorbs the common ~1-3s reload blip. But when Redis is down or
+        # reloading LONGER than the retry budget, the exception still escapes
+        # Flask-Session's open_session/save_session and Flask turns it into a 500
+        # (plus a secondary "session has not yet been opened" crash in the error
+        # handler). Wrap the low-level store helpers so a prolonged outage
+        # degrades to a transient, non-persisted session instead of a hard error.
+        _make_session_resilient(app)
     else:
         # Use Flask's default session implementation for testing
         app.logger.info("Testing mode: Using Flask default sessions instead of Redis")
@@ -66,3 +75,51 @@ def init_session(app, redis_manager):
     # Configure CORS — restrict to known origins (configurable via CORS_ALLOWED_ORIGINS env var)
     allowed_origins = app.config.get('CORS_ALLOWED_ORIGINS', ['*'])
     CORS(app, resources={r"/api/*": {"origins": allowed_origins}}, supports_credentials=True)
+
+
+def _make_session_resilient(app):
+    """Make the Redis session interface fail soft during a Redis outage.
+
+    When Redis is unreachable/reloading past the client's retry budget:
+      * reads behave as "no saved session" -> Flask-Session issues a fresh
+        session, so the request proceeds (unauthenticated for that request), and
+      * writes/deletes are skipped for that one request.
+
+    The user keeps browsing instead of hitting a 500; normal persistence resumes
+    the instant Redis is back. We wrap the low-level store helpers (rather than
+    open_session/save_session) so Flask-Session's own logic still builds the
+    session objects — keeping this independent of the library version.
+    """
+    from redis.exceptions import (
+        BusyLoadingError,
+        ConnectionError as RedisConnectionError,
+        TimeoutError as RedisTimeoutError,
+    )
+
+    redis_errors = (BusyLoadingError, RedisConnectionError, RedisTimeoutError)
+    interface = getattr(app, 'session_interface', None)
+    if interface is None:
+        return
+
+    def guard(method_name, fallback):
+        original = getattr(interface, method_name, None)
+        if not callable(original):
+            return
+
+        def wrapper(*args, **kwargs):
+            try:
+                return original(*args, **kwargs)
+            except redis_errors as e:
+                logger.warning(
+                    "Session store unavailable in %s; degrading gracefully (%s)",
+                    method_name, e,
+                )
+                return fallback
+
+        setattr(interface, method_name, wrapper)
+
+    # None from _retrieve_session_data reads as "no session" -> fresh session.
+    guard('_retrieve_session_data', fallback=None)
+    # Persistence helpers become no-ops during the outage; the response still returns.
+    guard('_upsert_session', fallback=None)
+    guard('_delete_session', fallback=None)
