@@ -582,7 +582,9 @@ def delete_conversation(user_id):
             }), 404
 
         # Hide all messages in this conversation for the current user
-        hidden_count = DirectMessage.hide_conversation_for_user(current_user.id, user_id)
+        hidden_count = DirectMessage.hide_conversation_for_user(
+            current_user.id, user_id, session=db.session
+        )
         db.session.commit()
 
         logger.info(f"User {current_user.id} hid conversation with user {user_id} ({hidden_count} messages)")

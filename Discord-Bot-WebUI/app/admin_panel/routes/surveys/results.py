@@ -32,7 +32,17 @@ _ROLES = ['Global Admin', 'Pub League Admin']
 @role_required(_ROLES)
 def survey_results(survey_id):
     """Results dashboard for a survey."""
-    survey = Survey.query.get_or_404(survey_id)
+    # Load through g.db_session — the SAME session we hand to the service below.
+    # Survey.query binds to db.session, so `survey.responses` and their `answers`
+    # lazy-loaded as db.session objects, and sync_native_poll_responses'
+    # `session.delete(a)` (on g.db_session) then raised InvalidRequestError for a
+    # foreign object. That killed every RE-sync: a voter who changed their Discord
+    # vote never updated, the error was swallowed below, and the dashboard just
+    # rendered stale numbers.
+    survey = g.db_session.query(Survey).get(survey_id)
+    if survey is None:
+        abort(404)
+
     # Pull in any Discord native-poll votes before computing the summary so
     # all channels show together. Best-effort: never block the dashboard.
     try:

@@ -9,10 +9,11 @@ Admin routes for managing Pub League WooCommerce orders, including:
 - Cancelling claims
 """
 
+import io
 import logging
 from datetime import datetime
 
-from flask import Blueprint, render_template, request, jsonify, url_for
+from flask import Blueprint, render_template, request, jsonify, url_for, send_file, abort
 from flask_login import login_required, current_user
 from sqlalchemy import desc, or_, and_, func, distinct
 from sqlalchemy.orm import joinedload
@@ -268,6 +269,15 @@ def order_detail(order_id):
         # Get user roles for template
         user_roles = [role.name for role in safe_current_user.roles] if safe_current_user.is_authenticated else []
 
+        # Real jersey sizes actually in use — same source as the player profile
+        # form and the link-order wizard, so the edit dropdown here can't drift
+        # from a hardcoded XS/SM/… list that doesn't match reality. Fold in any
+        # size already on this order's line items so it stays selectable even if
+        # no existing player currently uses it.
+        jersey_size_choices = sorted({
+            r[0] for r in db.session.query(Player.jersey_size).distinct().all() if r[0]
+        } | {li.jersey_size for li in line_items if li.jersey_size})
+
         return render_template(
             'admin/pub_league_order_detail_flowbite.html',
             title=f'Order #{order.woo_order_id}',
@@ -275,6 +285,7 @@ def order_detail(order_id):
             line_items=line_items,
             claims=claims,
             user_roles=user_roles,
+            jersey_size_choices=jersey_size_choices,
             PubLeagueOrderStatus=PubLeagueOrderStatus,
             PubLeagueLineItemStatus=PubLeagueLineItemStatus,
             PubLeagueClaimStatus=PubLeagueClaimStatus
@@ -386,15 +397,34 @@ def api_manual_link():
         if not line_item:
             return jsonify({'success': False, 'error': 'Line item not found'}), 404
 
-        if line_item.status != PubLeagueLineItemStatus.UNASSIGNED.value:
-            return jsonify({'success': False, 'error': 'Pass is already assigned'}), 400
-
         player = db.session.query(Player).options(
             joinedload(Player.user)
         ).filter_by(id=player_id).first()
 
         if not player:
             return jsonify({'success': False, 'error': 'Player not found'}), 404
+
+        # Reassignment: if this pass is already assigned to someone else, clear
+        # the previous holder first. assign_to_player() below increments the
+        # order's linked_passes and flips status to assigned, so we mustn't let
+        # it double-count — an already-assigned pass keeps the same slot.
+        was_assigned = line_item.status != PubLeagueLineItemStatus.UNASSIGNED.value
+        previous_name = line_item.assigned_player.name if line_item.assigned_player else None
+        if was_assigned and line_item.assigned_player_id == player.id:
+            return jsonify({'success': False, 'error': 'Pass is already assigned to this player'}), 400
+        if was_assigned:
+            # Return it to unassigned WITHOUT touching linked_passes (assign
+            # re-increments), and drop the old wallet pass so the new holder gets
+            # a fresh one rather than the previous holder's.
+            line_item.assigned_player_id = None
+            line_item.assigned_user_id = None
+            line_item.assigned_at = None
+            line_item.wallet_pass_id = None
+            line_item.pass_created_at = None
+            line_item.status = PubLeagueLineItemStatus.UNASSIGNED.value
+            if line_item.order:
+                line_item.order.linked_passes = max(0, line_item.order.linked_passes - 1)
+            db.session.flush()
 
         # Import services
         from app.pub_league.services import PubLeagueOrderService, PlayerActivationService
@@ -412,11 +442,17 @@ def api_manual_link():
                 jersey_size=line_item.jersey_size
             )
 
-        logger.info(f"Admin {current_user.id} manually linked line item {line_item_id} to player {player_id}")
+        verb = 'reassigned' if was_assigned else 'linked'
+        logger.info(
+            f"Admin {current_user.id} {verb} line item {line_item_id} to player {player_id}"
+            + (f" (was {previous_name})" if previous_name else "")
+        )
 
+        msg = (f'Pass reassigned from {previous_name} to {player.name}'
+               if was_assigned and previous_name else f'Pass linked to {player.name}')
         return jsonify({
             'success': True,
-            'message': f'Pass linked to {player.name}',
+            'message': msg,
             'line_item': line_item.to_dict()
         })
 
@@ -640,10 +676,17 @@ def api_unassign_pass():
 
         old_player_name = line_item.assigned_player.name if line_item.assigned_player else 'Unknown'
 
-        # Clear assignment
+        # Clear assignment AND the generated wallet pass. Clearing the pass link
+        # matters: generate-pass short-circuits on a non-null wallet_pass_id and
+        # returns the OLD pass, so without this a re-linked line item would never
+        # mint a fresh pass — it'd hand back the previous holder's. This returns
+        # the line item to a truly clean unassigned state (the right behaviour for
+        # both a real reassignment and re-testing the flow).
         line_item.assigned_player_id = None
         line_item.assigned_user_id = None
         line_item.assigned_at = None
+        line_item.wallet_pass_id = None
+        line_item.pass_created_at = None
         line_item.status = PubLeagueLineItemStatus.UNASSIGNED.value
 
         # Update order linked count
@@ -730,3 +773,109 @@ def _mask_email(email: str) -> str:
         masked_local = local[0] + '*' * (len(local) - 2) + local[-1]
 
     return f"{masked_local}@{domain}"
+
+
+# ============================================================================
+# Pre-season party QR codes
+# ============================================================================
+#
+# Passes sell out in about an hour, and first access is earned by showing up to
+# the pre-season party. These render the QR you put on the wall / on the table
+# at the party. Scanning it opens the app for anyone who has it (and the browser
+# for anyone who doesn't), then drops them straight into WooCommerce's own
+# checkout — which is where the presale password gate and the card form live.
+#
+# There is deliberately NO "buy a pass" button inside the app: access to the
+# purchase is the thing being rationed, so the QR (and later the public on-sale
+# link) is the only way in.
+
+def _buy_url(division: str = None) -> str:
+    """
+    The Universal Link a QR encodes.
+
+    Deliberately carries NO season and NO product id — only (optionally) the
+    division. Everything else is resolved at scan time from whichever Pub League
+    season is is_current. That means ONE printed QR survives every rollover:
+    scan it this season and it lands on the 2026-fall product, scan the same
+    code next season and it lands on 2027-spring.
+
+    src=app is always included: it's a no-op in a browser, and in the app it's
+    what makes WooCommerce's post-payment redirect bounce the buyer back into
+    the app instead of stranding them in the browser sheet.
+    """
+    kwargs = {'src': 'app', '_external': True}
+    if division:
+        kwargs['division'] = division
+    return url_for('pub_league.buy', **kwargs)
+
+
+@pub_league_orders_admin_bp.route('/pub-league-orders/qr.png')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def buy_qr_png():
+    """
+    PNG QR for the buy link.
+
+    No ?division= -> the ONE code for the party: it lands on the division picker.
+    ?division=classic|premier -> a code that skips straight to that division,
+    for when you want a separate sign at each table.
+    """
+    import qrcode
+
+    division = (request.args.get('division') or '').lower() or None
+    if division and division not in ('classic', 'premier'):
+        abort(404)
+
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(_buy_url(division))
+    qr.make(fit=True)
+    img = qr.make_image(fill_color='black', back_color='white')
+
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+
+@pub_league_orders_admin_bp.route('/pub-league-orders/qr')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def buy_qr_print():
+    """Printable QR sheet for the pre-season party."""
+    from app.pub_league.services import ProductUrlService
+
+    season_name = ProductUrlService.get_current_season_name()
+    options = ProductUrlService.get_buy_options(season_name)
+
+    # Per-division codes, for anyone who wants a sign at each table instead of
+    # (or as well as) the single picker code.
+    divisions = [
+        {
+            'name': option['name'],
+            'slug': option['division'],
+            'buy_url': _buy_url(option['division']),
+            # Surfaced so an admin sees at a glance whether the product slug
+            # actually resolves. A missing one means the QR dead-ends, and the
+            # party is the worst possible place to discover that.
+            'product_url': option['product_url'],
+            # A hardcoded slug pins the link to ONE product and will NOT follow
+            # the next rollover — the whole point of the QR is that it does.
+            'slug_override': option['slug_override'],
+            'qr_png': url_for('pub_league_orders_admin.buy_qr_png', division=option['division']),
+        }
+        for option in options
+    ]
+
+    return render_template(
+        'admin/pub_league_buy_qr.html',
+        season_name=season_name,
+        divisions=divisions,
+        picker_qr_png=url_for('pub_league_orders_admin.buy_qr_png'),
+        picker_url=_buy_url(),
+        any_available=any(d['product_url'] for d in divisions),
+    )

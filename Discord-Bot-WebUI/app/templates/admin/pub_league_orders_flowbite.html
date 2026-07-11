@@ -27,6 +27,10 @@
 {% set pct_linked = ((s_linked / linkable) * 100) | round | int if linkable > 0 else 0 %}
 <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8 space-y-6">
     {% call page_header("Pub League Orders", subtitle="WooCommerce · pass linking queue") %}
+        <a href="{{ url_for('pub_league_orders_admin.buy_qr_print') }}"
+           class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-ecs-green bg-ecs-green/10 hover:bg-ecs-green/20 text-sm font-medium text-ecs-green dark:text-ecs-gold dark:border-ecs-gold dark:bg-ecs-gold/10 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-qrcode text-base" aria-hidden="true"></i> Party QR Codes
+        </a>
         <button type="button" data-collapse-toggle="productUrlSettings"
                 class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-link text-base" aria-hidden="true"></i> Product URLs
@@ -382,8 +386,11 @@
     {% endcall %}
 </div>
 {% else %}
-<!-- Product URL Settings Button -->
-<div class="flex justify-end mb-4">
+<!-- Actions -->
+<div class="flex justify-end gap-3 mb-4">
+    <a href="{{ url_for('pub_league_orders_admin.buy_qr_print') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-ecs-green dark:text-ecs-gold bg-ecs-green/10 dark:bg-ecs-gold/10 hover:bg-ecs-green/20 border border-ecs-green dark:border-ecs-gold rounded-lg transition-colors">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>Party QR Codes
+    </a>
     <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" data-collapse-toggle="productUrlSettings">
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Product URLs
     </button>

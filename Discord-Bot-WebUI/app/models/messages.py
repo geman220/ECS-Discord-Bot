@@ -212,7 +212,7 @@ class DirectMessage(db.Model):
         ).count()
 
     @classmethod
-    def hide_conversation_for_user(cls, user_id, other_user_id):
+    def hide_conversation_for_user(cls, user_id, other_user_id, session=None):
         """
         Hide all messages in a conversation for a specific user.
 
@@ -222,19 +222,34 @@ class DirectMessage(db.Model):
         Args:
             user_id: The user hiding the conversation
             other_user_id: The other participant in the conversation
+            session: The session the caller commits. Defaults to the per-request
+                one. These are bulk UPDATEs and they execute inside whichever
+                session's transaction they're issued on — `cls.query` binds to
+                db.session, which nothing commits, so the mobile caller (which
+                commits g.db_session) reported "Conversation deleted" and the
+                conversation reappeared on refresh.
 
         Returns:
             int: Number of messages hidden
         """
+        from flask import g, has_request_context
+        from app.core import db as _db
+
+        if session is None:
+            if has_request_context() and getattr(g, 'db_session', None) is not None:
+                session = g.db_session
+            else:
+                session = _db.session
+
         # Hide messages where user is the sender
-        sent_count = cls.query.filter(
+        sent_count = session.query(cls).filter(
             cls.sender_id == user_id,
             cls.recipient_id == other_user_id,
             cls.hidden_for_sender == False
         ).update({'hidden_for_sender': True})
 
         # Hide messages where user is the recipient
-        received_count = cls.query.filter(
+        received_count = session.query(cls).filter(
             cls.sender_id == other_user_id,
             cls.recipient_id == user_id,
             cls.hidden_for_recipient == False

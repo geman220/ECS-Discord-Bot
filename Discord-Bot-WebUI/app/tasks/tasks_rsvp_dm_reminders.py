@@ -52,9 +52,11 @@ def send_rsvp_dm_reminders(self, session):
         window_end = today + timedelta(days=4)
         bot_api_url = Config.BOT_API_URL
 
-        # Clean up expired snoozes
-        rsvp_snooze_service.cleanup_expired()
-        snoozed_ids = rsvp_snooze_service.get_all_snoozed_player_ids()
+        # Clean up expired snoozes. Pass the task's session — there's no request
+        # context here, so without it the service would fall back to db.session
+        # while this task commits its own, and the cleanup DELETE would be lost.
+        rsvp_snooze_service.cleanup_expired(session=session)
+        snoozed_ids = rsvp_snooze_service.get_all_snoozed_player_ids(session=session)
 
         # Collect non-responders: player_id -> {player, matches}
         player_data = {}

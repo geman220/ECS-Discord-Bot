@@ -1,0 +1,159 @@
+{% extends "mobile_base_flowbite.html" %}
+
+{% block title %}Buy a Season Pass{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 px-4 py-8">
+    <div class="mx-auto max-w-md">
+
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">ECS Pub League</h1>
+            {% if season_name %}
+            <p class="mt-1 text-lg font-medium text-ecs-green dark:text-ecs-gold">{{ season_name }}</p>
+            {% endif %}
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                Which division are you buying for?
+            </p>
+        </div>
+
+        {% if not any_available %}
+            {# Neither product resolved. Better to say "not on sale" than to render
+               buttons that dead-end at a 404 on the shop. #}
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center dark:border-amber-800 dark:bg-amber-900/20">
+                <i class="ti ti-clock text-3xl text-amber-500"></i>
+                <p class="mt-2 font-semibold text-amber-900 dark:text-amber-200">Passes aren't on sale yet</p>
+                <p class="mt-1 text-sm text-amber-800 dark:text-amber-300">
+                    Keep an eye on Discord for the on-sale time.
+                </p>
+            </div>
+        {% else %}
+
+            {#
+              The $10 ECS-membership discount is applied by WooCommerce Memberships
+              and only appears for a customer LOGGED IN to weareecs.com. That's a
+              separate account from the portal, and nobody stays logged in to a
+              store they use twice a year — so without this, a member gets charged
+              the full $110 and only notices afterwards.
+
+              Loud prompt when we can confirm the membership; a quiet opt-in for
+              everyone else. We never hide it entirely: their weareecs.com email
+              can differ from their portal email, so a false negative is expected,
+              and a false negative that hid this would cost a real member $10.
+            #}
+            {% if is_member %}
+            <div class="mb-6 rounded-2xl border-2 border-ecs-green bg-ecs-green/5 p-5 dark:border-ecs-gold dark:bg-ecs-gold/10">
+                <p class="font-semibold text-ecs-green dark:text-ecs-gold">
+                    <i class="ti ti-discount-2"></i> You have an ECS membership &mdash; that's $10 off
+                </p>
+                <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                    The discount only applies if you're signed in to the ECS shop. We'll send you
+                    there to sign in first, otherwise you'll be charged full price.
+                </p>
+            </div>
+            {% endif %}
+
+            <div class="space-y-4">
+                {% for option in options %}
+                    {% if option.product_url %}
+                    <a href="{{ url_for('pub_league.buy', division=option.division, login=1 if route_via_login else None, src='app' if from_app else None) }}"
+                       data-division-link="{{ option.division }}"
+                       class="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-ecs-green hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-ecs-gold">
+                        <div class="text-left">
+                            <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ option.name }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                {{ option.name }} Division season pass
+                            </p>
+                        </div>
+                        <i class="ti ti-chevron-right text-xl text-gray-400"></i>
+                    </a>
+                    {% else %}
+                    <div class="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-100 p-5 opacity-60 dark:border-gray-700 dark:bg-gray-800/50">
+                        <div class="text-left">
+                            <p class="text-lg font-semibold text-gray-500 dark:text-gray-400">{{ option.name }}</p>
+                            <p class="text-sm text-gray-400 dark:text-gray-500">Not on sale</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            {% if not is_member %}
+            {#
+              Self-declared-member toggle. This is a plain LINK that reloads the
+              picker with ?member=1 (or drops it), so the division links come back
+              with member routing baked in SERVER-SIDE. It works with NO JavaScript
+              — critical, because the members we couldn't auto-detect are exactly
+              the ones this prompt exists to protect, and gating their discount
+              behind client JS would be the one place it must not live.
+              (data-member-toggle lets the optional JS below skip the reload.)
+            #}
+            <a href="{{ url_for('pub_league.buy',
+                                member=None if self_declared_member else 1,
+                                src='app' if from_app else None) }}"
+               data-member-toggle
+               class="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border p-4
+                      {% if self_declared_member %}border-ecs-green bg-ecs-green/5 dark:border-ecs-gold dark:bg-ecs-gold/10{% else %}border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800{% endif %}">
+                <span class="mt-0.5 flex h-5 w-5 items-center justify-center rounded border
+                             {% if self_declared_member %}border-ecs-green bg-ecs-green text-white dark:border-ecs-gold dark:bg-ecs-gold dark:text-gray-900{% else %}border-gray-300 dark:border-gray-600{% endif %}">
+                    {% if self_declared_member %}<i class="ti ti-check text-xs"></i>{% endif %}
+                </span>
+                <span class="text-sm text-gray-700 dark:text-gray-300">
+                    <span class="font-medium text-gray-900 dark:text-white">I have an ECS membership</span><br>
+                    {% if self_declared_member %}
+                        We'll sign you in to the ECS shop first so your $10 discount applies.
+                    {% else %}
+                        Tap to sign in to the ECS shop first so your $10 discount applies.
+                    {% endif %}
+                </span>
+            </a>
+            {% endif %}
+
+            <p class="mt-6 text-center text-xs text-gray-500 dark:text-gray-400">
+                You'll be taken to the ECS shop to pay. Once you're done, we'll bring you
+                back here to set up your profile and get your pass.
+            </p>
+        {% endif %}
+
+    </div>
+</div>
+
+<script>
+// Progressive enhancement only. The "I have a membership" control is a real link
+// that reloads with ?member=1 and works with no JS at all (the server bakes
+// ?login=1 into the division links). This just avoids the reload: toggle the
+// division links' ?login in place and flip the control's own state.
+document.addEventListener('DOMContentLoaded', function () {
+    var toggle = document.querySelector('[data-member-toggle]');
+    if (!toggle) return;
+
+    var links = document.querySelectorAll('[data-division-link]');
+
+    toggle.addEventListener('click', function (e) {
+        e.preventDefault();
+        var nowOn = toggle.getAttribute('aria-pressed') !== 'true';
+        toggle.setAttribute('aria-pressed', nowOn ? 'true' : 'false');
+
+        links.forEach(function (link) {
+            var url = new URL(link.href, window.location.origin);
+            if (nowOn) {
+                url.searchParams.set('login', '1');
+            } else {
+                url.searchParams.delete('login');
+            }
+            link.href = url.toString();
+        });
+
+        // Reflect the checked look without a full reload.
+        toggle.classList.toggle('border-ecs-green', nowOn);
+        toggle.classList.toggle('bg-ecs-green/5', nowOn);
+        var box = toggle.querySelector('span');
+        if (box) {
+            box.innerHTML = nowOn ? '<i class="ti ti-check text-xs"></i>' : '';
+            box.classList.toggle('bg-ecs-green', nowOn);
+            box.classList.toggle('text-white', nowOn);
+            box.classList.toggle('border-ecs-green', nowOn);
+        }
+    });
+});
+</script>
+{% endblock %}

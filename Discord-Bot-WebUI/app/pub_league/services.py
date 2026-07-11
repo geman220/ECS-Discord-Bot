@@ -30,6 +30,13 @@ from app.models import (
 from app.order_helpers import extract_jersey_size_from_product_name, extract_season_name
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
 from app.utils.deferred_discord import DeferredDiscordQueue
+from app.forms import (
+    soccer_positions, goal_frequency_choices, availability_choices,
+    pronoun_choices, willing_to_referee_choices
+)
+from app.constants.positions import (
+    normalize_position, parse_positions, format_positions,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -197,8 +204,13 @@ class PubLeagueOrderService:
         Returns:
             PubLeagueOrder instance
         """
-        # Check for existing order
-        existing = PubLeagueOrder.find_by_woo_order_id(woo_order_id)
+        session = getattr(g, 'db_session', db.session)
+
+        # Query through the SAME session we commit below. `Model.query` binds to
+        # Flask-SQLAlchemy's db.session, which in this app is a DIFFERENT session
+        # from g.db_session (see app/init/database.py: SessionLocal is its own
+        # sessionmaker) — loading here and committing there silently drops writes.
+        existing = session.query(PubLeagueOrder).filter_by(woo_order_id=woo_order_id).first()
         if existing:
             return existing
 
@@ -213,11 +225,19 @@ class PubLeagueOrderService:
         if pub_league_items:
             season_name = extract_season_name(pub_league_items[0]['product_name'])
 
-        # Find season in database
+        # Find season in database. MUST scope by league_type: Pub League and
+        # ECS FC each create a Season row with the SAME name (e.g. "2026 Fall")
+        # and both are is_current=True, so an unqualified name lookup returns
+        # whichever has the lower PK — often the ECS FC season. That would bind a
+        # paid Pub League order to the ECS FC season, making it vanish from the
+        # admin "current" view and minting the wallet pass against the wrong
+        # season's dates/label.
         season = None
         if season_name:
             session = getattr(g, 'db_session', db.session)
-            season = session.query(Season).filter_by(name=season_name).first()
+            season = session.query(Season).filter_by(
+                name=season_name, league_type='Pub League'
+            ).first()
 
         # Create order
         order = PubLeagueOrder(
@@ -320,16 +340,22 @@ class PubLeagueOrderService:
         Raises:
             ValueError: If claim is invalid or expired
         """
-        claim = PubLeagueOrderClaim.find_by_token(claim_token)
+        session = getattr(g, 'db_session', db.session)
+
+        # Load through the session we commit. `PubLeagueOrderClaim.find_by_token`
+        # goes via Model.query -> Flask-SQLAlchemy's db.session, which is NOT
+        # g.db_session here, so the CLAIMED status flip and the line-item
+        # assignment would be made on one session and committed on another —
+        # i.e. rolled back at teardown, leaving the claim link reusable.
+        claim = session.query(PubLeagueOrderClaim).filter_by(claim_token=claim_token).first()
         if not claim:
             raise ValueError("Invalid claim link")
 
         if not claim.is_valid():
+            session.commit()  # persist a PENDING -> EXPIRED transition
             raise ValueError("This claim link has expired or already been used")
 
         claim.process_claim(player, user)
-
-        session = getattr(g, 'db_session', db.session)
         session.commit()
 
         logger.info(f"Claim {claim_token[:8]}... processed for player {player.id}")
@@ -357,9 +383,14 @@ class PubLeagueOrderService:
         season = order.season
 
         if not season:
-            # Try to find season from season_name
+            # Fall back to season_name — scoped to Pub League, since ECS FC has a
+            # same-named current season and an unqualified lookup could mint this
+            # pass against the wrong season. (order.season above is trustworthy
+            # once create_or_get_order sets season_id correctly, which it now does.)
             session = getattr(g, 'db_session', db.session)
-            season = session.query(Season).filter_by(name=order.season_name).first()
+            season = session.query(Season).filter_by(
+                name=order.season_name, league_type='Pub League'
+            ).first()
 
         if not season:
             raise ValueError("Could not determine season for pass creation")
@@ -820,34 +851,214 @@ class ProfileConflictService:
             )
 
 
+class ProfileUpdateService:
+    """
+    Single source of truth for the "confirm your profile" step.
+
+    Both front-ends write the profile through here — the web wizard
+    (POST /pub-league/link-order/update-profile) and the app
+    (POST /api/v1/pub-league/confirm-profile) — so the two can never drift on
+    whitelists, position normalization, or the profile_last_updated stamp.
+
+    Every select value is whitelisted against the canonical form option lists,
+    and `form_options()` hands those same lists to the client so the app never
+    hardcodes a dropdown that the server would then reject.
+    """
+
+    @staticmethod
+    def form_options(session, extra_jersey_sizes: list[str] = None) -> dict:
+        """
+        The option lists a client needs to render the profile-confirm step.
+
+        Jersey sizes mirror the player profile form, which builds its dropdown
+        from ``distinct(Player.jersey_size)`` rather than a hardcoded list.
+        `extra_jersey_sizes` folds in the size on the order's WooCommerce
+        variation so it can prefill even if no existing player has that size.
+        """
+        rows = session.query(Player.jersey_size).distinct().all()
+        sizes = {r[0] for r in rows if r[0]}
+        sizes.update(s for s in (extra_jersey_sizes or []) if s)
+
+        def _pairs(choices):
+            return [{'value': value, 'label': label} for value, label in choices]
+
+        return {
+            'jersey_sizes': sorted(sizes),
+            'positions': _pairs(soccer_positions),
+            'goal_frequency': _pairs(goal_frequency_choices),
+            'availability': _pairs(availability_choices),
+            'pronouns': _pairs(pronoun_choices),
+            'willing_to_referee': _pairs(willing_to_referee_choices),
+        }
+
+    @staticmethod
+    def prefill(player: Player, fallback_name: str = '', fallback_jersey_size: str = '') -> dict:
+        """Current profile values for the confirm step, in the shape clients post back."""
+        return {
+            'name': (player.name if player else '') or fallback_name,
+            'pronouns': player.pronouns if player else '',
+            'phone': (player.phone if player else '') or '',
+            'jersey_size': (player.jersey_size if player else '') or fallback_jersey_size,
+            'jersey_number': player.jersey_number if player else '',
+            'favorite_position': normalize_position(player.favorite_position) if player else '',
+            'other_positions': parse_positions(player.other_positions) if player else [],
+            'positions_not_to_play': parse_positions(player.positions_not_to_play) if player else [],
+            'frequency_play_goal': player.frequency_play_goal if player else '',
+            'expected_weeks_available': player.expected_weeks_available if player else '',
+            'willing_to_referee': player.willing_to_referee if player else '',
+            'player_notes': (player.player_notes if player else '') or '',
+        }
+
+    @staticmethod
+    def apply(player: Player, data: dict) -> None:
+        """
+        Persist a confirmed profile payload onto ``player``.
+
+        All fields are optional; anything absent or failing its whitelist is
+        left untouched rather than blanked, so a partial payload from an older
+        client can never wipe good data. Stamps profile_last_updated so the
+        review-due logic resets.
+        """
+        allowed_positions = {value for value, _ in soccer_positions}
+        allowed_goal_frequency = {value for value, _ in goal_frequency_choices}
+        allowed_availability = {value for value, _ in availability_choices}
+        allowed_pronouns = {value for value, _ in pronoun_choices}
+        allowed_referee = {value for value, _ in willing_to_referee_choices}
+
+        # --- Identity & Contact ---
+        name = (data.get('name') or '').strip()
+        if name:
+            player.name = name[:100]
+
+        pronouns = (data.get('pronouns') or '').strip()
+        if pronouns in allowed_pronouns:
+            player.pronouns = pronouns
+
+        # Phone uses the encrypting setter; only write when a value is given so
+        # we don't wipe an existing number on an accidental blank.
+        phone = (data.get('phone') or '').strip()
+        if phone:
+            player.phone = phone[:20]
+
+        # Jersey size mirrors the profile form, which accepts any distinct size
+        # in use (not a fixed list). Guard only on column length (String(10)).
+        jersey_size = (data.get('jersey_size') or '').strip()
+        if jersey_size and len(jersey_size) <= 10:
+            player.jersey_size = jersey_size
+
+        jersey_number_raw = data.get('jersey_number')
+        if jersey_number_raw not in (None, ''):
+            try:
+                _jn = int(jersey_number_raw)
+                # Range-guard: the column is a 4-byte int; an out-of-range value
+                # only fails at commit() and would then lose the WHOLE profile
+                # update. Jersey numbers are 0-99.
+                if 0 <= _jn <= 99:
+                    player.jersey_number = _jn
+            except (TypeError, ValueError):
+                pass  # ignore non-numeric jersey numbers
+
+        # --- Playing ---
+        # Positions are normalized to canonical slugs and stored as {slug,slug}
+        # via the single source of truth, so every client writes the same shape.
+        favorite_position = normalize_position(data.get('favorite_position'))
+        if favorite_position in allowed_positions:
+            player.favorite_position = favorite_position
+
+        other_positions = data.get('other_positions')
+        if isinstance(other_positions, list):
+            player.other_positions = format_positions(other_positions)
+
+        positions_not_to_play = data.get('positions_not_to_play')
+        if isinstance(positions_not_to_play, list):
+            player.positions_not_to_play = format_positions(positions_not_to_play)
+
+        frequency_play_goal = (data.get('frequency_play_goal') or '').strip()
+        if frequency_play_goal in allowed_goal_frequency:
+            player.frequency_play_goal = frequency_play_goal
+
+        # --- Availability ---
+        expected_weeks_available = (data.get('expected_weeks_available') or '').strip()
+        if expected_weeks_available in allowed_availability:
+            player.expected_weeks_available = expected_weeks_available
+
+        willing_to_referee = (data.get('willing_to_referee') or '').strip()
+        if willing_to_referee in allowed_referee:
+            player.willing_to_referee = willing_to_referee
+
+        # Free-text notes for coaches/admins. Present as a key only when the
+        # client sends it, so we don't wipe existing notes on older payloads.
+        if 'player_notes' in data:
+            player.player_notes = (data.get('player_notes') or '').strip()[:2000]
+
+        # Stamp the review so the 5-month "please update" alert resets.
+        player.profile_last_updated = datetime.utcnow()
+
+        session = getattr(g, 'db_session', db.session)
+        session.commit()
+
+
 class ProductUrlService:
     """
     Service for generating WooCommerce product URLs for Pub League passes.
 
-    URLs are constructed either from admin-configured slugs or auto-generated
-    from the current season name.
+    URLs are derived from the CURRENT Pub League season, so a single link (and a
+    single printed QR) keeps working across rollovers: scan it in Fall 2026 and
+    it resolves to the 2026-fall product; scan the same code next season and it
+    resolves to 2027-spring. Nothing to reprint.
+
+    An admin-configured slug OVERRIDES that and is therefore season-frozen — see
+    the warning in get_product_url.
     """
 
+    DIVISIONS = ('Classic', 'Premier')
+
     @staticmethod
-    def get_product_url(division: str, season_name: str = None) -> str:
+    def get_current_season_name() -> Optional[str]:
+        """
+        Name of the current PUB LEAGUE season (e.g. "2026 Fall").
+
+        Must filter on league_type: Pub League and ECS FC each have their own
+        season row and BOTH are is_current=True at the same time, so an
+        unqualified is_current lookup can hand back the ECS FC season and build
+        a product slug for a product that doesn't exist.
+        """
+        from app.models import Season
+        try:
+            session = getattr(g, 'db_session', db.session)
+            season = session.query(Season).filter_by(
+                league_type='Pub League', is_current=True
+            ).first()
+            return season.name if season else None
+        except Exception as exc:
+            logger.warning(f"Could not resolve current Pub League season: {exc}")
+            return None
+
+    @staticmethod
+    def get_product_url(division: str, season_name: str = None) -> Optional[str]:
         """
         Get the WooCommerce product URL for a division.
 
         Args:
             division: 'Classic' or 'Premier'
-            season_name: Optional season name (e.g., 'Spring 2026'). If not provided,
-                        will try to get current active season.
+            season_name: Optional season name (e.g. '2026 Fall'). Defaults to the
+                        current Pub League season.
 
         Returns:
-            Full product URL or None if not configured
+            Full product URL, or None if we can't build one (no configured slug
+            AND no current season to derive it from). Callers MUST handle None —
+            returning a guessed URL would dump a buyer on a 404 at the shop.
         """
-        from app.models import AdminConfig, Season
+        from app.models import AdminConfig
 
         # Get base shop URL
         shop_url = AdminConfig.get_setting('woocommerce_shop_url', 'https://weareecs.com')
         shop_url = shop_url.rstrip('/')
 
-        # Try admin-configured slug first
+        # An explicit admin slug wins — but note it does NOT roll over with the
+        # season. If one is set, it keeps pointing at the same product forever,
+        # which is what you want for a one-off but is a trap across a rollover.
+        # ProductUrlService.slug_override_active() surfaces this to the admin UI.
         if division.lower() == 'premier':
             slug = AdminConfig.get_setting('pub_league_premier_product_slug', '')
         else:
@@ -856,31 +1067,66 @@ class ProductUrlService:
         if slug:
             return f"{shop_url}/product/{slug}/"
 
-        # Auto-generate slug from season name
         if not season_name:
-            # Try to get current active season
-            try:
-                session = getattr(g, 'db_session', db.session)
-                current_season = session.query(Season).filter_by(
-                    is_current=True
-                ).first()
-                if current_season:
-                    season_name = current_season.name
-            except Exception:
-                pass
+            season_name = ProductUrlService.get_current_season_name()
 
         if season_name:
-            # Convert "Spring 2026" or "2026 Spring" to "2026-spring"
+            # "2026 Fall" (or legacy "Fall 2026") -> 2026-fall-ecs-pub-league-<div>-division.
+            # REQUIRE exactly one token to be a 4-digit year and the other to be
+            # the season word. Otherwise return None (→ "not on sale") rather than
+            # guessing: a name like "Fall Fest" would otherwise build a slug that
+            # 404s at the shop, sending a buyer to a dead link at the party.
             parts = season_name.split()
             if len(parts) == 2:
-                if parts[0].isdigit():
-                    year, season = parts[0], parts[1].lower()
-                else:
-                    season, year = parts[0].lower(), parts[1]
-                slug = f"{year}-{season}-ecs-pub-league-{division.lower()}-division"
-                return f"{shop_url}/product/{slug}/"
+                year = season = None
+                for part in parts:
+                    if re.fullmatch(r'\d{4}', part):
+                        year = part
+                    else:
+                        season = part.lower()
+                if year and season:
+                    slug = f"{year}-{season}-ecs-pub-league-{division.lower()}-division"
+                    return f"{shop_url}/product/{slug}/"
+                logger.warning(
+                    f"Season name '{season_name}' isn't '<year> <season>'; "
+                    f"cannot build a product URL for {division}."
+                )
 
         return None
+
+    @staticmethod
+    def slug_override_active(division: str) -> bool:
+        """True when a hardcoded slug is configured for this division.
+
+        Surfaced in the admin QR page: an override means the link is pinned to
+        one product and will NOT follow the season rollover.
+        """
+        from app.models import AdminConfig
+        key = ('pub_league_premier_product_slug' if division.lower() == 'premier'
+               else 'pub_league_classic_product_slug')
+        return bool(AdminConfig.get_setting(key, ''))
+
+    @staticmethod
+    def get_buy_options(season_name: str = None) -> list[dict]:
+        """
+        The divisions a buyer can choose between, with their resolved Woo URLs.
+
+        Shared by the web division-picker page and the app's picker endpoint so
+        the two can't disagree about what's on sale.
+        """
+        if not season_name:
+            season_name = ProductUrlService.get_current_season_name()
+
+        options = []
+        for division in ProductUrlService.DIVISIONS:
+            options.append({
+                'division': division.lower(),
+                'name': division,
+                'season_name': season_name,
+                'product_url': ProductUrlService.get_product_url(division, season_name),
+                'slug_override': ProductUrlService.slug_override_active(division),
+            })
+        return options
 
     @staticmethod
     def get_all_product_urls(season_name: str = None) -> dict:

@@ -65,7 +65,11 @@ def set_snooze():
             player_id=player.id,
             duration_weeks=duration_weeks,
             reason=reason,
-            created_by=created_by
+            created_by=created_by,
+            # Write through the session this route commits. Without this the
+            # service wrote to db.session, which nothing commits — the API said
+            # "snoozed until X" and the player kept getting reminder DMs.
+            session=session_db,
         )
 
         return jsonify({
@@ -105,7 +109,13 @@ def clear_snooze(player_id):
     else:
         return jsonify({'error': 'Not authorized'}), 403
 
-    cleared = rsvp_snooze_service.clear_snooze(player_id)
+    # Explicit session + commit: this route had neither, so the DELETE was issued
+    # against a session that was rolled back at teardown and un-snoozing silently
+    # did nothing.
+    with managed_session() as session_db:
+        cleared = rsvp_snooze_service.clear_snooze(player_id, session=session_db)
+        session_db.commit()
+
     return jsonify({'success': True, 'was_snoozed': cleared})
 
 

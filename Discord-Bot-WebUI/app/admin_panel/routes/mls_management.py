@@ -18,6 +18,7 @@ from flask_login import login_required, current_user
 
 from .. import admin_panel_bp
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 from app.models import MLSMatch
 from app.models.admin_config import AdminAuditLog
 from app.models.match_status import MatchStatus
@@ -2143,6 +2144,9 @@ def mls_settings():
 @admin_panel_bp.route('/mls/settings/update', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Discord Admin'])
+@transactional  # AdminConfig.set_setting(auto_commit=False) mutates rows on
+                # db.session; this route commits g.db_session, so every settings
+                # change reported success and then reverted on reload.
 def mls_settings_update():
     """Update MLS configuration settings."""
     from app.models.admin_config import AdminConfig

@@ -215,86 +215,64 @@ def handle_live_connect():
         # Attempt to authenticate with the token
         if token:
             try:
-                # Use a safer method to decode JWT without cryptographic verification first
-                import jwt
-                import base64
-                import json
-                
-                # Log portion of token for debugging (first 10 chars only)
-                logger.debug(f"Attempting to verify token from {token_source}: {token[:10]}...")
-                
-                # Try to extract user ID from JWT payload without verification
+                logger.debug(f"Verifying token from {token_source}: {token[:10]}...")
+
+                # Decode WITH signature verification.
+                #
+                # This previously base64-decoded the JWT payload and trusted its
+                # `sub` claim without ever checking the signature. Since a JWT
+                # payload is just unsigned base64, anyone could hand-craft a token
+                # naming any user id and this namespace would accept it — and then
+                # join_user_room(user_id) below would subscribe the attacker to
+                # that user's direct-message room. decode_token() validates the
+                # HMAC signature and expiry against JWT_SECRET_KEY, so a forged or
+                # tampered token now fails closed to anonymous.
+                user_id = None
                 try:
-                    # Split the token parts
-                    parts = token.split('.')
-                    if len(parts) != 3:
-                        logger.error("Invalid JWT format: should have 3 parts")
-                        raise ValueError("Invalid JWT format")
-                        
-                    # Decode the payload (middle part)
-                    payload_encoded = parts[1]
-                    # Add padding if needed
-                    payload_encoded += '=' * ((4 - len(payload_encoded) % 4) % 4)
-                    payload_json = base64.b64decode(payload_encoded).decode('utf-8')
-                    payload = json.loads(payload_json)
-                    
-                    # Look for user ID in common claim fields
-                    user_id = payload.get('sub') or payload.get('identity') or payload.get('id')
-
-                    # Convert to int if it's a string (JWT often stores as string)
-                    if user_id is not None:
+                    from flask_jwt_extended import decode_token
+                    decoded_token = decode_token(token)
+                    raw_id = decoded_token.get('sub') or decoded_token.get('identity')
+                    if raw_id is not None:
                         try:
-                            user_id = int(user_id)
+                            user_id = int(raw_id)
                         except (ValueError, TypeError):
-                            logger.error(f"Invalid user_id format in JWT: {user_id}")
+                            logger.warning(f"Invalid user_id format in JWT: {raw_id}")
                             user_id = None
+                except Exception as decode_error:
+                    # Bad signature / expired / malformed. Not an error worth a
+                    # stack trace — it's the expected outcome for a stale or
+                    # forged token.
+                    logger.warning(f"Rejecting live-reporting socket token: {decode_error}")
+                    user_id = None
 
-                    logger.debug(f"Extracted user ID from token payload: {user_id}")
+                if not user_id:
+                    # Connect ANONYMOUSLY rather than refusing: this namespace also
+                    # serves unauthenticated match-watchers. An anonymous client
+                    # joins no user room and gets no presence entry, so it can only
+                    # receive public match broadcasts.
+                    g.socket_user_id = 0
+                    return True
 
-                    if not user_id:
-                        logger.error(f"No user ID found in token payload: {payload}")
-                        g.socket_user_id = 0  # Anonymous user
+                # Resolve the user BEFORE joining any room. Presence and the
+                # personal DM room are only for a real, approved member — a token
+                # naming a deleted user, or a pending user's restricted token
+                # (see app/mobile_api/approval_gate.py), degrades to anonymous
+                # instead of getting a user_<id> subscription.
+                with socket_session(db.engine) as session:
+                    user = session.query(User).get(user_id)
+
+                    if not user:
+                        logger.warning(f"User ID {user_id} from token not found in database")
+                        g.socket_user_id = 0
                         return True
-                        
-                    # Store user ID in Flask g
-                    g.socket_user_id = user_id
-                    
-                    # Store user ID in local request and in-memory storage
-                    session_data = {'user_id': user_id}
-                    request.sid_data = session_data
-                    SocketSessionManager.save_session_data(request.sid, session_data)
-                    
-                except Exception as jwt_error:
-                    logger.error(f"Error parsing JWT: {jwt_error}")
-                    # Fall back to default token verification
-                    try:
-                        from flask_jwt_extended import decode_token
-                        decoded_token = decode_token(token)
-                        user_id = decoded_token.get('sub') or decoded_token.get('identity')
 
-                        # Convert to int if it's a string
-                        if user_id is not None:
-                            try:
-                                user_id = int(user_id)
-                            except (ValueError, TypeError):
-                                logger.error(f"Invalid user_id format in fallback JWT: {user_id}")
-                                user_id = None
-
-                        if not user_id:
-                            logger.error(f"No user ID found in token: {decoded_token}")
-                            g.socket_user_id = 0  # Anonymous user
-                            return True
-
-                        g.socket_user_id = user_id
-                        # Store user ID in local request and in-memory storage
-                        session_data = {'user_id': user_id}
-                        request.sid_data = session_data
-                        SocketSessionManager.save_session_data(request.sid, session_data)
-                    except Exception as e:
-                        logger.error(f"JWT decode failed: {e}")
-                        g.socket_user_id = 0  # Anonymous user
+                    if not user.is_approved:
+                        logger.info(f"Live namespace: pending user {user_id} connected anonymously")
+                        g.socket_user_id = 0
                         return True
-                
+
+                    username = user.username
+
                 # Store user ID in Flask g
                 g.socket_user_id = user_id
                 # Make sure it's also in the Socket.IO session
@@ -309,34 +287,16 @@ def handle_live_connect():
                 join_user_room(user_id)
                 logger.debug(f"User {user_id} joined messaging room via /live namespace")
 
-                # Verify user exists (but don't fail connection if not found)
-                with socket_session(db.engine) as session:
-                    user = session.query(User).get(user_id)
-                    if user:
-                        logger.info(f"Live reporting client connected: {user.username} (ID: {user_id})")
-
-                        # Explicitly emit authentication success to the client
-                        # This helps React Native client know auth succeeded
-                        try:
-                            emit('authentication_success', {
-                                'user_id': user_id,
-                                'username': user.username,
-                                'timestamp': datetime.utcnow().isoformat(),
-                                'messaging_room': f'user_{user_id}'
-                            })
-                        except Exception as emit_error:
-                            logger.error(f"Error emitting authentication success: {emit_error}")
-                    else:
-                        logger.warning(f"User ID {user_id} from token not found in database")
-                        # Still allow connection for testing
-                        # Send anonymous auth success
-                        emit('authentication_success', {
-                            'user_id': user_id,
-                            'username': f'User_{user_id}',
-                            'timestamp': datetime.utcnow().isoformat(),
-                            'anonymous': True,
-                            'messaging_room': f'user_{user_id}'
-                        })
+                logger.info(f"Live reporting client connected: {username} (ID: {user_id})")
+                try:
+                    emit('authentication_success', {
+                        'user_id': user_id,
+                        'username': username,
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'messaging_room': f'user_{user_id}'
+                    })
+                except Exception as emit_error:
+                    logger.error(f"Error emitting authentication success: {emit_error}")
 
                 return True
                 

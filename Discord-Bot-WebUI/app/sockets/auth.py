@@ -157,6 +157,20 @@ def authenticate_socket_connection(auth=None):
             with managed_session() as session_db:
                 user = session_db.query(User).get(user_id)
                 if user:
+                    # Unapproved users now hold real (restricted) JWTs so they can
+                    # link the season pass they bought — see
+                    # app/mobile_api/approval_gate.py. Sockets are NOT on that
+                    # allowlist: draft, live reporting and lineup namespaces are
+                    # league features. Without this check, issuing pending tokens
+                    # would have quietly opened every namespace to them.
+                    if not user.is_approved:
+                        logger.info(f"🔌 [AUTH] Refusing socket auth for pending user {user_id}")
+                        return {
+                            'authenticated': False,
+                            'user_id': None,
+                            'error': 'ACCOUNT_NOT_APPROVED'
+                        }
+
                     logger.info(f"🔌 [AUTH] Authentication successful for user {user.username} (ID: {user_id})")
                     return {
                         'authenticated': True,
@@ -166,23 +180,25 @@ def authenticate_socket_connection(auth=None):
                     }
                 else:
                     logger.warning(f"🔌 [AUTH] User ID {user_id} not found in database")
-                    # Still allow connection for testing, but mark as unverified
+                    # Fail CLOSED to anonymous, not authenticated. We can't confirm
+                    # this user exists or is approved, and an authenticated result
+                    # here would join them to a user_<id> DM room and register
+                    # presence. A token naming a deleted user must not get that.
                     return {
-                        'authenticated': True,
-                        'user_id': user_id,
-                        'username': f'User_{user_id}',
-                        'token_source': token_source,
-                        'unverified': True
+                        'authenticated': False,
+                        'user_id': None,
+                        'error': 'USER_NOT_FOUND'
                     }
         except Exception as db_error:
             logger.error(f"🔌 [AUTH] Database verification failed: {db_error}")
-            # Still allow connection if DB check fails
+            # Fail CLOSED to anonymous on a DB hiccup. Returning authenticated here
+            # would hand a pending user (whose is_approved we couldn't check) a DM
+            # room and presence. An anonymous connection can still receive public
+            # match broadcasts; it just gets no user room. Mirrors live_reporting.
             return {
-                'authenticated': True,
-                'user_id': user_id,
-                'username': f'User_{user_id}',
-                'token_source': token_source,
-                'db_error': True
+                'authenticated': False,
+                'user_id': None,
+                'error': 'AUTH_UNAVAILABLE'
             }
 
     except Exception as e:

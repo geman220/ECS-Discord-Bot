@@ -36,8 +36,13 @@ This package provides RESTful API endpoints for mobile clients, organized by dom
 - check_in: Match check-in (member lookup, self check-in, coach scan, roster)
 - points_events: Admin-awarded participation points for non-match events
 - admin_feedback: Global Admin management of user feedback tickets (list, reply, status, bulk)
+- pub_league: Season-pass linking/claiming (deep-link target for the WooCommerce
+  purchase + gift-claim flows; mirrors the web wizard in app/pub_league/)
 
 All endpoints are CSRF-exempt and use JWT authentication where required.
+
+Unapproved users hold restricted JWTs (approved=false) and are confined to a
+small allowlist by app/mobile_api/approval_gate.py — see that module.
 """
 
 from flask import Blueprint
@@ -92,6 +97,7 @@ def register_mobile_api_routes():
         points_events,
         admin_feedback,
         engagement,
+        pub_league,
     )
 
 

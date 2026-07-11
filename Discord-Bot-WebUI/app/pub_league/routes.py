@@ -12,12 +12,14 @@ This module provides routes for the Pub League order linking wizard:
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
+from urllib.parse import quote
 
 from flask import (
-    current_app, flash, g, jsonify, redirect, render_template,
+    current_app, flash, g, jsonify, make_response, redirect, render_template,
     request, session, url_for
 )
 from flask_login import current_user, login_required
+from markupsafe import escape
 
 from app.core import db
 from app.utils.user_helpers import safe_current_user
@@ -31,26 +33,32 @@ from app.forms import (
     pronoun_choices, willing_to_referee_choices
 )
 from . import pub_league_bp
+from .membership import MEMBER, UNKNOWN, member_login_url, membership_status
 from .services import (
     PubLeagueOrderService, PlayerActivationService,
-    RoleSyncService, ProfileConflictService, UserSearchService
+    RoleSyncService, ProfileConflictService, ProfileUpdateService,
+    ProductUrlService, UserSearchService
 )
 
 logger = logging.getLogger(__name__)
 
-# Whitelists derived once from the canonical form option lists so the
-# profile-confirmation endpoint only ever persists known-good values.
-_ALLOWED_POSITIONS = {value for value, _ in soccer_positions}
-_ALLOWED_GOAL_FREQUENCY = {value for value, _ in goal_frequency_choices}
-_ALLOWED_AVAILABILITY = {value for value, _ in availability_choices}
-_ALLOWED_PRONOUNS = {value for value, _ in pronoun_choices}
-_ALLOWED_REFEREE = {value for value, _ in willing_to_referee_choices}
+# Marks a checkout that was started from inside the app. Set on /pub-league/buy,
+# read on /pub-league/link-order to bounce the buyer back into the app after
+# WooCommerce redirects them here.
+#
+# Why a cookie and not a query param: WooCommerce owns the checkout and the
+# thank-you redirect, and its plugin builds that redirect URL itself — we can't
+# thread a param through it without changing the plugin. But the whole round trip
+# starts and ends on portal.ecsfc.com, so a first-party cookie survives the hop
+# out to weareecs.com and back. SameSite=Lax is required and sufficient: Lax
+# cookies ARE sent on a top-level GET navigation from another site, which is
+# exactly what Woo's redirect is.
+_APP_CHECKOUT_COOKIE = 'pl_buy_src'
+_APP_CHECKOUT_MAX_AGE = 4 * 60 * 60  # a purchase + payment, generously
 
 
 # Position parsing/normalization lives in the single source of truth.
-from app.constants.positions import (
-    normalize_position, parse_positions, format_positions,
-)
+from app.constants.positions import normalize_position, parse_positions
 
 
 def _get_jersey_size_choices(session):
@@ -68,6 +76,186 @@ def _get_jersey_size_choices(session):
 def get_db_session():
     """Get the current database session."""
     return getattr(g, 'db_session', db.session)
+
+
+def _order_token_ok(order: PubLeagueOrder, supplied_token: str = None) -> bool:
+    """
+    Authorize a mutating action against a specific order.
+
+    Possession of the order's HMAC token IS the authorization here — it's what
+    the WooCommerce plugin hands the buyer and the only thing that ties a
+    caller to an order they paid for. Without this check, `order_id` is just a
+    small integer: any logged-in user could POST a guessed id and link an
+    unassigned pass to themselves for free.
+
+    The token is verified against the *target* order's woo_order_id, so a
+    session token stashed for one order can't be replayed against another.
+    Web callers fall back to the session copy stashed by `link_order()`;
+    the app (which has no cookie session) sends it explicitly in the body.
+    """
+    token = supplied_token or session.get('pub_league_token')
+    if not token:
+        return False
+    return PubLeagueOrderService.verify_order_token(order.woo_order_id, token)
+
+
+def _forbidden():
+    """Uniform refusal for a missing/incorrect order token."""
+    return jsonify({
+        'success': False,
+        'message': 'This link is no longer valid. Please reopen the link from your order confirmation.'
+    }), 403
+
+
+def _app_deep_link(order_id: int, token: str) -> str:
+    """Custom-scheme URL that hands an order off to the native app."""
+    return (
+        f"ecs-fc-scheme://link-order?order_id={quote(str(order_id))}"
+        f"&token={quote(token)}"
+    )
+
+
+def _bounce_to_app(deep_link: str, web_fallback_url: str):
+    """
+    Hand off to the app, with a visible way back to the web flow.
+
+    Used when WooCommerce lands the buyer back on us and we know (from the
+    checkout cookie) that they started in the app. A meta-refresh to the custom
+    scheme is what gets us out of the in-app browser sheet — an https Universal
+    Link will NOT fire here, because iOS never triggers one on a redirect.
+
+    Always renders the escape hatch: if the scheme doesn't resolve (app was
+    uninstalled mid-purchase, or the sheet blocks it) the buyer must not be
+    stranded on a blank page holding a pass they just paid for.
+    """
+    safe_deep_link = escape(deep_link)
+    safe_web = escape(web_fallback_url)
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="0; url={safe_deep_link}">
+    <title>Returning to the ECS FC app...</title>
+    <style>
+        body {{ font-family: system-ui, -apple-system, sans-serif; padding: 2rem;
+                text-align: center; color: #1f2937; }}
+        a {{ display: inline-block; margin-top: 1rem; color: #213e96; }}
+    </style>
+</head>
+<body>
+    <p>Payment received. Returning to the ECS FC app to set up your pass...</p>
+    <p><a href="{safe_deep_link}">Tap here if the app doesn't open.</a></p>
+    <p><a href="{safe_web}">Or finish in your browser instead.</a></p>
+</body>
+</html>"""
+
+    response = make_response(html, 200)
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    response.headers['Cache-Control'] = 'no-store'
+    # One-shot: consume the marker so a later visit to this same URL (e.g. the
+    # buyer reopening the link from their email) doesn't bounce them again.
+    response.delete_cookie(_APP_CHECKOUT_COOKIE, path='/')
+    return response
+
+
+def _set_app_checkout_cookie(response):
+    """Mark this checkout as app-originated so we can bounce them home after Woo."""
+    response.set_cookie(
+        _APP_CHECKOUT_COOKIE, 'app',
+        max_age=_APP_CHECKOUT_MAX_AGE,
+        secure=True,
+        httponly=True,
+        samesite='Lax',  # MUST be Lax, not Strict — Woo's redirect back to us is a
+                         # cross-site top-level GET, and Strict would drop the cookie.
+        path='/',
+    )
+    return response
+
+
+@pub_league_bp.route('/buy')
+def buy():
+    """
+    Entry point for buying a season pass. Send people HERE, not to WooCommerce.
+
+    Query params:
+        division: 'classic' | 'premier'. OMIT IT to show the division picker —
+                  that's what the single printed QR does.
+        src:      'app' when the native app opened this.
+
+    ONE QR, forever. The URL carries no season and no product id: the division
+    picker and the product URL are both resolved at scan time from whichever Pub
+    League season is currently is_current. Scan it this season and it lands on
+    the 2026-fall product; scan the SAME code next season and it lands on
+    2027-spring. Nothing to reprint at rollover.
+
+    As a Universal Link this opens the app when installed and the browser when
+    not. Either way we hand off to the real WooCommerce product page — Woo owns
+    the cart, the presale password gate, the card form and the money. We never
+    see a card and never take a payment; we are a launcher and a return handler.
+    """
+    division = (request.args.get('division') or '').strip().lower()
+    from_app = request.args.get('src') == 'app'
+
+    # No division -> show the picker. This is the single-QR path.
+    if division not in ('classic', 'premier'):
+        options = ProductUrlService.get_buy_options()
+
+        # The $10 ECS-membership discount is applied by WooCommerce Memberships
+        # and ONLY shows for a customer logged in to weareecs.com. Nobody stays
+        # logged in to a store they use twice a year, so a member who just taps
+        # through gets charged the full $110. Warn them here, before Woo.
+        member_status = UNKNOWN
+        if current_user.is_authenticated and getattr(current_user, 'email', None):
+            member_status = membership_status(current_user.email)
+
+        # Route the division links through the shop sign-in when we KNOW they're a
+        # member, or when they self-declared via ?member=1. The self-declare path
+        # is a plain link reload (see the template), so it works with NO JavaScript
+        # — the group we couldn't auto-detect is exactly the group that most needs
+        # the discount, so it must not depend on JS running.
+        self_declared_member = request.args.get('member') == '1'
+        route_via_login = (member_status == MEMBER) or self_declared_member
+
+        response = make_response(render_template(
+            'pub_league/buy_flowbite.html',
+            options=options,
+            season_name=ProductUrlService.get_current_season_name(),
+            from_app=from_app,
+            # Nothing on sale at all -> say so rather than showing dead buttons.
+            any_available=any(o['product_url'] for o in options),
+            member_status=member_status,
+            is_member=(member_status == MEMBER),
+            route_via_login=route_via_login,
+            self_declared_member=self_declared_member,
+        ))
+        # Set the marker HERE too: the buyer will click through to
+        # /buy?division=X from this page, but if they instead deep-link straight
+        # to a division we still want the return hop to find the cookie.
+        return _set_app_checkout_cookie(response) if from_app else response
+
+    product_url = ProductUrlService.get_product_url(division.capitalize())
+    if not product_url:
+        # No configured slug AND no current season to derive one from. Don't dump
+        # the buyer on a 404 at the shop.
+        logger.error(f"No WooCommerce product URL resolved for division '{division}'")
+        flash('Passes are not on sale yet. Check the Discord for the on-sale time.', 'info')
+        return redirect(url_for('main.index'))
+
+    # ?login=1 -> sign in to weareecs.com FIRST, then land on the product with
+    # member pricing already applied. WordPress honours redirect_to on wp-login.
+    destination = product_url
+    if request.args.get('login') == '1':
+        destination = member_login_url(product_url)
+
+    logger.info(
+        f"Pub League buy: division={division} src={'app' if from_app else 'web'} "
+        f"login_first={request.args.get('login') == '1'}"
+    )
+
+    response = redirect(destination)
+    return _set_app_checkout_cookie(response) if from_app else response
 
 
 # ============================================================================
@@ -98,11 +286,32 @@ def link_order():
         flash('Invalid order link. Please use the link from your WooCommerce order.', 'error')
         return redirect(url_for('main.index'))
 
-    # Store in session for post-login redirect
+    # Verify the token BEFORE anything else — including before stashing it in
+    # the session. The webhook pre-creates every paid order, so "order already
+    # exists" is the normal path; verifying only in the not-found branch meant
+    # the token was effectively never checked, and this page would render another
+    # customer's name, email and passes to anyone who guessed an order id.
+    if not PubLeagueOrderService.verify_order_token(order_id, token):
+        flash('Invalid or expired order verification. Please contact support.', 'error')
+        return redirect(url_for('main.index'))
+
+    # Store in session so the post-login redirect and the wizard's XHR calls
+    # (which don't re-send it) can re-present it.
     session['pub_league_order_id'] = order_id
     session['pub_league_token'] = token
 
-    # Try to verify and fetch order
+    # If this purchase started in the app, hand the buyer straight back to it.
+    # WooCommerce 302s them here after payment, and a redirect can never trigger
+    # a Universal Link — so without this the app-initiated buyer would silently
+    # finish in a browser sheet instead of the app they started in.
+    # ?stay=1 forces the web wizard (the "finish in your browser" escape hatch).
+    if request.cookies.get(_APP_CHECKOUT_COOKIE) == 'app' and request.args.get('stay') != '1':
+        web_fallback = url_for(
+            'pub_league.link_order', order_id=order_id, token=token, stay=1, _external=True
+        )
+        return _bounce_to_app(_app_deep_link(order_id, token), web_fallback)
+
+    # Try to fetch order
     try:
         # First check if order already exists in our system
         existing_order = PubLeagueOrder.find_by_woo_order_id(order_id)
@@ -116,11 +325,6 @@ def link_order():
                 db.session.commit()
                 logger.info(f"Order {order_id} transitioned from NOT_STARTED to PENDING")
         else:
-            # Verify token
-            if not PubLeagueOrderService.verify_order_token(order_id, token):
-                flash('Invalid or expired order verification. Please contact support.', 'error')
-                return redirect(url_for('main.index'))
-
             # Fetch from WooCommerce
             order_data = PubLeagueOrderService.fetch_order_from_woocommerce(order_id)
             if not order_data:
@@ -262,6 +466,14 @@ def verify_order():
         return jsonify({'success': False, 'message': 'Missing order_id or token'}), 400
 
     try:
+        # Verify the token FIRST, always. The webhook pre-creates every paid
+        # order, so the "order already exists" branch is the normal path — only
+        # checking the token when the order is missing meant it was effectively
+        # never checked, and this endpoint would hand out order contents
+        # (customer name, email, line items) to anyone with an order id.
+        if not PubLeagueOrderService.verify_order_token(order_id, token):
+            return jsonify({'success': False, 'message': 'Invalid verification token'}), 403
+
         # Check for existing order
         existing_order = PubLeagueOrder.find_by_woo_order_id(order_id)
         if existing_order:
@@ -274,10 +486,6 @@ def verify_order():
                 'order': existing_order.to_dict(),
                 'already_exists': True
             })
-
-        # Verify token
-        if not PubLeagueOrderService.verify_order_token(order_id, token):
-            return jsonify({'success': False, 'message': 'Invalid verification token'}), 403
 
         # Fetch from WooCommerce
         order_data = PubLeagueOrderService.fetch_order_from_woocommerce(order_id)
@@ -325,6 +533,9 @@ def link_self():
         order = session.query(PubLeagueOrder).get(order_id)
         if not order:
             return jsonify({'success': False, 'message': 'Order not found'}), 404
+
+        if not _order_token_ok(order, data.get('token')):
+            return _forbidden()
 
         line_item = session.query(PubLeagueOrderLineItem).get(line_item_id)
         if not line_item or line_item.order_id != order_id:
@@ -433,6 +644,9 @@ def assign_to_user():
         if not order or not line_item or not player:
             return jsonify({'success': False, 'message': 'Not found'}), 404
 
+        if not _order_token_ok(order, data.get('token')):
+            return _forbidden()
+
         if line_item.order_id != order_id:
             return jsonify({'success': False, 'message': 'Line item does not belong to order'}), 400
 
@@ -499,6 +713,12 @@ def send_claim():
 
         if not order or not line_item:
             return jsonify({'success': False, 'message': 'Not found'}), 404
+
+        if not _order_token_ok(order, data.get('token')):
+            return _forbidden()
+
+        if line_item.order_id != order.id:
+            return jsonify({'success': False, 'message': 'Line item does not belong to order'}), 400
 
         if line_item.is_assigned():
             return jsonify({'success': False, 'message': 'This pass has already been assigned'}), 400
@@ -603,27 +823,37 @@ def activate_player():
     line_item_id = data.get('line_item_id')
     jersey_size = data.get('jersey_size')
 
+    if not order_id:
+        return jsonify({'success': False, 'message': 'Missing order_id'}), 400
+
     try:
         session = get_db_session()
+
+        # Activation is what grants a paid season (is_current_player), so it
+        # carries the same token gate as linking — an order_id alone is not
+        # authorization to activate yourself.
+        order = session.query(PubLeagueOrder).get(order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'Order not found'}), 404
+
+        if not _order_token_ok(order, data.get('token')):
+            return _forbidden()
 
         player = safe_current_user.player
         if not player:
             return jsonify({'success': False, 'message': 'No player profile found'}), 400
 
-        # Get division from line item
+        # Get division from line item (must belong to this order)
         division = None
         if line_item_id:
             line_item = session.query(PubLeagueOrderLineItem).get(line_item_id)
-            if line_item:
+            if line_item and line_item.order_id == order.id:
                 division = line_item.division
 
         if not division:
-            # Try to get from order
-            order = session.query(PubLeagueOrder).get(order_id)
-            if order:
-                first_item = order.line_items.first()
-                if first_item:
-                    division = first_item.division
+            first_item = order.line_items.first()
+            if first_item:
+                division = first_item.division
 
         if not division:
             return jsonify({'success': False, 'message': 'Could not determine division'}), 400
@@ -679,76 +909,10 @@ def update_profile():
             return jsonify({'success': False, 'message': 'Account not found'}), 400
         player = PlayerActivationService.ensure_player_for_user(user)
 
-        # --- Identity & Contact ---
-        name = (data.get('name') or '').strip()
-        if name:
-            player.name = name[:100]
-
-        pronouns = (data.get('pronouns') or '').strip()
-        if pronouns in _ALLOWED_PRONOUNS:
-            player.pronouns = pronouns
-
-        # Phone uses the encrypting setter; only write when a value is given so
-        # we don't wipe an existing number on an accidental blank.
-        phone = (data.get('phone') or '').strip()
-        if phone:
-            player.phone = phone[:20]
-
-        # Jersey size mirrors the profile form, which accepts any distinct size
-        # in use (not a fixed list). Guard only on column length (String(10)).
-        jersey_size = (data.get('jersey_size') or '').strip()
-        if jersey_size and len(jersey_size) <= 10:
-            player.jersey_size = jersey_size
-
-        jersey_number_raw = data.get('jersey_number')
-        if jersey_number_raw not in (None, ''):
-            try:
-                _jn = int(jersey_number_raw)
-                # Range-guard: the column is a 4-byte int; an out-of-range value
-                # only fails at commit() and would then lose the WHOLE profile
-                # update. Jersey numbers are 0-99.
-                if 0 <= _jn <= 99:
-                    player.jersey_number = _jn
-            except (TypeError, ValueError):
-                pass  # ignore non-numeric jersey numbers
-
-        # --- Playing ---
-        # Positions are normalized to canonical slugs and stored as {slug,slug}
-        # via the single source of truth, so every client writes the same shape.
-        favorite_position = normalize_position(data.get('favorite_position'))
-        if favorite_position in _ALLOWED_POSITIONS:
-            player.favorite_position = favorite_position
-
-        other_positions = data.get('other_positions')
-        if isinstance(other_positions, list):
-            player.other_positions = format_positions(other_positions)
-
-        positions_not_to_play = data.get('positions_not_to_play')
-        if isinstance(positions_not_to_play, list):
-            player.positions_not_to_play = format_positions(positions_not_to_play)
-
-        frequency_play_goal = (data.get('frequency_play_goal') or '').strip()
-        if frequency_play_goal in _ALLOWED_GOAL_FREQUENCY:
-            player.frequency_play_goal = frequency_play_goal
-
-        # --- Availability ---
-        expected_weeks_available = (data.get('expected_weeks_available') or '').strip()
-        if expected_weeks_available in _ALLOWED_AVAILABILITY:
-            player.expected_weeks_available = expected_weeks_available
-
-        willing_to_referee = (data.get('willing_to_referee') or '').strip()
-        if willing_to_referee in _ALLOWED_REFEREE:
-            player.willing_to_referee = willing_to_referee
-
-        # Free-text notes for coaches/admins. Present as a key only when the
-        # client sends it, so we don't wipe existing notes on older payloads.
-        if 'player_notes' in data:
-            player.player_notes = (data.get('player_notes') or '').strip()[:2000]
-
-        # Stamp the review so the 5-month "please update" alert resets.
-        player.profile_last_updated = datetime.utcnow()
-
-        session.commit()
+        # Whitelisting, position normalization and the profile_last_updated
+        # stamp all live in the service so the app's confirm-profile endpoint
+        # writes byte-identical data.
+        ProfileUpdateService.apply(player, data)
 
         return jsonify({
             'success': True,
@@ -784,6 +948,12 @@ def generate_pass():
         line_item = session.query(PubLeagueOrderLineItem).get(line_item_id)
         if not line_item:
             return jsonify({'success': False, 'message': 'Line item not found'}), 404
+
+        # A wallet pass is a bearer credential (its download URL is public), so
+        # minting one needs the order token — otherwise any logged-in user could
+        # walk line_item ids and mint passes for other people's orders.
+        if not _order_token_ok(line_item.order, data.get('token')):
+            return _forbidden()
 
         # Check if pass already created
         if line_item.wallet_pass_id:
@@ -947,12 +1117,21 @@ def order_status(order_id):
 
     Used for polling/checking status.
 
+    Query params:
+        token: The order's HMAC token (required)
+
     Returns:
         Order status and line item states
     """
     order = PubLeagueOrder.find_by_woo_order_id(order_id)
     if not order:
         return jsonify({'success': False, 'message': 'Order not found'}), 404
+
+    # This is an unauthenticated endpoint that returns customer name/email and
+    # every pass on the order, so it needs the token — an order id alone is a
+    # guessable integer.
+    if not _order_token_ok(order, request.args.get('token')):
+        return _forbidden()
 
     return jsonify({
         'success': True,

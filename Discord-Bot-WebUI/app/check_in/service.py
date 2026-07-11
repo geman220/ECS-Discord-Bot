@@ -298,9 +298,14 @@ def perform_check_in(
 ) -> dict:
     """Validate + record a check-in. Returns the spec's status payload.
 
-    Caller is responsible for committing the session. We use db.session.add()
-    inside MatchAttendance.record() and don't flush — the route's
-    @transactional or `with managed_session() as s: s.commit()` handles it.
+    Caller is responsible for committing `session` — and everything we write goes
+    through THAT session.
+
+    (This used to claim db.session.add() inside MatchAttendance.record() was
+    handled equally by @transactional or `managed_session()`. It wasn't:
+    managed_session commits g.db_session, which is NOT db.session, so every
+    check-in made through the mobile routes was silently discarded. The model
+    methods now take the session explicitly.)
     """
     match = get_match(session, league_type, match_id)
     if not match:
@@ -353,6 +358,7 @@ def perform_check_in(
         recorded_by_user_id=recorded_by_user_id,
         venue_token_id=venue_token_id,
         notes=notes,
+        session=session,
     )
 
     # Cross-write to WalletPassCheckin for unified pass-history view, but
@@ -436,7 +442,7 @@ def build_roster_view(session, match, league_type: str, include_all: bool = Fals
     else:
         players = get_match_roster_yes(session, match)
 
-    attendance_rows = MatchAttendance.list_for_match(league_type, match.id)
+    attendance_rows = MatchAttendance.list_for_match(league_type, match.id, session=session)
     attendance_by_player = {a.player_id: a for a in attendance_rows}
 
     entries = []

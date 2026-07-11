@@ -358,6 +358,9 @@ def survey_send_native_poll(survey_id):
 @admin_panel_bp.route('/api/surveys/<int:survey_id>/send/push', methods=['POST'])
 @login_required
 @role_required(_ROLES)
+@transactional  # commits BOTH sessions — without it open_survey()'s draft->open
+                # flip lands on db.session and is rolled back, so recipients tap
+                # the push deep link and the form rejects them as still 'draft'.
 def survey_send_push(survey_id):
     survey = Survey.query.get_or_404(survey_id)
     data = request.get_json(force=True) or {}

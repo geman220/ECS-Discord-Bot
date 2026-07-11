@@ -4,6 +4,29 @@
 
 {% block main_content %}
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!--
+      Open-in-app bar. WooCommerce 302s the buyer here from the thank-you page,
+      and iOS does NOT fire a Universal Link on a redirect (only on a tapped
+      link), so an app install can't intercept that hop. This gives them a tap.
+      Hidden by default and revealed only on a mobile UA; if the app isn't
+      installed the custom scheme simply does nothing and they carry on here.
+    -->
+    <div id="openInAppBar" class="hidden bg-ecs-green dark:bg-ecs-gold px-4 py-2.5">
+        <div class="flex items-center justify-between gap-3">
+            <p class="text-sm text-white dark:text-gray-900 font-medium">Have the ECS FC app?</p>
+            <div class="flex items-center gap-2 shrink-0">
+                <a id="openInAppLink" href="#"
+                   class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white text-ecs-green dark:bg-gray-900 dark:text-ecs-gold">
+                    Open in app
+                </a>
+                <button type="button" id="openInAppDismiss" aria-label="Stay in browser"
+                        class="text-white/80 dark:text-gray-900/70 hover:text-white dark:hover:text-gray-900">
+                    <i class="ti ti-x text-base"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Progress Indicator -->
     <div class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3">
         <!-- Progress Bar -->
@@ -734,6 +757,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const nextHelper = document.getElementById('nextHelper');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingMessage = document.getElementById('loadingMessage');
+
+    // Offer the app to phone users. The custom scheme (not the https URL) is
+    // what's needed here: we arrived via a WooCommerce redirect, and neither iOS
+    // Universal Links nor Android App Links fire on a redirect hop.
+    (function offerApp() {
+        const bar = document.getElementById('openInAppBar');
+        if (!bar || !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
+        if (sessionStorage.getItem('pubLeagueOpenInAppDismissed') === '1') return;
+
+        const params = new URLSearchParams(window.location.search);
+        const orderId = params.get('order_id');
+        const token = params.get('token');
+        if (!orderId || !token) return;
+
+        document.getElementById('openInAppLink').href =
+            'ecs-fc-scheme://link-order?order_id=' + encodeURIComponent(orderId) +
+            '&token=' + encodeURIComponent(token);
+
+        document.getElementById('openInAppDismiss').addEventListener('click', function() {
+            sessionStorage.setItem('pubLeagueOpenInAppDismissed', '1');
+            bar.classList.add('hidden');
+        });
+
+        bar.classList.remove('hidden');
+    })();
 
     // Authentication flag (reliable at init time, before body dataset is set below)
     const isAuthenticated = '{{ "true" if current_user.is_authenticated else "false" }}' === 'true';

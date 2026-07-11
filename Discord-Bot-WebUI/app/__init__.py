@@ -110,6 +110,13 @@ def create_app(config_object='web_config.Config'):
     from app.init.access_gating import register_access_gating
     register_access_gating(app)
 
+    # The mobile counterpart. access_gating exempts /api wholesale (the JSON API
+    # is trusted to enforce its own state), and pending users now hold real JWTs
+    # so they can link the pass they bought — this is what keeps them out of
+    # everything else.
+    from app.mobile_api.approval_gate import register_approval_gate
+    register_approval_gate(app)
+
     # Phase 5: Blueprints and routes
     init_blueprints(app, csrf)
     init_context_processors(app)

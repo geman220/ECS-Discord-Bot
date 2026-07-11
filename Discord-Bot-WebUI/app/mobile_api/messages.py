@@ -592,7 +592,9 @@ def delete_conversation(user_id):
             return jsonify({"msg": "Conversation partner not found"}), 404
 
         # Hide all messages in this conversation for the current user
-        hidden_count = DirectMessage.hide_conversation_for_user(current_user_id, user_id)
+        hidden_count = DirectMessage.hide_conversation_for_user(
+            current_user_id, user_id, session=session_db
+        )
         session_db.commit()
 
         logger.info(f"User {current_user_id} hid conversation with user {user_id} ({hidden_count} messages)")

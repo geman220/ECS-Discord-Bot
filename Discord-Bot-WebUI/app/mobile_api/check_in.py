@@ -173,7 +173,7 @@ def player_self_check_in(venue_token: str):
             if not player:
                 return jsonify({"msg": "Player profile not found"}), 404
 
-            ct = MatchCheckInToken.find_active_by_token(venue_token)
+            ct = MatchCheckInToken.find_active_by_token(venue_token, session=session_db)
             if not ct:
                 return jsonify({"msg": "Invalid or revoked check-in code"}), 404
 

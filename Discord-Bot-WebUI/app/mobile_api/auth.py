@@ -40,6 +40,40 @@ from app.utils.log_sanitizer import mask_code
 logger = logging.getLogger(__name__)
 
 
+def _issue_token_pair(user, session_id=None):
+    """
+    Mint an (access, refresh) pair carrying the user's approval state.
+
+    An unapproved user DOES get tokens — otherwise a brand-new buyer with the
+    app installed would be stranded: no token means no way to link the pass they
+    just paid for, and no way to reach a hold screen explaining why. The
+    ``approved`` claim is what keeps them boxed in: every /api/ route outside a
+    small allowlist is refused by ``app/mobile_api/approval_gate.py``.
+
+    Returns:
+        (payload_dict, is_approved) — payload carries pending_approval=True for
+        an unapproved user so the client knows to route to the hold screen.
+    """
+    claims = {'approved': bool(user.is_approved)}
+    if session_id:
+        claims['sid'] = session_id
+
+    payload = {
+        'access_token': create_access_token(identity=str(user.id), additional_claims=claims),
+        'refresh_token': create_refresh_token(identity=str(user.id), additional_claims=claims),
+    }
+
+    if not user.is_approved:
+        payload['pending_approval'] = True
+        payload['code'] = 'ACCOUNT_NOT_APPROVED'
+        payload['msg'] = (
+            "Your account is pending admin approval. You can claim your pass and "
+            "fill in your profile now — an admin will review your membership shortly."
+        )
+
+    return payload, bool(user.is_approved)
+
+
 def _process_claim_code(session_db, user, discord_id, claim_code):
     """
     Process a quick profile claim code during mobile registration.
@@ -254,34 +288,29 @@ def discord_callback():
             if claim_code:
                 claim_result = _process_claim_code(session_db, user, discord_user['id'], claim_code)
 
-            # Approval gate — NO auto-approve. A new / not-yet-approved Discord
-            # account is created and linked (so it lands in the admin approval
-            # queue), but gets NO token or app access until an admin approves it.
-            # Existing approved members pass straight through. Mirrors the gates on
-            # /login and /refresh_token.
-            if not user.is_approved:
-                session_db.commit()  # persist the pending account + any claim link
-                return jsonify({
-                    "msg": "Your account is pending admin approval. You'll be able to sign in once an admin approves your membership.",
-                    "code": "ACCOUNT_NOT_APPROVED"
-                }), 403
-
-            # Create session record and JWT tokens
+            # NO auto-approve — an admin must approve every player. A new account
+            # is created here and lands in the admin approval queue.
+            #
+            # It still gets tokens, but restricted ones (approved=false). This is
+            # the mobile mirror of the web flow, where /pub-league/ is allowlisted
+            # so a pending buyer can still link the pass they paid for. Without
+            # this, someone who buys a pass and happens to have the app installed
+            # would be dead-ended: refused a token, unable to claim the pass, and
+            # with no screen explaining why. approval_gate.py confines them.
             session_id = create_user_session(session_db, user.id)
             session_db.commit()
 
-            access_token = create_access_token(identity=str(user.id), additional_claims={'sid': session_id})
-            refresh_token = create_refresh_token(identity=str(user.id), additional_claims={'sid': session_id})
-
-            response = {
-                "access_token": access_token,
-                "refresh_token": refresh_token,
+            response, is_approved = _issue_token_pair(user, session_id)
+            response.update({
                 "user_id": user.id,
                 "username": user.username,
-                "discord_id": discord_user['id']
-            }
+                "discord_id": discord_user['id'],
+            })
             if claim_result is not None:
                 response["claim_result"] = claim_result
+
+            if not is_approved:
+                logger.info(f"Issued restricted (pending-approval) tokens to user {user.id} via Discord")
 
             return jsonify(response), 200
 
@@ -313,14 +342,6 @@ def login():
         if not user or not user.check_password(password):
             return jsonify({"msg": "Bad username or password"}), 401
 
-        if not user.is_approved:
-            # Machine-readable code so the client can show a "pending approval"
-            # screen — matches the Discord-OAuth and /refresh_token paths.
-            return jsonify({
-                "msg": "Your account is pending admin approval. You'll be able to sign in once an admin approves your membership.",
-                "code": "ACCOUNT_NOT_APPROVED"
-            }), 403
-
         # If 2FA is enabled, prompt for 2FA verification
         if user.is_2fa_enabled:
             return jsonify({"msg": "2FA required", "user_id": user.id}), 200
@@ -328,9 +349,11 @@ def login():
         session_id = create_user_session(session_db, user.id)
         session_db.commit()
 
-        access_token = create_access_token(identity=str(user.id), additional_claims={'sid': session_id})
-        refresh_token = create_refresh_token(identity=str(user.id), additional_claims={'sid': session_id})
-        return jsonify(access_token=access_token, refresh_token=refresh_token), 200
+        # An unapproved user gets restricted tokens (approved=false) rather than
+        # a 403 — see _issue_token_pair. The client reads `pending_approval` and
+        # routes to the hold screen; approval_gate.py enforces the boundary.
+        payload, _ = _issue_token_pair(user, session_id)
+        return jsonify(payload), 200
 
 
 @mobile_api_v2.route('/verify_2fa', methods=['POST'])
@@ -360,9 +383,8 @@ def verify_2fa():
         session_id = create_user_session(session_db, user.id)
         session_db.commit()
 
-        access_token = create_access_token(identity=str(user.id), additional_claims={'sid': session_id})
-        refresh_token = create_refresh_token(identity=str(user.id), additional_claims={'sid': session_id})
-        return jsonify(access_token=access_token, refresh_token=refresh_token), 200
+        payload, _ = _issue_token_pair(user, session_id)
+        return jsonify(payload), 200
 
 
 ROTATION_GRACE_SECONDS = 60
@@ -420,13 +442,6 @@ def refresh_token():
             # doc 2026-06-02: the bare HTTP status alone is ambiguous.
             return jsonify({"msg": "User not found", "code": "USER_NOT_FOUND"}), 404
 
-        if not user.is_approved:
-            logger.warning(f"Token refresh attempted for unapproved user: {current_user_id}")
-            # Terminal-but-distinct: client should show an "account pending /
-            # not active" screen, not "log in again" (re-login also fails the
-            # is_approved gate). Distinguished from a transient 403 by `code`.
-            return jsonify({"msg": "Account not approved", "code": "ACCOUNT_NOT_APPROVED"}), 403
-
         # Update session last_activity
         if session_id:
             from app.models.sessions import UserSession
@@ -436,13 +451,11 @@ def refresh_token():
                 user_session.last_activity = datetime.utcnow()
                 session_db.commit()
 
-        claims = {'sid': session_id} if session_id else {}
-        new_access_token = create_access_token(identity=str(user.id), additional_claims=claims)
-        new_refresh_token = create_refresh_token(identity=str(user.id), additional_claims=claims)
-        response_payload = {
-            "access_token": new_access_token,
-            "refresh_token": new_refresh_token,
-        }
+        # Approval state is re-read from the DB on every refresh, so a user who
+        # was pending when they signed in gets a full-access token the first time
+        # they refresh after an admin approves them — and a revoked member is
+        # demoted back to restricted on their next refresh.
+        response_payload, _ = _issue_token_pair(user, session_id)
 
         # Cache the issued pair for the grace window so retries are idempotent,
         # and blocklist the old jti for the rest of its lifetime so post-grace

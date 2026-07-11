@@ -36,6 +36,8 @@ def apple_app_site_association():
     - /match/* - Pub League match pages
     - /m/* - Member identity (player QR scan)
     - /check-in/* - Venue check-in (printed QR sign / NFC sticker at the pitch)
+    - /pub-league/link-order* - Season-pass linking after a WooCommerce purchase
+    - /pub-league/claim* - Claiming a season pass someone bought for you
     """
     # Get app identifiers from environment
     ios_team_id = os.getenv('IOS_TEAM_ID', 'XXXXXXXXXX')
@@ -64,7 +66,20 @@ def apple_app_site_association():
                         # Member identity card (player QR camera-app scans)
                         "/m/*",
                         # Venue check-in (printed QR / NFC at the pitch)
-                        "/check-in/*"
+                        "/check-in/*",
+                        # Season pass. /buy is the QR target at the pre-season
+                        # party: tapping it opens the app (or the browser) and
+                        # sends the buyer into WooCommerce's own checkout.
+                        #
+                        # Note iOS only fires a Universal Link on a *tapped* link.
+                        # WooCommerce 302s the buyer to /link-order after payment,
+                        # and a redirect does NOT trigger the app — so the return
+                        # hop is handled by an ecs-fc-scheme:// bounce instead
+                        # (see pub_league/routes.py). These paths cover the cases
+                        # that ARE taps: the QR, and the emailed claim links.
+                        "/pub-league/buy*",
+                        "/pub-league/link-order*",
+                        "/pub-league/claim*"
                     ]
                 }
             ]
@@ -206,6 +221,21 @@ def deep_link_info():
             "messages": {
                 "description": "View messages from a user",
                 "custom_scheme": "ecs-fc-scheme://messages/<user_id>"
+            },
+            "season_pass_buy": {
+                "description": "Buy a season pass (redirects into WooCommerce's own checkout)",
+                "custom_scheme": "ecs-fc-scheme://buy?division=<classic|premier>",
+                "web_url": f"{base_url}/pub-league/buy?division=<classic|premier>&src=app"
+            },
+            "season_pass_link_order": {
+                "description": "Link the season pass(es) from a WooCommerce order to a player",
+                "custom_scheme": "ecs-fc-scheme://link-order?order_id=<woo_order_id>&token=<hmac>",
+                "web_url": f"{base_url}/pub-league/link-order?order_id=<woo_order_id>&token=<hmac>"
+            },
+            "season_pass_claim": {
+                "description": "Claim a season pass that someone else bought for you",
+                "custom_scheme": "ecs-fc-scheme://claim?token=<claim_token>",
+                "web_url": f"{base_url}/pub-league/claim?token=<claim_token>"
             }
         },
         "ios_integration": {

@@ -435,6 +435,8 @@ def get_quick_profile_details(profile_id):
 @admin_panel_bp.route('/quick-profiles/<int:profile_id>/send-email', methods=['POST'])
 @login_required
 @role_required(ADMIN_ROLES)
+@transactional  # this route corrects profile.email before sending; without a
+                # commit on db.session the correction was silently discarded.
 def send_quick_profile_email(profile_id):
     """Send claim code to player via email."""
     from flask import current_app
@@ -520,6 +522,7 @@ def send_quick_profile_email(profile_id):
 @admin_panel_bp.route('/quick-profiles/<int:profile_id>/send-sms', methods=['POST'])
 @login_required
 @role_required(ADMIN_ROLES)
+@transactional  # same as send-email: profile.phone_number correction must persist.
 def send_quick_profile_sms(profile_id):
     """Send claim code to player via SMS."""
     from flask import current_app

@@ -149,7 +149,7 @@ def generate_check_in_tokens_for_upcoming_matches(self, session, days: int = 14)
             Match.home_team_id != Match.away_team_id,
         ).all()
         for m in pl_matches:
-            existing = MatchCheckInToken.find_active_for_match('pub_league', m.id)
+            existing = MatchCheckInToken.find_active_for_match('pub_league', m.id, session=session)
             if existing:
                 skipped += 1
                 continue
@@ -166,7 +166,7 @@ def generate_check_in_tokens_for_upcoming_matches(self, session, days: int = 14)
             EcsFcMatch.match_date >= today, EcsFcMatch.match_date <= horizon
         ).all()
         for m in ecs_matches:
-            existing = MatchCheckInToken.find_active_for_match('ecs_fc', m.id)
+            existing = MatchCheckInToken.find_active_for_match('ecs_fc', m.id, session=session)
             if existing:
                 skipped += 1
                 continue

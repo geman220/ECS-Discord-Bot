@@ -16,11 +16,34 @@ import secrets
 from datetime import datetime
 from typing import Optional, Tuple
 
+from flask import g, has_request_context
+
 from app.core import db
 
 
 LEAGUE_TYPES = ('pub_league', 'ecs_fc')
 CHECK_IN_SOURCES = ('self', 'coach', 'coach_manual', 'admin')
+
+
+def _resolve_session(session=None):
+    """The session to read and write through.
+
+    These methods used to hardcode `cls.query` (which binds to Flask-SQLAlchemy's
+    `db.session`) for reads and `db.session.add()` for writes, while their callers
+    committed `g.db_session` — a DIFFERENT session. Nothing commits `db.session`
+    and teardown calls `db.session.remove()` (a rollback), so every attendance row
+    written through a `managed_session()` caller was silently discarded: the API
+    reported success and `match_attendance` stayed empty.
+
+    Callers that already hold a session (the check-in service, the Celery token
+    task) now pass it in explicitly. Everyone else gets the per-request session,
+    which is the one `managed_session()` and `@transactional` both commit.
+    """
+    if session is not None:
+        return session
+    if has_request_context() and getattr(g, 'db_session', None) is not None:
+        return g.db_session
+    return db.session
 
 
 class MatchCheckInToken(db.Model):
@@ -70,7 +93,7 @@ class MatchCheckInToken(db.Model):
         return self.is_active
 
     @classmethod
-    def find_active_by_token(cls, token: str) -> Optional['MatchCheckInToken']:
+    def find_active_by_token(cls, token: str, session=None) -> Optional['MatchCheckInToken']:
         """Resolve a token, treating revoked OR expired tokens as not found.
 
         The expiry filter is applied in Python (not SQL) so a NULL expires_at
@@ -78,19 +101,23 @@ class MatchCheckInToken(db.Model):
         """
         if not token:
             return None
-        ct = cls.query.filter_by(token=token, revoked_at=None).first()
+        db_session = _resolve_session(session)
+        ct = db_session.query(cls).filter_by(token=token, revoked_at=None).first()
         if ct is None or ct.is_expired:
             return None
         return ct
 
     @classmethod
-    def find_active_for_match(cls, league_type: str, match_id: int) -> Optional['MatchCheckInToken']:
+    def find_active_for_match(
+        cls, league_type: str, match_id: int, session=None
+    ) -> Optional['MatchCheckInToken']:
         """Return the live (non-revoked, non-expired) token for this match.
 
         There can be at most one non-revoked row per match; if it's expired we
         treat it as gone so callers regenerate rather than reuse a dead code.
         """
-        ct = cls.query.filter_by(
+        db_session = _resolve_session(session)
+        ct = db_session.query(cls).filter_by(
             league_type=league_type,
             match_id=match_id,
             revoked_at=None
@@ -102,15 +129,16 @@ class MatchCheckInToken(db.Model):
     @classmethod
     def get_or_create_for_match(
         cls, league_type: str, match_id: int, user_id: Optional[int] = None,
-        expires_at: Optional[datetime] = None,
+        expires_at: Optional[datetime] = None, session=None,
     ) -> 'MatchCheckInToken':
         """Return the active token for this match, creating one if none exists.
 
-        Caller must commit. Idempotent — safe to call repeatedly. `expires_at`
-        is applied only when a new token is created (existing tokens keep their
-        original expiry).
+        Caller must commit — and must commit THE SAME session it passed here
+        (or the per-request one, if it passed none). See _resolve_session.
+        Idempotent. `expires_at` applies only to a newly created token.
         """
-        existing = cls.find_active_for_match(league_type, match_id)
+        db_session = _resolve_session(session)
+        existing = cls.find_active_for_match(league_type, match_id, session=db_session)
         if existing:
             return existing
         ct = cls(
@@ -120,7 +148,7 @@ class MatchCheckInToken(db.Model):
             created_by_user_id=user_id,
             expires_at=expires_at,
         )
-        db.session.add(ct)
+        db_session.add(ct)
         return ct
 
     def revoke(self):
@@ -156,17 +184,21 @@ class MatchAttendance(db.Model):
 
     @classmethod
     def find_for_match_player(
-        cls, league_type: str, match_id: int, player_id: int
+        cls, league_type: str, match_id: int, player_id: int, session=None
     ) -> Optional['MatchAttendance']:
-        return cls.query.filter_by(
+        db_session = _resolve_session(session)
+        return db_session.query(cls).filter_by(
             league_type=league_type,
             match_id=match_id,
             player_id=player_id,
         ).first()
 
     @classmethod
-    def list_for_match(cls, league_type: str, match_id: int):
-        return cls.query.filter_by(league_type=league_type, match_id=match_id).all()
+    def list_for_match(cls, league_type: str, match_id: int, session=None):
+        db_session = _resolve_session(session)
+        return db_session.query(cls).filter_by(
+            league_type=league_type, match_id=match_id
+        ).all()
 
     @classmethod
     def record(
@@ -178,13 +210,20 @@ class MatchAttendance(db.Model):
         recorded_by_user_id: Optional[int] = None,
         venue_token_id: Optional[int] = None,
         notes: Optional[str] = None,
+        session=None,
     ) -> Tuple['MatchAttendance', bool]:
         """Idempotent attendance record.
 
-        Returns (row, created) where `created=False` if the player was
-        already checked in for this match. Caller commits.
+        Returns (row, created) where `created=False` if the player was already
+        checked in for this match. Caller commits — THE SAME session it passed
+        here. This used to add unconditionally to db.session while callers
+        committed g.db_session, so the row never landed and `created` came back
+        True on every re-scan.
         """
-        existing = cls.find_for_match_player(league_type, match_id, player_id)
+        db_session = _resolve_session(session)
+        existing = cls.find_for_match_player(
+            league_type, match_id, player_id, session=db_session
+        )
         if existing:
             return existing, False
 
@@ -197,7 +236,7 @@ class MatchAttendance(db.Model):
             venue_token_id=venue_token_id,
             notes=notes,
         )
-        db.session.add(row)
+        db_session.add(row)
         return row, True
 
     def to_dict(self):

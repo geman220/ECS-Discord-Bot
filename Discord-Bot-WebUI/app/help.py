@@ -466,12 +466,17 @@ def bulk_upload_help_topics():
                     # Public topic - no roles assigned (visible to all)
                     topic.allowed_roles = []
                 else:
+                    # Load Roles through g.db_session — the same session the new
+                    # topic is added to below. Role.query binds to db.session, and
+                    # attaching those foreign objects to topic.allowed_roles made
+                    # the save-update cascade raise, so NEW topics failed to upload
+                    # while updates (which already used g.db_session) succeeded.
                     role_names = [name.strip() for name in role_access_clean.split(',')]
-                    roles = Role.query.filter(Role.name.in_(role_names)).all()
+                    roles = g.db_session.query(Role).filter(Role.name.in_(role_names)).all()
                     topic.allowed_roles = roles
             else:
                 # Default to Global Admin if no role specified
-                admin_role = Role.query.filter_by(name='Global Admin').first()
+                admin_role = g.db_session.query(Role).filter_by(name='Global Admin').first()
                 if admin_role:
                     topic.allowed_roles = [admin_role]
             

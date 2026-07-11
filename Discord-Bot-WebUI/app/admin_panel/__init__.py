@@ -159,6 +159,10 @@ def _build_admin_search_index():
          'description': 'View and manage pub league registration orders',
          'keywords': ['registrations', 'payments', 'signups', 'orders'],
          'url': url_for('pub_league_orders_admin.orders_list'), 'icon': 'ti-receipt'},
+        {'name': 'Season Pass QR Codes', 'category': 'Pub League', 'subcategory': 'Pub League',
+         'description': 'Printable QR codes that send players into the pass checkout',
+         'keywords': ['qr', 'buy', 'purchase', 'pre-season party', 'sign up', 'season pass', 'print'],
+         'url': url_for('pub_league_orders_admin.buy_qr_print'), 'icon': 'ti-qrcode'},
 
         # --- MLS ---
         {'name': 'MLS Overview', 'category': 'MLS', 'description': 'MLS integration dashboard and status',
