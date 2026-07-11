@@ -249,11 +249,20 @@ async def _execute_player_role_update_async(data):
     # did NOT make it a no-op — the role stayed in app_managed_roles below AND
     # matched the reconcile's ECS-FC-PL-*-Player catch-all, so a force_update
     # stripped the team role from every ECS FC player it touched.
+    #
+    # The per-team -Coach role is granted here too. It is a REAL role that exists in
+    # the guild (create_discord_channel_async_only creates it and grants it
+    # LEADERSHIP_PERMISSIONS on the team channel) and the remove path revokes it —
+    # but NOTHING ever expected it, not even discord_utils.get_expected_roles, which
+    # appends only -PLAYER. So the reconcile's ECS-FC-PL-*-Coach catch-all stripped
+    # it from every coach on every team, Premier and Classic included.
     for team in data.get('teams', []):
         if team.get('league_name') in ['Premier', 'Classic', 'ECS FC']:
             # Add player role
             expected_roles.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
-    
+            if team.get('is_coach'):
+                expected_roles.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Coach")
+
     # Add league division roles based on Flask user roles AND database league fields
     user_roles = data.get('user_roles', [])
     league_names = data.get('league_names', [])
@@ -357,9 +366,11 @@ async def _execute_player_role_update_async(data):
         'Referee'
     ]
     
-    # Add team-specific player roles to managed roles
+    # Add team-specific player + coach roles to managed roles, so losing a roster
+    # spot / coach status still revokes them.
     for team in data.get('teams', []):
         app_managed_roles.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
+        app_managed_roles.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Coach")
     
     # Prepare data for async-only function
     player_data = {
@@ -688,11 +699,16 @@ async def _execute_assign_roles_async(data):
 
     expected_roles = []
 
-    # Add team roles for channel access (same role for both players and coaches)
+    # Add team roles for channel access. Coaches get the team's -Coach role ON TOP
+    # of the -Player role: the -Coach role is what carries LEADERSHIP_PERMISSIONS on
+    # the team channel (see create_discord_channel_async_only). PARITY with
+    # _execute_player_role_update_async, which manages/reconciles both.
     for team in teams_to_process:
         if team and team.get('league_name') in ['Premier', 'Classic', 'ECS FC']:
             role_name = f"ECS-FC-PL-{normalize_name(team['name'])}-Player"
             expected_roles.append(role_name)
+            if team.get('is_coach'):
+                expected_roles.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Coach")
             logger.info(f"[DEBUG] Player {player_id}: Adding team role '{role_name}' for team {team.get('name')} (league: {team.get('league_name')})")
         else:
             logger.info(f"[DEBUG] Player {player_id}: Skipping team {team} - league_name not in ['Premier', 'Classic', 'ECS FC']")
@@ -788,7 +804,14 @@ async def _execute_assign_roles_async(data):
             'ECS-FC-PL-CLASSIC-SUB',
             'ECS-FC-LEAGUE-SUB',
             'Referee'
-        ] + [f"ECS-FC-PL-{normalize_name(team['name'])}-Player" for team in data.get('teams', [])]
+        ] + [
+            r
+            for team in data.get('teams', [])
+            for r in (
+                f"ECS-FC-PL-{normalize_name(team['name'])}-Player",
+                f"ECS-FC-PL-{normalize_name(team['name'])}-Coach",
+            )
+        ]
     }
     
     # Execute role assignment
