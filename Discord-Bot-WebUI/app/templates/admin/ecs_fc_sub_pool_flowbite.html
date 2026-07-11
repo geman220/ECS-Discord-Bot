@@ -220,7 +220,7 @@
                                     </div>
                                 </div>
                                 {% if player.favorite_position %}
-                                <span class="shrink-0 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position }}</span>
+                                <span class="shrink-0 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position|format_position }}</span>
                                 {% else %}
                                 <span class="shrink-0 px-2 py-0.5 rounded-md text-xs font-medium text-gray-400">Not set</span>
                                 {% endif %}

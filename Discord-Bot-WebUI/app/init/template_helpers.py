@@ -39,6 +39,19 @@ def init_template_helpers(app):
         """
         return format_position_name(position)
 
+    @app.template_filter('format_positions')
+    def format_positions_filter(value):
+        """
+        Format a stored positions column ({slug,slug} or legacy comma-string)
+        into a readable 'Label, Label' string for display.
+        Usage in templates: {{ player.other_positions|format_positions }}
+        """
+        from app.constants.positions import parse_positions, POSITION_LABELS
+        slugs = parse_positions(value)
+        if not slugs:
+            return ''
+        return ', '.join(POSITION_LABELS.get(s, format_position_name(s)) for s in slugs)
+
     @app.template_global()
     def format_field(field_name):
         """

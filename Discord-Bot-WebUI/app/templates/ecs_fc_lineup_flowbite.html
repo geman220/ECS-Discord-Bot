@@ -299,7 +299,7 @@
                                 </p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
                                     {% if player.favorite_position %}
-                                    <span class="inline-flex items-center gap-1"><i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ player.favorite_position }}</span>
+                                    <span class="inline-flex items-center gap-1"><i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ player.favorite_position|format_position }}</span>
                                     {% else %}
                                     <span class="italic text-gray-400 dark:text-gray-500">No preferred position</span>
                                     {% endif %}
@@ -543,7 +543,7 @@
                                     {% endif %}
                                 </p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ player.favorite_position or 'No position' }}
+                                    {{ player.favorite_position|format_position or 'No position' }}
                                     {% if player.stats.goals > 0 or player.stats.assists > 0 %}
                                     <span class="text-gray-400 mx-1">&middot;</span>
                                     {% if player.stats.goals > 0 %}<span class="text-green-600">{{ player.stats.goals }}G</span>{% endif %}

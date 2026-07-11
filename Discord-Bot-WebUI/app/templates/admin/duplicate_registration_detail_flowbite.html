@@ -149,7 +149,7 @@
                     {% if alert.existing_player.favorite_position %}
                     <div class="mb-2">
                         <span class="text-xs text-gray-500 dark:text-gray-400">Favorite Position:</span>
-                        <p class="text-sm text-gray-700 dark:text-gray-300">{{ alert.existing_player.favorite_position }}</p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">{{ alert.existing_player.favorite_position|format_position }}</p>
                     </div>
                     {% endif %}
                     {% if alert.existing_player.teams %}

@@ -147,7 +147,7 @@
                 <div class="min-w-0 flex-1">
                     <h3 class="text-sm font-bold text-gray-900 dark:text-white truncate" data-cell="name">{{ player.name }}</h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        {% if player.favorite_position %}{{ player.favorite_position }}{% else %}<span class="text-gray-400 dark:text-gray-500">Position not set</span>{% endif %}
+                        {% if player.favorite_position %}{{ player.favorite_position|format_position }}{% else %}<span class="text-gray-400 dark:text-gray-500">Position not set</span>{% endif %}
                     </p>
                     <p class="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate mt-1" data-cell="email">{{ player.user.email }}</p>
                 </div>

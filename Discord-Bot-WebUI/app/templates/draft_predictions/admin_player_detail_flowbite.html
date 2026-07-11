@@ -88,7 +88,7 @@
         <p class="text-lg font-bold text-gray-900 dark:text-white truncate">{{ player.name }}</p>
         <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
           {% if player.favorite_position %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ player.favorite_position }}</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ player.favorite_position|format_position }}</span>
           {% endif %}
           <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 font-mono"><i class="ti ti-users text-[11px]" aria-hidden="true"></i>{{ stats.count }} vote{{ '' if stats.count == 1 else 's' }}</span>
           {% set agree_tone = {'success':'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300','info':'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300','warning':'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300','neutral':'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'} %}
@@ -276,7 +276,7 @@
                 <h4 class="text-xl font-bold text-gray-900 dark:text-white">{{ player.name }}</h4>
                 <div class="flex gap-2 mt-1">
                     {% if player.favorite_position %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position|format_position }}</span>
                     {% endif %}
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if league_type == 'Premier' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' }}">{{ league_type }}</span>
                 </div>

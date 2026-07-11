@@ -29,8 +29,10 @@ def format_position_name(position):
     """
     if not position:
         return position
-    
-    return position.replace('_', ' ').title()
+
+    # Strip whitespace and any Postgres array quoting on legacy values before
+    # title-casing, so '"left winger"' / 'left_winger' both render 'Left Winger'.
+    return position.strip().strip('"').replace('_', ' ').title()
 
 
 def format_field_name(field_name):

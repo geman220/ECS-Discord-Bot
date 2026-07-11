@@ -182,7 +182,7 @@
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</span>
-                                <span class="shrink-0 inline-flex items-center justify-center min-w-[2.25rem] px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide font-mono {{ 'bg-ecs-green/10 text-ecs-green' if player.favorite_position and player.favorite_position != 'Any' else 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' }}">{{ player.favorite_position or 'Any' }}</span>
+                                <span class="shrink-0 inline-flex items-center justify-center min-w-[2.25rem] px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide font-mono {{ 'bg-ecs-green/10 text-ecs-green' if player.favorite_position and player.favorite_position != 'Any' else 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' }}">{{ player.favorite_position|format_position or 'Any' }}</span>
                             </div>
                             <div class="flex items-center gap-2.5 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                 <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400" title="Career goals"><i class="ti ti-ball-football" aria-hidden="true"></i> <span class="font-mono">{{ player.career_goals }}</span></span>
@@ -490,7 +490,7 @@
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</span>
-                                    <span class="text-xs px-1.5 py-0.5 rounded {{ 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' if player.favorite_position and player.favorite_position != 'Any' else 'text-gray-500 dark:text-gray-400' }}">{{ player.favorite_position or 'Any' }}</span>
+                                    <span class="text-xs px-1.5 py-0.5 rounded {{ 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' if player.favorite_position and player.favorite_position != 'Any' else 'text-gray-500 dark:text-gray-400' }}">{{ player.favorite_position|format_position or 'Any' }}</span>
                                 </div>
                                 <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                                     <span class="text-green-500" title="Goals"><i class="ti ti-ball-football"></i> {{ player.career_goals }}</span>

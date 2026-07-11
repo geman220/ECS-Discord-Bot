@@ -121,7 +121,7 @@
                     {% if player.favorite_position %}
                     <div class="flex justify-between">
                         <span class="text-gray-500 dark:text-gray-400">Position:</span>
-                        <span class="text-gray-900 dark:text-white">{{ player.favorite_position }}</span>
+                        <span class="text-gray-900 dark:text-white">{{ player.favorite_position|format_position }}</span>
                     </div>
                     {% endif %}
                 </div>

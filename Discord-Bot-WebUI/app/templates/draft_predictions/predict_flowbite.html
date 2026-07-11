@@ -183,7 +183,7 @@
           <td class="px-3 py-2.5 hidden md:table-cell align-middle">
             {% if player.favorite_position %}
               <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wide bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                {{ player.favorite_position[:3] }}
+                {{ (player.favorite_position|format_position)[:3] }}
               </span>
             {% else %}
               <span class="text-gray-400 dark:text-gray-500">—</span>
@@ -267,7 +267,7 @@
               {% if prediction %}<i class="ti ti-circle-check-filled text-ecs-green text-sm shrink-0" aria-label="Prediction set"></i>{% endif %}
             </div>
             <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
-              {% if player.favorite_position %}<span class="font-bold uppercase tracking-wide">{{ player.favorite_position }}</span>{% else %}No position{% endif %}
+              {% if player.favorite_position %}<span class="font-bold uppercase tracking-wide">{{ player.favorite_position|format_position }}</span>{% else %}No position{% endif %}
               {% if player.league %} · {{ player.league.name }}{% endif %}
             </div>
           </div>
@@ -490,7 +490,7 @@
                                 <td class="px-4 py-3">
                                     {% if player.favorite_position %}
                                         <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                                            {{ player.favorite_position }}
+                                            {{ player.favorite_position|format_position }}
                                         </span>
                                     {% else %}
                                         <span class="text-gray-400 dark:text-gray-500">-</span>

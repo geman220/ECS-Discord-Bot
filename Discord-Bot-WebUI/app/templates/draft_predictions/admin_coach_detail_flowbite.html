@@ -250,7 +250,7 @@
         </td>
         <td class="px-3 py-2.5 hidden md:table-cell">
           {% if player.favorite_position %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position }}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position|format_position }}</span>
           {% else %}
           <span class="text-gray-400 dark:text-gray-500">-</span>
           {% endif %}
@@ -317,7 +317,7 @@
         </a>
       </div>
       <div class="mt-2 flex flex-wrap items-center gap-2">
-        {% if player.favorite_position %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position }}</span>{% endif %}
+        {% if player.favorite_position %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position|format_position }}</span>{% endif %}
         {% if prediction.predicted_pick_number %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 font-mono">Pick #{{ prediction.predicted_pick_number }}</span>{% endif %}
         {% if prediction.confidence_level %}
         <span class="inline-flex items-center gap-0.5" aria-label="Confidence {{ prediction.confidence_level }} of 5">
@@ -469,7 +469,7 @@
                     </td>
                     <td class="px-4 py-3">
                         {% if player.favorite_position %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position }}</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position|format_position }}</span>
                         {% else %}
                         <span class="text-gray-400">-</span>
                         {% endif %}

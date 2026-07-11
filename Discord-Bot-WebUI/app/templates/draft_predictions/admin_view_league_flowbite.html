@@ -85,7 +85,7 @@
             <div class="min-w-0 flex-1">
                 <p class="text-base font-bold text-gray-900 dark:text-white truncate">{{ top_pick.player.name }}</p>
                 <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                    {% if top_pick.player.favorite_position %}<span class="flex items-center gap-1"><i class="ti ti-map-pin-filled" aria-hidden="true"></i>{{ top_pick.player.favorite_position }}</span>{% endif %}
+                    {% if top_pick.player.favorite_position %}<span class="flex items-center gap-1"><i class="ti ti-map-pin-filled" aria-hidden="true"></i>{{ top_pick.player.favorite_position|format_position }}</span>{% endif %}
                     <span class="flex items-center gap-1"><i class="ti ti-users" aria-hidden="true"></i><span class="font-mono">{{ top_pick.prediction_count }}</span> votes</span>
                 </div>
             </div>
@@ -228,7 +228,7 @@
                 </td>
                 <td class="px-3 py-3 hidden lg:table-cell">
                     {% if item.player.favorite_position %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ item.player.favorite_position }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ item.player.favorite_position|format_position }}</span>
                     {% else %}
                     <span class="text-gray-400 dark:text-gray-500">-</span>
                     {% endif %}
@@ -301,7 +301,7 @@
                 <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                     {% if item.min_round and item.max_round %}<span>Range <span class="font-mono">{{ item.min_round }}–{{ item.max_round }}</span></span>{% endif %}
                     <span><span class="font-mono">{{ item.prediction_count }}</span> votes</span>
-                    {% if item.player.favorite_position %}<span>{{ item.player.favorite_position }}</span>{% endif %}
+                    {% if item.player.favorite_position %}<span>{{ item.player.favorite_position|format_position }}</span>{% endif %}
                 </div>
             </div>
             <div class="text-right shrink-0">
@@ -405,7 +405,7 @@
                     </td>
                     <td class="px-4 py-3">
                         {% if item.player.favorite_position %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ item.player.favorite_position }}</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ item.player.favorite_position|format_position }}</span>
                         {% else %}
                         <span class="text-gray-400">-</span>
                         {% endif %}

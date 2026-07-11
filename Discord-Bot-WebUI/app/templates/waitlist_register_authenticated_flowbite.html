@@ -183,7 +183,7 @@
         </div>
         <div class="flex items-center justify-between gap-3 px-4 py-2.5">
           <dt class="text-gray-500 dark:text-gray-400">Position</dt>
-          <dd class="text-gray-900 dark:text-white truncate text-right">{{ player.favorite_position if player and player.favorite_position else '—' }}</dd>
+          <dd class="text-gray-900 dark:text-white truncate text-right">{{ (player.favorite_position|format_position) if player and player.favorite_position else '—' }}</dd>
         </div>
         <div class="flex items-center justify-between gap-3 px-4 py-2.5">
           <dt class="text-gray-500 dark:text-gray-400">Weeks available</dt>
@@ -403,7 +403,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Favorite Position</label>
-                    <input type="text" value="{{ player.favorite_position if player and player.favorite_position else '' }}" readonly
+                    <input type="text" value="{{ (player.favorite_position|format_position) if player and player.favorite_position else '' }}" readonly
                            class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
                 </div>
                 <div>
