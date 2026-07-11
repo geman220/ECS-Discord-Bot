@@ -441,7 +441,7 @@
                             <select id="profileJerseySize"
                                     class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
                                 <option value="">Select</option>
-                                {% for size in ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] %}
+                                {% for size in jersey_size_choices %}
                                 <option value="{{ size }}" {% if profile_prefill.jersey_size == size %}selected{% endif %}>{{ size }}</option>
                                 {% endfor %}
                             </select>
@@ -483,23 +483,28 @@
                         </select>
                     </div>
                     <div>
-                        <label for="profileOtherPositions" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Other Positions You Enjoy</label>
-                        <select id="profileOtherPositions" multiple size="4"
-                                class="block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
-                            {% for value, label in soccer_positions %}
-                            <option value="{{ value }}" {% if value in profile_prefill.other_positions %}selected{% endif %}>{{ label }}</option>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Other Positions You Enjoy</label>
+                        <div id="profileOtherPositions" class="flex flex-wrap gap-2">
+                            {% for value, label in soccer_positions if value != 'no_preference' %}
+                            <label class="cursor-pointer">
+                                <input type="checkbox" class="peer sr-only" value="{{ value }}" {% if value in profile_prefill.other_positions %}checked{% endif %}>
+                                <span class="inline-flex items-center min-h-[44px] px-4 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 select-none transition-colors peer-checked:bg-ecs-green peer-checked:border-ecs-green peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green">{{ label }}</span>
+                            </label>
                             {% endfor %}
-                        </select>
-                        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Tap to select more than one.</p>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Tap any that apply.</p>
                     </div>
                     <div>
-                        <label for="profilePositionsNotToPlay" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Positions You'd Rather Avoid</label>
-                        <select id="profilePositionsNotToPlay" multiple size="4"
-                                class="block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
-                            {% for value, label in soccer_positions %}
-                            <option value="{{ value }}" {% if value in profile_prefill.positions_not_to_play %}selected{% endif %}>{{ label }}</option>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Positions You'd Rather Avoid</label>
+                        <div id="profilePositionsNotToPlay" class="flex flex-wrap gap-2">
+                            {% for value, label in soccer_positions if value != 'no_preference' %}
+                            <label class="cursor-pointer">
+                                <input type="checkbox" class="peer sr-only" value="{{ value }}" {% if value in profile_prefill.positions_not_to_play %}checked{% endif %}>
+                                <span class="inline-flex items-center min-h-[44px] px-4 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 select-none transition-colors peer-checked:bg-red-500 peer-checked:border-red-500 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-red-500">{{ label }}</span>
+                            </label>
                             {% endfor %}
-                        </select>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Tap any you'd prefer not to play.</p>
                     </div>
                     <div>
                         <label for="profileFrequencyGoal" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Playing in Goal</label>
@@ -767,16 +772,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         progressBar.style.width = `${((activeIdx + 1) / activeSteps.length) * 100}%`;
 
-        // Update step indicators - light up active steps at-or-before current
+        // Update step indicators. Exactly ONE dot carries the accent colour -
+        // the current step. Completed steps are filled neutral; upcoming steps
+        // stay muted. (Overall progress is conveyed by the bar above.)
         document.querySelectorAll('[data-step-indicator]').forEach(el => {
             const stepNum = parseInt(el.dataset.stepIndicator);
             const dot = el.querySelector('div');
 
-            dot.classList.remove('bg-ecs-green', 'text-white', 'dark:bg-ecs-gold', 'bg-gray-200', 'dark:bg-gray-700', 'text-gray-500', 'dark:text-gray-400');
+            dot.classList.remove(
+                'bg-ecs-green', 'text-white', 'dark:bg-ecs-gold',
+                'bg-gray-400', 'dark:bg-gray-600', 'dark:text-gray-200',
+                'bg-gray-200', 'dark:bg-gray-700', 'text-gray-500', 'dark:text-gray-400'
+            );
 
-            if (activeSteps.includes(stepNum) && stepNum <= step) {
+            if (stepNum === step) {
+                // Current step - the only highlighted dot.
                 dot.classList.add('bg-ecs-green', 'text-white', 'dark:bg-ecs-gold');
+            } else if (activeSteps.includes(stepNum) && stepNum < step) {
+                // Completed step - filled, but never the accent colour.
+                dot.classList.add('bg-gray-400', 'text-white', 'dark:bg-gray-600', 'dark:text-gray-200');
             } else {
+                // Upcoming (or skipped) step.
                 dot.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-500', 'dark:text-gray-400');
             }
         });
@@ -1245,11 +1261,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Collect selected values from a multi-select element
+    // Collect selected values from a chip group (mobile-friendly checkboxes)
+    // or a legacy <select multiple>, whichever the element is.
     function getMultiSelectValues(id) {
         const el = document.getElementById(id);
         if (!el) return [];
-        return Array.from(el.selectedOptions).map(o => o.value);
+        if (el.tagName === 'SELECT') {
+            return Array.from(el.selectedOptions).map(o => o.value);
+        }
+        return Array.from(el.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value);
     }
 
     // Submit profile update

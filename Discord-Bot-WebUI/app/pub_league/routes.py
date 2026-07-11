@@ -45,7 +45,6 @@ _ALLOWED_GOAL_FREQUENCY = {value for value, _ in goal_frequency_choices}
 _ALLOWED_AVAILABILITY = {value for value, _ in availability_choices}
 _ALLOWED_PRONOUNS = {value for value, _ in pronoun_choices}
 _ALLOWED_REFEREE = {value for value, _ in willing_to_referee_choices}
-_ALLOWED_JERSEY_SIZES = {'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'}
 
 
 def _parse_pg_array(value):
@@ -53,6 +52,18 @@ def _parse_pg_array(value):
     if not value:
         return []
     return [v for v in value.strip('{}').split(',') if v]
+
+
+def _get_jersey_size_choices(session):
+    """Distinct jersey sizes actually in use.
+
+    Mirrors the player profile form (app/players.py) which builds its size
+    dropdown from ``distinct(Player.jersey_size)`` rather than a hardcoded list.
+    Building the link-order step the same way keeps the two option sets in sync
+    so a size that shows on /players/profile also shows here.
+    """
+    rows = session.query(Player.jersey_size).distinct().all()
+    return sorted({r[0] for r in rows if r[0]})
 
 
 def get_db_session():
@@ -165,11 +176,22 @@ def link_order():
         billing = order_data.get('billing', {}) or {}
         fallback_name = f"{(billing.get('first_name') or '').strip()} {(billing.get('last_name') or '').strip()}".strip()
 
+    # Jersey sizes: same source as the player profile form, plus whatever size
+    # this order carries (from the WooCommerce variation) so it can prefill even
+    # if no existing player has that size yet.
+    jersey_size_choices = _get_jersey_size_choices(get_db_session())
+    order_jersey_size = next(
+        (li.jersey_size for li in line_items if getattr(li, 'jersey_size', None)), ''
+    )
+    if order_jersey_size and order_jersey_size not in jersey_size_choices:
+        jersey_size_choices = sorted(set(jersey_size_choices) | {order_jersey_size})
+
     profile_prefill = {
         'name': (player.name if player else '') or fallback_name,
         'pronouns': player.pronouns if player else '',
         'phone': (player.phone if player else '') or '',
-        'jersey_size': player.jersey_size if player else '',
+        # Prefer the saved profile size; fall back to the size on the order.
+        'jersey_size': (player.jersey_size if player else '') or order_jersey_size,
         'jersey_number': player.jersey_number if player else '',
         'favorite_position': player.favorite_position if player else '',
         'other_positions': _parse_pg_array(player.other_positions) if player else [],
@@ -193,6 +215,7 @@ def link_order():
         is_approved=is_approved,
         is_current_player=is_current_player,
         # Option lists for the profile-confirmation selects
+        jersey_size_choices=jersey_size_choices,
         soccer_positions=soccer_positions,
         goal_frequency_choices=goal_frequency_choices,
         availability_choices=availability_choices,
@@ -657,8 +680,10 @@ def update_profile():
         if phone:
             player.phone = phone[:20]
 
+        # Jersey size mirrors the profile form, which accepts any distinct size
+        # in use (not a fixed list). Guard only on column length (String(10)).
         jersey_size = (data.get('jersey_size') or '').strip()
-        if jersey_size in _ALLOWED_JERSEY_SIZES:
+        if jersey_size and len(jersey_size) <= 10:
             player.jersey_size = jersey_size
 
         jersey_number_raw = data.get('jersey_number')
