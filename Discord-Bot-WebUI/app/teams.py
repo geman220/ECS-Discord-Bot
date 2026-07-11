@@ -1809,13 +1809,19 @@ def assign_discord_roles_to_team(team_id):
     # .delay() per player and then task_result.get(timeout=30) — tying up a web
     # worker for up to 30s × N players and fanning out N concurrent Discord role
     # writes that tripped the rate limiter. process_discord_role_updates takes a
-    # list of discord IDs, paces the writes internally, and reconciles each
-    # player's full role set (adds + removes).
+    # list of discord IDs and paces the writes internally.
+    #
+    # only_add=True: this button REPAIRS missing roles (see docstring) — it must
+    # never revoke. Batching it originally also silently upgraded it to a full
+    # reconcile, so one wrong expected-role calculation stripped Discord access
+    # from an entire roster (it did exactly that to every ECS FC team, whose team
+    # role the reconcile calculator did not expect). Removals stay with the
+    # callers that mean them: rollover cleanup, sub-pool removal, nightly sync.
     from app.tasks.tasks_discord import process_discord_role_updates
 
     discord_ids = [str(p.discord_id) for p in players_with_discord]
     try:
-        process_discord_role_updates.delay(discord_ids)
+        process_discord_role_updates.delay(discord_ids, only_add=True)
     except Exception as e:
         logger.error(f"Failed to queue Discord role sync for team {team.name}: {e}", exc_info=True)
         return jsonify({

@@ -241,14 +241,16 @@ async def _execute_player_role_update_async(data):
     # Calculate expected roles based on team data
     expected_roles = []
     
-    # Add team roles based on teams (Pub League only). ECS FC teams are
-    # intentionally excluded: their Discord role is created with a DIFFERENT
-    # prefix (ECS-FC-LEAGUE-<team>-Player, see discord_utils.py create path), so
-    # emitting an ECS-FC-PL-<team>-Player here would expect a role that doesn't
-    # exist. The app_managed ECS-FC-PL-<team>-Player entry below likewise never
-    # matches an ECS FC player's real role, so nothing is wrongly stripped.
+    # Add team roles. ECS FC teams are INCLUDED. They were previously excluded on
+    # the theory that an ECS FC team's role is named ECS-FC-LEAGUE-<team>-Player,
+    # but every path that actually grants or revokes a team role names it
+    # ECS-FC-PL-<team>-Player: create_discord_roles (discord_utils), the assign
+    # calculator below, and the remove calculator. Excluding ECS FC here therefore
+    # did NOT make it a no-op — the role stayed in app_managed_roles below AND
+    # matched the reconcile's ECS-FC-PL-*-Player catch-all, so a force_update
+    # stripped the team role from every ECS FC player it touched.
     for team in data.get('teams', []):
-        if team.get('league_name') in ['Premier', 'Classic']:
+        if team.get('league_name') in ['Premier', 'Classic', 'ECS FC']:
             # Add player role
             expected_roles.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
     
@@ -263,7 +265,19 @@ async def _execute_player_role_update_async(data):
     if 'pl-classic' in user_roles:
         if 'ECS-FC-PL-CLASSIC' not in expected_roles:
             expected_roles.append('ECS-FC-PL-CLASSIC')
-    
+
+    # ECS FC league role. ECS FC membership is NOT the same axis as Pub League
+    # currency: being rostered on an ECS FC team is itself sufficient, whether or
+    # not the player is also a current Pub League player. Granted from the Flask
+    # role OR from an ECS FC team membership. Deliberately NOT added to
+    # app_managed_roles below, so this calculator can only ever ADD it — the ECS FC
+    # league role is never stripped by a reconcile.
+    if 'pl-ecs-fc' in user_roles or any(
+        t.get('league_name') == 'ECS FC' for t in data.get('teams', [])
+    ):
+        if 'ECS-FC-PL-ECS-FC' not in expected_roles:
+            expected_roles.append('ECS-FC-PL-ECS-FC')
+
     # Priority 2: Database league associations (fallback)
     for league_name in league_names:
         if league_name.lower() == 'premier' and 'ECS-FC-PL-PREMIER' not in expected_roles:
@@ -309,6 +323,12 @@ async def _execute_player_role_update_async(data):
             expected_roles.append('ECS-FC-PL-PREMIER-COACH')
         elif coached_league == 'classic' and 'ECS-FC-PL-CLASSIC-COACH' not in expected_roles:
             expected_roles.append('ECS-FC-PL-CLASSIC-COACH')
+        # ECS FC coaches. get_expected_roles (discord_utils) grants
+        # ECS-FC-PL-ECS-FC-COACH, but this calculator never did — and the
+        # reconcile's ECS-FC-PL-*-COACH catch-all removes any -COACH role that
+        # isn't expected, so a sync stripped every ECS FC coach's role.
+        elif coached_league == 'ecs fc' and 'ECS-FC-PL-ECS-FC-COACH' not in expected_roles:
+            expected_roles.append('ECS-FC-PL-ECS-FC-COACH')
 
     # Add referee role if player is a referee
     if data.get('is_ref'):
@@ -476,8 +496,15 @@ async def _update_player_discord_roles_async(session, player_id: int) -> Dict[st
         return {'success': False, 'message': 'Discord API error', 'error': str(e)}
 
 
-def _extract_batch_role_update_data(session, discord_ids: List[str] = None):
-    """Extract player data for batch Discord role updates using optimized batch processing."""
+def _extract_batch_role_update_data(session, discord_ids: List[str] = None, only_add: bool = False):
+    """Extract player data for batch Discord role updates using optimized batch processing.
+
+    only_add=True downgrades the batch from a full reconcile (add + remove) to
+    add-only. Repair-style callers ("Assign Roles" on a team page) want to GRANT
+    missing roles, not revoke; a reconcile there means one bad expected-role
+    calculation strips the whole roster's Discord access. Removal callers
+    (rollover cleanup, sub-pool removal, nightly sync) keep the default reconcile.
+    """
     try:
         if not discord_ids:
             # No-arg callers — the admin "Sync All Roles" buttons mark all
@@ -496,7 +523,17 @@ def _extract_batch_role_update_data(session, discord_ids: List[str] = None):
         # Use optimized batch processing from query optimizer
         players_data = efficient_player_discord_batch(session, discord_ids)
 
-        logger.info(f"Extracted batch role update data for {len(players_data)} players from {len(discord_ids)} Discord IDs using optimized processing")
+        # efficient_player_discord_batch defaults every player to force_update=True
+        # (full reconcile). Add-only callers flip it off here.
+        if only_add:
+            for pdata in players_data:
+                pdata['force_update'] = False
+
+        logger.info(
+            f"Extracted batch role update data for {len(players_data)} players from "
+            f"{len(discord_ids)} Discord IDs using optimized processing "
+            f"(mode={'add-only' if only_add else 'reconcile'})"
+        )
         return {'players': players_data}
         
     except SQLAlchemyError as e:
@@ -567,14 +604,18 @@ def _update_players_after_batch_role_sync(session, result):
     name='app.tasks.tasks_discord.process_discord_role_updates',
     queue='discord'
 )
-async def process_discord_role_updates(self, session, discord_ids: List[str] = None) -> Dict[str, Any]:
+async def process_discord_role_updates(self, session, discord_ids: List[str] = None,
+                                       only_add: bool = False) -> Dict[str, Any]:
     """
     Process Discord role updates for multiple players using two-phase pattern.
-    
+
     Args:
         session: Database session (used only in phase 1).
         discord_ids: List of Discord IDs to process.
-        
+        only_add: If True, only grant missing roles and never revoke. Use for
+            repair/"assign" callers. Default False = full reconcile (add + remove),
+            which is what rollover cleanup and the nightly sync need.
+
     Returns:
         A summary dictionary with counts and details of the processed results.
     """
@@ -665,7 +706,16 @@ async def _execute_assign_roles_async(data):
         if 'pl-classic' in user_roles:
             if 'ECS-FC-PL-CLASSIC' not in expected_roles:
                 expected_roles.append('ECS-FC-PL-CLASSIC')
-        
+
+        # ECS FC league role — PARITY with _execute_player_role_update_async.
+        # Rostered on an ECS FC team is sufficient on its own; ECS FC membership is
+        # a separate axis from Pub League currency.
+        if 'pl-ecs-fc' in user_roles or any(
+            t.get('league_name') == 'ECS FC' for t in data.get('teams', [])
+        ):
+            if 'ECS-FC-PL-ECS-FC' not in expected_roles:
+                expected_roles.append('ECS-FC-PL-ECS-FC')
+
         # Add substitute roles based on Flask user roles
         if 'Premier Sub' in user_roles:
             if 'ECS-FC-PL-PREMIER-SUB' not in expected_roles:
@@ -704,6 +754,8 @@ async def _execute_assign_roles_async(data):
                 expected_roles.append('ECS-FC-PL-PREMIER-COACH')
             elif coached_league == 'classic' and 'ECS-FC-PL-CLASSIC-COACH' not in expected_roles:
                 expected_roles.append('ECS-FC-PL-CLASSIC-COACH')
+            elif coached_league == 'ecs fc' and 'ECS-FC-PL-ECS-FC-COACH' not in expected_roles:
+                expected_roles.append('ECS-FC-PL-ECS-FC-COACH')
 
         # Add referee role if player is a referee
         if data.get('is_ref'):
@@ -1334,11 +1386,13 @@ async def _execute_remove_roles_async(data):
         roles_to_remove.extend([
             'ECS-FC-PL-PREMIER',
             'ECS-FC-PL-CLASSIC',
+            'ECS-FC-PL-ECS-FC',  # ECS FC league role — same leak as the two above
             'ECS-FC-PL-PREMIER-SUB',
             'ECS-FC-PL-CLASSIC-SUB',
             'ECS-FC-LEAGUE-SUB',
             'ECS-FC-PL-PREMIER-COACH',
             'ECS-FC-PL-CLASSIC-COACH',
+            'ECS-FC-PL-ECS-FC-COACH',
             'Referee',
         ])
 

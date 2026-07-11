@@ -467,9 +467,30 @@ class PlayerActivationService:
 
         session.commit()
 
-        # 4. Sync roles (only if user exists and is approved)
+        # 4. Sync roles (only if user exists and is approved). BEST-EFFORT: the
+        # essential result (is_current_player + league) is already committed
+        # above, so a role-sync hiccup must NOT fail the caller. Previously this
+        # was unwrapped, so a LockAcquisitionError here 500'd the "link my pass"
+        # request AFTER the pass was already linked — the app showed "something
+        # went wrong," and the retry then succeeded via the idempotent path. If
+        # this does fail, the player is still active; discord_needs_update is set
+        # below so the background sync (or the admin "Sync roles" button) catches
+        # the Discord role up.
         if user and hasattr(user, 'is_approved') and user.is_approved:
-            RoleSyncService.sync_league_role(user, player, division)
+            try:
+                RoleSyncService.sync_league_role(user, player, division)
+            except Exception as e:
+                logger.warning(
+                    f"Role sync failed for player {player.id} (activation still "
+                    f"succeeded, will reconcile via background sync): {e}"
+                )
+                # Ensure the background Discord sync still knows to look at this
+                # player even if the Flask-role step above threw.
+                try:
+                    player.discord_needs_update = True
+                    session.commit()
+                except Exception:
+                    session.rollback()
 
         # 5. Invalidate draft cache so player appears immediately
         try:
@@ -740,12 +761,20 @@ class RoleSyncService:
         # Save user_id before any session operations to avoid detached instance issues
         user_id = user.id
 
+        # Lock, query, and commit on the REQUEST session — the same one the rest
+        # of activation uses. Hardcoding db.session here meant a mobile request
+        # (which runs on g.db_session) took a SELECT FOR UPDATE on a DIFFERENT
+        # session than the one holding the freshly-committed player row; through
+        # pgbouncer that races into LockAcquisitionError, which bubbled up and
+        # 500'd the whole "link my pass" call after the pass was already linked.
+        session = getattr(g, 'db_session', db.session)
+
         try:
             # Acquire lock on user for role modification
-            with lock_user_for_role_update(user_id, session=db.session) as locked_user:
-                # Get role objects from the same db.session
-                new_role = db.session.query(Role).filter_by(name=new_role_name).first()
-                opposite_role = db.session.query(Role).filter_by(name=opposite_role_name).first()
+            with lock_user_for_role_update(user_id, session=session) as locked_user:
+                # Get role objects from the SAME session
+                new_role = session.query(Role).filter_by(name=new_role_name).first()
+                opposite_role = session.query(Role).filter_by(name=opposite_role_name).first()
 
                 # Add new role if not already present
                 if new_role and new_role not in locked_user.roles:
@@ -757,10 +786,10 @@ class RoleSyncService:
                     locked_user.roles.remove(opposite_role)
                     logger.info(f"Removed Flask role {opposite_role_name} from user {user_id}")
 
-                db.session.commit()
+                session.commit()
 
         except LockAcquisitionError:
-            db.session.rollback()
+            session.rollback()
             logger.warning(f"Could not acquire lock for user {user_id} during role sync")
             raise
 
