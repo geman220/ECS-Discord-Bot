@@ -487,8 +487,8 @@
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Other Positions You Enjoy</label>
                         <div id="profileOtherPositions" class="flex flex-wrap gap-2">
                             {% for value, label in soccer_positions if value != 'no_preference' %}
-                            <label class="cursor-pointer">
-                                <input type="checkbox" class="peer sr-only" value="{{ value }}" {% if value in profile_prefill.other_positions %}checked{% endif %}>
+                            <label class="relative cursor-pointer">
+                                <input type="checkbox" class="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer m-0" value="{{ value }}" {% if value in profile_prefill.other_positions %}checked{% endif %}>
                                 <span class="inline-flex items-center min-h-[44px] px-4 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 select-none transition-colors peer-checked:bg-ecs-green peer-checked:border-ecs-green peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green">{{ label }}</span>
                             </label>
                             {% endfor %}
@@ -499,8 +499,8 @@
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Positions You'd Rather Avoid</label>
                         <div id="profilePositionsNotToPlay" class="flex flex-wrap gap-2">
                             {% for value, label in soccer_positions if value != 'no_preference' %}
-                            <label class="cursor-pointer">
-                                <input type="checkbox" class="peer sr-only" value="{{ value }}" {% if value in profile_prefill.positions_not_to_play %}checked{% endif %}>
+                            <label class="relative cursor-pointer">
+                                <input type="checkbox" class="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer m-0" value="{{ value }}" {% if value in profile_prefill.positions_not_to_play %}checked{% endif %}>
                                 <span class="inline-flex items-center min-h-[44px] px-4 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 select-none transition-colors peer-checked:bg-red-500 peer-checked:border-red-500 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-red-500">{{ label }}</span>
                             </label>
                             {% endfor %}
@@ -1386,12 +1386,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
-                            <a href="${pass.download_url}?platform=apple"
+                            <a href="${pass.download_url}&platform=apple"
                                class="flex items-center justify-center gap-2 px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors">
                                 <i class="ti ti-brand-apple text-xl"></i>
                                 <span class="font-medium">Apple Wallet</span>
                             </a>
-                            <a href="${pass.download_url}?platform=google"
+                            <a href="${pass.download_url}&platform=google"
                                class="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                                 <i class="ti ti-brand-google text-xl"></i>
                                 <span class="font-medium">Google Wallet</span>

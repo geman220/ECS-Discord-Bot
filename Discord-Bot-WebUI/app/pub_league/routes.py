@@ -54,6 +54,18 @@ def _parse_pg_array(value):
     return [v for v in value.strip('{}').split(',') if v]
 
 
+def _normalize_position(pos):
+    """Normalize a stored position to a soccer_positions slug.
+
+    Mirrors the player-profile normalizer (app/players.py). Legacy rows store
+    human labels like 'Left Winger' / 'Striker' / 'Center Back'; the chips use
+    slug values ('striker', 'center_back'). Without this, nothing pre-selects.
+    """
+    if not pos:
+        return pos
+    return pos.strip().lower().replace(' ', '_')
+
+
 def _get_jersey_size_choices(session):
     """Distinct jersey sizes actually in use.
 
@@ -193,9 +205,9 @@ def link_order():
         # Prefer the saved profile size; fall back to the size on the order.
         'jersey_size': (player.jersey_size if player else '') or order_jersey_size,
         'jersey_number': player.jersey_number if player else '',
-        'favorite_position': player.favorite_position if player else '',
-        'other_positions': _parse_pg_array(player.other_positions) if player else [],
-        'positions_not_to_play': _parse_pg_array(player.positions_not_to_play) if player else [],
+        'favorite_position': _normalize_position(player.favorite_position) if player else '',
+        'other_positions': [_normalize_position(p) for p in _parse_pg_array(player.other_positions)] if player else [],
+        'positions_not_to_play': [_normalize_position(p) for p in _parse_pg_array(player.positions_not_to_play)] if player else [],
         'frequency_play_goal': player.frequency_play_goal if player else '',
         'expected_weeks_available': player.expected_weeks_available if player else '',
         'willing_to_referee': player.willing_to_referee if player else '',
