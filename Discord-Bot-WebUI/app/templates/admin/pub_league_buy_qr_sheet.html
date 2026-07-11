@@ -31,7 +31,8 @@
             width: 7.7in;
             height: 10.2in;
             margin: 0 auto 2rem;
-            padding: 0.7in 0.6in 0.55in;
+            /* Bottom padding must clear the green footer bar, or the URL lands on it. */
+            padding: 0.7in 0.6in 0.75in;
             background: #fff;
             border-radius: 1.5rem;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
@@ -97,6 +98,7 @@
 
         .url {
             margin-top: auto;
+            padding-top: 0.18in;
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
             font-size: 10.5pt;
             color: #6b7280;
@@ -137,7 +139,7 @@
                 height: auto;
                 min-height: 9.6in;
                 margin: 0;
-                padding: 0.35in 0.3in 0.3in;
+                padding: 0.35in 0.3in 0.65in;
                 border-radius: 0;
                 box-shadow: none;
                 /* One poster per sheet — never split a QR across a page break. */

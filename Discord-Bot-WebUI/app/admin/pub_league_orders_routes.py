@@ -923,7 +923,9 @@ def _qr_codes(style: str = 'brand'):
         'id': option['division'],
         'name': '%s Division' % option['name'],
         'division': option['division'],
-        'tagline': 'Scan to buy your %s season pass' % option['name'],
+        # Says what this code does that the picker doesn't, rather than repeating
+        # the "Scan to buy your pass" headline it sits under.
+        'tagline': 'Goes straight to %s — no division picker' % option['name'],
         'buy_url': _buy_url(option['division']),
         'qr_png': png(option['division']),
         # Surfaced so an admin sees at a glance whether the product slug actually
