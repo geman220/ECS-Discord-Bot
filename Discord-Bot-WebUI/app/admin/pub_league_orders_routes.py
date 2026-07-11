@@ -410,6 +410,7 @@ def api_manual_link():
         # it double-count — an already-assigned pass keeps the same slot.
         was_assigned = line_item.status != PubLeagueLineItemStatus.UNASSIGNED.value
         previous_name = line_item.assigned_player.name if line_item.assigned_player else None
+        previous_player_id = line_item.assigned_player_id
         if was_assigned and line_item.assigned_player_id == player.id:
             return jsonify({'success': False, 'error': 'Pass is already assigned to this player'}), 400
         if was_assigned:
@@ -425,6 +426,14 @@ def api_manual_link():
             if line_item.order:
                 line_item.order.linked_passes = max(0, line_item.order.linked_passes - 1)
             db.session.flush()
+
+            # The previous holder loses this pass — deactivate them unless they
+            # still hold another pass for this season. (The new holder is
+            # activated below via activate_player_for_league.)
+            from app.pub_league.services import PlayerActivationService as _PAS
+            _PAS.deactivate_player_if_no_current_pass(
+                previous_player_id, line_item.order, exclude_line_item_id=line_item.id
+            )
 
         # Import services
         from app.pub_league.services import PubLeagueOrderService, PlayerActivationService
@@ -675,6 +684,8 @@ def api_unassign_pass():
             return jsonify({'success': False, 'error': 'Pass is already unassigned'}), 400
 
         old_player_name = line_item.assigned_player.name if line_item.assigned_player else 'Unknown'
+        old_player_id = line_item.assigned_player_id
+        order = line_item.order
 
         # Clear assignment AND the generated wallet pass. Clearing the pass link
         # matters: generate-pass short-circuits on a non-null wallet_pass_id and
@@ -690,19 +701,29 @@ def api_unassign_pass():
         line_item.status = PubLeagueLineItemStatus.UNASSIGNED.value
 
         # Update order linked count
-        order = line_item.order
         if order:
             order.linked_passes = max(0, order.linked_passes - 1)
             order.update_status()
 
         db.session.commit()
 
-        logger.info(f"Admin {current_user.id} unassigned line item {line_item_id} (was assigned to {old_player_name})")
+        # A pass is what makes a player current for the season, so removing it
+        # deactivates them — UNLESS they still hold another pass for this season
+        # (e.g. they own two). Only touches is_current_player, mirroring rollover.
+        from app.pub_league.services import PlayerActivationService
+        deactivated = PlayerActivationService.deactivate_player_if_no_current_pass(
+            old_player_id, order, exclude_line_item_id=line_item.id
+        )
 
-        return jsonify({
-            'success': True,
-            'message': f'Pass unassigned from {old_player_name}'
-        })
+        logger.info(
+            f"Admin {current_user.id} unassigned line item {line_item_id} "
+            f"(was {old_player_name}); player deactivated={deactivated}"
+        )
+
+        msg = f'Pass unassigned from {old_player_name}'
+        if deactivated:
+            msg += ' (no longer active for the season)'
+        return jsonify({'success': True, 'message': msg})
 
     except Exception as e:
         logger.error(f"Error unassigning pass: {e}", exc_info=True)

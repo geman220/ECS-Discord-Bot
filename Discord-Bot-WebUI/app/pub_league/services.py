@@ -482,6 +482,91 @@ class PlayerActivationService:
         logger.info(f"Activated player {player.id} for {division} division")
 
     @staticmethod
+    def deactivate_player_if_no_current_pass(
+        player_id: int, order, exclude_line_item_id: int = None
+    ) -> bool:
+        """
+        Counterpart to activation: when a player loses a pass (unassign /
+        reassign-away), drop is_current_player — UNLESS they still hold another
+        pass for the SAME season.
+
+        is_current_player means "paid/active THIS season" and is set ONLY by
+        linking a pass; season rollover clears it for everyone and they
+        re-activate on purchase (see season_routes.py). So removing their last
+        current-season pass should return them to not-current, mirroring rollover.
+
+        The guard matters: a player can hold two passes for one season (e.g. they
+        bought Premier and were gifted Classic). Unassigning one must NOT
+        deactivate them while the other still stands. We deliberately touch ONLY
+        is_current_player — not their Discord role or league_id — because that's
+        the single axis "am I paid for this season," matching how rollover works.
+
+        Args:
+            player_id: the player losing the pass
+            order: the PubLeagueOrder the removed line item belonged to (for its season)
+            exclude_line_item_id: the line item being removed, excluded from the count
+
+        Returns:
+            True if the player was deactivated, False if they kept another pass
+            (or had no player row / no season to scope by).
+        """
+        if not player_id or order is None:
+            return False
+
+        session = getattr(g, 'db_session', db.session)
+
+        # Any OTHER still-held pass for this same season keeps them current.
+        # "held" = assigned / claimed / pass_created (PubLeagueOrderLineItem.is_assigned()).
+        held_statuses = [
+            PubLeagueLineItemStatus.ASSIGNED.value,
+            PubLeagueLineItemStatus.CLAIMED.value,
+            PubLeagueLineItemStatus.PASS_CREATED.value,
+        ]
+        q = (
+            session.query(PubLeagueOrderLineItem)
+            .join(PubLeagueOrder, PubLeagueOrderLineItem.order_id == PubLeagueOrder.id)
+            .filter(
+                PubLeagueOrderLineItem.assigned_player_id == player_id,
+                PubLeagueOrderLineItem.status.in_(held_statuses),
+            )
+        )
+        # Scope to the same season. Prefer season_id; fall back to season_name so
+        # an order that never got its season_id backfilled still scopes sanely.
+        if order.season_id is not None:
+            q = q.filter(PubLeagueOrder.season_id == order.season_id)
+        elif order.season_name:
+            q = q.filter(PubLeagueOrder.season_name == order.season_name)
+        if exclude_line_item_id is not None:
+            q = q.filter(PubLeagueOrderLineItem.id != exclude_line_item_id)
+
+        if q.first() is not None:
+            logger.info(
+                f"Player {player_id} keeps is_current_player: still holds another "
+                f"pass for season {order.season_name or order.season_id}"
+            )
+            return False
+
+        player = session.query(Player).get(player_id)
+        if not player:
+            return False
+
+        if player.is_current_player:
+            player.is_current_player = False
+            session.commit()
+            logger.info(
+                f"Deactivated player {player_id} (is_current_player=False): last "
+                f"pass for season {order.season_name or order.season_id} removed"
+            )
+            # Draft rosters filter on is_current_player — refresh so they drop off.
+            try:
+                from app.draft_cache_service import DraftCacheService
+                DraftCacheService.clear_all_league_caches('classic')
+                DraftCacheService.clear_all_league_caches('premier')
+            except Exception as exc:
+                logger.warning(f"Could not clear draft cache after deactivation: {exc}")
+        return True
+
+    @staticmethod
     def check_profile_freshness(player: Player, days: int = 60) -> bool:
         """
         Check if player's profile was updated within the specified days.
