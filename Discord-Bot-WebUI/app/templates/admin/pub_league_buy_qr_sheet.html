@@ -1,0 +1,188 @@
+{#
+  Print sheet: one full-page poster per code, and nothing else on the paper.
+
+  Standalone (its own <html>, no admin shell) on purpose — printing the admin
+  page meant printing the sidebar and topbar with it. Same reason the check-in
+  QR sheet is standalone.
+
+  Custom CSS rather than Tailwind here, and that is deliberate: this document is
+  opened in a bare window that never loads the app bundle, and print output needs
+  @page and print-color-adjust, which Tailwind utilities don't express.
+#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ECS Pub League — Season Pass QR{% if season_name %} ({{ season_name }}){% endif %}</title>
+    <style>
+        @page { size: letter portrait; margin: 0.4in; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: #e5e7eb;
+            color: #213e96;
+            padding: 2rem 1rem;
+        }
+
+        .poster {
+            position: relative;
+            width: 7.7in;
+            height: 10.2in;
+            margin: 0 auto 2rem;
+            padding: 0.7in 0.6in 0.55in;
+            background: #fff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        /* Navy band across the top, so the sheet reads as Pub League from across a room. */
+        .poster::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 0.42in;
+            background: #213e96;
+        }
+        .poster::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 0 0;
+            height: 0.28in;
+            background: #49b850;
+        }
+
+        .crest { width: 1.5in; height: auto; margin-bottom: 0.22in; }
+
+        .kicker {
+            font-size: 12pt;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #49b850;
+        }
+
+        h1 {
+            font-size: 40pt;
+            font-weight: 800;
+            line-height: 1.02;
+            letter-spacing: -0.02em;
+            margin-top: 0.06in;
+        }
+
+        .season {
+            margin-top: 0.08in;
+            font-size: 16pt;
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        .qr-frame {
+            margin: 0.3in 0 0.26in;
+            padding: 0.16in;
+            border: 4px solid #49b850;
+            border-radius: 1rem;
+            background: #fff;
+        }
+        .qr-frame img { display: block; width: 4.5in; height: 4.5in; }
+
+        .cta { font-size: 22pt; font-weight: 800; line-height: 1.2; }
+        .tagline { margin-top: 0.08in; font-size: 13pt; color: #4b5563; }
+
+        .url {
+            margin-top: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 10.5pt;
+            color: #6b7280;
+            word-break: break-all;
+        }
+
+        /* Screen-only chrome. None of this reaches the paper. */
+        .bar {
+            max-width: 7.7in;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            border: 0;
+            border-radius: 0.6rem;
+            padding: 0.65rem 1.2rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: #213e96;
+            color: #fff;
+            text-decoration: none;
+        }
+        .btn.secondary { background: #fff; color: #213e96; box-shadow: inset 0 0 0 1px #cbd5e1; }
+        .btn:hover { opacity: 0.92; }
+
+        @media print {
+            body { background: #fff; padding: 0; }
+            .bar { display: none !important; }
+            .poster {
+                width: auto;
+                height: auto;
+                min-height: 9.6in;
+                margin: 0;
+                padding: 0.35in 0.3in 0.3in;
+                border-radius: 0;
+                box-shadow: none;
+                /* One poster per sheet — never split a QR across a page break. */
+                break-after: page;
+                break-inside: avoid;
+            }
+            .poster:last-child { break-after: auto; }
+            /* Without this the navy band and green rule get dropped as "background". */
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bar">
+    <button type="button" class="btn" onclick="window.print()">Print / Save as PDF</button>
+    <a class="btn secondary" href="{{ url_for('pub_league_orders_admin.buy_qr_print') }}">Back to QR codes</a>
+</div>
+
+{% for code in codes %}
+<div class="poster">
+    <img class="crest" src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="">
+
+    <div class="kicker">Emerald City Supporters</div>
+    <h1>{{ code.name }}</h1>
+    {% if season_name %}<div class="season">{{ season_name }}</div>{% endif %}
+
+    <div class="qr-frame">
+        <img src="{{ code.qr_png }}" alt="QR code to buy a {{ code.name }}">
+    </div>
+
+    <div class="cta">Scan to buy your pass</div>
+    <div class="tagline">{{ code.tagline }}</div>
+
+    <div class="url">{{ code.buy_url }}</div>
+</div>
+{% endfor %}
+
+<script>
+    // Opened straight from the "Print" button, so go to the dialog on arrival.
+    // Guarded by ?autoprint=1 so that hitting the URL directly just previews.
+    if (new URLSearchParams(window.location.search).get('autoprint')) {
+        window.addEventListener('load', function () { window.print(); });
+    }
+</script>
+
+</body>
+</html>

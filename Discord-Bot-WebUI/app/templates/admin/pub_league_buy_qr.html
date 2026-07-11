@@ -1,7 +1,7 @@
 {% extends "admin_panel/base_flowbite.html" %}
 
 {% block admin_title %}Season Pass QR Codes{% endblock %}
-{% block panel_description %}Printable QR codes that send players into the WooCommerce checkout{% endblock %}
+{% block panel_description %}Show, share or print the QR codes that send players into checkout{% endblock %}
 
 {% block breadcrumb_items %}
 <li class="inline-flex items-center">
@@ -17,27 +17,172 @@
 {% endblock %}
 
 {% block panel_content %}
-<div>
+<div data-qr-page>
 
-    <div class="mb-6 print:hidden">
-        <p class="text-sm text-gray-600 dark:text-gray-400">
-            Print these for the pre-season party. Scanning opens the ECS FC app if the player has it,
-            or their browser if they don't &mdash; either way it lands on the WooCommerce product page,
-            where the presale password and the payment are handled. We never see a card.
+    <p class="text-sm text-gray-600 dark:text-gray-400">
+        Put one of these on a screen at the party, share it into Discord, or print it as a poster.
+        Scanning opens the ECS FC app if the player has it, or their browser if they don't &mdash; either
+        way it lands on the WooCommerce product page, where the presale password and the payment are
+        handled. We never see a card.
+    </p>
+    <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <strong class="text-gray-900 dark:text-white">These codes never expire.</strong>
+        They carry no season and no product &mdash; the product is resolved when the code is scanned,
+        from whichever Pub League season is current. Print once, reuse every season.
+    </p>
+
+    {# --- Health check. A dead QR discovered AT the party is the worst case, so
+           make any misconfiguration impossible to miss before printing. --- #}
+    {% if not any_available %}
+    <div class="mt-6 rounded-xl border border-red-300 bg-red-50 p-5 dark:border-red-800 dark:bg-red-900/20">
+        <p class="font-semibold text-red-800 dark:text-red-300">
+            <i class="ti ti-alert-triangle"></i> No product URL resolves for either division &mdash; do not print yet
         </p>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            <strong class="text-gray-900 dark:text-white">These codes never expire.</strong>
-            They carry no season and no product &mdash; the product is resolved when the code is
-            scanned, from whichever Pub League season is current. Print once, reuse every season.
+        <p class="mt-2 text-sm text-red-700 dark:text-red-400">
+            {% if not season_name %}
+                There is no <span class="font-mono">is_current</span> Pub League season, so the product
+                slug can't be built. Create/roll the season first.
+            {% else %}
+                The current season is <span class="font-mono">{{ season_name }}</span> but no product URL
+                could be built from it. Check the season name matches the WooCommerce product naming
+                (e.g. &ldquo;2026 Fall&rdquo; &rarr; <span class="font-mono">2026-fall-ecs-pub-league-premier-division</span>).
+            {% endif %}
         </p>
-        <button type="button" onclick="window.print()"
-                class="mt-3 inline-flex items-center gap-2 rounded-lg bg-ecs-green px-4 py-2 text-sm font-medium text-white hover:bg-ecs-green/90">
-            <i class="ti ti-printer"></i> Print
-        </button>
+    </div>
+    {% endif %}
+
+    {% for code in codes %}
+        {% if code.slug_override %}
+        <div class="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+            <p class="text-sm text-amber-900 dark:text-amber-200">
+                <i class="ti ti-alert-triangle"></i>
+                <strong>{{ code.name }} has a hardcoded product slug.</strong>
+                That pins the link to one product, so it will <em>not</em> follow the next season
+                rollover &mdash; this QR would keep selling last season's pass. Clear
+                <span class="font-mono">pub_league_{{ code.division }}_product_slug</span>
+                in Admin Config to let it track the current season automatically.
+            </p>
+        </div>
+        {% endif %}
+    {% endfor %}
+
+    {# ---------- Toolbar: which style, and print what ---------- #}
+    <div class="mt-6 flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <span class="text-sm font-medium text-gray-900 dark:text-white">Style</span>
+            <div class="mt-1.5 inline-flex overflow-hidden rounded-lg border border-gray-200 dark:border-gray-600">
+                <a href="{{ url_for('pub_league_orders_admin.buy_qr_print') }}"
+                   class="px-3 py-1.5 text-sm font-medium {% if style != 'plain' %}bg-ecs-green text-white{% else %}bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                    Branded
+                </a>
+                <a href="{{ url_for('pub_league_orders_admin.buy_qr_print', style='plain') }}"
+                   class="px-3 py-1.5 text-sm font-medium {% if style == 'plain' %}bg-ecs-green text-white{% else %}bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                    Plain
+                </a>
+            </div>
+            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                {% if style == 'plain' %}
+                    Flat black squares. Use this if a printer or a scanner is giving you trouble.
+                {% else %}
+                    Crest and club colours. Scans just as reliably as plain &mdash; it's been measured.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="shrink-0">
+            <span class="text-sm font-medium text-gray-900 dark:text-white">Print</span>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Tick the codes you want. Each prints as its own full-page poster &mdash; nothing else on the paper.
+            </p>
+            <button type="button" data-print-selected
+                    class="mt-2 inline-flex items-center gap-2 rounded-lg bg-ecs-green px-4 py-2 text-sm font-medium text-white hover:bg-ecs-green/90 disabled:cursor-not-allowed disabled:opacity-50">
+                <i class="ti ti-printer"></i> Print selected (<span data-print-count>0</span>)
+            </button>
+        </div>
+    </div>
+
+    {# ---------- The codes ---------- #}
+    <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {% for code in codes %}
+        <div data-qr-card
+             class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+
+            <div class="flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/40">
+                <div class="min-w-0">
+                    <h3 class="truncate font-semibold text-gray-900 dark:text-white">{{ code.name }}</h3>
+                    {% if code.id == 'picker' %}
+                    <p class="text-xs font-medium text-ecs-green dark:text-ecs-gold">The one code for the party</p>
+                    {% endif %}
+                </div>
+                {% if code.product_url %}
+                <label class="flex shrink-0 cursor-pointer items-center gap-1.5" title="Include in print">
+                    <input type="checkbox" data-print-pick value="{{ code.id }}"
+                           {% if code.id == 'picker' %}checked{% endif %}
+                           class="h-4 w-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+                    <span class="text-xs text-gray-600 dark:text-gray-400">Print</span>
+                </label>
+                {% endif %}
+            </div>
+
+            {% if code.product_url %}
+            <div class="flex flex-1 flex-col p-4">
+                <img src="{{ code.qr_png }}"
+                     alt="QR code to buy a {{ code.name }}"
+                     data-qr-img
+                     data-qr-name="{{ code.name }}"
+                     data-qr-url="{{ code.buy_url }}"
+                     data-qr-png="{{ code.qr_png }}"
+                     class="mx-auto aspect-square w-full max-w-[15rem] rounded-lg bg-white">
+
+                <p class="mt-3 break-all text-center font-mono text-xs text-gray-500 dark:text-gray-400">
+                    {{ code.buy_url }}
+                </p>
+
+                <div class="mt-4 grid grid-cols-2 gap-2">
+                    <button type="button" data-present="{{ code.id }}"
+                            class="col-span-2 inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-green px-3 py-2 text-sm font-medium text-white hover:bg-ecs-green/90">
+                        <i class="ti ti-device-tv"></i> Show on screen
+                    </button>
+
+                    <a href="{{ url_for('pub_league_orders_admin.buy_qr_png', division=code.division, style=(style if style == 'plain' else None), download=1) }}"
+                       class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                        <i class="ti ti-download"></i> Download
+                    </a>
+
+                    <button type="button" data-share
+                            class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                        <i class="ti ti-share-2"></i> Share
+                    </button>
+
+                    <button type="button" data-copy-image
+                            class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                        <i class="ti ti-photo"></i> Copy image
+                    </button>
+
+                    <button type="button" data-copy-link
+                            class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                        <i class="ti ti-link"></i> Copy link
+                    </button>
+                </div>
+            </div>
+            {% else %}
+            <div class="p-4">
+                <div class="rounded-xl border border-red-300 bg-red-50 p-5 dark:border-red-800 dark:bg-red-900/20">
+                    <p class="text-sm font-semibold text-red-800 dark:text-red-300">
+                        <i class="ti ti-alert-triangle"></i> No product URL &mdash; QR not generated
+                    </p>
+                    <p class="mt-2 text-xs text-red-700 dark:text-red-400">
+                        Printing this would send buyers to a dead link.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
     </div>
 
     {# --- iOS deep-link rollout switch --- #}
-    <div class="mb-6 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 print:hidden">
+    <div class="mt-6 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
         <div class="flex items-start justify-between gap-4">
             <div>
                 <h3 class="font-semibold text-gray-900 dark:text-white">Open season-pass links in the iOS app</h3>
@@ -64,16 +209,209 @@
         </p>
     </div>
 
-    <script>
-    (function () {
-        var toggle = document.getElementById('deeplinkToggle');
-        var status = document.getElementById('deeplinkStatus');
-        if (!toggle) return;
+</div>
+
+{# ---------- Present mode: the code, big, on a screen at the party ----------
+     Fullscreen and deliberately bare — a phone camera locks on faster when the
+     QR is the only thing competing for it. #}
+<div data-present-overlay
+     class="fixed inset-0 z-[9999] hidden flex-col items-center justify-center bg-white p-6 text-center">
+
+    <button type="button" data-present-close
+            class="absolute right-5 top-5 inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200">
+        <i class="ti ti-x"></i> Close <span class="hidden sm:inline">(Esc)</span>
+    </button>
+
+    <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt=""
+         class="h-16 w-auto sm:h-24">
+
+    <h2 data-present-name class="mt-3 text-3xl font-extrabold tracking-tight text-[#213e96] sm:text-5xl"></h2>
+    {% if season_name %}
+    <p class="mt-1 text-lg font-semibold text-gray-500 sm:text-2xl">{{ season_name }}</p>
+    {% endif %}
+
+    <img data-present-img alt=""
+         class="my-4 h-[min(52vh,52vw)] w-[min(52vh,52vw)] rounded-2xl border-4 border-[#49b850] bg-white p-2 sm:my-6">
+
+    <p class="text-2xl font-extrabold text-[#213e96] sm:text-4xl">Scan to buy your pass</p>
+    <p data-present-tagline class="mt-2 text-base text-gray-500 sm:text-xl"></p>
+    <p data-present-url class="mt-3 break-all font-mono text-xs text-gray-400 sm:text-sm"></p>
+</div>
+{% endblock %}
+
+{% block custom_js %}{{ super() }}
+<script>
+// Page-local behaviour only, so plain listeners rather than EventDelegation.
+// Still deferred to DOMContentLoaded — main-entry.js is a deferred module and
+// this markup isn't guaranteed to be parsed when an inline script first runs.
+document.addEventListener('DOMContentLoaded', function () {
+    var page = document.querySelector('[data-qr-page]');
+    if (!page) return;
+
+    var TAGLINES = {
+        {% for code in codes %}{{ code.id | tojson }}: {{ code.tagline | tojson }},
+        {% endfor %}
+    };
+
+    // --- flash the outcome of a copy/share on the button that triggered it,
+    //     because a silent clipboard write is indistinguishable from a no-op ---
+    function flash(btn, message, ok) {
+        var original = btn.innerHTML;
+        btn.innerHTML = '<i class="ti ' + (ok ? 'ti-check' : 'ti-alert-circle') + '"></i> ' + message;
+        btn.classList.toggle('text-ecs-green', ok);
+        btn.classList.toggle('text-red-600', !ok);
+        setTimeout(function () {
+            btn.innerHTML = original;
+            btn.classList.remove('text-ecs-green', 'text-red-600');
+        }, 1800);
+    }
+
+    function imgOf(btn) { return btn.closest('[data-qr-card]').querySelector('[data-qr-img]'); }
+
+    function pngBlob(img) {
+        return fetch(img.dataset.qrPng, { credentials: 'same-origin' })
+            .then(function (r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.blob();
+            });
+    }
+
+    // --- Copy link ---
+    page.querySelectorAll('[data-copy-link]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var url = imgOf(btn).dataset.qrUrl;
+            navigator.clipboard.writeText(url)
+                .then(function () { flash(btn, 'Copied', true); })
+                .catch(function () { flash(btn, 'Failed', false); });
+        });
+    });
+
+    // --- Copy image (straight into Discord/Slack with a paste) ---
+    page.querySelectorAll('[data-copy-image]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            // ClipboardItem is missing on Firefox and on any non-HTTPS origin.
+            if (!window.ClipboardItem || !navigator.clipboard || !navigator.clipboard.write) {
+                flash(btn, 'Use Download', false);
+                return;
+            }
+            pngBlob(imgOf(btn))
+                .then(function (blob) {
+                    return navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blob })
+                    ]);
+                })
+                .then(function () { flash(btn, 'Copied', true); })
+                .catch(function () { flash(btn, 'Failed', false); });
+        });
+    });
+
+    // --- Share (native sheet on phones/tablets; falls back to copying the link) ---
+    page.querySelectorAll('[data-share]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var img = imgOf(btn);
+            var title = 'ECS Pub League — ' + img.dataset.qrName;
+
+            pngBlob(img).then(function (blob) {
+                var file = new File([blob], 'ecs-pub-league-qr.png', { type: 'image/png' });
+                // canShare({files}) is the only honest test — plenty of browsers
+                // expose navigator.share but reject files.
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    return navigator.share({ files: [file], title: title, text: img.dataset.qrUrl });
+                }
+                if (navigator.share) {
+                    return navigator.share({ title: title, url: img.dataset.qrUrl });
+                }
+                return navigator.clipboard.writeText(img.dataset.qrUrl)
+                    .then(function () { flash(btn, 'Link copied', true); });
+            })
+            .catch(function (err) {
+                // The user dismissing the share sheet is not a failure.
+                if (err && err.name === 'AbortError') return;
+                flash(btn, 'Failed', false);
+            });
+        });
+    });
+
+    // --- Present mode ---
+    var overlay = page.parentNode.querySelector('[data-present-overlay]');
+    var pImg = overlay.querySelector('[data-present-img]');
+    var pName = overlay.querySelector('[data-present-name]');
+    var pUrl = overlay.querySelector('[data-present-url]');
+    var pTag = overlay.querySelector('[data-present-tagline]');
+
+    function openPresent(btn) {
+        var img = imgOf(btn);
+        pImg.src = img.dataset.qrPng;
+        pImg.alt = 'QR code to buy a ' + img.dataset.qrName;
+        pName.textContent = img.dataset.qrName;
+        pUrl.textContent = img.dataset.qrUrl;
+        pTag.textContent = TAGLINES[btn.dataset.present] || '';
+
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        // Real fullscreen where it's allowed; the overlay alone is the fallback,
+        // so a rejected request costs nothing.
+        if (overlay.requestFullscreen) {
+            overlay.requestFullscreen().catch(function () { /* overlay is enough */ });
+        }
+    }
+
+    function closePresent() {
+        overlay.classList.add('hidden');
+        overlay.classList.remove('flex');
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(function () { /* already out */ });
+        }
+    }
+
+    page.querySelectorAll('[data-present]').forEach(function (btn) {
+        btn.addEventListener('click', function () { openPresent(btn); });
+    });
+    overlay.querySelector('[data-present-close]').addEventListener('click', closePresent);
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closePresent();
+    });
+    // Leaving fullscreen by any other route (Esc handled by the browser, F11)
+    // must not strand the overlay open over the page.
+    document.addEventListener('fullscreenchange', function () {
+        if (!document.fullscreenElement && !overlay.classList.contains('hidden')) closePresent();
+    });
+
+    // --- Print selection ---
+    var picks = page.querySelectorAll('[data-print-pick]');
+    var printBtn = page.querySelector('[data-print-selected]');
+    var countEl = page.querySelector('[data-print-count]');
+
+    function selected() {
+        return Array.prototype.filter.call(picks, function (c) { return c.checked; })
+            .map(function (c) { return c.value; });
+    }
+
+    function refreshPrint() {
+        var n = selected().length;
+        countEl.textContent = n;
+        printBtn.disabled = n === 0;
+    }
+
+    picks.forEach(function (c) { c.addEventListener('change', refreshPrint); });
+    refreshPrint();
+
+    printBtn.addEventListener('click', function () {
+        var params = new URLSearchParams({ codes: selected().join(','), autoprint: '1' });
+        {% if style == 'plain' %}params.set('style', 'plain');{% endif %}
+        window.open('{{ url_for("pub_league_orders_admin.buy_qr_sheet") }}?' + params.toString(), '_blank');
+    });
+
+    // --- iOS deep-link switch ---
+    var toggle = document.getElementById('deeplinkToggle');
+    var status = document.getElementById('deeplinkStatus');
+    if (toggle) {
         toggle.addEventListener('change', function () {
             var enabled = toggle.checked;
             toggle.disabled = true;
             fetch('{{ url_for("pub_league_orders_admin.toggle_deeplinks") }}', {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
@@ -95,117 +433,7 @@
             })
             .finally(function () { toggle.disabled = false; });
         });
-    })();
-    </script>
-
-    {# --- Health check. A dead QR discovered AT the party is the worst case, so
-           make any misconfiguration impossible to miss before printing. --- #}
-    {% if not any_available %}
-    <div class="mb-6 rounded-xl border border-red-300 bg-red-50 p-5 dark:border-red-800 dark:bg-red-900/20 print:hidden">
-        <p class="font-semibold text-red-800 dark:text-red-300">
-            <i class="ti ti-alert-triangle"></i> No product URL resolves for either division &mdash; do not print yet
-        </p>
-        <p class="mt-2 text-sm text-red-700 dark:text-red-400">
-            {% if not season_name %}
-                There is no <span class="font-mono">is_current</span> Pub League season, so the product
-                slug can't be built. Create/roll the season first.
-            {% else %}
-                The current season is <span class="font-mono">{{ season_name }}</span> but no product URL
-                could be built from it. Check the season name matches the WooCommerce product naming
-                (e.g. &ldquo;2026 Fall&rdquo; &rarr; <span class="font-mono">2026-fall-ecs-pub-league-premier-division</span>).
-            {% endif %}
-        </p>
-    </div>
-    {% endif %}
-
-    {% for division in divisions %}
-        {% if division.slug_override %}
-        <div class="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20 print:hidden">
-            <p class="text-sm text-amber-900 dark:text-amber-200">
-                <i class="ti ti-alert-triangle"></i>
-                <strong>{{ division.name }} has a hardcoded product slug.</strong>
-                That pins the link to one product, so it will <em>not</em> follow the next season
-                rollover &mdash; this QR would keep selling last season's pass. Clear
-                <span class="font-mono">pub_league_{{ division.slug }}_product_slug</span>
-                in Admin Config to let it track the current season automatically.
-            </p>
-        </div>
-        {% endif %}
-    {% endfor %}
-
-    {# ---------- The one code for the party ---------- #}
-    {% if any_available %}
-    <div class="mb-6 rounded-2xl border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800 print:mb-0 print:break-after-page print:rounded-none print:border-0 print:bg-white">
-        <h2 class="text-3xl font-bold text-gray-900 dark:text-white print:text-black print:text-5xl">
-            ECS Pub League
-        </h2>
-        {% if season_name %}
-        <p class="mt-1 text-xl font-semibold text-ecs-green dark:text-ecs-gold print:text-black print:text-3xl">
-            {{ season_name }}
-        </p>
-        {% endif %}
-        <p class="mt-2 text-lg text-gray-600 dark:text-gray-400 print:text-black print:text-2xl">
-            Scan to buy your season pass
-        </p>
-
-        <img src="{{ picker_qr_png }}"
-             alt="QR code to buy a season pass"
-             class="mx-auto my-6 h-64 w-64 print:h-[26rem] print:w-[26rem]">
-
-        <p class="text-base font-medium text-gray-700 dark:text-gray-300 print:text-black print:text-xl">
-            You'll pick Classic or Premier after scanning
-        </p>
-        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400 print:text-black print:text-lg">
-            Or go to <span class="font-mono break-all">{{ picker_url }}</span>
-        </p>
-    </div>
-    {% endif %}
-
-    {# ---------- Optional per-division codes ---------- #}
-    <div class="print:hidden">
-        <h3 class="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
-            Per-division codes (optional)
-        </h3>
-        <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            Use these instead if you want a separate sign at the Classic table and the Premier table.
-            They skip the picker.
-        </p>
-    </div>
-
-    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        {% for division in divisions %}
-        <div class="rounded-2xl border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800 print:break-after-page print:rounded-none print:border-0 print:bg-white">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white print:text-black print:text-5xl">
-                {{ division.name }} Division
-            </h2>
-            <p class="mt-1 text-gray-600 dark:text-gray-400 print:text-black print:text-2xl">
-                Scan to buy your season pass
-            </p>
-
-            {% if division.product_url %}
-                <img src="{{ division.qr_png }}"
-                     alt="QR code to buy a {{ division.name }} season pass"
-                     class="mx-auto my-6 h-48 w-48 print:h-[26rem] print:w-[26rem]">
-
-                <p class="text-xs text-gray-500 dark:text-gray-400 print:text-black print:text-lg">
-                    <span class="font-mono break-all">{{ division.buy_url }}</span>
-                </p>
-                <p class="mt-3 text-xs text-gray-400 print:hidden">
-                    Sends to: <span class="font-mono break-all">{{ division.product_url }}</span>
-                </p>
-            {% else %}
-                <div class="my-6 rounded-xl border border-red-300 bg-red-50 p-5 text-left dark:border-red-800 dark:bg-red-900/20">
-                    <p class="text-sm font-semibold text-red-800 dark:text-red-300">
-                        <i class="ti ti-alert-triangle"></i> No product URL &mdash; QR not generated
-                    </p>
-                    <p class="mt-2 text-xs text-red-700 dark:text-red-400">
-                        Printing this would send buyers to a dead link.
-                    </p>
-                </div>
-            {% endif %}
-        </div>
-        {% endfor %}
-    </div>
-
-</div>
+    }
+});
+</script>
 {% endblock %}

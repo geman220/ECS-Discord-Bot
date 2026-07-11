@@ -11,9 +11,12 @@ Admin routes for managing Pub League WooCommerce orders, including:
 
 import io
 import logging
+import re
 from datetime import datetime
 
-from flask import Blueprint, render_template, request, jsonify, url_for, send_file, abort
+from flask import (
+    Blueprint, render_template, request, jsonify, url_for, send_file, abort, redirect,
+)
 from flask_login import login_required, current_user
 from sqlalchemy import desc, or_, and_, func, distinct
 from sqlalchemy.orm import joinedload
@@ -838,6 +841,16 @@ def _buy_url(division: str = None) -> str:
     return url_for('pub_league.buy', **kwargs)
 
 
+def _qr_slug(division: str = None) -> str:
+    """Filename stem for a downloaded code, e.g. ecs-pub-league-2026-fall-premier."""
+    from app.pub_league.services import ProductUrlService
+
+    season = (ProductUrlService.get_current_season_name() or '').strip().lower()
+    parts = ['ecs-pub-league'] + season.split() + ([division] if division else [])
+    stem = '-'.join(p for p in parts if p)
+    return re.sub(r'[^a-z0-9-]', '', stem) or 'ecs-pub-league-qr'
+
+
 @pub_league_orders_admin_bp.route('/pub-league-orders/qr.png')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -848,68 +861,133 @@ def buy_qr_png():
     No ?division= -> the ONE code for the party: it lands on the division picker.
     ?division=classic|premier -> a code that skips straight to that division,
     for when you want a separate sign at each table.
+
+    ?style=plain -> stock black squares instead of the branded crest version.
+    The branded one is measured to scan just as reliably (see app/pub_league/
+    qr_image.py), but plain stays available for a bad printer or a fussy scanner.
+    ?download=1 -> save it with a sensible filename instead of rendering inline,
+    so it can be dropped straight into Discord or handed to a print shop.
     """
-    import qrcode
+    from app.pub_league.qr_image import render_qr_png
 
     division = (request.args.get('division') or '').lower() or None
     if division and division not in ('classic', 'premier'):
         abort(404)
 
-    qr = qrcode.QRCode(
-        version=None,
-        error_correction=qrcode.constants.ERROR_CORRECT_M,
-        box_size=10,
-        border=4,
-    )
-    qr.add_data(_buy_url(division))
-    qr.make(fit=True)
-    img = qr.make_image(fill_color='black', back_color='white')
+    style = 'plain' if request.args.get('style') == 'plain' else 'brand'
 
-    buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    buf.seek(0)
-    return send_file(buf, mimetype='image/png')
+    png = render_qr_png(_buy_url(division), style)
+
+    response = send_file(
+        io.BytesIO(png),
+        mimetype='image/png',
+        as_attachment=bool(request.args.get('download')),
+        download_name='%s-qr%s.png' % (_qr_slug(division), '-plain' if style == 'plain' else ''),
+    )
+    # The codes are stable for a whole season, but they DO re-resolve on rollover,
+    # so let a browser reuse one for an hour and no longer.
+    response.headers['Cache-Control'] = 'private, max-age=3600'
+    return response
+
+
+def _qr_codes(style: str = 'brand'):
+    """
+    The codes on offer, in the order they're shown: the picker first (the one
+    code for the party), then the per-division ones. Shared by the admin page,
+    the display screen and the print sheet so the three can't drift apart.
+    """
+    from app.pub_league.services import ProductUrlService
+
+    season_name = ProductUrlService.get_current_season_name()
+    options = ProductUrlService.get_buy_options(season_name)
+
+    def png(division=None):
+        return url_for(
+            'pub_league_orders_admin.buy_qr_png',
+            division=division, style=style if style == 'plain' else None,
+        )
+
+    codes = [{
+        'id': 'picker',
+        'name': 'Season Pass',
+        'division': None,
+        'tagline': "You'll pick Classic or Premier after scanning",
+        'buy_url': _buy_url(),
+        'qr_png': png(),
+        # The picker only dead-ends if BOTH divisions fail to resolve.
+        'product_url': next((o['product_url'] for o in options if o['product_url']), None),
+        'slug_override': None,
+    }]
+
+    codes += [{
+        'id': option['division'],
+        'name': '%s Division' % option['name'],
+        'division': option['division'],
+        'tagline': 'Scan to buy your %s season pass' % option['name'],
+        'buy_url': _buy_url(option['division']),
+        'qr_png': png(option['division']),
+        # Surfaced so an admin sees at a glance whether the product slug actually
+        # resolves. A missing one means the QR dead-ends, and the party is the
+        # worst possible place to discover that.
+        'product_url': option['product_url'],
+        # A hardcoded slug pins the link to ONE product and will NOT follow the
+        # next rollover — the whole point of the QR is that it does.
+        'slug_override': option['slug_override'],
+    } for option in options]
+
+    return season_name, codes
 
 
 @pub_league_orders_admin_bp.route('/pub-league-orders/qr')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def buy_qr_print():
-    """Printable QR sheet for the pre-season party."""
-    from app.pub_league.services import ProductUrlService
-
-    season_name = ProductUrlService.get_current_season_name()
-    options = ProductUrlService.get_buy_options(season_name)
-
-    # Per-division codes, for anyone who wants a sign at each table instead of
-    # (or as well as) the single picker code.
-    divisions = [
-        {
-            'name': option['name'],
-            'slug': option['division'],
-            'buy_url': _buy_url(option['division']),
-            # Surfaced so an admin sees at a glance whether the product slug
-            # actually resolves. A missing one means the QR dead-ends, and the
-            # party is the worst possible place to discover that.
-            'product_url': option['product_url'],
-            # A hardcoded slug pins the link to ONE product and will NOT follow
-            # the next rollover — the whole point of the QR is that it does.
-            'slug_override': option['slug_override'],
-            'qr_png': url_for('pub_league_orders_admin.buy_qr_png', division=option['division']),
-        }
-        for option in options
-    ]
-
+    """The admin page: preview the codes, show one on a screen, share or print."""
     from app.routes.app_links import _season_pass_deeplinks_enabled
+
+    style = 'plain' if request.args.get('style') == 'plain' else 'brand'
+    season_name, codes = _qr_codes(style)
 
     return render_template(
         'admin/pub_league_buy_qr.html',
         season_name=season_name,
-        divisions=divisions,
-        picker_qr_png=url_for('pub_league_orders_admin.buy_qr_png'),
-        picker_url=_buy_url(),
-        any_available=any(d['product_url'] for d in divisions),
+        codes=codes,
+        style=style,
+        any_available=any(c['product_url'] for c in codes),
         deeplinks_enabled=_season_pass_deeplinks_enabled(),
+    )
+
+
+@pub_league_orders_admin_bp.route('/pub-league-orders/qr/sheet')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def buy_qr_sheet():
+    """
+    The print sheet: one full-page poster per selected code, and NOTHING else.
+
+    A standalone document rather than a print stylesheet over the admin page,
+    because the admin page is wrapped in the panel shell (sidebar, topbar,
+    breadcrumbs) and "print" there meant printing the furniture too. This route
+    renders only posters, so what you see in the print preview is what comes out.
+
+    ?codes=picker,classic,premier picks which posters; ?style=plain drops the
+    branding for an unhappy printer.
+    """
+    style = 'plain' if request.args.get('style') == 'plain' else 'brand'
+    season_name, codes = _qr_codes(style)
+
+    wanted = [c for c in (request.args.get('codes') or 'picker').split(',') if c]
+    selected = [c for c in codes if c['id'] in wanted and c['product_url']]
+    if not selected:
+        # Nothing printable was asked for (or every product URL is dead) — send
+        # them back to the page, which explains why, rather than printing blanks.
+        return redirect(url_for('pub_league_orders_admin.buy_qr_print'))
+
+    return render_template(
+        'admin/pub_league_buy_qr_sheet.html',
+        season_name=season_name,
+        codes=selected,
+        style=style,
     )
 
 
