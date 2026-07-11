@@ -439,18 +439,18 @@ def validate_pool_join_data(data: Dict[str, Any]) -> Optional[str]:
         if not isinstance(data['preferred_positions'], list):
             return "Preferred positions must be a list"
 
-        valid_positions = [
-            'Goalkeeper', 'Defender', 'Midfielder', 'Forward',
-            'Center Back', 'Left Back', 'Right Back',
-            'Defensive Midfielder', 'Central Midfielder', 'Attacking Midfielder',
-            'Left Winger', 'Right Winger', 'Striker'
-        ]
+        # Validate against the single source of truth. Accept either the slug
+        # ('left_winger') or the display label ('Left Winger') — normalize both.
+        from app.constants.positions import (
+            normalize_position, POSITION_SLUGS, POSITION_LABELS,
+        )
+        valid_labels = ', '.join(POSITION_LABELS.values())
 
         for position in data['preferred_positions']:
             if not isinstance(position, str):
                 return "All positions must be strings"
-            if position not in valid_positions:
-                return f"Invalid position: {position}. Valid positions: {', '.join(valid_positions)}"
+            if normalize_position(position) not in POSITION_SLUGS:
+                return f"Invalid position: {position}. Valid positions: {valid_labels}"
 
     return None
 

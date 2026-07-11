@@ -28,25 +28,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Defining the options outside the class
-soccer_positions = [
-    ('goalkeeper', 'Goalkeeper'),
-    ('defender', 'Defender'),
-    ('center_back', 'Center Back'),
-    ('left_back', 'Left Back'),
-    ('right_back', 'Right Back'),
-    ('full_back', 'Full Back'),
-    ('wing_back', 'Wing Back'),
-    ('midfielder', 'Midfielder'),
-    ('defensive_midfielder', 'Defensive Midfielder'),
-    ('central_midfielder', 'Central Midfielder'),
-    ('attacking_midfielder', 'Attacking Midfielder'),
-    ('winger', 'Winger'),
-    ('left_winger', 'Left Winger'),
-    ('right_winger', 'Right Winger'),
-    ('forward', 'Forward'),
-    ('striker', 'Striker'),
-    ('no_preference', 'No Preference')
-]
+# Positions come from the single source of truth (app/constants/positions.py).
+# Keep the module-level name for the many `from app.forms import soccer_positions`
+# call sites.
+from app.constants.positions import SOCCER_POSITIONS as soccer_positions
 
 goal_frequency_choices = [
     ('0', 'Never'),

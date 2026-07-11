@@ -46,13 +46,13 @@ def _coerce_int(value):
 
 
 def _serialize_list_field(value):
-    """Web stores other_positions / positions_not_to_play as `{a,b,c}`. Mirror that."""
-    if value is None or value == '':
-        return None
-    if isinstance(value, list):
-        cleaned = [v.strip() for v in value if v and v.strip()]
-        return '{' + ','.join(cleaned) + '}' if cleaned else None
-    return value  # already a string in the right shape
+    """Store other_positions / positions_not_to_play as canonical `{slug,slug}`.
+
+    Uses the single source of truth so mobile writes the exact same normalized
+    slug format as the web (no labels, no comma-strings, no quoting drift).
+    """
+    from app.constants.positions import format_positions
+    return format_positions(value)
 
 
 @mobile_api_v2.route('/onboarding/status', methods=['GET'])
@@ -159,6 +159,9 @@ def onboarding_submit():
                 value = _coerce_int(value)
             elif field in ('other_positions', 'positions_not_to_play'):
                 value = _serialize_list_field(value)
+            elif field == 'favorite_position':
+                from app.constants.positions import normalize_position
+                value = normalize_position(value) or None
             setattr(player, field, value)
 
         # date_of_birth (separate parsing).

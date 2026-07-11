@@ -407,14 +407,16 @@ def player_profile(player_id):
         # On POST requests, we want to preserve the submitted form data
         if request.method == 'GET':
             form.email.data = user.email
-            form.other_positions.data = (
-                player.other_positions.strip('{}').split(',')
-                if player.other_positions else []
-            )
-            form.positions_not_to_play.data = (
-                player.positions_not_to_play.strip('{}').split(',')
-                if player.positions_not_to_play else []
-            )
+            # Normalize stored labels ('Left Winger') and strip Postgres array
+            # quoting so multi-word positions match the soccer_positions slugs.
+            form.other_positions.data = [
+                p.strip().strip('"').lower().replace(' ', '_')
+                for p in player.other_positions.strip('{}').split(',') if p.strip()
+            ] if player.other_positions else []
+            form.positions_not_to_play.data = [
+                p.strip().strip('"').lower().replace(' ', '_')
+                for p in player.positions_not_to_play.strip('{}').split(',') if p.strip()
+            ] if player.positions_not_to_play else []
 
             if is_classic_league_player and hasattr(form, 'team_swap'):
                 form.team_swap.data = player.team_swap
@@ -641,7 +643,7 @@ def mobile_profile_update(player_id):
         def normalize_position(pos):
             if not pos:
                 return pos
-            return pos.strip().lower().replace(' ', '_')
+            return pos.strip().strip('"').lower().replace(' ', '_')
 
         # Normalize favorite_position
         if player.favorite_position:
@@ -738,7 +740,7 @@ def desktop_profile_update(player_id):
         def normalize_position(pos):
             if not pos:
                 return pos
-            return pos.strip().lower().replace(' ', '_')
+            return pos.strip().strip('"').lower().replace(' ', '_')
 
         # Normalize favorite_position
         if player.favorite_position:
@@ -879,7 +881,7 @@ def profile_wizard():
         def normalize_position(pos):
             if not pos:
                 return pos
-            return pos.strip().lower().replace(' ', '_')
+            return pos.strip().strip('"').lower().replace(' ', '_')
 
         # Normalize favorite_position
         if player.favorite_position:
@@ -1024,7 +1026,7 @@ def wizard_profile(player_id):
     def normalize_position(pos):
         if not pos:
             return pos
-        return pos.strip().lower().replace(' ', '_')
+        return pos.strip().strip('"').lower().replace(' ', '_')
 
     # Normalize favorite_position to match form choice values
     if player.favorite_position:

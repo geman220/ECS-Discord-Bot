@@ -33,6 +33,27 @@ from app.app_api_helpers import (
 logger = logging.getLogger(__name__)
 
 
+@mobile_api_v2.route('/positions', methods=['GET'])
+def get_positions():
+    """
+    Canonical soccer-position list (single source of truth).
+
+    The Flutter app should render its position pickers from this endpoint (or
+    keep its local list in sync with it) instead of hardcoding one, so web,
+    mobile, and API all agree on slugs + labels. Public (no auth) — it is
+    static reference data.
+
+    Returns:
+        {"positions": [{"value": "left_winger", "label": "Left Winger"}, ...]}
+    """
+    from app.constants.positions import SOCCER_POSITIONS
+    return jsonify({
+        "positions": [
+            {"value": slug, "label": label} for slug, label in SOCCER_POSITIONS
+        ]
+    }), 200
+
+
 @mobile_api_v2.route('/players', methods=['GET'])
 @jwt_required()
 def get_players():
@@ -271,9 +292,17 @@ def update_player_profile():
         ]
 
         try:
+            from app.constants.positions import normalize_position, format_positions
             for field in allowed_fields:
-                if field in data:
-                    setattr(player, field, data[field])
+                if field not in data:
+                    continue
+                value = data[field]
+                # Positions -> canonical slugs / {slug,slug} (single source of truth).
+                if field == 'favorite_position':
+                    value = normalize_position(value) or None
+                elif field in ('other_positions', 'positions_not_to_play'):
+                    value = format_positions(value)
+                setattr(player, field, value)
             return jsonify({
                 "msg": "Profile updated successfully",
                 "player": player.to_dict()

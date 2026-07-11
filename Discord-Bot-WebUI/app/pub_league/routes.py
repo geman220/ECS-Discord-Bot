@@ -47,23 +47,10 @@ _ALLOWED_PRONOUNS = {value for value, _ in pronoun_choices}
 _ALLOWED_REFEREE = {value for value, _ in willing_to_referee_choices}
 
 
-def _parse_pg_array(value):
-    """Parse a Postgres-style '{a,b}' text column into a clean list."""
-    if not value:
-        return []
-    return [v for v in value.strip('{}').split(',') if v]
-
-
-def _normalize_position(pos):
-    """Normalize a stored position to a soccer_positions slug.
-
-    Mirrors the player-profile normalizer (app/players.py). Legacy rows store
-    human labels like 'Left Winger' / 'Striker' / 'Center Back'; the chips use
-    slug values ('striker', 'center_back'). Without this, nothing pre-selects.
-    """
-    if not pos:
-        return pos
-    return pos.strip().lower().replace(' ', '_')
+# Position parsing/normalization lives in the single source of truth.
+from app.constants.positions import (
+    normalize_position, parse_positions, format_positions,
+)
 
 
 def _get_jersey_size_choices(session):
@@ -205,9 +192,9 @@ def link_order():
         # Prefer the saved profile size; fall back to the size on the order.
         'jersey_size': (player.jersey_size if player else '') or order_jersey_size,
         'jersey_number': player.jersey_number if player else '',
-        'favorite_position': _normalize_position(player.favorite_position) if player else '',
-        'other_positions': [_normalize_position(p) for p in _parse_pg_array(player.other_positions)] if player else [],
-        'positions_not_to_play': [_normalize_position(p) for p in _parse_pg_array(player.positions_not_to_play)] if player else [],
+        'favorite_position': normalize_position(player.favorite_position) if player else '',
+        'other_positions': parse_positions(player.other_positions) if player else [],
+        'positions_not_to_play': parse_positions(player.positions_not_to_play) if player else [],
         'frequency_play_goal': player.frequency_play_goal if player else '',
         'expected_weeks_available': player.expected_weeks_available if player else '',
         'willing_to_referee': player.willing_to_referee if player else '',
@@ -726,19 +713,19 @@ def update_profile():
                 pass  # ignore non-numeric jersey numbers
 
         # --- Playing ---
-        favorite_position = (data.get('favorite_position') or '').strip()
+        # Positions are normalized to canonical slugs and stored as {slug,slug}
+        # via the single source of truth, so every client writes the same shape.
+        favorite_position = normalize_position(data.get('favorite_position'))
         if favorite_position in _ALLOWED_POSITIONS:
             player.favorite_position = favorite_position
 
         other_positions = data.get('other_positions')
         if isinstance(other_positions, list):
-            cleaned = [p for p in other_positions if p in _ALLOWED_POSITIONS]
-            player.other_positions = ('{' + ','.join(cleaned) + '}') if cleaned else None
+            player.other_positions = format_positions(other_positions)
 
         positions_not_to_play = data.get('positions_not_to_play')
         if isinstance(positions_not_to_play, list):
-            cleaned = [p for p in positions_not_to_play if p in _ALLOWED_POSITIONS]
-            player.positions_not_to_play = ('{' + ','.join(cleaned) + '}') if cleaned else None
+            player.positions_not_to_play = format_positions(positions_not_to_play)
 
         frequency_play_goal = (data.get('frequency_play_goal') or '').strip()
         if frequency_play_goal in _ALLOWED_GOAL_FREQUENCY:

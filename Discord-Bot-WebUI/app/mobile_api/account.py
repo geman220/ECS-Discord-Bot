@@ -291,14 +291,13 @@ def update_profile():
                         }), 400
             if 'ispy_opt_out' in data:
                 player.ispy_opt_out = bool(data['ispy_opt_out'])
+            # Positions -> canonical slugs / {slug,slug} via the single source of truth.
             if 'favorite_position' in data:
-                player.favorite_position = data['favorite_position']
+                from app.constants.positions import normalize_position
+                player.favorite_position = normalize_position(data['favorite_position']) or None
             if 'other_positions' in data:
-                other = data['other_positions']
-                if isinstance(other, list):
-                    player.other_positions = ', '.join(other)
-                else:
-                    player.other_positions = other
+                from app.constants.positions import format_positions
+                player.other_positions = format_positions(data['other_positions'])
             if 'expected_weeks_available' in data:
                 try:
                     player.expected_weeks_available = int(data['expected_weeks_available'])
