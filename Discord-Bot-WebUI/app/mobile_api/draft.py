@@ -19,6 +19,7 @@ from sqlalchemy.sql import exists, and_, or_
 from sqlalchemy import func
 
 from app.mobile_api import mobile_api_v2
+from app.constants.positions import label_for
 from app.decorators import jwt_role_required
 from app.core.session_manager import managed_session
 from app.models import (
@@ -142,7 +143,7 @@ def get_draft_status(league_name: str):
 
             # Count positions
             for player in team_players:
-                pos = player.favorite_position or 'Unknown'
+                pos = label_for(player.favorite_position) or 'Unknown'
                 position_counts[pos] = position_counts.get(pos, 0) + 1
 
             teams_data.append({
@@ -359,7 +360,7 @@ def get_draft_teams(league_name: str):
             # Count positions on team
             position_counts = {}
             for player in team_players:
-                pos = player.favorite_position or 'Unknown'
+                pos = label_for(player.favorite_position) or 'Unknown'
                 position_counts[pos] = position_counts.get(pos, 0) + 1
 
             teams_data.append({
@@ -538,7 +539,7 @@ def draft_player(league_name: str):
             "player": {
                 "id": player.id,
                 "name": player.name,
-                "position": player.favorite_position
+                "position": label_for(player.favorite_position)
             },
             "team": {
                 "id": team.id,
@@ -698,7 +699,7 @@ def get_team_position_analysis(league_name: str, team_id: int):
                 player_recommendations.append({
                     "player_id": player.id,
                     "player_name": player.name,
-                    "position": player.favorite_position,
+                    "position": label_for(player.favorite_position),
                     "fit_score": fit_score,
                     "fit_category": PositionAnalyzer.get_fit_category(fit_score)
                 })

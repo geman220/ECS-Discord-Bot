@@ -22,6 +22,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.mobile_api import mobile_api_v2
+from app.constants.positions import label_for
 from app.core.session_manager import managed_session
 from app.models import Team, League, Season, Match, Player, player_teams
 from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability
@@ -185,7 +186,7 @@ def get_team_players(team_id: int):
                 "is_coach": bool(is_coach),
                 "is_ref": player.is_ref,
                 "is_current_player": player.is_current_player,
-                "favorite_position": player.favorite_position,
+                "favorite_position": label_for(player.favorite_position),
                 "profile_picture_url": full_profile_picture_url,
                 "discord_id": player.discord_id,
                 "is_primary_team": (player.primary_team_id == team_id)

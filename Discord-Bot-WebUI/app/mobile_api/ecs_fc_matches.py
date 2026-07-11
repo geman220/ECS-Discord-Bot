@@ -21,6 +21,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.mobile_api import mobile_api_v2
+from app.constants.positions import label_for
 from app.decorators import jwt_role_required
 from app.core.session_manager import managed_session
 from app.models import User, Player, Team, League
@@ -415,7 +416,7 @@ def get_ecs_fc_match_availability(match_id: int):
                     "id": team_player.id,
                     "name": team_player.name,
                     "jersey_number": team_player.jersey_number,
-                    "position": team_player.favorite_position,
+                    "position": label_for(team_player.favorite_position),
                     "response": av.response if av else None,
                     "responded_at": av.responded_at.isoformat() if av and av.responded_at else None,
                     "profile_picture_url": profile_picture_url
@@ -454,7 +455,7 @@ def get_ecs_fc_match_availability(match_id: int):
                         "id": rsvp_player.id,
                         "name": rsvp_player.name,
                         "jersey_number": rsvp_player.jersey_number,
-                        "position": rsvp_player.favorite_position,
+                        "position": label_for(rsvp_player.favorite_position),
                         "response": av.response,
                         "responded_at": av.responded_at.isoformat() if av.responded_at else None,
                         "profile_picture_url": profile_picture_url,
@@ -805,7 +806,7 @@ def get_ecs_fc_match_reporting_info(match_id: int):
                         "id": p.id,
                         "name": p.name,
                         "jersey_number": p.jersey_number,
-                        "position": p.favorite_position,
+                        "position": label_for(p.favorite_position),
                     })
 
         # Get existing events
@@ -1312,7 +1313,7 @@ def get_coach_ecs_fc_match_rsvp_details(team_id: int, match_id: int):
                 "id": team_player.id,
                 "name": team_player.name,
                 "jersey_number": team_player.jersey_number,
-                "position": team_player.favorite_position,
+                "position": label_for(team_player.favorite_position),
                 "response": av.response if av else None,
                 "responded_at": av.responded_at.isoformat() if av and av.responded_at else None,
             })
@@ -1339,7 +1340,7 @@ def get_coach_ecs_fc_match_rsvp_details(team_id: int, match_id: int):
                     "id": rsvp_player.id,
                     "name": rsvp_player.name,
                     "jersey_number": rsvp_player.jersey_number,
-                    "position": rsvp_player.favorite_position,
+                    "position": label_for(rsvp_player.favorite_position),
                     "response": av.response,
                     "responded_at": av.responded_at.isoformat() if av.responded_at else None,
                     "is_guest": True
@@ -2726,7 +2727,7 @@ def get_ecs_fc_substitute_pool():
                 "player": {
                     "id": player.id,
                     "name": player.name,
-                    "favorite_position": player.favorite_position,
+                    "favorite_position": label_for(player.favorite_position),
                     "profile_picture_url": _profile_pic(player),
                 },
                 "league_type": member.league_type,

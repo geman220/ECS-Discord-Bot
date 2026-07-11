@@ -20,6 +20,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import and_
 
 from app.mobile_api import mobile_api_v2
+from app.constants.positions import label_for
 from app.core.session_manager import managed_session
 from app.models import User, Player, Team, Match, Availability, player_teams
 from app.engagement_service import record_coach_engagement
@@ -337,7 +338,7 @@ def get_match_rsvp_details(team_id: int, match_id: int):
                 "id": player.id,
                 "name": player.name,
                 "jersey_number": player.jersey_number,
-                "position": player.favorite_position,
+                "position": label_for(player.favorite_position),
                 "response": av.response if av else None,
                 "responded_at": av.updated_at.isoformat() if av and hasattr(av, 'updated_at') and av.updated_at else None,
                 "profile_picture_url": profile_picture_url

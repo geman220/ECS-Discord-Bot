@@ -89,6 +89,33 @@ def parse_positions(value):
     return out
 
 
+def label_for(value):
+    """Return the display label for a single stored position.
+
+    For API responses that must present human labels ('Left Winger') even though
+    storage is canonical slugs ('left_winger'). Falls back to the raw value if
+    it's not a known position, so nothing is ever blanked.
+    """
+    if not value:
+        return value
+    return POSITION_LABELS.get(normalize_position(value), value)
+
+
+def to_label_array(value):
+    """Convert a stored positions column to a '{Label,Label}' display string.
+
+    For mobile read endpoints so the app keeps receiving human labels. Returns
+    the original value untouched if nothing parses (avoids data loss), or None
+    for empty input.
+    """
+    if not value:
+        return None
+    slugs = parse_positions(value)
+    if not slugs:
+        return value
+    return '{' + ','.join(POSITION_LABELS[s] for s in slugs) + '}'
+
+
 def format_positions(values):
     """Render positions to the canonical `{slug,slug}` Postgres-array storage form.
 

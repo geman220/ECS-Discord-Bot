@@ -19,6 +19,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.mobile_api import mobile_api_v2
+from app.constants.positions import label_for, to_label_array
 from app.core.session_manager import managed_session
 from app.models import Player, Season, User, Team
 from app.models.players import PlayerTeamSeason, PlayerTeamHistory
@@ -161,7 +162,7 @@ def get_players():
                 "id": player.id,
                 "name": player.name,
                 "jersey_number": player.jersey_number,
-                "favorite_position": player.favorite_position,
+                "favorite_position": label_for(player.favorite_position),
                 "is_current_player": player.is_current_player,
                 "is_coach": player.is_coach,
                 "profile_picture_url": (
@@ -223,9 +224,9 @@ def get_player(player_id: int):
 
         if include_preferences:
             response_data.update({
-                "favorite_position": player.favorite_position,
-                "other_positions": player.other_positions,
-                "positions_not_to_play": player.positions_not_to_play,
+                "favorite_position": label_for(player.favorite_position),
+                "other_positions": to_label_array(player.other_positions),
+                "positions_not_to_play": to_label_array(player.positions_not_to_play),
                 "frequency_play_goal": player.frequency_play_goal,
             })
 

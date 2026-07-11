@@ -18,6 +18,7 @@ from flask_jwt_extended import jwt_required, create_access_token, create_refresh
 from sqlalchemy.orm import joinedload
 
 from app.mobile_api import mobile_api_v2
+from app.constants.positions import label_for, to_label_array
 from app.core.limiter import limiter, get_client_ip
 from app.core.session_manager import managed_session
 from app.models import User, Player, Season, player_teams, QuickProfile, QuickProfileStatus
@@ -611,9 +612,9 @@ def get_user_profile():
                 "pronouns": player.pronouns,
                 "date_of_birth": player.date_of_birth.isoformat() if player.date_of_birth else None,
                 "ispy_opt_out": player.ispy_opt_out,
-                "favorite_position": player.favorite_position,
-                "other_positions": player.other_positions,
-                "positions_not_to_play": player.positions_not_to_play,
+                "favorite_position": label_for(player.favorite_position),
+                "other_positions": to_label_array(player.other_positions),
+                "positions_not_to_play": to_label_array(player.positions_not_to_play),
                 "expected_weeks_available": player.expected_weeks_available,
                 "unavailable_dates": player.unavailable_dates,
                 "willing_to_referee": player.willing_to_referee,

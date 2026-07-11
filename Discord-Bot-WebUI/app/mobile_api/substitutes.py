@@ -23,6 +23,7 @@ from sqlalchemy.exc import IntegrityError
 
 from web_config import Config
 from app.mobile_api import mobile_api_v2
+from app.constants.positions import label_for
 from app.decorators import jwt_role_required
 from app.utils.mobile_auth import api_key_required
 from app.core.session_manager import managed_session
@@ -595,7 +596,7 @@ def get_request_responses(request_id: int):
                 "player": {
                     "id": resp.player.id,
                     "name": resp.player.name,
-                    "position": resp.player.favorite_position
+                    "position": label_for(resp.player.favorite_position)
                 } if resp.player else None,
                 "is_available": resp.is_available,
                 "response_text": resp.response_text,
@@ -1031,8 +1032,8 @@ def get_substitute_pool():
                 "player": {
                     "id": member.player.id,
                     "name": member.player.name,
-                    "favorite_position": member.player.favorite_position,
-                    "position": member.player.favorite_position,  # legacy alias
+                    "favorite_position": label_for(member.player.favorite_position),
+                    "position": label_for(member.player.favorite_position),  # legacy alias
                     "profile_picture_url": _resolve_profile_picture_url(member.player),
                 } if member.player else None,
                 "league_type": member.league_type,

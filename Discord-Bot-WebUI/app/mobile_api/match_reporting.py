@@ -17,6 +17,7 @@ from sqlalchemy import and_
 
 from datetime import datetime
 from app.mobile_api import mobile_api_v2
+from app.constants.positions import label_for
 from app.core.session_manager import managed_session
 from app.models import User, Player, Team, Match, player_teams
 from app.models.stats import PlayerEvent, PlayerEventType
@@ -328,7 +329,7 @@ def get_match_reporting_info(match_id: int):
                     "id": p.id,
                     "name": p.name,
                     "jersey_number": p.jersey_number,
-                    "position": p.favorite_position,
+                    "position": label_for(p.favorite_position),
                     "availability": availability_by_player.get(p.id, 'no_response'),
                     "is_sub": False
                 })
@@ -344,7 +345,7 @@ def get_match_reporting_info(match_id: int):
                     "id": p.id,
                     "name": p.name,
                     "jersey_number": p.jersey_number,
-                    "position": p.favorite_position,
+                    "position": label_for(p.favorite_position),
                     "availability": availability_by_player.get(p.id, 'no_response'),
                     "is_sub": False
                 })
@@ -366,7 +367,7 @@ def get_match_reporting_info(match_id: int):
                     "id": ts.player.id,
                     "name": ts.player.name,
                     "jersey_number": ts.player.jersey_number,
-                    "position": ts.player.favorite_position,
+                    "position": label_for(ts.player.favorite_position),
                     "availability": "yes",
                     "is_sub": True
                 })
@@ -375,7 +376,7 @@ def get_match_reporting_info(match_id: int):
                     "id": ts.player.id,
                     "name": ts.player.name,
                     "jersey_number": ts.player.jersey_number,
-                    "position": ts.player.favorite_position,
+                    "position": label_for(ts.player.favorite_position),
                     "availability": "yes",
                     "is_sub": True
                 })

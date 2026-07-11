@@ -18,6 +18,9 @@ from flask import request, g
 from sqlalchemy import JSON, DateTime, Boolean, or_
 from sqlalchemy.orm import relationship
 
+# Single source of truth for position display (slug -> label) on API output.
+from app.constants.positions import label_for as _pos_label, to_label_array as _pos_label_array
+
 from app.core import db
 
 logger = logging.getLogger(__name__)
@@ -320,7 +323,10 @@ class Player(db.Model):
             'is_coach': self.is_coach,
             'is_ref': self.is_ref,
             'jersey_number': self.jersey_number,
-            'favorite_position': self.favorite_position,
+            # Positions are stored as canonical slugs; present display labels so
+            # API clients (incl. the Flutter app) keep receiving human-readable
+            # values. See app/constants/positions.py.
+            'favorite_position': _pos_label(self.favorite_position),
             'profile_picture_url': f"{base_url}{self.profile_picture_url}" if self.profile_picture_url else default_image,
         }
         if not public:
@@ -336,8 +342,8 @@ class Player(db.Model):
                 'expected_weeks_available': self.expected_weeks_available,
                 'unavailable_dates': self.unavailable_dates,
                 'willing_to_referee': self.willing_to_referee,
-                'other_positions': self.other_positions,
-                'positions_not_to_play': self.positions_not_to_play,
+                'other_positions': _pos_label_array(self.other_positions),
+                'positions_not_to_play': _pos_label_array(self.positions_not_to_play),
                 'frequency_play_goal': self.frequency_play_goal,
                 'additional_info': self.additional_info,
                 'league_id': self.league_id,

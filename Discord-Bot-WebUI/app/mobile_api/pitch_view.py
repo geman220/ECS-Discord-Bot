@@ -22,6 +22,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload
 
 from app.mobile_api import mobile_api_v2
+from app.constants.positions import label_for, to_label_array
 from app.core.session_manager import managed_session
 from app.models import (
     Player, Team, Match, Availability, User, MatchLineup,
@@ -182,8 +183,8 @@ def build_roster_response(players, match=None, session_db=None):
             'player_id': player.id,
             'name': player.name,
             'profile_picture_url': getattr(player, 'profile_picture_url', None) or '/static/img/default_player.png',
-            'favorite_position': player.favorite_position,
-            'other_positions': player.other_positions,
+            'favorite_position': label_for(player.favorite_position),
+            'other_positions': to_label_array(player.other_positions),
             'jersey_number': player.jersey_number,
             'rsvp_status': None,
             'rsvp_color': None,
@@ -722,8 +723,8 @@ def build_ecs_fc_roster_response(players, ecs_match, session_db):
             'player_id': player.id,
             'name': player.name,
             'profile_picture_url': player.profile_picture_url or '/static/img/default_player.png',
-            'favorite_position': player.favorite_position,
-            'other_positions': player.other_positions,
+            'favorite_position': label_for(player.favorite_position),
+            'other_positions': to_label_array(player.other_positions),
             'jersey_number': player.jersey_number,
             'rsvp_status': rsvp_status,
             'rsvp_color': rsvp_color,
