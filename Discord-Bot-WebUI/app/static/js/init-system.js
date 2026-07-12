@@ -130,6 +130,22 @@ export const InitSystem = {
         this.queue.sort((a, b) => b.priority - a.priority);
 
         this._log('register', `Registered "${name}" (priority: ${component.priority}${component.dependencies.length > 0 ? ', deps: ' + component.dependencies.join(', ') : ''})`);
+
+        // LATE REGISTRATION.
+        //
+        // init() drains the queue exactly once and then early-returns forever. Before
+        // this, anything registering AFTER init() had run was pushed onto a queue that
+        // would never be drained again — it simply never initialized, silently.
+        //
+        // That is not hypothetical: modules arriving via a dynamic import() (the admin
+        // chunk) always land after init(), because a network fetch cannot beat the
+        // synchronous end of main-entry.js. Initialize them on the spot instead.
+        if (this.initialized) {
+            this._log('register', `Late registration of "${name}" — initializing immediately`);
+            Promise.resolve(this._initComponent(component)).catch(err => {
+                this._error('register', `Late init of "${name}" failed: ${err && err.message}`);
+            });
+        }
     },
 
     /**

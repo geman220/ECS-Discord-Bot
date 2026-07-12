@@ -294,7 +294,6 @@ def player_profile(player_id):
 
     try:
         events = list(player.events)
-        matches = list({event.match for event in events})
         user = player.user
 
         # Use the current season from the database instead of calculating from date
@@ -304,13 +303,6 @@ def player_profile(player_id):
             session.commit()
             return redirect(url_for('main.index'))
 
-        # Get matches where player already has stats (for display)
-        matches = session.query(Match).join(PlayerEvent).options(
-            joinedload(Match.home_team),
-            joinedload(Match.away_team),
-            joinedload(Match.events),
-            joinedload(Match.schedule)
-        ).filter(PlayerEvent.player_id == player_id).all()
 
         # Get ALL matches the player participated in (for Add Stat dropdown)
         # This includes matches where player had availability (responded yes/maybe)
@@ -521,7 +513,6 @@ def player_profile(player_id):
             title='Player Profile',
             player=player,
             user=user,
-            matches=matches,
             events=events,
             season=season,
             is_admin=is_admin,

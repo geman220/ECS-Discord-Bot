@@ -821,11 +821,17 @@ def build_matches_query(team_id: Optional[int], player: Optional[Player],
     # Use eager loading to prevent N+1 queries.
     # Match.ref is loaded so Match.to_dict()['ref'] doesn't fan out one query
     # per match in list endpoints.
+    #
+    # home_verifier / away_verifier are loaded for the same reason: Match.to_dict()
+    # reads `self.home_verifier.player.name`, and both are plain lazy relationships —
+    # so every VERIFIED match cost 2 User + 2 Player queries during serialisation.
     from sqlalchemy.orm import joinedload
     query = session.query(Match).options(
         joinedload(Match.home_team),
         joinedload(Match.away_team),
         joinedload(Match.ref),
+        joinedload(Match.home_verifier).joinedload(User.player),
+        joinedload(Match.away_verifier).joinedload(User.player),
     )
 
     if not include_practice:
@@ -910,6 +916,17 @@ def process_matches_data(matches: List[Match], player: Optional[Player],
             Availability.player_id == player.id
         ).all()
         availability_dict = {av.match_id: av for av in availabilities}
+
+    # Same idea for team stats. to_dict(include_teams=True) below calls Team.to_dict()
+    # for BOTH teams of every match, and that reads top_scorer / top_assist /
+    # recent_form / avg_goals_per_match — all of which go through get_team_stats_cached.
+    # With no preload, g._team_stats_cache is empty and every team falls through to its
+    # own bulk_load_team_stats([id]). One bulk call covers the whole result set.
+    if matches:
+        from app.team_performance_helpers import preload_team_stats_for_request
+        team_ids = {t for m in matches for t in (m.home_team_id, m.away_team_id) if t}
+        if team_ids:
+            preload_team_stats_for_request(list(team_ids), session=session)
 
     matches_data = []
     for match in matches:

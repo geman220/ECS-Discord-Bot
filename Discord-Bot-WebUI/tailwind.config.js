@@ -14,6 +14,11 @@ export default {
     // Use absolute paths to ensure content is found regardless of where Tailwind runs
     resolve(__dirname, 'app/templates/**/*.html'),
     resolve(__dirname, 'app/static/js/**/*.js'),
+    // custom_js was NOT scanned, but those modules build DOM with Tailwind classes
+    // (modal-builder.js constructs the whole report-match modal client-side). Any
+    // class used ONLY there was silently purged out of the stylesheet — no error,
+    // just an unstyled element.
+    resolve(__dirname, 'app/static/custom_js/**/*.js'),
     resolve(__dirname, 'node_modules/flowbite/**/*.js'),
   ],
   theme: {

@@ -52,6 +52,7 @@ def bulk_load_team_stats(team_ids, session=None, season_id=None):
         team_stats[team_id] = {
             'top_scorer': 'No data',
             'top_assist': 'No data',
+            'recent_form': '',
             'total_goals': 0,
             'total_assists': 0,
             'matches_played': 1,  # Avoid division by zero
@@ -160,6 +161,56 @@ def bulk_load_team_stats(team_ids, session=None, season_id=None):
     for team_id, matches in away_matches:
         team_match_counts[team_id] = team_match_counts.get(team_id, 0) + matches
     
+    # Recent form (last 5 results per team), in ONE query for all teams.
+    #
+    # This used to live in the Team.recent_form @property, which ran its own
+    # Match.query PER TEAM — that alone was the difference between 32 queries and 8
+    # on /api/v1/teams. Worse, Model.query binds to db.session, a DIFFERENT session
+    # from the request's, so it also checked out a second pooled connection.
+    # NOTE: deliberately NOT LIMITed. A global `ORDER BY date DESC LIMIT n` does not
+    # give each team its own 5 most recent — a team that hasn't played lately (a
+    # previous-season or defunct team, and the admin dashboard loads EVERY team ever)
+    # would have all its matches fall outside the window and silently return an empty
+    # form string. Doing this properly needs a windowed
+    # `ROW_NUMBER() OVER (PARTITION BY team)`; until then, correctness beats the scan.
+    # Only 6 columns are projected, and this replaced one query PER TEAM.
+    form_rows = session.query(
+        Match.id, Match.home_team_id, Match.away_team_id,
+        Match.home_team_score, Match.away_team_score, Match.date,
+    ).filter(
+        (Match.home_team_id.in_(team_ids)) | (Match.away_team_id.in_(team_ids))
+    ).order_by(Match.date.desc()).all()
+
+    team_form = {tid: [] for tid in team_ids}
+    for _mid, home_id, away_id, home_score, away_score, _date in form_rows:
+        # Skip SELF-MATCHES (home_team_id == away_team_id). Those rows are special
+        # weeks — BYE / FUN / TST / unassigned playoffs — not results. Standings
+        # already exclude them; recent form should too.
+        #
+        # BEHAVIOUR CHANGE, deliberate: the old per-team property did NOT skip them,
+        # and its condition `(home==tid and hs>as) or (away==tid and as>hs)` awarded
+        # the team a "W" for beating ITSELF whenever away_score > home_score. A team
+        # cannot play itself; that letter was garbage. Verified by differential test:
+        # on non-self matches the new logic is byte-identical to the old.
+        if home_id == away_id:
+            continue
+        for tid in (home_id, away_id):
+            if tid not in team_form or len(team_form[tid]) >= 5:
+                continue
+            if home_score is None or away_score is None:
+                team_form[tid].append('<span class="text-muted">N/A</span>')
+                continue
+            own, opp = (home_score, away_score) if tid == home_id else (away_score, home_score)
+            if own > opp:
+                team_form[tid].append('<span class="text-success">W</span>')
+            elif own == opp:
+                team_form[tid].append('<span class="text-warning">D</span>')
+            else:
+                team_form[tid].append('<span class="text-danger">L</span>')
+
+    for tid in team_ids:
+        team_stats[tid]['recent_form'] = ''.join(team_form.get(tid, []))
+
     # Update team stats with calculated values
     for team_id in team_ids:
         if team_id in team_goal_totals:
@@ -205,6 +256,7 @@ def get_team_stats_cached(team_id, session=None, season_id=None):
     return stats.get(team_id, {
         'top_scorer': 'No data',
         'top_assist': 'No data',
+        'recent_form': '',   # keep in sync with bulk_load_team_stats' initial dict
         'total_goals': 0,
         'total_assists': 0,
         'matches_played': 1,

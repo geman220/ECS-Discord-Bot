@@ -192,14 +192,38 @@ class SecurityMiddleware:
 
         Returns list of (label, weight) tuples for each matched pattern, or empty list.
         """
-        def _is_authenticated_request():
-            """True if a logged-in user is making this request. Fails CLOSED: if we
-            can't tell, treat it as anonymous and scan the body."""
+        # Roles that legitimately author rich text (email broadcasts, announcements,
+        # surveys, help topics) and therefore post HTML containing `<script`,
+        # `onerror=`, `javascript:` — the exact strings the xss_attempt rule matches.
+        _CONTENT_AUTHOR_ROLES = {
+            'Global Admin', 'Pub League Admin',
+            'Pub League Coach', 'ECS FC Coach',
+        }
+
+        def _is_content_author():
+            """True only for a logged-in user holding a content-authoring role.
+
+            Deliberately NOT `is_authenticated`: registration is self-serve, so keying
+            on "logged in" would let anyone who signs up post SQLi/XSS payloads past
+            the scanner. Only the roles that actually compose HTML are exempt.
+
+            Fails SAFE — if we cannot determine the roles, we return False and the body
+            IS scanned.
+            """
             try:
+                roles = getattr(g, '_cached_user_roles', None)
+                if roles:
+                    return any(str(r) in _CONTENT_AUTHOR_ROLES for r in roles)
+
                 from flask_login import current_user
-                return bool(current_user and getattr(current_user, 'is_authenticated', False))
+                if current_user and getattr(current_user, 'is_authenticated', False):
+                    return any(
+                        getattr(r, 'name', str(r)) in _CONTENT_AUTHOR_ROLES
+                        for r in (getattr(current_user, 'roles', None) or [])
+                    )
             except Exception:
                 return False
+            return False
 
         matched = []
         seen_labels = set()
@@ -217,16 +241,17 @@ class SecurityMiddleware:
         for value in request.args.values():
             _check(str(value))
 
-        # Check POST data — but ONLY for anonymous requests.
+        # Check POST data — skipped ONLY for content-authoring roles.
         #
-        # This scanner exists to catch drive-by probes, which are unauthenticated.
-        # A logged-in admin composing an email broadcast or a survey in TinyMCE
-        # legitimately posts HTML containing `<script`, `onerror=`, `javascript:`.
-        # That scores 3 on 'xss_attempt' every save, TinyMCE autosaves, and at a
-        # cumulative 10 the middleware auto-bans the IP for an hour — locking the
-        # admin out of the site for writing an email. Path and query scanning still
-        # applies to everyone; only the body scan is skipped once you're logged in.
-        if request.method == 'POST' and not _is_authenticated_request():
+        # An admin composing an email broadcast or a survey in TinyMCE legitimately
+        # posts HTML containing `<script`, `onerror=`, `javascript:`. That scores 3 on
+        # 'xss_attempt' every save, TinyMCE autosaves, and at a cumulative 10 the
+        # middleware auto-bans the IP for an hour — locking the admin out of the site
+        # for writing an email. Path and query scanning still applies to EVERYONE, and
+        # every other user (including ordinary logged-in players) still has their body
+        # scanned. Note the WAF was never the real control here — parameterized queries
+        # and Jinja autoescaping are — so this is a narrow defence-in-depth trade.
+        if request.method == 'POST' and not _is_content_author():
             try:
                 if request.is_json:
                     _check(str(request.get_json()))

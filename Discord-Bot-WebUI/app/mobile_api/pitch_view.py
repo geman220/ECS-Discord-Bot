@@ -47,6 +47,46 @@ def get_rsvp_color(status):
     return colors.get(status, 'gray')
 
 
+def bulk_player_stats(players, session_db=None):
+    """Load career + attendance stats for a WHOLE roster in two queries.
+
+    The roster builders used to reach for these per player — the Pub League one via the
+    lazy `player.career_stats` / `player.attendance_stats` relationships, the ECS FC one
+    via explicit filter_by(player_id=...) calls. Either way that is 2 queries per
+    player, so ~36 on an 18-player roster, on four separate endpoints (draft pitch,
+    match lineup, roster, ECS FC lineup). These two queries cover the whole roster.
+
+    Returns (career_by_player_id -> list, attendance_by_player_id -> obj|None).
+    """
+    from app.models import PlayerCareerStats, PlayerAttendanceStats
+
+    ids = [p.id for p in players]
+    if not ids:
+        return {}, {}
+
+    session = session_db
+    if session is None:
+        from sqlalchemy.orm import object_session
+        session = object_session(players[0])
+    if session is None:
+        return {}, {}
+
+    career = {}
+    for cs in session.query(PlayerCareerStats).filter(
+        PlayerCareerStats.player_id.in_(ids)
+    ).all():
+        career.setdefault(cs.player_id, []).append(cs)
+
+    attendance = {
+        a.player_id: a
+        for a in session.query(PlayerAttendanceStats).filter(
+            PlayerAttendanceStats.player_id.in_(ids)
+        ).all()
+    }
+
+    return career, attendance
+
+
 def is_coach_for_team(user_id, team_id, session_db):
     """Check if user is a coach for the given team."""
     from sqlalchemy import and_
@@ -178,6 +218,10 @@ def build_roster_response(players, match=None, session_db=None):
         for avail in availabilities:
             rsvp_map[avail.player_id] = avail.response
 
+    # Same bulk treatment for stats — see bulk_player_stats(). Previously the two
+    # relationship reads below lazy-loaded once per player.
+    career_by_player, attendance_by_player = bulk_player_stats(players, session_db)
+
     for player in players:
         player_data = {
             'player_id': player.id,
@@ -201,14 +245,14 @@ def build_roster_response(players, match=None, session_db=None):
             player_data['rsvp_status'] = rsvp_status
             player_data['rsvp_color'] = get_rsvp_color(rsvp_status)
 
-        # Add stats if available
-        if hasattr(player, 'career_stats') and player.career_stats:
-            for stat in player.career_stats:
-                player_data['stats']['goals'] = stat.goals or 0
-                player_data['stats']['assists'] = stat.assists or 0
+        # Add stats if available (from the bulk load above — no per-player query)
+        for stat in career_by_player.get(player.id, ()):
+            player_data['stats']['goals'] = stat.goals or 0
+            player_data['stats']['assists'] = stat.assists or 0
 
-        if hasattr(player, 'attendance_stats') and player.attendance_stats:
-            player_data['stats']['attendance_rate'] = player.attendance_stats.attendance_rate
+        attendance = attendance_by_player.get(player.id)
+        if attendance:
+            player_data['stats']['attendance_rate'] = attendance.attendance_rate
 
         roster.append(player_data)
 
@@ -709,15 +753,19 @@ def build_ecs_fc_roster_response(players, ecs_match, session_db):
         ).all()
         rsvp_map = {a.player_id: a.response for a in availabilities}
 
+    # Bulk-load stats for the whole roster instead of two queries per player.
+    career_by_player, attendance_by_player = bulk_player_stats(players, session_db)
+
     for player in players:
         rsvp_status = rsvp_map.get(player.id, 'unavailable')
         rsvp_color = get_rsvp_color(rsvp_status)
 
-        # Get player stats
-        from app.models import PlayerCareerStats, PlayerAttendanceStats
-
-        career_stats = session_db.query(PlayerCareerStats).filter_by(player_id=player.id).first()
-        attendance_stats = session_db.query(PlayerAttendanceStats).filter_by(player_id=player.id).first()
+        # Player stats, from the bulk load above. `.first()` previously returned a
+        # single PlayerCareerStats row; take the first of the bulk-loaded list to keep
+        # identical semantics.
+        _career = career_by_player.get(player.id) or []
+        career_stats = _career[0] if _career else None
+        attendance_stats = attendance_by_player.get(player.id)
 
         roster.append({
             'player_id': player.id,

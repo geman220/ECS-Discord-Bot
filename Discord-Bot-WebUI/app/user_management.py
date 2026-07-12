@@ -169,12 +169,19 @@ def manage_users():
 
         # Pagination logic
         if is_ajax:
-            # For AJAX requests, show all results (no pagination)
+            # For AJAX requests, show all results (no pagination) up to a hard cap.
+            #
+            # `per_page = 1000` was declared here and then NEVER APPLIED — the query
+            # ran `.all()`, so with no filters set this loaded the ENTIRE users table,
+            # each row carrying four eager relations (roles, player.teams,
+            # player.league, player.other_leagues), and then built HTML for all of it.
+            # Applying the cap is what the code already intended; `total` below still
+            # reports the true count so the UI can say "showing N of M".
             page = 1
-            per_page = 1000  # Large number to show all results
+            per_page = 1000
             query = query.distinct()
             total = query.count()
-            users = query.all()
+            users = query.limit(per_page).all()
             total_pages = 1
         else:
             # Regular pagination for page loads

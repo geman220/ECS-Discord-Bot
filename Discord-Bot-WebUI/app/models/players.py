@@ -105,24 +105,18 @@ class Team(db.Model):
 
     @property
     def recent_form(self):
-        """Return a small HTML snippet representing the team's recent match outcomes."""
-        last_five_matches = Match.query.filter(
-            (Match.home_team_id == self.id) | (Match.away_team_id == self.id)
-        ).order_by(Match.date.desc()).limit(5).all()
+        """Return a small HTML snippet representing the team's recent match outcomes.
 
-        form = []
-        for match in last_five_matches:
-            if match.home_team_score is not None and match.away_team_score is not None:
-                if ((match.home_team_id == self.id and match.home_team_score > match.away_team_score) or
-                    (match.away_team_id == self.id and match.away_team_score > match.home_team_score)):
-                    form.append('<span class="text-success">W</span>')
-                elif match.home_team_score == match.away_team_score:
-                    form.append('<span class="text-warning">D</span>')
-                else:
-                    form.append('<span class="text-danger">L</span>')
-            else:
-                form.append('<span class="text-muted">N/A</span>')
-        return ''.join(form)
+        Served from the bulk stats cache, like top_scorer / top_assist. This used to
+        run its own `Match.query` on every access — and to_dict() reads it, so a list
+        of 25 teams fired 25 extra queries. It also used Model.query, which binds to
+        db.session rather than the request's session, so it checked out a SECOND
+        pooled connection on top. Both problems disappear by reading the cache that
+        the other three stat properties already use.
+        """
+        from app.team_performance_helpers import get_team_stats_cached
+        stats = get_team_stats_cached(self.id)
+        return stats.get('recent_form', '')
 
     @property
     def top_scorer(self):
@@ -377,9 +371,25 @@ class Player(db.Model):
         return f'<Player {self.name} ({user_email})>'
 
     def get_season_stat(self, season_id, stat, session=None):
-        from app.models.stats import PlayerSeasonStats
-        season_stat = PlayerSeasonStats.query.filter_by(player_id=self.id, season_id=season_id).first()
-        return getattr(season_stat, stat, 0) if season_stat else 0
+        """Read a season stat from the ALREADY-LOADED season_stats relationship.
+
+        This used to run `PlayerSeasonStats.query.filter_by(...).first()` on every
+        single call, with no memoisation. The player profile renders the same four
+        stats in up to four separate blocks — sixteen identical queries for ONE player
+        — and the route already `selectinload`s player.season_stats, so the rows were
+        sitting in memory the whole time. team_details paid two per player, ~30 on a
+        roster.
+
+        Reading the relationship costs zero queries when it's eager-loaded, and at
+        worst ONE lazy load per player (not per stat). It also drops a second pooled
+        connection: Model.query binds to db.session, not the request's session.
+
+        `session` is accepted for backwards compatibility and no longer used.
+        """
+        for season_stat in (self.season_stats or []):
+            if season_stat.season_id == season_id:
+                return getattr(season_stat, stat, 0)
+        return 0
 
     def season_goals(self, season_id):
         return self.get_season_stat(season_id, 'goals')

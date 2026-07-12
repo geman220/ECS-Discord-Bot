@@ -11,6 +11,7 @@ from flask import Blueprint, jsonify, request, current_app
 from flask_login import login_required, current_user
 from app.core import db
 from app.models import Notification
+from app.utils.user_locking import get_session
 import logging
 
 logger = logging.getLogger(__name__)
@@ -103,14 +104,21 @@ def get_notifications():
         limit = min(int(request.args.get('limit', 10)), 50)
         include_read = request.args.get('include_read', 'false').lower() == 'true'
 
-        query = Notification.query.filter_by(user_id=current_user.id)
+        # get_session(), not Notification.query. Model.query binds to db.session,
+        # which is NOT the request's g.db_session — so this route checked out a
+        # second pooled connection. These are JSON endpoints, so they never reach
+        # the before_render hook that releases the transaction early: they hold both
+        # connections for the entire request. And they're polled by every open tab.
+        s = get_session()
+
+        query = s.query(Notification).filter_by(user_id=current_user.id)
 
         if not include_read:
             query = query.filter_by(read=False)
 
         notifications = query.order_by(Notification.created_at.desc()).limit(limit).all()
 
-        unread_count = Notification.query.filter_by(
+        unread_count = s.query(Notification).filter_by(
             user_id=current_user.id,
             read=False
         ).count()
@@ -133,9 +141,13 @@ def get_notifications():
 @navbar_notifications_bp.route('/count', methods=['GET'])
 @login_required
 def get_notification_count():
-    """Get unread notification count for badge display"""
+    """Get unread notification count for badge display.
+
+    The hottest endpoint in the app — every open tab polls it. On the request's own
+    session, so it takes one connection instead of two.
+    """
     try:
-        count = Notification.query.filter_by(
+        count = get_session().query(Notification).filter_by(
             user_id=current_user.id,
             read=False
         ).count()

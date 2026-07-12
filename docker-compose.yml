@@ -542,8 +542,16 @@ services:
       # Service port (required for WebSocket routing)
       - "traefik.http.services.webui.loadbalancer.server.port=5000"
       # Apply middlewares to main routes (Socket.IO router has its own middleware config above)
+      # Gzip at the edge, in Go, instead of in Python.
+      # Flask-Compress was gzipping a multi-MB JS bundle for every cold client INSIDE
+      # the gevent worker — and CPU does not yield under gevent, so that compression
+      # froze every other greenlet in the process while it ran. Traefik does it in a
+      # separate Go process and never stalls a Python request.
+      # (Flask-Compress is disabled in app/compression.py; if it were still on, Traefik
+      # would see Content-Encoding: gzip already set and skip compressing anyway.)
+      - "traefik.http.middlewares.gzip-compress.compress=true"
       - "traefik.http.routers.webui.middlewares=redirect-to-https,rate-limit"
-      - "traefik.http.routers.webui-secure.middlewares=secure-headers,rate-limit,webui-errors"
+      - "traefik.http.routers.webui-secure.middlewares=secure-headers,gzip-compress,rate-limit,webui-errors"
       # Error pages — show maintenance page when webui returns 502-504 (starting up)
       - "traefik.http.middlewares.webui-errors.errors.status=502-504"
       - "traefik.http.middlewares.webui-errors.errors.service=maintenance@docker"

@@ -10,12 +10,16 @@
 
 // ============================================================================
 // 1. JQUERY - Must be first (Bootstrap and other libs check window.jQuery)
-// If jQuery already loaded via CDN (for inline scripts), don't overwrite it
+//
+// Assign UNCONDITIONALLY. This used to bail out if window.jQuery already existed,
+// to avoid clobbering a CDN copy loaded by the base template. But the plugins below
+// (DataTables et al.) register on THIS instance — so deferring to a CDN copy left
+// window.jQuery without .DataTable, and every inline `$('#x').DataTable()` in the
+// admin templates blew up on a method that wasn't there. The CDN tags are gone from
+// the base templates; this makes sure a stray one can never reintroduce the split.
 // ============================================================================
 import jQuery from 'jquery';
-if (!window.jQuery) {
-  Object.assign(window, { $: jQuery, jQuery });
-}
+Object.assign(window, { $: jQuery, jQuery });
 
 // ============================================================================
 // 2. FLOWBITE - UI Components (modern Tailwind-based components)
@@ -123,16 +127,16 @@ import Hammer from 'hammerjs';
 window.Hammer = Hammer;
 
 // ============================================================================
-// 4. NODE WAVES - Ripple effects
+// 4. NODE WAVES - REMOVED (6 KB)
+//    Ripple effects for Bootstrap's .waves-effect. That class appears in ZERO
+//    templates — a leftover of the old Bootstrap theme. Flowbite doesn't use it.
+//
+// 5. PERFECT SCROLLBAR - REMOVED (20 KB)
+//    helpers-minimal.js only ever applied it to `.navbar-dropdown
+//    .scrollable-container`, and neither class exists in ANY template — the modern
+//    navbar is Flowbite. The call site is already guarded on `window.PerfectScrollbar`
+//    being defined, so it simply no-ops now.
 // ============================================================================
-import Waves from 'node-waves';
-window.Waves = Waves;
-
-// ============================================================================
-// 5. PERFECT SCROLLBAR - Custom scrollbars
-// ============================================================================
-import PerfectScrollbar from 'perfect-scrollbar';
-window.PerfectScrollbar = PerfectScrollbar;
 
 // ============================================================================
 // 6. SORTABLE.JS - Drag and drop sorting
@@ -142,9 +146,11 @@ window.Sortable = Sortable;
 
 // ============================================================================
 // 7. SHEPHERD.JS - Guided tours
+//    NOT imported here (45 KB). It is only needed when a guided tour actually
+//    starts — which is a one-off for brand-new users — so custom_js/tour.js
+//    dynamically imports it at that moment instead of every visitor paying for it
+//    on every page. tour.js already guards on `window.Shepherd` being present.
 // ============================================================================
-import Shepherd from 'shepherd.js';
-window.Shepherd = Shepherd;
 
 // ============================================================================
 // 8. DATATABLES - Table functionality (must init after jQuery)
@@ -185,10 +191,13 @@ import Cropper from 'cropperjs';
 window.Cropper = Cropper;
 
 // ============================================================================
-// 14. FEATHER ICONS - Icon library
+// 14. FEATHER ICONS - REMOVED (76 KB)
+//     feather.replace() rewrites elements carrying `data-feather`. That attribute
+//     appears in ZERO templates — the icon system here is the Tabler icon FONT
+//     (vendor/fonts/tabler-icons.css, loaded on every page). So this library was
+//     downloaded and parsed by every visitor to replace nothing at all.
+//     ui-enhancements.js already early-returns when `window.feather` is undefined.
 // ============================================================================
-import feather from 'feather-icons';
-window.feather = feather;
 
 // ============================================================================
 // 15. HELPERS - Must load before Menu (Menu uses window.Helpers)

@@ -61,8 +61,36 @@ import './compat/window-exports.js';
 // ============================================================================
 
 import './sidebar-interactions.js';
-import './navbar-modern.js';
+// navbar-modern.js REMOVED — it drove navbar.html / _navbar_modern.html, both of which
+// were unreachable classic-shell templates and have been deleted. Every one of its 11
+// registered actions was wrapped in `if (window.navbarController)`, and that controller
+// was only constructed when `document.querySelector('.c-navbar-modern')` matched — a
+// selector present in NO template. So all 11 were already no-ops. The live console
+// shell's logout is a plain <a href> and its dropdowns are Flowbite's
+// data-dropdown-toggle. It also registered 'mark-all-read', which messages-inbox.js
+// owns natively — so that one was double-firing on the inbox page.
 import './simple-theme-switcher.js';
+
+// ============================================================================
+// ADMIN BUNDLE — loaded only on admin URLs (see admin-entry.js).
+// Keeps ~35 admin-only modules out of every player's download.
+//
+// The promise is captured, NOT fire-and-forget: initializeApp() at the bottom of this
+// file calls InitSystem.init(), which drains its registration queue exactly once. A
+// network fetch can never beat the synchronous end of this module, so an un-awaited
+// import() meant every admin module's InitSystem.register() landed in an
+// already-drained queue and NEVER RAN — the whole admin panel's JS silently dead.
+// (InitSystem.register now also self-heals on late registration; this keeps the
+// ordering identical to a single statically-imported bundle.)
+// ============================================================================
+const __adminBundleReady =
+  (typeof location !== 'undefined' &&
+   (location.pathname.startsWith('/admin') || location.pathname.startsWith('/security')))
+    ? import('./admin-entry.js').catch((err) => {
+        console.error('[main-entry] admin bundle failed to load', err);
+      })
+    : Promise.resolve();
+
 import './modern/kit.js';
 import './admin-navigation.js';
 import './theme-colors.js';
@@ -92,7 +120,8 @@ import './swal-contextual.js';
 
 // Chat and messaging
 import './chat-widget.js';
-import './messenger-widget.js';
+// messenger-widget.js REMOVED — its markup lived in components/messenger_widget.html,
+// which nothing included and which has been deleted. chat-widget.js is the live one.
 import './ai-assistant.js';
 
 // Player features (player-profile.js and profile-form.js are in custom_js, loaded per-page)
@@ -111,23 +140,9 @@ import './pitch-view.js';
 // 5. ADMIN MODULES
 // ============================================================================
 
-import './admin-panel-base.js';
-import './admin-panel-dashboard.js';
-import './admin-panel-discord-bot.js';
-import './admin-panel-performance.js';
-import './admin-cache-management.js';
 // admin-discord-management.js is in custom_js, loaded per-page
-import './admin-utilities-init.js';
-import './admin-api-management.js';
 
 // Admin submodules
-import './admin/admin-dashboard.js';
-import './admin/message-categories.js';
-import './admin/message-template-detail.js';
-import './admin/push-campaigns.js';
-import './admin/scheduled-messages.js';
-import './admin/email-broadcasts.js';
-import './admin/email-templates.js';
 
 // Match operations
 import './match-operations/match-reports.js';
@@ -169,13 +184,7 @@ import '../custom_js/mobile-tables.js';
 // 9. CUSTOM JS - Admin
 // ============================================================================
 
-import '../custom_js/admin_actions.js';
 import '../custom_js/appearance.js';
-import '../custom_js/admin-discord-management.js';
-import '../custom_js/admin-manage-subs.js';
-import '../custom_js/admin-match-checkin.js';
-import '../custom_js/admin-match-detail.js';
-import '../custom_js/admin-panel-match-list.js';
 import '../custom_js/cache-stats.js';
 import '../custom_js/clear-cache.js';
 import '../custom_js/create-poll.js';
@@ -241,31 +250,16 @@ import '../custom_js/sync-review.js';
 // 10b. CUSTOM JS - Admin Panel (League Management & Match Operations)
 // ============================================================================
 
-import '../custom_js/admin-seasons-management.js';
-import '../custom_js/admin-teams-management.js';
-import '../custom_js/admin-league-history.js';
 // admin-season-wizard.js removed - replaced by event-delegation/handlers/season-builder.js
-import '../custom_js/admin-match-operations.js';
-import '../custom_js/admin-ispy-management.js';
-import '../custom_js/admin-ecs-fc-match.js';
 
 // ============================================================================
 // 11. ADDITIONAL JS MODULES
 // ============================================================================
 
-import './admin-panel-feature-toggles.js';
-import './admin/announcement-form.js';
 import './auto_schedule_wizard.js';
 import './mobile-draft.js';
 import './message-management.js';
 import './messages-inbox.js';
-import './pass-studio.js';
-import './pass-studio-cropper.js';
-import './pass-studio-fields.js';
-import './pass-studio-locations.js';
-import './pass-studio-sponsors.js';
-import './pass-studio-subgroups.js';
-import './security-dashboard.js';
 import './admin-search.js';
 
 // ============================================================================
@@ -303,8 +297,12 @@ function initializeApp() {
     }
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-    initializeApp();
-}
+// Wait for the admin chunk (a no-op Promise.resolve() on non-admin pages) BEFORE
+// running initializeApp, so its modules are in InitSystem's queue when init() drains it.
+__adminBundleReady.then(() => {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+        initializeApp();
+    }
+});

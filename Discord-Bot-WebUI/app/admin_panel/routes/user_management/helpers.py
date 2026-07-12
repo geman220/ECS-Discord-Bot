@@ -232,16 +232,30 @@ def get_user_analytics():
         else:
             backlog_trend = "Stable"
 
-        # Role distribution
-        roles = Role.query.all()
-        role_distribution = {role.name: len(role.users) for role in roles}
+        # Role distribution — ONE grouped count, not a per-role object load.
+        #
+        # This was `{role.name: len(role.users) for role in roles}`. Role.users is a
+        # secondary relationship, so each len() MATERIALISED every User object in that
+        # role — the whole users table, several times over (users hold multiple roles),
+        # just to produce an integer. The league block below then did it all again.
+        from app.models.core import user_roles
+        role_counts = dict(
+            db.session.query(Role.name, func.count(user_roles.c.user_id))
+            .outerjoin(user_roles, user_roles.c.role_id == Role.id)
+            .group_by(Role.name)
+            .all()
+        )
 
-        # League distribution
+        roles = Role.query.all()
+        role_distribution = {role.name: role_counts.get(role.name, 0) for role in roles}
+
+        # League distribution — reuse the counts we already have.
         league_roles = ['pl-classic', 'pl-premier', 'pl-ecs-fc']
-        league_distribution = {}
-        for role in roles:
-            if role.name in league_roles:
-                league_distribution[role.name] = len(role.users)
+        league_distribution = {
+            name: role_counts.get(name, 0)
+            for name in league_roles
+            if name in role_distribution
+        }
 
         # Registration trends (daily counts for last 30 days)
         registration_trends = get_registration_trends('30d')

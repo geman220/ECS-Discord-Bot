@@ -342,13 +342,26 @@ class EcsFcScheduleTemplate(db.Model):
         }
 
 
-def get_ecs_fc_teams():
-    """Get all ECS FC teams."""
+def get_ecs_fc_teams(session=None):
+    """Get all ECS FC teams.
+
+    Runs on the REQUEST's session. This is called from a context processor on EVERY
+    /admin-panel/* template render — and it used League.query, which binds to
+    db.session, a different session from g.db_session. That checked out a second
+    pooled connection on every admin page, even for routes whose own code was
+    correctly using g.db_session. There are only 12 web slots behind pgbouncer.
+    """
     from app.models.core import League
-    from app.models.players import Team
-    
-    # Get ECS FC leagues
-    ecs_fc_leagues = League.query.filter(League.name.ilike('%ECS FC%')).all()
+    from app.utils.user_locking import get_session
+
+    if session is None:
+        session = get_session()
+
+    # League.teams is lazy='joined', so the loop below does not N+1.
+    ecs_fc_leagues = session.query(League).filter(
+        League.name.ilike('%ECS FC%')
+    ).all()
+
     teams = []
     for league in ecs_fc_leagues:
         teams.extend(league.teams)

@@ -374,6 +374,18 @@ def get_match_schedule():
         query = query.order_by(Match.date.asc()).limit(limit)
         matches = query.all()
 
+        # Preload team stats for every team in this result set, in ONE bulk call.
+        # build_match_response(include_teams=True) calls Team.to_dict() for BOTH teams
+        # of every match, and Team.to_dict() reads top_scorer / top_assist /
+        # recent_form / avg_goals_per_match — each of which goes through
+        # get_team_stats_cached. Without a preload, g._team_stats_cache is empty and
+        # every team falls through to its own bulk_load_team_stats([id]) — several
+        # queries per team, per match.
+        from app.team_performance_helpers import preload_team_stats_for_request
+        _team_ids = {t for m in matches for t in (m.home_team_id, m.away_team_id) if t}
+        if _team_ids:
+            preload_team_stats_for_request(list(_team_ids), session=session_db)
+
         # Group matches by date
         matches_by_date = defaultdict(list)
         for match in matches:
@@ -386,8 +398,12 @@ def get_match_schedule():
                 session=session_db
             )
             if include_availability and player:
-                match_data['my_availability'] = get_player_availability(
-                    match, player, session=session_db
+                # build_match_response already ran get_player_availability(match, player)
+                # and stored it as 'availability' (app_api_helpers.py:641-642). Re-running
+                # it here was an identical query PER MATCH whose result was thrown away.
+                match_data['my_availability'] = (
+                    match_data['availability'] if 'availability' in match_data
+                    else get_player_availability(match, player, session=session_db)
                 )
             date_key = match.date.isoformat() if match.date else 'unknown'
             matches_by_date[date_key].append(match_data)
@@ -455,8 +471,10 @@ def get_single_match_details(match_id: int):
         )
 
         if include_availability and player:
-            match_data['my_availability'] = get_player_availability(
-                match, player, session=session_db
+            # Reuse what build_match_response already computed — see note above.
+            match_data['my_availability'] = (
+                match_data['availability'] if 'availability' in match_data
+                else get_player_availability(match, player, session=session_db)
             )
             if match.home_team:
                 match_data['home_team_availability'] = get_team_players_availability(
@@ -490,8 +508,10 @@ def get_single_match_details(match_id: int):
                     )
                     match_data['away_team_availability_summary'] = compute_rsvp_summary(away_avail)
             if player and 'my_availability' not in match_data:
-                match_data['my_availability'] = get_player_availability(
-                    match, player, session=session_db
+                # Reuse what build_match_response already computed — see note above.
+                match_data['my_availability'] = (
+                    match_data['availability'] if 'availability' in match_data
+                    else get_player_availability(match, player, session=session_db)
                 )
 
         return jsonify(match_data), 200

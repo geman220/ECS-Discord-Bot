@@ -39,12 +39,28 @@ export function createSkipAction(tourVar) {
     };
 }
 
-export function initTour() {
+/**
+ * Load Shepherd on demand.
+ *
+ * Shepherd is ~45 KB and is used by exactly one thing: this guided tour, which runs
+ * once for a brand-new user. It used to be imported by vendor-globals.js, so every
+ * visitor downloaded and parsed it on every page forever. Now it arrives only if a
+ * tour is actually starting.
+ */
+async function _loadShepherd() {
+    if (typeof window.Shepherd !== 'undefined') return window.Shepherd;
+    const mod = await import('shepherd.js');
+    window.Shepherd = mod.default || mod;
+    return window.Shepherd;
+}
+
+export async function initTour() {
     if (_initialized) return;
 
-    // Guard: Check if Shepherd is loaded before using it
-    if (typeof window.Shepherd === 'undefined') {
-        console.warn('[Tour] Shepherd library not loaded, skipping tour initialization');
+    try {
+        await _loadShepherd();
+    } catch (err) {
+        console.warn('[Tour] Shepherd failed to load, skipping tour initialization', err);
         return;
     }
 

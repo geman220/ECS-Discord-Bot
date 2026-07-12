@@ -322,7 +322,10 @@ def link_order():
             # Transition from NOT_STARTED to PENDING if this is first link click
             if order.status == PubLeagueOrderStatus.NOT_STARTED.value:
                 order.mark_link_clicked()
-                db.session.commit()
+                # Commit the session the order actually lives on. This was
+                # db.session.commit(), which commits a DIFFERENT session that knows
+                # nothing about this change — the classic silently-discarded write.
+                get_db_session().commit()
                 logger.info(f"Order {order_id} transitioned from NOT_STARTED to PENDING")
         else:
             # Fetch from WooCommerce
@@ -480,7 +483,8 @@ def verify_order():
             # Transition from NOT_STARTED to PENDING if this is first link click
             if existing_order.status == PubLeagueOrderStatus.NOT_STARTED.value:
                 existing_order.mark_link_clicked()
-                db.session.commit()
+                # See the note in the sibling route: commit the order's own session.
+                get_db_session().commit()
             return jsonify({
                 'success': True,
                 'order': existing_order.to_dict(),

@@ -388,7 +388,6 @@
     <Content Include="app\templates\draft_ecs_fc.html" />
     <Content Include="app\templates\draft_premier.html" />
     <Content Include="app\templates\edit_match.html" />
-    <Content Include="app\templates\edit_user_modal.html" />
     <Content Include="app\templates\edit_week.html" />
     <Content Include="app\templates\emails\feedback_closed.html" />
     <Content Include="app\templates\emails\feedback_update.html" />
@@ -415,11 +414,9 @@
     <Content Include="app\templates\matches.html" />
     <Content Include="app\templates\monitoring.html" />
     <Content Include="app\templates\db_monitoring.html" />
-    <Content Include="app\templates\navbar.html" />
     <Content Include="app\templates\notifications.html" />
     <Content Include="app\templates\onboarding_modal_content.html" />
     <Content Include="app\templates\player_profile.html" />
-    <Content Include="app\templates\player_table.html" />
     <Content Include="app\templates\privacy_policy.html" />
     <Content Include="app\templates\pub_league_schedule.html" />
     <Content Include="app\templates\register.html" />

@@ -20,8 +20,9 @@
     <!-- NOTE: Flowbite JS is bundled via npm in our Vite build (vendor-globals.js).
          CDN script REMOVED to prevent double-initialization and timing issues. -->
 
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    {# SweetAlert2 CDN removed: the Vite bundle loads on every branch of this template
+       and already provides window.Swal (static/js/vendor-globals.js). The CDN copy was
+       a straight duplicate download. #}
 
     <!-- Theme Detection Script -->
     <script>

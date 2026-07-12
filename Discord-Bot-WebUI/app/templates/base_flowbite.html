@@ -312,19 +312,30 @@
     </script>
 
     <!-- Core JS Dependencies -->
+    {#
+      The bundle already provides jQuery, socket.io and SweetAlert2 (see
+      static/js/vendor-globals.js). Loading them from a CDN as well was not just
+      ~135 KB of dead weight on every page — it was a live bug:
+
+        - jQuery landed FIRST from the CDN, so vendor-globals' `if (!window.jQuery)`
+          guard skipped, leaving window.jQuery = the CDN copy. But DataTables (and
+          the other jQuery plugins) register on the BUNDLED jQuery. So inline
+          `$('#x').DataTable()` in admin templates was calling a method that did not
+          exist on the instance it got. Two jQuerys, separate event/data stores.
+        - socket.io was worse: the bundle overwrites window.io unconditionally, so
+          the CDN copy was downloaded and then thrown away on all 135 pages.
+
+      The non-Vite fallback below has no bundle, so it still needs the CDN copies.
+    #}
     {% if vite_production_mode is defined and vite_production_mode() %}
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     {{ vite_asset('js/main-entry.js') }}
     {% elif vite_dev_mode is defined and vite_dev_mode() %}
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     {{ vite_asset('js/main-entry.js') }}
     {% else %}
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    {% endif %}
-
-    <!-- Socket.IO for real-time updates -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
+    {% endif %}
 
     <!-- Player Search Autocomplete (Vanilla JS - Touch-friendly) -->
     <script type="module">
@@ -455,7 +466,8 @@
     <!-- Chat Widget JS -->
     {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <script type="module" src="{{ url_for('static', filename='js/chat-widget.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/messenger-widget.js') }}"></script>
+    {# messenger-widget.js dropped: its template (components/messenger_widget.html) was
+       unreachable and has been deleted. #}
     <script type="module" src="{{ url_for('static', filename='js/online-status.js') }}"></script>
     {% endif %}
     {% endblock %}

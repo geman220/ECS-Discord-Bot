@@ -34,13 +34,29 @@ def render_all_modals():
     with managed_session() as session:
         # Get matches based on request
         if match_id_list:
-            # Get specific matches if IDs were provided
-            matches = session.query(Match).filter(Match.id.in_(match_id_list)).all()
+            # Eager-load both rosters: the loop below reads home_team.players and
+            # away_team.players, which would otherwise lazy-load twice per match.
+            from sqlalchemy.orm import joinedload, selectinload
+            matches = (
+                session.query(Match)
+                .options(
+                    joinedload(Match.home_team).selectinload(Team.players),
+                    joinedload(Match.away_team).selectinload(Team.players),
+                )
+                .filter(Match.id.in_(match_id_list))
+                .all()
+            )
             current_app.logger.info(f"Found {len(matches)} matches for requested IDs")
         else:
-            # Otherwise get all matches (default behavior)
-            matches = session.query(Match).all()
-            current_app.logger.info(f"Returning all {len(matches)} matches")
+            # Refuse to build a modal for EVERY match in the database.
+            #
+            # This branch used to run `session.query(Match).all()` and then walk both
+            # full rosters of every match — unbounded, and reachable by ANY logged-in
+            # user with a bare GET of this URL. No caller relies on it: report_match.js
+            # always sends ?match_ids=, and modal-helpers.js's loadModalsIfNotFound()
+            # (the only param-less caller) has no call sites at all.
+            matches = []
+            current_app.logger.info("render_modals called with no match_ids — returning no modals")
         
         # Generate player choices for each match
         player_choices = {}

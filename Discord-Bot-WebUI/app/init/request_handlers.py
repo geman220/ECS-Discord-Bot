@@ -45,6 +45,18 @@ def _init_maintenance_gate(app):
 
     @app.before_request
     def _maintenance_gate():
+        # Check the exemption BEFORE touching the database.
+        #
+        # This used to call get_setting() first. For /static/ there is no
+        # g.db_session (before_request skips session creation for static files), so
+        # get_setting fell through to opening its OWN SessionLocal — a fresh
+        # connection, query, commit and close FOR EVERY STATIC ASSET. A page with 30
+        # assets did that 30 times, against a 22-connection database. Static files
+        # were never subject to maintenance mode anyway, so the query was pure waste.
+        path = request.path or ''
+        if path.startswith(exempt_prefixes):
+            return None
+
         try:
             from app.models.admin_config import AdminConfig
             val = AdminConfig.get_setting('maintenance_mode', False)
@@ -52,10 +64,6 @@ def _init_maintenance_gate(app):
             return None  # fail open — never lock the app due to a check failure
 
         if not ((val is True) or (str(val).lower() == 'true')):
-            return None
-
-        path = request.path or ''
-        if path.startswith(exempt_prefixes):
             return None
 
         # Admins bypass maintenance entirely.

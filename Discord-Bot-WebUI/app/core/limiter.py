@@ -10,6 +10,7 @@ backend and request filters are bound later via ``limiter.init_app(app)`` from
 """
 
 import logging
+import os
 
 from flask import request, current_app
 from flask_limiter import Limiter
@@ -18,14 +19,37 @@ logger = logging.getLogger(__name__)
 
 
 def get_client_ip() -> str:
-    """Return the real client IP, honoring trusted proxy headers."""
+    """Return the real client IP, reading only the parts of X-Forwarded-For we trust.
+
+    SECURITY: this used to return ``xff.split(',')[0]`` — the LEFTMOST entry. XFF is
+    built by each proxy APPENDING the peer it actually saw, so everything to the left
+    of our own proxy's contribution was supplied by the client and is forgeable. An
+    attacker could send a random ``X-Forwarded-For`` on every request and mint a fresh
+    rate-limit bucket each time, defeating every IP-keyed limit in the app — including
+    the login limit that exists to stop an unauthenticated scrypt CPU-DoS.
+
+    With N trusted proxies in front of us, the client's real address is the Nth entry
+    from the RIGHT. We run a single Traefik, so N defaults to 1 (the rightmost entry
+    is the address Traefik itself observed). If you ever put Cloudflare in front of
+    Traefik, set TRUSTED_PROXY_COUNT=2 — otherwise every user would collapse into one
+    bucket keyed on Cloudflare's edge IP.
+
+    X-Real-IP / CF-Connecting-IP are NOT consulted: nothing in this deployment sets
+    them, so they are pure client input and equally forgeable.
+    """
+    try:
+        trusted = int(os.getenv('TRUSTED_PROXY_COUNT', '1'))
+    except (TypeError, ValueError):
+        trusted = 1
+    trusted = max(1, trusted)
+
     xff = request.headers.get('X-Forwarded-For')
     if xff:
-        return xff.split(',')[0].strip()
-    if request.headers.get('X-Real-IP'):
-        return request.headers.get('X-Real-IP')
-    if request.headers.get('CF-Connecting-IP'):
-        return request.headers.get('CF-Connecting-IP')
+        parts = [p.strip() for p in xff.split(',') if p.strip()]
+        if parts:
+            idx = len(parts) - trusted
+            return parts[idx] if 0 <= idx < len(parts) else parts[0]
+
     return request.remote_addr or 'unknown'
 
 

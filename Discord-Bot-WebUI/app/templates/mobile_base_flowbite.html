@@ -44,6 +44,12 @@
         </main>
     </div>
 
+    {# KEEP THIS. It looks like a duplicate of the bundle's SweetAlert2 (vendor-globals
+       sets window.Swal), but the flash-message script below is an IIFE that calls
+       Swal.fire() at PARSE TIME — and the Vite bundle is a type=module script, which
+       runs only AFTER parsing. Drop this tag and every flash message on mobile breaks.
+       To remove it, first wrap that IIFE in a DOMContentLoaded listener, as
+       base_unauthenticated_flowbite.html already does. #}
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 

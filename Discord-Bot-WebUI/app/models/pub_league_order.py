@@ -19,6 +19,20 @@ from enum import Enum
 from app.core import db
 
 
+def _request_session(session=None):
+    """Resolve the session a lookup should run on.
+
+    Prefers an explicitly passed session, then the request's g.db_session, and only
+    then falls back to db.session (outside a request — Celery, CLI). Never use
+    cls.query here: it always binds to db.session, and in a request that is a
+    SECOND session from the one the pub-league services commit.
+    """
+    if session is not None:
+        return session
+    from app.utils.user_locking import get_session
+    return get_session()
+
+
 class PubLeagueOrderStatus(Enum):
     """Status of a Pub League order"""
     NOT_STARTED = 'not_started'  # Order created from webhook, link not clicked yet
@@ -102,14 +116,25 @@ class PubLeagueOrder(db.Model):
         return secrets.token_hex(32)
 
     @classmethod
-    def find_by_woo_order_id(cls, woo_order_id):
-        """Find order by WooCommerce order ID."""
-        return cls.query.filter_by(woo_order_id=woo_order_id).first()
+    def find_by_woo_order_id(cls, woo_order_id, session=None):
+        """Find order by WooCommerce order ID.
+
+        Resolves the REQUEST's session. `cls.query` binds to db.session, which is a
+        different session from g.db_session — the one the pub-league services commit.
+        Loading the order on db.session and then handing it to a service that commits
+        g.db_session is the cross-session trap that silently discards writes, and it
+        also costs a second pooled connection. This is the claim flow, so it matters.
+        """
+        return _request_session(session).query(cls).filter_by(
+            woo_order_id=woo_order_id
+        ).first()
 
     @classmethod
-    def find_by_verification_token(cls, token):
-        """Find order by verification token."""
-        return cls.query.filter_by(verification_token=token).first()
+    def find_by_verification_token(cls, token, session=None):
+        """Find order by verification token. See find_by_woo_order_id on the session."""
+        return _request_session(session).query(cls).filter_by(
+            verification_token=token
+        ).first()
 
     def is_fully_linked(self):
         """Check if all passes have been linked."""
@@ -354,9 +379,11 @@ class PubLeagueOrderClaim(db.Model):
         return claim
 
     @classmethod
-    def find_by_token(cls, token):
-        """Find claim by token."""
-        return cls.query.filter_by(claim_token=token).first()
+    def find_by_token(cls, token, session=None):
+        """Find claim by token. See PubLeagueOrder.find_by_woo_order_id on the session."""
+        return _request_session(session).query(cls).filter_by(
+            claim_token=token
+        ).first()
 
     def is_valid(self):
         """Check if claim is still valid (not expired, not already claimed)."""

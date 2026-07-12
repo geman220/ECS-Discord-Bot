@@ -161,9 +161,16 @@ def team_details(team_id):
     session = g.db_session
 
     # Load team along with its associated players using eager loading.
+    # season_stats is eager-loaded too: the template calls player.season_goals(...) and
+    # player.season_assists(...) inside the roster loop, and those read the
+    # season_stats relationship. Without this each player triggers a lazy load — and
+    # these fire during template render, after the request transaction is released, so
+    # each one takes a fresh connection.
     team = (
         session.query(Team)
-        .options(joinedload(Team.players))
+        .options(
+            joinedload(Team.players).selectinload(Player.season_stats),
+        )
         .get(team_id)
     )
     if not team:
@@ -209,41 +216,50 @@ def team_details(team_id):
     # Uses fast_fail mode to avoid blocking page loads when Discord bot is unavailable
     now = datetime.utcnow()
 
-    # Check if Discord service is available before starting the loop
-    from app.utils.sync_discord_client import is_discord_service_available
-    discord_available = is_discord_service_available()
+    def _recheck_reason(player):
+        """Why (if at all) this player's Discord status is stale. Pure Python, no I/O."""
+        if not player.discord_last_checked:
+            return "never checked"
+        if player.discord_in_server is True:
+            if player.discord_last_checked < now - timedelta(days=30):
+                return "in server, 30 day recheck"
+        elif player.discord_in_server is False:
+            if player.discord_last_checked < now - timedelta(hours=24):
+                return "not in server, 24 hour recheck"
+        else:
+            if player.discord_last_checked < now - timedelta(days=7):
+                return "unknown status, 7 day recheck"
+        return None
 
-    if discord_available:
-        for player in players:
-            if not player.discord_id:
-                continue
+    # Work out who is stale FIRST — this needs no I/O at all. On the overwhelmingly
+    # common path nobody is stale, and we skip both the availability probe and the
+    # whole HTTP section.
+    stale = [
+        (p, reason) for p in players
+        if p.discord_id and (reason := _recheck_reason(p)) is not None
+    ]
 
-            # Determine when to recheck based on current status
-            should_check = False
+    if stale:
+        # RELEASE THE TRANSACTION BEFORE ANY HTTP.
+        #
+        # pgbouncer runs in transaction pooling: a server slot is pinned for exactly as
+        # long as a transaction is open. This loop makes one HTTP call to the Discord
+        # bot PER STALE PLAYER, and it used to do so with the request's transaction
+        # still open — holding one of only ~12 web slots across every network
+        # round-trip. On a roster of 15 that is the most expensive thing this app can
+        # do to the pool. Commit first; the next query transparently re-acquires a
+        # slot. (expire_on_commit=False, so the player objects stay usable.)
+        try:
+            session.commit()
+        except Exception:
+            logger.debug("Could not release transaction before Discord status checks",
+                         exc_info=True)
 
-            if not player.discord_last_checked:
-                # Never checked before - always check
-                should_check = True
-                reason = "never checked"
-            elif player.discord_in_server is True:
-                # Player is in server - check every 30 days
-                check_threshold = now - timedelta(days=30)
-                should_check = player.discord_last_checked < check_threshold
-                reason = "in server, 30 day recheck"
-            elif player.discord_in_server is False:
-                # Player is NOT in server - check every 24 hours
-                check_threshold = now - timedelta(hours=24)
-                should_check = player.discord_last_checked < check_threshold
-                reason = "not in server, 24 hour recheck"
-            else:
-                # Status is unknown (null) - check every 7 days
-                check_threshold = now - timedelta(days=7)
-                should_check = player.discord_last_checked < check_threshold
-                reason = "unknown status, 7 day recheck"
-
-            if should_check:
+        from app.utils.sync_discord_client import is_discord_service_available
+        if is_discord_service_available():
+            for player, reason in stale:
                 try:
-                    # Use fast_fail=True to avoid blocking page loads
+                    # fast_fail=True so a slow/absent bot can't hang the page.
                     player.check_discord_status(fast_fail=True)
                     session.add(player)  # Mark for update
                     logger.info(f"Updated Discord status for player {player.name} (ID: {player.id}) - {reason}")
@@ -1001,6 +1017,11 @@ def view_standings():
             session.query(Standings)
             .join(Team)
             .join(League)
+            # joinedload, not just join: the join filters rows but does NOT populate
+            # Standings.team, and the template reads standing.team.name on every row.
+            # Those lazy loads fired during template render — after the request
+            # transaction was released — so each one took a fresh connection.
+            .options(joinedload(Standings.team))
             .filter(
                 Standings.season_id == season.id,
                 Team.id == Standings.team_id,
@@ -1138,6 +1159,11 @@ def season_overview():
             session.query(Standings)
             .join(Team)
             .join(League)
+            # joinedload, not just join: the join filters rows but does NOT populate
+            # Standings.team, and the template reads standing.team.name on every row.
+            # Those lazy loads fired during template render — after the request
+            # transaction was released — so each one took a fresh connection.
+            .options(joinedload(Standings.team))
             .filter(
                 Standings.season_id == season.id,
                 Team.id == Standings.team_id,
@@ -2072,26 +2098,41 @@ def coach_dashboard():
                 }
             }
 
-    # Get match events for each match (for editing) - only for Pub League matches
+    # Get match events for each match (for editing) - only for Pub League matches.
+    #
+    # This used to run FOUR queries PER MATCH — one each for GOAL / ASSIST /
+    # YELLOW_CARD / RED_CARD — so 14 matches cost 56 queries just for events. One
+    # grouped query covers every match and every type, and PlayerEvent.player is
+    # eager-loaded because the template renders scorer names (otherwise that's another
+    # query per event).
+    _pl_match_ids = [
+        m.id for m in all_matches
+        if not (hasattr(m, 'is_ecs_fc') and m.is_ecs_fc)
+    ]
+    _events_by_match = {}
+    if _pl_match_ids:
+        for _ev in session.query(PlayerEvent).options(
+            selectinload(PlayerEvent.player)
+        ).filter(
+            PlayerEvent.match_id.in_(_pl_match_ids),
+            PlayerEvent.event_type.in_([
+                PlayerEventType.GOAL,
+                PlayerEventType.ASSIST,
+                PlayerEventType.YELLOW_CARD,
+                PlayerEventType.RED_CARD,
+            ]),
+        ).all():
+            _events_by_match.setdefault(_ev.match_id, {}).setdefault(
+                _ev.event_type, []
+            ).append(_ev)
+
     for match in all_matches:
         if not (hasattr(match, 'is_ecs_fc') and match.is_ecs_fc):
-            # Only query PlayerEvent for Pub League matches
-            match.goal_scorers = session.query(PlayerEvent).filter_by(
-                match_id=match.id,
-                event_type=PlayerEventType.GOAL
-            ).all()
-            match.assists = session.query(PlayerEvent).filter_by(
-                match_id=match.id,
-                event_type=PlayerEventType.ASSIST
-            ).all()
-            match.yellow_cards = session.query(PlayerEvent).filter_by(
-                match_id=match.id,
-                event_type=PlayerEventType.YELLOW_CARD
-            ).all()
-            match.red_cards = session.query(PlayerEvent).filter_by(
-                match_id=match.id,
-                event_type=PlayerEventType.RED_CARD
-            ).all()
+            _by_type = _events_by_match.get(match.id, {})
+            match.goal_scorers = _by_type.get(PlayerEventType.GOAL, [])
+            match.assists = _by_type.get(PlayerEventType.ASSIST, [])
+            match.yellow_cards = _by_type.get(PlayerEventType.YELLOW_CARD, [])
+            match.red_cards = _by_type.get(PlayerEventType.RED_CARD, [])
         else:
             # ECS FC matches don't use PlayerEvent
             match.goal_scorers = []

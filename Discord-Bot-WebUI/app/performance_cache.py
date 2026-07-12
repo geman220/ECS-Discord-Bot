@@ -14,6 +14,7 @@ Key areas:
 - Match results and summaries
 """
 
+import hashlib
 import json
 import logging
 from functools import wraps
@@ -32,37 +33,66 @@ def get_cache_client():
         logger.warning(f"Redis connection failed: {e}")
         return None
 
+def _stable_key_part(value):
+    """Render one argument into a STABLE cache-key fragment.
+
+    A SQLAlchemy Session must never enter the key: its repr contains the object's
+    memory address, so a fresh Session per request produced a fresh cache key every
+    request — the cache never hit, and Redis grew without bound.
+    """
+    from sqlalchemy.orm import Session
+    if isinstance(value, Session):
+        return 'session'
+    if isinstance(value, (list, tuple, set)):
+        return repr(sorted(value, key=repr))
+    return repr(value)
+
+
 def cache_team_stats(ttl=600):  # 10 minutes
-    """Cache team statistics queries."""
+    """Cache team statistics queries (keyed on team ids + season, NOT on the session)."""
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
             cache_client = get_cache_client()
             if not cache_client:
                 return f(*args, **kwargs)
-            
-            # Create cache key from function name and arguments
-            cache_key = f"team_stats:{f.__name__}:{hash(str(args) + str(sorted(kwargs.items())))}"
-            
+
+            # md5, not hash(): Python's hash() is randomised per process (PYTHONHASHSEED),
+            # so every gunicorn worker computed a DIFFERENT key for the same arguments and
+            # the cache was effectively per-worker and reset on every restart.
+            raw = '|'.join(_stable_key_part(a) for a in args) + '||' + \
+                  '|'.join(f'{k}={_stable_key_part(v)}' for k, v in sorted(kwargs.items()))
+            cache_key = f"team_stats:{f.__name__}:{hashlib.md5(raw.encode()).hexdigest()}"
+
             try:
-                # Try cache first
                 cached = cache_client.get(cache_key)
                 if cached:
                     logger.debug(f"Team stats cache hit: {cache_key}")
-                    return json.loads(cached)
-                
-                # Execute and cache
+                    data = json.loads(cached)
+                    # JSON HAS NO INTEGER KEYS. bulk_load_team_stats returns
+                    # {team_id: {...}} keyed on int, and json.dumps turns 5 into "5".
+                    # Without restoring the ints, every `stats.get(team_id)` on a cache
+                    # HIT missed, silently returning the default dict — so cached team
+                    # stats were blank, and the callers' N+1 guard (`if team_id in
+                    # g._team_stats_cache`) never matched and the N+1 came back.
+                    if isinstance(data, dict):
+                        return {
+                            (int(k) if isinstance(k, str) and k.lstrip('-').isdigit() else k): v
+                            for k, v in data.items()
+                        }
+                    return data
+
                 result = f(*args, **kwargs)
                 if result:
                     cache_client.setex(cache_key, ttl, json.dumps(result, default=str))
                     logger.debug(f"Team stats cached: {cache_key}")
-                
+
                 return result
-                
+
             except Exception as e:
                 logger.warning(f"Team stats cache error: {e}")
                 return f(*args, **kwargs)
-        
+
         return wrapper
     return decorator
 

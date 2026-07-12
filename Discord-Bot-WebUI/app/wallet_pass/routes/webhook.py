@@ -232,8 +232,14 @@ def handle_order_completed():
             from app.pub_league.services import PubLeagueOrderService
             from app.models import PubLeagueOrder, PubLeagueOrderLineItem, PubLeagueOrderStatus
 
-            # Check if this is a Pub League order and hasn't been created yet
-            existing_pl_order = PubLeagueOrder.find_by_woo_order_id(order_id)
+            # Check if this is a Pub League order and hasn't been created yet.
+            # Pass db.session EXPLICITLY: everything else in this route writes and
+            # commits on db.session, and find_by_woo_order_id now defaults to the
+            # request's g.db_session. It happens to be safe today (the result is only
+            # used as a boolean and never mutated) — but the moment someone writes to
+            # `existing_pl_order` before the db.session.commit() below, that write
+            # would be silently discarded. Keep the whole route on one session.
+            existing_pl_order = PubLeagueOrder.find_by_woo_order_id(order_id, session=db.session)
             if not existing_pl_order:
                 pub_league_items = PubLeagueOrderService.extract_pub_league_items(data)
                 if pub_league_items:

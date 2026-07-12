@@ -31,9 +31,13 @@ logger = logging.getLogger(__name__)
 
 @auth.route('/register', methods=['GET', 'POST'])
 @limiter.limit(
-    # POST only — set_password() runs scrypt, which under gevent blocks every
-    # greenlet in the worker. GET just renders the form and stays unlimited.
-    "10 per hour",
+    # POST only — set_password() runs scrypt, which under gevent blocks every greenlet
+    # in the worker. GET just renders the form and stays unlimited.
+    #
+    # 40/hr, not 10: this is a LEAGUE. A whole team signing up together on one bar's
+    # WiFi shares a single public IP, and 10/hr would 429 the eleventh player. 40 still
+    # bounds the scrypt cost hard while leaving real-world signup bursts alone.
+    "40 per hour",
     key_func=lambda: f"web_register:{get_client_ip()}",
     methods=['POST'],
 )

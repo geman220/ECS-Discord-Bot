@@ -785,7 +785,14 @@ def _register_theme_colors_processor(app):
 
             if preset_slug and preset_slug != 'default':
                 from app.models import ThemePreset
-                preset = ThemePreset.query.filter_by(slug=preset_slug, is_enabled=True).first()
+                from app.utils.user_locking import get_session
+                # get_session(), not ThemePreset.query: Model.query binds to db.session,
+                # a different session from the request's g.db_session, so this context
+                # processor was checking out a second pooled connection on every render
+                # for any user with a non-default theme.
+                preset = get_session().query(ThemePreset).filter_by(
+                    slug=preset_slug, is_enabled=True
+                ).first()
                 if preset and preset.colors:
                     result['preset_colors'] = preset.colors
                     # JSON for injection into blocking script

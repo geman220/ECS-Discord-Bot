@@ -366,9 +366,17 @@ def login():
 
 
 def _2fa_user_key():
-    """Rate-limit bucket keyed on the account being attacked, not the attacker."""
+    """Rate-limit bucket keyed on the account being attacked, not the attacker.
+
+    Falls back to the IP when user_id is absent: otherwise every malformed request
+    shares one `...:None` bucket, and 20 junk posts an hour would lock that bucket for
+    any legitimate client that happens to send a bad body.
+    """
     body = request.get_json(silent=True) or {}
-    return f"mobile_2fa_user:{body.get('user_id')}"
+    user_id = body.get('user_id')
+    if not user_id:
+        return f"mobile_2fa_nouser:{get_client_ip()}"
+    return f"mobile_2fa_user:{user_id}"
 
 
 @mobile_api_v2.route('/verify_2fa', methods=['POST'])

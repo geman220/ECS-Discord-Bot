@@ -3,18 +3,36 @@
 """
 Static File Serving Module
 
-This module configures custom static file serving for the Flask application.
-It provides secure path handling, ETag caching, and proper content type and
-cache-control headers when serving static files.
+!! NOT WIRED UP. `configure_static_serving()` is never called anywhere — static files
+are served by Flask's own built-in /static route. The live cache-control policy lives
+in app/compression.py::init_compression (which IS called, via app/assets.py). Change it
+there, not here.
+
+Two things to fix BEFORE ever enabling this module:
+  1. `@cache_static_file()` is `cache.memoize(timeout=86400)` keyed only on the
+     filename — it is request-insensitive, so it would replay a memoized 200-with-body
+     for 24h and never emit a 304.
+  2. Confirm the Cache-Control policy below still matches compression.py's.
+
+Kept because it has the correct secure path-traversal handling, and someone clearly
+intended to use it.
 """
 
 import logging
 import mimetypes
 import os
+import re
 from pathlib import Path
 
 from flask import current_app, request, send_from_directory
 from app.database.cache import cache_static_file
+
+# Vite emits content-hashed names like vite-dist/js/main-BRZkLLqg.js — exactly 8
+# hash chars. ONLY those may be cached `immutable`, because a rebuild gives them a
+# new URL, so the bytes at this URL genuinely never change. Deliberately anchored to
+# vite-dist/ and to exactly 8 chars: a looser pattern would falsely match a hand-named
+# file like `js/some-verylongname.js` and pin it in every browser cache for a year.
+_HASHED_ASSET_RE = re.compile(r'^vite-dist/.*-[A-Za-z0-9_-]{8}\.(?:js|css)$')
 
 logger = logging.getLogger(__name__)
 
@@ -61,13 +79,14 @@ def configure_static_serving(app):
             if not file_path.exists():
                 return app.send_static_file('404.html'), 404
 
-            # ETag handling: if the client's ETag matches and not in debug mode, return 304.
-            if request.if_none_match and not current_app.config.get('DEBUG', False):
-                response = current_app.make_response("")
-                response.status_code = 304
-                return response
-
-            # Serve the file from the static directory.
+            # Serve the file. send_from_directory sets a real ETag/Last-Modified from
+            # the file itself and handles conditional GET properly.
+            #
+            # This used to short-circuit to 304 whenever the client merely SENT an
+            # If-None-Match header, without ever comparing it to the file's actual
+            # ETag. Any browser holding a stale copy was told "not modified" forever,
+            # no matter what the file now contained — so shipping a CSS or JS change
+            # simply never reached returning users.
             response = send_from_directory(static_folder, filename)
 
             # Determine and set the correct content type.
@@ -75,11 +94,20 @@ def configure_static_serving(app):
             if content_type:
                 response.headers['Content-Type'] = content_type
 
-            # Set additional headers for caching and security.
-            # Add immutable flag for static assets that won't change
-            is_immutable = filename.endswith(('.js', '.css', '.woff', '.woff2', '.ttf', '.jpg', '.jpeg', '.png', '.gif', '.svg', '.ico'))
+            # `immutable` promises the bytes at this URL can NEVER change, so it is
+            # only safe on content-hashed filenames (main-BRZkLLqg.js), where a new
+            # build yields a new URL. Applying it to a fixed name like tailwind.css
+            # pins every returning visitor to the old stylesheet for a year.
+            is_hashed = bool(_HASHED_ASSET_RE.search(filename))
+            if is_hashed:
+                cache_control = 'public, max-age=31536000, immutable'
+            else:
+                # Unhashed: let the browser cache, but make it revalidate so a deploy
+                # actually lands. The 304 costs a round trip, not a download.
+                cache_control = 'public, max-age=0, must-revalidate'
+
             response.headers.update({
-                'Cache-Control': f'public, max-age=31536000{", immutable" if is_immutable else ""}',
+                'Cache-Control': cache_control,
                 'X-Content-Type-Options': 'nosniff',
                 'Access-Control-Allow-Origin': '*'
             })

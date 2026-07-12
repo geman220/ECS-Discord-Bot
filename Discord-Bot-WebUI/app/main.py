@@ -26,7 +26,7 @@ from flask import (
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
-from sqlalchemy import or_, func, text
+from sqlalchemy import or_, func
 from werkzeug.utils import secure_filename
 
 from app.models import (
@@ -711,41 +711,6 @@ def index():
         two_weeks_later = today + timedelta(weeks=2)
         one_week_ago = today - timedelta(weeks=1)
         yesterday = today - timedelta(days=1)
-        
-        # Debug teams and match relationship directly using SQL
-        if user_teams:
-            team_ids_str = ", ".join(str(t.id) for t in user_teams)
-            try:
-                # Find all matches for these teams
-                match_query = text(f"""
-                    SELECT 
-                        m.id, 
-                        m.date, 
-                        m.time, 
-                        m.location,
-                        h.id as home_team_id, 
-                        h.name as home_team_name,
-                        a.id as away_team_id, 
-                        a.name as away_team_name
-                    FROM 
-                        matches m
-                    JOIN 
-                        team h ON m.home_team_id = h.id
-                    JOIN 
-                        team a ON m.away_team_id = a.id
-                    WHERE 
-                        m.home_team_id IN ({team_ids_str}) OR m.away_team_id IN ({team_ids_str})
-                    ORDER BY 
-                        m.date, m.time
-                """)
-                
-                match_results = session.execute(match_query).fetchall()
-                
-                # Only log basic info about SQL query results at debug level
-                logger.debug(f"Found {len(match_results)} matches for user teams")
-                
-            except Exception as e:
-                logger.error(f"Error in direct SQL query: {e}")
         
         # For upcoming matches - show matches from today forward
         next_matches = fetch_upcoming_matches(

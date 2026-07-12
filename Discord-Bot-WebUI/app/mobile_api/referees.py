@@ -14,7 +14,8 @@ import logging
 from datetime import datetime, timedelta
 from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy.orm import joinedload, aliased
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload, aliased, selectinload
 
 from app.mobile_api import mobile_api_v2
 from app.decorators import jwt_role_required
@@ -139,11 +140,68 @@ def get_available_refs_for_match(match_id: int):
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Get all available refs
-        refs = session.query(Player).filter_by(
+        # Get all available refs.
+        #
+        # This loop used to run FIVE queries PER REFEREE — ref.teams lazy-load, an
+        # assignment-conflict check, a playing-conflict check, a this-week count and a
+        # total count. Twenty refs meant ~100 queries for one dropdown. Every one of
+        # them is now a single set-based query, so the cost is flat regardless of how
+        # many referees exist.
+        refs = session.query(Player).options(
+            selectinload(Player.teams)          # kills the per-ref ref.teams lazy load
+        ).filter_by(
             is_ref=True,
             is_available_for_ref=True
         ).all()
+
+        ref_ids = [r.id for r in refs]
+        week_start = match.date - timedelta(days=match.date.weekday()) if match.date else None
+        week_end = week_start + timedelta(days=6) if week_start else None
+
+        assigned_conflicts = set()
+        playing_conflicts = set()
+        week_counts = {}
+        total_counts = {}
+
+        if ref_ids:
+            # Refs already reffing another match at this date/time.
+            assigned_conflicts = {
+                r[0] for r in session.query(Match.ref_id).filter(
+                    Match.ref_id.in_(ref_ids),
+                    Match.date == match.date,
+                    Match.time == match.time,
+                    Match.id != match_id,
+                ).all()
+            }
+
+            # Refs PLAYING in another match at this date/time.
+            playing_conflicts = {
+                r[0] for r in session.query(player_teams.c.player_id).join(
+                    Match,
+                    (Match.home_team_id == player_teams.c.team_id) |
+                    (Match.away_team_id == player_teams.c.team_id)
+                ).filter(
+                    player_teams.c.player_id.in_(ref_ids),
+                    Match.date == match.date,
+                    Match.time == match.time,
+                    Match.id != match_id,
+                ).all()
+            }
+
+            if week_start and week_end:
+                week_counts = dict(
+                    session.query(Match.ref_id, func.count(Match.id)).filter(
+                        Match.ref_id.in_(ref_ids),
+                        Match.date >= week_start,
+                        Match.date <= week_end,
+                    ).group_by(Match.ref_id).all()
+                )
+
+            total_counts = dict(
+                session.query(Match.ref_id, func.count(Match.id)).filter(
+                    Match.ref_id.in_(ref_ids)
+                ).group_by(Match.ref_id).all()
+            )
 
         available_refs = []
         for ref in refs:
@@ -152,51 +210,17 @@ def get_available_refs_for_match(match_id: int):
             if match.home_team_id in ref_team_ids or match.away_team_id in ref_team_ids:
                 continue
 
-            # Check if ref is already assigned to another match at same time
-            conflicting_assignment = session.query(Match).filter(
-                Match.ref_id == ref.id,
-                Match.date == match.date,
-                Match.time == match.time,
-                Match.id != match_id
-            ).first()
-
-            if conflicting_assignment:
+            if ref.id in assigned_conflicts:
                 continue
 
-            # Check if ref is playing in another match at same time
-            conflicting_player_match = session.query(Match).join(
-                player_teams,
-                (Match.home_team_id == player_teams.c.team_id) |
-                (Match.away_team_id == player_teams.c.team_id)
-            ).filter(
-                player_teams.c.player_id == ref.id,
-                Match.date == match.date,
-                Match.time == match.time,
-                Match.id != match_id
-            ).first()
-
-            if conflicting_player_match:
+            if ref.id in playing_conflicts:
                 continue
-
-            # Count matches assigned in current week
-            week_start = match.date - timedelta(days=match.date.weekday()) if match.date else None
-            week_end = week_start + timedelta(days=6) if week_start else None
-
-            matches_this_week = 0
-            if week_start and week_end:
-                matches_this_week = session.query(Match).filter(
-                    Match.ref_id == ref.id,
-                    Match.date >= week_start,
-                    Match.date <= week_end
-                ).count()
-
-            total_matches = session.query(Match).filter_by(ref_id=ref.id).count()
 
             available_refs.append({
                 "id": ref.id,
                 "name": ref.name,
-                "matches_this_week": matches_this_week,
-                "total_matches_assigned": total_matches
+                "matches_this_week": week_counts.get(ref.id, 0),
+                "total_matches_assigned": total_counts.get(ref.id, 0)
             })
 
         # Also include current ref if one is assigned
