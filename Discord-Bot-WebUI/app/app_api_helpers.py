@@ -928,12 +928,30 @@ def process_matches_data(matches: List[Match], player: Optional[Player],
         if team_ids:
             preload_team_stats_for_request(list(team_ids), session=session)
 
+    # Bulk-load events too. `match.events` is a lazy relationship, so this was one
+    # query PER MATCH — and PlayerEvent.to_dict() reads `self.reporter.username`,
+    # another lazy relationship, so it was a further query PER EVENT. That is what put
+    # /api/v1/matches?include_events=true at 63 queries for a 50-match window.
+    events_by_match = {}
+    if include_events and matches:
+        from app.models import PlayerEvent
+        from sqlalchemy.orm import selectinload
+        match_ids = [m.id for m in matches]
+        for ev in session.query(PlayerEvent).options(
+            selectinload(PlayerEvent.reporter)
+        ).filter(
+            PlayerEvent.match_id.in_(match_ids)
+        ).order_by(PlayerEvent.id).all():
+            events_by_match.setdefault(ev.match_id, []).append(ev)
+
     matches_data = []
     for match in matches:
         match_data = match.to_dict(include_teams=True)
 
         if include_events:
-            match_data['events'] = [event.to_dict() for event in match.events]
+            match_data['events'] = [
+                event.to_dict() for event in events_by_match.get(match.id, ())
+            ]
 
         if include_availability and player:
             availability = availability_dict.get(match.id)

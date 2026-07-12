@@ -47,12 +47,69 @@ def get_impersonated_permissions():
     return None
 
 
+def _real_roles_and_permissions():
+    """Load the current user's real roles AND permissions ONCE per request.
+
+    This is the hottest code path in the app — request_handlers calls BOTH
+    get_effective_roles() and get_effective_permissions() on every single request, and
+    each of them used to do:
+
+        session_db.query(User).options(selectinload(...)).get(id)
+
+    `.get()` hits the identity map (Flask-Login has already loaded this User), so the
+    selectinload options were silently DISCARDED — and then `db_user.roles` lazy-loaded,
+    and `role.permissions` lazy-loaded ONCE PER ROLE. That is why an endpoint whose own
+    body runs a single COUNT was measured at 8-11 queries, on every poll, from every
+    open tab.
+
+    One populated load, cached on g, feeds both callers.
+
+    Returns (role_names, permission_names), or None if it can't determine them.
+    """
+    cached = getattr(g, '_real_roles_perms', None)
+    if cached is not None:
+        return cached
+
+    session_db = getattr(g, 'db_session', None)
+    if session_db is None:
+        return None
+
+    from app.models import User
+    from sqlalchemy.orm import selectinload
+
+    # populate_existing() forces the loader options to apply even though the User is
+    # already in the identity map — without it, .get() returns the bare cached object
+    # and every relationship falls back to a lazy load.
+    db_user = (
+        session_db.query(User)
+        .options(selectinload(User.roles).selectinload(Role.permissions))
+        .populate_existing()
+        .get(safe_current_user.id)
+    )
+    if not db_user:
+        return None
+
+    role_names = [role.name for role in db_user.roles]
+    permission_names = [
+        permission.name
+        for role in db_user.roles
+        for permission in role.permissions
+    ]
+
+    result = (role_names, permission_names)
+    g._real_roles_perms = result
+    return result
+
+
 def get_effective_roles():
     """Get the effective roles (impersonated if active, otherwise real roles)."""
     if is_impersonation_active():
         return get_impersonated_roles()
     else:
         if safe_current_user.is_authenticated:
+            cached = _real_roles_and_permissions()
+            if cached is not None:
+                return cached[0]
             # Use session to get roles to avoid session binding issues
             from flask import g
             session_db = getattr(g, 'db_session', None)
@@ -97,6 +154,10 @@ def get_effective_permissions():
         return get_impersonated_permissions()
     else:
         if safe_current_user.is_authenticated:
+            cached = _real_roles_and_permissions()
+            if cached is not None:
+                return cached[1]
+
             # Use session to get roles and permissions to avoid session binding issues
             from flask import g
             session_db = getattr(g, 'db_session', None)

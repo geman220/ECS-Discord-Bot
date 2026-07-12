@@ -226,7 +226,17 @@ def player_profile(player_id):
         selectinload(Player.user),
         selectinload(Player.career_stats),
         selectinload(Player.season_stats),
-        selectinload(Player.events).selectinload(PlayerEvent.match),
+        # The chain has to go all the way to the TEAMS. The template renders
+        # `event.match.home_team.name` / `event.match.away_team.name`, so stopping at
+        # PlayerEvent.match left both teams to lazy-load once per event — ~30 queries
+        # on a player with a normal event history, and they fire during template
+        # render (after the transaction is released), so each takes a connection.
+        selectinload(Player.events)
+            .selectinload(PlayerEvent.match)
+            .joinedload(Match.home_team),
+        selectinload(Player.events)
+            .selectinload(PlayerEvent.match)
+            .joinedload(Match.away_team),
         selectinload(Player.admin_notes).selectinload(PlayerAdminNote.author).selectinload(User.player)
     ).get(player_id)
 
