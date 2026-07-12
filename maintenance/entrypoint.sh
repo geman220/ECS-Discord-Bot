@@ -5,8 +5,11 @@
 
 DATA_DIR="/usr/share/nginx/html/data"
 TIMESTAMP_FILE="$DATA_DIR/deploy_time.json"
-WEBUI_URL="http://webui:5000/"
-CHECK_INTERVAL=1
+# Probe the health endpoint, NOT "/". "/" is a 302 to the login page, which wget
+# follows — so every poll rendered the whole login template and cost 4 queries.
+# At a 1-second interval that was ~86k requests and ~350k queries a day.
+WEBUI_URL="http://webui:5000/api/health/"
+CHECK_INTERVAL=5
 STALE_THRESHOLD=300   # seconds — files older than 5 min are stale
 
 mkdir -p "$DATA_DIR"
