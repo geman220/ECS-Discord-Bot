@@ -431,11 +431,21 @@ def redis_draft_cache_api():
         from app.draft_cache_service import DraftCacheService
 
         cache_stats = DraftCacheService.get_cache_stats()
+        # DraftCacheService has NO flat PLAYER_DATA_TTL/DRAFT_ANALYTICS_TTL/... attributes.
+        # TTLs are adaptive and live in ACTIVE_DRAFT_TTL / INACTIVE_DRAFT_TTL, keyed by cache
+        # type. Referencing the flat names raised AttributeError, which the except below turned
+        # into a permanent 500 — this endpoint has never returned anything but an error.
+        # Keep the flat shape the template reads (ttl_settings.player_data, .analytics,
+        # .team_data, .availability), filled from the baseline (inactive) table, and expose
+        # both tables alongside it for the active-draft case.
+        _base = DraftCacheService.INACTIVE_DRAFT_TTL
         cache_stats['ttl_settings'] = {
-            'player_data': DraftCacheService.PLAYER_DATA_TTL,
-            'analytics': DraftCacheService.DRAFT_ANALYTICS_TTL,
-            'team_data': DraftCacheService.TEAM_DATA_TTL,
-            'availability': DraftCacheService.AVAILABILITY_TTL
+            'player_data': _base['player_data'],
+            'analytics': _base['analytics'],
+            'team_data': _base['team_data'],
+            'availability': _base['availability'],
+            'active_draft': DraftCacheService.ACTIVE_DRAFT_TTL,
+            'inactive_draft': DraftCacheService.INACTIVE_DRAFT_TTL,
         }
 
         return jsonify(cache_stats)
@@ -452,7 +462,10 @@ def redis_warm_draft_cache(league_name):
     try:
         from app.draft_cache_service import DraftCacheService
 
-        cache_status = DraftCacheService.warm_cache_for_league(league_name)
+        # warm_cache_for_league() does not exist; the real method is warm_cache_for_active_draft().
+        # It is correct HERE (an admin explicitly asked to warm this league) but NOT on the
+        # stats page, because it marks the draft active as a side effect.
+        cache_status = DraftCacheService.warm_cache_for_active_draft(league_name)
 
         # Log the action
         AdminAuditLog.log_action(

@@ -8,7 +8,7 @@ viewing connection statistics, and debugging Redis-related issues.
 """
 
 import logging
-from flask import Blueprint, render_template, jsonify, current_app
+from flask import Blueprint, render_template, jsonify, current_app, redirect, url_for
 from flask_login import login_required
 from app.decorators import role_required
 from app.utils.redis_manager import get_redis_manager, get_redis_connection
@@ -189,31 +189,23 @@ def cleanup_connections():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def draft_cache_stats():
-    """Display draft cache statistics and performance metrics."""
-    try:
-        from app.draft_cache_service import DraftCacheService
-        
-        # Get draft cache statistics
-        cache_stats = DraftCacheService.get_cache_stats()
-        
-        # Get cache warmth for leagues in current season
-        from app.models import League, Season
-        from flask import g
-        session = g.db_session
-        leagues = session.query(League).join(Season).filter(Season.is_current == True).all()
-        
-        league_cache_status = {}
-        for league in leagues:
-            league_cache_status[league.name] = DraftCacheService.warm_cache_for_league(league.name)
-        
-        return render_template('admin/draft_cache_stats_flowbite.html',
-                             cache_stats=cache_stats,
-                             league_cache_status=league_cache_status,
-                             leagues=[l.name for l in leagues])
-    
-    except Exception as e:
-        logger.error(f"Error getting draft cache stats: {e}")
-        return jsonify({'error': 'Internal Server Error'}), 500
+    """Retired duplicate — redirects to the canonical draft-cache page.
+
+    This route rendered templates/admin/draft_cache_stats_flowbite.html, a near-duplicate of
+    the admin_panel page that the nav actually links to. It had NEVER rendered: it called
+    DraftCacheService.warm_cache_for_league(), which does not exist, so it 500'd on every
+    request. Repairing it was not worth it — the template is broken independently of that:
+
+      * it reads league_status.get('players_available') at the TOP level, but
+        get_league_cache_status() nests those under 'cache_status', so every league would
+        render "Missing" even with a fully warm cache;
+      * two of its buttons POST to endpoints that do not exist
+        (/draft-cache-stats/invalidate-all and /draft-cache-stats/warm-cache -> 404).
+
+    admin_panel.redis_draft_cache_stats reads the nesting correctly, POSTs to real endpoints,
+    and is the one wired into the navigation. Send everyone there.
+    """
+    return redirect(url_for('admin_panel.redis_draft_cache_stats'))
 
 
 @redis_bp.route('/api/draft-cache-stats')
@@ -228,11 +220,21 @@ def draft_cache_stats_api():
         cache_stats = DraftCacheService.get_cache_stats()
         
         # Add TTL information
+        # DraftCacheService has NO flat PLAYER_DATA_TTL/DRAFT_ANALYTICS_TTL/... attributes.
+        # TTLs are adaptive and live in ACTIVE_DRAFT_TTL / INACTIVE_DRAFT_TTL, keyed by cache
+        # type. Referencing the flat names raised AttributeError, which the except below turned
+        # into a permanent 500 — this endpoint has never returned anything but an error.
+        # Keep the flat shape the template reads (ttl_settings.player_data, .analytics,
+        # .team_data, .availability), filled from the baseline (inactive) table, and expose
+        # both tables alongside it for the active-draft case.
+        _base = DraftCacheService.INACTIVE_DRAFT_TTL
         cache_stats['ttl_settings'] = {
-            'player_data': DraftCacheService.PLAYER_DATA_TTL,
-            'analytics': DraftCacheService.DRAFT_ANALYTICS_TTL,
-            'team_data': DraftCacheService.TEAM_DATA_TTL,
-            'availability': DraftCacheService.AVAILABILITY_TTL
+            'player_data': _base['player_data'],
+            'analytics': _base['analytics'],
+            'team_data': _base['team_data'],
+            'availability': _base['availability'],
+            'active_draft': DraftCacheService.ACTIVE_DRAFT_TTL,
+            'inactive_draft': DraftCacheService.INACTIVE_DRAFT_TTL,
         }
         
         return jsonify(cache_stats)
@@ -242,7 +244,10 @@ def draft_cache_stats_api():
         return jsonify({'error': 'Internal Server Error'}), 500
 
 
-@redis_bp.route('/warm-draft-cache/<league_name>')
+# POST, not GET: warm_cache_for_active_draft() calls mark_draft_active(), mutating
+# process-global state. As a GET it took no CSRF token, so an <img src=...> on any page
+# an admin loaded could flip a league's draft to active with their session cookie.
+@redis_bp.route('/warm-draft-cache/<league_name>', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def warm_draft_cache(league_name: str):
@@ -251,7 +256,10 @@ def warm_draft_cache(league_name: str):
         from app.draft_cache_service import DraftCacheService
 
         # Check current cache status
-        cache_status = DraftCacheService.warm_cache_for_league(league_name)
+        # warm_cache_for_league() does not exist; the real method is warm_cache_for_active_draft().
+        # It is correct HERE (an admin explicitly asked to warm this league) but NOT on the
+        # stats page, because it marks the draft active as a side effect.
+        cache_status = DraftCacheService.warm_cache_for_active_draft(league_name)
 
         return jsonify({
             'success': True,

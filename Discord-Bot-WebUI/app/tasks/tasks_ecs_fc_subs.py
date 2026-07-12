@@ -274,7 +274,17 @@ def notify_sub_pool_of_request(self, session, request_id: int) -> Dict[str, Any]
         return {'success': False, 'error': str(e)}
 
 
-@celery_task(name='notify_assigned_substitute')
+# NAME MUST BE FULLY QUALIFIED.
+# This task and app/tasks/tasks_substitute_pools.py BOTH declared name='notify_assigned_substitute'.
+# Celery's task registry is a dict keyed by NAME, so whichever module conf.imports loaded
+# SECOND silently overwrote the first — and tasks_ecs_fc_subs is listed after
+# tasks_substitute_pools (celery_config.py:61 vs :63), so the ECS FC implementation won.
+# .delay() dispatches BY NAME, so even the routes that explicitly imported the Pub League
+# symbol were enqueuing the ECS FC task — which then looked up an EcsFcSubAssignment using a
+# PUB LEAGUE assignment id. Those are independent id sequences: either no row was found (the
+# substitute was never notified at all) or a colliding row WAS found and the WRONG PLAYER was
+# notified about the WRONG MATCH.
+@celery_task(name='app.tasks.tasks_ecs_fc_subs.notify_assigned_substitute')
 def notify_assigned_substitute(self, session, assignment_id: int) -> Dict[str, Any]:
     """
     Send notification to the assigned substitute with match details.

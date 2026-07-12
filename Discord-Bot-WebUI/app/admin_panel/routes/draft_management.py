@@ -652,7 +652,16 @@ def draft_session_resume():
         return jsonify({'success': False, 'message': 'No paused draft to resume'}), 400
     ds.status = 'active'
     if ds.seconds_per_pick:
-        secs = ds.pause_remaining_seconds if ds.pause_remaining_seconds is not None else ds.seconds_per_pick
+        # `or`, NOT `is not None`. pause_remaining_seconds is legitimately 0 in two cases:
+        #   - draft_session_pause() stores max(0, remaining), so pausing an ALREADY-OVERDUE
+        #     draft records 0;
+        #   - the draft-clock task parks a timed-out pick with 0 left.
+        # With `is not None`, 0 survives and pick_deadline becomes utcnow() — expired the
+        # instant it is written. The clock task then re-fires within 15s, sees it overdue,
+        # and re-pauses (timeout_action='pause' => the admin can NEVER resume) or starts
+        # DMing the coach immediately (timeout_action='alert', the default) for a pick they
+        # got zero seconds on. A resumed pick with no time left gets a fresh full clock.
+        secs = ds.pause_remaining_seconds or ds.seconds_per_pick
         ds.pick_deadline = datetime.utcnow() + timedelta(seconds=secs)
     ds.pause_remaining_seconds = None
     state = draft_clock.build_state(db.session, ds)

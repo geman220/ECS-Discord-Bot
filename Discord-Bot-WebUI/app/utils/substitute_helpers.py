@@ -15,6 +15,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy import and_, or_
 
 from app.models import User, Player, Role, Team, League
+from app.models.players import player_teams  # association table; carries the is_coach flag
 from app.models.substitutes import (
     SubstitutePool, SubstituteRequest, SubstituteResponse, SubstituteAssignment,
     EcsFcSubRequest, EcsFcSubResponse, EcsFcSubAssignment, EcsFcSubPool
@@ -32,6 +33,35 @@ LEAGUE_ROLE_MAPPING = {
 
 ADMIN_ROLES = ['Global Admin', 'Pub League Admin']
 COACH_ROLES = ['Pub League Coach', 'ECS FC Coach']
+
+
+def _coach_team_ids(session, player_id: int) -> List[int]:
+    """Team IDs this player coaches, per player_teams.is_coach.
+
+    Replaces three copies of:
+
+        session.query(Team).join('player_teams').filter(
+            and_(Team.player_teams.any(player_id=...), Team.player_teams.any(is_coach=True)))
+
+    which was broken two ways and raised AttributeError every time a coach hit it:
+      1. `player_teams` is a module-level db.Table (an association table), NOT an
+         attribute of Team — `Team.player_teams` does not exist. Team exposes
+         `.players` (secondary=player_teams); the is_coach flag lives on the table.
+      2. `.join('player_teams')` is string-based join syntax, removed in SQLAlchemy 2.0.
+
+    Because get_user_substitute_permissions() wraps its whole body in
+    `except Exception: return {'error': ...}`, that AttributeError was swallowed and the
+    function returned an error dict instead of permissions — so every coach silently lost
+    coach_team_ids and can_create_requests, i.e. coaches could not create substitute
+    requests at all, and it looked like a config problem rather than a crash.
+
+    Also cheaper than the original: selects team ids only, no Team entities.
+    """
+    rows = session.query(player_teams.c.team_id).filter(
+        player_teams.c.player_id == player_id,
+        player_teams.c.is_coach.is_(True),
+    ).all()
+    return [r[0] for r in rows]
 
 # --- Canonical "actionable substitute request" definition -------------------
 # A sub request only matters while it can still be staffed. Statuses below are
@@ -137,18 +167,9 @@ def get_user_substitute_permissions(user_id: int, session) -> Dict[str, Any]:
 
         # Get coach team IDs if user is a coach
         if permissions['is_coach'] and user.player:
-            # Get teams where user is a coach
-            coach_teams = session.query(Team).join(
-                'player_teams'
-            ).filter(
-                and_(
-                    Team.player_teams.any(player_id=user.player.id),
-                    Team.player_teams.any(is_coach=True)
-                )
-            ).all()
-
-            permissions['coach_team_ids'] = [team.id for team in coach_teams]
-            permissions['can_create_requests'] = len(coach_teams) > 0
+            coached = _coach_team_ids(session, user.player.id)
+            permissions['coach_team_ids'] = coached
+            permissions['can_create_requests'] = bool(coached)
 
         # Admin can create requests for any team
         if permissions['is_admin']:
@@ -260,13 +281,7 @@ def can_edit_sub_request(user_id: int, request_obj, league_system: str, session)
                     is_requester = request_obj.requested_by == user_id
                     is_team_coach = False
                     if user.player:
-                        coach_teams = session.query(Team).join('player_teams').filter(
-                            and_(
-                                Team.player_teams.any(player_id=user.player.id),
-                                Team.player_teams.any(is_coach=True)
-                            )
-                        ).all()
-                        is_team_coach = request_obj.team_id in [t.id for t in coach_teams]
+                        is_team_coach = request_obj.team_id in _coach_team_ids(session, user.player.id)
                     if not is_requester and not is_team_coach:
                         return False, []
                 return True, admin_fields
@@ -279,13 +294,7 @@ def can_edit_sub_request(user_id: int, request_obj, league_system: str, session)
             if is_pub_league_coach:
                 # Coach can only edit their own team's requests
                 if user.player:
-                    coach_teams = session.query(Team).join('player_teams').filter(
-                        and_(
-                            Team.player_teams.any(player_id=user.player.id),
-                            Team.player_teams.any(is_coach=True)
-                        )
-                    ).all()
-                    if request_obj.team_id in [t.id for t in coach_teams]:
+                    if request_obj.team_id in _coach_team_ids(session, user.player.id):
                         return True, coach_fields
                 return False, []
 

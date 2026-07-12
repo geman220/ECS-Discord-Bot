@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 @celery_task(
     name='app.tasks.tasks_live_reporting_recovery.recover_missing_tasks',
-    queue='monitoring',
+    queue='celery',
     max_retries=1,
     soft_time_limit=120,  # 2 minutes
     time_limit=180,       # 3 minutes
@@ -288,7 +288,7 @@ check_and_start_missing_live_reporting = recover_missing_tasks
 
 @celery_task(
     name='app.tasks.tasks_live_reporting_recovery.monitor_stalled_sessions',
-    queue='monitoring',
+    queue='celery',
     max_retries=0,
     soft_time_limit=30,
     time_limit=45,

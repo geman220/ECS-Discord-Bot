@@ -993,10 +993,13 @@ def manage_rate_limits():
     
     # GET request - return current limits
     try:
+        # AdminConfig.get_setting_value() DOES NOT EXIST — only get_setting() does. The
+        # AttributeError landed in the except below, so this GET returned a 500 every
+        # single time and the rate-limit panel has never rendered its current values.
         current_limits = {
-            'per_minute': int(AdminConfig.get_setting_value('api_rate_limit_minute', '60')),
-            'per_hour': int(AdminConfig.get_setting_value('api_rate_limit_hour', '1000')),
-            'per_day': int(AdminConfig.get_setting_value('api_rate_limit_day', '10000'))
+            'per_minute': int(AdminConfig.get_setting('api_rate_limit_minute', 60)),
+            'per_hour': int(AdminConfig.get_setting('api_rate_limit_hour', 1000)),
+            'per_day': int(AdminConfig.get_setting('api_rate_limit_day', 10000))
         }
         return jsonify(current_limits)
     except Exception as e:

@@ -7,6 +7,7 @@ This module defines a periodic Celery task for database connection maintenance.
 Specifically, it cleans up idle transactions and connection pools every 5 minutes.
 """
 
+import os
 import logging
 import json
 from datetime import datetime, timedelta
@@ -21,61 +22,28 @@ from celery.schedules import crontab
 logger = logging.getLogger(__name__)
 
 
-@celery.on_after_configure.connect
-def setup_periodic_tasks(sender, **kwargs):
-    """
-    Configure periodic tasks after Celery is set up.
-
-    Schedules the following tasks:
-    - cleanup_database_connections: Run every 5 minutes
-    - cleanup_old_sub_assignments: Run every Monday at midnight
-    """
-    # Database connection cleanup - every 5 minutes
-    sender.add_periodic_task(
-        300.0,  # 300 seconds = 5 minutes
-        cleanup_database_connections.s(),
-        name='cleanup-database-connections'
-    )
-    
-    # Sub assignment cleanup - every Monday at midnight
-    sender.add_periodic_task(
-        crontab(hour=0, minute=0, day_of_week=1),  # Monday at midnight
-        cleanup_old_sub_assignments.s(),
-        name='cleanup-old-sub-assignments'
-    )
-    
-    # Scheduled message cleanup - daily at 2 AM
-    sender.add_periodic_task(
-        crontab(hour=2, minute=0),  # Daily at 2 AM
-        cleanup_old_scheduled_messages.s(),
-        name='cleanup-old-scheduled-messages'
-    )
-
-    # Presence SET cleanup - every 5 minutes
-    # Removes stale entries from Redis SET (handles server crashes, etc.)
-    sender.add_periodic_task(
-        300.0,  # 300 seconds = 5 minutes
-        cleanup_presence_set.s(),
-        name='cleanup-presence-set'
-    )
-
-    # Expire substitute requests whose match date has passed - daily at 3 AM.
-    # Keeps the Priority Fill Queue / sub-request boards free of stale OPEN
-    # requests for matches that already happened (both Pub League + ECS FC).
-    sender.add_periodic_task(
-        crontab(hour=3, minute=0),
-        expire_past_match_sub_requests.s(),
-        name='expire-past-match-sub-requests'
-    )
-
-    # Recompute player attendance stats nightly at 4 AM so career/season attendance
-    # stays current as RSVPs come in (counts only week_type='REGULAR' games). This is
-    # the safety net; the data had gone stale because nothing recomputed it.
-    sender.add_periodic_task(
-        crontab(hour=4, minute=0),
-        recalculate_all_attendance_stats.s(),
-        name='recalculate-all-attendance-stats'
-    )
+# setup_periodic_tasks REMOVED — it was an @celery.on_after_configure.connect handler
+# that NEVER FIRED, so the six periodic tasks it registered were never scheduled.
+#
+# WHY IT NEVER FIRED: Celery sends on_after_configure when it finalizes its config,
+# which happens the moment it READS conf.imports. This module is IN conf.imports
+# (app/config/celery_config.py:57) — so by the time it gets imported, the signal has
+# already been sent, and connecting a handler afterwards is too late.
+#
+# It was not a theory. player_attendance_stats was last computed 2026-06-03, 39 days
+# stale, with 78 of 248 players still at season_matches_invited = 0 — which is exactly
+# the condition that makes the coach dashboard recompute attendance live from raw RSVP
+# rows on every single load. Substitute requests were never expiring either.
+#
+# The five WORKING tasks now live in the static CeleryConfig.beat_schedule
+# (app/config/celery_config.py), where beat actually reads them.
+#
+# The sixth, cleanup_database_connections, is deliberately NOT scheduled: it calls
+# db_manager.terminate_idle_transactions() and .cleanup_connections(), neither of which
+# exists on DatabaseManager — it would raise AttributeError every 5 minutes. It is also
+# obsolete; idle-in-transaction was fixed by the pgbouncer web/celery pool split and the
+# commit-before-render hook. Left in place (unscheduled) rather than deleted, in case
+# something calls it directly.
 
 
 @celery.task
@@ -596,3 +564,46 @@ def expire_past_match_sub_requests(self, session):
     session.commit()
     logger.info(f"expire_past_match_sub_requests: expired {len(pl)} Pub League + {len(ecs)} ECS FC past-match requests")
     return {'pub_league_expired': len(pl), 'ecs_fc_expired': len(ecs)}
+
+@celery_task(
+    name='app.tasks.tasks_maintenance.cleanup_task_executions',
+    bind=True,
+    queue='celery',
+    max_retries=1
+)
+def cleanup_task_executions(self, session):
+    """Trim the task_executions table to a rolling retention window.
+
+    Every @celery_task run INSERTs one row here (app/decorators.py::_record_task_execution)
+    to power the admin Task History page, and NOTHING pruned it. High-frequency beat tasks
+    make that unbounded: the draft clock alone runs every 15s = ~5,760 rows/day, and the
+    live-reporting watchdog every 2 min adds ~720 more. Left alone this table grows by
+    millions of rows a year on a 1-vCPU Postgres, and every INSERT is a pooled transaction.
+
+    Task History only ever looks at recent runs, so keep a rolling window and delete the
+    rest. Deleted in batches so we never hold a long transaction (a pgbouncer server slot is
+    pinned for the whole transaction — see the transaction-budget notes).
+    """
+    from datetime import datetime, timedelta
+    from app.models.api_logs import TaskExecution
+
+    retention_days = int(os.getenv('TASK_EXECUTION_RETENTION_DAYS', '14'))
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+
+    total = 0
+    while True:
+        ids = [
+            r[0] for r in session.query(TaskExecution.id)
+            .filter(TaskExecution.created_at < cutoff)
+            .limit(5000).all()
+        ]
+        if not ids:
+            break
+        session.query(TaskExecution).filter(TaskExecution.id.in_(ids)).delete(
+            synchronize_session=False
+        )
+        session.commit()
+        total += len(ids)
+
+    logger.info(f"cleanup_task_executions: deleted {total} rows older than {retention_days}d")
+    return {'deleted': total, 'retention_days': retention_days}

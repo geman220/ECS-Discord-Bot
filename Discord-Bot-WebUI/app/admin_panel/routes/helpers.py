@@ -372,7 +372,13 @@ def _check_push_service_status():
         # Check AdminConfig for push notification settings
         try:
             from app.models.admin_config import AdminConfig
-            push_enabled = AdminConfig.get_value('push_notifications_enabled', 'false').lower() == 'true'
+            # AdminConfig.get_value() DOES NOT EXIST — only get_setting() does. The
+            # AttributeError was caught by the except below, so this panel reported push
+            # as disabled 100% of the time regardless of the real setting. get_setting()
+            # returns the *parsed* value (a real bool when data_type='boolean'), but fall
+            # back to string coercion in case the row was stored as a plain string.
+            raw = AdminConfig.get_setting('push_notifications_enabled', False)
+            push_enabled = raw if isinstance(raw, bool) else str(raw).strip().lower() in ('true', '1', 'yes', 'on')
         except Exception:
             push_enabled = False
         

@@ -68,7 +68,12 @@ function updateDraftCacheStats() {
  * Warm cache for a specific league
  */
 function warmCache(leagueName) {
-    fetch(`/admin/redis/warm-draft-cache/${encodeURIComponent(leagueName)}`)
+    // POST + CSRF: warming marks the draft active (mutates state), so it must not be a GET.
+    const csrf = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+    fetch(`/admin/redis/warm-draft-cache/${encodeURIComponent(leagueName)}`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrf }
+    })
         .then(response => response.json())
         .then(data => {
             if (data.error) {

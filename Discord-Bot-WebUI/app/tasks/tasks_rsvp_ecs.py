@@ -582,7 +582,7 @@ def send_ecs_fc_match_notification(self, session, match_id: int, notification_ty
         raise self.retry(exc=e, countdown=30)
 
 
-@celery_task(name='app.tasks.tasks_rsvp_ecs.cleanup_old_ecs_fc_availabilities', max_retries=3, queue='maintenance')
+@celery_task(name='app.tasks.tasks_rsvp_ecs.cleanup_old_ecs_fc_availabilities', max_retries=3, queue='discord')
 def cleanup_old_ecs_fc_availabilities(self, session, days_old: int = 90) -> Dict[str, Any]:
     """
     Clean up old ECS FC availability records.
@@ -642,7 +642,7 @@ send_rsvp_reminder_task = send_ecs_fc_rsvp_reminder
 notify_discord_of_rsvp_change_task = notify_ecs_fc_discord_of_rsvp_change_task
 
 
-@celery_task(name='app.tasks.tasks_rsvp_ecs.schedule_ecs_fc_rsvp_reminders', max_retries=3, queue='maintenance')
+@celery_task(name='app.tasks.tasks_rsvp_ecs.schedule_ecs_fc_rsvp_reminders', max_retries=3, queue='discord')
 def schedule_ecs_fc_rsvp_reminders(self, session) -> Dict[str, Any]:
     """
     Scheduled task to send automatic RSVP reminders for upcoming ECS FC matches.

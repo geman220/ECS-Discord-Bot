@@ -67,21 +67,6 @@ def get_player_notifications(user_id):
         .all()
 
 
-def get_player_with_team(user_id):
-    """
-    Retrieve a Player along with their associated team information.
-
-    Args:
-        user_id: The ID of the user.
-
-    Returns:
-        A Player object with the team relationship eagerly loaded, or None if not found.
-    """
-    return Player.query.options(db.joinedload(Player.team))\
-        .filter_by(user_id=user_id)\
-        .first()
-
-
 def create_or_update_player(session, user_id, phone_number):
     """
     Create or update a Player record with the provided phone number.

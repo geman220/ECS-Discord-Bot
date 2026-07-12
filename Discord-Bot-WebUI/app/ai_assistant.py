@@ -512,12 +512,16 @@ def ask():
 
             accessible_role_names = get_accessible_roles(user_profile.get('roles', []))
 
+            # HelpTopic has no `roles` (it's `allowed_roles`) and no `content` (it's
+            # `markdown_content`). Both AttributeErrors were swallowed by the except below,
+            # so help_topics was ALWAYS [] — the assistant has never been grounded on a
+            # single help topic.
             topics = HelpTopic.query.filter(
-                HelpTopic.roles.any(Role.name.in_(accessible_role_names))
+                HelpTopic.allowed_roles.any(Role.name.in_(accessible_role_names))
             ).all()
 
             help_topics = [
-                {'title': t.title, 'content': t.content[:500]}
+                {'title': t.title, 'content': (t.markdown_content or '')[:500]}
                 for t in topics[:30]
             ]
         except Exception:

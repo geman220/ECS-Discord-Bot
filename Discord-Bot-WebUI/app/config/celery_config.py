@@ -77,6 +77,11 @@ class CeleryConfig:
         'app.tasks.check_in_tasks',  # Match check-in: nightly venue token backfill
         'app.tasks.wallet_refresh_tasks',  # Wallet pass auto-refresh + daily relevantDate sweep
         'app.tasks.tasks_surveys',  # Survey auto-open/auto-close schedule sweep
+        # Not under app/tasks/, but it DECLARES a task ('clean_zombie_tasks') that beat
+        # schedules. It only registered by accident: the worker calls create_app(), whose
+        # blueprints import app.utils.task_monitor at module level. Make it explicit — the day
+        # a route refactor makes that import lazy, the beat entry becomes a black hole again.
+        'app.utils.task_monitor',
     )
 
     # Task Settings - Industry Best Practices
@@ -212,6 +217,70 @@ class CeleryConfig:
 
     # Beat Schedule: periodic tasks and their schedules
     beat_schedule = {
+        # ── Maintenance tasks, moved here from an @celery.on_after_configure.connect
+        # handler in app/tasks/tasks_maintenance.py that NEVER FIRED.
+        #
+        # The signal is sent when Celery finalizes its config — which happens when it
+        # READS conf.imports — so by the time tasks_maintenance.py was imported (because
+        # it is IN conf.imports), the signal had already been sent and the handler
+        # connected too late. Six periodic tasks were silently never scheduled.
+        #
+        # Proof, not theory: player_attendance_stats was last computed 2026-06-03 —
+        # 39 days stale — and 78 of 248 players still have season_matches_invited = 0,
+        # which is exactly the condition that makes the coach dashboard recompute
+        # attendance live from raw RSVP rows on every load. Stale substitute requests
+        # were never expiring either.
+        #
+        # DELIBERATELY NOT INCLUDED: 'cleanup-database-connections'. It calls
+        # db_manager.terminate_idle_transactions() and .cleanup_connections(), NEITHER
+        # OF WHICH EXISTS on DatabaseManager — it would raise AttributeError every 5
+        # minutes. It is also obsolete: idle-in-transaction was fixed properly by the
+        # pgbouncer web/celery pool split and the commit-before-render hook.
+        'recalculate-all-attendance-stats': {
+            'task': 'app.tasks.tasks_maintenance.recalculate_all_attendance_stats',
+            'schedule': crontab(hour=4, minute=0),
+            'options': {'queue': 'celery'},
+        },
+        'expire-past-match-sub-requests': {
+            'task': 'app.tasks.tasks_maintenance.expire_past_match_sub_requests',
+            'schedule': crontab(hour=3, minute=0),
+            'options': {'queue': 'celery'},
+        },
+        'cleanup-old-sub-assignments': {
+            'task': 'app.tasks.tasks_maintenance.cleanup_old_sub_assignments',
+            'schedule': crontab(hour=0, minute=0, day_of_week=1),
+            'options': {'queue': 'celery'},
+        },
+        'cleanup-old-scheduled-messages': {
+            'task': 'app.tasks.tasks_maintenance.cleanup_old_scheduled_messages',
+            'schedule': crontab(hour=2, minute=0),
+            'options': {'queue': 'celery'},
+        },
+        'cleanup-presence-set': {
+            'task': 'app.tasks.tasks_maintenance.cleanup_presence_set',
+            'schedule': crontab(minute='*/5'),
+            'options': {'queue': 'celery'},
+        },
+
+        # Same dead-signal bug, second victim: the draft "on the clock" enforcer was
+        # registered by an @celery.on_after_configure.connect handler in
+        # app/tasks/tasks_draft_clock.py that never fired — so the draft timer has
+        # NEVER run and picks were never auto-advanced on timeout.
+        #
+        # QUEUE MUST BE 'celery', NOT 'default'.
+        # The task's own decorator says queue='default' — but NO WORKER CONSUMES 'default'.
+        # The workers' -Q flags are: celery,player_sync (celery_worker.py:66), discord,
+        # live_reporting, enterprise_rsvp. Publishing to 'default' would drop the message
+        # into a Redis list nobody reads, and the clock would STILL never fire — the exact
+        # bug we are fixing, just moved one layer down. Beat's options.queue wins over the
+        # task's own queue, so this override is what makes it actually run.
+        # expires=14 so a backlog can't pile up if the worker stalls (15s cadence).
+        'enforce-draft-clock': {
+            'task': 'app.tasks.tasks_draft_clock.enforce_draft_clock',
+            'schedule': 15.0,
+            'options': {'queue': 'celery', 'expires': 14},
+        },
+
         'collect-db-stats': {
             'task': 'app.tasks.monitoring_tasks.collect_db_stats',
             'schedule': crontab(minute='*/15'),
@@ -397,11 +466,23 @@ class CeleryConfig:
         # Live Reporting Watchdog - Flag active sessions that aren't being polled
         # (caught the 2026-04-16 ESPN-client silent-mock-data incident post hoc;
         # this task would have surfaced it within 3 minutes of the session going stale).
+        # Trim task_executions. Every @celery_task run inserts a row there and NOTHING
+        # pruned it; the 15s draft clock alone adds ~5,760/day. Unbounded growth on a
+        # 1-vCPU Postgres. Runs at 03:40 local, off-peak.
+        'cleanup-task-executions': {
+            'task': 'app.tasks.tasks_maintenance.cleanup_task_executions',
+            'schedule': crontab(hour=3, minute=40),
+            'options': {'queue': 'celery', 'expires': 3600},
+        },
+
         'monitor-stalled-live-sessions': {
             'task': 'app.tasks.tasks_live_reporting_recovery.monitor_stalled_sessions',
+            # was queue 'monitoring' — NO WORKER CONSUMES IT, so the live-reporting stall
+            # watchdog has never run. 'celery' deliberately, not 'live_reporting': a watchdog
+            # must not run on the same worker it is supposed to notice has stalled.
             'schedule': crontab(minute='*/2'),
             'options': {
-                'queue': 'monitoring',
+                'queue': 'celery',
                 'expires': 90,
                 'time_limit': 45,
                 'soft_time_limit': 30,

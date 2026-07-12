@@ -15,12 +15,13 @@ import logging
 from flask import Blueprint, render_template, redirect, url_for, request, g
 from flask_login import login_required
 from sqlalchemy.exc import SQLAlchemyError
+from app.tasks.tasks_discord import process_discord_role_updates
 
 # Local application imports
 from app.decorators import role_required
 from app.models import Season, League, Team, Player
 from app.alert_helpers import show_success, show_error, show_warning, show_info
-from app.discord_utils import delete_team_roles, assign_roles_to_player
+from app.discord_utils import delete_team_roles
 from app.tasks.tasks_discord import cleanup_team_discord_resources_task, create_team_discord_resources_task, update_team_discord_resources_task
 
 logger = logging.getLogger(__name__)
@@ -35,29 +36,16 @@ publeague.register_blueprint(season_bp, url_prefix='/seasons')
 publeague.register_blueprint(schedule_bp, url_prefix='/schedules')
 
 
-async def assign_roles_to_players(session, players):
-    """
-    Asynchronously assign Discord roles to multiple players with rate limiting.
-
-    Args:
-        session: Database session.
-        players: List of player objects.
-    """
-    semaphore = asyncio.Semaphore(10)
-    
-    async def sem_task(player):
-        async with semaphore:
-            try:
-                await assign_roles_to_player(session, player)
-            except Exception as e:
-                logger.error(f"Error assigning roles to player {player.id}: {str(e)}")
-                # Continue processing other players even if one fails
-
-    try:
-        await asyncio.gather(*(sem_task(player) for player in players))
-    except Exception as e:
-        logger.error(f"Error in role assignment batch: {str(e)}")
-        raise
+# assign_roles_to_players() REMOVED. It called discord_utils.assign_roles_to_player(),
+# whose real signature is assign_roles_to_player(guild_id: int, player) — this passed the
+# SQLAlchemy Session as guild_id. The Session got interpolated into the bot-API URL, which
+# 404'd, logged an error, and raised NOTHING, so the per-player except swallowed it and the
+# route reported success having assigned zero roles. It also ran Discord HTTP for the whole
+# roster inside g.db_session's OPEN TRANSACTION (asyncio.run + semaphore(10)), which pins a
+# pgbouncer slot for minutes -> "FATAL: idle transaction timeout".
+#
+# The route now dispatches the canonical batch task instead (process_discord_role_updates),
+# which is what every other bulk role-sync surface in the app already uses.
 
 
 @publeague.before_request
@@ -307,18 +295,33 @@ def assign_discord_roles():
     """
     session = g.db_session
     try:
-        players = session.query(Player).filter(
-            Player.discord_id.isnot(None),
-            Player.team_id.isnot(None)
-        ).all()
+        # Player.team_id DOES NOT EXIST — team membership is the player_teams many-to-many
+        # (Player.teams). The AttributeError was swallowed by the except below, so this route
+        # never once worked; it always flashed "Error occurred while assigning Discord roles."
+        # teams.any() also beats primary_team_id, which would miss anyone rostered without a
+        # primary team set. Select only discord_id — the task takes ids, not ORM objects.
+        discord_ids = [
+            row[0] for row in session.query(Player.discord_id).filter(
+                Player.discord_id.isnot(None),
+                Player.teams.any()
+            ).distinct()
+        ]
 
-        if not players:
+        if not discord_ids:
             show_info('No eligible players found for role assignment.')
             return redirect(url_for('publeague.manage_teams'))
 
-        asyncio.run(assign_roles_to_players(session, players))
-        
-        show_success('Discord roles have been assigned to all eligible players.')
+        # only_add=True: this route ASSIGNS. The default reconcile also REVOKES, and a single
+        # bad expected-role calculation would strip the whole roster's Discord access
+        # (see the warning in tasks_discord._extract_batch_role_update_data).
+        process_discord_role_updates.delay(discord_ids, only_add=True)
+
+        # Honest wording: the work is queued, not done. The old copy claimed roles "have been
+        # assigned" even when every single assignment failed.
+        show_success(
+            f'Discord role sync queued for {len(discord_ids)} players. '
+            f'Changes should take effect within a few minutes.'
+        )
         return redirect(url_for('publeague.manage_teams'))
     except Exception as e:
         logger.error(f"Error assigning Discord roles: {str(e)}")

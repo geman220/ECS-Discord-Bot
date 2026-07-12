@@ -19,15 +19,23 @@ design-system/DRAFT_ON_THE_CLOCK_PLAN.md.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.core import celery
 from app.decorators import celery_task
 
 logger = logging.getLogger(__name__)
 
+# A pick overdue by longer than this is not a slow coach, it is an abandoned session.
+# Nothing in the app forces a DraftSession out of 'active' — an admin who closes the
+# tab mid-draft leaves the row active forever — and this task never ran until now, so
+# stale 'active' rows from past drafts can still be in the table. Acting on one would
+# DM a coach escalating "you're on the clock" alerts about a draft nobody is running,
+# or, with timeout_action='skip', tear through every remaining pick unattended.
+ABANDONED_AFTER = timedelta(hours=2)
 
-@celery_task(name='app.tasks.tasks_draft_clock.enforce_draft_clock', bind=True, queue='default', max_retries=0)
+
+@celery_task(name='app.tasks.tasks_draft_clock.enforce_draft_clock', bind=True, queue='celery', max_retries=0)
 def enforce_draft_clock(self, session):
     """Advance or pause any active draft whose pick clock has expired."""
     from app.models import DraftSession
@@ -41,8 +49,25 @@ def enforce_draft_clock(self, session):
     ).all()
 
     acted = 0
+    abandoned = 0
     for ds in expired:
         try:
+            if (now - ds.pick_deadline) > ABANDONED_AFTER:
+                logger.warning(
+                    f"Draft session {ds.id} (S{ds.season_id}/L{ds.league_id}) is overdue by "
+                    f"{now - ds.pick_deadline} — treating as abandoned and parking it. "
+                    f"No coach will be alerted; an admin can resume it from the draft panel."
+                )
+                ds.status = 'paused'
+                # None, not 0: an abandoned draft that an admin later resumes should get a
+                # FULL fresh pick clock, not a zero-length one. (draft_session_resume also
+                # coerces a 0 to seconds_per_pick, so this is belt-and-braces.)
+                ds.pause_remaining_seconds = None
+                ds.pick_deadline = None
+                session.commit()
+                abandoned += 1
+                continue
+
             action = ds.timeout_action or 'alert'
             if action == 'skip':
                 state = draft_clock.advance(session, ds)
@@ -82,14 +107,16 @@ def enforce_draft_clock(self, session):
             session.rollback()
             logger.error(f"enforce_draft_clock error on session {ds.id}: {e}")
 
-    return {'checked': len(expired), 'acted': acted}
+    return {'checked': len(expired), 'acted': acted, 'abandoned': abandoned}
 
 
-@celery.on_after_configure.connect
-def setup_draft_clock_task(sender, **kwargs):
-    """Run the draft-clock enforcer every 15 seconds."""
-    sender.add_periodic_task(
-        15.0,
-        enforce_draft_clock.s(),
-        name='enforce-draft-clock',
-    )
+# setup_draft_clock_task REMOVED — same dead-signal bug as tasks_maintenance.
+#
+# @celery.on_after_configure.connect fires when Celery finalizes its config, which
+# happens when it READS conf.imports. This module IS in conf.imports
+# (app/config/celery_config.py:58), so the signal had already fired by the time this
+# handler was defined. It never ran, which means THE DRAFT CLOCK NEVER RAN: picks were
+# never auto-advanced when a coach's timer expired.
+#
+# Now scheduled statically as 'enforce-draft-clock' in CeleryConfig.beat_schedule,
+# where beat actually reads it.

@@ -228,15 +228,22 @@ def substitute_management():
             requested_teams_by_match[match_id][sub_request.team_id] = sub_request
 
         # Get available weeks from Schedule model
+        # Schedule has no `week_number` — the column is `week`, and it is a String. The
+        # AttributeError was swallowed by the except, which then fabricated range(1, 21),
+        # so this dropdown has always shown a made-up 1..20 rather than the real weeks.
+        # Sort numerically: as strings, "10" would sort before "2".
         weeks = []
         try:
             if current_season_ids:
-                schedules = Schedule.query.filter(
+                rows = Schedule.query.with_entities(Schedule.week).filter(
                     Schedule.season_id.in_(current_season_ids)
-                ).order_by(Schedule.week_number).all()
-                weeks = sorted(set(s.week_number for s in schedules if s.week_number))
+                ).distinct().all()
+                weeks = sorted({
+                    int(w) for (w,) in rows if w is not None and str(w).strip().isdigit()
+                })
         except Exception:
-            weeks = list(range(1, 21))
+            logger.exception("Could not load schedule weeks for the substitutes filter")
+            weeks = []
         current_week = week_filter or (weeks[0] if weeks else 1)
 
         return render_template(

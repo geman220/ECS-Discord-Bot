@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 @celery_task(
     name='app.tasks.ai_assistant_cleanup.cleanup_ai_logs',
     bind=True,
-    queue='default',
+    queue='celery',
     max_retries=1
 )
 def cleanup_ai_logs(self, session, retention_days=90):

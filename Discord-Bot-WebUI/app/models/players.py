@@ -291,21 +291,6 @@ class Player(db.Model):
             .filter(player_teams.c.player_id == self.id)
         ]
 
-    def get_all_teams(self, session=None):
-        teams = []
-        if self.primary_team:
-            teams.append(self.primary_team)
-    
-        if self.is_coach and session:
-            coached_team = session.query(Team).filter(
-                Team.coach_id == self.id,
-                Team.id != self.primary_team_id if self.primary_team_id else True
-            ).first()
-            if coached_team:
-                teams.append(coached_team)
-    
-        return teams
-
     def to_dict(self, public=False):
         base_url = request.host_url.rstrip('/')
         default_image = f"{base_url}/static/img/default_player.png"
