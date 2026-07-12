@@ -92,10 +92,13 @@ def get_teams():
         if cached_teams:
             teams_data = cached_teams
         else:
-            # Preload team stats to avoid N+1 queries
+            # Preload team stats to avoid N+1 queries. Pass session_db: the helper
+            # otherwise defaults to g.db_session, which is a DIFFERENT session from
+            # the managed_session() this route runs in — so the request would check
+            # out a second pooled connection and hold it for its whole life.
             from app.team_performance_helpers import preload_team_stats_for_request
             team_ids = [team.id for team in teams]
-            preload_team_stats_for_request(team_ids)
+            preload_team_stats_for_request(team_ids, session=session_db)
 
             teams_data = [
                 {
@@ -416,10 +419,11 @@ def get_team_stats(team_id: int):
             season_id=current_season.id if current_season else None
         ).first()
 
-        # Preload team stats scoped to current season
+        # Preload team stats scoped to current season. session_db, not the helper's
+        # g.db_session default — see the note in get_teams().
         from app.team_performance_helpers import preload_team_stats_for_request
         season_id = current_season.id if current_season else None
-        preload_team_stats_for_request([team.id], season_id=season_id)
+        preload_team_stats_for_request([team.id], session=session_db, season_id=season_id)
 
         # Read from season-scoped preloaded cache (not model properties which are all-time)
         from app.team_performance_helpers import get_team_stats_cached
@@ -585,10 +589,11 @@ def get_my_teams():
         if not teams:
             return jsonify({"msg": "No teams found for this player"}), 404
 
-        # Preload team stats to avoid N+1 queries
+        # Preload team stats to avoid N+1 queries. session_db, not the helper's
+        # g.db_session default — see the note in get_teams().
         from app.team_performance_helpers import preload_team_stats_for_request
         team_ids = [team.id for team in teams]
-        preload_team_stats_for_request(team_ids)
+        preload_team_stats_for_request(team_ids, session=session_db)
 
         base_url = request.host_url.rstrip('/')
         teams_data = []

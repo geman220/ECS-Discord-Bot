@@ -18,6 +18,7 @@ from flask import (
 from flask_login import login_user
 
 from app.auth import auth
+from app.core.limiter import limiter, get_client_ip
 from app.alert_helpers import show_error, show_warning, show_info
 from app.models import User, Role, Player
 from app.forms import RegistrationForm
@@ -29,6 +30,13 @@ logger = logging.getLogger(__name__)
 
 
 @auth.route('/register', methods=['GET', 'POST'])
+@limiter.limit(
+    # POST only — set_password() runs scrypt, which under gevent blocks every
+    # greenlet in the worker. GET just renders the form and stays unlimited.
+    "10 per hour",
+    key_func=lambda: f"web_register:{get_client_ip()}",
+    methods=['POST'],
+)
 @transactional
 def register():
     """

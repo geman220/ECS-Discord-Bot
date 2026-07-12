@@ -74,6 +74,26 @@ def health_check():
 # Mobile App Logging Endpoints
 # =============================================================================
 
+def _log_rejected_payload(reason):
+    """Say what the client actually sent when we turn a log upload away.
+
+    This endpoint returned 400 on every call for an unknown length of time and
+    nobody could tell why, because the rejection was silent. Log the shape — keys
+    and a short body prefix, never the full payload — so a rejection is diagnosable
+    from the container log instead of by guesswork.
+    """
+    try:
+        raw = request.get_data(as_text=True) or ''
+        parsed = request.get_json(force=True, silent=True)
+        keys = list(parsed.keys()) if isinstance(parsed, dict) else '<not an object>'
+        logger.warning(
+            "Rejected mobile log upload (%s) | content-type=%r keys=%s body[:200]=%r",
+            reason, request.content_type, keys, raw[:200],
+        )
+    except Exception:
+        logger.warning("Rejected mobile log upload (%s); payload not inspectable", reason)
+
+
 @mobile_api_v2.route('/logs/mobile', methods=['POST'])
 def receive_mobile_logs():
     """
@@ -99,17 +119,26 @@ def receive_mobile_logs():
     Returns:
         JSON with acknowledgment
     """
-    try:
-        data = request.get_json()
-    except Exception:
-        # Client disconnected mid-request (common on mobile with poor network)
-        return jsonify({"msg": "Request body unreadable"}), 400
+    # force=True: don't reject on a missing/incorrect Content-Type. This is a log
+    # sink — dropping a crash report because a header was wrong is the worst trade.
+    data = request.get_json(force=True, silent=True)
 
-    if not data:
+    if not isinstance(data, dict) or not data:
+        _log_rejected_payload("unparseable or empty body")
         return jsonify({"msg": "Missing request data"}), 400
 
+    # This URL was, until now, registered by TWO blueprints — this one and
+    # api_mobile_analytics.py, which expects a {"logs": [...]} envelope. This one
+    # won the route and rejected everything the app sent, so mobile logging has been
+    # dead. Accept the envelope too rather than care which contract the client uses.
+    if isinstance(data.get('logs'), list) and data['logs']:
+        data = data['logs'][0]
+        if not isinstance(data, dict):
+            _log_rejected_payload("logs[0] is not an object")
+            return jsonify({"msg": "Missing request data"}), 400
+
     # Extract log data
-    level = data.get('level', 'info').lower()
+    level = str(data.get('level', 'info')).lower()
     message = data.get('message', '')
     context = data.get('context', {})
     client_timestamp = data.get('timestamp')
@@ -118,6 +147,9 @@ def receive_mobile_logs():
     tags = data.get('tags', [])
 
     if not message:
+        # Don't 400 silently — say what actually arrived, so the next capture tells
+        # us the real contract instead of us guessing at it.
+        _log_rejected_payload("no 'message' field")
         return jsonify({"msg": "message is required"}), 400
 
     # Try to get user context if JWT is provided

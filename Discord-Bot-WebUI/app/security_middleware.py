@@ -192,6 +192,15 @@ class SecurityMiddleware:
 
         Returns list of (label, weight) tuples for each matched pattern, or empty list.
         """
+        def _is_authenticated_request():
+            """True if a logged-in user is making this request. Fails CLOSED: if we
+            can't tell, treat it as anonymous and scan the body."""
+            try:
+                from flask_login import current_user
+                return bool(current_user and getattr(current_user, 'is_authenticated', False))
+            except Exception:
+                return False
+
         matched = []
         seen_labels = set()
 
@@ -208,8 +217,16 @@ class SecurityMiddleware:
         for value in request.args.values():
             _check(str(value))
 
-        # Check POST data
-        if request.method == 'POST':
+        # Check POST data — but ONLY for anonymous requests.
+        #
+        # This scanner exists to catch drive-by probes, which are unauthenticated.
+        # A logged-in admin composing an email broadcast or a survey in TinyMCE
+        # legitimately posts HTML containing `<script`, `onerror=`, `javascript:`.
+        # That scores 3 on 'xss_attempt' every save, TinyMCE autosaves, and at a
+        # cumulative 10 the middleware auto-bans the IP for an hour — locking the
+        # admin out of the site for writing an email. Path and query scanning still
+        # applies to everyone; only the body scan is skipped once you're logged in.
+        if request.method == 'POST' and not _is_authenticated_request():
             try:
                 if request.is_json:
                     _check(str(request.get_json()))

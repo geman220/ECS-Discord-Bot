@@ -59,22 +59,26 @@ def make_etag_response(data: Any, cache_type: str = 'default',
     Returns:
         Flask Response object with appropriate headers
     """
-    # Generate ETag for the data
+    # 'private', never 'public'. Every caller of this is behind a JWT and returns
+    # user-scoped data (own profile, own RSVP availability). 'public' invites any
+    # shared cache — CDN, corporate proxy, ISP — to store one user's payload and
+    # hand it to the next. 'private' still lets the phone cache and still serves
+    # 304s, so nothing is lost but the cross-user leak.
     etag = generate_etag(data)
-    
+
     # Check if client has current version
     if check_etag_match(etag):
         # Return 304 Not Modified - no body needed
         response = Response(status=304)
         response.headers['ETag'] = f'"{etag}"'
-        response.headers['Cache-Control'] = f'public, max-age={max_age}'
+        response.headers['Cache-Control'] = f'private, max-age={max_age}'
         logger.debug(f"ETag match for {cache_type} - returning 304")
         return response
     
     # Return full response with ETag headers
     response = jsonify(data)
     response.headers['ETag'] = f'"{etag}"'
-    response.headers['Cache-Control'] = f'public, max-age={max_age}'
+    response.headers['Cache-Control'] = f'private, max-age={max_age}'
     response.headers['X-Cache-Type'] = cache_type
     
     logger.debug(f"New ETag generated for {cache_type}: {etag}")
@@ -101,7 +105,7 @@ def add_etag_headers(response: Response, data: Any = None,
     
     etag = generate_etag(data)
     response.headers['ETag'] = f'"{etag}"'
-    response.headers['Cache-Control'] = f'public, max-age={max_age}'
+    response.headers['Cache-Control'] = f'private, max-age={max_age}'
     response.headers['X-Cache-Type'] = cache_type
     
     return response

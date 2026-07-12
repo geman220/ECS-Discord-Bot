@@ -320,9 +320,18 @@ def discord_callback():
 
 
 @mobile_api_v2.route('/login', methods=['POST'])
+@limiter.limit("10 per minute", key_func=lambda: f"mobile_login:{get_client_ip()}")
+@limiter.limit("60 per hour", key_func=lambda: f"mobile_login_h:{get_client_ip()}")
 def login():
     """
     Authenticate a user with email and password.
+
+    This endpoint is unauthenticated and calls check_password(), which runs
+    scrypt — deliberately CPU-hard. Under gevent, CPU does not yield: a scrypt
+    call freezes every other greenlet in the worker until it returns. Without a
+    limit, anyone could peg both vCPUs from a laptop by looping on this URL.
+    The per-hour cap is there so a slow brute force can't just pace itself
+    underneath the per-minute one.
 
     Expected JSON parameters:
         email: User's email address
@@ -356,10 +365,23 @@ def login():
         return jsonify(payload), 200
 
 
+def _2fa_user_key():
+    """Rate-limit bucket keyed on the account being attacked, not the attacker."""
+    body = request.get_json(silent=True) or {}
+    return f"mobile_2fa_user:{body.get('user_id')}"
+
+
 @mobile_api_v2.route('/verify_2fa', methods=['POST'])
+@limiter.limit("10 per minute", key_func=lambda: f"mobile_2fa_ip:{get_client_ip()}")
+@limiter.limit("20 per hour", key_func=_2fa_user_key)
 def verify_2fa():
     """
     Verify a user's 2FA token and return a JWT access token if valid.
+
+    A TOTP token is six digits. Unlimited guesses against a known user_id is a
+    brute-forceable second factor, so this is capped two ways: per IP, and — more
+    importantly — per TARGET ACCOUNT, because an attacker with a pool of IPs can
+    walk around a per-IP limit while hammering one victim.
 
     Expected JSON parameters:
         user_id: The user's ID
