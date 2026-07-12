@@ -45,24 +45,79 @@ class IPBan(db.Model):
         remaining = self.expires_at - datetime.utcnow()
         return max(0, int(remaining.total_seconds()))
     
+    # Process-wide cache of the active ban set: (expiry_monotonic, {ip, ...}).
+    _ban_cache = None
+    _BAN_CACHE_TTL = 30  # seconds
+
+    @classmethod
+    def _active_bans_cached(cls):
+        """
+        The set of currently-banned IPs, refreshed at most every _BAN_CACHE_TTL.
+
+        Returns None if the set can't be loaded, so the caller falls back to a
+        direct per-IP query rather than failing open.
+        """
+        import time as _time
+
+        cached = cls._ban_cache
+        if cached and cached[0] > _time.monotonic():
+            return cached[1]
+
+        session = cls._get_session()
+        if session is None:
+            return None
+
+        try:
+            now = datetime.utcnow()
+            rows = session.query(cls.ip_address).filter(
+                cls.is_active == True,
+                db.or_(cls.expires_at.is_(None), cls.expires_at > now)
+            ).all()
+            bans = {r[0] for r in rows}
+            cls._ban_cache = (_time.monotonic() + cls._BAN_CACHE_TTL, bans)
+            return bans
+        except Exception:
+            # Never let the ban check take down the request; fall back to the
+            # per-IP query path below.
+            return None
+
+    @classmethod
+    def invalidate_ban_cache(cls):
+        """Drop the cached ban set so a new ban takes effect immediately."""
+        cls._ban_cache = None
+
     @classmethod
     def _get_session(cls):
         """Get the appropriate database session."""
         from flask import g, has_request_context
-        
+
         # Use the request session if available
         if has_request_context() and hasattr(g, 'db_session'):
             return g.db_session
-        
+
         # Otherwise, return None to indicate we need a managed session
         return None
-    
+
     @classmethod
     def is_ip_banned(cls, ip_address):
-        """Check if an IP is currently banned."""
+        """
+        Check if an IP is currently banned.
+
+        Backed by a short-lived process-wide cache of the ACTIVE ban set. This is
+        called from the rate-limit middleware on every non-static request, and it
+        was one uncached SELECT per request against a table that holds a handful
+        of rows and changes maybe once a month. Refreshing the whole set every
+        few seconds costs one query per worker per interval instead of one query
+        per request, and a newly-banned IP takes effect within the TTL.
+        """
         now = datetime.utcnow()
+
+        cached = cls._active_bans_cached()
+        if cached is not None:
+            return ip_address in cached
+
         session = cls._get_session()
-        
+
         if session:
             # Use the request session
             return session.query(cls).filter(
@@ -133,6 +188,7 @@ class IPBan(db.Model):
                 session.add(ban)
             
             session.commit()
+            cls.invalidate_ban_cache()
             return ban
         else:
             # Use a managed session
@@ -163,6 +219,7 @@ class IPBan(db.Model):
                     session.add(ban)
                 
                 session.commit()
+                cls.invalidate_ban_cache()
                 return ban
     
     @classmethod
@@ -180,6 +237,7 @@ class IPBan(db.Model):
             count += 1
         
         db.session.commit()
+        cls.invalidate_ban_cache()
         return count
     
     @classmethod
@@ -199,6 +257,7 @@ class IPBan(db.Model):
             count += 1
         
         db.session.commit()
+        cls.invalidate_ban_cache()
         return count
     
     @classmethod
@@ -213,6 +272,7 @@ class IPBan(db.Model):
             count += 1
         
         db.session.commit()
+        cls.invalidate_ban_cache()
         return count
 
 
@@ -282,4 +342,5 @@ class SecurityEvent(db.Model):
         count = db.session.query(cls).filter(cls.created_at < cutoff).count()
         db.session.query(cls).filter(cls.created_at < cutoff).delete()
         db.session.commit()
+        cls.invalidate_ban_cache()
         return count

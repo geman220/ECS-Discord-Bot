@@ -106,10 +106,20 @@ def get_user():
                     user = UserWrapper()
                 else:
                     # Import user-related models; eager-load frequently used relationships.
+                    #
+                    # Everything the shared chrome touches must be loaded HERE. The
+                    # topbar, sidebar and mobile nav render on every authenticated
+                    # page and walk safe_current_user.player.*, and the settings page
+                    # walks .player.league.name. Since the request transaction is now
+                    # committed before templates render (see lifecycle.py), any
+                    # relationship left lazy would check out a FRESH connection
+                    # mid-render and hold it until teardown — exactly the pgbouncer
+                    # slot we are trying to give back.
                     from app.models import Player, Team
                     db_user = session.query(User).options(
                         selectinload(User.roles).selectinload(Role.permissions),
-                        selectinload(User.player).selectinload(Player.teams)
+                        selectinload(User.player).selectinload(Player.teams),
+                        selectinload(User.player).selectinload(Player.league)
                     ).get(current_user.id)
                     # Wrap the user; do not detach to allow lazy loading of additional attributes.
                     user = UserWrapper(db_user)

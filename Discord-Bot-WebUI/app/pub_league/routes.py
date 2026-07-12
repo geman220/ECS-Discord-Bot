@@ -541,9 +541,6 @@ def link_self():
         if not line_item or line_item.order_id != order_id:
             return jsonify({'success': False, 'message': 'Line item not found'}), 404
 
-        if line_item.is_assigned():
-            return jsonify({'success': False, 'message': 'This pass has already been assigned'}), 400
-
         # Get the actual, session-bound User model.
         user = session.query(User).get(safe_current_user.id)
         if not user:
@@ -553,35 +550,87 @@ def link_self():
         # have one yet, then continue straight into assignment.
         player = PlayerActivationService.ensure_player_for_user(user, order.woo_order_data)
 
-        # Link the pass
-        PubLeagueOrderService.link_pass_to_player(line_item, player, user)
+        # Capture everything we need for the response and for logging BEFORE any
+        # commit below. A commit expires these instances, so touching them
+        # afterwards re-queries the DB — and on the error path that re-query
+        # would itself raise, turning a linked pass back into a 500.
+        is_approved = bool(getattr(user, 'is_approved', False))
+        was_current = bool(player.is_current_player)
+        li_id, p_id, division = line_item.id, player.id, line_item.division
+        li_jersey_size = line_item.jersey_size
 
-        # Activate player for the division (set is_current_player, sync roles)
-        PlayerActivationService.activate_player_for_league(
-            player=player,
-            user=user,
-            division=line_item.division,
-            jersey_size=line_item.jersey_size
-        )
+        # IDEMPOTENT, like the mobile endpoint. The link commits before the
+        # slower activation step, so a request that dies in activation leaves the
+        # pass linked to this very user — and the retry must land on success, not
+        # "already assigned". Only refuse when the pass belongs to someone ELSE.
+        already_mine = False
+        if line_item.is_assigned():
+            already_mine = (
+                line_item.assigned_user_id == user.id
+                or line_item.assigned_player_id == player.id
+            )
+            if not already_mine:
+                return jsonify({
+                    'success': False,
+                    'message': 'This pass has already been claimed by someone else.',
+                }), 409
+        else:
+            # Claim the pass and stamp the primary user in ONE transaction, so a
+            # failure downstream can't leave the order half-linked.
+            if not order.primary_user_id:
+                order.primary_user_id = user.id
+            PubLeagueOrderService.link_pass_to_player(line_item, player, user)
 
-        # Set primary user if not set
-        if not order.primary_user_id:
-            order.primary_user_id = safe_current_user.id
-            session.commit()
-
-        return jsonify({
+        # Snapshot the response now, while the link is fresh. Everything below is
+        # best-effort and re-reading these afterwards would re-query the DB — a
+        # slow or dropped connection at that point used to 500 a request whose
+        # pass was already linked, which is what produced "Error" on the first
+        # attempt and "already assigned" on the retry.
+        payload = {
             'success': True,
             'message': 'Pass linked successfully',
             'line_item': line_item.to_dict(),
             'order': order.to_dict(),
-            # Membership (is_approved) is separate from payment; surface both
-            # so the final screen can reflect the real state.
-            'is_approved': bool(getattr(user, 'is_approved', False)),
-            'is_current_player': bool(player.is_current_player),
-        })
+        }
+
+        # Activate player for the division (set is_current_player, sync roles).
+        # The pass is already committed; a failure here must not tell the user
+        # their claim failed. It is idempotent, so the retry path re-runs it.
+        #
+        # jersey_size is only applied on a FRESH link. On the retry path the
+        # player may since have confirmed their profile and changed size, and
+        # re-applying the size off the WooCommerce line item would silently
+        # revert that edit.
+        activated = True
+        try:
+            PlayerActivationService.activate_player_for_league(
+                player=player,
+                user=user,
+                division=division,
+                jersey_size=None if already_mine else li_jersey_size
+            )
+        except Exception as e:
+            activated = False
+            logger.error(
+                f"Activation failed for line item {li_id} / player {p_id} "
+                f"(the pass IS linked; player stays non-current until retried): {e}",
+                exc_info=True
+            )
+            try:
+                session.rollback()
+            except Exception:
+                pass
+
+        # Membership (is_approved) is separate from payment; surface both
+        # so the final screen can reflect the real state.
+        payload['is_approved'] = is_approved
+        payload['is_current_player'] = was_current or activated
+        if already_mine:
+            payload['already_linked'] = True
+        return jsonify(payload)
 
     except Exception as e:
-        logger.error(f"Error linking pass: {e}")
+        logger.error(f"Error linking pass: {e}", exc_info=True)
         return jsonify({'success': False, 'message': 'An error occurred'}), 500
 
 

@@ -171,7 +171,7 @@ def main():
             'worker',
             '--loglevel=info',
             '--queues=enterprise_rsvp',
-            '--concurrency=2',
+            '--concurrency=1',  # 2 vCPU droplet shared with gunicorn+redis+bot: 4 workers x 2 = 8 prefork procs thrashed the cores
             '--hostname=enterprise-rsvp-worker@%h',
         ])
 

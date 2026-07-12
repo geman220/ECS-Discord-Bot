@@ -581,9 +581,18 @@ def teams_overview():
     if current_ecs_season:
         conditions.append(League.season_id == current_ecs_season.id)
 
+    # Eager-load everything teams_overview_flowbite.html walks per row:
+    # team.league.name, team.league.season.name and team.players|length. Left lazy,
+    # each row fired its own queries DURING template rendering — and the request
+    # transaction is now released before the render, so a lazy load there checks
+    # out a fresh connection and holds a pgbouncer slot for the whole page.
     teams_query = (
         session.query(Team)
         .join(League, Team.league_id == League.id)
+        .options(
+            joinedload(Team.league).joinedload(League.season),
+            selectinload(Team.players),
+        )
     )
 
     if len(conditions) == 1:

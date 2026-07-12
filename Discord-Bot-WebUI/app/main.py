@@ -689,9 +689,15 @@ def index():
             ).filter_by(is_current=True).all()
             if current_seasons:
                 for current_season in current_seasons:
-                    # Query teams through PlayerTeamSeason for current season only
+                    # Query teams through PlayerTeamSeason for current season only.
+                    # index_flowbite.html renders t.league.name for each of these, so
+                    # the league is eager-loaded: the request transaction is released
+                    # before the template renders, and a lazy load there would check
+                    # out a fresh connection for the duration of the page.
                     current_season_teams = g.db_session.query(Team).join(
                         PlayerTeamSeason, Team.id == PlayerTeamSeason.team_id
+                    ).options(
+                        joinedload(Team.league)
                     ).filter(
                         PlayerTeamSeason.player_id == player.id,
                         PlayerTeamSeason.season_id == current_season.id

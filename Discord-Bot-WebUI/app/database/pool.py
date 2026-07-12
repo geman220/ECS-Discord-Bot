@@ -148,56 +148,54 @@ class RateLimitedPool(QueuePool):
 
     def _do_get(self):
         """
-        Override the pool's _do_get to track active connections with fail-fast
-        circuit breaker when pool is under pressure.
+        Override the pool's _do_get purely to TRACK checked-out connections for
+        the long-running-transaction reporting above. Acquisition itself is left
+        entirely to QueuePool.
 
-        When pool utilization exceeds 95%, reduces timeout to 3 seconds to fail fast
-        instead of waiting the full timeout. This prevents thundering herd cascades
-        where many requests pile up waiting, then all fail simultaneously.
+        Two things used to happen here and both were actively harmful:
 
-        NOTE: Rate limiting (time.sleep) was removed because it blocks the gevent
-        event loop, causing slowdowns under load. The pool_size and max_overflow
-        settings already provide adequate protection against connection storms.
+        1. Entries were keyed by ``id(record)`` (a ``_ConnectionRecord``), while
+           ``_on_checkin`` removes them by ``id(dbapi_conn)`` — a *different*
+           object. Nothing was ever removed, so ``_active_connections`` only
+           grew, and ``checked_out`` was permanently overstated.
 
-        :return: A database connection from the underlying pool.
-        :raises TimeoutError: If pool is under pressure and fast timeout expires.
+        2. Once that inflated count crossed 95% of capacity, every checkout took
+           a "fail-fast" branch that called ``self._pool.get()`` directly. That
+           bypasses ``QueuePool._do_get``, which is the *only* thing that ever
+           creates overflow connections — so max_overflow became unreachable and
+           checkouts raised TimeoutError("under pressure") after 3s against a
+           pool that was not actually exhausted.
+
+        Keying by the DBAPI connection (what ``_on_checkout``/``_on_checkin``
+        use) makes the tracker balance, and deferring to ``super()`` restores
+        overflow and the configured pool_timeout.
         """
         self._check_transactions()
 
-        # Check pool pressure and use fail-fast timeout if needed
-        checked_out = len(self._active_connections)
-        total_capacity = self.size() + self._max_overflow
+        rec = super()._do_get()
 
-        # If pool is >95% utilized, use short timeout to fail fast.
-        # 95% (not 90%) because bursts routinely hit 90% briefly during healthy
-        # operation; failing fast there just converts latency into 500s.
-        if total_capacity > 0 and checked_out >= total_capacity * 0.95:
-            import queue
-            from sqlalchemy import exc
-            try:
-                # 3s fail-fast timeout — long enough to ride out a normal burst,
-                # short enough to avoid holding gevent workers if the pool is
-                # genuinely exhausted.
-                conn = self._pool.get(block=True, timeout=3.0)
-                # Capture stack trace at checkout if debugging is enabled.
-                stack = self._get_stack_info(depth=20) if DEBUG_POOL else "<stack omitted>"
-                self._active_connections[id(conn)] = (time.time(), stack, None)
-                return conn
-            except queue.Empty:
-                logger.warning(
-                    f"Pool under pressure ({checked_out}/{total_capacity} connections), "
-                    f"failing fast to prevent cascade"
-                )
-                raise exc.TimeoutError(
-                    f"Connection pool under pressure ({checked_out}/{total_capacity}), "
-                    f"failing fast. Consider reducing connection hold time."
-                )
-
-        conn = super()._do_get()
-        # Capture stack trace at checkout if debugging is enabled.
         stack = self._get_stack_info(depth=20) if DEBUG_POOL else "<stack omitted>"
-        self._active_connections[id(conn)] = (time.time(), stack, None)
-        return conn
+        self._active_connections[self._track_key(rec)] = (time.time(), stack, None)
+
+        checked_out = self.checkedout()
+        total_capacity = self.size() + self._max_overflow
+        if total_capacity > 0 and checked_out >= total_capacity * 0.95:
+            logger.warning(
+                f"Connection pool near capacity ({checked_out}/{total_capacity}). "
+                f"Requests will queue once it is exhausted."
+            )
+
+        return rec
+
+    @staticmethod
+    def _track_key(rec):
+        """
+        Tracking key for a pool entry: the id of the underlying DBAPI connection,
+        which is what the checkout/checkin events see. Falls back to the record
+        itself if the connection is not materialised yet.
+        """
+        dbapi_conn = getattr(rec, 'dbapi_connection', None)
+        return id(dbapi_conn) if dbapi_conn is not None else id(rec)
 
     def _on_checkout(self, dbapi_conn, con_record, con_proxy):
         """

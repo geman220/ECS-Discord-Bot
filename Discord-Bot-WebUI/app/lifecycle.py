@@ -31,6 +31,8 @@ class RequestLifecycle:
         """Initialize request lifecycle with app and database."""
         self.db = db
 
+        self._register_render_transaction_release(app, db)
+
         @app.before_request
         def setup_request():
             if request.path.startswith('/static/'):
@@ -110,42 +112,108 @@ class RequestLifecycle:
             """Inject template variables into all templates."""
             if getattr(g, '_bypass_db', False):
                 return {}
-            
-            if request.endpoint not in self._template_cache:
-                self._template_cache[request.endpoint] = self._get_template_vars()
-            
-            return self._template_cache[request.endpoint]
+
+            # Cache on `g`, i.e. per request. The old cache was a dict on the
+            # extension object, shared by every concurrent greenlet, and it now
+            # holds ORM objects bound to one request's session — handing those to
+            # another request is a session-leak waiting to happen. It was cleared
+            # on every teardown anyway, so it never spanned requests in practice.
+            if not hasattr(g, '_template_vars'):
+                g._template_vars = self._get_template_vars()
+            return g._template_vars
+
+    def _register_render_transaction_release(self, app, db):
+        """
+        Commit (and thereby release) the request's DB transaction immediately
+        BEFORE Jinja starts rendering.
+
+        The database is a 1-vCPU box behind pgbouncer in transaction pooling mode,
+        so a server connection is pinned for exactly as long as a transaction is
+        open. This app opened one in before_request and held it until teardown —
+        through the view, through template rendering, through everything. That made
+        the pool a hard ceiling on CONCURRENT REQUESTS rather than concurrent
+        queries, and any request that stalled past pgbouncer's 30s
+        idle-transaction timeout had its connection killed mid-flight
+        ("FATAL: idle transaction timeout").
+
+        Rendering is the longest stretch of a page request that needs no database,
+        so handing the slot back here is where the win is.
+
+        Four guards, each of which we would be broken without:
+
+        1. GET/HEAD only. POST handlers legitimately render mid-transaction — the
+           feedback routes render an email body and then keep using the new row's
+           id (app/feedback.py:155) — and committing there would split the write in
+           half. Worse, @transactional (app/db_utils.py:147) RETRIES the whole view
+           on OperationalError, so a half-committed POST could double-apply.
+        2. Once per request. The signal fires for every render_template and
+           render_template_string, including nested ones.
+        3. Commit BOTH sessions. g.db_session and db.session are different sessions
+           and either can hold a transaction open.
+        4. Skip in degraded mode, where there is no usable session to begin with.
+
+        This is safe only because SessionLocal now uses expire_on_commit=False
+        (app/init/database.py) — otherwise the commit would expire every object in
+        the template context and the first attribute access would immediately check
+        out a fresh connection.
+        """
+        from flask.signals import before_render_template
+
+        @before_render_template.connect_via(app)
+        def _release_transaction_before_render(sender, template=None, context=None, **extra):
+            if not has_app_context() or getattr(g, '_bypass_db', False):
+                return
+            if g.get('_txn_released_for_render', False):
+                return
+            if getattr(g, '_session_creation_failed', False):
+                return
+            try:
+                if request.method not in ('GET', 'HEAD'):
+                    return
+            except RuntimeError:
+                # No request context (e.g. rendering from a background job).
+                return
+
+            g._txn_released_for_render = True
+
+            for session in (getattr(g, 'db_session', None), db.session):
+                if session is None:
+                    continue
+                try:
+                    session.commit()
+                except Exception as e:
+                    logger.warning(
+                        f"Could not release transaction before render: {e}", exc_info=True
+                    )
+                    try:
+                        session.rollback()
+                    except Exception:
+                        pass
 
     def _get_template_vars(self) -> Dict[str, Any]:
-        """Get template variables with caching."""
+        """Get template variables for the current request."""
         from app.models import Season
-        from flask import current_app
-        
-        # Always create a separate short-lived session for template variables
-        # to avoid keeping the main request transaction open during template rendering
-        session = current_app.SessionLocal()
+
+        # Reuse the request's session. This used to open a SECOND session via
+        # current_app.SessionLocal(), which checks out a second connection — and
+        # under pgbouncer transaction pooling that pins a second server slot,
+        # simultaneously with the request session's still-open transaction. Every
+        # rendered page therefore consumed two of a small, cluster-wide pool. The
+        # per-endpoint cache that was supposed to make this rare is cleared on
+        # every teardown (see cleanup_app_context), so it never actually hit.
+        session = getattr(g, 'db_session', None)
+        if session is None:
+            return {'current_seasons': {}}
+
         try:
             seasons = session.query(Season).filter_by(is_current=True).all()
-            seasons_dict = {}
-            for s in seasons:
-                # Trigger loading of all needed attributes before expunging
-                _ = s.id, s.name, s.league_type, s.is_current
-                # Expunge the object so it's no longer bound to this session
-                session.expunge(s)
-                seasons_dict[s.league_type] = s
-            # Commit and close quickly
-            session.commit()
-            return {'current_seasons': seasons_dict}
+            return {'current_seasons': {s.league_type: s for s in seasons}}
         except Exception as e:
-            # If database query fails (e.g., connection timeout), return empty data
-            # to prevent template rendering from crashing
+            # A DB hiccup here must not take down template rendering.
             import logging
             logger = logging.getLogger(__name__)
             logger.warning(f"Failed to get template variables due to database error: {e}")
-            session.rollback()
             return {'current_seasons': {}}
-        finally:
-            session.close()
 
     def _clear_request_context(self):
         """Clear all request-specific attributes."""

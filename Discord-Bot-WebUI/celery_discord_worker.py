@@ -31,7 +31,7 @@ if __name__ == '__main__':
             '--loglevel=INFO',
             '-Q', 'discord',
             '--pool=prefork',
-            '--concurrency=2',
+            '--concurrency=1',  # 2 vCPU droplet shared with gunicorn+redis+bot: 4 workers x 2 = 8 prefork procs thrashed the cores
             '--max-tasks-per-child=500',  # Increased from 50 to reduce restart overhead
             '--max-memory-per-child=250000'
         ])

@@ -15,7 +15,7 @@ import re
 from datetime import datetime
 
 from flask import (
-    Blueprint, render_template, request, jsonify, url_for, send_file, abort, redirect,
+    Blueprint, render_template, request, jsonify, url_for, send_file, abort, redirect, g,
 )
 from flask_login import login_required, current_user
 from sqlalchemy import desc, or_, and_, func, distinct
@@ -393,14 +393,21 @@ def api_manual_link():
         return jsonify({'success': False, 'error': 'Missing line_item_id or player_id'}), 400
 
     try:
-        line_item = db.session.query(PubLeagueOrderLineItem).options(
+        # Load on the REQUEST session (g.db_session), not db.session. The
+        # services below (link_pass_to_player / activate_player_for_league)
+        # commit g.db_session; objects loaded on db.session are a different
+        # session's objects, so their changes were never committed — the admin
+        # saw "linked", and a refresh showed the pass still unassigned.
+        session = getattr(g, 'db_session', db.session)
+
+        line_item = session.query(PubLeagueOrderLineItem).options(
             joinedload(PubLeagueOrderLineItem.order)
         ).filter_by(id=line_item_id).first()
 
         if not line_item:
             return jsonify({'success': False, 'error': 'Line item not found'}), 404
 
-        player = db.session.query(Player).options(
+        player = session.query(Player).options(
             joinedload(Player.user)
         ).filter_by(id=player_id).first()
 
@@ -428,7 +435,7 @@ def api_manual_link():
             line_item.status = PubLeagueLineItemStatus.UNASSIGNED.value
             if line_item.order:
                 line_item.order.linked_passes = max(0, line_item.order.linked_passes - 1)
-            db.session.flush()
+            session.flush()
 
             # The previous holder loses this pass — deactivate them unless they
             # still hold another pass for this season. (The new holder is
@@ -443,34 +450,53 @@ def api_manual_link():
 
         # Link the pass
         user = player.user if player.user_id else None
+        player_name = player.name
         PubLeagueOrderService.link_pass_to_player(line_item, player, user)
+
+        # Snapshot the response while the link is fresh — activation below is
+        # best-effort, and the assignment is already committed either way.
+        verb = 'reassigned' if was_assigned else 'linked'
+        msg = (f'Pass reassigned from {previous_name} to {player_name}'
+               if was_assigned and previous_name else f'Pass linked to {player_name}')
+        payload = {
+            'success': True,
+            'message': msg,
+            'line_item': line_item.to_dict()
+        }
 
         # Activate player for the division
         if user:
-            PlayerActivationService.activate_player_for_league(
-                player=player,
-                user=user,
-                division=line_item.division,
-                jersey_size=line_item.jersey_size
-            )
+            try:
+                PlayerActivationService.activate_player_for_league(
+                    player=player,
+                    user=user,
+                    division=line_item.division,
+                    jersey_size=line_item.jersey_size
+                )
+            except Exception as e:
+                logger.error(
+                    f"Activation failed for player {player_id} after admin link of "
+                    f"line item {line_item_id} (the pass IS linked): {e}", exc_info=True
+                )
+                session.rollback()
+                payload['message'] = (
+                    f'{msg}, but activating them for the season failed — '
+                    'their pass is linked; re-run the link to activate.'
+                )
 
-        verb = 'reassigned' if was_assigned else 'linked'
         logger.info(
             f"Admin {current_user.id} {verb} line item {line_item_id} to player {player_id}"
             + (f" (was {previous_name})" if previous_name else "")
         )
 
-        msg = (f'Pass reassigned from {previous_name} to {player.name}'
-               if was_assigned and previous_name else f'Pass linked to {player.name}')
-        return jsonify({
-            'success': True,
-            'message': msg,
-            'line_item': line_item.to_dict()
-        })
+        return jsonify(payload)
 
     except Exception as e:
         logger.error(f"Error manually linking pass: {e}", exc_info=True)
-        db.session.rollback()
+        try:
+            getattr(g, 'db_session', db.session).rollback()
+        except Exception:
+            pass
         return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 

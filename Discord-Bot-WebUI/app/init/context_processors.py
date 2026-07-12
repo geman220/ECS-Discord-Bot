@@ -484,6 +484,14 @@ def _register_utility_processor(app):
             """Check if the REAL user (not impersonated) is a Global Admin."""
             if not safe_current_user or not safe_current_user.is_authenticated:
                 return False
+            # Cache per request: this runs on EVERY template render, and the
+            # uncached version re-loaded the full User row plus a selectinload of
+            # roles each time — one of the heaviest queries in the log, purely to
+            # decide whether to show the impersonation menu.
+            if hasattr(g, '_is_real_global_admin'):
+                return g._is_real_global_admin
+
+            result = False
             try:
                 session_db = getattr(g, 'db_session', None)
                 if session_db:
@@ -494,10 +502,12 @@ def _register_utility_processor(app):
                     ).get(safe_current_user.id)
                     if db_user:
                         real_roles = [role.name for role in db_user.roles]
-                        return 'Global Admin' in real_roles
+                        result = 'Global Admin' in real_roles
             except Exception as e:
                 logger.error(f"Error checking real global admin status: {e}")
-            return False
+
+            g._is_real_global_admin = result
+            return result
 
         # Check if real user is Global Admin (for impersonation UI)
         real_is_global_admin = is_real_global_admin()
@@ -682,19 +692,48 @@ def _register_nav_counts_processor(app):
 
     @app.context_processor
     def inject_nav_counts():
+        empty = {'nav_pending_approvals': 0, 'nav_waitlist_count': 0}
+
+        # These two COUNTs used to run on EVERY render for EVERY user — including
+        # anonymous visitors and mobile API callers — even though only admins see
+        # the badges they feed. They also ran on db.session, which checks out a
+        # SECOND pooled connection (and, under pgbouncer transaction pooling, pins
+        # a second server slot) alongside the request's own open transaction.
+        if not (safe_current_user and safe_current_user.is_authenticated):
+            return empty
+
+        # before_request caches effective roles on g; fall back to the auth object
+        # so an admin never sees a silently-zeroed badge if that cache is missing.
+        roles = getattr(g, '_cached_user_roles', None)
+        if not roles:
+            roles = getattr(safe_current_user, 'roles', None) or []
+        if not any(r in ('Global Admin', 'Pub League Admin') for r in roles):
+            return empty
+
+        if hasattr(g, '_nav_counts'):
+            return g._nav_counts
+
         try:
             from sqlalchemy import func
-            from app.core import db
             from app.models.core import User, Role
-            pending = db.session.query(func.count(User.id)).filter(
+            session_db = getattr(g, 'db_session', None)
+            if session_db is None:
+                return empty
+
+            pending = session_db.query(func.count(User.id)).filter(
                 User.approval_status == 'pending'
             ).scalar() or 0
-            waitlist = db.session.query(User).join(User.roles).filter(
-                Role.name == 'pl-waitlist'
-            ).count()
-            return {'nav_pending_approvals': pending, 'nav_waitlist_count': waitlist}
+            waitlist = session_db.query(func.count(func.distinct(User.id))).select_from(
+                User
+            ).join(User.roles).filter(Role.name == 'pl-waitlist').scalar() or 0
+
+            g._nav_counts = {
+                'nav_pending_approvals': pending,
+                'nav_waitlist_count': waitlist,
+            }
+            return g._nav_counts
         except Exception:
-            return {'nav_pending_approvals': 0, 'nav_waitlist_count': 0}
+            return empty
 
 
 def _hex_to_rgb_channels(hex_color):

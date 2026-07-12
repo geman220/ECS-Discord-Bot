@@ -115,11 +115,27 @@ class PubLeagueOrderService:
         try:
             from woocommerce import API
 
+            # Release the request transaction BEFORE going out over the network.
+            # Callers reach here with an open transaction (the lookup that missed),
+            # and pgbouncer runs in transaction pooling with a 30s
+            # idle-transaction timeout — so a slow WooCommerce reply means our
+            # server connection gets killed and the next ORM access blows up with
+            # "FATAL: idle transaction timeout". Committing first also frees the
+            # pgbouncer server slot for the duration of the HTTP call.
+            try:
+                session = getattr(g, 'db_session', None)
+                if session is not None:
+                    session.commit()
+                db.session.commit()
+            except Exception:
+                logger.debug("Could not release transaction before WooCommerce fetch", exc_info=True)
+
             wcapi = API(
                 url=current_app.config['WOO_API_URL'],
                 consumer_key=current_app.config['WOO_CONSUMER_KEY'],
                 consumer_secret=current_app.config['WOO_CONSUMER_SECRET'],
-                version="wc/v3"
+                version="wc/v3",
+                timeout=10
             )
 
             response = wcapi.get(f"orders/{order_id}")
@@ -1302,7 +1318,7 @@ class UserSearchService:
                 'user_id': user.id if user else None,
                 'name': player.name,
                 'discord_username': player.discord_username,
-                'email_hint': ProfileConflictService._mask_email(user.email) if user and hasattr(user, 'email') else None,
+                'email_hint': UserSearchService._mask_email(user.email) if user and hasattr(user, 'email') else None,
                 'is_current_player': player.is_current_player,
             })
 

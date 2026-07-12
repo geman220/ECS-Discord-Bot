@@ -13,6 +13,7 @@ to diagnose long-running, idle, or leaked connections.
 """
 
 import logging
+import os
 import collections
 from datetime import datetime
 import time
@@ -34,6 +35,29 @@ lock = Semaphore()
 
 # Global dictionary to hold transaction metadata (e.g. stack traces), keyed by backend PID.
 transaction_metadata = {}
+
+# Capturing a Python stack trace on every statement / begin / commit / rollback is
+# pure CPU, and CPU is the one thing a gevent worker cannot yield on: the app runs
+# a single gunicorn gevent worker, so this work stalls EVERY greenlet in the
+# process, inflating apparent query times and pushing requests past pgbouncer's
+# idle-transaction timeout. It is a debugging aid, so it is now opt-in.
+DEBUG_TX_TRACES = os.getenv('DEBUG_DB_TRANSACTION_TRACES', 'false').lower() in ('1', 'true', 'yes')
+
+_TRACES_OFF = "<stack capture disabled; set DEBUG_DB_TRANSACTION_TRACES=true>"
+
+
+def _stack_summary():
+    """App-only stack summary, or a placeholder when tracing is off."""
+    if not DEBUG_TX_TRACES:
+        return _TRACES_OFF
+    frames = [f for f in traceback.extract_stack() if "site-packages" not in f.filename]
+    return "\n".join(f"{f.filename}:{f.lineno} in {f.name}" for f in frames)
+
+
+def _full_stack():
+    """Full formatted stack, or empty when tracing is off."""
+    return ''.join(traceback.format_stack()) if DEBUG_TX_TRACES else ""
+
 
 def get_backend_pid(conn):
     """
@@ -260,12 +284,10 @@ class DatabaseManager:
             # Fallback: capture a stack trace on checkout if none exists.
             pid = get_backend_pid(connection_record)
             if pid and pid not in transaction_metadata:
-                stack_summary = traceback.extract_stack()
-                filtered = [frame for frame in stack_summary if "site-packages" not in frame.filename]
-                summary_text = "\n".join(f"{frame.filename}:{frame.lineno} in {frame.name}" for frame in filtered)
+                summary_text = _stack_summary()
                 transaction_metadata[pid] = {
                     'stack_trace': summary_text,
-                    'full_stack_trace': ''.join(traceback.format_stack()),
+                    'full_stack_trace': _full_stack(),
                     'start_time': datetime.utcnow()
                 }
                 logger.debug(f"Captured fallback stack trace for PID {pid} on checkout:\n{summary_text}")
@@ -281,16 +303,14 @@ class DatabaseManager:
         def capture_transaction_begin(conn):
             pid = get_backend_pid(conn)
             if pid:
-                stack_summary = traceback.extract_stack()
-                filtered = [frame for frame in stack_summary if "site-packages" not in frame.filename]
-                summary_text = "\n".join(f"{frame.filename}:{frame.lineno} in {frame.name}" for frame in filtered)
+                summary_text = _stack_summary()
                 try:
                     req_info = f"Endpoint: {request.endpoint}, URL: {request.url}"
                 except Exception:
                     req_info = "No request context available"
                 transaction_metadata[pid] = {
                     'stack_trace': summary_text,
-                    'full_stack_trace': ''.join(traceback.format_stack()),
+                    'full_stack_trace': _full_stack(),
                     'start_time': datetime.utcnow(),
                     'request_info': req_info
                 }
@@ -302,16 +322,14 @@ class DatabaseManager:
         def capture_session_after_begin(session, transaction, connection):
             pid = get_backend_pid(connection)
             if pid:
-                stack_summary = traceback.extract_stack()
-                filtered = [frame for frame in stack_summary if "site-packages" not in frame.filename]
-                summary_text = "\n".join(f"{frame.filename}:{frame.lineno} in {frame.name}" for frame in filtered)
+                summary_text = _stack_summary()
                 try:
                     req_info = f"Endpoint: {request.endpoint}, URL: {request.url}"
                 except Exception:
                     req_info = "No request context available"
                 transaction_metadata[pid] = {
                     'stack_trace': summary_text,
-                    'full_stack_trace': ''.join(traceback.format_stack()),
+                    'full_stack_trace': _full_stack(),
                     'start_time': datetime.utcnow(),
                     'request_info': req_info
                 }
@@ -327,12 +345,10 @@ class DatabaseManager:
             self._local.query_start = time.time()
             pid = get_backend_pid(conn)
             if pid:
-                stack_summary = traceback.extract_stack()
-                filtered = [frame for frame in stack_summary if "site-packages" not in frame.filename]
-                summary_text = "\n".join(f"{frame.filename}:{frame.lineno} in {frame.name}" for frame in filtered)
+                summary_text = _stack_summary()
                 transaction_metadata[pid] = {
                     'stack_trace': summary_text,
-                    'full_stack_trace': ''.join(traceback.format_stack()),
+                    'full_stack_trace': _full_stack(),
                     'start_time': datetime.utcnow()
                 }
                 logger.debug(f"Updated fallback stack trace for PID {pid} during query execution:\n{summary_text}")
@@ -355,12 +371,10 @@ class DatabaseManager:
                 logger.warning(f"Commit event for PID {pid} with no prior transaction metadata. Capturing fallback now.")
                 transaction_metadata[pid] = {
                     'stack_trace': "Fallback: No transaction begin captured.",
-                    'full_stack_trace': ''.join(traceback.format_stack()),
+                    'full_stack_trace': _full_stack(),
                     'start_time': datetime.utcnow()
                 }
-            stack_summary = traceback.extract_stack()
-            filtered = [frame for frame in stack_summary if "site-packages" not in frame.filename]
-            summary_text = "\n".join(f"{frame.filename}:{frame.lineno} in {frame.name}" for frame in filtered)
+            summary_text = _stack_summary()
             try:
                 req_info = f"Endpoint: {request.endpoint}, URL: {request.url}"
             except Exception:
@@ -386,12 +400,10 @@ class DatabaseManager:
                 logger.warning(f"Rollback event for PID {pid} with no prior transaction metadata. Capturing fallback now.")
                 transaction_metadata[pid] = {
                     'stack_trace': "Fallback: No transaction begin captured.",
-                    'full_stack_trace': ''.join(traceback.format_stack()),
+                    'full_stack_trace': _full_stack(),
                     'start_time': datetime.utcnow()
                 }
-            stack_summary = traceback.extract_stack()
-            filtered = [frame for frame in stack_summary if "site-packages" not in frame.filename]
-            summary_text = "\n".join(f"{frame.filename}:{frame.lineno} in {frame.name}" for frame in filtered)
+            summary_text = _stack_summary()
             try:
                 req_info = f"Endpoint: {request.endpoint}, URL: {request.url}"
             except Exception:

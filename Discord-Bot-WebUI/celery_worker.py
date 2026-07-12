@@ -65,7 +65,7 @@ if __name__ == '__main__':
             '--hostname=main-celery-worker@%h',  # Explicit hostname
             '-Q', 'celery,player_sync',  # Combined: main queue + player sync
             '--pool=prefork',  # Changed from eventlet - eventlet was deadlocking
-            '--concurrency=2',  # Reduced for prefork
+            '--concurrency=1',  # 2 vCPU droplet shared with gunicorn+redis+bot: 4 workers x 2 = 8 prefork procs thrashed the cores
             '--prefetch-multiplier=1',
             '--max-tasks-per-child=500',  # Increased from 50 to reduce restart overhead
             '--time-limit=300',

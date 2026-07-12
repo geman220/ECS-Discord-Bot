@@ -90,16 +90,24 @@ class AdminConfig(db.Model):
             cache = g.__dict__.setdefault('_admin_config_cache', {})
             if key in cache:
                 return cache[key]
+            # Cache primed and the key isn't in it => the setting doesn't exist or
+            # is disabled. Answer from the default without touching the DB.
+            if g.__dict__.get('_admin_config_primed'):
+                return default
 
         try:
             # Use Flask request session when available to prevent session conflicts
             if in_request and hasattr(g, 'db_session') and g.db_session:
-                setting = g.db_session.query(cls).filter_by(key=key, is_enabled=True).first()
-                if setting:
-                    # Access parsed_value while session is still active
-                    value = setting.parsed_value
-                    cache[key] = value
-                    return value
+                # Load EVERY enabled setting in one query rather than one query per
+                # key. The nav context processor alone reads 12 distinct keys on
+                # every single render, and the per-key cache below deduped repeats
+                # but not distinct keys — so this was 12+ round trips per page.
+                # The table is tiny (tens of rows), so one SELECT is cheaper than
+                # even two keyed lookups.
+                for row in g.db_session.query(cls).filter_by(is_enabled=True).all():
+                    cache[row.key] = row.parsed_value
+                g._admin_config_primed = True
+                return cache.get(key, default)
             else:
                 # Fallback to managed session for non-request contexts
                 from app.core.session_manager import managed_session
@@ -147,9 +155,24 @@ class AdminConfig(db.Model):
             auto_commit (bool): Whether to commit immediately. Set to False when called
                                from routes with @transactional decorator to avoid double-commit.
                                Defaults to False since most callers use @transactional.
+
+        Writes go to the REQUEST session (g.db_session), which teardown commits.
+        This used to load via `cls.query` and `db.session.add()` — i.e. onto
+        Flask-SQLAlchemy's db.session, which NOTHING ever commits (teardown calls
+        db.session.remove(), a rollback). Combined with auto_commit defaulting to
+        False, every caller that wasn't decorated with @transactional silently
+        threw its write away while still reporting success: the feature toggles,
+        navigation settings, registration settings, push settings and API rate
+        limits all "saved" and then came back unchanged on reload.
         """
+        from flask import g, has_request_context
+
+        session = g.db_session if (
+            has_request_context() and getattr(g, 'db_session', None) is not None
+        ) else db.session
+
         try:
-            setting = cls.query.filter_by(key=key).first()
+            setting = session.query(cls).filter_by(key=key).first()
 
             if setting:
                 setting.value = str(value) if value is not None else None
@@ -166,25 +189,32 @@ class AdminConfig(db.Model):
                     data_type=data_type,
                     updated_by=user_id
                 )
-                db.session.add(setting)
+                session.add(setting)
+
+            # Flush so the write is visible to the rest of this transaction even
+            # when the caller relies on teardown (or @transactional) to commit.
+            session.flush()
 
             if auto_commit:
-                db.session.commit()
+                session.commit()
 
             # Drop any request-scoped cached value so a read-after-write in the
-            # same request sees the new value (see get_setting's g cache).
-            from flask import g, has_request_context
+            # same request sees the new value (see get_setting's g cache). The
+            # primed flag must go too: with it set, a key missing from the cache
+            # is taken to mean "not in the DB" and get_setting would hand back the
+            # default instead of re-reading the value we just wrote.
             if has_request_context():
                 cache = g.__dict__.get('_admin_config_cache')
                 if cache is not None:
                     cache.pop(key, None)
+                g.__dict__.pop('_admin_config_primed', None)
 
             logger.debug(f"Admin setting {key} updated to {value} by user {user_id}")
             return setting
         except Exception as e:
             logger.error(f"Error setting admin setting {key}: {e}")
             if auto_commit:
-                db.session.rollback()
+                session.rollback()
             raise
 
     @classmethod

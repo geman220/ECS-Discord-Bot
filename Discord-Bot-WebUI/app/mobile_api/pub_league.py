@@ -319,53 +319,81 @@ def pub_league_link_self():
 
         player = PlayerActivationService.ensure_player_for_user(user, order.woo_order_data)
 
+        # Capture what the response and the log lines need BEFORE any commit
+        # expires these instances. Touching them afterwards re-queries the DB,
+        # and on the error path that re-query raises — which would turn a
+        # successfully linked pass back into a 500.
+        is_approved = bool(user.is_approved)
+        was_current = bool(player.is_current_player)
+        li_id, p_id, u_id = line_item.id, player.id, user.id
+        division, li_jersey_size = line_item.division, line_item.jersey_size
+
         # IDEMPOTENT. A slow first request can leave the app unsure it succeeded, so
         # it retries — and this endpoint must make that retry a clean success, not
-        # an error. If the pass is ALREADY this user's, just return the current
-        # state with 200. Only refuse (409) when it belongs to someone ELSE.
+        # an error. If the pass is ALREADY this user's, fall through to activation
+        # (which is idempotent) so a first attempt that linked the pass but died
+        # before activating still ends with the player active. Only refuse (409)
+        # when the pass belongs to someone ELSE.
+        already_mine = False
         if line_item.is_assigned():
-            mine = (
+            already_mine = (
                 line_item.assigned_user_id == user.id
                 or (player and line_item.assigned_player_id == player.id)
             )
-            if mine:
+            if not already_mine:
                 return jsonify({
-                    'success': True,
-                    'msg': 'Pass already linked to you',
-                    'already_linked': True,
-                    'line_item': line_item.to_dict(),
-                    'order': order.to_dict(),
-                    'is_approved': bool(user.is_approved),
-                    'is_current_player': bool(player.is_current_player),
-                }), 200
-            return jsonify({
-                'success': False,
-                'code': 'ALREADY_ASSIGNED',
-                'msg': 'This pass has already been claimed by someone else.',
-            }), 409
+                    'success': False,
+                    'code': 'ALREADY_ASSIGNED',
+                    'msg': 'This pass has already been claimed by someone else.',
+                }), 409
+        else:
+            # Claim the pass and stamp the primary user in ONE transaction.
+            if not order.primary_user_id:
+                order.primary_user_id = user.id
+            PubLeagueOrderService.link_pass_to_player(line_item, player, user)
 
-        PubLeagueOrderService.link_pass_to_player(line_item, player, user)
-        PlayerActivationService.activate_player_for_league(
-            player=player,
-            user=user,
-            division=line_item.division,
-            jersey_size=line_item.jersey_size,
-        )
-
-        if not order.primary_user_id:
-            order.primary_user_id = user.id
-            session.commit()
-
-        logger.info(f"Mobile: linked line item {line_item.id} to player {player.id} (user {user.id})")
-
-        return jsonify({
+        # Snapshot the response while the link is fresh — re-reading these after
+        # the (slower) activation step would re-query the DB, and a dropped
+        # connection there would 500 a request whose pass is already linked.
+        payload = {
             'success': True,
-            'msg': 'Pass linked',
+            'msg': 'Pass already linked to you' if already_mine else 'Pass linked',
             'line_item': line_item.to_dict(),
             'order': order.to_dict(),
-            'is_approved': bool(user.is_approved),
-            'is_current_player': bool(player.is_current_player),
-        }), 200
+        }
+        if already_mine:
+            payload['already_linked'] = True
+
+        # Best-effort: the pass is committed, so an activation failure must not
+        # report the claim as failed.
+        #
+        # jersey_size is only applied on a FRESH link — on a retry the player may
+        # already have confirmed their profile with a different size, and
+        # re-applying the WooCommerce size would silently revert that.
+        activated = True
+        try:
+            PlayerActivationService.activate_player_for_league(
+                player=player,
+                user=user,
+                division=division,
+                jersey_size=None if already_mine else li_jersey_size,
+            )
+        except Exception as e:
+            activated = False
+            logger.error(
+                f"Mobile: activation failed for line item {li_id} / player "
+                f"{p_id} (the pass IS linked): {e}", exc_info=True
+            )
+            try:
+                session.rollback()
+            except Exception:
+                pass
+
+        logger.info(f"Mobile: linked line item {li_id} to player {p_id} (user {u_id})")
+
+        payload['is_approved'] = is_approved
+        payload['is_current_player'] = was_current or activated
+        return jsonify(payload), 200
 
 
 @mobile_api_v2.route('/pub-league/confirm-profile', methods=['POST'])

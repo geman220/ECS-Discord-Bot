@@ -50,9 +50,20 @@ services:
       # ── where PgBouncer should forward connections ────────────────────
       - "DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
       # ── pool tuning ───────────────────────────────────────────────────
+      # This is the WEB pool. Background services now go through pgbouncer-celery
+      # (below) as a DIFFERENT Postgres user, so they get their own server pool
+      # and can no longer starve web requests during a Discord sync or an RSVP
+      # batch. The two pools must ADD UP to less than the DigitalOcean connection
+      # limit of 22:  web 12 (+2 reserve) + celery 6 (+0 reserve) = 20, leaving 2
+      # for pgAdmin / migrations.
+      #
+      # 12 is not a downgrade from 18: the database is a 1-vCPU shared-CPU box, so
+      # it can only really execute one or two queries at a time. More server
+      # connections past that point just thrash the single core — queueing in
+      # pgbouncer is cheaper than context-switching in Postgres.
       - POOL_MODE=transaction
-      - MAX_CLIENT_CONN=300              # Increased for 5 workers
-      - DEFAULT_POOL_SIZE=18             # Max safe for DigitalOcean (< 20)
+      - MAX_CLIENT_CONN=300
+      - DEFAULT_POOL_SIZE=12             # web share of the 22-connection budget
       - RESERVE_POOL_SIZE=2              # Reserve pool for burst traffic
       - RESERVE_POOL_TIMEOUT=5           # Faster failover
       - QUERY_WAIT_TIMEOUT=120           # Allow longer queries during peak
@@ -81,6 +92,48 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # Second pooler, dedicated to background work (celery workers, beat, realtime,
+  # maintenance). It connects to the SAME database as a different Postgres user
+  # (CELERY_DB_USER), which is what earns it a separate server pool — pgbouncer
+  # pools per (user, database) pair.
+  #
+  # Everything about it is deliberately identical to the web pooler except the
+  # credentials and the pool size.
+  pgbouncer-celery:
+    image: edoburu/pgbouncer:v1.24.1-p1
+    hostname: pgbouncer-celery
+    restart: unless-stopped
+    logging: *default-logging
+    env_file: [.env]
+    environment:
+      - "DATABASE_URL=postgres://${CELERY_DB_USER}:${CELERY_DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=300
+      - DEFAULT_POOL_SIZE=6              # celery share of the 22-connection budget
+      - RESERVE_POOL_SIZE=0              # no reserve: the web pool gets the headroom
+      - RESERVE_POOL_TIMEOUT=5
+      - QUERY_WAIT_TIMEOUT=120
+      - IGNORE_STARTUP_PARAMETERS=extra_float_digits
+      - IDLE_TRANSACTION_TIMEOUT=30
+      - CLIENT_IDLE_TIMEOUT=120
+      - QUERY_TIMEOUT=60
+      - SERVER_IDLE_TIMEOUT=600
+      - SERVER_LIFETIME=7200
+      - PGBOUNCER_SERVER_TLS_SSLMODE=${SERVER_TLS_SSLMODE:-disable}
+      - PGBOUNCER_SERVER_TLS_CA_FILE=${SERVER_TLS_CA_FILE:-}
+      - PGBOUNCER_AUTH_TYPE=${AUTH_TYPE:-trust}
+      - PGBOUNCER_CLIENT_TLS_SSLMODE=disable
+    volumes:
+      - ${SERVER_TLS_CA_FILE:-/etc/ssl/certs/ca-certificates.crt}:/etc/ssl/do-ca.pem:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432", "-U", "${CELERY_DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [web]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   celery-worker:
     build:
       context: ./Discord-Bot-WebUI
@@ -91,6 +144,9 @@ services:
     env_file:
       - .env
     environment:
+      # Background work uses the celery pgbouncer pool + its own DB user,
+      # so a Discord sync or RSVP batch cannot starve web requests.
+      - DATABASE_URL=${CELERY_DATABASE_URL}
       - PYTHONPATH=/app
       - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
@@ -107,7 +163,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      pgbouncer:
+      pgbouncer-celery:
         condition: service_healthy
     networks:
       - web
@@ -134,6 +190,9 @@ services:
     env_file:
       - .env
     environment:
+      # Background work uses the celery pgbouncer pool + its own DB user,
+      # so a Discord sync or RSVP batch cannot starve web requests.
+      - DATABASE_URL=${CELERY_DATABASE_URL}
       - PYTHONPATH=/app
       - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
@@ -151,7 +210,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      pgbouncer:
+      pgbouncer-celery:
         condition: service_healthy
     networks:
       - web
@@ -171,6 +230,9 @@ services:
     env_file:
       - .env
     environment:
+      # Background work uses the celery pgbouncer pool + its own DB user,
+      # so a Discord sync or RSVP batch cannot starve web requests.
+      - DATABASE_URL=${CELERY_DATABASE_URL}
       - PYTHONPATH=/app
       - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
@@ -187,7 +249,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      pgbouncer:
+      pgbouncer-celery:
         condition: service_healthy
     networks:
       - web
@@ -209,6 +271,9 @@ services:
     env_file:
       - .env
     environment:
+      # Background work uses the celery pgbouncer pool + its own DB user,
+      # so a Discord sync or RSVP batch cannot starve web requests.
+      - DATABASE_URL=${CELERY_DATABASE_URL}
       - PYTHONPATH=/app
       - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
@@ -225,7 +290,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      pgbouncer:
+      pgbouncer-celery:
         condition: service_healthy
     networks:
       - web
@@ -251,6 +316,9 @@ services:
     env_file:
       - .env
     environment:
+      # Background work uses the celery pgbouncer pool + its own DB user,
+      # so a Discord sync or RSVP batch cannot starve web requests.
+      - DATABASE_URL=${CELERY_DATABASE_URL}
       - PYTHONPATH=/app
       - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
@@ -270,7 +338,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      pgbouncer:
+      pgbouncer-celery:
         condition: service_healthy
     networks:
       - web
@@ -296,6 +364,9 @@ services:
     env_file:
       - .env
     environment:
+      # Background work uses the celery pgbouncer pool + its own DB user,
+      # so a Discord sync or RSVP batch cannot starve web requests.
+      - DATABASE_URL=${CELERY_DATABASE_URL}
       - PYTHONPATH=/app
       - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
@@ -313,7 +384,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      pgbouncer:
+      pgbouncer-celery:
         condition: service_healthy
     networks:
       - web
@@ -380,7 +451,7 @@ services:
       npm run build &&
       gunicorn
       --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker
-      --workers 1
+      --workers 2
       --bind 0.0.0.0:5000
       --log-level info
       --access-logfile -

@@ -967,6 +967,10 @@ def security_ban_ip():
 
     db.session.add(ban)
 
+    # The ban check is served from a short-TTL cache (IPBan.is_ip_banned); drop it
+    # so this ban takes effect on the very next request instead of within the TTL.
+    IPBan.invalidate_ban_cache()
+
     # Log the action
     AdminAuditLog.log_action(
         user_id=current_user.id,

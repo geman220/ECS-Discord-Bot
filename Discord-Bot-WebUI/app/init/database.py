@@ -44,7 +44,23 @@ def init_database(app, db):
     with app.app_context():
         db_manager.init_app(app)
         engine = db.engine
-        SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+        # expire_on_commit=False is load-bearing, not a micro-optimisation.
+        #
+        # The request transaction is now committed BEFORE Jinja renders (see
+        # lifecycle.py::_release_transaction_before_render) so the pgbouncer server
+        # slot is handed back for the duration of the render. With the default
+        # expire_on_commit=True, that commit would expire every ORM instance in the
+        # template context, and the first attribute access during render — even a
+        # plain column like player.name — would fire a refresh SELECT and check out
+        # a brand-new connection, holding it until teardown. We would have split one
+        # clean transaction into two dirty ones and gained nothing.
+        #
+        # We commit but never close/expunge, so instances stay attached and usable;
+        # already-loaded attributes are simply served from memory. app/sockets/
+        # session.py has run this way for a while already.
+        SessionLocal = sessionmaker(
+            bind=engine, autocommit=False, autoflush=False, expire_on_commit=False
+        )
         app.SessionLocal = SessionLocal
 
         # Import ECS FC models to ensure they are registered
