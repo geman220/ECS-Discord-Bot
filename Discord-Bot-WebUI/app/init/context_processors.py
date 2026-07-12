@@ -704,10 +704,15 @@ def _register_nav_counts_processor(app):
 
         # before_request caches effective roles on g; fall back to the auth object
         # so an admin never sees a silently-zeroed badge if that cache is missing.
+        # NOTE the two sources disagree on type: g._cached_user_roles holds role
+        # NAME STRINGS, while safe_current_user.roles delegates to the ORM and
+        # yields Role OBJECTS. Normalise, or the membership test below is always
+        # False on the fallback path and admins lose their badges.
         roles = getattr(g, '_cached_user_roles', None)
         if not roles:
             roles = getattr(safe_current_user, 'roles', None) or []
-        if not any(r in ('Global Admin', 'Pub League Admin') for r in roles):
+        role_names = {r if isinstance(r, str) else getattr(r, 'name', '') for r in roles}
+        if not role_names & {'Global Admin', 'Pub League Admin'}:
             return empty
 
         if hasattr(g, '_nav_counts'):

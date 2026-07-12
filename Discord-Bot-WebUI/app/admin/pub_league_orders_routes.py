@@ -1046,7 +1046,9 @@ def toggle_deeplinks():
         category='mobile',
         data_type='boolean',   # store as boolean so parsed_value returns a real bool
         user_id=current_user.id,
-        auto_commit=True,
+        # No auto_commit: set_setting now writes to the REQUEST session, so a commit
+        # here would commit the whole in-flight transaction rather than just this
+        # setting. Teardown commits g.db_session once, at the end of the request.
     )
 
     logger.info(f"Admin {current_user.id} set season_pass_deeplinks_enabled={enabled}")

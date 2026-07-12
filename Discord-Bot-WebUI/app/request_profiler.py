@@ -1,0 +1,123 @@
+# app/request_profiler.py
+
+"""
+Per-request profiler: queries, connection checkouts, CPU time vs wall time.
+
+Opt-in. Set REQUEST_PROFILE=true to enable; it is inert otherwise.
+
+WHY THIS EXISTS
+---------------
+The app already logs "Slow query detected: N seconds" from two separate global
+SQLAlchemy timers. Those numbers are misleading: they measure
+before_cursor_execute -> after_cursor_execute, which under gevent + psycogreen
+includes time the greenlet spent DESCHEDULED and time the query spent queued
+inside pgbouncer. They are not SQL execution time, and people have chased them
+for a long time.
+
+These four numbers are the ones that actually separate the two failure modes on
+this stack:
+
+  queries    How many round-trips did this request make? A serializer that
+             lazy-loads inside a loop shows up here immediately, and no amount of
+             reading the code substitutes for the count.
+
+  checkouts  How many pooled connections did this request take? It should be 1.
+             If it is 2, the request used BOTH g.db_session and db.session (a
+             `Model.query` somewhere), which pins two of the twelve pgbouncer web
+             slots for its whole lifetime.
+
+  cpu_ms     Time this request spent burning CPU. On a gevent worker, DB waits
+             YIELD — they slow that one request but harm nobody else. CPU does
+             NOT yield: it freezes every other greenlet in the process. So a
+             request with cpu_ms near wall_ms is stalling the whole worker, while
+             one with cpu_ms << wall_ms is just waiting, harmlessly.
+
+  wall_ms    Total elapsed.
+
+That cpu/wall ratio is the single most useful number here, and nothing in the app
+was measuring it.
+
+USAGE
+-----
+    REQUEST_PROFILE=true                 # in the environment, then restart
+    docker compose logs -f webui | grep PROFILE
+
+Then hit the endpoint you care about once. Turn it off afterwards — it is cheap
+(two counters and a clock) but it logs a line per request.
+"""
+
+import logging
+import os
+import time
+
+from flask import g, has_request_context, request
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+from sqlalchemy.pool import Pool
+
+logger = logging.getLogger(__name__)
+
+ENABLED = os.getenv('REQUEST_PROFILE', 'false').lower() in ('1', 'true', 'yes')
+
+# Requests below this are not logged, so a profiling run isn't drowned in noise
+# from static files and health checks.
+MIN_WALL_MS = float(os.getenv('REQUEST_PROFILE_MIN_MS', '0'))
+
+
+def init_request_profiler(app):
+    """Register the profiler. No-op unless REQUEST_PROFILE is set."""
+    if not ENABLED:
+        return
+
+    @event.listens_for(Engine, 'after_cursor_execute')
+    def _count_query(conn, cursor, statement, parameters, context, executemany):
+        if has_request_context():
+            g._prof_queries = getattr(g, '_prof_queries', 0) + 1
+
+    @event.listens_for(Pool, 'checkout')
+    def _count_checkout(dbapi_conn, con_record, con_proxy):
+        if has_request_context():
+            g._prof_checkouts = getattr(g, '_prof_checkouts', 0) + 1
+
+    @app.before_request
+    def _prof_start():
+        g._prof_wall0 = time.perf_counter()
+        g._prof_cpu0 = time.process_time()
+        g._prof_queries = 0
+        g._prof_checkouts = 0
+
+    @app.after_request
+    def _prof_end(response):
+        wall0 = getattr(g, '_prof_wall0', None)
+        if wall0 is None:
+            return response
+
+        wall_ms = (time.perf_counter() - wall0) * 1000
+        if wall_ms < MIN_WALL_MS:
+            return response
+
+        cpu_ms = (time.process_time() - getattr(g, '_prof_cpu0', 0)) * 1000
+        queries = getattr(g, '_prof_queries', 0)
+        checkouts = getattr(g, '_prof_checkouts', 0)
+
+        # cpu/wall is the headline: high means this request froze the worker.
+        ratio = (cpu_ms / wall_ms * 100) if wall_ms > 0 else 0
+
+        logger.warning(
+            "PROFILE %s %s -> %s | queries=%d checkouts=%d "
+            "wall=%.0fms cpu=%.0fms (cpu %.0f%% of wall)",
+            request.method,
+            request.full_path.rstrip('?'),
+            response.status_code,
+            queries,
+            checkouts,
+            wall_ms,
+            cpu_ms,
+            ratio,
+        )
+        return response
+
+    logger.warning(
+        "REQUEST PROFILER IS ON. Every request logs a PROFILE line. "
+        "Unset REQUEST_PROFILE when you are done."
+    )

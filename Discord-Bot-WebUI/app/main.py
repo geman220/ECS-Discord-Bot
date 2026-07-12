@@ -1401,9 +1401,16 @@ def set_theme():
     # If user is logged in, store preference in their profile
     if current_user.is_authenticated:
         try:
-            user = Player.query.get(current_user.id)
+            # Player is keyed by its OWN id, not the user's — Player.query.get(
+            # current_user.id) looked up a Player whose PK happened to equal the
+            # User id, i.e. somebody else's player row (or None). And it loaded on
+            # db.session while the add/commit below target g.db_session, which
+            # raises InvalidRequestError and gets swallowed. Correct on both counts:
+            user = g.db_session.query(Player).filter_by(user_id=current_user.id).first()
             if user and hasattr(user, 'preferences'):
-                # Use preferences JSON field if it exists
+                # Inert today: there is no `preferences` column on player. Theme
+                # therefore lives only in the Flask session. Add the column (see
+                # sql_add_player_preferences.sql) and this starts persisting.
                 preferences = user.preferences or {}
                 preferences['theme'] = theme
                 user.preferences = preferences
@@ -1446,9 +1453,16 @@ def set_theme_variant():
     # If user is logged in, store preference in their profile
     if current_user.is_authenticated:
         try:
-            user = Player.query.get(current_user.id)
+            # Player is keyed by its OWN id, not the user's — Player.query.get(
+            # current_user.id) looked up a Player whose PK happened to equal the
+            # User id, i.e. somebody else's player row (or None). And it loaded on
+            # db.session while the add/commit below target g.db_session, which
+            # raises InvalidRequestError and gets swallowed. Correct on both counts:
+            user = g.db_session.query(Player).filter_by(user_id=current_user.id).first()
             if user and hasattr(user, 'preferences'):
-                # Use preferences JSON field if it exists
+                # Inert today: there is no `preferences` column on player. Theme
+                # therefore lives only in the Flask session. Add the column (see
+                # sql_add_player_preferences.sql) and this starts persisting.
                 preferences = user.preferences or {}
                 preferences['theme_variant'] = variant
                 user.preferences = preferences
@@ -1498,7 +1512,9 @@ def set_ui_shell():
 
     if current_user.is_authenticated:
         try:
-            user = Player.query.get(current_user.id)
+            # See set_theme: Player is keyed by its own id, not the user's, and the
+            # load must happen on the session we commit.
+            user = g.db_session.query(Player).filter_by(user_id=current_user.id).first()
             if user and hasattr(user, 'preferences'):
                 preferences = user.preferences or {}
                 preferences['ui_shell'] = shell
@@ -1539,9 +1555,16 @@ def set_theme_preset():
     # If user is logged in, store preference in their profile
     if current_user.is_authenticated:
         try:
-            user = Player.query.get(current_user.id)
+            # Player is keyed by its OWN id, not the user's — Player.query.get(
+            # current_user.id) looked up a Player whose PK happened to equal the
+            # User id, i.e. somebody else's player row (or None). And it loaded on
+            # db.session while the add/commit below target g.db_session, which
+            # raises InvalidRequestError and gets swallowed. Correct on both counts:
+            user = g.db_session.query(Player).filter_by(user_id=current_user.id).first()
             if user and hasattr(user, 'preferences'):
-                # Use preferences JSON field if it exists
+                # Inert today: there is no `preferences` column on player. Theme
+                # therefore lives only in the Flask session. Add the column (see
+                # sql_add_player_preferences.sql) and this starts persisting.
                 preferences = user.preferences or {}
                 preferences['theme_preset'] = preset
                 user.preferences = preferences

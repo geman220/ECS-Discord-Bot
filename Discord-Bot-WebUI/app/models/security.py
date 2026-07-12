@@ -342,5 +342,9 @@ class SecurityEvent(db.Model):
         count = db.session.query(cls).filter(cls.created_at < cutoff).count()
         db.session.query(cls).filter(cls.created_at < cutoff).delete()
         db.session.commit()
-        cls.invalidate_ban_cache()
+        # No cache to invalidate here: the ban cache belongs to IPBan, and this is
+        # SecurityEvent. An earlier edit appended IPBan.invalidate_ban_cache() to
+        # every "commit(); return count" in this module and caught this one by
+        # mistake — SecurityEvent has no such method, so it raised AttributeError
+        # and failed the nightly security_cleanup task on every run.
         return count

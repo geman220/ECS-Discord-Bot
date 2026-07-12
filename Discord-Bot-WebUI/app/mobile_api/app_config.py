@@ -134,7 +134,6 @@ def publish_build():
             description='The newest build available for download',
             category='mobile_app',
             data_type='integer',
-            auto_commit=True,
         )
 
         if update_message is not None:
@@ -143,7 +142,6 @@ def publish_build():
                 value=str(update_message),
                 category='mobile_app',
                 data_type='string',
-                auto_commit=True,
             )
 
         AdminAuditLog.log_action(

@@ -28,8 +28,9 @@ from app.utils.pacific_time import pacific_today
 from typing import Optional, Dict, Any, List, Tuple
 from twilio.rest import Client
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
-from flask import current_app, g
+from flask import current_app, g, abort
 
 from app.models import User, Role, Player, Team, League, Match, Availability, Announcement, Permission, TemporarySubAssignment, Schedule
 from app.models.substitutes import SubstituteRequest, EcsFcSubRequest, EcsFcSubAssignment
@@ -159,22 +160,63 @@ def get_filtered_users(filters) -> List[User]:
     return query.distinct()
 
 
-def handle_user_action(action: str, user_id: int) -> bool:
+def handle_user_action(action: str, user_id: int, session=None) -> bool:
     """
     Handle a user-related action, such as approving or removing a user.
 
     Args:
         action: The action to perform ('approve', 'remove', or 'reset_password').
         user_id: The ID of the user on which to perform the action.
+        session: The request DB session. Callers already pass this (see
+            admin_routes.py) — the parameter simply did not exist, so every call
+            raised TypeError and the legacy admin dashboard 500'd on approve and
+            remove.
 
     Returns:
         True if the action was handled successfully.
     """
-    user = User.query.get_or_404(user_id)
+    # Load on the SAME session we mutate and that teardown commits. This used to
+    # be User.query (i.e. db.session), while the delete below targeted
+    # g.db_session: approve never persisted (nothing commits db.session) and
+    # remove raised InvalidRequestError for deleting an object owned by another
+    # session.
+    session = session or g.db_session
+    user = session.query(User).get(user_id)
+    if user is None:
+        abort(404)
+
     if action == 'approve':
         user.is_approved = True
-    elif action == 'remove':
-        g.db_session.delete(user)
+        return True
+
+    if action == 'remove':
+        # A hard delete of a User cannot succeed against this schema, and it must
+        # not LOOK like it did. User.player carries no cascade (models/core.py:123)
+        # so SQLAlchemy nullifies player.user_id, which is NOT NULL
+        # (models/players.py:238) -> IntegrityError. A dozen other tables hold
+        # NOT NULL FKs to users.id with no ondelete (communication, email
+        # campaigns/templates, discord_polls, admin_config, ai_assistant...), so
+        # even fixing that one relationship would just move the failure.
+        #
+        # We flush HERE so the failure surfaces to the caller. Without the flush
+        # the delete only fails later at teardown (core/session_manager.py:156),
+        # where the IntegrityError is caught, logged and rolled back — long after
+        # the admin has been redirected to a page that cheerfully reports success.
+        # A destructive action that silently does nothing is worse than one that
+        # visibly fails.
+        try:
+            session.delete(user)
+            session.flush()
+            return True
+        except IntegrityError as e:
+            session.rollback()
+            logger.error(
+                f"Cannot delete user {user_id}: rows in other tables still reference "
+                f"them (NOT NULL foreign keys with no ON DELETE). Deactivate the "
+                f"account instead of deleting it. {e}"
+            )
+            return False
+
     # Additional actions (e.g., password reset) can be implemented as needed.
     return True
 
@@ -314,8 +356,8 @@ def send_sms_message(to_phone_number: str, message_body: str) -> bool:
 # Announcement Management Helpers
 # --------------------
 
-def handle_announcement_update(title: str = None, content: str = None, 
-                               announcement_id: int = None) -> bool:
+def handle_announcement_update(title: str = None, content: str = None,
+                               announcement_id: int = None, session=None) -> bool:
     """
     Create or update an announcement.
 
@@ -323,23 +365,42 @@ def handle_announcement_update(title: str = None, content: str = None,
         title: The title of the announcement.
         content: The content of the announcement.
         announcement_id: (Optional) If provided, updates the existing announcement.
+        session: The request DB session. Callers already pass this (see
+            admin_routes.py) — the parameter did not exist, so the call raised
+            TypeError, was caught, and the dashboard reported a generic error.
 
     Returns:
         True if the announcement was created or updated successfully, False otherwise.
     """
+    session = session or g.db_session
+
+    # Resolve the target BEFORE the try. abort() raises werkzeug's NotFound, which
+    # is an Exception subclass — inside the try below it would be caught by
+    # `except Exception`, logged as "Error handling announcement: 404 Not Found",
+    # and turned into a generic flash. The 404 would never reach the client.
+    announcement = None
+    if announcement_id:
+        announcement = session.query(Announcement).get(announcement_id)
+        if announcement is None:
+            abort(404)
+
     try:
         if announcement_id:
-            announcement = Announcement.query.get_or_404(announcement_id)
+            # `announcement` was loaded above, on the session we commit. It used to
+            # come from Announcement.query (db.session) while the create branch
+            # below used g.db_session — so edits to an existing announcement were
+            # written to a session nothing ever commits, and the title/content
+            # change was silently dropped while the UI reported success.
             announcement.title = title or announcement.title
             announcement.content = content or announcement.content
         else:
-            max_position = g.db_session.query(db.func.max(Announcement.position)).scalar() or 0
+            max_position = session.query(db.func.max(Announcement.position)).scalar() or 0
             announcement = Announcement(
                 title=title,
                 content=content,
                 position=max_position + 1
             )
-            g.db_session.add(announcement)
+            session.add(announcement)
         return True
     except Exception as e:
         logger.error(f"Error handling announcement: {e}")

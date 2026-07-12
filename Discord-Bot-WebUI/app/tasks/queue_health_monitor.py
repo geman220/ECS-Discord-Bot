@@ -178,37 +178,47 @@ def _cleanup_queue(redis_service, queue_name: str, stats: Dict[str, Any]) -> Dic
 
 
 def _cleanup_stuck_locks(redis_service) -> int:
-    """Clean up stuck processing locks that might prevent new tasks."""
+    """
+    Clean up the live-reporting processing lock if it is stuck without a TTL.
+
+    This used to run THREE wildcard `KEYS` scans (live_reporting:*:processing,
+    match_scheduler:*:reporting, match_scheduler:*:thread) on every pass, every 3
+    minutes — 1,440 full-keyspace walks a day. Redis is single-threaded, and this
+    instance is also the Celery broker, the result backend AND the Flask session
+    store, so each scan BLOCKS every worker's BRPOP and every web greenlet's cache
+    read for its duration. It is the reason this task showed up at 6.2s in the
+    logs.
+
+    The scans were redundant anyway: the match_scheduler keys are created with a
+    2-day TTL (see match_scheduler.py), so Redis already expires them.
+
+    Worse, the sweep was actively harmful. The TTL test below hardcoded a 24h
+    assumption -- `ttl < (24*60*60 - 300)` is true for ANY key whose TTL is under
+    ~23h55m, so it was DELETING still-valid scheduler markers roughly a day after
+    they were set, for keys that were never stuck at all.
+
+    What remains is the one lock that genuinely can hang without a TTL, checked
+    with an O(1) EXISTS.
+    """
     try:
-        # Look for our processing locks that might be stuck
-        lock_patterns = [
-            'live_reporting:v2:processing_lock',
-            'live_reporting:*:processing',
-            'match_scheduler:*:reporting',
-            'match_scheduler:*:thread'
-        ]
-        
-        cleared_count = 0
-        
-        for pattern in lock_patterns:
-            # Get all keys matching pattern
-            if '*' in pattern:
-                keys = redis_service.execute_command('keys', pattern)
-            else:
-                keys = [pattern] if redis_service.execute_command('exists', pattern) else []
-            
-            for key in keys:
-                # Check if lock is old (TTL -1 means no expiry, TTL -2 means doesn't exist)
-                ttl = redis_service.execute_command('ttl', key)
-                
-                # If TTL is -1 (no expiry) or lock exists for more than 5 minutes, clear it
-                if ttl == -1 or (ttl > 0 and ttl < (24 * 60 * 60 - 300)):  # Older than 5 minutes
-                    logger.warning(f"Clearing stuck lock: {key} (TTL: {ttl})")
-                    redis_service.execute_command('delete', key)
-                    cleared_count += 1
-        
-        return cleared_count
-        
+        key = 'live_reporting:v2:processing_lock'
+
+        if not redis_service.execute_command('exists', key):
+            return 0
+
+        ttl = redis_service.execute_command('ttl', key)
+
+        # -1 means the key exists with NO expiry: nothing will ever clean it up,
+        # so a crashed live-reporting run would block the next one forever. That
+        # is the only case worth clearing. A key WITH a TTL is not stuck - it is
+        # simply in use, and Redis will expire it on its own.
+        if ttl == -1:
+            logger.warning(f"Clearing stuck lock with no expiry: {key}")
+            redis_service.execute_command('delete', key)
+            return 1
+
+        return 0
+
     except Exception as e:
         logger.error(f"Error cleaning stuck locks: {e}")
         return 0

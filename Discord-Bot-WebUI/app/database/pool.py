@@ -148,34 +148,39 @@ class RateLimitedPool(QueuePool):
 
     def _do_get(self):
         """
-        Override the pool's _do_get purely to TRACK checked-out connections for
-        the long-running-transaction reporting above. Acquisition itself is left
-        entirely to QueuePool.
+        Override _do_get ONLY to run the periodic long-transaction check and warn
+        near capacity. Acquisition, overflow and pool_timeout are left entirely to
+        QueuePool, and the checked-out tracker is populated in ``_on_checkout``.
 
-        Two things used to happen here and both were actively harmful:
+        History, because both previous versions were subtly wrong:
 
-        1. Entries were keyed by ``id(record)`` (a ``_ConnectionRecord``), while
-           ``_on_checkin`` removes them by ``id(dbapi_conn)`` — a *different*
-           object. Nothing was ever removed, so ``_active_connections`` only
-           grew, and ``checked_out`` was permanently overstated.
+        1. Originally, entries were keyed here by ``id(record)`` (a
+           ``_ConnectionRecord``) while ``_on_checkin`` removed them by
+           ``id(dbapi_conn)`` — a *different* object. Nothing was ever removed, so
+           the tracker only grew and ``checked_out`` was permanently overstated.
+           Once that inflated count crossed 95% of capacity, every checkout took a
+           "fail-fast" branch that called ``self._pool.get()`` directly, bypassing
+           ``QueuePool._do_get`` — the only thing that ever creates overflow
+           connections. max_overflow became unreachable and checkouts raised
+           TimeoutError("under pressure") against a pool that was not exhausted.
 
-        2. Once that inflated count crossed 95% of capacity, every checkout took
-           a "fail-fast" branch that called ``self._pool.get()`` directly. That
-           bypasses ``QueuePool._do_get``, which is the *only* thing that ever
-           creates overflow connections — so max_overflow became unreachable and
-           checkouts raised TimeoutError("under pressure") after 3s against a
-           pool that was not actually exhausted.
+        2. The first fix keyed by ``rec.dbapi_connection`` here instead. Still
+           wrong: ``_ConnectionRecord.get_connection()`` runs AFTER ``_do_get()``
+           and REPLACES ``dbapi_connection`` whenever the record is stale — which
+           happens on every ``pool_recycle`` (1800s) and on any ``pool_pre_ping``
+           failure. So we recorded the OLD connection's id and ``_on_checkin``
+           removed the NEW one's: a leak on every recycle, and a permanent one
+           after ``con_record.invalidate()`` (which sets dbapi_connection to None).
+           Leaked entries never expire, so their age grows forever and
+           ``log_long_running_transactions`` warns about them for the life of the
+           process.
 
-        Keying by the DBAPI connection (what ``_on_checkout``/``_on_checkin``
-        use) makes the tracker balance, and deferring to ``super()`` restores
-        overflow and the configured pool_timeout.
+        ``_on_checkout`` is the only place with the authoritative DBAPI
+        connection, so that is the only place that writes the tracker.
         """
         self._check_transactions()
 
         rec = super()._do_get()
-
-        stack = self._get_stack_info(depth=20) if DEBUG_POOL else "<stack omitted>"
-        self._active_connections[self._track_key(rec)] = (time.time(), stack, None)
 
         checked_out = self.checkedout()
         total_capacity = self.size() + self._max_overflow
@@ -187,21 +192,14 @@ class RateLimitedPool(QueuePool):
 
         return rec
 
-    @staticmethod
-    def _track_key(rec):
-        """
-        Tracking key for a pool entry: the id of the underlying DBAPI connection,
-        which is what the checkout/checkin events see. Falls back to the record
-        itself if the connection is not materialised yet.
-        """
-        dbapi_conn = getattr(rec, 'dbapi_connection', None)
-        return id(dbapi_conn) if dbapi_conn is not None else id(rec)
-
     def _on_checkout(self, dbapi_conn, con_record, con_proxy):
         """
         Event handler called when a connection is checked out from the pool.
-        
-        Attempts to capture the route (request path) if in a Flask request context.
+
+        This is where the tracker entry is CREATED — see _do_get for why it cannot
+        be done there. `dbapi_conn` here is the real, post-recycle connection, and
+        it is the same object `_on_checkin` will hand back, so the tracker
+        balances.
         """
         conn_id = id(dbapi_conn)
         route = None
@@ -211,7 +209,7 @@ class RateLimitedPool(QueuePool):
         except Exception:
             pass
 
-        # Retrieve the initial checkout time and stack, if available.
+        # Fresh checkout: start the clock now.
         checkout_time, old_stack, _ = self._active_connections.get(
             conn_id, (time.time(), "<stack omitted>", None)
         )

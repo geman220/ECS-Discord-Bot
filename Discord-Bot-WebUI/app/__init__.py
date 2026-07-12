@@ -91,6 +91,15 @@ def create_app(config_object='web_config.Config'):
         logger.info("Skipping Redis initialization (SKIP_REDIS=true)")
     init_database(app, db)
 
+    # Opt-in per-request profiler (REQUEST_PROFILE=true). Inert otherwise.
+    # Logs queries, connection checkouts, and CPU-vs-wall time per request — the
+    # only numbers that distinguish "this request is waiting on the DB" (harmless
+    # under gevent; it yields) from "this request is burning CPU" (freezes every
+    # other greenlet in the worker). Registered before the extensions so its
+    # before_request runs early.
+    from app.request_profiler import init_request_profiler
+    init_request_profiler(app)
+
     # Phase 2: Extensions
     login_manager, mail, csrf, migrate = init_extensions(app, db)
 

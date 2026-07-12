@@ -227,22 +227,49 @@ def cache_health_check(self):
         
         redis_service = get_redis_service()
         
+        # Cap on how many keys this health check will look at. The point of the
+        # check is "is what we cached still readable and still valid JSON" — a
+        # sample answers that. Enumerating the entire cache to then pick 5 keys
+        # at random never did.
+        SCAN_CAP = 200
+
         with redis_service.get_connection() as redis_client:
             # Basic Redis health check
             redis_client.ping()
-            
-            # Check cache statistics
-            cache_keys = redis_client.keys(f"{task_status_cache.CACHE_PREFIX}:*")
+
+            # Collect a BOUNDED sample of cache keys.
+            #
+            # This used to be `redis_client.keys(f"{PREFIX}:*")` — a blocking,
+            # full-keyspace walk, every 10 minutes. Redis is single-threaded and
+            # this instance is also the Celery broker, the result backend and the
+            # Flask session store, so KEYS stalls every worker's BRPOP and every
+            # web greenlet's cache read for as long as it runs. It then used the
+            # entire key list to pick FIVE at random and threw the rest away. It
+            # is why this task showed up at 6.9s in the logs.
+            #
+            # SCAN is incremental and cursor-based, so it never blocks the server;
+            # capping it keeps the round-trip count bounded regardless of how big
+            # the keyspace grows.
+            cache_keys = []
+            scan_capped = False
+            for key in redis_client.scan_iter(
+                match=f"{task_status_cache.CACHE_PREFIX}:*", count=500
+            ):
+                cache_keys.append(key)
+                if len(cache_keys) >= SCAN_CAP:
+                    scan_capped = True
+                    break
+
             cache_count = len(cache_keys)
-            
+
             # Sample a few cache entries to check validity
             sample_size = min(5, cache_count)
             valid_entries = 0
-            
+
             if sample_size > 0:
                 import random
                 sample_keys = random.sample(cache_keys, sample_size)
-                
+
                 for key in sample_keys:
                     try:
                         data = redis_client.get(key)
@@ -252,9 +279,9 @@ def cache_health_check(self):
                             valid_entries += 1
                     except Exception:
                         pass
-        
+
         health_score = (valid_entries / sample_size * 100) if sample_size > 0 else 100
-        
+
         # Get Redis service metrics if available
         service_metrics = None
         try:
@@ -265,7 +292,11 @@ def cache_health_check(self):
         
         result = {
             'success': True,
+            # NOTE: cache_count is now the number of keys SEEN, capped at SCAN_CAP.
+            # It is a sample size, not a total. `scan_capped` says whether the real
+            # cache is larger than what we looked at.
             'cache_count': cache_count,
+            'scan_capped': scan_capped,
             'sample_size': sample_size,
             'valid_entries': valid_entries,
             'health_score': health_score,
@@ -274,7 +305,7 @@ def cache_health_check(self):
             'timestamp': datetime.utcnow().isoformat()
         }
         
-        logger.info(f"Cache health check completed: {cache_count} entries, {health_score:.1f}% health")
+        logger.info(f"Cache health check completed: sampled {cache_count} entries{' (capped)' if scan_capped else ''}, {health_score:.1f}% health")
         return result
         
     except Exception as e:

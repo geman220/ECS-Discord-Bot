@@ -206,7 +206,48 @@ class DraftCacheService:
             args_hash = hashlib.md5(args_str.encode()).hexdigest()[:8]
             key_parts.append(args_hash)
         return ":".join(key_parts)
-    
+
+    # --- key registry -------------------------------------------------------
+    #
+    # Invalidation used to SCAN the entire Redis keyspace, four patterns deep,
+    # 100 keys per round trip. Redis is also the Celery broker AND result
+    # backend here, and every API request queues a task that writes a result key,
+    # so the keyspace is huge — that scan was costing SECONDS on the request
+    # path, and it runs on every player activation (pass claim, pass assign).
+    #
+    # It was also silently broken: the pub-league path cleared `division.lower()`
+    # ('premier') while the draft pages cache under 'Premier', and Redis MATCH is
+    # case-sensitive — so it scanned the whole keyspace and deleted nothing.
+    #
+    # Instead we record each cache key we write in a per-league SET. Clearing is
+    # then SMEMBERS + DEL: proportional to the handful of keys that actually
+    # exist, not to the size of Redis. The registry is keyed case-INSENSITIVELY
+    # so 'Premier' and 'premier' invalidate the same thing.
+
+    _LEAGUE_INDEX = 'draft:leagues'
+    _REGISTRY_TTL = 86400  # a day; keys themselves carry shorter TTLs
+
+    @staticmethod
+    def _registry_key(league_name: str) -> str:
+        return f"draft:keyset:{(league_name or '').strip().lower()}"
+
+    @staticmethod
+    def _register_key(redis_conn, league_name: str, cache_key: str) -> None:
+        """Record a cache key so it can be invalidated without a keyspace scan."""
+        try:
+            registry = DraftCacheService._registry_key(league_name)
+            pipe = redis_conn.pipeline()
+            pipe.sadd(registry, cache_key)
+            pipe.expire(registry, DraftCacheService._REGISTRY_TTL)
+            pipe.sadd(DraftCacheService._LEAGUE_INDEX, (league_name or '').strip().lower())
+            pipe.expire(DraftCacheService._LEAGUE_INDEX, DraftCacheService._REGISTRY_TTL)
+            pipe.execute()
+        except Exception as e:
+            # Never fail a cache WRITE because bookkeeping failed; worst case the
+            # key falls out via its own TTL.
+            logger.debug(f"Could not register draft cache key {cache_key}: {e}")
+
+
     @staticmethod
     def _serialize_data(data: Any) -> str:
         """Serialize data for Redis storage with datetime handling."""
@@ -285,7 +326,9 @@ class DraftCacheService:
                 
                 start_time = time.time()
                 success = redis_conn.setex(cache_key, ttl, serialized_data)
-                
+                if success:
+                    DraftCacheService._register_key(redis_conn, league_name, cache_key)
+
                 cache_time = time.time() - start_time
                 if cache_time > 0.1:  # 100ms is slow for active draft
                     logger.warning(f"Cache set slow ({cache_time:.3f}s) for {cache_key}")
@@ -350,30 +393,33 @@ class DraftCacheService:
                 
             try:
                 with redis_conn.pipeline() as pipe:
-                    keys_to_delete = []
-                    
+                    # Read from the per-league key registry rather than SCANning the
+                    # keyspace (see _register_key). This is called from the user
+                    # management routes on the request path, and a SCAN here walks
+                    # every key in Redis — which doubles as the Celery broker and
+                    # result backend, so the keyspace is large.
                     if league_name:
-                        patterns = [
-                            f"draft:players:{league_name}*",
-                            f"draft:analytics:{league_name}*"
-                        ]
+                        leagues = [league_name]
                     else:
-                        patterns = [
-                            "draft:players:*",
-                            "draft:analytics:*"
-                        ]
-                    
-                    # Collect keys with timeout protection
-                    for pattern in patterns:
                         try:
-                            for key in redis_conn.scan_iter(match=pattern, count=50):
-                                keys_to_delete.append(key)
-                                if len(keys_to_delete) > 100:  # Limit for safety
-                                    break
+                            leagues = [
+                                l.decode() if isinstance(l, bytes) else l
+                                for l in redis_conn.smembers(DraftCacheService._LEAGUE_INDEX)
+                            ]
                         except Exception as e:
-                            logger.warning(f"Error scanning pattern {pattern}: {e}")
-                            break
-                    
+                            logger.warning(f"Could not read league index: {e}")
+                            leagues = []
+
+                    keys_to_delete = []
+                    for lg in leagues:
+                        try:
+                            keys_to_delete.extend(
+                                redis_conn.smembers(DraftCacheService._registry_key(lg))
+                            )
+                        except Exception as e:
+                            logger.warning(f"Error reading cache registry for {lg!r}: {e}")
+
+
                     deleted_count = 0
                     if keys_to_delete:
                         batch_size = 50
@@ -578,7 +624,9 @@ class DraftCacheService:
                 
                 start_time = time.time()
                 success = redis_conn.setex(cache_key, ttl, serialized_data)
-                
+                if success:
+                    DraftCacheService._register_key(redis_conn, league_name, cache_key)
+
                 cache_time = time.time() - start_time
                 if cache_time > 0.1:  # 100ms is slow for active draft
                     logger.warning(f"Analytics cache set slow ({cache_time:.3f}s) for {cache_key}")
@@ -618,31 +666,35 @@ class DraftCacheService:
                 return 0
 
             try:
-                keys_to_delete = []
-
+                # Read the keys to drop from the per-league registry instead of
+                # SCANning the whole keyspace. This runs on the pass-claim and
+                # pass-assign request paths; the old scan walked every key in
+                # Redis (which is also the Celery broker AND result backend) four
+                # times over, costing seconds per call — and, because Redis MATCH
+                # is case-sensitive and the pub-league path passed a lowercased
+                # league name, it deleted nothing while doing so.
                 if league_name:
-                    # Clear caches for specific league
-                    patterns = [
-                        f"draft:players:{league_name}*",
-                        f"draft:analytics:{league_name}*",
-                        f"draft:teams:{league_name}*",
-                        f"draft:availability:{league_name}*"
-                    ]
+                    leagues = [league_name]
                 else:
-                    # Clear ALL draft caches
-                    patterns = [
-                        "draft:players:*",
-                        "draft:analytics:*",
-                        "draft:teams:*",
-                        "draft:availability:*"
-                    ]
-
-                for pattern in patterns:
                     try:
-                        for key in redis_conn.scan_iter(match=pattern, count=100):
+                        leagues = [
+                            l.decode() if isinstance(l, bytes) else l
+                            for l in redis_conn.smembers(DraftCacheService._LEAGUE_INDEX)
+                        ]
+                    except Exception as e:
+                        logger.warning(f"Could not read league index: {e}")
+                        leagues = []
+
+                keys_to_delete = []
+                registries = []
+                for lg in leagues:
+                    registry = DraftCacheService._registry_key(lg)
+                    registries.append(registry)
+                    try:
+                        for key in redis_conn.smembers(registry):
                             keys_to_delete.append(key)
                     except Exception as e:
-                        logger.warning(f"Error scanning pattern {pattern}: {e}")
+                        logger.warning(f"Error reading cache registry for {lg!r}: {e}")
 
                 deleted_count = 0
                 if keys_to_delete:
@@ -654,6 +706,13 @@ class DraftCacheService:
                             deleted_count += redis_conn.delete(*batch)
                         except Exception as e:
                             logger.warning(f"Error deleting batch: {e}")
+
+                # The registries themselves are now stale.
+                if registries:
+                    try:
+                        redis_conn.delete(*registries)
+                    except Exception as e:
+                        logger.debug(f"Could not drop cache registries: {e}")
 
                 logger.info(f"🗑️ Cleared {deleted_count} draft cache keys for {league_name or 'all leagues'}")
                 return deleted_count
@@ -700,7 +759,7 @@ class DraftCacheService:
                 
                 for cache_type, pattern in patterns.items():
                     try:
-                        count = sum(1 for _ in redis_conn.scan_iter(match=pattern, count=10))
+                        count = sum(1 for _ in redis_conn.scan_iter(match=pattern, count=1000))
                         cache_counts[cache_type] = count
                     except Exception as e:
                         cache_counts[cache_type] = f"Error: {e}"

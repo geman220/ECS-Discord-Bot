@@ -17,7 +17,19 @@ from celery import Celery
 from celery import signals
 
 # Initialize core components
-db = SQLAlchemy()
+#
+# expire_on_commit=False must match app/init/database.py's SessionLocal.
+#
+# The request transaction is committed before Jinja renders
+# (app/lifecycle.py::_register_render_transaction_release) so the pgbouncer server
+# slot is handed back for the duration of the render. That hook commits BOTH
+# sessions. Flask-SQLAlchemy does not set expire_on_commit, so db.session was
+# defaulting to True — meaning any GET route that loaded objects via Model.query
+# had them EXPIRED by that commit, and the first attribute access in the template
+# fired a refresh SELECT and checked out a fresh connection, holding it for the
+# whole render. That is precisely the cost the hook exists to remove, so the two
+# sessions have to agree.
+db = SQLAlchemy(session_options={'expire_on_commit': False})
 socketio = SocketIO(
     cors_allowed_origins="*",
     async_mode='gevent',

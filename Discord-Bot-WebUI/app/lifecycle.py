@@ -176,14 +176,46 @@ class RequestLifecycle:
 
             g._txn_released_for_render = True
 
-            for session in (getattr(g, 'db_session', None), db.session):
-                if session is None:
+            request_session = getattr(g, 'db_session', None)
+
+            # g.db_session: commit. Teardown commits it anyway, so this changes
+            # only WHEN its writes land, not WHETHER they do.
+            #
+            # db.session: commit ONLY if nothing is pending. This is not
+            # squeamishness — Flask-SQLAlchemy's teardown calls db.session.remove(),
+            # i.e. a ROLLBACK, so on a plain GET anything pending on db.session was
+            # historically DISCARDED. Several admin pages rely on that: they
+            # decorate ORM objects with display data before rendering, e.g.
+            # `user.approved_by_user = <User>` (user_management/approvals.py:110,
+            # waitlist.py:86, admin/user_approval_routes.py:284). approved_by_user
+            # is a real relationship, so committing db.session on a GET turns those
+            # scratch assignments into actual UPDATEs. They happen to be idempotent
+            # today, but blanket-committing would remove the safety net for the
+            # next one somebody writes. If db.session has pending state we leave it
+            # alone and simply keep holding its connection through the render,
+            # exactly as before this hook existed.
+            sessions = [(request_session, True)]
+            if db.session is not None:
+                has_pending = bool(db.session.new or db.session.dirty or db.session.deleted)
+                sessions.append((db.session, not has_pending))
+
+            for session, may_commit in sessions:
+                if session is None or not may_commit:
                     continue
                 try:
                     session.commit()
                 except Exception as e:
-                    logger.warning(
-                        f"Could not release transaction before render: {e}", exc_info=True
+                    # The commit failed, so the session needs a rollback before it
+                    # can be used again — but rollback EXPIRES the identity map
+                    # regardless of expire_on_commit, so every object already handed
+                    # to the template is now expired and its next attribute access
+                    # will re-SELECT on a connection that just failed. Rendering is
+                    # very likely to blow up. Log loudly: a confusing mid-Jinja
+                    # traceback is much easier to diagnose with this line above it.
+                    logger.error(
+                        f"Failed to release transaction before render; the template "
+                        f"context is now expired and rendering may fail: {e}",
+                        exc_info=True,
                     )
                     try:
                         session.rollback()

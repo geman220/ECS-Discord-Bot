@@ -68,6 +68,12 @@ services:
       - RESERVE_POOL_TIMEOUT=5           # Faster failover
       - QUERY_WAIT_TIMEOUT=120           # Allow longer queries during peak
       - IGNORE_STARTUP_PARAMETERS=extra_float_digits
+      # Admin/stats console. Without these, connecting to the `pgbouncer` admin
+      # database is refused with "FATAL: not allowed" — which means SHOW POOLS /
+      # SHOW STATS (the only free, authoritative answer to "is the DB actually the
+      # bottleneck, or are requests queueing for a server slot?") is unavailable.
+      - ADMIN_USERS=${DB_USER}
+      - STATS_USERS=${DB_USER}
       - IDLE_TRANSACTION_TIMEOUT=30      # Increased from 10s
       - CLIENT_IDLE_TIMEOUT=120          # Increased from 60s
       - QUERY_TIMEOUT=60                 # Increased from 30s
@@ -114,6 +120,8 @@ services:
       - RESERVE_POOL_TIMEOUT=5
       - QUERY_WAIT_TIMEOUT=120
       - IGNORE_STARTUP_PARAMETERS=extra_float_digits
+      - ADMIN_USERS=${CELERY_DB_USER}
+      - STATS_USERS=${CELERY_DB_USER}
       - IDLE_TRANSACTION_TIMEOUT=30
       - CLIENT_IDLE_TIMEOUT=120
       - QUERY_TIMEOUT=60
@@ -469,6 +477,22 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONPATH=/app
       - TZ=America/Los_Angeles
+      # ── diagnostics (all default OFF; flip in .env, restart, then flip back) ──
+      # REQUEST_PROFILE logs one line per request: how many queries it made, how
+      # many pooled connections it took (should be 1 — a 2 means a stray
+      # Model.query opened a SECOND session), and how much of its wall time was
+      # CPU. Under gevent, DB waits yield and harm nobody; CPU does not yield and
+      # freezes every other request in the worker. That ratio is the whole game.
+      - REQUEST_PROFILE=${REQUEST_PROFILE:-false}
+      - REQUEST_PROFILE_MIN_MS=${REQUEST_PROFILE_MIN_MS:-0}
+      # gevent's own hub-block detector: logs a stack trace of any greenlet that
+      # blocks the event loop longer than GEVENT_MAX_BLOCKING_TIME seconds. This
+      # is how you FIND unyieldable CPU instead of guessing at it.
+      - GEVENT_MONITOR_THREAD_ENABLE=${GEVENT_MONITOR_THREAD_ENABLE:-false}
+      - GEVENT_MAX_BLOCKING_TIME=${GEVENT_MAX_BLOCKING_TIME:-0.1}
+      # The old connection-monitor thread (a gc.collect() every 60s in every
+      # process — an unyieldable full-heap freeze). Off unless you really want it.
+      - ENABLE_DB_CONNECTION_MONITOR=${ENABLE_DB_CONNECTION_MONITOR:-false}
       - FLASK_DEBUG=${FLASK_DEBUG:-0}
       - REDIS_URL=redis://redis:6379/0
       - REDIS_MAX_CONNECTIONS=150

@@ -116,26 +116,38 @@ class PubLeagueOrderService:
             from woocommerce import API
 
             # Release the request transaction BEFORE going out over the network.
-            # Callers reach here with an open transaction (the lookup that missed),
-            # and pgbouncer runs in transaction pooling with a 30s
-            # idle-transaction timeout — so a slow WooCommerce reply means our
-            # server connection gets killed and the next ORM access blows up with
-            # "FATAL: idle transaction timeout". Committing first also frees the
-            # pgbouncer server slot for the duration of the HTTP call.
-            try:
-                session = getattr(g, 'db_session', None)
-                if session is not None:
-                    session.commit()
-                db.session.commit()
-            except Exception:
-                logger.debug("Could not release transaction before WooCommerce fetch", exc_info=True)
+            # Callers reach here with an open read transaction (the lookup that
+            # missed), and pgbouncer runs transaction pooling with a 30s
+            # idle-transaction timeout — so a slow WooCommerce reply gets our
+            # server connection killed, and the next ORM access blows up with
+            # "FATAL: idle transaction timeout". Releasing first also hands the
+            # pgbouncer slot back for the duration of the HTTP call.
+            #
+            # Only release a session with NOTHING PENDING. This is a service
+            # function; it does not own the caller's session, and blanket-
+            # committing would flush and commit whatever half-finished write the
+            # caller happened to be holding — a partial-commit trap for whoever
+            # calls this next.
+            for _sess in (getattr(g, 'db_session', None), db.session):
+                if _sess is None:
+                    continue
+                try:
+                    if _sess.new or _sess.dirty or _sess.deleted:
+                        continue  # caller owns pending writes; leave them alone
+                    _sess.commit()
+                except Exception:
+                    logger.debug(
+                        "Could not release transaction before WooCommerce fetch",
+                        exc_info=True,
+                    )
 
             wcapi = API(
                 url=current_app.config['WOO_API_URL'],
                 consumer_key=current_app.config['WOO_CONSUMER_KEY'],
                 consumer_secret=current_app.config['WOO_CONSUMER_SECRET'],
                 version="wc/v3",
-                timeout=10
+                # The library already defaults to 5s; state it, don't raise it.
+                timeout=5
             )
 
             response = wcapi.get(f"orders/{order_id}")

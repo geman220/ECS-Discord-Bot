@@ -241,14 +241,37 @@ class TaskMonitor:
         
         current_time = time.time()
         min_time = current_time - time_window if time_window else 0
-        
-        # Find keys with the task prefix
-        keys = self.redis.keys(f"{self.task_prefix}*")
-        
+
+        # Find keys with the task prefix.
+        #
+        # This was `self.redis.keys(prefix*)` — a BLOCKING full-keyspace walk.
+        # Redis is single-threaded, and this instance is also the Celery broker,
+        # the result backend and the Flask session store, so KEYS freezes every
+        # worker's BRPOP and every web greenlet's cache read while it runs. And
+        # this is called from FOUR admin pages (admin_panel/routes/monitoring.py,
+        # system_infrastructure.py, admin/health_routes.py) — so an admin opening
+        # System Performance stalled the whole cluster.
+        #
+        # detect_zombie_tasks() above already does this correctly with SCAN; this
+        # one was simply missed. SCAN is cursor-based and never blocks the server.
+        keys = []
+        cursor = 0
+        while True:
+            try:
+                cursor, batch = self.redis.scan(
+                    cursor, match=f"{self.task_prefix}*", count=500
+                )
+            except Exception as e:
+                logger.error(f"Error scanning Redis for task stats: {e}")
+                break
+            keys.extend(batch)
+            if cursor == 0:
+                break
+
         for key in keys:
             task_info = self.redis.hgetall(key)
             start_time = float(task_info.get("start_time", 0))
-            
+
             # Skip if outside the time window
             if start_time < min_time:
                 continue

@@ -11,6 +11,7 @@ to run at the end of each request.
 """
 
 import logging
+import os
 import psycopg2
 import gc
 import threading
@@ -476,8 +477,28 @@ def start_connection_monitor() -> threading.Thread:
     return monitor_thread
 
 
-# Initialize the monitor thread when this module is imported
-try:
-    monitor_thread = start_connection_monitor()
-except Exception as e:
-    logger.error(f"Failed to start connection monitor: {e}", exc_info=True)
+# Start the monitor thread on import ONLY when explicitly asked for.
+#
+# This used to run unconditionally. `app/database/pool.py:62` imports this module
+# from the pool's connect handler, so it fired on the first DB connection in EVERY
+# process — both gunicorn workers and all seven celery/beat/realtime containers.
+#
+# The loop it starts calls gc.collect() every 60 seconds (see
+# monitor_connections_background above). Under monkey.patch_all() that "thread" is
+# a greenlet, and gc.collect() is unyieldable CPU: a full generational collect on a
+# heap holding 76 blueprints, every model, and PIL takes tens to hundreds of
+# milliseconds, and for that whole time EVERY in-flight request in the worker is
+# frozen. On a 2-vCPU box that is a self-inflicted latency spike, once a minute,
+# per process.
+#
+# Nothing reads what the monitor collects, and SQLAlchemy's pool already owns
+# connection lifecycle — the garbage collector does not need help doing its job.
+# The module stays importable: register_connection/unregister_connection (used by
+# the pool) and ensure_connections_cleanup (used by tasks_match_updates) are
+# unaffected.
+monitor_thread = None
+if os.getenv('ENABLE_DB_CONNECTION_MONITOR', 'false').lower() in ('1', 'true', 'yes'):
+    try:
+        monitor_thread = start_connection_monitor()
+    except Exception as e:
+        logger.error(f"Failed to start connection monitor: {e}", exc_info=True)

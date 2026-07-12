@@ -9,7 +9,7 @@ and feature toggles that can be controlled through the admin panel.
 
 import logging
 from datetime import datetime
-from sqlalchemy import Boolean, String, Text, DateTime, Integer
+from sqlalchemy import Boolean, String, Text, DateTime, Integer, event
 from sqlalchemy.exc import OperationalError, DBAPIError
 from app.core import db
 
@@ -643,6 +643,33 @@ class AdminConfig(db.Model):
             logger.error(f"Error initializing default settings: {e}")
             db.session.rollback()
             raise
+
+
+@event.listens_for(AdminConfig, 'after_insert')
+@event.listens_for(AdminConfig, 'after_update')
+@event.listens_for(AdminConfig, 'after_delete')
+def _drop_admin_config_request_cache(mapper, connection, target):
+    """
+    Invalidate the request-scoped settings cache whenever ANY AdminConfig row is
+    written — not only when it went through set_setting().
+
+    get_setting() primes the whole table into a cache on `g` on first miss, and a
+    key MISSING from a primed cache is taken to mean "not set" and answered from
+    the callsite default without touching the DB. That is a trap for the admin
+    routes that mutate AdminConfig rows directly rather than via set_setting
+    (admin_panel/routes/services.py, api_management.py,
+    communication/messaging_settings.py): a read-after-write in the same request
+    would hand back the stale value, or the default for a brand-new key. Hooking
+    the mapper covers every ORM write path instead of trusting five callers to
+    remember to invalidate.
+
+    (Bulk `query.update()` statements do not emit mapper-level events; no current
+    admin_config writer uses one.)
+    """
+    from flask import g, has_request_context
+    if has_request_context():
+        g.__dict__.pop('_admin_config_cache', None)
+        g.__dict__.pop('_admin_config_primed', None)
 
 
 class AdminAuditLog(db.Model):
