@@ -333,15 +333,19 @@
 
         /* ── Config ────────────────────────────────────────────────── */
         var POLL  = 3000;    // ms between health checks
-        var EST   = 180000;  // ~3 min typical restart
 
+        // How long a restart takes. This is a fallback ONLY — the server replaces
+        // it with the median of the last few real restarts (deploy_time.json.eta).
+        var EST   = 180000;
+
+        // The three states the server can actually observe from outside the webui
+        // container. This used to be a six-step list ("Building assets", "Running
+        // health checks", ...) whose progress was invented from a curve — nothing
+        // out here can see inside gunicorn's boot, so it was theatre. These are real.
         var PHASES = [
-            { label: 'Stopping services',       at: 0.08 },
-            { label: 'Starting containers',      at: 0.18 },
-            { label: 'Building assets',          at: 0.48 },
-            { label: 'Initializing application', at: 0.72 },
-            { label: 'Running health checks',    at: 0.88 },
-            { label: 'Ready',                    at: 1.00 }
+            { key: 'down',     label: 'Waiting for the server to come back' },
+            { key: 'starting', label: 'Application starting up' },
+            { key: 'up',       label: 'Ready' }
         ];
 
         var QUIPS = [
@@ -366,6 +370,7 @@
 
         /* ── State ─────────────────────────────────────────────────── */
         var t0 = Date.now(); // start with client time; server will override
+        var phase = 'down';  // server-observed; see PHASES
         var done = false;
         var pageLoadedAt = Date.now();
         var MIN_DISPLAY = 2000; // show counter for at least 2s before redirect
@@ -373,13 +378,16 @@
         /* ── DOM shortcuts ─────────────────────────────────────────── */
         function $(id) { return document.getElementById(id); }
 
-        /* ── Fetch server-authoritative deploy start time ──────────── */
-        // Syncs to server-authoritative time when available.
-        // Timer already runs with client time as fallback.
+        /* ── Server-observed state: start time, phase, and a real ETA ─── */
+        // Everything here is measured by the maintenance container, not guessed:
+        //   start — when webui actually stopped answering
+        //   phase — "down" (nothing listening) or "starting" (port open, not ready)
+        //   eta   — median of the last few REAL restarts on this box
+        // Timer runs on client time until the first successful sync.
         var MAX_AGE = 600000;   // 10 min — reject stale timestamps
         var MAX_SKEW = 5000;    // 5s — reject future timestamps (clock drift)
 
-        (function syncTime() {
+        function refreshState() {
             var x = new XMLHttpRequest();
             x.open('GET', '/data/deploy_time.json?_=' + Date.now(), true);
             x.timeout = 3000;
@@ -391,26 +399,26 @@
                             var age = Date.now() - data.start;
                             if (age >= -MAX_SKEW && age < MAX_AGE) {
                                 t0 = data.start;
-                                return;
                             }
-                            // Stale or skewed — ignore, keep client t0
+                            if (typeof data.eta === 'number' && data.eta > 0) {
+                                EST = data.eta;
+                            }
+                            if (typeof data.phase === 'string') {
+                                phase = data.phase;
+                            }
                             return;
                         }
                     } catch (e) {}
                 }
-                // 404 = file not yet created; keep retrying
-                if (x.status === 404 || x.status === 0) {
-                    setTimeout(syncTime, 2000);
-                    return;
-                }
-                // Other status — retry a few times then give up
-                setTimeout(syncTime, 2000);
+                // 404 = file not written yet; keep trying
+                setTimeout(refreshState, 2000);
             };
             x.onerror = x.ontimeout = function () {
-                setTimeout(syncTime, 2000);
+                setTimeout(refreshState, 2000);
             };
             x.send();
-        })();
+        }
+        refreshState();
 
         /* ── Particles ─────────────────────────────────────────────── */
         (function () {
@@ -456,24 +464,33 @@
             }
         })();
 
-        /* ── Simulated progress (exponential ease, caps at 95%) ──── */
+        /* ── Progress: elapsed against the REAL median restart time ──── */
+        // Linear, because we have no signal that justifies a curve. Caps at 95%
+        // until the app actually answers — the last 5% is earned, not animated.
         function simProg() {
             var elapsed = Date.now() - t0;
             if (elapsed < 0) elapsed = 0; // clock skew guard
-            var r = elapsed / EST;
-            return Math.min(0.95, 1 - Math.exp(-2.8 * r));
+            return Math.min(0.95, elapsed / EST);
         }
 
-        /* ── Render phases ─────────────────────────────────────────── */
-        function renderPh(p) {
-            var html = '';
+        /* ── Overrunning? Say so instead of pretending. ─────────────── */
+        function isOverrun() {
+            return (Date.now() - t0) > EST;
+        }
+
+        /* ── Render phases from what the server actually observed ───── */
+        function renderPh() {
+            var at = 0;
             for (var i = 0; i < PHASES.length; i++) {
-                var prev = i ? PHASES[i - 1].at : 0;
+                if (PHASES[i].key === phase) { at = i; break; }
+            }
+            var html = '';
+            for (var j = 0; j < PHASES.length; j++) {
                 var cls, ic;
-                if (p >= PHASES[i].at)     { cls = 'done';   ic = IC_CHECK; }
-                else if (p >= prev)        { cls = 'active'; ic = IC_SPIN;  }
-                else                       { cls = '';        ic = IC_DOT;   }
-                html += '<div class="ph ' + cls + '"><div class="ph-ic">' + ic + '</div>' + PHASES[i].label + '</div>';
+                if (j < at)       { cls = 'done';   ic = IC_CHECK; }
+                else if (j === at) { cls = 'active'; ic = IC_SPIN;  }
+                else               { cls = '';        ic = IC_DOT;   }
+                html += '<div class="ph ' + cls + '"><div class="ph-ic">' + ic + '</div>' + PHASES[j].label + '</div>';
             }
             $('ph').innerHTML = html;
         }
@@ -491,14 +508,16 @@
             var p = simProg();
             $('bar').style.width = Math.round(p * 100) + '%';
             $('pct').textContent  = Math.round(p * 100) + '%';
-            $('el').textContent   = fmtEl(Date.now() - t0);
-            renderPh(p);
+            $('el').textContent   = fmtEl(Date.now() - t0) +
+                (isOverrun() ? ' · taking longer than usual' : '');
+            renderPh();
             requestAnimationFrame(tick);
         }
 
         /* ── Health-check poll ─────────────────────────────────────── */
         function poll() {
             if (done) return;
+            refreshState();   // pick up phase down -> starting as the server sees it
             var x = new XMLHttpRequest();
             x.open('HEAD', '/api/health?_hc=' + Date.now(), true);
             x.timeout = 4000;
@@ -528,7 +547,8 @@
             $('sub').textContent   = 'Redirecting you now\u2026';
             $('foot').textContent  = 'Taking you back in a moment';
             $('quip').style.display = 'none';
-            renderPh(1);
+            phase = 'up';
+            renderPh();
 
             setTimeout(function () { window.location.reload(); }, 2000);
         }

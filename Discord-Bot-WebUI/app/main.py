@@ -546,12 +546,6 @@ def index():
         )
         report_form = ReportMatchForm()
 
-        matches = (
-            session.query(Match)
-            .options(joinedload(Match.home_team), joinedload(Match.away_team))
-            .all()
-        )
-
         # Check if onboarding should be shown based on user flags and Flask session
         # Use flask.session instead of SQLAlchemy session
         from flask import session as flask_session
@@ -962,7 +956,6 @@ def index():
             'index_flowbite.html',
             title='Home',
             report_form=report_form,
-            matches=matches,
             onboarding_form=onboarding_form,
             user_team=user_teams,
             next_matches=next_matches,
