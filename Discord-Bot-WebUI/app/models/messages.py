@@ -204,9 +204,18 @@ class DirectMessage(db.Model):
         return query.order_by(cls.created_at.desc()).offset(offset).limit(limit).all()
 
     @classmethod
-    def get_unread_count(cls, user_id):
-        """Get count of unread messages for a user."""
-        return cls.query.filter_by(
+    def get_unread_count(cls, user_id, session=None):
+        """Get count of unread messages for a user.
+
+        `cls.query` binds to db.session, which is a different session from the
+        request's g.db_session — calling it inside a request checks out a second
+        pooled connection and holds it for the rest of the request. Every open tab
+        polls this, so resolve the request's own session instead.
+        """
+        if session is None:
+            from app.utils.user_locking import get_session
+            session = get_session()
+        return session.query(cls).filter_by(
             recipient_id=user_id,
             is_read=False
         ).count()

@@ -103,9 +103,15 @@ def init_request_profiler(app):
         # cpu/wall is the headline: high means this request froze the worker.
         ratio = (cpu_ms / wall_ms * 100) if wall_ms > 0 else 0
 
+        # Traefik terminates TLS, so remote_addr is the proxy. The real caller is
+        # the first hop in X-Forwarded-For.
+        fwd = request.headers.get('X-Forwarded-For', '')
+        client = fwd.split(',')[0].strip() if fwd else (request.remote_addr or '-')
+        agent = (request.headers.get('User-Agent') or '-')[:60]
+
         logger.warning(
             "PROFILE %s %s -> %s | queries=%d checkouts=%d "
-            "wall=%.0fms cpu=%.0fms (cpu %.0f%% of wall)",
+            "wall=%.0fms cpu=%.0fms (cpu %.0f%% of wall) | %s | %s",
             request.method,
             request.full_path.rstrip('?'),
             response.status_code,
@@ -114,6 +120,8 @@ def init_request_profiler(app):
             wall_ms,
             cpu_ms,
             ratio,
+            client,
+            agent,
         )
         return response
 
