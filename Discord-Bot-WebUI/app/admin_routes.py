@@ -188,11 +188,12 @@ def admin_dashboard():
     total_users = users_query.count()
     users = users_query.offset((page - 1) * per_page).limit(per_page).all()
 
-    # Get teams and preload stats
-    teams = session.query(Team).all()
-    from app.team_performance_helpers import preload_team_stats_for_request
-    team_ids = [team.id for team in teams]
-    preload_team_stats_for_request(team_ids, session)
+    # Teams load REMOVED. `session.query(Team).all()` fetched EVERY team that has ever
+    # existed (all seasons), and preload_team_stats_for_request then ran the whole
+    # bulk_load_team_stats fan-out over them — which includes a deliberately un-LIMITed
+    # scan of `matches` across all history. admin_dashboard_flowbite.html mentions
+    # "teams" exactly once, in a comment; it never iterates it. All of that work was
+    # discarded.
 
     template_data = {
         'users': users,
@@ -202,7 +203,6 @@ def admin_dashboard():
         'roles': session.query(Role).all(),
         'permissions': session.query(Permission).all(),
         'announcements': session.query(Announcement).order_by(Announcement.created_at.desc()).all(),
-        'teams': teams,
         'edit_form': EditUserForm(),
         'reset_password_form': ResetPasswordForm(),
         'announcement_form': AnnouncementForm()

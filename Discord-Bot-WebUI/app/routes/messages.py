@@ -31,6 +31,20 @@ from app.core import db
 from app.models import DirectMessage, MessagingPermission, MessagingSettings, User, Role
 from app.sockets.presence import PresenceManager
 from app.utils.user_helpers import safe_current_user
+from app.utils.user_locking import get_session
+
+
+def _s():
+    """The REQUEST's session.
+
+    This module used _s() throughout. That is a DIFFERENT session from the
+    per-request g.db_session that the rest of the request already holds — so every call
+    here checked out a SECOND pooled connection and held it for the whole request. These
+    are JSON endpoints, so they never hit the before_render hook that releases the
+    transaction early, and /unread-count is polled continuously by every open tab.
+    """
+    return get_session()
+
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +90,7 @@ def _get_role_ids(user):
             role_ids.append(role.id)
         elif isinstance(role, str):
             # It's a role name string (from role impersonation)
-            role_obj = Role.query.filter_by(name=role).first()
+            role_obj = _s().query(Role).filter_by(name=role).first()
             if role_obj:
                 role_ids.append(role_obj.id)
     return role_ids
@@ -162,14 +176,14 @@ def get_conversations():
             return jsonify({'success': True, 'conversations': []})
 
         # Bulk load users with relationships (single query instead of N queries)
-        users = User.query.options(
+        users = _s().query(User).options(
             joinedload(User.player),
             joinedload(User.roles)
         ).filter(User.id.in_(other_user_ids)).all()
         users_by_id = {u.id: u for u in users}
 
         # Bulk get unread counts (single query instead of N queries)
-        unread_counts = db.session.query(
+        unread_counts = _s().query(
             DirectMessage.sender_id,
             func.count(DirectMessage.id)
         ).filter(
@@ -245,7 +259,7 @@ def get_conversation(user_id):
         offset = int(request.args.get('offset', 0))
 
         # Verify the other user exists
-        other_user = User.query.get(user_id)
+        other_user = _s().query(User).get(user_id)
         if not other_user:
             return jsonify({
                 'success': False,
@@ -265,7 +279,7 @@ def get_conversation(user_id):
         for msg in unread_messages:
             msg.mark_as_read()
         if unread_messages:
-            db.session.commit()
+            _s().commit()
 
         # Get settings for features
         settings = MessagingSettings.get_settings()
@@ -319,7 +333,7 @@ def send_message(user_id):
             }), 400
 
         # Verify the recipient exists
-        recipient = User.query.get(user_id)
+        recipient = _s().query(User).get(user_id)
         if not recipient:
             return jsonify({
                 'success': False,
@@ -340,8 +354,8 @@ def send_message(user_id):
             recipient_id=user_id,
             content=content
         )
-        db.session.add(message)
-        db.session.commit()
+        _s().add(message)
+        _s().commit()
 
         # Emit WebSocket event if recipient is online
         recipient_online = PresenceManager.is_user_online(user_id)
@@ -383,7 +397,7 @@ def send_message(user_id):
 
     except Exception as e:
         logger.error(f"Error sending message: {e}")
-        db.session.rollback()
+        _s().rollback()
         return jsonify({
             'success': False,
             'error': 'Failed to send message'
@@ -395,7 +409,7 @@ def send_message(user_id):
 def mark_message_read(message_id):
     """Mark a single message as read."""
     try:
-        message = DirectMessage.query.filter_by(
+        message = _s().query(DirectMessage).filter_by(
             id=message_id,
             recipient_id=current_user.id
         ).first()
@@ -407,7 +421,7 @@ def mark_message_read(message_id):
             }), 404
 
         message.mark_as_read()
-        db.session.commit()
+        _s().commit()
 
         return jsonify({
             'success': True,
@@ -416,7 +430,7 @@ def mark_message_read(message_id):
 
     except Exception as e:
         logger.error(f"Error marking message read: {e}")
-        db.session.rollback()
+        _s().rollback()
         return jsonify({
             'success': False,
             'error': 'Failed to mark message as read'
@@ -428,14 +442,14 @@ def mark_message_read(message_id):
 def mark_all_messages_read():
     """Mark all messages as read for current user."""
     try:
-        DirectMessage.query.filter_by(
+        _s().query(DirectMessage).filter_by(
             recipient_id=current_user.id,
             is_read=False
         ).update({
             'is_read': True,
             'read_at': datetime.utcnow()
         })
-        db.session.commit()
+        _s().commit()
 
         return jsonify({
             'success': True,
@@ -444,7 +458,7 @@ def mark_all_messages_read():
 
     except Exception as e:
         logger.error(f"Error marking all messages read: {e}")
-        db.session.rollback()
+        _s().rollback()
         return jsonify({
             'success': False,
             'error': 'Failed to mark messages as read'
@@ -461,7 +475,7 @@ def delete_message(message_id):
     """
     try:
         # Only allow deleting own messages
-        message = DirectMessage.query.filter_by(
+        message = _s().query(DirectMessage).filter_by(
             id=message_id,
             sender_id=current_user.id
         ).first()
@@ -483,7 +497,7 @@ def delete_message(message_id):
 
         # Soft delete for everyone
         message.delete_for_everyone()
-        db.session.commit()
+        _s().commit()
 
         # Emit WebSocket event to notify recipient
         try:
@@ -509,7 +523,7 @@ def delete_message(message_id):
 
     except Exception as e:
         logger.error(f"Error deleting message: {e}")
-        db.session.rollback()
+        _s().rollback()
         return jsonify({
             'success': False,
             'error': 'Failed to delete message'
@@ -525,7 +539,7 @@ def hide_message(message_id):
     """
     try:
         # Find message where current user is sender or recipient
-        message = DirectMessage.query.filter(
+        message = _s().query(DirectMessage).filter(
             DirectMessage.id == message_id,
             db.or_(
                 DirectMessage.sender_id == current_user.id,
@@ -541,7 +555,7 @@ def hide_message(message_id):
 
         # Hide for this user
         message.hide_for_user(current_user.id)
-        db.session.commit()
+        _s().commit()
 
         return jsonify({
             'success': True,
@@ -551,7 +565,7 @@ def hide_message(message_id):
 
     except Exception as e:
         logger.error(f"Error hiding message: {e}")
-        db.session.rollback()
+        _s().rollback()
         return jsonify({
             'success': False,
             'error': 'Failed to hide message'
@@ -574,7 +588,7 @@ def delete_conversation(user_id):
         JSON with success status and count of hidden messages
     """
     try:
-        other_user = User.query.get(user_id)
+        other_user = _s().query(User).get(user_id)
         if not other_user:
             return jsonify({
                 'success': False,
@@ -583,9 +597,9 @@ def delete_conversation(user_id):
 
         # Hide all messages in this conversation for the current user
         hidden_count = DirectMessage.hide_conversation_for_user(
-            current_user.id, user_id, session=db.session
+            current_user.id, user_id, session=_s()
         )
-        db.session.commit()
+        _s().commit()
 
         logger.info(f"User {current_user.id} hid conversation with user {user_id} ({hidden_count} messages)")
 
@@ -596,7 +610,7 @@ def delete_conversation(user_id):
 
     except Exception as e:
         logger.error(f"Error deleting conversation: {e}")
-        db.session.rollback()
+        _s().rollback()
         return jsonify({
             'success': False,
             'error': 'Failed to delete conversation'
@@ -611,7 +625,7 @@ def check_can_message(user_id):
     Useful for showing/hiding message buttons in UI.
     """
     try:
-        recipient = User.query.get(user_id)
+        recipient = _s().query(User).get(user_id)
         if not recipient:
             return jsonify({
                 'success': False,
@@ -681,7 +695,7 @@ def search_users():
         # Search users by name or username
         from app.models import Player
 
-        users = User.query.outerjoin(Player).filter(
+        users = _s().query(User).outerjoin(Player).filter(
             User.id != current_user.id,
             db.or_(
                 Player.name.ilike(f'%{query}%'),
@@ -729,7 +743,7 @@ def messages_inbox():
     initial_user = None
 
     if initial_user_id:
-        initial_user = User.query.get(initial_user_id)
+        initial_user = _s().query(User).get(initial_user_id)
         if initial_user:
             # Check if we can message this user
             can_msg, _ = _can_user_message(current_user, initial_user)

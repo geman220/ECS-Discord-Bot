@@ -1,8 +1,25 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import User, UserFCMToken, Match
 from app.services.notification_service import notification_service
 from app.core import db
+from app.utils.user_locking import get_session
+
+
+def _s():
+    """The REQUEST's session.
+
+    This module used db.session / Model.query, which bind to a DIFFERENT session from
+    the per-request g.db_session the request already holds — so every call took a SECOND
+    pooled connection for the life of the request. These are JSON endpoints, so they
+    never reach the before_render hook that releases the transaction early.
+
+    NOTE: get_or_404() is a Flask-SQLAlchemy Query method and does NOT exist on a plain
+    SQLAlchemy Query, so those call sites are rewritten to an explicit get() + abort(404)
+    rather than mechanically swapped.
+    """
+    return get_session()
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,7 +45,7 @@ def register_fcm_token():
             return jsonify({'msg': 'FCM token is required'}), 400
         
         # Check if token already exists
-        existing_token = UserFCMToken.query.filter_by(
+        existing_token = _s().query(UserFCMToken).filter_by(
             user_id=user_id, 
             fcm_token=fcm_token
         ).first()
@@ -41,21 +58,21 @@ def register_fcm_token():
                 platform=platform,
                 is_active=True
             )
-            db.session.add(user_token)
-            db.session.commit()
+            _s().add(user_token)
+            _s().commit()
             logger.info(f"Registered FCM token for user {user_id}")
         else:
             # Update existing token
             existing_token.is_active = True
             existing_token.platform = platform
-            db.session.commit()
+            _s().commit()
             logger.info(f"Updated FCM token for user {user_id}")
         
         return jsonify({'msg': 'FCM token registered successfully'}), 200
         
     except Exception as e:
         logger.error(f"Error registering FCM token: {e}")
-        db.session.rollback()
+        _s().rollback()
         return jsonify({'msg': 'Internal server error'}), 500
 
 @notifications_bp.route('/send-test', methods=['POST'])
@@ -66,7 +83,7 @@ def send_test_notification():
         user_id = int(get_jwt_identity())
         
         # Get user's FCM tokens
-        user_tokens = UserFCMToken.query.filter_by(
+        user_tokens = _s().query(UserFCMToken).filter_by(
             user_id=user_id, 
             is_active=True
         ).all()
@@ -96,7 +113,9 @@ def send_test_notification():
 def send_match_reminder(match_id):
     """Send match reminder to all players in the match"""
     try:
-        match = Match.query.get_or_404(match_id)
+        match = _s().query(Match).get(match_id)
+        if not match:
+            abort(404)
         
         # Get all players from both teams
         home_team_players = match.home_team.players if match.home_team else []
@@ -105,7 +124,7 @@ def send_match_reminder(match_id):
         
         # Get FCM tokens for all players
         player_ids = [player.user_id for player in all_players if player.user_id]
-        tokens_query = UserFCMToken.query.filter(
+        tokens_query = _s().query(UserFCMToken).filter(
             UserFCMToken.user_id.in_(player_ids),
             UserFCMToken.is_active == True
         ).all()
@@ -140,7 +159,9 @@ def send_match_reminder(match_id):
 def send_rsvp_reminder(match_id):
     """Send RSVP reminder to all players in the match"""
     try:
-        match = Match.query.get_or_404(match_id)
+        match = _s().query(Match).get(match_id)
+        if not match:
+            abort(404)
         
         # Get all players from both teams who haven't RSVP'd
         home_team_players = match.home_team.players if match.home_team else []
@@ -151,7 +172,7 @@ def send_rsvp_reminder(match_id):
         # For now, send to all players
         player_ids = [player.user_id for player in all_players if player.user_id]
         
-        tokens_query = UserFCMToken.query.filter(
+        tokens_query = _s().query(UserFCMToken).filter(
             UserFCMToken.user_id.in_(player_ids),
             UserFCMToken.is_active == True
         ).all()
@@ -185,7 +206,7 @@ def broadcast_notification():
     """Send notification to all users (admin only)"""
     try:
         # Add admin check here
-        current_user = User.query.get(int(get_jwt_identity()))
+        current_user = _s().query(User).get(int(get_jwt_identity()))
         if not current_user.has_role('Global Admin'):  # Using your existing has_role method
             return jsonify({'msg': 'Admin access required'}), 403
         
@@ -197,7 +218,7 @@ def broadcast_notification():
             return jsonify({'msg': 'Message is required'}), 400
         
         # Get all active FCM tokens
-        all_tokens = UserFCMToken.query.filter_by(is_active=True).all()
+        all_tokens = _s().query(UserFCMToken).filter_by(is_active=True).all()
         tokens = [token.fcm_token for token in all_tokens]
         
         if not tokens:
@@ -220,7 +241,9 @@ def notification_settings():
     """Get or update user notification settings"""
     try:
         user_id = int(get_jwt_identity())
-        user = User.query.get_or_404(user_id)
+        user = _s().query(User).get(user_id)
+        if not user:
+            abort(404)
         
         if request.method == 'GET':
             return jsonify({
@@ -243,7 +266,7 @@ def notification_settings():
             if 'general_notifications' in data:
                 setattr(user, 'general_notifications', data['general_notifications'])
             
-            db.session.commit()
+            _s().commit()
             
             return jsonify({'msg': 'Notification settings updated successfully'}), 200
         
@@ -260,9 +283,9 @@ def notification_status():
         firebase_configured = notification_service._initialized
         
         # Get FCM token statistics
-        total_tokens = UserFCMToken.query.filter_by(is_active=True).count()
-        ios_tokens = UserFCMToken.query.filter_by(is_active=True, platform='ios').count()
-        android_tokens = UserFCMToken.query.filter_by(is_active=True, platform='android').count()
+        total_tokens = _s().query(UserFCMToken).filter_by(is_active=True).count()
+        ios_tokens = _s().query(UserFCMToken).filter_by(is_active=True, platform='ios').count()
+        android_tokens = _s().query(UserFCMToken).filter_by(is_active=True, platform='android').count()
         
         # TODO: Add actual notification count from logs/database
         notifications_sent_24h = 0

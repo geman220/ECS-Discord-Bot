@@ -485,6 +485,12 @@ services:
       # freezes every other request in the worker. That ratio is the whole game.
       - REQUEST_PROFILE=${REQUEST_PROFILE:-false}
       - REQUEST_PROFILE_MIN_MS=${REQUEST_PROFILE_MIN_MS:-0}
+      # Log a request even if it was FAST, when it made too many queries. A latency-only
+      # threshold hides N+1s: 40 queries finishes in 200ms on an idle box and never gets
+      # logged, then falls over the moment thirty people arrive. Set to 0 to disable.
+      - REQUEST_PROFILE_MIN_QUERIES=${REQUEST_PROFILE_MIN_QUERIES:-15}
+      # Set to 2 to hunt requests that use two DB sessions (two pgbouncer slots).
+      - REQUEST_PROFILE_MIN_CHECKOUTS=${REQUEST_PROFILE_MIN_CHECKOUTS:-0}
       # gevent's own hub-block detector: logs a stack trace of any greenlet that
       # blocks the event loop longer than GEVENT_MAX_BLOCKING_TIME seconds. This
       # is how you FIND unyieldable CPU instead of guessing at it.

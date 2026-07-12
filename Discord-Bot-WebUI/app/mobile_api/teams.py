@@ -24,7 +24,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from app.mobile_api import mobile_api_v2
 from app.constants.positions import label_for
 from app.core.session_manager import managed_session
-from app.models import Team, League, Season, Match, Player, player_teams
+from app.models import Team, League, Season, Match, Player, player_teams, Availability
 from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability
 from app.etag_utils import make_etag_response, CACHE_DURATIONS
 from app.app_api_helpers import (
@@ -360,24 +360,67 @@ def get_team_matches(team_id: int):
 
             matches = query.all()
 
+            # ── Everything this loop used to query PER MATCH, done once ──────────────
+            #
+            # Three separate N+1s lived here:
+            #   1. current_player=player made build_match_response call
+            #      get_player_availability -> 1 query per match. AND it was called AGAIN
+            #      below for 'my_availability', so the same row was fetched twice.
+            #   2. get_team_players_availability -> another query per match.
+            #   3. No preload_team_stats_for_request, so Team.to_dict() inside
+            #      build_match_response fell through to bulk_load_team_stats per team.
+            # A 50-match window meant ~150 availability queries plus team stats.
+            from app.app_api_helpers import bulk_player_availability
+            from app.team_performance_helpers import preload_team_stats_for_request
+
+            _team_ids = {t for m in matches for t in (m.home_team_id, m.away_team_id) if t}
+            if _team_ids:
+                preload_team_stats_for_request(list(_team_ids), session=session_db)
+
+            avail_by_match = {}
+            team_avail_by_match = {}
+            if include_availability and player and matches:
+                avail_by_match = bulk_player_availability(matches, player, session=session_db)
+
+                # The whole team's responses for every match, in ONE query.
+                _match_ids = [m.id for m in matches]
+                _roster = list(team.players)
+                _roster_ids = [p.id for p in _roster]
+                _rows = session_db.query(
+                    Availability.match_id, Availability.player_id, Availability.response
+                ).filter(
+                    Availability.match_id.in_(_match_ids),
+                    Availability.player_id.in_(_roster_ids),
+                ).all() if _roster_ids else []
+
+                _resp = {}
+                for _mid, _pid, _r in _rows:
+                    _resp.setdefault(_mid, {})[_pid] = _r
+
+                for m in matches:
+                    _for_match = _resp.get(m.id, {})
+                    team_avail_by_match[m.id] = [{
+                        'id': p.id,
+                        'name': p.name,
+                        'availability': _for_match.get(p.id, 'Not responded'),
+                    } for p in _roster]
+
             for match in matches:
                 match_data = build_match_response(
                     match=match,
                     include_events=include_events,
                     include_teams=True,
                     include_players=False,
-                    current_player=player,
+                    current_player=None,
                     session=session_db
                 )
                 match_data['match_type'] = 'pub_league'
 
                 if include_availability and player:
-                    match_data['my_availability'] = get_player_availability(
-                        match, player, session=session_db
-                    )
-                    match_data['team_availability'] = get_team_players_availability(
-                        match, team.players, session=session_db
-                    )
+                    _mine = avail_by_match.get(match.id)
+                    match_data['availability'] = _mine
+                    match_data['my_availability'] = _mine
+                    match_data['team_availability'] = team_avail_by_match.get(match.id, [])
                     match_data['rsvp_summary'] = compute_rsvp_summary(
                         match_data['team_availability']
                     )
@@ -598,6 +641,17 @@ def get_my_teams():
         base_url = request.host_url.rstrip('/')
         teams_data = []
 
+        # One query for the player's coach flags across ALL their teams, instead of one
+        # per team inside the loop below.
+        coach_flags = dict(
+            session_db.query(
+                player_teams.c.team_id, player_teams.c.is_coach
+            ).filter(
+                player_teams.c.player_id == player.id,
+                player_teams.c.team_id.in_(team_ids),
+            ).all()
+        )
+
         for team in teams:
             team_data = team.to_dict()
             team_data['league_name'] = team.league.name if team.league else None
@@ -605,12 +659,8 @@ def get_my_teams():
             # Add is_primary flag
             team_data['is_primary'] = (team.id == player.primary_team_id)
 
-            # Add is_coach flag
-            is_coach = session_db.query(player_teams.c.is_coach).filter(
-                player_teams.c.player_id == player.id,
-                player_teams.c.team_id == team.id
-            ).scalar()
-            team_data['is_coach'] = bool(is_coach)
+            # Add is_coach flag (from the bulk lookup above)
+            team_data['is_coach'] = bool(coach_flags.get(team.id))
 
             # Handle team logo URLs
             if team_data.get('logo_url') and not team_data['logo_url'].startswith('http'):

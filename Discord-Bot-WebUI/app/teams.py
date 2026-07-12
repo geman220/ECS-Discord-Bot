@@ -1040,35 +1040,20 @@ def view_standings():
     classic_standings = get_standings('Classic')
     ecsfc_standings = get_standings('ECS FC')
 
-    # Check Redis cache for standings first
-    from app.performance_cache import cache_standings_data, set_standings_cache
-
-    cached_standings = cache_standings_data(league_id=None)  # Cache all standings together
-
-    if cached_standings:
-        logger.debug("Using cached standings data")
-        premier_stats = cached_standings.get('premier_stats', {})
-        classic_stats = cached_standings.get('classic_stats', {})
-        ecsfc_stats = cached_standings.get('ecsfc_stats', {})
-    else:
-        logger.debug("Generating fresh standings data")
-        # Preload team stats to avoid N+1 queries
-        from app.team_performance_helpers import preload_team_stats_for_request
-        all_team_ids = [s.team.id for s in premier_standings] + [s.team.id for s in classic_standings] + [s.team.id for s in ecsfc_standings]
-        preload_team_stats_for_request(all_team_ids)
-
-        # Populate detailed stats for each team.
-        premier_stats = {s.team.id: populate_team_stats(s.team, season) for s in premier_standings}
-        classic_stats = {s.team.id: populate_team_stats(s.team, season) for s in classic_standings}
-        ecsfc_stats = {s.team.id: populate_team_stats(s.team, season) for s in ecsfc_standings}
-
-        # Cache the results
-        standings_data = {
-            'premier_stats': premier_stats,
-            'classic_stats': classic_stats,
-            'ecsfc_stats': ecsfc_stats
-        }
-        set_standings_cache(standings_data, league_id=None, ttl=300)  # Cache for 5 minutes
+    # premier_stats / classic_stats / ecsfc_stats REMOVED — along with their Redis cache.
+    #
+    # The template assigned them (`{% set stats = premier_stats.get(...) %}` at
+    # view_standings_flowbite.html:421/494/568) and then NEVER READ `stats`. So every
+    # render of a nav-linked page paid: a multi-KB Redis GET plus json.loads (CPU, which
+    # does not yield under gevent), or on a miss a full preload_team_stats_for_request
+    # over every team in the season plus a per-team populate_team_stats — and threw all
+    # of it away.
+    #
+    # It was dead on arrival regardless: cache_standings_data() does not restore integer
+    # keys from JSON, so `.get(team.id)` missed on every cache hit anyway.
+    #
+    # The award_data / _top_stat leaderboards below ARE rendered — do not touch those.
+    # teams_helpers.populate_team_stats() is still called from teams.py:1414 — keep it.
 
     # Season awards / leaderboards per league
     leagues = session.query(League).filter(League.season_id == season.id).all()
@@ -1112,9 +1097,6 @@ def view_standings():
         premier_standings=premier_standings,
         classic_standings=classic_standings,
         ecsfc_standings=ecsfc_standings,
-        premier_stats=premier_stats,
-        classic_stats=classic_stats,
-        ecsfc_stats=ecsfc_stats,
         **award_data
     )
 
@@ -2141,66 +2123,83 @@ def coach_dashboard():
             match.red_cards = []
 
     # Add RSVP counts and sub request data for each match (filtered by coached team only)
+    # ── Precompute everything this loop used to query PER MATCH ────────────────────
+    #
+    # This loop ran THREE queries per match: the coached team's roster (re-fetched for
+    # the SAME team on every one of its matches), a grouped availability count, and the
+    # sub-request list. Fourteen matches meant ~42 queries. It is now four, total.
+    #
+    # Availability is fetched as raw (match_id, player_id, response) rows rather than
+    # pre-grouped in SQL, deliberately: the counts must only include players on THAT
+    # match's coached team, and if a coach coaches BOTH teams in a fixture a pre-grouped
+    # count could not tell them apart.
+    def _coached_team_id(m):
+        if hasattr(m, 'is_ecs_fc') and m.is_ecs_fc:
+            return m.team_id
+        if m.home_team_id in team_ids:
+            return m.home_team_id
+        if m.away_team_id in team_ids:
+            return m.away_team_id
+        return None
+
+    # 1. rosters for every coached team, in one query
+    _roster_by_team = {}
+    if team_ids:
+        for _tid, _pid in session.query(
+            player_teams.c.team_id, player_teams.c.player_id
+        ).filter(player_teams.c.team_id.in_(list(team_ids))).all():
+            _roster_by_team.setdefault(_tid, set()).add(_pid)
+
+    _pub_ids = [m.id for m in all_matches if not (hasattr(m, 'is_ecs_fc') and m.is_ecs_fc)]
+    _ecs_ids = [m.id for m in all_matches if (hasattr(m, 'is_ecs_fc') and m.is_ecs_fc)]
+
+    # 2. availability rows, one query per league type
+    _pub_avail = {}
+    if _pub_ids:
+        for _mid, _pid, _resp in session.query(
+            Availability.match_id, Availability.player_id, Availability.response
+        ).filter(Availability.match_id.in_(_pub_ids)).all():
+            _pub_avail.setdefault(_mid, []).append((_pid, _resp))
+
+    _ecs_avail = {}
+    if _ecs_ids:
+        for _mid, _pid, _resp in session.query(
+            EcsFcAvailability.ecs_fc_match_id, EcsFcAvailability.player_id,
+            EcsFcAvailability.response
+        ).filter(EcsFcAvailability.ecs_fc_match_id.in_(_ecs_ids)).all():
+            _ecs_avail.setdefault(_mid, []).append((_pid, _resp))
+
+    # 3. sub requests, one query per league type
+    _pub_subs = {}
+    if _pub_ids:
+        for _sr in session.query(SubstituteRequest).filter(
+            SubstituteRequest.match_id.in_(_pub_ids),
+            SubstituteRequest.status != 'CANCELLED',
+        ).all():
+            _pub_subs.setdefault(_sr.match_id, []).append(_sr)
+
+    _ecs_subs = {}
+    if _ecs_ids:
+        for _sr in session.query(EcsFcSubRequest).filter(
+            EcsFcSubRequest.match_id.in_(_ecs_ids),
+            EcsFcSubRequest.status != 'CANCELLED',
+        ).all():
+            _ecs_subs.setdefault(_sr.match_id, []).append(_sr)
+
     for match in all_matches:
-        # Determine which team is the coached team in this match
-        coached_team_id = None
-        if hasattr(match, 'is_ecs_fc') and match.is_ecs_fc:
-            coached_team_id = match.team_id
-        else:
-            # Pub League - check which team is coached
-            if match.home_team_id in team_ids:
-                coached_team_id = match.home_team_id
-            elif match.away_team_id in team_ids:
-                coached_team_id = match.away_team_id
+        _is_ecs = bool(hasattr(match, 'is_ecs_fc') and match.is_ecs_fc)
+        coached_team_id = _coached_team_id(match)
+        coached_team_player_ids = _roster_by_team.get(coached_team_id, set())
 
-        # Get players on the coached team to filter RSVPs
-        coached_team_player_ids = []
-        if coached_team_id:
-            coached_team_players = session.query(Player.id).join(
-                player_teams, Player.id == player_teams.c.player_id
-            ).filter(player_teams.c.team_id == coached_team_id).all()
-            coached_team_player_ids = [p.id for p in coached_team_players]
+        _rows = (_ecs_avail if _is_ecs else _pub_avail).get(match.id, ())
+        sub_requests = (_ecs_subs if _is_ecs else _pub_subs).get(match.id, [])
 
-        # Determine which models to use based on league type
-        if hasattr(match, 'is_ecs_fc') and match.is_ecs_fc:
-            # ECS FC match - use EcsFcAvailability and EcsFcSubRequest (filtered by team players)
-            if coached_team_player_ids:
-                availability_data = session.query(
-                    EcsFcAvailability.response,
-                    func.count(EcsFcAvailability.id)
-                ).filter(
-                    EcsFcAvailability.ecs_fc_match_id == match.id,
-                    EcsFcAvailability.player_id.in_(coached_team_player_ids)
-                ).group_by(EcsFcAvailability.response).all()
-            else:
-                availability_data = []
-
-            sub_requests = session.query(EcsFcSubRequest).filter_by(
-                match_id=match.id
-            ).filter(EcsFcSubRequest.status != 'CANCELLED').all()
-
-        else:
-            # Pub League match - use Availability and SubstituteRequest (filtered by team players)
-            if coached_team_player_ids:
-                availability_data = session.query(
-                    Availability.response,
-                    func.count(Availability.id)
-                ).filter(
-                    Availability.match_id == match.id,
-                    Availability.player_id.in_(coached_team_player_ids)
-                ).group_by(Availability.response).all()
-            else:
-                availability_data = []
-
-            sub_requests = session.query(SubstituteRequest).filter_by(
-                match_id=match.id
-            ).filter(SubstituteRequest.status != 'CANCELLED').all()
-
-        # Process RSVP counts
+        # Process RSVP counts — only for players on the coached team, as before.
         rsvp_counts = {'YES': 0, 'NO': 0, 'MAYBE': 0}
-        for response, count in availability_data:
-            if response and response.upper() in rsvp_counts:
-                rsvp_counts[response.upper()] = count
+        if coached_team_player_ids:
+            for _pid, response in _rows:
+                if _pid in coached_team_player_ids and response and response.upper() in rsvp_counts:
+                    rsvp_counts[response.upper()] += 1
 
         match.rsvp_counts = rsvp_counts
         match.sub_requests = sub_requests
@@ -2277,9 +2276,65 @@ def coach_dashboard():
             ).order_by(Player.name).all()
 
             # Calculate attendance from Availability if PlayerAttendanceStats is not populated
+            # Attendance fallback data, precomputed ONCE PER TEAM.
+            #
+            # `team_matches` was queried INSIDE the per-player loop even though it
+            # depends only on the team — so the identical query ran once per player —
+            # and the YES count was a further query per player. A 15-player roster paid
+            # ~30 queries per team. Both are hoisted here: one query for the team's
+            # matches, one grouped count covering the whole roster.
+            _roster_player_ids = [p.id for p, _a, _s in roster_query]
+            _team_match_ids = []
+            _yes_by_player = {}
+
+            if league_type == 'ECS FC':
+                _team_match_ids = [
+                    r[0] for r in session.query(EcsFcMatch.id).filter(
+                        EcsFcMatch.team_id == team.id
+                    ).all()
+                ]
+                if _team_match_ids and _roster_player_ids:
+                    _yes_by_player = dict(
+                        session.query(
+                            EcsFcAvailability.player_id,
+                            func.count(EcsFcAvailability.id),
+                        ).filter(
+                            EcsFcAvailability.player_id.in_(_roster_player_ids),
+                            EcsFcAvailability.ecs_fc_match_id.in_(_team_match_ids),
+                            EcsFcAvailability.response.in_(['YES', 'yes', 'Yes']),
+                        ).group_by(EcsFcAvailability.player_id).all()
+                    )
+            else:
+                # Pub League — filter by team only; Schedule.season_id may be NULL, and
+                # the team's league already determines the season.
+                _team_match_ids = [
+                    r[0] for r in session.query(Match.id).join(
+                        Schedule, Match.schedule_id == Schedule.id
+                    ).filter(
+                        or_(
+                            Match.home_team_id == team.id,
+                            Match.away_team_id == team.id,
+                        )
+                    ).all()
+                ]
+                if _team_match_ids and _roster_player_ids:
+                    _yes_by_player = dict(
+                        session.query(
+                            Availability.player_id,
+                            func.count(Availability.id),
+                        ).filter(
+                            Availability.player_id.in_(_roster_player_ids),
+                            Availability.match_id.in_(_team_match_ids),
+                            Availability.response.in_(['YES', 'yes', 'Yes']),
+                        ).group_by(Availability.player_id).all()
+                    )
+
+            _total_matches = len(_team_match_ids)
+
             roster = []
             for player, attendance_stats, season_stats in roster_query:
-                # If no cached attendance stats OR if the cached data is empty (season_matches_invited = 0), calculate from RSVP responses
+                # If no cached attendance stats OR if the cached data is empty
+                # (season_matches_invited = 0), calculate from RSVP responses.
                 needs_calculation = (
                     not attendance_stats or
                     not hasattr(attendance_stats, 'season_matches_invited') or
@@ -2288,61 +2343,12 @@ def coach_dashboard():
                 )
 
                 if needs_calculation:
-                    if league_type == 'ECS FC':
-                        # Get all ECS FC matches for this team
-                        team_matches = session.query(EcsFcMatch).filter(
-                            EcsFcMatch.team_id == team.id
-                        ).all()
-
-                        if team_matches:
-                            match_ids = [m.id for m in team_matches]
-
-                            # Count YES responses for this player from EcsFcAvailability
-                            yes_count = session.query(func.count(EcsFcAvailability.id)).filter(
-                                EcsFcAvailability.player_id == player.id,
-                                EcsFcAvailability.ecs_fc_match_id.in_(match_ids),
-                                EcsFcAvailability.response.in_(['YES', 'yes', 'Yes'])
-                            ).scalar() or 0
-
-                            # Total matches
-                            total_matches = len(match_ids)
-
-                            # Create a temporary attendance object
-                            if total_matches > 0:
-                                from collections import namedtuple
-                                TempAttendance = namedtuple('TempAttendance', ['season_attendance_rate'])
-                                attendance_stats = TempAttendance(season_attendance_rate=yes_count / total_matches)
-                    else:
-                        # Pub League - Get all matches for this team
-                        # Note: We filter by team only since Schedule.season_id may be NULL
-                        # The team's league determines the season, so all team matches are current season
-                        team_matches = session.query(Match).join(
-                            Schedule, Match.schedule_id == Schedule.id
-                        ).filter(
-                            or_(
-                                Match.home_team_id == team.id,
-                                Match.away_team_id == team.id
-                            )
-                        ).all()
-
-                        if team_matches:
-                            match_ids = [m.id for m in team_matches]
-
-                            # Count YES responses for this player from Availability
-                            yes_count = session.query(func.count(Availability.id)).filter(
-                                Availability.player_id == player.id,
-                                Availability.match_id.in_(match_ids),
-                                Availability.response.in_(['YES', 'yes', 'Yes'])
-                            ).scalar() or 0
-
-                            # Total matches
-                            total_matches = len(match_ids)
-
-                            # Create a temporary attendance object
-                            if total_matches > 0:
-                                from collections import namedtuple
-                                TempAttendance = namedtuple('TempAttendance', ['season_attendance_rate'])
-                                attendance_stats = TempAttendance(season_attendance_rate=yes_count / total_matches)
+                    if _total_matches > 0:
+                        from collections import namedtuple
+                        TempAttendance = namedtuple('TempAttendance', ['season_attendance_rate'])
+                        attendance_stats = TempAttendance(
+                            season_attendance_rate=_yes_by_player.get(player.id, 0) / _total_matches
+                        )
                 else:
                     # Cached PlayerAttendanceStats stores season_attendance_rate as a
                     # percentage (0-100), but the template (and the fallback above) expect a

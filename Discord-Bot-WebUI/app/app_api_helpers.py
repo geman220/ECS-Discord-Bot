@@ -792,6 +792,31 @@ def get_player_availability(match: Match, player: Player, session=None) -> Optio
     return availability.to_dict() if availability else None
 
 
+def bulk_player_availability(matches, player, session=None):
+    """One player's availability across MANY matches, in a single query.
+
+    get_player_availability() is per-match. Calling it inside a loop — which
+    build_match_response() effectively does whenever `current_player` is passed — costs
+    one query per match. On the app-open path (/matches/schedule, /teams/<id>/matches)
+    that is 25-50 queries against a 1-vCPU Postgres, for every phone, at the same moment.
+
+    Returns {match_id: availability_dict}. Missing keys mean "no response recorded",
+    which callers should render as None — identical to get_player_availability().
+    """
+    if not matches or not player:
+        return {}
+
+    if session is None:
+        session = g.db_session
+
+    match_ids = [m.id for m in matches]
+    rows = session.query(Availability).filter(
+        Availability.match_id.in_(match_ids),
+        Availability.player_id == player.id,
+    ).all()
+    return {a.match_id: a.to_dict() for a in rows}
+
+
 def build_matches_query(team_id: Optional[int], player: Optional[Player],
                         upcoming: bool = False, completed: bool = False,
                         all_teams: bool = False, limit: Optional[int] = None,

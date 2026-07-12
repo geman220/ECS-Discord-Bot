@@ -139,7 +139,7 @@ def init_context_processors(app):
         app: The Flask application instance.
     """
     _register_utility_processor(app)
-    _register_season_processor(app)
+    # _register_season_processor(app) — REMOVED, see note below (dead query per render)
     _register_file_versioning_processor(app)
     _register_theme_colors_processor(app)
     _register_ai_assistant_processor(app)
@@ -599,55 +599,16 @@ def _register_utility_processor(app):
         }
 
 
-def _register_season_processor(app):
-    """Register current Pub League season context processor."""
-    from app.models import Season
-
-    @app.context_processor
-    def inject_current_pub_league_season():
-        """Inject the current Pub League season into every template's context."""
-        # Check if we're in degraded mode
-        if (has_request_context() and
-            hasattr(g, '_session_creation_failed') and g._session_creation_failed):
-            return dict(current_pub_league_season=None)
-
-        # Try to use Flask's request session first
-        if has_request_context() and hasattr(g, 'db_session') and g.db_session:
-            try:
-                season = g.db_session.query(Season).filter_by(
-                    league_type='Pub League',
-                    is_current=True
-                ).first()
-                return dict(current_pub_league_season=season)
-            except Exception as e:
-                if "pool" in str(e).lower() or "timeout" in str(e).lower():
-                    logger.warning(f"Pool exhaustion in context processor, returning default: {e}")
-                    return dict(current_pub_league_season=None)
-                logger.warning(f"Error fetching pub league season from request session: {e}")
-                # Rollback to clear failed transaction state
-                try:
-                    g.db_session.rollback()
-                except Exception:
-                    pass
-
-        # Fallback: Use managed_session
-        try:
-            from app.core.session_manager import managed_session
-            with managed_session() as session:
-                season = session.query(Season).filter_by(
-                    league_type='Pub League',
-                    is_current=True
-                ).first()
-                if season:
-                    _ = season.id, season.name, season.league_type, season.is_current
-                    session.expunge(season)
-            return dict(current_pub_league_season=season)
-        except (OperationalError, DBAPIError) as e:
-            logger.warning(f"DB unavailable fetching pub league season: {e.__class__.__name__}")
-            return dict(current_pub_league_season=None)
-        except Exception as e:
-            logger.error(f"Error fetching pub league season: {e}", exc_info=True)
-            return dict(current_pub_league_season=None)
+# _register_season_processor REMOVED.
+#
+# It was an @app.context_processor that ran a SELECT on `season` for EVERY rendered
+# template, on every page, for every user — including anonymous ones. Not one of the
+# 427 templates references `current_pub_league_season`. Under a 30-user burst that is
+# 30 pointless queries against a 1-vCPU Postgres.
+#
+# NOTE: app/utils/season_context.current_pub_league_season() and g.current_pub_league_season
+# (app/publeague.py) are DIFFERENT things and are still in use. Do not grep-and-delete
+# the name.
 
 
 def _register_ai_assistant_processor(app):

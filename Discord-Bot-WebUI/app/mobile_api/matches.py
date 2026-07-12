@@ -29,6 +29,7 @@ from app.models import Match, Player, User, Team
 from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability
 from app.etag_utils import make_etag_response, CACHE_DURATIONS
 from app.app_api_helpers import (
+    bulk_player_availability,
     build_match_response,
     get_match_events,
     get_player_availability,
@@ -352,16 +353,17 @@ def get_match_schedule():
         else:
             limit = 25
 
-        # Check cache for non-personalized queries
         include_availability = request.args.get('include_availability', 'true').lower() == 'true'
-        if not (player and include_availability):
-            from app.performance_cache import cache_match_results
-            cache_params = f"schedule_{team_id or 'all'}_{limit}"
-            cache_key = hashlib.md5(cache_params.encode()).hexdigest()
-            cached_matches = cache_match_results(league_id=f"schedule_{cache_key}")
 
-            if cached_matches:
-                return jsonify(cached_matches), 200
+        # Dead cache READ removed: nothing anywhere WRITES a `schedule_*` key, so
+        # cached_matches was always None and the early-return was unreachable. It cost a
+        # Redis round-trip and an md5 on every call to prove that.
+        #
+        # And do NOT "fix" it by adding the matching write. The key was
+        # md5(f"schedule_{team_id or 'all'}_{limit}") — it carries NO player identity,
+        # while build_matches_query() below scopes results to the player's own teams.
+        # Caching under that key would serve one player's match list to another. That is
+        # a cross-user data leak, not a cache.
 
         # Build query for upcoming matches
         query = build_matches_query(
@@ -386,6 +388,18 @@ def get_match_schedule():
         if _team_ids:
             preload_team_stats_for_request(list(_team_ids), session=session_db)
 
+        # Availability for the WHOLE window in one query.
+        #
+        # Passing current_player into build_match_response makes it call
+        # get_player_availability(match, player) — one query PER MATCH. This is the
+        # app-open path, so 25-50 phones doing that simultaneously against a 1-vCPU
+        # Postgres is exactly the burst that stalls everyone. current_player is now None
+        # and both keys are filled from the bulk dict instead.
+        avail_by_match = (
+            bulk_player_availability(matches, player, session=session_db)
+            if (include_availability and player) else {}
+        )
+
         # Group matches by date
         matches_by_date = defaultdict(list)
         for match in matches:
@@ -394,17 +408,13 @@ def get_match_schedule():
                 include_events=False,
                 include_teams=True,
                 include_players=False,
-                current_player=player if include_availability else None,
+                current_player=None,
                 session=session_db
             )
             if include_availability and player:
-                # build_match_response already ran get_player_availability(match, player)
-                # and stored it as 'availability' (app_api_helpers.py:641-642). Re-running
-                # it here was an identical query PER MATCH whose result was thrown away.
-                match_data['my_availability'] = (
-                    match_data['availability'] if 'availability' in match_data
-                    else get_player_availability(match, player, session=session_db)
-                )
+                _avail = avail_by_match.get(match.id)
+                match_data['availability'] = _avail
+                match_data['my_availability'] = _avail
             date_key = match.date.isoformat() if match.date else 'unknown'
             matches_by_date[date_key].append(match_data)
 

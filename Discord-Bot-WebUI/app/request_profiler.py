@@ -63,6 +63,20 @@ ENABLED = os.getenv('REQUEST_PROFILE', 'false').lower() in ('1', 'true', 'yes')
 # from static files and health checks.
 MIN_WALL_MS = float(os.getenv('REQUEST_PROFILE_MIN_MS', '0'))
 
+# ...OR log it regardless of how fast it was, if it made too many queries.
+#
+# A wall-clock threshold alone HIDES N+1s. On an idle box a 40-query request finishes
+# in 200ms and never gets logged — then thirty people arrive, those 40 queries hit a
+# single-core Postgres alongside everyone else's, and the whole site queues. Query count
+# is the leading indicator; latency is the lagging one. 15 is deliberately low: almost
+# nothing legitimately needs more than a handful.
+MIN_QUERIES = int(os.getenv('REQUEST_PROFILE_MIN_QUERIES', '15'))
+
+# Same idea for connections: a request should take exactly ONE. Two means it used two
+# different SQLAlchemy sessions (db.session AND g.db_session) and pinned two of the
+# twelve pgbouncer web slots for its whole life. Set to 0 to disable this trigger.
+MIN_CHECKOUTS = int(os.getenv('REQUEST_PROFILE_MIN_CHECKOUTS', '0'))
+
 
 def init_request_profiler(app):
     """Register the profiler. No-op unless REQUEST_PROFILE is set."""
@@ -93,12 +107,22 @@ def init_request_profiler(app):
             return response
 
         wall_ms = (time.perf_counter() - wall0) * 1000
-        if wall_ms < MIN_WALL_MS:
-            return response
-
         cpu_ms = (time.process_time() - getattr(g, '_prof_cpu0', 0)) * 1000
         queries = getattr(g, '_prof_queries', 0)
         checkouts = getattr(g, '_prof_checkouts', 0)
+
+        # Log if it was SLOW, or if it was QUERY-HEAVY, or took too many connections.
+        # A latency-only rule hides the N+1s that only hurt under concurrency.
+        reasons = []
+        if wall_ms >= MIN_WALL_MS:
+            reasons.append('slow')
+        if MIN_QUERIES and queries >= MIN_QUERIES:
+            reasons.append(f'{queries}q')
+        if MIN_CHECKOUTS and checkouts >= MIN_CHECKOUTS:
+            reasons.append(f'{checkouts}conn')
+
+        if not reasons:
+            return response
 
         # cpu/wall is the headline: high means this request froze the worker.
         ratio = (cpu_ms / wall_ms * 100) if wall_ms > 0 else 0
@@ -110,8 +134,9 @@ def init_request_profiler(app):
         agent = (request.headers.get('User-Agent') or '-')[:60]
 
         logger.warning(
-            "PROFILE %s %s -> %s | queries=%d checkouts=%d "
+            "PROFILE [%s] %s %s -> %s | queries=%d checkouts=%d "
             "wall=%.0fms cpu=%.0fms (cpu %.0f%% of wall) | %s | %s",
+            ','.join(reasons),
             request.method,
             request.full_path.rstrip('?'),
             response.status_code,

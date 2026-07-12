@@ -245,14 +245,24 @@ def admin_list_feedback():
             .all()
         )
 
-        # Stats — mirrors reports_feedback.py:289-297
+        # Stats — mirrors reports_feedback.py:289-297.
+        # Two grouped counts, not six full-table COUNT(*) scans.
+        from sqlalchemy import func
+        by_status = dict(
+            session.query(Feedback.status, func.count(Feedback.id))
+            .group_by(Feedback.status).all()
+        )
+        by_source = dict(
+            session.query(Feedback.source, func.count(Feedback.id))
+            .group_by(Feedback.source).all()
+        )
         stats = {
-            'total': session.query(Feedback).count(),
-            'open': session.query(Feedback).filter(Feedback.status == 'Open').count(),
-            'in_progress': session.query(Feedback).filter(Feedback.status == 'In Progress').count(),
-            'closed': session.query(Feedback).filter(Feedback.status == 'Closed').count(),
-            'web': session.query(Feedback).filter(Feedback.source == 'web').count(),
-            'app': session.query(Feedback).filter(Feedback.source == 'app').count(),
+            'total': sum(by_status.values()),
+            'open': by_status.get('Open', 0),
+            'in_progress': by_status.get('In Progress', 0),
+            'closed': by_status.get('Closed', 0),
+            'web': by_source.get('web', 0),
+            'app': by_source.get('app', 0),
         }
 
         return jsonify({
