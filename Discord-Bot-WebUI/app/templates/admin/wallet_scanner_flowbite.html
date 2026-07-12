@@ -145,7 +145,10 @@
 
 {% block scripts %}
 {{ super() }}
-<!-- QR Scanner Library -->
-<script src="https://unpkg.com/@AziDev/qrcodescanner/dist/qrCodeScanner.min.js"></script>
+<!-- QR Scanner Library (nimiq/qr-scanner v1.4.2, self-hosted).
+     Was https://unpkg.com/@AziDev/qrcodescanner/... — a 404: that package does not exist,
+     so the global was never defined and the page permanently showed "Camera Unavailable".
+     Self-hosted rather than CDN so there is no unpinned third-party script on an admin page. -->
+<script src="{{ url_for('static', filename='vendor/qr-scanner/qr-scanner.umd.min.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='custom_js/wallet-scanner.js') }}"></script>
 {% endblock %}

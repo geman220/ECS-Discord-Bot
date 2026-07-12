@@ -23,10 +23,9 @@ def terms_of_service():
 
 
 # Alias routes for app store requirements
-@legal_bp.route('/privacy-policy')
-def privacy_policy_alias():
-    """Alias for /privacy for app store compatibility."""
-    return render_template('legal/privacy_policy.html')
+# privacy_policy_alias() REMOVED — dead route. It registered GET /privacy-policy as an
+# "alias", but main_bp (app/main.py:947::privacy_policy) registers first (blueprints.py:190
+# vs :381), so the alias was never reachable. The canonical route already serves this path.
 
 
 @legal_bp.route('/terms-of-service')

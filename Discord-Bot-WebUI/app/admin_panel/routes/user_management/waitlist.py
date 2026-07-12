@@ -25,7 +25,9 @@ from app.models.core import User, Role
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
-from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal
+from app.utils.deferred_discord import (
+    defer_discord_sync, defer_discord_removal, DeferredDiscordQueue
+)
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 from app.utils.user_helpers import safe_current_user
 from app.admin_panel.routes.user_management.helpers import (

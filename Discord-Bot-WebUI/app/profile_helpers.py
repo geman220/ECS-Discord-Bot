@@ -389,7 +389,7 @@ def handle_career_stats_update(player, form):
     try:
         logger.debug(f"Entering handle_career_stats_update for player {player.id}")
         if not player.career_stats:
-            flash('No career stats found for this player.', 'danger')
+            show_error('No career stats found for this player.')
             return redirect(url_for('players.player_profile', player_id=player.id))
 
         form.populate_obj(player.career_stats[0])
@@ -469,7 +469,7 @@ def handle_add_stat_manually(player):
         logger.debug(f"Entering handle_add_stat_manually for player {player.id}")
         match_id = request.form.get('match_id')
         if not match_id:
-            flash('Match ID is required.', 'danger')
+            show_error('Match ID is required.')
             return redirect(url_for('players.player_profile', player_id=player.id))
 
         new_stat_data = {

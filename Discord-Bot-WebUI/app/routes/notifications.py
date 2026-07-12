@@ -30,50 +30,10 @@ notifications_bp = Blueprint('notifications', __name__, url_prefix='/api/v1/noti
 from app import csrf
 csrf.exempt(notifications_bp)
 
-@notifications_bp.route('/register-token', methods=['POST'])
-@jwt_required()
-def register_fcm_token():
-    """Register user's FCM token"""
-    try:
-        user_id = int(get_jwt_identity())
-        data = request.get_json()
-        
-        fcm_token = data.get('fcm_token')
-        platform = data.get('platform', 'unknown')
-        
-        if not fcm_token:
-            return jsonify({'msg': 'FCM token is required'}), 400
-        
-        # Check if token already exists
-        existing_token = _s().query(UserFCMToken).filter_by(
-            user_id=user_id, 
-            fcm_token=fcm_token
-        ).first()
-        
-        if not existing_token:
-            # Create new token record
-            user_token = UserFCMToken(
-                user_id=user_id,
-                fcm_token=fcm_token,
-                platform=platform,
-                is_active=True
-            )
-            _s().add(user_token)
-            _s().commit()
-            logger.info(f"Registered FCM token for user {user_id}")
-        else:
-            # Update existing token
-            existing_token.is_active = True
-            existing_token.platform = platform
-            _s().commit()
-            logger.info(f"Updated FCM token for user {user_id}")
-        
-        return jsonify({'msg': 'FCM token registered successfully'}), 200
-        
-    except Exception as e:
-        logger.error(f"Error registering FCM token: {e}")
-        _s().rollback()
-        return jsonify({'msg': 'Internal server error'}), 500
+# register_fcm_token() REMOVED — dead route. It registered POST /api/v1/notifications/
+# register-token, but mobile_api_v2 (app/mobile_api/notifications.py:26) registers first
+# (blueprints.py:215 vs :246), so this never ran. Both are @jwt_required and store a
+# UserFCMToken; the live one additionally rejects DEBUG_SIMULATOR_TOKEN_* values.
 
 @notifications_bp.route('/send-test', methods=['POST'])
 @jwt_required()

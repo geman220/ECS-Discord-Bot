@@ -19,9 +19,7 @@ import logging
 from io import BytesIO
 
 # Third-party imports
-from flask import current_app, url_for, render_template, g
-from flask_mail import Message, Mail
-from itsdangerous import URLSafeTimedSerializer
+from flask import current_app, g
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
 from sqlalchemy import func
@@ -587,28 +585,6 @@ def extract_player_info(billing):
     except Exception as e:
         logger.error(f"Error extracting player info: {e}", exc_info=True)
         return None
-
-
-def send_password_setup_email(user):
-    """
-    Send a password setup email to the user.
-    
-    Generates a secure token for password setup and sends an email using Flask-Mail.
-    
-    Args:
-        user (User): The user to send the email to.
-    """
-    try:
-        serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-        token = serializer.dumps(user.email, salt=current_app.config['SECURITY_PASSWORD_SALT'])
-        reset_url = url_for('reset_password', token=token, _external=True)
-        msg = Message('Set Your Password', recipients=[user.email])
-        msg.body = render_template('emails/password_setup.txt', reset_url=reset_url, username=user.username)
-        msg.html = render_template('emails/password_setup.html', reset_url=reset_url, username=user.username)
-        mail.send(msg)
-        logger.info(f"Sent password setup email to '{user.email}'.")
-    except Exception as e:
-        logger.error(f"Error sending password setup email to '{user.email}': {e}", exc_info=True)
 
 
 def hash_password(password):

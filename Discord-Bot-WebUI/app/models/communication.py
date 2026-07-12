@@ -15,7 +15,7 @@ This module contains models related to communication and notifications:
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy import JSON, DateTime
 
 from app.core import db
@@ -130,18 +130,6 @@ class Feedback(db.Model):
 
     def __repr__(self):
         return f'<Feedback {self.id} - {self.title}>'
-
-    @classmethod
-    def delete_old_closed_tickets(cls):
-        try:
-            thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-            old_closed_tickets = cls.query.filter(cls.closed_at <= thirty_days_ago).all()
-            for ticket in old_closed_tickets:
-                g.db_session.delete(ticket)
-            logger.info(f"Successfully deleted old closed tickets older than {thirty_days_ago}")
-        except Exception as e:
-            logger.error(f"Error deleting old closed tickets: {str(e)}")
-            raise
 
 
 class FeedbackReply(db.Model):

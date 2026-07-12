@@ -160,24 +160,29 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
             "response": new_response
         }, countdown=2)
 
-        # Update attendance statistics cache when RSVP changes
+        # Update attendance statistics cache when RSVP changes.
+        #
+        # Genuinely asynchronous now — this used to call handle_availability_change() inline,
+        # despite the comment claiming otherwise. Inline is the wrong shape: the recompute is
+        # ~11 queries, and because the RSVP write above is not committed yet it cannot share
+        # this task's session, so it had to open a SECOND concurrent DB connection on a hot
+        # write path. (It also never ran at all — attendance_service used an unimported `g`,
+        # and the except below swallowed the NameError every time.)
         try:
-            from app.attendance_service import handle_availability_change
-            from app.models import Match, Season
-            
-            # Get the season for this match to update season-specific stats
+            from app.tasks.tasks_maintenance import update_player_attendance
+            from app.models import Match
+
             match = session.query(Match).get(match_id)
             season_id = None
             if match and hasattr(match, 'schedule') and match.schedule:
                 season_id = match.schedule.season_id
-            
-            # Update attendance stats asynchronously to avoid blocking main RSVP flow
-            handle_availability_change(player_id, season_id)
-            logger.debug(f"Updated attendance stats for player {player_id}")
-            
+
+            update_player_attendance.delay(player_id, season_id)
+            logger.debug(f"Queued attendance stats recompute for player {player_id}")
+
         except Exception as e:
-            # Don't fail the main RSVP update if attendance stats update fails
-            logger.warning(f"Failed to update attendance stats for player {player_id}: {e}")
+            # Don't fail the main RSVP update if queuing the attendance recompute fails.
+            logger.warning(f"Failed to queue attendance stats update for player {player_id}: {e}")
 
         return {
             'success': True,

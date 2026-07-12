@@ -1020,7 +1020,7 @@ class LeagueManagementService:
         from app.models import PlayerTeamSeason, Team, Season
 
         try:
-            history = PlayerTeamself.session.query(Season).filter_by(
+            history = self.session.query(PlayerTeamSeason).filter_by(
                 player_id=player_id
             ).options(
                 joinedload(PlayerTeamSeason.team),

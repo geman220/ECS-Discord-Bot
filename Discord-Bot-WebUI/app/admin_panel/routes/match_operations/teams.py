@@ -21,6 +21,14 @@ from app.admin_panel import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.decorators import role_required
+try:
+    from app.tasks.tasks_discord import (
+        create_team_discord_resources_task,
+        update_team_discord_resources_task,
+    )
+except ImportError:
+    create_team_discord_resources_task = None
+    update_team_discord_resources_task = None
 
 logger = logging.getLogger(__name__)
 

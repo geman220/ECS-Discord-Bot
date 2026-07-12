@@ -1,0 +1,12 @@
+qr-scanner v1.4.2 (nimiq) — https://github.com/nimiq/qr-scanner
+
+Vendored, not CDN-loaded, on purpose:
+  * The template previously loaded https://unpkg.com/@AziDev/qrcodescanner/... which is a
+    404 — that package does not exist on npm. wallet-scanner.js guards on
+    `typeof QrCodeScanner === 'undefined'`, so the page silently showed "Camera Unavailable"
+    and camera check-in never worked; only manual barcode entry did.
+  * The API wallet-scanner.js was written against — new X(video, cb, {highlightScanRegion,
+    highlightCodeOutline}), .start(), .stop(), result.data — is exactly nimiq/qr-scanner's.
+
+Only qr-scanner.umd.min.js is needed: the UMD build inlines its Web Worker as a blob
+(QrScanner.WORKER_PATH is explicitly "not required and not supported anymore" in 1.4.x).

@@ -38,74 +38,10 @@ mobile_substitute_api = Blueprint('mobile_substitute_api', __name__)
 # ASSIGNMENT MANAGEMENT
 # =============================================================================
 
-@mobile_substitute_api.route('/substitutes/assignments/<int:assignment_id>', methods=['DELETE'])
-@jwt_required()
-@api_key_required
-@jwt_role_required(['Global Admin', 'Pub League Admin'])
-def remove_substitute_assignment(assignment_id):
-    """
-    Remove a substitute assignment (Admin only).
-
-    Path Parameters:
-        assignment_id (int): Assignment ID
-
-    Request Body:
-        league_type (str): League type (ECS FC, Classic, Premier)
-        reason (str): Reason for removal (optional)
-
-    Returns:
-        200: Assignment removed successfully
-        400: Invalid data
-        403: Access denied
-        404: Assignment not found
-    """
-    try:
-        current_user_id = int(get_jwt_identity())
-        data = request.get_json() or {}
-
-        league_type = data.get('league_type')
-        reason = data.get('reason', 'Assignment removed by admin')
-
-        if not league_type:
-            return jsonify({'error': 'league_type required'}), 400
-
-        with db.session() as session:
-            if league_type == 'ECS FC':
-                assignment = session.query(EcsFcSubAssignment).options(
-                    joinedload(EcsFcSubAssignment.request)
-                ).get(assignment_id)
-            else:
-                assignment = session.query(SubstituteAssignment).options(
-                    joinedload(SubstituteAssignment.request)
-                ).get(assignment_id)
-
-            if not assignment:
-                return jsonify({'error': 'Assignment not found'}), 404
-
-            # Update request status back to OPEN if it was FILLED
-            if assignment.request and assignment.request.status == 'FILLED':
-                remaining_assignments = session.query(
-                    type(assignment)
-                ).filter_by(request_id=assignment.request_id).count() - 1
-
-                if remaining_assignments < assignment.request.substitutes_needed:
-                    assignment.request.status = 'OPEN'
-                    assignment.request.filled_at = None
-
-            session.delete(assignment)
-            session.commit()
-
-            return jsonify({
-                'success': True,
-                'message': 'Assignment removed successfully'
-            }), 200
-
-    except Exception as e:
-        logger.exception(f"Error removing substitute assignment {assignment_id}: {e}")
-        return jsonify({
-            'error': 'Failed to remove assignment',
-            'message': str(e)
-        }), 500
+# remove_substitute_assignment() REMOVED — dead route. It registered
+# DELETE /api/v1/substitutes/assignments/<id>, but mobile_api_v2
+# (app/mobile_api/substitutes.py:814::remove_assignment) registers first
+# (blueprints.py:215 vs :219), so this never ran.
 
 
 # =============================================================================

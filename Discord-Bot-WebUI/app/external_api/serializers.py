@@ -8,6 +8,8 @@ import logging
 from datetime import datetime
 from sqlalchemy import and_, or_
 
+from flask import g
+
 from app.core import db
 from app.models import Match, player_teams
 

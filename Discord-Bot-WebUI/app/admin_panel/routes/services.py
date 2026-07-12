@@ -1486,6 +1486,8 @@ def _clean_device_tokens():
 def _update_match_times():
     """Set default time (7:00 PM) for matches that don't have a time assigned."""
     try:
+        from app.models.matches import Match
+
         # Update matches that don't have times set
         matches_without_times = Match.query.filter(Match.time.is_(None)).all()
         count = 0

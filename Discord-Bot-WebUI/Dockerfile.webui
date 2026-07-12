@@ -53,8 +53,20 @@ COPY . .
 # Rebuild native modules for Linux (fixes platform mismatch from Windows/Mac dev)
 RUN npm rebuild
 
-# Lint JS to catch TDZ-prone bare globals, then build Vite assets
-RUN npm run lint && npm run build
+# Lint JS to catch TDZ-prone bare globals. This is the ONLY place lint runs (the container
+# start command runs `npm run build` but never `npm run lint`), so it stays: a failing lint
+# should fail the image build.
+#
+# `npm run build` was REMOVED from this line. docker-compose.yml bind-mounts
+# ./Discord-Bot-WebUI over /app, which shadows the whole directory — including whatever this
+# build wrote (vite outDir is app/static/vite-dist, i.e. under /app). So the image-time build
+# output was never served; the container's start command rebuilds it into the mounted host
+# directory, and THAT is what gunicorn serves. Building here just made every `--build` slower
+# for output nobody could read.
+#
+# NOTE: if the bind mount is ever removed, restore `&& npm run build` here — otherwise the
+# image would ship with no frontend assets at all.
+RUN npm run lint
 
 # Add healthcheck
 COPY healthcheck.py .

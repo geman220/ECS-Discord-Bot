@@ -730,21 +730,12 @@ def register_apple_wallet_routes(app):
             logger.error(f"Error getting pass: {e}")
             return make_response('', 500)
 
-    @apple_wallet_bp.route('/log', methods=['POST'])
-    def log_messages():
-        """Receive log messages from Apple Wallet (optional)."""
-        try:
-            data = request.get_json() or {}
-            logs = data.get('logs', [])
-
-            for log_entry in logs:
-                logger.info(f"Apple Wallet log: {log_entry}")
-
-            return make_response('', 200)
-
-        except Exception as e:
-            logger.error(f"Error processing Apple Wallet logs: {e}")
-            return make_response('', 500)
+    # log_messages() REMOVED — dead route. It registered POST /v1/log (this blueprint's
+    # url_prefix is '/v1'), but passkit_web_service_bp already registers the identical rule
+    # (app/wallet_pass/routes/passkit_web_service.py:294) and does so FIRST
+    # (blueprints.py:354 vs register_apple_wallet_routes at :367). Werkzeug routes to the
+    # first-registered rule, so this never ran. Both handlers only echo Apple's debug lines
+    # into the app log, so nothing is lost — the live one logs at WARNING.
 
     app.register_blueprint(apple_wallet_bp)
     logger.info("Registered Apple Wallet webservice routes")

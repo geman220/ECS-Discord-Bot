@@ -27,7 +27,7 @@ from sqlalchemy import func, or_, extract
 from app.models import (
     Team, Player, Match, League, Season, MatchLineup, PlayerEvent, PlayerEventType,
     player_teams, CoachEngagementEvent, DiscordMessageStat, Availability,
-    User, MobileSession,
+    User, MobileSession, PlayerTeamSeason,
 )
 
 logger = logging.getLogger(__name__)

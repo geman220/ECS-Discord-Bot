@@ -29,11 +29,22 @@ logger = logging.getLogger(__name__)
 def manage_leagues():
     """Manage leagues."""
     try:
-        from app.models import League, Team, Match, Season
+        from sqlalchemy import distinct, func, or_
+        from sqlalchemy.orm import joinedload, selectinload
+
+        from app.models import League, Team, Match
         from app.models.stats import Standings
 
-        # Get all leagues
-        leagues = League.query.order_by(League.name.asc()).all()
+        # Get all leagues. League.season is a plain lazy relationship and the template
+        # renders league.season.name, so eager-load it (this was one extra SELECT per
+        # league). League.teams is already lazy='joined' on the model; selectinload
+        # makes the team load explicit and gives us the ids for free.
+        leagues = (
+            League.query
+            .options(joinedload(League.season), selectinload(League.teams))
+            .order_by(League.name.asc())
+            .all()
+        )
 
         # Get league statistics
         stats = {
@@ -43,22 +54,59 @@ def manage_leagues():
             'leagues_with_matches': 0
         }
 
+        # Matches per league — ONE grouped query for every league at once.
+        #
+        # Match has NO league_id column (verified against app/models/matches.py); it is
+        # only linked to a league through its two teams. This used to fan out into
+        # "load this league's teams" + "COUNT matches for this team" for EVERY team of
+        # EVERY league — the single biggest source of round-trips on this page.
+        #
+        # The join condition is home OR away, so an intra-league match matches twice;
+        # COUNT(DISTINCT matches.id) collapses that. (The old per-team loop SUMMED the
+        # per-team counts, i.e. it double-counted every match played between two teams
+        # of the same league — which is every regular Pub League match. The number the
+        # card shows is now the real match count, not 2x it.)
+        match_counts = dict(
+            db.session.query(Team.league_id, func.count(distinct(Match.id)))
+            .join(
+                Match,
+                or_(Match.home_team_id == Team.id, Match.away_team_id == Team.id),
+            )
+            .group_by(Team.league_id)
+            .all()
+        )
+
+        # Standings for every league's own season — ONE query instead of one per league.
+        # Standings rows are keyed by (team, season), so we pull team_id -> league_id
+        # from the join and bucket in Python. Restricted to the seasons actually on
+        # screen so we never scan the whole standings history.
+        season_ids = {lg.season_id for lg in leagues if lg.season_id}
+        standings_by_league = {}
+        if season_ids:
+            rows = (
+                db.session.query(
+                    Team.league_id,
+                    Team.name,
+                    Standings.season_id,
+                    Standings.played,
+                    Standings.points,
+                    Standings.goal_difference,
+                )
+                # select_from(Standings) is required: the first column is a Team column,
+                # so SQLAlchemy would otherwise pick Team as the FROM and then be asked
+                # to join Team -> Team.
+                .select_from(Standings)
+                .join(Team, Standings.team_id == Team.id)
+                .filter(Standings.season_id.in_(season_ids))
+                .all()
+            )
+            for row in rows:
+                standings_by_league.setdefault((row.league_id, row.season_id), []).append(row)
+
         # Add details for each league
         for league in leagues:
-            # Get team count
-            league.team_count = Team.query.filter_by(league_id=league.id).count() if hasattr(Team, 'league_id') else 0
-
-            # Get match count (if matches have league relationship)
-            if hasattr(Match, 'league_id'):
-                league.match_count = Match.query.filter_by(league_id=league.id).count()
-            else:
-                # Fallback: count matches through teams
-                league_teams = Team.query.filter_by(league_id=league.id).all() if hasattr(Team, 'league_id') else []
-                league.match_count = 0
-                for team in league_teams:
-                    league.match_count += Match.query.filter(
-                        (Match.home_team_id == team.id) | (Match.away_team_id == team.id)
-                    ).count()
+            league.team_count = len(league.teams)
+            league.match_count = match_counts.get(league.id, 0)
 
             # Update statistics
             if league.team_count > 0:
@@ -69,28 +117,18 @@ def manage_leagues():
             # Set league status (all leagues are considered active)
             league.status = 'active'
 
-            # Per-league top-3 standings snapshot. Standings are keyed by team+season,
-            # so join through this league's teams filtered to the league's season,
-            # ordered by points (then goal difference) desc, limited to 3.
+            # Per-league top-3 standings snapshot: same ordering as before
+            # (points desc, then goal difference desc), limited to 3.
             league.top_standings = []
             if league.team_count > 0:
-                top = (
-                    Standings.query
-                    .join(Team, Standings.team_id == Team.id)
-                    .filter(
-                        Team.league_id == league.id,
-                        Standings.season_id == league.season_id,
-                    )
-                    .order_by(
-                        Standings.points.desc(),
-                        Standings.goal_difference.desc(),
-                    )
-                    .limit(3)
-                    .all()
-                )
+                top = sorted(
+                    standings_by_league.get((league.id, league.season_id), []),
+                    key=lambda s: ((s.points or 0), (s.goal_difference or 0)),
+                    reverse=True,
+                )[:3]
                 league.top_standings = [
                     {
-                        'team_name': s.team.name if s.team else 'Unknown',
+                        'team_name': s.name or 'Unknown',
                         'played': s.played or 0,
                         'points': s.points or 0,
                     }

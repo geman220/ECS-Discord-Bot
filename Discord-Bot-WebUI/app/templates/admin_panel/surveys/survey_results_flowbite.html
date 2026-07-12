@@ -93,6 +93,9 @@
 {% block extra_js %}
 <script id="survey-summary" type="application/json">{{ summary | tojson }}</script>
 <script id="survey-trend" type="application/json">{{ trend | tojson }}</script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+        integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
 <script src="{{ asset_version('custom_js/survey-results.js') }}"></script>
 {% endblock %}

@@ -191,113 +191,11 @@ def receive_error_analytics():
         }), 500
 
 
-@mobile_analytics_bp.route('/logs/mobile', methods=['POST'])
-@mobile_api_auth_required(require_permissions=['logging'])
-def receive_mobile_logs():
-    """
-    Receive structured logs from mobile app.
-    
-    Expected payload:
-    {
-        "logs": [list of log objects],
-        "app_info": {platform, version, environment}
-    }
-    
-    Returns:
-        JSON response with processing status
-    """
-    log_mobile_api_request()
-    
-    try:
-        data = request.get_json()
-        if not data:
-            logger.warning("Empty JSON payload for mobile logs")
-            return jsonify({
-                'error': 'Empty or invalid JSON payload',
-                'code': 'INVALID_PAYLOAD'
-            }), 400
-        
-        logs_data = data.get('logs', [])
-        app_info = data.get('app_info', {})
-        
-        logs_processed = 0
-        user_id = g.current_user_id
-        
-        # Process logs
-        for log_data in logs_data:
-            try:
-                # Validate required fields
-                if not log_data.get('message') or not log_data.get('level'):
-                    logger.warning(f"Missing required fields in log data: {log_data}")
-                    continue
-                
-                # Parse timestamp
-                timestamp_str = log_data.get('timestamp')
-                if timestamp_str:
-                    try:
-                        timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-                    except ValueError:
-                        timestamp = datetime.utcnow()
-                else:
-                    timestamp = datetime.utcnow()
-                
-                # Validate log level
-                log_level = log_data.get('level', 'INFO').upper()
-                if log_level not in ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL']:
-                    logger.warning(f"Invalid log level: {log_level}, defaulting to INFO")
-                    log_level = 'INFO'
-                
-                # Create log record
-                log_record = MobileLogs(
-                    timestamp=timestamp,
-                    level=log_level,
-                    message=log_data['message'],
-                    logger=log_data.get('logger'),
-                    trace_id=log_data.get('trace_id'),
-                    session_id=log_data.get('session_id'),
-                    user_id=user_id,
-                    context=log_data.get('context'),
-                    error_info=log_data.get('error'),
-                    stack_trace=log_data.get('stack_trace'),
-                    error_metadata=log_data.get('metadata'),
-                    platform=log_data.get('platform') or app_info.get('platform'),
-                    app_version=log_data.get('app_version') or app_info.get('version'),
-                    flutter_version=log_data.get('flutter_version')
-                )
-                
-                db.session.add(log_record)
-                logs_processed += 1
-                
-            except Exception as e:
-                logger.error(f"Failed to process log data: {str(e)}", exc_info=True)
-                continue
-        
-        # Commit all changes
-        try:
-            db.session.commit()
-            logger.info(f"✅ Processed mobile logs: {logs_processed} logs from user {user_id}")
-            
-            return jsonify({
-                'status': 'success',
-                'logs_received': logs_processed,
-                'message': 'Logs received successfully'
-            }), 200
-            
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Database error processing logs: {str(e)}")
-            return jsonify({
-                'error': 'Failed to store logs',
-                'code': 'STORAGE_ERROR'
-            }), 500
-            
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error processing mobile logs: {str(e)}", exc_info=True)
-        return jsonify({
-            'error': 'Failed to process mobile logs',
-            'code': 'PROCESSING_ERROR'
-        }), 500
+# receive_mobile_logs() REMOVED — dead route. It registered POST /api/v1/logs/mobile, but
+# mobile_api_v2 (app/mobile_api/utils.py:97) registers first (blueprints.py:215 vs :298), so
+# this never ran. It also required auth and a {"logs": [...]} envelope; the live handler now
+# accepts BOTH that envelope and a bare log object, and does not require auth (a crash report
+# must not be dropped because the app could not authenticate).
 
 
 @mobile_analytics_bp.route('/analytics/summary', methods=['GET'])

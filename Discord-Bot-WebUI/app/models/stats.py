@@ -142,12 +142,6 @@ class PlayerCareerStats(db.Model):
     # passive_deletes=True trusts DB's ON DELETE CASCADE
     player = db.relationship('Player', back_populates='career_stats', passive_deletes=True)
 
-    @classmethod 
-    def get_stats_by_team(cls, team_id):
-        return g.db_session.query(cls).join(Player).join(player_teams).filter(
-            player_teams.c.team_id == team_id
-        ).all()
-
     def to_dict(self, session=None):
         return {
             'id': self.id,
@@ -185,14 +179,6 @@ class Standings(db.Model):
     @staticmethod
     def update_goal_difference(mapper, connection, target):
         target.goal_difference = (target.goals_for or 0) - (target.goals_against or 0)
-
-    @property
-    def team_goals(self):
-        return g.db_session.query(
-            func.sum(PlayerSeasonStats.goals)
-        ).join(Player).join(player_teams).filter(
-            player_teams.c.team_id == self.team_id
-        ).scalar() or 0
 
     def to_dict(self, session=None):
         return {
@@ -267,12 +253,18 @@ class PlayerAttendanceStats(db.Model):
     season = db.relationship('Season')
     
     @classmethod
-    def get_or_create(cls, player_id, season_id=None):
-        """Get existing stats or create new record for player."""
-        stats = cls.query.filter_by(player_id=player_id).first()
+    def get_or_create(cls, player_id, season_id=None, session=None):
+        """Get existing stats or create new record for player.
+
+        `session` must be passed outside of a request context (e.g. Celery),
+        where `g.db_session` does not exist.
+        """
+        if session is None:
+            session = g.db_session
+        stats = session.query(cls).filter_by(player_id=player_id).first()
         if not stats:
             stats = cls(player_id=player_id, current_season_id=season_id)
-            g.db_session.add(stats)
+            session.add(stats)
         return stats
     
     def update_stats(self, session=None):

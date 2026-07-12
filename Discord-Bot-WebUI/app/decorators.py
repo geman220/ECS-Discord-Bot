@@ -301,7 +301,7 @@ def admin_or_owner_required(func):
     def decorated_function(*args, **kwargs):
         user = safe_current_user
         if not user or not user.is_authenticated:
-            flash('Please log in to access this page.', 'warning')
+            show_warning('Please log in to access this page.')
             return redirect(url_for('auth.login'))
 
         player_id = kwargs.get('player_id')
@@ -311,7 +311,7 @@ def admin_or_owner_required(func):
 
         session = getattr(g, 'db_session', None)
         if session is None:
-            flash('Database session not available.', 'danger')
+            show_error('Database session not available.')
             return redirect(url_for('auth.login'))
 
         player = session.query(Player).get(player_id)

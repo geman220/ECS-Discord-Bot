@@ -12,6 +12,8 @@ import click
 from flask.cli import with_appcontext
 from flask import current_app
 
+from app.core import db
+
 
 @click.command()
 @with_appcontext
@@ -34,16 +36,14 @@ def init_discord_roles():
     click.echo("Initializing Discord roles...")
     
     # Ensure the pl-unverified role exists in the database
-    from flask_sqlalchemy import SQLAlchemy
-    db = SQLAlchemy(current_app)
     try:
         # Check and create the database role
         unverified_role = Role.query.filter_by(name='pl-unverified').first()
         if not unverified_role:
             click.echo("Creating pl-unverified role in database...")
             unverified_role = Role(name='pl-unverified', description='Unverified player awaiting league approval')
-            g.db_session.add(unverified_role)
-            g.db_session.commit()
+            db.session.add(unverified_role)
+            db.session.commit()
             click.echo("pl-unverified role created in database.")
         else:
             click.echo("pl-unverified role already exists in database.")
@@ -73,7 +73,7 @@ def init_discord_roles():
         
     except Exception as e:
         click.echo(f"Error initializing Discord roles: {str(e)}")
-        g.db_session.rollback()
+        db.session.rollback()
         raise
 
 @click.command()
@@ -143,8 +143,6 @@ def sync_coach_roles():
         player_roles = loop.run_until_complete(get_player_roles())
         
         # Update player is_coach flag based on Discord roles
-        from flask_sqlalchemy import SQLAlchemy
-        db = SQLAlchemy(current_app)
         updated_players = 0
         
         for player_id, data in player_roles.items():
@@ -157,16 +155,16 @@ def sync_coach_roles():
 
                 # Update all team relationships for this player
                 from sqlalchemy import text
-                g.db_session.execute(
+                db.session.execute(
                     text("UPDATE player_teams SET is_coach = :is_coach WHERE player_id = :player_id"),
                     {"is_coach": has_coach_role, "player_id": player.id}
                 )
 
                 updated_players += 1
                 click.echo(f"Updated player {player.name} is_coach to {has_coach_role}")
-        
+
         if updated_players > 0:
-            g.db_session.commit()
+            db.session.commit()
             click.echo(f"Updated is_coach flag for {updated_players} players")
         else:
             click.echo("No players needed is_coach flag updates")

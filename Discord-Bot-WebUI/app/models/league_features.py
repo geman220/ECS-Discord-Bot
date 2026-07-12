@@ -22,7 +22,7 @@ from flask import g
 from sqlalchemy import JSON, func
 
 from app.core import db
-from app.models.players import player_teams
+from app.models.players import player_teams, Team, Player
 
 logger = logging.getLogger(__name__)
 

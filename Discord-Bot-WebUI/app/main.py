@@ -40,6 +40,7 @@ from app.forms import (
     willing_to_referee_choices, ReportMatchForm
 )
 from app.utils.user_helpers import safe_current_user
+from app.utils.roster_helpers import rosters_for_teams
 from app.utils.log_sanitizer import mask_code
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,18 @@ VERSION_FILE = os.path.join(PROJECT_DIR, "version.txt")
 LATEST_VERSION_URL = "https://raw.githubusercontent.com/geman220/ECS-Discord-Bot/master/Discord-Bot-WebUI/version.txt"
 
 
+# NOT a duplicate route — do not delete this again.
+#
+# It looks like one: app/health.py also defines an `overall_health` on a `health_bp` at
+# '/health'. But app/health.py is DEAD — nothing imports it (blueprints.py:102 registers
+# `health_bp` from app/routes/health.py, a DIFFERENT module that happens to use the same
+# variable name). The registered rule is '/health/' WITH a trailing slash, so under
+# url_prefix='/api' it serves '/api/health/'.
+#
+# Werkzeug's strict_slashes (on by default, never overridden here) makes '/api/health' and
+# '/api/health/' two distinct rules. This one is the ONLY thing serving the slashless
+# '/api/health' — which is what mobile/uptime probes hit (see the '/api/health' entry in
+# api_logger.py's EXCLUDED_ENDPOINTS). Removing it turns those probes into 308 redirects.
 @main.route('/api/health', methods=['GET'])
 def api_health():
     """Simple health check endpoint for mobile API monitoring."""
@@ -833,15 +846,9 @@ def index():
                         all_team_ids.add(match_data['home_team_id'])
                     if match_data.get('opponent_team_id'):
                         all_team_ids.add(match_data['opponent_team_id'])
-        roster_by_team = {}
-        if all_team_ids:
-            for r_team_id, r_pid, r_pname in (
-                session.query(player_teams.c.team_id, Player.id, Player.name)
-                .join(Player, Player.id == player_teams.c.player_id)
-                .filter(player_teams.c.team_id.in_(all_team_ids))
-                .all()
-            ):
-                roster_by_team.setdefault(r_team_id, {})[r_pid] = r_pname
+        # Shared with the other player_choices sites (app/utils/roster_helpers.py):
+        # one query for every roster on the page.
+        roster_by_team = rosters_for_teams(session, all_team_ids)
 
         for matches_dict in [next_matches, previous_matches]:
             for date_key, matches_list in matches_dict.items():
@@ -1916,28 +1923,6 @@ def inject_static_file_versions():
     return {'file_version': file_version}
 
 
-@main.context_processor
-def inject_static_file_versions():
-    """
-    Inject static file versioning function into templates.
-    
-    This function makes a file_version function available in templates
-    that can be used to add cache-busting version parameters to static file URLs.
-    
-    Returns:
-        dict: A dictionary containing the file_version function.
-    """
-    from app.extensions import file_versioning
-    
-    def file_version(filepath, method='mtime'):
-        """Generate a versioned URL for a static file to bust browser caches."""
-        try:
-            version = file_versioning.get_version(filepath, method)
-            return f"{url_for('static', filename=filepath)}?v={version}"
-        except Exception as e:
-            logger.error(f"Error generating version for {filepath}: {str(e)}")
-            # Fallback to a random version to ensure cache busting
-            import random
-            return f"{url_for('static', filename=filepath)}?v={random.randint(1, 1000000)}"
-    
-    return {'file_version': file_version}
+# (A second, byte-identical copy of inject_static_file_versions() lived here. Both were
+# decorated with @main.context_processor, so Flask registered BOTH and ran this on every
+# single template render in the app — twice, for the same result.)

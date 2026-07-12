@@ -184,42 +184,6 @@ def update_availability():
     # Redirect to the Discord legacy handler which already redirects to enterprise
     return update_availability_from_discord()
 
-    required_fields = ['match_id', 'discord_id', 'response']
-    if not all(data.get(field) for field in required_fields):
-        logger.error(f"🔴 [AVAILABILITY_API] Missing required data: {data}")
-        return jsonify({"error": "Invalid data"}), 400
-
-    with managed_session() as session_db:
-        logger.debug(f"🔵 [AVAILABILITY_API] Processing availability update for match {data['match_id']}")
-        player, message = process_availability_update(
-            match_id=data['match_id'],
-            discord_id=data['discord_id'],
-            response=data['response'],
-            session=session_db
-        )
-
-        if not player:
-            logger.error(f"🔴 [AVAILABILITY_API] Player with Discord ID {data['discord_id']} not found")
-            return jsonify({"error": "Player not found"}), 404
-
-        # Trigger notifications
-        logger.debug(f"🔵 [AVAILABILITY_API] Triggering notifications for match {data['match_id']}, player {player.id}")
-        notify_discord_of_rsvp_change_task.delay(data['match_id'])
-        notify_frontend_of_rsvp_change_task.delay(data['match_id'], player.id, data['response'])
-        
-        # Emit WebSocket event for real-time updates
-        from app.sockets.rsvp import emit_rsvp_update
-        emit_rsvp_update(
-            match_id=data['match_id'],
-            player_id=player.id,
-            availability=data['response'],
-            source='discord',
-            player_name=player.name
-        )
-
-        logger.info(f"🟢 [AVAILABILITY_API] Availability updated successfully for {player.name} on match {data['match_id']}")
-        return jsonify({"message": "Availability updated successfully"}), 200
-
 
 @availability_bp.route('/store_message_ids', methods=['POST'], endpoint='store_message_ids')
 def store_message_ids():

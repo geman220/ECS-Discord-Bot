@@ -389,7 +389,14 @@ def view_match(match_id):
             home_rsvp_data = get_rsvp_data(match.home_team)
             away_rsvp_data = get_rsvp_data(match.away_team)
         
-            # Generate player choices dictionary for the report match modal
+            # Generate player choices dictionary for the report match modal.
+            #
+            # Deliberately NOT routed through app/utils/roster_helpers.py: this is a
+            # single match whose two rosters are already joinedload()-ed above (the
+            # RSVP panels need the full Player objects anyway), so building the dict
+            # from the loaded lists costs zero queries — a bulk roster query here
+            # would ADD one. It also preserves the ?sort=name / ?sort=response order
+            # applied to these lists above.
             player_choices = {}
             if match.home_team and match.away_team:
                 home_players = {str(p.id): p.name for p in match.home_team.players}

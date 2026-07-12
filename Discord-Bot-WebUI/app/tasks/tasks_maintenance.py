@@ -607,3 +607,34 @@ def cleanup_task_executions(self, session):
 
     logger.info(f"cleanup_task_executions: deleted {total} rows older than {retention_days}d")
     return {'deleted': total, 'retention_days': retention_days}
+
+
+@celery_task(
+    name='app.tasks.tasks_maintenance.update_player_attendance',
+    bind=True,
+    queue='celery',
+    max_retries=1,
+)
+def update_player_attendance(self, session, player_id, season_id=None):
+    """Recompute ONE player's attendance stats after their RSVP changed.
+
+    This used to run INLINE inside the RSVP task (tasks_rsvp.py), whose own comment already
+    said "update attendance stats asynchronously to avoid blocking main RSVP flow" — but the
+    call was synchronous. It also never actually ran: attendance_service used an unimported
+    `g`, so every call raised NameError and the caller's `except Exception` ate it.
+
+    Doing it inline is the wrong shape now that it works:
+      * update_stats() is ~11 queries (it rescans the player's whole career match history),
+        which is a lot to bolt onto a hot write path on a 1-vCPU Postgres;
+      * the RSVP write is NOT yet committed when it runs, so it cannot share the RSVP task's
+        session — a rollback in the retry loop would discard the RSVP itself — which means an
+        inline call has to open a SECOND concurrent connection while the first is still open.
+    As its own task it gets one session, one connection, and the RSVP task returns immediately.
+    """
+    from app.models.stats import PlayerAttendanceStats
+
+    stat = PlayerAttendanceStats.get_or_create(player_id, season_id, session=session)
+    stat.update_stats(session=session)
+    session.commit()
+    logger.debug(f"Recomputed attendance stats for player {player_id}")
+    return {'player_id': player_id, 'season_id': season_id}

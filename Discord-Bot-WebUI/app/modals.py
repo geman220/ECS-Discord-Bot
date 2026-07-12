@@ -8,6 +8,7 @@ from flask import Blueprint, render_template, jsonify, request, current_app
 from flask_login import login_required
 from app.models import Match, Team, Player
 from app.utils.user_helpers import safe_current_user
+from app.utils.roster_helpers import rosters_for_teams
 from app.core.session_manager import managed_session
 
 modals = Blueprint('modals', __name__)
@@ -34,14 +35,15 @@ def render_all_modals():
     with managed_session() as session:
         # Get matches based on request
         if match_id_list:
-            # Eager-load both rosters: the loop below reads home_team.players and
-            # away_team.players, which would otherwise lazy-load twice per match.
-            from sqlalchemy.orm import joinedload, selectinload
+            # Join in both teams (their NAMES key player_choices); the rosters
+            # themselves come from one bulk query below instead of two
+            # selectinloads, so this route costs 2 queries flat.
+            from sqlalchemy.orm import joinedload
             matches = (
                 session.query(Match)
                 .options(
-                    joinedload(Match.home_team).selectinload(Team.players),
-                    joinedload(Match.away_team).selectinload(Team.players),
+                    joinedload(Match.home_team),
+                    joinedload(Match.away_team),
                 )
                 .filter(Match.id.in_(match_id_list))
                 .all()
@@ -58,19 +60,21 @@ def render_all_modals():
             matches = []
             current_app.logger.info("render_modals called with no match_ids — returning no modals")
         
-        # Generate player choices for each match
+        # Generate player choices for each match. One roster query covers every
+        # team across every requested match (shared helper).
+        rosters = rosters_for_teams(
+            session,
+            [tid for m in matches for tid in (m.home_team_id, m.away_team_id)]
+        )
         player_choices = {}
         for match in matches:
             home_team = match.home_team
             away_team = match.away_team
-            
+
             if home_team and away_team:
-                home_players = {p.id: p.name for p in home_team.players}
-                away_players = {p.id: p.name for p in away_team.players}
-                
                 player_choices[match.id] = {
-                    home_team.name: home_players,
-                    away_team.name: away_players
+                    home_team.name: rosters.get(home_team.id, {}),
+                    away_team.name: rosters.get(away_team.id, {})
                 }
             else:
                 # Even for matches without fully loaded teams, create a minimal entry

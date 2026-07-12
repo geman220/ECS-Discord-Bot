@@ -119,6 +119,11 @@ def get_registration_trends(period='30d'):
       - '12m' : monthly counts for the last 12 calendar months
 
     Returns a list of {'date': label, 'count': int} dicts ordered oldest->newest.
+
+    ONE grouped query per call. This used to issue one COUNT per bucket — 30, 90
+    or 12 sequential round-trips on a pgbouncer transaction slot just to draw a
+    line chart. Now the DB buckets with date_trunc() and the continuous series
+    (including ZERO days, which the chart needs) is filled in Python.
     """
     now = datetime.utcnow()
     trends = []
@@ -134,36 +139,49 @@ def get_registration_trends(period='30d'):
         while start_month <= 0:
             start_month += 12
             start_year -= 1
+        first_bucket = datetime(start_year, start_month, 1)
+
+        bucket = func.date_trunc('month', User.created_at)
+        rows = (
+            db.session.query(bucket.label('bucket'), func.count(User.id).label('cnt'))
+            .filter(User.created_at >= first_bucket)
+            .group_by(bucket)
+            .all()
+        )
+        counts = {(r.bucket.year, r.bucket.month): r.cnt for r in rows if r.bucket}
+
         bucket_year, bucket_month = start_year, start_month
         for _ in range(12):
             month_start = datetime(bucket_year, bucket_month, 1)
-            if bucket_month == 12:
-                next_year, next_month = bucket_year + 1, 1
-            else:
-                next_year, next_month = bucket_year, bucket_month + 1
-            month_end = datetime(next_year, next_month, 1)
-            month_count = User.query.filter(
-                User.created_at >= month_start,
-                User.created_at < month_end
-            ).count()
             trends.append({
                 'date': month_start.strftime('%b %Y'),
-                'count': month_count,
+                'count': counts.get((bucket_year, bucket_month), 0),
             })
-            bucket_year, bucket_month = next_year, next_month
+            if bucket_month == 12:
+                bucket_year, bucket_month = bucket_year + 1, 1
+            else:
+                bucket_month += 1
         return trends
 
     days = 90 if period == '90d' else 30
-    for i in range(days - 1, -1, -1):
-        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
-        day_end = day_start + timedelta(days=1)
-        day_count = User.query.filter(
-            User.created_at >= day_start,
-            User.created_at < day_end
-        ).count()
+    first_day = (now - timedelta(days=days - 1)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+
+    bucket = func.date_trunc('day', User.created_at)
+    rows = (
+        db.session.query(bucket.label('bucket'), func.count(User.id).label('cnt'))
+        .filter(User.created_at >= first_day)
+        .group_by(bucket)
+        .all()
+    )
+    counts = {r.bucket.date(): r.cnt for r in rows if r.bucket}
+
+    for i in range(days):
+        day_start = first_day + timedelta(days=i)
         trends.append({
             'date': day_start.strftime('%b %d'),
-            'count': day_count,
+            'count': counts.get(day_start.date(), 0),
         })
     return trends
 

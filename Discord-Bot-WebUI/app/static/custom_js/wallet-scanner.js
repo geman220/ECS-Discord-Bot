@@ -2,7 +2,7 @@
  * Wallet Pass Scanner
  *
  * QR code scanner for validating digital wallet passes.
- * Uses @AziDev/qrcodescanner library for camera-based scanning.
+ * Uses nimiq/qr-scanner (self-hosted, static/vendor/qr-scanner/) for camera scanning.
  */
 'use strict';
 
@@ -27,7 +27,10 @@ let resultCard, resultBody, scanHistory, eventNameInput, autoCheckinBox, clearHi
  * Initialize scanner
  */
 function initScanner() {
-    if (typeof QrCodeScanner === 'undefined') {
+    // The global is QrScanner (nimiq/qr-scanner, self-hosted at
+    // static/vendor/qr-scanner/). It used to be QrCodeScanner, from a CDN URL that 404s —
+    // so this branch always ran and camera check-in was permanently "Camera Unavailable".
+    if (typeof QrScanner === 'undefined') {
         console.warn('[WalletScanner] QR Scanner library not loaded');
         startBtn.innerHTML = '<i class="ti ti-camera-off me-1"></i>Camera Unavailable';
         startBtn.classList.remove('bg-ecs-green', 'hover:bg-ecs-green-dark');
@@ -37,9 +40,13 @@ function initScanner() {
     }
 
     try {
-        scanner = new QrCodeScanner(video, handleScan, {
+        scanner = new QrScanner(video, handleScan, {
+            // Rear camera is set HERE, not in start(): qr-scanner's start() takes no
+            // arguments, so the old start({facingMode:'environment'}) would have been ignored.
+            preferredCamera: 'environment',
             highlightScanRegion: true,
-            highlightCodeOutline: true
+            highlightCodeOutline: true,
+            maxScansPerSecond: 5
         });
     } catch (err) {
         console.error('[WalletScanner] Init error:', err);
@@ -50,8 +57,11 @@ function initScanner() {
  * Start camera scanning
  */
 async function startScanning() {
+    if (!scanner) return;
     try {
-        await scanner.start({ facingMode: 'environment' });
+        // No args: qr-scanner's start() ignores them. Camera choice is `preferredCamera`
+        // in the constructor above.
+        await scanner.start();
         startBtn.disabled = true;
         stopBtn.disabled = false;
         recentBarcodes.clear();

@@ -727,42 +727,10 @@ def update_poll_response():
         return jsonify({'error': 'Internal Server Error'}), 500
 
 
-@admin_bp.route('/api/update_poll_message', methods=['POST'])
-@csrf_exempt
-def update_poll_message():
-    """Update poll message record with Discord message ID after sending."""
-    try:
-        data = request.get_json()
-        
-        message_record_id = data.get('message_record_id')
-        message_id = data.get('message_id')
-        sent_at = data.get('sent_at')
-        
-        if not all([message_record_id, message_id]):
-            return jsonify({'error': 'Missing required fields'}), 400
-        
-        session = g.db_session
-        
-        # Find the Discord message record
-        discord_message = session.query(LeaguePollDiscordMessage).get(message_record_id)
-        if not discord_message:
-            return jsonify({'error': 'Message record not found'}), 404
-        
-        # Update the record
-        discord_message.message_id = message_id
-        if sent_at:
-            discord_message.sent_at = datetime.fromisoformat(sent_at.replace('Z', '+00:00'))
-        else:
-            discord_message.sent_at = datetime.utcnow()
-        
-        session.commit()
-        
-        return jsonify({'success': True}), 200
-        
-    except Exception as e:
-        logger.error(f"Error updating poll message: {str(e)}", exc_info=True)
-        session.rollback()
-        return jsonify({'error': 'Internal Server Error'}), 500
+# update_poll_message() REMOVED — dead route. It registered POST /api/update_poll_message,
+# but availability_bp (app/availability_api.py:1562) registers first (blueprints.py:185 vs
+# :198), so this never ran. The live one is equivalent and IS csrf-exempt
+# (availability_api.py:49), which the Discord bot's token-less POST needs.
 
 
 # Match management routes are now in app/admin/mls_routes.py

@@ -11,10 +11,26 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 
 from sqlalchemy.exc import IntegrityError
-from app.core import db
+from app.core.session_manager import managed_session
 from app.models import PlayerAttendanceStats, Availability, Player, Season
 
 logger = logging.getLogger(__name__)
+
+
+# Use managed_session(), NOT db.session, for the non-request path.
+#
+# These functions are called from Celery (tasks_rsvp.py -> handle_availability_change), where
+# there is no request context. Falling back to Flask-SQLAlchemy's db.session there LEAKS: the
+# only db.session.remove() in the app is the WEB request teardown
+# (app/init/request_handlers.py:396). A Celery worker has no such teardown, so a db.session
+# touched in a task pins a pooled connection for the life of the worker process — on a
+# 22-connection database that is how you run out of connections.
+#
+# managed_session() already handles both worlds: inside a request it yields g.db_session and
+# leaves closing to the teardown; outside one it opens a real SessionLocal(), commits on exit,
+# rolls back on exception, and CLOSES it (app/core/session_manager.py:53). Every DB access in
+# this module now goes through it — no bare Model.query anywhere, which would silently bind to
+# db.session and take a second pooled connection.
 
 
 class AttendanceService:
@@ -27,27 +43,19 @@ class AttendanceService:
         Called whenever a player's RSVP response changes.
         """
         max_retries = 3
-        
+
         for attempt in range(max_retries):
             try:
-                # Use a fresh transaction for each attempt
-                if attempt > 0:
-                    # Close any existing session state
-                    g.db_session.rollback()
-                
-                # Get or create attendance stats record
-                stats = PlayerAttendanceStats.get_or_create(player_id, season_id)
-                
-                # Update the statistics
-                stats.update_stats()
-                
-                g.db_session.commit()
+                # managed_session commits on clean exit and rolls back on exception, so no
+                # explicit commit/rollback is needed here.
+                with managed_session() as session:
+                    stats = PlayerAttendanceStats.get_or_create(player_id, season_id, session=session)
+                    stats.update_stats(session=session)
+
                 logger.debug(f"Updated attendance stats for player {player_id}")
                 return  # Success
-                
+
             except Exception as e:
-                g.db_session.rollback()
-                
                 if attempt < max_retries - 1:
                     logger.warning(f"Attempt {attempt + 1} failed for player {player_id}, retrying: {e}")
                     import time
@@ -71,12 +79,12 @@ class AttendanceService:
         
         for i, player_id in enumerate(player_ids):
             try:
-                # Use individual transaction for each player to prevent cascade failures
-                with g.db_session.begin():
-                    stats = PlayerAttendanceStats.get_or_create(player_id, season_id)
-                    stats.update_stats()
+                # One transaction per player so a single bad row can't cascade.
+                with managed_session() as session:
+                    stats = PlayerAttendanceStats.get_or_create(player_id, season_id, session=session)
+                    stats.update_stats(session=session)
                     updated_count += 1
-                    
+
                 # Log progress every 50 players
                 if (i + 1) % 50 == 0:
                     logger.info(f"Processed {i + 1}/{len(player_ids)} players...")
@@ -138,9 +146,13 @@ class AttendanceService:
         Returns a dictionary mapping player_id to attendance data.
         """
         try:
-            stats_records = PlayerAttendanceStats.query.filter(
-                PlayerAttendanceStats.player_id.in_(player_ids)
-            ).all()
+            # managed_session, NOT PlayerAttendanceStats.query: Model.query binds to
+            # db.session, which in a request is a DIFFERENT session from g.db_session — two
+            # sessions means two pgbouncer server slots for one request.
+            with managed_session() as session:
+                stats_records = session.query(PlayerAttendanceStats).filter(
+                    PlayerAttendanceStats.player_id.in_(player_ids)
+                ).all()
             
             # Create lookup dictionary
             result = {}
@@ -190,8 +202,10 @@ class AttendanceService:
         """
         try:
             # Get all current players
-            current_players = Player.query.filter_by(is_current_player=True).all()
-            player_ids = [p.id for p in current_players]
+            with managed_session() as session:
+                player_ids = [
+                    pid for (pid,) in session.query(Player.id).filter_by(is_current_player=True)
+                ]
             
             logger.info(f"Initializing attendance stats for {len(player_ids)} players")
             
@@ -212,26 +226,23 @@ class AttendanceService:
         """
         try:
             cutoff_time = datetime.utcnow() - timedelta(hours=hours_threshold)
-            
-            # Find stale records
-            stale_stats = PlayerAttendanceStats.query.filter(
-                PlayerAttendanceStats.last_updated < cutoff_time
-            ).all()
-            
-            logger.info(f"Found {len(stale_stats)} stale attendance records")
-            
-            # Update each stale record
-            for stats in stale_stats:
-                try:
-                    stats.update_stats()
-                except Exception as e:
-                    logger.warning(f"Failed to refresh stats for player {stats.player_id}: {e}")
-            
-            g.db_session.commit()
+
+            with managed_session() as session:
+                stale_stats = session.query(PlayerAttendanceStats).filter(
+                    PlayerAttendanceStats.last_updated < cutoff_time
+                ).all()
+
+                logger.info(f"Found {len(stale_stats)} stale attendance records")
+
+                for stats in stale_stats:
+                    try:
+                        stats.update_stats(session=session)
+                    except Exception as e:
+                        logger.warning(f"Failed to refresh stats for player {stats.player_id}: {e}")
+
             logger.info(f"Refreshed {len(stale_stats)} stale attendance records")
-            
+
         except Exception as e:
-            g.db_session.rollback()
             logger.error(f"Error refreshing stale stats: {e}")
             raise
 

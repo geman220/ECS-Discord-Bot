@@ -42,6 +42,7 @@ from app.ecs_fc_schedule import EcsFcScheduleManager, is_user_ecs_fc_coach
 from app.forms import ReportMatchForm
 from app.teams_helpers import populate_team_stats, update_standings, process_events, process_own_goals
 from app.utils.user_helpers import safe_current_user
+from app.utils.roster_helpers import player_choices_for_matches
 from app.engagement_service import record_coach_engagement
 from app.decorators import role_required
 from app.admin_helpers import determine_match_league_type
@@ -2046,39 +2047,12 @@ def coach_dashboard():
     # Sort needs_reporting by date (oldest first) so oldest unreported are most urgent
     needs_reporting.sort(key=lambda m: (m.date, m.time) if m.date and m.time else (datetime.max.date(), datetime.max.time()))
 
-    # Build player choices for match reporting modals
-    player_choices = {}
-    for match in all_matches:
-        if hasattr(match, 'is_ecs_fc') and match.is_ecs_fc:
-            # ECS FC match - only one actual team
-            team = match.home_team if match.home_team else match.away_team
-            if team:
-                players = session.query(Player).join(
-                    Player.teams
-                ).filter(Team.id == team.id).all()
-
-                player_choices[match.id] = {
-                    team.name: {p.id: p.name for p in players},
-                    match.opponent_name: {}  # No player choices for opponent string
-                }
-        elif match.home_team and match.away_team:
-            # Pub League match - both teams are actual teams
-            home_players = session.query(Player).join(
-                Player.teams
-            ).filter(Team.id == match.home_team_id).all()
-
-            away_players = session.query(Player).join(
-                Player.teams
-            ).filter(Team.id == match.away_team_id).all()
-
-            player_choices[match.id] = {
-                match.home_team.name: {
-                    p.id: p.name for p in home_players
-                },
-                match.away_team.name: {
-                    p.id: p.name for p in away_players
-                }
-            }
+    # Build player choices for match reporting modals.
+    #
+    # Was two roster queries PER MATCH (2N for the whole dashboard); the shared
+    # helper loads every roster on the page in one query and returns the exact
+    # same {match_id: {team_name: {player_id: name}}} shape.
+    player_choices = player_choices_for_matches(session, all_matches)
 
     # Get match events for each match (for editing) - only for Pub League matches.
     #
@@ -3131,24 +3105,9 @@ def admin_coach_dashboard():
         SubstituteRequest.status == 'PENDING'
     ).order_by(SubstituteRequest.created_at.desc() if hasattr(SubstituteRequest, 'created_at') else SubstituteRequest.id.desc()).limit(10).all()
 
-    # Build player choices for match reporting
-    player_choices = {}
-    for match in all_matches:
-        if hasattr(match, 'is_ecs_fc') and match.is_ecs_fc:
-            team = match.home_team if match.home_team else match.away_team
-            if team:
-                players = session.query(Player).join(Player.teams).filter(Team.id == team.id).all()
-                player_choices[match.id] = {
-                    team.name: {p.id: p.name for p in players},
-                    getattr(match, 'opponent_name', 'Opponent'): {}
-                }
-        elif match.home_team and match.away_team:
-            home_players = session.query(Player).join(Player.teams).filter(Team.id == match.home_team_id).all()
-            away_players = session.query(Player).join(Player.teams).filter(Team.id == match.away_team_id).all()
-            player_choices[match.id] = {
-                match.home_team.name: {p.id: p.name for p in home_players},
-                match.away_team.name: {p.id: p.name for p in away_players}
-            }
+    # Build player choices for match reporting (one bulk roster query — see
+    # app/utils/roster_helpers.py; this was 2 queries per match).
+    player_choices = player_choices_for_matches(session, all_matches)
 
     return render_template('admin_coach_dashboard_flowbite.html',
                          all_teams=all_teams,

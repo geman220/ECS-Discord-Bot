@@ -8,11 +8,12 @@ import logging
 from datetime import datetime, timedelta
 from sqlalchemy import func, desc, and_, or_
 
-from flask import request, jsonify
+from flask import request, jsonify, g
 from app.core import db
 from app.models import (
     Player, Team, Match, League, Season, Availability,
-    PlayerSeasonStats, PlayerCareerStats, Standings, TemporarySubAssignment
+    PlayerSeasonStats, PlayerCareerStats, Standings, TemporarySubAssignment,
+    player_teams
 )
 from app.models.substitutes import SubstituteRequest
 

@@ -460,28 +460,71 @@ def _get_api_endpoints():
         # Enrich each endpoint with REAL traffic metrics from APIRequestLog. Logged
         # request paths are concrete (e.g. /api/player_profile/5) while route paths are
         # templated (/api/player_profile/<int:player_id>), so parameterized routes are
-        # matched with a LIKE pattern. Endpoints with no recorded traffic honestly show
+        # matched with a pattern. Endpoints with no recorded traffic honestly show
         # 0 requests / "Never" last-used — no fabricated numbers.
+        #
+        # This used to run ONE aggregate query PER ENDPOINT (~150 of them, sequential,
+        # all inside a single pgbouncer transaction slot). It is now ONE grouped query
+        # over the log table; the concrete-path -> route-pattern matching that the SQL
+        # LIKE used to do is done in Python against the grouped rows.
+        try:
+            log_rows = db.session.query(
+                APIRequestLog.endpoint_path.label('path'),
+                func.count(APIRequestLog.id).label('hits'),
+                # AVG() ignores NULL response times, so carry SUM + the non-null COUNT
+                # and recombine — averaging pre-averaged buckets would be wrong.
+                func.sum(APIRequestLog.response_time_ms).label('rt_sum'),
+                func.count(APIRequestLog.response_time_ms).label('rt_count'),
+                func.max(APIRequestLog.timestamp).label('last'),
+            ).filter(
+                APIRequestLog.endpoint_path.like('/api%')
+            ).group_by(
+                APIRequestLog.endpoint_path
+            ).all()
+        except Exception as metric_err:
+            logger.warning(f"API metrics unavailable: {metric_err}")
+            log_rows = []
+
+        # Exact-path lookup for static routes; regex for templated ones. `%` in the old
+        # LIKE matched across slashes, so the equivalent regex placeholder is `.*`.
+        exact = {}
+        for row in log_rows:
+            exact[row.path] = row
+
         for endpoint_data in endpoints:
             path = endpoint_data['path']
+            hits = 0
+            rt_sum = 0.0
+            rt_count = 0
+            last = None
+
             if '<' in path:
-                traffic_filter = APIRequestLog.endpoint_path.like(re.sub(r'<[^>]+>', '%', path))
+                # re.split with a capturing group alternates literal, <converter>,
+                # literal, ... so odd indices are the placeholders.
+                parts = re.split(r'(<[^>]+>)', path)
+                pattern = re.compile(
+                    ''.join(
+                        '.*' if i % 2 else re.escape(part)
+                        for i, part in enumerate(parts)
+                    ) + r'\Z'
+                )
+                matched = [row for row in log_rows if pattern.match(row.path)]
             else:
-                traffic_filter = (APIRequestLog.endpoint_path == path)
+                row = exact.get(path)
+                matched = [row] if row is not None else []
 
-            try:
-                count, avg_ms, last = db.session.query(
-                    func.count(APIRequestLog.id),
-                    func.avg(APIRequestLog.response_time_ms),
-                    func.max(APIRequestLog.timestamp),
-                ).filter(traffic_filter).first()
-            except Exception as metric_err:
-                logger.warning(f"API metrics unavailable for {path}: {metric_err}")
-                count, avg_ms, last = 0, None, None
+            for row in matched:
+                hits += int(row.hits or 0)
+                rt_sum += float(row.rt_sum or 0.0)
+                rt_count += int(row.rt_count or 0)
+                if row.last is not None and (last is None or row.last > last):
+                    last = row.last
 
-            endpoint_data['request_count'] = int(count or 0)
+            endpoint_data['request_count'] = hits
             # response_time_ms is milliseconds; the Endpoints table renders seconds.
-            endpoint_data['avg_response_time'] = round(float(avg_ms) / 1000.0, 3) if avg_ms is not None else 0
+            endpoint_data['avg_response_time'] = (
+                round((rt_sum / rt_count) / 1000.0, 3) if rt_count else 0
+            )
             endpoint_data['last_used'] = last
 
         return sorted(endpoints, key=lambda x: x['path'])
@@ -522,21 +565,32 @@ def _get_endpoint_statistics(endpoints):
 def _get_recent_api_activity(limit=10):
     """Get recent API-related activity from audit logs"""
     try:
-        activities = db.session.query(AdminAuditLog).filter(
+        from sqlalchemy.orm import joinedload
+
+        # joinedload(user): the row dicts below read activity.user.username, and
+        # AdminAuditLog.user is lazy='select' — that was one extra SELECT per row.
+        activities = db.session.query(AdminAuditLog).options(
+            joinedload(AdminAuditLog.user)
+        ).filter(
             AdminAuditLog.action.like('%api%')
         ).order_by(desc(AdminAuditLog.timestamp)).limit(limit).all()
 
+        # AdminAuditLog has NO `details` column (see app/models/admin_config.py) — the
+        # description used to read activity.details, which raised AttributeError and
+        # dropped the whole function into the except below, so "Recent API Activity"
+        # rendered EMPTY every single time. log_action() writes the human-readable
+        # string into new_value, so that's what we show.
         return [{
             'id': activity.id,
             'action': activity.action,
-            'description': activity.details or activity.action,
+            'description': activity.new_value or activity.action,
             'user': activity.user.username if activity.user else 'System',
             'timestamp': activity.timestamp,
             'type': 'api'
         } for activity in activities]
-        
+
     except Exception as e:
-        print(f"Error getting recent API activity: {e}")
+        logger.error(f"Error getting recent API activity: {e}")
         return []
 
 

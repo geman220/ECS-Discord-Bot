@@ -7,7 +7,10 @@ This module provides routes for managing playoff assignments and scheduling.
 """
 
 import logging
-from datetime import datetime
+# timedelta: resend_playoff_rsvps() at :927 uses it to stagger sends, but it was never
+# imported — a NameError that its `except Exception` swallowed, so that admin button
+# silently did nothing every time it was pressed.
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, g
@@ -16,6 +19,7 @@ from flask_login import login_required, current_user
 from app.decorators import role_required
 from app.models import League, Team, Match, Schedule, Season, Standings, WeekConfiguration, ScheduledMessage, PlayerEvent, PlayerEventType, Player
 from app.alert_helpers import show_success, show_error, show_warning
+from app.utils.roster_helpers import rosters_for_teams
 from app.playoff_generator import PlayoffGenerator
 from app.schedule_routes import ScheduleManager
 
@@ -204,27 +208,23 @@ def view_bracket(league_id: int):
         playoff_team_ids.add(match.home_team_id)
         playoff_team_ids.add(match.away_team_id)
 
-    playoff_teams = session.query(Team).filter(Team.id.in_(playoff_team_ids)).all()
+    # (A `session.query(Team).filter(Team.id.in_(playoff_team_ids)).all()` used to run here.
+    # Its result was never read — a full Team load, fetched and discarded on every render.)
 
-    # Build player choices for match reporting modals
+    # Build player choices for match reporting modals.
+    #
+    # This used to run TWO roster queries PER MATCH (one per side) — a full
+    # playoff bracket cost 2N queries before the page rendered. Every roster now
+    # comes from a single bulk query; the modal's shape is unchanged.
+    rosters = rosters_for_teams(session, playoff_team_ids)
+
     player_choices = {}
     for match in playoff_matches:
-        # Get players from both teams
-        home_players = session.query(Player).join(
-            Player.teams
-        ).filter(Team.id == match.home_team_id).all()
-
-        away_players = session.query(Player).join(
-            Player.teams
-        ).filter(Team.id == match.away_team_id).all()
-
         player_choices[match.id] = {
-            match.home_team.name if match.home_team else 'Home': {
-                p.id: p.name for p in home_players
-            },
-            match.away_team.name if match.away_team else 'Away': {
-                p.id: p.name for p in away_players
-            }
+            match.home_team.name if match.home_team else 'Home':
+                rosters.get(match.home_team_id, {}),
+            match.away_team.name if match.away_team else 'Away':
+                rosters.get(match.away_team_id, {})
         }
 
     # Get match events for each match (for editing)
