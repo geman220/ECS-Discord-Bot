@@ -332,6 +332,16 @@ class PitchViewSystem {
                 return;
             }
 
+            // 1b) A position slot tapped with NO player armed -> filter the pool to players who
+            // play there (favorite first, then interested). Tap the same spot again to clear.
+            if (zone && !self.armedPlayer) {
+                var grp = self.positionGroupOf(zone.dataset.position);
+                self.positionGroupFilter = (self.positionGroupFilter === grp && grp) ? '' : grp;
+                self.updatePositionFilterUI();
+                self.filterPitchPlayers();
+                return;
+            }
+
             // 2) A pool player was tapped -> arm it (ignore inner buttons/links).
             const pool = e.target.closest('.js-draggable-player');
             if (pool && !e.target.closest('button, a, [data-action]')) {
@@ -384,6 +394,38 @@ class PitchViewSystem {
         this.updateAvailablePlayerCount();
     }
 
+    /** Map a pitch slot key (gk/st/cb/…) to a broad position group. */
+    positionGroupOf(slotKey) {
+        const k = (slotKey || '').toLowerCase();
+        if (k === 'gk') return 'gk';
+        if (['lb', 'cb', 'rb', 'lwb', 'rwb'].indexOf(k) >= 0) return 'def';
+        if (['cdm', 'cm', 'cam'].indexOf(k) >= 0) return 'mid';
+        if (['st', 'lw', 'rw'].indexOf(k) >= 0) return 'fwd';
+        return '';
+    }
+
+    /** Does a (comma-separated) position string belong to a group? */
+    matchPosGroup(str, group) {
+        if (!group || !str) return false;
+        const s = str.toLowerCase();
+        if (group === 'gk') return /goal|keeper|(^|[^a-z])gk([^a-z]|$)/.test(s);
+        if (group === 'def') return /def|back|centre.?back|center.?back|(^|[^a-z])(cb|lb|rb|lwb|rwb)([^a-z]|$)/.test(s);
+        if (group === 'mid') return /mid|(^|[^a-z])(cm|dm|am|cdm|cam)([^a-z]|$)/.test(s);
+        if (group === 'fwd') return /forward|strik|wing|attack|(^|[^a-z])(st|lw|rw|cf)([^a-z]|$)/.test(s);
+        return false;
+    }
+
+    /** Highlight the pitch spots for the active position filter + toast which one. */
+    updatePositionFilterUI() {
+        const g = this.positionGroupFilter || '';
+        document.querySelectorAll('.js-position-drop-zone').forEach(z => {
+            const zg = this.positionGroupOf(z.dataset.position);
+            if (g && zg === g) z.classList.add('ring-2', 'ring-ecs-green');
+            else z.classList.remove('ring-2', 'ring-ecs-green');
+        });
+        if (g) this.showToast('Showing players who play ' + g.toUpperCase() + ' — tap the spot again to clear', 'info');
+    }
+
     /**
      * Filter and sort players in the pitch view with all criteria
      */
@@ -393,6 +435,11 @@ class PitchViewSystem {
         const sortBy = document.getElementById('sortByPitch')?.value || 'name';
         const attendanceFilter = document.getElementById('attendanceFilterPitch')?.value || '';
         const goalsFilter = document.getElementById('goalsFilterPitch')?.value || '';
+        // Tapping a position on the pitch filters the pool to players who PREFER (favorite) or
+        // are INTERESTED (other positions) in that spot, best-fit first. A search overrides it
+        // so any player is still findable/assignable. Players who AVOID the spot are hidden from
+        // the suggestion (but a search surfaces them).
+        const groupFilter = searchTerm ? '' : (this.positionGroupFilter || '');
 
         const playerItems = document.querySelectorAll('#availablePlayersList .player-item');
         let visibleCount = 0;
@@ -404,6 +451,15 @@ class PitchViewSystem {
             const attendance = parseFloat(item.getAttribute('data-attendance'));
             const goals = parseInt(item.getAttribute('data-goals')) || 0;
             const experience = parseInt(item.getAttribute('data-experience')) || 0;
+
+            // Preference rank vs the tapped position group (1 favorite, 2 interested, 4 avoid, 3 neutral).
+            let posRank = 3;
+            if (groupFilter) {
+                if (this.matchPosGroup(playerPosition, groupFilter)) posRank = 1;
+                else if (this.matchPosGroup(item.getAttribute('data-other-pos') || '', groupFilter)) posRank = 2;
+                else if (this.matchPosGroup(item.getAttribute('data-avoid-pos') || '', groupFilter)) posRank = 4;
+            }
+            const matchesGroup = !groupFilter || posRank <= 2;
 
             // Check search term match
             const matchesSearch = !searchTerm || playerName.includes(searchTerm);
@@ -432,7 +488,7 @@ class PitchViewSystem {
                 else if (goalsFilter === '0') matchesGoals = goals === 0;
             }
 
-            const isVisible = matchesSearch && matchesPosition && matchesAttendance && matchesGoals;
+            const isVisible = matchesSearch && matchesPosition && matchesAttendance && matchesGoals && matchesGroup;
 
             if (isVisible) {
                 visibleCount++;
@@ -441,7 +497,8 @@ class PitchViewSystem {
                     name: playerName,
                     attendance: isNaN(attendance) ? -1 : attendance,
                     goals: goals,
-                    experience: experience
+                    experience: experience,
+                    posRank: posRank
                 });
             }
 
@@ -452,6 +509,8 @@ class PitchViewSystem {
 
         // Sort the filtered players
         this.sortPitchPlayers(filteredPlayers, sortBy);
+        // When filtering by a tapped position, favorite-fit first, then interested (stable).
+        if (groupFilter) filteredPlayers.sort((a, b) => a.posRank - b.posRank);
 
         // Show filtered and sorted players
         filteredPlayers.forEach(player => {

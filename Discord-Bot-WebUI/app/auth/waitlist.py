@@ -360,6 +360,12 @@ def waitlist_register_with_discord():
     and creates a new user account with pl-waitlist and pl-unverified roles.
     """
     from app.models.admin_config import AdminConfig
+    from app.auth.helpers import registration_enabled
+
+    # Master switch: registration off closes ALL new signups, waitlist included.
+    if not registration_enabled():
+        show_info('Registration is currently closed. Please check back later.')
+        return redirect(url_for('auth.login'))
 
     # Check if waitlist registration is enabled
     if not AdminConfig.get_setting('waitlist_registration_enabled', True):

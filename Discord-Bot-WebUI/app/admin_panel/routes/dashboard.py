@@ -311,17 +311,9 @@ def feature_toggles():
                 categories[setting.category] = []
             categories[setting.category].append(setting)
 
-        # The onboarding demo is Global-Admin-only (the page itself is also open
-        # to Pub League Admins), so only surface its link to Global Admins.
-        can_view_onboarding_demo = any(
-            getattr(r, 'name', None) == 'Global Admin'
-            for r in getattr(current_user, 'roles', []) or []
-        )
-
         return render_template(
             'admin_panel/feature_toggles_flowbite.html',
-            categories=categories,
-            can_view_onboarding_demo=can_view_onboarding_demo
+            categories=categories
         )
     except Exception as e:
         logger.error(f"Error loading feature toggles: {e}")

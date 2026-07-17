@@ -167,8 +167,8 @@
       reqNew: prevReqNew || 0,          // per-team minimum brand-new players
       reqAdmin: prevReqAdmin || 0,      // per-team minimum admins
       phone: {
-        A: { sel: String(TEAMS[0].id), tab: 'list', armed: null, q: '' },
-        B: { sel: String(TEAMS[1] ? TEAMS[1].id : TEAMS[0].id), tab: 'list', armed: null, q: '' }
+        A: { sel: String(TEAMS[0].id), tab: 'list', q: '', posFilter: '', pitchPos: '', showHist: false },
+        B: { sel: String(TEAMS[1] ? TEAMS[1].id : TEAMS[0].id), tab: 'list', q: '', posFilter: '', pitchPos: '', showHist: false }
       }
     };
     TEAMS.forEach(function (t) { S.picks[t.id] = []; });
@@ -234,8 +234,6 @@
     S.picks[teamId].push(entry);
     S.log.push({ overall: S.pick, teamId: teamId, player: player, pos: pos || 'bench' });
     announce(teamById(teamId), player, pos);
-    // clear any armed selection on the phones
-    S.phone.A.armed = null; S.phone.B.armed = null;
     advance();
   }
   function advance() {
@@ -373,7 +371,11 @@
     var lastPickForShown = S.log.length ? S.log[S.log.length - 1] : null;
 
     var screen;
-    if (!team) {
+    if (team && st.showHist) {
+      // Draft history is available anytime — even mid-pick — and is the main screen for
+      // coaches who aren't drafting right now (they watch the board fill in live).
+      screen = histView(slot);
+    } else if (!team) {
       screen = '<div class="flex-1 flex items-center justify-center text-sm text-gray-400 p-6 text-center">Pick a team to preview their phone.</div>';
     } else if (S.status === 'complete') {
       screen = '<div class="flex-1 flex flex-col items-center justify-center text-center gap-2 p-6"><i class="ti ti-circle-check text-4xl text-ecs-green"></i><p class="font-bold text-gray-800 dark:text-gray-100">Draft complete</p><p class="text-xs text-gray-400">' + roster.length + ' players on ' + esc(team.name) + '</p></div>' + rosterStrip(roster);
@@ -393,22 +395,42 @@
         '<div class="rounded-[1.75rem] border-[6px] border-gray-800 dark:border-gray-600 bg-gray-900 shadow-xl overflow-hidden">' +
           '<div class="h-4 bg-gray-900 flex items-center justify-center"><span class="w-14 h-1.5 rounded-full bg-gray-700"></span></div>' +
           '<div class="bg-white dark:bg-gray-800 flex flex-col min-h-[460px]">' +
-            phoneHeader(team) + screen +
+            phoneHeader(slot, team) + screen +
           '</div>' +
         '</div>' +
       '</div>';
   }
 
-  function phoneHeader(team) {
+  function phoneHeader(slot, team) {
     var badges = reqBadges(team.id);
+    var st = S.phone[slot];
+    var histBtn = '<button type="button" data-phone-hist="' + slot + '" class="shrink-0 inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-semibold ' +
+      (st.showHist ? 'bg-ecs-green text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300') + '"><i class="ti ti-history"></i> History</button>';
     return '<div class="px-3 py-2.5 border-b border-gray-200 dark:border-gray-700">' +
       '<div class="flex items-center gap-2">' +
         '<span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-ecs-green/10 text-ecs-green shrink-0"><i class="ti ti-shield-half"></i></span>' +
-        '<div class="min-w-0"><div class="text-sm font-bold text-gray-900 dark:text-white truncate leading-tight">' + esc(team.name) + '</div>' +
+        '<div class="min-w-0 flex-1"><div class="text-sm font-bold text-gray-900 dark:text-white truncate leading-tight">' + esc(team.name) + '</div>' +
         '<div class="text-[11px] text-gray-500 dark:text-gray-400 truncate">' + esc(coachesStr(team)) + '</div></div>' +
+        histBtn +
       '</div>' +
       (badges ? '<div class="mt-1.5">' + badges + '</div>' : '') +
       '</div>';
+  }
+
+  function histView(slot) {
+    var rows = S.log.slice().reverse().map(function (e) {
+      var t = teamById(e.teamId);
+      return '<div class="flex items-center gap-2 px-3 py-1.5 text-xs border-b border-gray-100 dark:border-gray-700/60">' +
+        '<span class="font-mono text-gray-400 w-6 shrink-0">#' + e.overall + '</span>' +
+        '<span class="font-semibold text-gray-900 dark:text-white shrink-0 max-w-[38%] truncate">' + esc(t ? t.name : '') + '</span>' +
+        '<span class="text-gray-400">→</span>' +
+        '<span class="flex-1 min-w-0 truncate text-gray-700 dark:text-gray-200">' + esc(e.player.name) + '</span>' +
+        (e.pos !== 'bench' ? '<span class="font-mono text-[10px] text-ecs-green shrink-0">' + e.pos.toUpperCase() + '</span>' : '') +
+        '</div>';
+    }).join('') || '<p class="text-xs text-gray-400 text-center py-6">No picks yet.</p>';
+    return '<div class="flex-1 flex flex-col min-h-0">' +
+      '<div class="px-3 py-2 text-[10px] uppercase tracking-wide text-gray-400 flex items-center justify-between"><span>Draft order · live</span><span class="font-mono">' + S.log.length + '/' + S.total + '</span></div>' +
+      '<div class="flex-1 overflow-y-auto">' + rows + '</div></div>';
   }
 
   function lastPickRibbon(last) {
@@ -438,24 +460,92 @@
     return head + tabs + body;
   }
 
-  function listBody(slot) {
+  // ---- position filtering ----
+  var POS_GROUPS = [{ k: '', label: 'All' }, { k: 'gk', label: 'GK' }, { k: 'def', label: 'DEF' }, { k: 'mid', label: 'MID' }, { k: 'fwd', label: 'FWD' }];
+  function slotGroup(key) {
+    if (!key) return '';
+    if (key === 'gk') return 'gk';
+    if (['lb', 'cb', 'rb', 'lwb', 'rwb'].indexOf(key) >= 0) return 'def';
+    if (['cdm', 'cm', 'cam'].indexOf(key) >= 0) return 'mid';
+    if (['st', 'lw', 'rw'].indexOf(key) >= 0) return 'fwd';
+    return '';  // bench = no filter
+  }
+  function groupMatch(str, group) {
+    if (!group || !str) return false;
+    var s = (str || '').toLowerCase();
+    if (group === 'gk') return /goal|keeper|(^|[^a-z])gk([^a-z]|$)/.test(s);
+    if (group === 'def') return /def|back|centre.?back|center.?back|(^|[^a-z])(cb|lb|rb|lwb|rwb)([^a-z]|$)/.test(s);
+    if (group === 'mid') return /mid|(^|[^a-z])(cm|dm|am|cdm|cam)([^a-z]|$)/.test(s);
+    if (group === 'fwd') return /forward|strik|wing|attack|(^|[^a-z])(st|lw|rw|cf)([^a-z]|$)/.test(s);
+    return false;
+  }
+  // Preference tier for a player vs a position group: 1 favorite, 2 interested/other,
+  // 4 actively avoids, 3 neutral. Lower = better fit.
+  function posRank(p, group) {
+    if (!group) return 3;
+    if (groupMatch(p.pos, group)) return 1;
+    if (groupMatch(p.otherPos, group)) return 2;
+    if (groupMatch(p.avoidPos, group)) return 4;
+    return 3;
+  }
+  // Returns the pool for a phone. Search (by name) overrides the position filter so you can
+  // always find + assign anyone. With no search, a selected position shows only players who
+  // PREFER (favorite) or are INTERESTED (other positions) in it, best-fit first; players who
+  // avoid it are left out of the suggestion (but remain reachable via search).
+  function filteredPool(slot) {
     var st = S.phone[slot], q = (st.q || '').toLowerCase();
-    var list = pool().filter(function (p) { return !q || p.name.toLowerCase().indexOf(q) >= 0; });
+    var group = st.tab === 'pitch' ? slotGroup(st.pitchPos) : (st.posFilter || '');
+    var list = pool();
+    if (q) return list.filter(function (p) { return p.name.toLowerCase().indexOf(q) >= 0; });
+    if (!group) return list;
+    return list.filter(function (p) { return posRank(p, group) <= 2; })
+      .sort(function (a, b) { var r = posRank(a, group) - posRank(b, group); return r || a.name.localeCompare(b.name); });
+  }
+  function activeGroup(slot) {
+    var st = S.phone[slot];
+    if (st.q) return '';
+    return st.tab === 'pitch' ? slotGroup(st.pitchPos) : (st.posFilter || '');
+  }
+  function fitMark(p, group) {
+    if (!group) return '';
+    var r = posRank(p, group);
+    if (r === 1) return '<span class="inline-flex items-center gap-0.5 text-[9px] font-bold text-ecs-green" title="Favorite position"><i class="ti ti-star-filled"></i>fav</span>';
+    if (r === 2) return '<span class="inline-flex items-center gap-0.5 text-[9px] font-bold text-orange-500" title="Interested / other position"><i class="ti ti-star"></i>ok</span>';
+    return '';
+  }
+  function searchBox(slot, st) {
+    return '<div class="relative mb-2"><span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-gray-400"><i class="ti ti-search text-sm"></i></span>' +
+      '<input type="text" data-phone-search="' + slot + '" value="' + esc(st.q || '') + '" placeholder="Search players…" class="input-ecs w-full text-sm pl-8"></div>';
+  }
+  function groupChips(slot, active) {
+    return '<div class="flex gap-1 mb-2">' + POS_GROUPS.map(function (g) {
+      var on = (active || '') === g.k;
+      return '<button type="button" data-phone-group="' + slot + ':' + g.k + '" class="flex-1 h-7 rounded-md text-[11px] font-bold ' + (on ? 'bg-ecs-green text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300') + '">' + g.label + '</button>';
+    }).join('') + '</div>';
+  }
+  function playerRow(slot, p, group) {
+    return '<div class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-ecs-green/5">' +
+      avatar(p, 'w-10 h-10') +
+      '<button type="button" data-phone-draft="' + slot + ':' + p.id + '" class="flex-1 min-w-0 text-left">' +
+        '<div class="flex items-center gap-1.5"><span class="text-sm font-semibold text-gray-900 dark:text-white truncate">' + esc(p.name) + '</span>' + fitMark(p, group) + (p.isNew ? newChip() : '') + (p.isAdmin ? adminChip() : '') + '</div>' +
+        '<div class="flex items-center gap-2 mt-0.5">' + posBadge(p.pos) + statLine(p) + '</div>' +
+      '</button>' +
+      '<button type="button" data-phone-profile="' + p.id + '" class="w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full text-gray-400 hover:text-ecs-green hover:bg-ecs-green/10" aria-label="View profile"><i class="ti ti-info-circle"></i></button>' +
+    '</div>';
+  }
+  function poolList(slot, max) {
+    var list = filteredPool(slot), group = activeGroup(slot);
+    return list.slice(0, max || 40).map(function (p) { return playerRow(slot, p, group); }).join('') ||
+      '<p class="text-xs text-gray-400 text-center py-4">No players match.</p>';
+  }
+
+  function listBody(slot) {
+    var st = S.phone[slot];
     return '<div class="px-3 pb-3">' +
-      '<input type="text" data-phone-search="' + slot + '" value="' + esc(st.q || '') + '" placeholder="Search players…" class="input-ecs w-full text-sm mb-2">' +
+      searchBox(slot, st) + groupChips(slot, st.posFilter) +
       '<p class="text-[11px] text-gray-400 mb-1">Tap a player to draft · ⓘ for full profile</p>' +
-      '<div class="space-y-1 max-h-[280px] overflow-y-auto">' +
-        (list.slice(0, 40).map(function (p) {
-          return '<div class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-ecs-green/5">' +
-            avatar(p, 'w-10 h-10') +
-            '<button type="button" data-phone-draft="' + slot + ':' + p.id + '" class="flex-1 min-w-0 text-left">' +
-              '<div class="flex items-center gap-1.5"><span class="text-sm font-semibold text-gray-900 dark:text-white truncate">' + esc(p.name) + '</span>' + (p.isNew ? newChip() : '') + (p.isAdmin ? adminChip() : '') + '</div>' +
-              '<div class="flex items-center gap-2 mt-0.5">' + posBadge(p.pos) + statLine(p) + '</div>' +
-            '</button>' +
-            '<button type="button" data-phone-profile="' + p.id + '" class="w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full text-gray-400 hover:text-ecs-green hover:bg-ecs-green/10" aria-label="View profile"><i class="ti ti-info-circle"></i></button>' +
-          '</div>';
-        }).join('')) || '<p class="text-xs text-gray-400 text-center py-4">No players match.</p>' +
-      '</div></div>';
+      '<div class="space-y-1 max-h-[260px] overflow-y-auto" data-phone-pool="' + slot + '">' + poolList(slot) + '</div>' +
+      '</div>';
   }
 
   // Position spots on a portrait pitch (percent coords), matching SLOTS keys (minus bench).
@@ -465,39 +555,34 @@
   };
   function pitchBody(slot, team) {
     var st = S.phone[slot];
-    var armed = st.armed ? S.byId[st.armed] : null;
+    var sel = st.pitchPos || '';   // selected position (drives the filter + where a pick lands)
     var placed = {}; (S.picks[team.id] || []).forEach(function (e) { (placed[e.pos] = placed[e.pos] || []).push(e); });
 
     var spots = Object.keys(PITCH_SPOTS).map(function (key) {
       var xy = PITCH_SPOTS[key], on = (placed[key] || []);
-      var filled = on.length > 0;
-      var ring = armed ? 'ring-2 ring-white ring-offset-1 ring-offset-green-700 animate-pulse' : '';
+      var filled = on.length > 0, isSel = sel === key;
       var face = filled
-        ? '<span class="w-10 h-10 rounded-full overflow-hidden ring-2 ring-white shadow">' + avatar(on[on.length - 1].player, 'w-10 h-10') + '</span>' + (on.length > 1 ? '<span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-green-700 text-[9px] font-bold flex items-center justify-center">' + on.length + '</span>' : '')
-        : '<span class="w-9 h-9 rounded-full bg-white/15 border border-white/60 border-dashed flex items-center justify-center text-white text-[10px] font-bold">' + key.toUpperCase() + '</span>';
+        ? '<span class="w-10 h-10 rounded-full overflow-hidden ring-2 ' + (isSel ? 'ring-yellow-300' : 'ring-white') + ' shadow">' + avatar(on[on.length - 1].player, 'w-10 h-10') + '</span>' + (on.length > 1 ? '<span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-green-700 text-[9px] font-bold flex items-center justify-center">' + on.length + '</span>' : '')
+        : '<span class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[10px] font-bold ' + (isSel ? 'bg-yellow-400/90 text-green-900 ring-2 ring-yellow-200' : 'bg-white/15 border border-white/60 border-dashed') + '">' + key.toUpperCase() + '</span>';
       return '<button type="button" data-phone-slot="' + slot + ':' + key + '" style="left:' + xy[0] + '%;top:' + xy[1] + '%" ' +
-        'class="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center ' + ring + '">' +
+        'class="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">' +
         '<span class="relative flex items-center justify-center">' + face + '</span>' +
-        '<span class="mt-0.5 px-1 rounded bg-black/30 text-white text-[8px] font-bold uppercase tracking-wide">' + key + '</span>' +
+        '<span class="mt-0.5 px-1 rounded ' + (isSel ? 'bg-yellow-400 text-green-900' : 'bg-black/30 text-white') + ' text-[8px] font-bold uppercase tracking-wide">' + key + '</span>' +
         '</button>';
     }).join('');
 
-    // Bench (off the field)
-    var bench = (placed['bench'] || []);
+    var bench = (placed['bench'] || []), benchSel = sel === 'bench';
     var benchHtml = '<button type="button" data-phone-slot="' + slot + ':bench" class="w-full mt-2 rounded-lg border ' +
-      (armed ? 'border-ecs-green bg-ecs-green/10 text-ecs-green animate-pulse' : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400') + ' px-2 py-1.5 text-xs font-semibold flex items-center gap-2">' +
+      (benchSel ? 'border-ecs-green bg-ecs-green/10 text-ecs-green' : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400') + ' px-2 py-1.5 text-xs font-semibold flex items-center gap-2">' +
       '<i class="ti ti-armchair"></i> Bench <span class="font-mono text-[10px]">' + bench.length + '</span>' +
       '<span class="ml-auto flex -space-x-1.5">' + bench.slice(-5).map(function (e) { return avatar(e.player, 'w-5 h-5'); }).join('') + '</span></button>';
 
-    var poolMini = pool().slice(0, 18).map(function (p) {
-      var onp = armed && armed.id === p.id;
-      return '<button type="button" data-phone-arm="' + slot + ':' + p.id + '" class="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full text-xs ' + (onp ? 'bg-ecs-green text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200') + '">' + avatar(p, 'w-5 h-5') + esc(p.name.split(' ')[0]) + (p.isNew ? '<i class="ti ti-sparkles text-violet-500 text-[10px]"></i>' : '') + '</button>';
-    }).join('');
+    var hint = sel
+      ? 'Showing players for <strong>' + sel.toUpperCase() + '</strong> — tap one to draft there. <button type="button" data-phone-slot="' + slot + ':" class="underline">clear</button>'
+      : 'Tap a position to see players who play there, then tap a player. Or just tap any player below.';
 
     return '<div class="px-3 pb-3">' +
-      '<p class="text-[11px] ' + (armed ? 'text-ecs-green font-semibold' : 'text-gray-400') + ' mb-1.5">' + (armed ? 'Tap a position on the pitch for <strong>' + esc(armed.name) + '</strong>' : 'Tap a player below, then tap a spot on the pitch') + '</p>' +
-      // the field
-      '<div class="relative w-full rounded-xl overflow-hidden border border-green-800" style="aspect-ratio:3/4;background:repeating-linear-gradient(0deg,#15803d 0,#15803d 8%,#16a34a 8%,#16a34a 16%)">' +
+      '<div class="relative w-full rounded-xl overflow-hidden border border-green-800 mb-2" style="aspect-ratio:3/4;background:repeating-linear-gradient(0deg,#15803d 0,#15803d 8%,#16a34a 8%,#16a34a 16%)">' +
         '<div class="absolute inset-2 border-2 border-white/40 rounded"></div>' +
         '<div class="absolute left-1/2 -translate-x-1/2 top-1/2 w-16 h-16 border-2 border-white/40 rounded-full"></div>' +
         '<div class="absolute left-2 right-2 top-1/2 border-t-2 border-white/40"></div>' +
@@ -506,8 +591,9 @@
         spots +
       '</div>' +
       benchHtml +
-      '<div class="text-[10px] uppercase tracking-wide text-gray-400 mt-2 mb-1">Available (' + pool().length + ')</div>' +
-      '<div class="flex flex-wrap gap-1 max-h-[110px] overflow-y-auto">' + (poolMini || '<span class="text-xs text-gray-400">Pool empty</span>') + '</div>' +
+      '<p class="text-[11px] ' + (sel ? 'text-ecs-green' : 'text-gray-400') + ' mt-2 mb-1.5">' + hint + '</p>' +
+      searchBox(slot, st) +
+      '<div class="space-y-1 max-h-[200px] overflow-y-auto" data-phone-pool="' + slot + '">' + poolList(slot, 30) + '</div>' +
       '</div>';
   }
 
@@ -600,29 +686,40 @@
 
   root.addEventListener('change', function (e) {
     var sel = e.target.getAttribute && e.target.getAttribute('data-phone-sel');
-    if (sel) { S.phone[sel].sel = e.target.value; S.phone[sel].armed = null; renderPhone(sel); }
+    if (sel) { var ps = S.phone[sel]; ps.sel = e.target.value; ps.pitchPos = ''; ps.showHist = false; renderPhone(sel); }
   });
   root.addEventListener('input', function (e) {
     var s = e.target.getAttribute && e.target.getAttribute('data-phone-search');
-    if (s) { S.phone[s].q = e.target.value; renderPhone(s); var inp = document.querySelector('[data-phone-search="' + s + '"]'); if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } }
+    if (s) {
+      S.phone[s].q = e.target.value;
+      // update only the pool list so the search box keeps focus + cursor
+      var box = document.querySelector('[data-phone-pool="' + s + '"]');
+      if (box) box.innerHTML = poolList(s, S.phone[s].tab === 'pitch' ? 30 : 40);
+    }
   });
   root.addEventListener('click', function (e) {
-    var el = e.target.closest ? e.target.closest('[data-phone-tab],[data-phone-draft],[data-phone-arm],[data-phone-slot],[data-phone-profile]') : null;
+    var el = e.target.closest ? e.target.closest('[data-phone-tab],[data-phone-draft],[data-phone-slot],[data-phone-group],[data-phone-profile],[data-phone-hist]') : null;
     if (!el) return;
+    var hist = el.getAttribute('data-phone-hist');
+    if (hist) { S.phone[hist].showHist = !S.phone[hist].showHist; renderPhone(hist); return; }
     var prof = el.getAttribute('data-phone-profile');
     if (prof) { openProfile(+prof); return; }
     var tab = el.getAttribute('data-phone-tab');
-    if (tab) { var a = tab.split(':'); S.phone[a[0]].tab = a[1]; S.phone[a[0]].armed = null; renderPhone(a[0]); return; }
+    if (tab) { var a = tab.split(':'); S.phone[a[0]].tab = a[1]; renderPhone(a[0]); return; }
+    var group = el.getAttribute('data-phone-group');
+    if (group) { var gp = group.split(':'); S.phone[gp[0]].posFilter = gp[1] || ''; renderPhone(gp[0]); return; }
     var draft = el.getAttribute('data-phone-draft');
-    if (draft) { var d = draft.split(':'); var team = resolveTeam(d[0]); if (team) makePick(team.id, S.byId[+d[1]], 'bench'); return; }
-    var arm = el.getAttribute('data-phone-arm');
-    if (arm) { var m = arm.split(':'); S.phone[m[0]].armed = (S.phone[m[0]].armed === +m[1]) ? null : +m[1]; renderPhone(m[0]); return; }
+    if (draft) {
+      var d = draft.split(':'), team = resolveTeam(d[0]), stt = S.phone[d[0]];
+      var pos = (stt.tab === 'pitch' && stt.pitchPos) ? stt.pitchPos : 'bench';
+      if (team) makePick(team.id, S.byId[+d[1]], pos);
+      return;
+    }
     var slotpos = el.getAttribute('data-phone-slot');
-    if (slotpos) {
-      var sp = slotpos.split(':'), stt = S.phone[sp[0]];
-      if (!stt.armed) return;
-      var team2 = resolveTeam(sp[0]);
-      if (team2) makePick(team2.id, S.byId[stt.armed], sp[1]);
+    if (slotpos !== null && slotpos !== undefined && el.hasAttribute('data-phone-slot')) {
+      var sp = slotpos.split(':'), stp = S.phone[sp[0]], pk = sp[1] || '';
+      stp.pitchPos = (stp.pitchPos === pk) ? '' : pk;  // tap again (or 'clear') to deselect
+      renderPhone(sp[0]);
       return;
     }
   });

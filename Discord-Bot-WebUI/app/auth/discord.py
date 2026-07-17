@@ -110,6 +110,11 @@ def discord_register():
     """
     from app.auth_helpers import generate_oauth_state
     from urllib.parse import quote
+    from app.auth.helpers import registration_enabled
+
+    if not registration_enabled():
+        show_info('Registration is currently closed. Please check back later.')
+        return redirect(url_for('auth.login'))
 
     discord_client_id = current_app.config['DISCORD_CLIENT_ID']
     redirect_uri = url_for('auth.discord_callback', _external=True)

@@ -24,14 +24,33 @@
     </a>
 
     {% if safe_current_user.is_anonymous %}
-    {# Entry UI: registration OPEN -> show Register; CLOSED (season full) -> show Waitlist. Never both. #}
+    {# Registration is ALWAYS open. The waitlist toggle only changes the flavor:
+       ON  -> "Join the Waitlist" (adds pl-waitlist so admins can see sold-out
+              signups); OFF -> plain "Create your account". Either way the new
+              account is unapproved (pl-unverified) until an admin approves it.
+       registration_open is a hard master kill-switch; off hides the CTA. #}
     {% set registration_open = registration_open if registration_open is defined else True %}
     {% set waitlist_enabled = waitlist_enabled if waitlist_enabled is defined else True %}
 
     <p class="text-center text-xs text-gray-400 dark:text-gray-500 mb-3">Already a member? Use "Sign In" above.</p>
 
     {% if registration_open %}
-    <!-- New player registration -->
+    {% if waitlist_enabled %}
+    <!-- Waitlist-flavored registration (season sold out) -->
+    <div class="flex items-start gap-2 p-3 mb-2 text-sm text-yellow-800 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+        <i class="ti ti-clock text-yellow-500 text-lg mt-0.5 shrink-0"></i>
+        <span>The current season is full. Register now to join the waitlist &mdash; we'll notify you the moment a spot opens.</span>
+    </div>
+    <a href="{{ url_for('auth.waitlist_register') }}" class="flex items-center justify-center w-full px-4 py-3 mb-2 text-yellow-700 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-400 dark:border-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 rounded-lg font-medium transition-colors">
+        <i class="ti ti-clock mr-2 text-xl"></i>
+        Join the Waitlist
+    </a>
+    <p class="flex items-start gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-6 px-1">
+        <i class="ti ti-info-circle mt-0.5 shrink-0"></i>
+        <span>You'll create your account and complete a quick profile, then an admin reviews every signup before a spot is offered.</span>
+    </p>
+    {% else %}
+    <!-- Normal open registration -->
     <a href="{{ url_for('auth.discord_register', next=request.args.get('next')) }}" class="flex items-center justify-center w-full px-4 py-3 mb-2 text-indigo-600 dark:text-indigo-400 bg-white dark:bg-gray-700 border border-indigo-600 dark:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg font-medium transition-colors">
         <i class="ti ti-user-plus mr-2 text-xl"></i>
         New here? Create your account
@@ -40,16 +59,7 @@
         <i class="ti ti-info-circle mt-0.5 shrink-0"></i>
         <span>New members complete a quick profile, then an admin reviews and approves you before your first match.</span>
     </p>
-    {% elif waitlist_enabled %}
-    <!-- Season full -> waitlist -->
-    <div class="flex items-start gap-2 p-3 mb-2 text-sm text-yellow-800 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg">
-        <i class="ti ti-clock text-yellow-500 text-lg mt-0.5 shrink-0"></i>
-        <span>The current season is full. Join the waitlist and we'll notify you the moment a spot opens.</span>
-    </div>
-    <a href="{{ url_for('auth.waitlist_register') }}" class="flex items-center justify-center w-full px-4 py-3 mb-6 text-yellow-700 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-400 dark:border-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 rounded-lg font-medium transition-colors">
-        <i class="ti ti-clock mr-2 text-xl"></i>
-        Join the Waitlist
-    </a>
+    {% endif %}
     {% endif %}
 
     <!-- Divider -->

@@ -44,11 +44,18 @@ def login_entry_flags():
     """
     Which sign-up path the login page should offer.
 
-    Drives a mutually-exclusive entry UI: when registration is OPEN we show
-    "Register", and when it's CLOSED (season full) we show "Join the Waitlist"
-    instead — never both at once. Both are admin toggles (registration_enabled /
-    waitlist_registration_enabled). Fails open to registration-open so a DB blip
-    never hides the sign-up button.
+    Registration is ALWAYS open — signing up is never the same thing as being
+    approved (every new account lands as pl-unverified / approval_status='pending'
+    until an admin approves it). The waitlist toggle only changes the *flavor* of
+    that same registration:
+
+      - waitlist_enabled OFF -> plain "Create your account" (grants pl-unverified).
+      - waitlist_enabled ON  -> "Join the Waitlist" (grants pl-unverified +
+        pl-waitlist so admins can see who signed up during a sold-out season).
+
+    Either way the person is unapproved until an admin acts. registration_enabled
+    stays a hard master kill-switch (off = hide the sign-up CTA entirely); it is
+    normally left on. Fails open so a DB blip never hides the sign-up button.
     """
     from app.models.admin_config import AdminConfig
     try:

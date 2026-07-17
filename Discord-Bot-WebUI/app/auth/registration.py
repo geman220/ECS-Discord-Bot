@@ -51,6 +51,11 @@ def register():
     if safe_current_user.is_authenticated:
         return redirect(url_for('main.index'))
 
+    from app.auth.helpers import registration_enabled
+    if not registration_enabled():
+        show_info('Registration is currently closed. Please check back later.')
+        return redirect(url_for('auth.login'))
+
     form = RegistrationForm()
     if form.validate_on_submit():
         try:
@@ -84,6 +89,11 @@ def register_with_discord():
     a new user account with appropriate Discord association.
     """
     from app.utils.sync_discord_client import get_sync_discord_client
+    from app.auth.helpers import registration_enabled
+
+    if not registration_enabled():
+        show_info('Registration is currently closed. Please check back later.')
+        return redirect(url_for('auth.login'))
 
     db_session = g.db_session
     discord_email = session.get('pending_discord_email')

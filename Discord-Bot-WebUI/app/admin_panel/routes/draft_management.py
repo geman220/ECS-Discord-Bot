@@ -545,6 +545,7 @@ def draft_demo_page():
                 'name': e['name'],
                 'pos': e.get('favorite_position') or 'Any',
                 'otherPos': e.get('other_positions') or '',
+                'avoidPos': e.get('positions_not_to_play') or '',
                 'img': e.get('profile_picture_url') or '/static/img/default_player.png',
                 'imgMed': e.get('profile_picture_medium') or e.get('profile_picture_url') or '/static/img/default_player.png',
                 'goals': e.get('career_goals') or 0,

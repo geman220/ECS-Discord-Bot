@@ -18,6 +18,25 @@ from app.tasks.tasks_discord import assign_roles_to_player_task
 logger = logging.getLogger(__name__)
 
 
+def registration_enabled() -> bool:
+    """Master switch for whether NEW accounts may be created at all.
+
+    When an admin toggles ``registration_enabled`` off, nobody can register —
+    normal signup AND waitlist signup alike (waitlist is just a flavor of
+    registration). This is the authoritative gate the account-creation routes
+    call; the login-page button visibility is cosmetic on top of it.
+
+    Fails OPEN (returns True) on any error so a DB hiccup never locks signups
+    when an admin didn't intend to close them.
+    """
+    try:
+        from app.models.admin_config import AdminConfig
+        return bool(AdminConfig.get_setting('registration_enabled', True))
+    except Exception as e:
+        logger.debug(f"registration_enabled check failed, failing open: {e}")
+        return True
+
+
 def sync_discord_for_user(user: User, discord_id: Optional[str] = None):
     """
     Link a user's Discord account and trigger a Celery task to assign roles on Discord.

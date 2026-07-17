@@ -171,6 +171,8 @@
                          data-player-id="{{ player.id }}"
                          data-player-name="{{ player.name|lower }}"
                          data-position="{{ (player.favorite_position or '')|lower }}"
+                         data-other-pos="{{ (player.other_positions or '')|lower }}"
+                         data-avoid-pos="{{ (player.positions_not_to_play or '')|lower }}"
                          data-goals="{{ player.career_goals }}"
                          data-attendance="{{ player.attendance_estimate if player.attendance_estimate is not none else '' }}"
                          data-experience="{{ player.league_experience_seasons }}"

@@ -147,6 +147,7 @@ def init_context_processors(app):
     _register_endpoint_helper(app)
     _register_page_header_icon(app)
     _register_pending_access_processor(app)
+    _register_waitlist_offer_processor(app)
 
 
 def _register_pending_access_processor(app):
@@ -195,6 +196,52 @@ def _register_pending_access_processor(app):
         except Exception as e:
             logger.debug(f"pending_access banner check failed: {e}")
             return dict(pending_access=None)
+
+
+def _register_waitlist_offer_processor(app):
+    """Expose ``waitlist_offer`` to every template.
+
+    Offers the waitlist to a returning member who is APPROVED but hasn't paid
+    for the current season (Player.is_current_player is False — the classic
+    "didn't buy a pass before the season sold out" case). These users have full
+    app access and are deliberately NOT nagged by ``pending_access``; this is a
+    soft, optional invite to get in line for a spot.
+
+    Non-None only when the waitlist is enabled, the user is an approved member,
+    has a player who is not active this season, and is not already on the
+    waitlist. Fails closed to None so a data hiccup never shows a spurious offer.
+    """
+
+    @app.context_processor
+    def inject_waitlist_offer():
+        try:
+            user = safe_current_user
+            if not (user and user.is_authenticated):
+                return dict(waitlist_offer=None)
+
+            from app.models.admin_config import AdminConfig
+            if not AdminConfig.get_setting('waitlist_registration_enabled', True):
+                return dict(waitlist_offer=None)
+
+            # Only approved members are offered this — unapproved signups already
+            # get the pending banner and belong in the normal approval queue.
+            from app.init.access_gating import _is_approved_member
+            if not _is_approved_member(user):
+                return dict(waitlist_offer=None)
+
+            # Already on the waitlist? Don't re-offer.
+            if getattr(user, 'waitlist_joined_at', None):
+                return dict(waitlist_offer=None)
+
+            # Only for players who aren't active this season (didn't pay in time).
+            player = getattr(user, 'player', None)
+            if not player or getattr(player, 'is_current_player', False):
+                return dict(waitlist_offer=None)
+
+            return dict(waitlist_offer=True)
+        except Exception as e:
+            logger.debug(f"waitlist_offer banner check failed: {e}")
+            return dict(waitlist_offer=None)
 
 
 def _register_endpoint_helper(app):

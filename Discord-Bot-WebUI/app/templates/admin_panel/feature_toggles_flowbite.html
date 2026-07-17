@@ -62,7 +62,7 @@
 
   {{ kit_alert("warning", "Changes take effect immediately — no deploy required. Be deliberate with critical flags like Teams navigation, Waitlist registration and Maintenance Mode; they directly affect what users can see and do.", title="Live system:", dismissible=false) }}
 
-  {% if can_view_onboarding_demo %}
+  {% if safe_current_user.has_role('Global Admin') %}
   <div class="mb-5 sm:mb-6 rounded-xl border border-ecs-green/30 bg-ecs-green/5 dark:bg-ecs-green/10 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3">
     <div class="shrink-0 w-10 h-10 rounded-lg bg-ecs-green/15 flex items-center justify-center">
       <i class="ti ti-flask-2 text-xl text-ecs-green" aria-hidden="true"></i>

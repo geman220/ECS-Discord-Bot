@@ -272,6 +272,24 @@
         </div>
         {% endif %}
 
+        <!-- Season sold out: optional waitlist offer for approved-but-unpaid members -->
+        {% if waitlist_offer and request.endpoint not in ['main.pending_status', 'auth.waitlist_register'] %}
+        <div class="px-4 pt-2 lg:px-6">
+          <a href="{{ url_for('auth.waitlist_register') }}"
+             class="flex items-center gap-2 p-3 text-sm rounded-lg border transition-colors
+                    text-yellow-800 bg-yellow-50 border-yellow-200 hover:bg-yellow-100
+                    dark:text-yellow-300 dark:bg-yellow-500/10 dark:border-yellow-500/30 dark:hover:bg-yellow-500/20"
+             role="alert">
+            <i class="ti ti-clock text-base shrink-0" aria-hidden="true"></i>
+            <span class="min-w-0 flex-1">
+              This season is full and you don't have a pass yet.
+              <span class="font-semibold underline">Join the waitlist</span> and we'll notify you when a spot opens.
+            </span>
+            <i class="ti ti-chevron-right text-base shrink-0" aria-hidden="true"></i>
+          </a>
+        </div>
+        {% endif %}
+
         <!-- Main Content -->
         <main id="main-content" class="flex-1 p-4 lg:p-6" tabindex="-1">
             {% block main_content %}
