@@ -238,6 +238,18 @@ def handle_draft_player_enhanced(data):
                 )
                 session.add(player_team_season)
                 print(f"📝 Created new PlayerTeamSeason record for {player_name} to {team_name}")
+
+                # Auto-promote a division coach (holder of the 'Premier Coach' / 'Classic Coach'
+                # Flask role) who is drafted onto a team IN their division to that team's coach.
+                # This flips player_teams.is_coach so the Discord role sync queued below grants
+                # the division coach role. No-op for everyone who isn't a division coach.
+                try:
+                    from app.coach_assignment import apply_draft_coach_status
+                    if apply_draft_coach_status(session, player_id, team_id,
+                                                team.league.name, season_id):
+                        print(f"👑 {player_name} is the {team.league.name} division coach — set as coach of {team_name}")
+                except Exception as _coach_err:
+                    logger.warning(f"Auto coach-assignment skipped for player {player_id}: {_coach_err}")
             # Transaction 2 committed automatically - connection released
 
             # ===== TRANSACTION 3: History & Discord marker (~50ms) =====

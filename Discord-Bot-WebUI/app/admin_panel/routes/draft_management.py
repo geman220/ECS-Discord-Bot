@@ -470,6 +470,37 @@ def draft_session_setup():
     return jsonify({'success': True, 'state': draft_clock.build_state(db.session, ds)})
 
 
+@admin_panel_bp.route('/draft/demo')
+@login_required
+@role_required(['Global Admin'])
+def draft_demo_page():
+    """Global-Admin-only, fully SANDBOXED draft walkthrough for showing coaches how the
+    on-the-clock draft works.
+
+    Nothing here touches the database, sockets, or Discord — the page is entirely
+    self-contained (the snake math + clock + alert all run client-side against in-memory
+    demo state). Seeded with the real Premier team + coach names for relatability; the
+    player pool is fake. Reset re-seeds in the browser.
+    """
+    # Real team/coach order for Monday's Premier draft (read-only seed; nothing is written).
+    demo_teams = [
+        {'id': 'E', 'name': 'Team E', 'coaches': ['Emmy', 'Duane']},
+        {'id': 'F', 'name': 'Team F', 'coaches': ['Greg', 'Stephen']},
+        {'id': 'G', 'name': 'Team G', 'coaches': ['James', 'Jake']},
+        {'id': 'H', 'name': 'Team H', 'coaches': ['Ian', 'Tabitha', 'Aaron']},
+        {'id': 'I', 'name': 'Team I', 'coaches': ['Lars', 'Brian', 'Erik']},
+        {'id': 'J', 'name': 'Team J', 'coaches': ['John', 'Kris', 'Ameer']},
+        {'id': 'K', 'name': 'Team K', 'coaches': ['Steven', 'Matt', 'Tom']},
+        {'id': 'L', 'name': 'Team L', 'coaches': ['Michael', 'Dave P.']},
+    ]
+    return render_template(
+        'admin_panel/draft/demo_flowbite.html',
+        title='Draft Demo (Sandbox)',
+        demo_teams=demo_teams,
+        shell='console',
+    )
+
+
 @admin_panel_bp.route('/draft/setup')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -683,6 +714,44 @@ def draft_session_skip():
     AdminAuditLog.log_action(
         user_id=current_user.id, action='draft_session_skip', resource_type='draft_session',
         resource_id=str(ds.id), new_value=f'skipped to pick {ds.current_overall_pick}',
+        ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent'))
+    draft_clock.emit_clock(ds.league.name, state)
+    return jsonify({'success': True, 'state': state})
+
+
+@admin_panel_bp.route('/draft/session/back', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def draft_session_back():
+    """Move the clock back one pick (admin correction). Does not un-draft a player."""
+    data = request.get_json() or {}
+    ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'))
+    if not ds or ds.status not in ('active', 'paused', 'complete'):
+        return jsonify({'success': False, 'message': 'No live draft to step back'}), 400
+    state = draft_clock.step_back(db.session, ds)
+    AdminAuditLog.log_action(
+        user_id=current_user.id, action='draft_session_back', resource_type='draft_session',
+        resource_id=str(ds.id), new_value=f'stepped back to pick {ds.current_overall_pick}',
+        ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent'))
+    draft_clock.emit_clock(ds.league.name, state)
+    return jsonify({'success': True, 'state': state})
+
+
+@admin_panel_bp.route('/draft/session/end', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def draft_session_end():
+    """Stop/complete the draft immediately (clears the clock; keeps the order + history)."""
+    data = request.get_json() or {}
+    ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'))
+    if not ds or ds.status not in ('active', 'paused'):
+        return jsonify({'success': False, 'message': 'No live draft to end'}), 400
+    state = draft_clock.complete(db.session, ds)
+    AdminAuditLog.log_action(
+        user_id=current_user.id, action='draft_session_end', resource_type='draft_session',
+        resource_id=str(ds.id), new_value='draft ended by admin',
         ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent'))
     draft_clock.emit_clock(ds.league.name, state)
     return jsonify({'success': True, 'state': state})

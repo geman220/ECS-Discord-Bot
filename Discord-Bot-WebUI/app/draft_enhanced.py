@@ -1570,6 +1570,16 @@ def api_draft_player():
         session.add(player_team_season)
         logger.info(f"Created PlayerTeamSeason record for {player.name} to {team.name} in season {league.season_id}")
 
+        # Auto-promote a division coach (holder of the 'Premier Coach' / 'Classic Coach' Flask
+        # role) who is drafted onto a team IN their division to that team's coach, so the Discord
+        # role sync queued below grants the division coach role. No-op for non-coaches.
+        try:
+            from app.coach_assignment import apply_draft_coach_status
+            if apply_draft_coach_status(session, player_id, team_id, league.name, league.season_id):
+                logger.info(f"{player.name} is the {league.name} division coach — set as coach of {team.name}")
+        except Exception as coach_err:
+            logger.warning(f"Auto coach-assignment skipped for player {player_id}: {coach_err}")
+
         # Record the draft pick in history
         try:
             draft_position = DraftService.record_draft_pick(

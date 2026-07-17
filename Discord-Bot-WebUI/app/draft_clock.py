@@ -116,6 +116,37 @@ def advance(session, ds):
     return build_state(session, ds, team_ids=team_ids)
 
 
+def step_back(session, ds):
+    """Move the clock BACK one pick (admin correction, the inverse of skip/advance).
+
+    Caller commits. Returns updated state dict. Never goes before pick #1. If the draft
+    had completed, this re-activates it and lands on the final pick. Note: this only moves
+    the clock — it does not un-draft a player (use the roster Remove control for that)."""
+    team_ids = ordered_team_ids(session, ds)
+    total = total_picks(ds, team_ids)
+    if ds.status == 'complete':
+        target = total or 1
+        ds.completed_at = None
+    else:
+        target = (ds.current_overall_pick or 1) - 1
+    if target < 1:
+        target = 1
+    set_clock_to(ds, target, team_ids)
+    ds.status = 'active'  # regaining the clock after a back-step
+    return build_state(session, ds, team_ids=team_ids)
+
+
+def complete(session, ds):
+    """End the draft immediately (admin 'stop'). Caller commits. Returns state dict."""
+    ds.status = 'complete'
+    ds.current_team_id = None
+    ds.current_round = None
+    ds.pick_deadline = None
+    ds.pause_remaining_seconds = None
+    ds.completed_at = datetime.utcnow()
+    return build_state(session, ds)
+
+
 def _abbrev(name):
     if not name:
         return '?'

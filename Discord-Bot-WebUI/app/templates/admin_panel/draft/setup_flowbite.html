@@ -45,6 +45,13 @@
       </select>
       {% endif %}
       <button type="button" id="randomizeBtn" class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-arrows-shuffle"></i><span class="hidden sm:inline">Randomize</span></button>
+      {% if current_user.has_role('Global Admin') %}
+      <a href="{{ url_for('admin_panel.draft_demo_page') }}" target="_blank" rel="noopener"
+         class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-300 text-sm font-medium hover:bg-amber-50 dark:hover:bg-amber-900/20"
+         title="Open a sandboxed walkthrough to show coaches how the draft works — nothing is saved">
+        <i class="ti ti-flask"></i><span class="hidden sm:inline">Demo</span>
+      </a>
+      {% endif %}
       <button type="button" id="startDraftBtn" class="h-9 px-4 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green hover:bg-ecs-green-600 text-white text-sm font-semibold"><i class="ti ti-player-play"></i> Start Draft</button>
     </div>
   </div>

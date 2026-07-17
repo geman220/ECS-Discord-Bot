@@ -1,0 +1,546 @@
+{% extends "base_flowbite.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{#
+  DRAFT DEMO — fully sandboxed, Global-Admin-only walkthrough of the on-the-clock draft.
+  Everything runs client-side against in-memory state: NO database, NO sockets, NO Discord.
+  Seeded with the real Premier team/coach names (read-only) + a fake player pool.
+  Purpose: make the abstract concepts (snake turn-passing, the coach getting pinged when
+  they're on the clock, and the admin driving it) obvious to a non-technical room on one screen.
+#}
+{% block main_content %}
+<div id="demoRoot" data-teams='{{ demo_teams|tojson }}' class="max-w-[1400px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
+
+  <!-- ===== Sandbox banner + top controls ===== -->
+  <div class="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 px-3 sm:px-4 py-2.5 mb-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wide bg-amber-500 text-white shrink-0">
+      <i class="ti ti-flask" aria-hidden="true"></i> Sandbox
+    </span>
+    <p class="text-sm text-amber-800 dark:text-amber-200 flex-1 min-w-0">
+      Practice freely — <span class="font-semibold">nothing is saved</span>, no rosters change, and no Discord messages are sent. Real names, fake players.
+    </p>
+    <a href="{{ url_for('admin_panel.draft_setup_page') }}" class="text-xs font-semibold text-amber-800 dark:text-amber-200 underline underline-offset-2 shrink-0">Back to Draft Setup</a>
+  </div>
+
+  <!-- title + view-as + reset -->
+  <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3 mb-4">
+    <div class="min-w-0">
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+        <span class="inline-flex w-2 h-2 rounded-full bg-ecs-green animate-pulse" aria-hidden="true"></span> Draft Demo
+      </p>
+      <h1 class="text-lg sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">On-the-Clock Snake Draft</h1>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">View as</label>
+      <select id="viewAs" class="input-ecs h-9 text-sm min-w-[13rem]"></select>
+      <button type="button" id="btnReset" class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+        <i class="ti ti-refresh" aria-hidden="true"></i> Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== ON THE CLOCK BAR ===== -->
+  <section id="clockBar" class="rounded-xl border-2 border-ecs-green/50 bg-ecs-green-50 dark:bg-ecs-green-900/10 overflow-hidden mb-4 sm:mb-5">
+    <div id="coachBanner" class="hidden items-center gap-2 px-4 py-2 text-sm font-semibold text-white" role="status" aria-live="assertive">
+      <i class="ti ti-bell-ringing-2 text-base" aria-hidden="true"></i><span id="coachBannerText">It's your pick!</span>
+    </div>
+    <div class="flex flex-col lg:flex-row">
+      <div class="flex items-center gap-3 p-4 lg:border-r border-gray-200 dark:border-gray-700 min-w-0 lg:w-[36%]">
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wide bg-ecs-green text-white shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse" aria-hidden="true"></span> On the Clock</span>
+        <div class="min-w-0">
+          <div class="font-bold truncate text-gray-900 dark:text-white" id="clockTeam">—</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 truncate" id="clockMeta">—</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 p-4 lg:border-r border-gray-200 dark:border-gray-700">
+        <div class="text-center">
+          <div id="clockTime" class="font-mono text-3xl font-bold tabular-nums text-amber-500 leading-none">--:--</div>
+          <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-1" id="clockLabel">remaining</div>
+        </div>
+      </div>
+      <div class="flex-1 p-4 min-w-0">
+        <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Up next <span id="roundTag" class="ml-1 normal-case font-semibold text-gray-600 dark:text-gray-300"></span></div>
+        <div class="flex items-center gap-2 overflow-x-auto" id="upNext"></div>
+      </div>
+    </div>
+    <div class="h-1.5 bg-gray-100 dark:bg-gray-700"><div class="h-full bg-ecs-green transition-all" id="clockProgress" style="width:0%"></div></div>
+  </section>
+
+  <!-- ===== ADMIN CONTROL STRIP (admin view only) ===== -->
+  <section id="adminStrip" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 mb-4 sm:mb-5">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500 mr-1">Admin controls</span>
+      <button type="button" id="btnPlay" class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold"><i class="ti ti-player-play" aria-hidden="true"></i> <span id="btnPlayLabel">Play</span></button>
+      <button type="button" id="btnDraft" class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-user-plus" aria-hidden="true"></i> Make pick</button>
+      <button type="button" id="btnBack" class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-player-skip-back" aria-hidden="true"></i> Back</button>
+      <button type="button" id="btnSkip" class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-player-skip-forward" aria-hidden="true"></i> Skip</button>
+      <button type="button" id="btnEnd" class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-300 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/30"><i class="ti ti-player-stop" aria-hidden="true"></i> End</button>
+      <span class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1 hidden sm:block"></span>
+      <label class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">Rounds
+        <select id="selRounds" class="input-ecs h-9 text-sm w-16"><option>2</option><option selected>3</option><option>5</option></select>
+      </label>
+      <label class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">Speed
+        <select id="selSpeed" class="input-ecs h-9 text-sm w-24"><option value="2500">Fast</option><option value="4000" selected>Normal</option><option value="7000">Slow</option></select>
+      </label>
+      <span class="text-xs text-gray-400 dark:text-gray-500 ml-auto hidden md:block">Tip: hit <span class="font-semibold">Play</span> to watch the turn snake around, or step through it yourself.</span>
+    </div>
+  </section>
+
+  <!-- ===== MAIN GRID ===== -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+
+    <!-- Player pool -->
+    <section class="lg:col-span-4 order-2 lg:order-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2 bg-gray-50/60 dark:bg-gray-900/30">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-users text-ecs-green" aria-hidden="true"></i> Player Pool</h2>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-ecs-green/10 text-ecs-green"><span id="poolCount" class="font-mono font-bold">0</span> left</span>
+      </div>
+      <div class="p-3">
+        <div class="relative mb-2">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="ti ti-search" aria-hidden="true"></i></span>
+          <input id="poolSearch" type="text" placeholder="Search players…" class="input-ecs w-full pl-10 text-sm">
+        </div>
+        <p id="poolHint" class="text-xs text-gray-400 dark:text-gray-500 mb-2"></p>
+        <div id="pool" class="space-y-1.5 max-h-[52vh] overflow-y-auto pr-1"></div>
+      </div>
+    </section>
+
+    <!-- Rosters board -->
+    <section class="lg:col-span-5 order-3 lg:order-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2 bg-gray-50/60 dark:bg-gray-900/30">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-clipboard-list text-ecs-green" aria-hidden="true"></i> Rosters</h2>
+        <div id="boardScope" class="hidden inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700">
+          <button type="button" id="scopeMine" class="h-7 px-2.5 rounded-md text-xs font-semibold">My Team</button>
+          <button type="button" id="scopeAll" class="h-7 px-2.5 rounded-md text-xs font-semibold">Full Board</button>
+        </div>
+      </div>
+      <div id="board" class="divide-y divide-gray-200 dark:divide-gray-700"></div>
+    </section>
+
+    <!-- Coach phone -->
+    <div class="lg:col-span-3 order-1 lg:order-3">
+      <div class="lg:sticky lg:top-20 mx-auto max-w-[300px]">
+        <p class="text-center text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+          What <span id="phoneTeamLabel" class="font-semibold text-gray-600 dark:text-gray-300">the coach</span> sees on their phone
+        </p>
+        <div class="rounded-[2rem] border-[6px] border-gray-800 dark:border-gray-600 bg-gray-900 shadow-xl overflow-hidden">
+          <div class="h-5 bg-gray-900 flex items-center justify-center"><span class="w-16 h-1.5 rounded-full bg-gray-700"></span></div>
+          <div id="phoneScreen" class="min-h-[420px] bg-white dark:bg-gray-800 p-4 flex flex-col">
+            <!-- filled by JS -->
+          </div>
+        </div>
+        <div class="mt-2 text-center">
+          <label class="text-[11px] text-gray-400 dark:text-gray-500 mr-1" id="phonePickWrap">Phone follows
+            <select id="phoneTeam" class="input-ecs h-8 text-xs inline-block w-auto"></select>
+          </label>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+/* ============================================================================
+   Draft demo engine — 100% client-side. No network, no DB, no Discord.
+   Reuses the exact snake-order math from app/draft_clock.py (ported to JS).
+   ========================================================================== */
+(function () {
+  var root = document.getElementById('demoRoot');
+  if (!root) return;
+  var TEAMS = JSON.parse(root.getAttribute('data-teams') || '[]');
+
+  // ---- fake player pool (generated; not real people) ----
+  var FIRST = ['Alex','Sam','Jordan','Casey','Taylor','Morgan','Riley','Jamie','Avery','Quinn',
+    'Drew','Reese','Skyler','Cameron','Rowan','Emerson','Parker','Blake','Hayden','Finley',
+    'Marco','Diego','Luca','Mateo','Andre','Nico','Omar','Kai','Theo','Ravi',
+    'Noah','Liam','Ethan','Mason','Logan','Owen','Leo','Miles','Ezra','Jonah'];
+  var LAST = ['Rivera','Chen','Patel','Okafor','Nguyen','Silva','Brooks','Hayes','Ford','Nash',
+    'Vega','Cole','Reid','Shaw','Frost','Lane','Wolfe','Kerr','Bloom','Cross',
+    'Marsh','Dunn','Pace','Vance','Boone','Hale','Rowe','Tate','Ash','Beck'];
+  var POS = ['GK','DEF','DEF','DEF','MID','MID','MID','FWD','FWD'];
+
+  function buildPool() {
+    var used = {}, out = [], i = 0, id = 1;
+    while (out.length < 96) {
+      var f = FIRST[Math.floor(Math.random() * FIRST.length)];
+      var l = LAST[Math.floor(Math.random() * LAST.length)];
+      var name = f + ' ' + l;
+      if (used[name]) { i++; if (i > 500) break; continue; }
+      used[name] = 1;
+      out.push({ id: id++, name: name, pos: POS[Math.floor(Math.random() * POS.length)] });
+    }
+    return out;
+  }
+
+  var S = {}; // state
+  function reset() {
+    stopPlay();
+    S = {
+      rounds: parseInt(document.getElementById('selRounds').value, 10) || 3,
+      secs: 30,
+      pick: 0,               // 0 = not started; 1-based once running
+      status: 'ready',       // ready | active | complete
+      picks: {},             // teamId -> [player]
+      pool: buildPool(),
+      log: [],               // stack of {pick, teamId, player}
+      deadline: 0,
+      viewAs: 'admin',
+      phoneTeam: (TEAMS[3] || TEAMS[0]).id,  // default Team H
+      scope: 'mine'
+    };
+    TEAMS.forEach(function (t) { S.picks[t.id] = []; });
+    document.getElementById('viewAs').value = 'admin';
+    renderAll();
+    start();
+  }
+
+  // ---- snake math (ported verbatim from draft_clock.team_on_clock) ----
+  function teamOnClock(pick) {
+    var n = TEAMS.length;
+    if (n === 0 || pick < 1) return null;
+    var rnd = Math.floor((pick - 1) / n) + 1;
+    var idx = (pick - 1) % n;
+    if (rnd % 2 === 0) idx = n - 1 - idx;  // snake: even rounds reverse
+    return { team: TEAMS[idx], round: rnd, idxInRound: idx + 1 };
+  }
+  function totalPicks() { return TEAMS.length * S.rounds; }
+  function upNext(count) {
+    var out = [];
+    for (var k = 1; k <= count; k++) {
+      var oc = teamOnClock((S.pick || 0) + k);
+      if (!oc || (S.pick + k) > totalPicks()) break;
+      out.push(oc.team);
+    }
+    return out;
+  }
+  function current() { return S.status === 'active' ? teamOnClock(S.pick) : null; }
+
+  // ---- clock ----
+  function setDeadline() { S.deadline = Date.now() + S.secs * 1000; }
+  var tick = null;
+  function runTick() {
+    if (tick) clearInterval(tick);
+    tick = setInterval(function () {
+      var el = document.getElementById('clockTime'), lab = document.getElementById('clockLabel');
+      if (S.status !== 'active') { el.textContent = '—'; return; }
+      var remain = Math.round((S.deadline - Date.now()) / 1000);
+      if (remain <= 0) {
+        el.textContent = '0:00'; el.className = 'font-mono text-3xl font-bold tabular-nums text-red-500 leading-none';
+        lab.textContent = 'waiting on pick'; // "alert" mode: no auto-skip, coach stays on the clock
+      } else {
+        var m = Math.floor(remain / 60), s = remain % 60;
+        el.textContent = m + ':' + String(s).padStart(2, '0');
+        el.className = 'font-mono text-3xl font-bold tabular-nums leading-none ' + (remain <= 10 ? 'text-red-500' : 'text-amber-500');
+        lab.textContent = 'remaining';
+      }
+    }, 250);
+  }
+
+  function start() {
+    S.status = 'active'; S.pick = 1; setDeadline();
+    S.log = [];
+    maybeDing();
+    renderAll(); runTick();
+  }
+
+  function advance() {
+    if (S.status !== 'active') return;
+    if (S.pick + 1 > totalPicks()) { S.status = 'complete'; renderAll(); return; }
+    S.pick += 1; setDeadline(); maybeDing(); renderAll();
+  }
+
+  function makePick(player) {
+    if (S.status !== 'active') return;
+    var oc = current(); if (!oc) return;
+    if (!player) player = S.pool[0];
+    if (!player) return;
+    S.pool = S.pool.filter(function (p) { return p.id !== player.id; });
+    S.picks[oc.team.id].push(player);
+    S.log.push({ pick: S.pick, teamId: oc.team.id, player: player });
+    advance();
+  }
+
+  function back() {
+    if (!S.log.length) { // just move clock back
+      if (S.pick > 1) { S.pick -= 1; }
+      S.status = 'active'; setDeadline(); renderAll(); return;
+    }
+    var last = S.log.pop();
+    S.picks[last.teamId] = S.picks[last.teamId].filter(function (p) { return p.id !== last.player.id; });
+    S.pool.unshift(last.player);
+    S.pick = last.pick; S.status = 'active'; setDeadline(); renderAll();
+  }
+
+  function skip() { advance(); }
+  function end() { S.status = 'complete'; stopPlay(); renderAll(); }
+
+  // ---- auto play ----
+  var playTimer = null;
+  function playing() { return !!playTimer; }
+  function startPlay() {
+    if (S.status !== 'active') return;
+    var speed = parseInt(document.getElementById('selSpeed').value, 10) || 4000;
+    playTimer = setInterval(function () {
+      if (S.status !== 'active') { stopPlay(); return; }
+      makePick(S.pool[Math.floor(Math.random() * Math.min(S.pool.length, 8))]);
+    }, speed);
+    setPlayLabel();
+  }
+  function stopPlay() { if (playTimer) { clearInterval(playTimer); playTimer = null; } setPlayLabel(); }
+  function setPlayLabel() {
+    var b = document.getElementById('btnPlayLabel'), i = document.querySelector('#btnPlay i');
+    if (!b) return;
+    b.textContent = playing() ? 'Pause' : 'Play';
+    if (i) i.className = (playing() ? 'ti ti-player-pause' : 'ti ti-player-play');
+  }
+
+  // ---- alert / ding ----
+  var audioCtx = null, lastDingPick = -1;
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function chime() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'sine'; o.frequency.value = 880; o.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+      o.start(); o.stop(audioCtx.currentTime + 0.5);
+    } catch (e) {}
+    if (navigator.vibrate) { try { navigator.vibrate([200, 100, 200]); } catch (e) {} }
+  }
+  function maybeDing() {
+    var oc = current();
+    if (oc && oc.team.id === S.phoneTeam && S.pick !== lastDingPick) {
+      lastDingPick = S.pick; chime();
+    }
+  }
+
+  // ============================ RENDER ============================
+  function coachesStr(team) { return (team.coaches || []).join(', '); }
+
+  function renderAll() {
+    renderClock(); renderPool(); renderBoard(); renderPhone(); renderControls();
+  }
+
+  function renderClock() {
+    var oc = current();
+    var teamEl = document.getElementById('clockTeam'), meta = document.getElementById('clockMeta');
+    var prog = document.getElementById('clockProgress'), round = document.getElementById('roundTag');
+    var bar = document.getElementById('clockBar');
+    if (S.status === 'complete') {
+      teamEl.textContent = 'Draft complete';
+      meta.textContent = totalPicks() + ' picks made';
+      round.textContent = ''; document.getElementById('upNext').innerHTML = '';
+      document.getElementById('clockTime').textContent = '✓';
+      document.getElementById('clockLabel').textContent = 'done';
+      prog.style.width = '100%';
+      bar.className = 'rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/20 overflow-hidden mb-4 sm:mb-5';
+      updateCoachBanner(); return;
+    }
+    bar.className = 'rounded-xl border-2 border-ecs-green/50 bg-ecs-green-50 dark:bg-ecs-green-900/10 overflow-hidden mb-4 sm:mb-5';
+    if (!oc) return;
+    teamEl.textContent = oc.team.name;
+    meta.innerHTML = 'Coach <span class="text-gray-900 dark:text-white">' + coachesStr(oc.team) + '</span> · Round <span class="font-mono">' + oc.round + '</span> · Pick <span class="font-mono">#' + S.pick + '</span> of ' + totalPicks();
+    round.textContent = 'Round ' + oc.round + (oc.round % 2 === 0 ? ' (snake ←)' : ' (→)');
+    var un = upNext(4);
+    document.getElementById('upNext').innerHTML = un.map(function (t) {
+      return '<span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs whitespace-nowrap text-gray-700 dark:text-gray-200">' + t.name + '</span>';
+    }).join('<i class="ti ti-chevron-right text-gray-400 text-xs mx-0.5" aria-hidden="true"></i>') || '<span class="text-xs text-gray-400">last pick of the draft</span>';
+    prog.style.width = (100 * (S.pick - 1) / totalPicks()) + '%';
+    updateCoachBanner();
+  }
+
+  function updateCoachBanner() {
+    var banner = document.getElementById('coachBanner'), txt = document.getElementById('coachBannerText'), bar = document.getElementById('clockBar');
+    // Banner only matters in a coach view (mirrors the real board's coach-only alert).
+    var focus = (S.viewAs !== 'admin') ? S.viewAs : null;
+    var oc = current();
+    if (!focus || !oc) { banner.className = 'hidden'; bar.classList.remove('ring-4', 'ring-red-400'); return; }
+    if (oc.team.id === focus) {
+      banner.className = 'flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-500' + (reduceMotion ? '' : ' animate-pulse');
+      txt.textContent = "It's your pick — you're on the clock!";
+      if (!reduceMotion) bar.classList.add('ring-4', 'ring-red-400');
+    } else if ((upNext(1)[0] || {}).id === focus) {
+      banner.className = 'flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-amber-500';
+      txt.textContent = "You're up next — get ready.";
+      bar.classList.remove('ring-4', 'ring-red-400');
+    } else {
+      banner.className = 'hidden'; bar.classList.remove('ring-4', 'ring-red-400');
+    }
+  }
+
+  function posBadge(pos) {
+    var color = pos === 'GK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+      : pos === 'DEF' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+      : pos === 'MID' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+      : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+    return '<span class="inline-flex items-center justify-center w-9 shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold ' + color + '">' + pos + '</span>';
+  }
+
+  function canDraftNow() {
+    if (S.status !== 'active') return false;
+    var oc = current(); if (!oc) return false;
+    if (S.viewAs === 'admin') return true;         // admin can pick for the team on the clock
+    return oc.team.id === S.viewAs;                 // a coach can only pick when it's their turn
+  }
+
+  function renderPool() {
+    document.getElementById('poolCount').textContent = S.pool.length;
+    var q = (document.getElementById('poolSearch').value || '').toLowerCase();
+    var list = S.pool.filter(function (p) { return !q || p.name.toLowerCase().indexOf(q) >= 0; });
+    var draftable = canDraftNow();
+    var oc = current();
+    var hint = document.getElementById('poolHint');
+    if (S.status === 'complete') hint.textContent = 'Draft is over — reset to run it again.';
+    else if (draftable) hint.textContent = (S.viewAs === 'admin' ? 'Click a player to draft them to ' : 'Your pick — click a player to draft to ') + (oc ? oc.team.name : '');
+    else if (S.viewAs !== 'admin') hint.textContent = 'Waiting — ' + (oc ? oc.team.name : 'another team') + ' is on the clock.';
+    else hint.textContent = '';
+    document.getElementById('pool').innerHTML = list.slice(0, 60).map(function (p) {
+      return '<button type="button" data-pid="' + p.id + '" ' + (draftable ? '' : 'disabled') +
+        ' class="w-full flex items-center gap-2 p-2 rounded-lg text-left ' +
+        (draftable ? 'hover:bg-ecs-green/10 cursor-pointer' : 'opacity-60 cursor-not-allowed') +
+        ' bg-gray-50 dark:bg-gray-700/50">' +
+        posBadge(p.pos) +
+        '<span class="flex-1 min-w-0 text-sm font-medium text-gray-900 dark:text-white truncate">' + p.name + '</span>' +
+        (draftable ? '<i class="ti ti-plus text-ecs-green" aria-hidden="true"></i>' : '') +
+        '</button>';
+    }).join('') || '<p class="text-sm text-gray-400 text-center py-6">No players match.</p>';
+  }
+
+  function renderBoard() {
+    var oc = current();
+    var focus = (S.viewAs !== 'admin') ? S.viewAs : null;
+    var showScoped = focus && S.scope === 'mine';
+    document.getElementById('board').innerHTML = TEAMS.map(function (t) {
+      if (showScoped && t.id !== focus) return '';
+      var roster = S.picks[t.id] || [];
+      var onClock = oc && oc.team.id === t.id;
+      var mine = focus && t.id === focus;
+      return '<div class="p-3 sm:p-4 ' + (onClock ? 'bg-ecs-green-50 dark:bg-ecs-green-900/10' : '') + '">' +
+        '<div class="flex items-center justify-between gap-2 mb-2">' +
+          '<div class="flex items-center gap-2 min-w-0">' +
+            '<span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-ecs-green/10 text-ecs-green shrink-0"><i class="ti ti-shield-half"></i></span>' +
+            '<div class="min-w-0"><div class="font-semibold text-gray-900 dark:text-white truncate">' + t.name +
+              (mine ? ' <span class="text-[10px] align-middle px-1.5 py-0.5 rounded bg-ecs-green text-white">YOU</span>' : '') +
+              (onClock ? ' <span class="text-[10px] align-middle px-1.5 py-0.5 rounded bg-amber-500 text-white">ON CLOCK</span>' : '') +
+              '</div>' +
+              '<div class="text-[11px] text-gray-500 dark:text-gray-400 truncate">' + coachesStr(t) + '</div></div>' +
+          '</div>' +
+          '<span class="text-xs font-mono font-bold text-ecs-green shrink-0">' + roster.length + '</span>' +
+        '</div>' +
+        (roster.length ? '<div class="space-y-1">' + roster.map(function (p) {
+          return '<div class="flex items-center gap-2 text-sm p-1.5 rounded bg-gray-50 dark:bg-gray-700/50">' + posBadge(p.pos) +
+            '<span class="flex-1 min-w-0 truncate text-gray-800 dark:text-gray-100">' + p.name + '</span></div>';
+        }).join('') + '</div>' : '<p class="text-xs text-gray-400 dark:text-gray-500 italic">No picks yet</p>') +
+        '</div>';
+    }).join('');
+  }
+
+  function renderPhone() {
+    var team = TEAMS.filter(function (t) { return t.id === S.phoneTeam; })[0] || TEAMS[0];
+    document.getElementById('phoneTeamLabel').textContent = team.name + ' (' + coachesStr(team) + ')';
+    var scr = document.getElementById('phoneScreen');
+    var oc = current();
+    var onClock = oc && oc.team.id === team.id;
+    var isNext = (upNext(1)[0] || {}).id === team.id;
+    var head = '<div class="flex items-center gap-2 mb-3"><span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-ecs-green/10 text-ecs-green"><i class="ti ti-ball-football"></i></span>' +
+      '<div class="text-xs font-bold text-gray-900 dark:text-white leading-tight">Premier Draft<br><span class="font-normal text-gray-500">' + team.name + '</span></div></div>';
+
+    if (S.status === 'complete') {
+      scr.innerHTML = head + '<div class="flex-1 flex flex-col items-center justify-center text-center gap-2"><i class="ti ti-circle-check text-4xl text-ecs-green"></i><p class="text-sm font-semibold text-gray-700 dark:text-gray-200">Draft complete</p><p class="text-xs text-gray-400">' + (S.picks[team.id] || []).length + ' players drafted</p></div>';
+      return;
+    }
+    if (onClock) {
+      var draftBtn = (S.viewAs === team.id || S.viewAs === 'admin')
+        ? '<button type="button" id="phoneDraft" class="mt-3 w-full h-10 rounded-lg bg-white text-red-600 font-bold text-sm">Draft a player →</button>' : '';
+      scr.innerHTML = head +
+        '<div class="flex-1 -mx-4 -mb-4 px-4 py-6 bg-red-500 text-white flex flex-col items-center justify-center text-center gap-2' + (reduceMotion ? '' : ' animate-pulse') + '">' +
+        '<i class="ti ti-bell-ringing-2 text-5xl"></i>' +
+        '<p class="text-lg font-extrabold">It\'s your pick!</p>' +
+        '<p class="text-sm opacity-90">You\'re on the clock</p>' +
+        '<p class="font-mono text-2xl font-bold mt-1" id="phoneClock">--:--</p>' +
+        draftBtn + '</div>';
+    } else if (isNext) {
+      scr.innerHTML = head + '<div class="flex-1 -mx-4 -mb-4 px-4 py-6 bg-amber-400 text-amber-950 flex flex-col items-center justify-center text-center gap-2"><i class="ti ti-hourglass-high text-4xl"></i><p class="text-base font-extrabold">You\'re up next</p><p class="text-sm">Get your pick ready</p></div>';
+    } else {
+      scr.innerHTML = head + '<div class="flex-1 flex flex-col items-center justify-center text-center gap-2 text-gray-500 dark:text-gray-400"><i class="ti ti-clock text-3xl"></i><p class="text-sm">On the clock:</p><p class="text-base font-bold text-gray-800 dark:text-gray-100">' + (oc ? oc.team.name : '—') + '</p><p class="text-xs">We\'ll ping you when it\'s your turn.</p></div>';
+    }
+  }
+
+  function renderControls() {
+    // admin strip only in admin view
+    document.getElementById('adminStrip').style.display = (S.viewAs === 'admin') ? '' : 'none';
+    // board scope toggle only in coach view
+    var scopeWrap = document.getElementById('boardScope');
+    if (S.viewAs !== 'admin') {
+      scopeWrap.classList.remove('hidden'); scopeWrap.classList.add('inline-flex');
+      paintScope();
+    } else { scopeWrap.classList.add('hidden'); scopeWrap.classList.remove('inline-flex'); }
+    // phone follow selector only meaningful in admin view (coach view pins to the coach)
+    document.getElementById('phonePickWrap').style.visibility = (S.viewAs === 'admin') ? 'visible' : 'hidden';
+    setPlayLabel();
+  }
+  function paintScope() {
+    var a = 'h-7 px-2.5 rounded-md text-xs font-semibold bg-white dark:bg-gray-700 text-ecs-green shadow-sm';
+    var i = 'h-7 px-2.5 rounded-md text-xs font-semibold text-gray-500 dark:text-gray-400';
+    document.getElementById('scopeMine').className = S.scope === 'mine' ? a : i;
+    document.getElementById('scopeAll').className = S.scope === 'all' ? a : i;
+  }
+
+  // keep the phone's big countdown in sync
+  setInterval(function () {
+    var pc = document.getElementById('phoneClock');
+    if (!pc || S.status !== 'active') return;
+    var remain = Math.max(0, Math.round((S.deadline - Date.now()) / 1000));
+    var m = Math.floor(remain / 60), s = remain % 60;
+    pc.textContent = m + ':' + String(s).padStart(2, '0');
+  }, 250);
+
+  // ============================ WIRING ============================
+  function buildViewAsOptions() {
+    var sel = document.getElementById('viewAs');
+    sel.innerHTML = '<option value="admin">Global / Pub League Admin</option>' +
+      TEAMS.map(function (t) { return '<option value="' + t.id + '">Coach — ' + t.name + ' (' + coachesStr(t) + ')</option>'; }).join('');
+    var ph = document.getElementById('phoneTeam');
+    ph.innerHTML = TEAMS.map(function (t) { return '<option value="' + t.id + '"' + (t.id === S.phoneTeam ? ' selected' : '') + '>' + t.name + '</option>'; }).join('');
+  }
+
+  document.getElementById('viewAs').addEventListener('change', function () {
+    S.viewAs = this.value;
+    if (S.viewAs !== 'admin') { S.phoneTeam = S.viewAs; S.scope = 'mine'; }  // coach view pins phone to the coach
+    document.getElementById('phoneTeam').value = S.phoneTeam;
+    renderAll();
+  });
+  document.getElementById('phoneTeam').addEventListener('change', function () { S.phoneTeam = this.value; renderPhone(); });
+  document.getElementById('btnReset').addEventListener('click', reset);
+  document.getElementById('selRounds').addEventListener('change', reset);
+
+  document.getElementById('btnPlay').addEventListener('click', function () { playing() ? stopPlay() : startPlay(); });
+  document.getElementById('btnDraft').addEventListener('click', function () { makePick(); });
+  document.getElementById('btnBack').addEventListener('click', back);
+  document.getElementById('btnSkip').addEventListener('click', skip);
+  document.getElementById('btnEnd').addEventListener('click', end);
+  document.getElementById('poolSearch').addEventListener('input', renderPool);
+  document.getElementById('scopeMine').addEventListener('click', function () { S.scope = 'mine'; renderBoard(); paintScope(); });
+  document.getElementById('scopeAll').addEventListener('click', function () { S.scope = 'all'; renderBoard(); paintScope(); });
+
+  // delegated: draft a specific player from the pool, or the phone draft button
+  document.getElementById('pool').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-pid]'); if (!b || b.disabled) return;
+    var pid = parseInt(b.getAttribute('data-pid'), 10);
+    makePick(S.pool.filter(function (p) { return p.id === pid; })[0]);
+  });
+  document.getElementById('phoneScreen').addEventListener('click', function (e) {
+    if (e.target.closest('#phoneDraft')) makePick();
+  });
+
+  buildViewAsOptions();
+  reset();
+  window.addEventListener('beforeunload', function () { stopPlay(); });
+})();
+</script>
+{% endblock %}
