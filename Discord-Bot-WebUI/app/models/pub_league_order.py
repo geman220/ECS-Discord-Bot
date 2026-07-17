@@ -142,10 +142,15 @@ class PubLeagueOrder(db.Model):
 
     def update_status(self):
         """Update status based on linked passes count."""
-        # Don't change NOT_STARTED status here - that's handled when link is clicked
-        if self.status == PubLeagueOrderStatus.NOT_STARTED.value:
+        if self.status == PubLeagueOrderStatus.CANCELLED.value:
             return
         if self.linked_passes == 0:
+            # Keep NOT_STARTED until the customer clicks their link
+            # (mark_link_clicked); with zero linked passes there is no
+            # progress to reflect. Once a pass IS linked (e.g. an admin
+            # manual link), fall through so the order leaves NOT_STARTED.
+            if self.status == PubLeagueOrderStatus.NOT_STARTED.value:
+                return
             self.status = PubLeagueOrderStatus.PENDING.value
         elif self.linked_passes < self.total_passes:
             self.status = PubLeagueOrderStatus.PARTIALLY_LINKED.value

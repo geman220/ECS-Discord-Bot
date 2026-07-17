@@ -10,7 +10,7 @@ personalizing content, and tracking progress.
 import logging
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.orm import joinedload
 
 from app.core import db
@@ -18,6 +18,15 @@ from app.models.core import User, Role, Season, League, user_roles
 from app.models.players import Player, Team, player_teams, PlayerTeamSeason
 from app.models.wallet import WalletPass, WalletPassType
 from app.models.email_campaigns import EmailCampaign, EmailCampaignRecipient
+from app.models.pub_league_order import PubLeagueOrder, PubLeagueOrderLineItem
+
+
+# email_notifications is nullable with a Python-side default, so rows created
+# before the column existed (or via raw SQL) hold NULL. NULL means "never
+# opted out" — only an explicit False excludes someone.
+def _not_opted_out():
+    return or_(User.email_notifications == True,  # noqa: E712
+               User.email_notifications.is_(None))
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +59,7 @@ class EmailBroadcastService:
         )
 
         if not force_send:
-            base_query = base_query.filter(User.email_notifications == True)
+            base_query = base_query.filter(_not_opted_out())
 
         if filter_type == 'all_active':
             users = base_query.all()
@@ -62,6 +71,47 @@ class EmailBroadcastService:
                 Player.user_id.isnot(None),
             )
             users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
+
+        elif filter_type == 'pub_league_purchasers':
+            # Everyone attached to a non-cancelled Pub League order for the
+            # current season: linked pass holders plus the purchasing account.
+            # Deliberately bypasses base_query's is_approved gate — paid but
+            # pending-approval players must still get season emails.
+            current_season_ids = session.query(Season.id).filter(
+                Season.league_type == 'Pub League',
+                Season.is_current == True,
+            )
+            live_order_ids = session.query(PubLeagueOrder.id).filter(
+                PubLeagueOrder.season_id.in_(current_season_ids.scalar_subquery()),
+                PubLeagueOrder.status != 'cancelled',
+            )
+            linked_user_ids = session.query(Player.user_id).join(
+                PubLeagueOrderLineItem,
+                PubLeagueOrderLineItem.assigned_player_id == Player.id,
+            ).filter(
+                PubLeagueOrderLineItem.order_id.in_(live_order_ids.scalar_subquery()),
+                Player.user_id.isnot(None),
+            )
+            assigned_user_ids = session.query(PubLeagueOrderLineItem.assigned_user_id).filter(
+                PubLeagueOrderLineItem.order_id.in_(live_order_ids.scalar_subquery()),
+                PubLeagueOrderLineItem.assigned_user_id.isnot(None),
+            )
+            purchaser_ids = session.query(PubLeagueOrder.primary_user_id).filter(
+                PubLeagueOrder.id.in_(live_order_ids.scalar_subquery()),
+                PubLeagueOrder.primary_user_id.isnot(None),
+            )
+            query = session.query(User.id, User.username).filter(
+                User.is_active == True,
+                User.encrypted_email.isnot(None),
+                or_(
+                    User.id.in_(linked_user_ids.scalar_subquery()),
+                    User.id.in_(assigned_user_ids.scalar_subquery()),
+                    User.id.in_(purchaser_ids.scalar_subquery()),
+                ),
+            )
+            if not force_send:
+                query = query.filter(_not_opted_out())
+            users = query.all()
 
         elif filter_type == 'ecs_members':
             sub = session.query(WalletPass.user_id).join(
@@ -167,7 +217,7 @@ class EmailBroadcastService:
         )
 
         if not force_send:
-            query = query.filter(User.email_notifications == True)
+            query = query.filter(_not_opted_out())
 
         users = query.all()
         return [{'user_id': u.id, 'name': u.username} for u in users]
@@ -302,6 +352,8 @@ class EmailBroadcastService:
             return 'All active users'
         elif filter_type == 'current_season_players':
             return 'Current season players (all teams)'
+        elif filter_type == 'pub_league_purchasers':
+            return 'Pub League purchasers (current season orders, incl. pending approval)'
         elif filter_type == 'ecs_members':
             return 'ECS members (active membership)'
         elif filter_type == 'by_team':

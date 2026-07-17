@@ -35,65 +35,94 @@ logger = logging.getLogger(__name__)
 pub_league_orders_admin_bp = Blueprint('pub_league_orders_admin', __name__, url_prefix='/admin-panel')
 
 
+def _parse_order_filters():
+    """
+    Parse the status/search/season filter params shared by the orders list
+    and the email export, and build the season scope condition.
+
+    Season scope defaults to the CURRENT Pub League season so the list is
+    not clogged with last season's orders. This "ties to rollover": whichever
+    season is is_current becomes the default view automatically, no config.
+    'all' shows every season; a numeric id shows one specific season.
+
+    Returns a dict with: status_filter, search, season_filter,
+    selected_season_id, is_current_view, current_season, season_condition.
+    """
+    status_filter = request.args.get('status', 'all')
+    search = request.args.get('search', '').strip()
+
+    current_season = db.session.query(Season).filter_by(
+        league_type='Pub League', is_current=True
+    ).first()
+    season_filter = request.args.get('season', 'current')
+    is_current_view = False
+    if season_filter == 'all':
+        selected_season_id = None
+    elif season_filter == 'current':
+        selected_season_id = current_season.id if current_season else None
+        is_current_view = True
+    else:
+        try:
+            selected_season_id = int(season_filter)
+            is_current_view = bool(current_season and selected_season_id == current_season.id)
+        except (TypeError, ValueError):
+            selected_season_id = current_season.id if current_season else None
+            season_filter = 'current'
+            is_current_view = True
+
+    # Season scope condition, reused for the list, the stat counts, and the
+    # email export. The current view also surfaces orphan/unmatched orders
+    # (season_id IS NULL) that need admin attention; a specific past season
+    # shows only that season.
+    season_condition = None
+    if season_filter != 'all' and selected_season_id is not None:
+        if is_current_view:
+            # Current view = orders in the current season, PLUS genuine
+            # orphans that need attention. An orphan is a NULL season_id
+            # with no season_name (truly unmatched) or a name that IS the
+            # current season. We must NOT sweep in legacy orders that carry
+            # a PAST season_name (e.g. "2024 Spring") but never had their
+            # season_id backfilled — those were flooding the current view.
+            orphan_names = [PubLeagueOrder.season_name.is_(None), PubLeagueOrder.season_name == '']
+            if current_season and current_season.name:
+                orphan_names.append(PubLeagueOrder.season_name == current_season.name)
+            season_condition = or_(
+                PubLeagueOrder.season_id == selected_season_id,
+                and_(
+                    PubLeagueOrder.season_id.is_(None),
+                    or_(*orphan_names)
+                )
+            )
+        else:
+            season_condition = PubLeagueOrder.season_id == selected_season_id
+
+    return {
+        'status_filter': status_filter,
+        'search': search,
+        'season_filter': season_filter,
+        'selected_season_id': selected_season_id,
+        'is_current_view': is_current_view,
+        'current_season': current_season,
+        'season_condition': season_condition,
+    }
+
+
 @pub_league_orders_admin_bp.route('/pub-league-orders')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def orders_list():
     """Display list of all Pub League orders with filtering and pagination."""
     try:
-        # Get filter parameters
-        status_filter = request.args.get('status', 'all')
-        search = request.args.get('search', '').strip()
         page = request.args.get('page', 1, type=int)
         per_page = 25
 
-        # Season scope — default to the CURRENT Pub League season so the list is
-        # not clogged with last season's orders. This "ties to rollover": whichever
-        # season is is_current becomes the default view automatically, no config.
-        # 'all' shows every season; a numeric id shows one specific season.
-        current_season = db.session.query(Season).filter_by(
-            league_type='Pub League', is_current=True
-        ).first()
-        season_filter = request.args.get('season', 'current')
-        is_current_view = False
-        if season_filter == 'all':
-            selected_season_id = None
-        elif season_filter == 'current':
-            selected_season_id = current_season.id if current_season else None
-            is_current_view = True
-        else:
-            try:
-                selected_season_id = int(season_filter)
-                is_current_view = bool(current_season and selected_season_id == current_season.id)
-            except (TypeError, ValueError):
-                selected_season_id = current_season.id if current_season else None
-                season_filter = 'current'
-                is_current_view = True
-
-        # Season scope condition, reused for both the list and the stat counts.
-        # The current view also surfaces orphan/unmatched orders (season_id IS NULL)
-        # that need admin attention; a specific past season shows only that season.
-        season_condition = None
-        if season_filter != 'all' and selected_season_id is not None:
-            if is_current_view:
-                # Current view = orders in the current season, PLUS genuine
-                # orphans that need attention. An orphan is a NULL season_id
-                # with no season_name (truly unmatched) or a name that IS the
-                # current season. We must NOT sweep in legacy orders that carry
-                # a PAST season_name (e.g. "2024 Spring") but never had their
-                # season_id backfilled — those were flooding the current view.
-                orphan_names = [PubLeagueOrder.season_name.is_(None), PubLeagueOrder.season_name == '']
-                if current_season and current_season.name:
-                    orphan_names.append(PubLeagueOrder.season_name == current_season.name)
-                season_condition = or_(
-                    PubLeagueOrder.season_id == selected_season_id,
-                    and_(
-                        PubLeagueOrder.season_id.is_(None),
-                        or_(*orphan_names)
-                    )
-                )
-            else:
-                season_condition = PubLeagueOrder.season_id == selected_season_id
+        filters = _parse_order_filters()
+        status_filter = filters['status_filter']
+        search = filters['search']
+        season_filter = filters['season_filter']
+        selected_season_id = filters['selected_season_id']
+        season_condition = filters['season_condition']
+        current_season = filters['current_season']
 
         # Subquery for divisions - aggregates distinct divisions per order
         # Use string_agg for PostgreSQL (group_concat is MySQL)
@@ -240,6 +269,67 @@ def orders_list():
             user_roles=[],
             now=datetime.utcnow()
         )
+
+
+@pub_league_orders_admin_bp.route('/pub-league-orders/export-emails')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def export_order_emails():
+    """
+    Export customer emails for the currently filtered order list as CSV.
+
+    Honors the same status/search/season query params as the list view, so
+    e.g. ?status=not_started exports exactly the orders shown on that tab.
+    Cancelled orders are excluded unless explicitly filtered to cancelled.
+    Emails are deduped (one row per address).
+    """
+    import csv
+
+    filters = _parse_order_filters()
+
+    query = db.session.query(PubLeagueOrder)
+    if filters['status_filter'] != 'all':
+        query = query.filter(PubLeagueOrder.status == filters['status_filter'])
+    else:
+        query = query.filter(PubLeagueOrder.status != PubLeagueOrderStatus.CANCELLED.value)
+    if filters['search']:
+        search_term = f"%{filters['search']}%"
+        query = query.filter(
+            or_(
+                PubLeagueOrder.customer_name.ilike(search_term),
+                PubLeagueOrder.customer_email.ilike(search_term),
+                PubLeagueOrder.woo_order_id.cast(db.String).ilike(search_term)
+            )
+        )
+    if filters['season_condition'] is not None:
+        query = query.filter(filters['season_condition'])
+
+    orders = query.order_by(desc(PubLeagueOrder.created_at)).all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(['name', 'email', 'woo_order_id', 'status', 'season', 'linked_passes', 'total_passes'])
+    seen = set()
+    for o in orders:
+        email = (o.customer_email or '').strip()
+        if not email or email.lower() in seen:
+            continue
+        seen.add(email.lower())
+        writer.writerow([
+            o.customer_name or '', email, o.woo_order_id, o.status,
+            o.season_name or '', o.linked_passes, o.total_passes,
+        ])
+
+    status_slug = filters['status_filter']
+    season_slug = filters['season_filter']
+    filename = f'pub-league-order-emails-{season_slug}-{status_slug}.csv'
+    # utf-8-sig so Excel detects the encoding
+    return send_file(
+        io.BytesIO(buf.getvalue().encode('utf-8-sig')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=filename,
+    )
 
 
 @pub_league_orders_admin_bp.route('/pub-league-orders/<int:order_id>')

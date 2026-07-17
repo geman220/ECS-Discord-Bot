@@ -141,6 +141,7 @@
             {% set ft = fc.get('type', 'all_active') if fc else 'all_active' %}
             <option value="all_active" {{ 'selected' if ft == 'all_active' }}>All Active Users</option>
             <option value="current_season_players" {{ 'selected' if ft == 'current_season_players' }}>Current Season Players</option>
+            <option value="pub_league_purchasers" {{ 'selected' if ft == 'pub_league_purchasers' }}>Pub League Purchasers (This Season's Orders)</option>
             <option value="ecs_members" {{ 'selected' if ft == 'ecs_members' }}>ECS Members (Active Membership)</option>
             <option value="by_team" {{ 'selected' if ft == 'by_team' }}>By Team</option>
             <option value="by_league" {{ 'selected' if ft == 'by_league' }}>By League</option>
@@ -481,6 +482,7 @@
                     {% set ft = fc.get('type', 'all_active') if fc else 'all_active' %}
                     <option value="all_active" {{ 'selected' if ft == 'all_active' }}>All Active Users</option>
                     <option value="current_season_players" {{ 'selected' if ft == 'current_season_players' }}>Current Season Players</option>
+            <option value="pub_league_purchasers" {{ 'selected' if ft == 'pub_league_purchasers' }}>Pub League Purchasers (This Season's Orders)</option>
                     <option value="ecs_members" {{ 'selected' if ft == 'ecs_members' }}>ECS Members (Active Membership)</option>
                     <option value="by_team" {{ 'selected' if ft == 'by_team' }}>By Team</option>
                     <option value="by_league" {{ 'selected' if ft == 'by_league' }}>By League</option>

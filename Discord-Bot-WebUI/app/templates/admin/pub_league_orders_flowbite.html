@@ -218,6 +218,13 @@
                     <option value="cancelled" {{ 'selected' if status_filter == 'cancelled' else '' }}>Cancelled</option>
                 </select>
             </div>
+            <div class="flex items-center">
+                <a href="{{ url_for('pub_league_orders_admin.export_order_emails', status=status_filter, search=search or None, season=season_filter) }}"
+                   title="Download a CSV of customer emails for the orders matching the current filters"
+                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green whitespace-nowrap">
+                    <i class="ti ti-download text-base" aria-hidden="true"></i> Export Emails
+                </a>
+            </div>
             {% if search or (status_filter and status_filter != 'all') %}
             <div class="flex items-center">
                 <a href="{{ url_for('pub_league_orders_admin.orders_list') }}"
