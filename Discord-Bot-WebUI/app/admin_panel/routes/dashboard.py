@@ -311,9 +311,17 @@ def feature_toggles():
                 categories[setting.category] = []
             categories[setting.category].append(setting)
 
+        # The onboarding demo is Global-Admin-only (the page itself is also open
+        # to Pub League Admins), so only surface its link to Global Admins.
+        can_view_onboarding_demo = any(
+            getattr(r, 'name', None) == 'Global Admin'
+            for r in getattr(current_user, 'roles', []) or []
+        )
+
         return render_template(
             'admin_panel/feature_toggles_flowbite.html',
-            categories=categories
+            categories=categories,
+            can_view_onboarding_demo=can_view_onboarding_demo
         )
     except Exception as e:
         logger.error(f"Error loading feature toggles: {e}")
@@ -1243,3 +1251,75 @@ def registration_settings():
     except Exception as e:
         logger.error(f"Error with registration settings: {e}")
         return jsonify({'success': False, 'message': 'Failed to handle registration settings'}), 500
+
+
+@admin_panel_bp.route('/onboarding/demo', methods=['GET'])
+@login_required
+@role_required(['Global Admin'])
+def onboarding_demo():
+    """
+    Sandboxed, always-in-sync preview of the REAL new-player onboarding flow.
+
+    Renders the exact same template a brand-new player sees
+    (``onboarding_flowbite.html``) with a pristine, unbound form and a demo
+    banner. The form posts to ``onboarding_demo_submit``, which writes NOTHING
+    to the database — so the whole flow can be demonstrated to people without
+    creating (and later deleting) a real Discord account. Because it reuses the
+    production template + form builder, it stays 1:1 with the real onboarding
+    automatically: any change to onboarding shows up here with no extra work.
+    """
+    # get_onboarding_form lives in app.main; import lazily to avoid a circular
+    # import at module load (app.main pulls in a large dependency graph).
+    from app.main import get_onboarding_form
+
+    onboarding_form = get_onboarding_form(player=None)
+    # ?discord=0 hides the "join our Discord" card; default shows it (it's part
+    # of the real first-run experience).
+    needs_discord_join = request.args.get('discord', '1') != '0'
+    return render_template(
+        'onboarding_flowbite.html',
+        title='Onboarding Demo',
+        onboarding_form=onboarding_form,
+        player=None,
+        discord_invite_link='https://discord.gg/weareecs',
+        needs_discord_join=needs_discord_join,
+        demo_mode=True,
+        form_action_url=url_for('admin_panel.onboarding_demo_submit'),
+    )
+
+
+@admin_panel_bp.route('/onboarding/demo/submit', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def onboarding_demo_submit():
+    """
+    Demo endpoint for the onboarding form — writes NOTHING to the database.
+
+    It simply renders the REAL pending-approval screen
+    (``pending_status_flowbite.html``) in demo mode, so the full first-run
+    experience (fill profile -> "waiting for admin approval") can be shown end
+    to end. Anything typed into the demo form is discarded.
+    """
+    from types import SimpleNamespace
+
+    demo_name = (request.form.get('name') or 'Demo Player').strip() or 'Demo Player'
+    # Lightweight stand-in so the real template renders naturally. The pending
+    # screen only reads name / profile_picture_url / preferred_league off player
+    # (all guarded), so these three fields are sufficient.
+    demo_player = SimpleNamespace(
+        name=demo_name,
+        profile_picture_url=None,
+        preferred_league=request.form.get('preferred_league'),
+        is_current_player=False,
+    )
+    return render_template(
+        'pending_status_flowbite.html',
+        title='Onboarding Demo',
+        player=demo_player,
+        is_approved=False,
+        is_paid=False,
+        approval_status='pending',
+        shop_url='https://weareecs.com',
+        demo_mode=True,
+        demo_back_url=url_for('admin_panel.onboarding_demo'),
+    )

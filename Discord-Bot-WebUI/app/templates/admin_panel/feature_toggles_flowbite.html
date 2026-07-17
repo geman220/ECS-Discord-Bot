@@ -62,6 +62,22 @@
 
   {{ kit_alert("warning", "Changes take effect immediately — no deploy required. Be deliberate with critical flags like Teams navigation, Waitlist registration and Maintenance Mode; they directly affect what users can see and do.", title="Live system:", dismissible=false) }}
 
+  {% if can_view_onboarding_demo %}
+  <div class="mb-5 sm:mb-6 rounded-xl border border-ecs-green/30 bg-ecs-green/5 dark:bg-ecs-green/10 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3">
+    <div class="shrink-0 w-10 h-10 rounded-lg bg-ecs-green/15 flex items-center justify-center">
+      <i class="ti ti-flask-2 text-xl text-ecs-green" aria-hidden="true"></i>
+    </div>
+    <div class="min-w-0 flex-1">
+      <p class="text-sm font-semibold text-gray-900 dark:text-white">New-player onboarding demo</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Walk through the exact onboarding a new player sees — a live, always-in-sync copy that saves nothing. Toggle Registration above to preview the register vs. waitlist entry screens.</p>
+    </div>
+    <a href="{{ url_for('admin_panel.onboarding_demo') }}" target="_blank" rel="noopener"
+       class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-external-link" aria-hidden="true"></i>Open demo
+    </a>
+  </div>
+  {% endif %}
+
   {% if total_settings == 0 %}
     {{ empty_state("ti-adjustments-off", "No settings found", "There are no feature settings configured yet.") }}
   {% else %}
