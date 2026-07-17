@@ -129,6 +129,60 @@ def auto_import_espn_matches(self, session):
     }
 
 
+def _ensure_prematch_task(session, match_id, task_type, post_time, match_dt, now, already_posted):
+    """
+    Ensure a re-dispatchable ScheduledTask row exists for a one-shot pre-match
+    post (build-up / lineup), driven off the durable posted flag.
+
+    Returns True if a row was created or re-armed (for counting), False otherwise.
+
+    Idempotency contract: the post itself is guarded by the durable
+    `buildup_posted`/`lineups_posted` flag on MLSMatch, set only after a
+    confirmed Discord send. That lets this stay simple and aggressive about
+    retrying:
+      - already posted → do nothing (flag is the source of truth).
+      - match already started → do nothing (too late; dispatch phase expires any
+        leftover SCHEDULED row).
+      - a live row (SCHEDULED/RUNNING) already exists → leave it (in flight).
+      - only dead rows (FAILED/EXPIRED, or a stale COMPLETED with the flag still
+        false) → re-arm the most recent one to SCHEDULED so the dispatch phase
+        fires it again. This is what makes a transient Discord/ESPN outage a
+        delayed post instead of a MISSED post, without ever double-posting.
+    """
+    if already_posted or match_dt <= now:
+        return False
+
+    active = session.query(ScheduledTask).filter(
+        ScheduledTask.match_id == match_id,
+        ScheduledTask.task_type == task_type,
+        ScheduledTask.state.in_([TaskState.SCHEDULED, TaskState.RUNNING])
+    ).first()
+    if active:
+        return False
+
+    dead = session.query(ScheduledTask).filter(
+        ScheduledTask.match_id == match_id,
+        ScheduledTask.task_type == task_type
+    ).order_by(ScheduledTask.id.desc()).first()
+
+    if dead:
+        prior_state = dead.state
+        dead.state = TaskState.SCHEDULED
+        dead.celery_task_id = None
+        dead.scheduled_time = post_time
+        logger.info(f"Re-armed {task_type} for match {match_id} (prior attempt was {prior_state}, still unposted)")
+    else:
+        session.add(ScheduledTask(
+            task_type=task_type,
+            match_id=match_id,
+            celery_task_id=None,
+            scheduled_time=post_time,
+            state=TaskState.SCHEDULED
+        ))
+        logger.info(f"Scheduled {task_type} for match {match_id} at {post_time} (poll-dispatch)")
+    return True
+
+
 @celery_task(bind=True, max_retries=3, default_retry_delay=60)
 def schedule_upcoming_matches(self, session):
     """
@@ -154,45 +208,13 @@ def schedule_upcoming_matches(self, session):
             from datetime import timezone
             now = datetime.now(timezone.utc)
 
-            # ── Dispatch phase: fire any ScheduledTasks whose time has come ──
-            due_tasks = session.query(ScheduledTask).filter(
-                ScheduledTask.state == TaskState.SCHEDULED,
-                ScheduledTask.celery_task_id.is_(None),
-                ScheduledTask.scheduled_time <= now
-            ).all()
-
-            dispatched_count = 0
-            for due_task in due_tasks:
-                try:
-                    if due_task.task_type == TaskType.THREAD_CREATION:
-                        # Verify match still needs a thread
-                        from app.models.external import MLSMatch as _MLSMatch
-                        _match = session.query(_MLSMatch).filter_by(id=due_task.match_id).first()
-                        if _match and _match.thread_created:
-                            due_task.mark_completed()
-                            logger.info(f"Dispatch: thread already created for match {due_task.match_id}, marking completed")
-                            continue
-                        celery_result = create_mls_match_thread_task.apply_async(args=[due_task.match_id])
-                    elif due_task.task_type == TaskType.BUILDUP_POST:
-                        celery_result = post_match_buildup_task.apply_async(args=[due_task.match_id])
-                    elif due_task.task_type == TaskType.LINEUP_POST:
-                        celery_result = post_match_lineups_task.apply_async(args=[due_task.match_id])
-                    elif due_task.task_type == TaskType.LIVE_REPORTING_START:
-                        celery_result = start_mls_live_reporting_task.apply_async(args=[due_task.match_id])
-                    else:
-                        continue
-
-                    due_task.mark_running(celery_result.id)
-                    dispatched_count += 1
-                    logger.info(f"Dispatched due task {due_task.id} (type={due_task.task_type}) for match {due_task.match_id}, celery_id={celery_result.id}")
-                except Exception as e:
-                    logger.error(f"Error dispatching due task {due_task.id}: {e}")
-
-            if dispatched_count:
-                session.commit()
-                logger.info(f"Dispatched {dispatched_count} due tasks")
-
             # ── Scheduling phase: ensure upcoming matches have ScheduledTask records ──
+            # This phase only CREATES rows — it never calls apply_async. All
+            # dispatching happens in the dispatch phase below, which claims each
+            # row (commit) before firing it, so a crash + Celery retry of this
+            # task can never double-post. (Root cause of the 2026-07-16
+            # build-up/lineup spam: apply_async before commit, then the task
+            # retried at +1/+3/+6 min and re-dispatched everything each time.)
             from app.models.external import MLSMatch
             upcoming_matches = session.query(MLSMatch).filter(
                 MLSMatch.date_time > now,
@@ -232,112 +254,41 @@ def schedule_upcoming_matches(self, session):
                         )
 
                         if not existing_thread_task:
-                            if thread_time > now:
-                                # Future: create ScheduledTask record only (no Celery dispatch)
-                                # The dispatch phase will fire it when scheduled_time arrives
-                                db_task = ScheduledTask(
-                                    task_type=TaskType.THREAD_CREATION,
-                                    match_id=match.id,
-                                    celery_task_id=None,
-                                    scheduled_time=thread_time,
-                                    state=TaskState.SCHEDULED
-                                )
-                                session.add(db_task)
-                                scheduled_threads += 1
-                                logger.info(f"Scheduled thread creation for match {match.id} at {thread_time} (poll-dispatch, no ETA)")
-                            else:
-                                # Past: create immediately (thread creation time has passed)
-                                celery_task = create_mls_match_thread_task.apply_async(
-                                    args=[match.id]
-                                )
+                            # Create the row only — overdue rows (thread_time in
+                            # the past) are fired by the dispatch phase below in
+                            # this same run.
+                            db_task = ScheduledTask(
+                                task_type=TaskType.THREAD_CREATION,
+                                match_id=match.id,
+                                celery_task_id=None,
+                                scheduled_time=thread_time,
+                                state=TaskState.SCHEDULED
+                            )
+                            session.add(db_task)
+                            scheduled_threads += 1
+                            logger.info(f"Scheduled thread creation for match {match.id} at {thread_time} (poll-dispatch)")
 
-                                # Create database tracking record as RUNNING
-                                db_task = ScheduledTask(
-                                    task_type=TaskType.THREAD_CREATION,
-                                    match_id=match.id,
-                                    celery_task_id=celery_task.id,
-                                    scheduled_time=thread_time,
-                                    state=TaskState.RUNNING,
-                                    execution_time=now
-                                )
-                                session.add(db_task)
-                                scheduled_threads += 1
-                                logger.info(f"Immediately creating thread for match {match.id} (overdue by {now - thread_time}), task_id={celery_task.id}")
-
-                    # Schedule lineup post (configurable minutes before, default 30).
-                    # Only scheduled if a thread has been (or will be) created — no
-                    # point fetching lineups for a match with no thread to post to.
+                    # Schedule lineup + build-up posts. These stay re-dispatchable
+                    # until they actually post (durable *_posted flag) or the match
+                    # starts — a prior FAILED/EXPIRED row (e.g. Discord was down) is
+                    # re-armed rather than dead-ending, so a transient blip can't
+                    # make us MISS the post. The flag guard inside each task makes
+                    # re-dispatch safe: it can never double-post. Bound is kickoff,
+                    # enforced here (match_dt > now) and by the dispatch phase, which
+                    # expires any pre-match row once the match has started.
                     lineup_time = match_dt - timedelta(minutes=lineup_post_minutes)
+                    if _ensure_prematch_task(
+                        session, match.id, TaskType.LINEUP_POST, lineup_time,
+                        match_dt, now, already_posted=match.lineups_posted
+                    ):
+                        scheduled_lineups += 1
 
-                    # Lineup post is a one-shot per match; any prior row
-                    # (including COMPLETED/EXPIRED/FAILED) blocks re-scheduling.
-                    # Internal 6×5min retry in post_match_lineups_task handles
-                    # ESPN-not-ready cases without the beat loop duplicating.
-                    existing_lineup_task = session.query(ScheduledTask).filter(
-                        ScheduledTask.match_id == match.id,
-                        ScheduledTask.task_type == TaskType.LINEUP_POST
-                    ).first()
-                    if not existing_lineup_task:
-                        if lineup_time > now:
-                            db_task = ScheduledTask(
-                                task_type=TaskType.LINEUP_POST,
-                                match_id=match.id,
-                                celery_task_id=None,
-                                scheduled_time=lineup_time,
-                                state=TaskState.SCHEDULED
-                            )
-                            session.add(db_task)
-                            scheduled_lineups += 1
-                            logger.info(f"Scheduled lineup post for match {match.id} at {lineup_time} (poll-dispatch)")
-                        elif match_dt > now:
-                            # Past T-{lineup_post_minutes} but match hasn't started — fire immediately
-                            celery_task = post_match_lineups_task.apply_async(args=[match.id])
-                            db_task = ScheduledTask(
-                                task_type=TaskType.LINEUP_POST,
-                                match_id=match.id,
-                                celery_task_id=celery_task.id,
-                                scheduled_time=lineup_time,
-                                state=TaskState.RUNNING,
-                                execution_time=now
-                            )
-                            session.add(db_task)
-                            scheduled_lineups += 1
-                            logger.info(f"Immediately dispatched lineup post for match {match.id}, task_id={celery_task.id}")
-                        # If match has already started, skip — too late for a pre-match lineup post
-
-                    # Schedule pre-match build-up post (form + H2H), one-shot per match.
                     buildup_time = match_dt - timedelta(hours=buildup_post_hours)
-                    existing_buildup_task = session.query(ScheduledTask).filter(
-                        ScheduledTask.match_id == match.id,
-                        ScheduledTask.task_type == TaskType.BUILDUP_POST
-                    ).first()
-                    if not existing_buildup_task:
-                        if buildup_time > now:
-                            db_task = ScheduledTask(
-                                task_type=TaskType.BUILDUP_POST,
-                                match_id=match.id,
-                                celery_task_id=None,
-                                scheduled_time=buildup_time,
-                                state=TaskState.SCHEDULED
-                            )
-                            session.add(db_task)
-                            scheduled_buildups += 1
-                            logger.info(f"Scheduled build-up post for match {match.id} at {buildup_time} (poll-dispatch)")
-                        elif match_dt > now:
-                            # Past T-{buildup_post_hours}h but match hasn't started — fire immediately
-                            celery_task = post_match_buildup_task.apply_async(args=[match.id])
-                            db_task = ScheduledTask(
-                                task_type=TaskType.BUILDUP_POST,
-                                match_id=match.id,
-                                celery_task_id=celery_task.id,
-                                scheduled_time=buildup_time,
-                                state=TaskState.RUNNING,
-                                execution_time=now
-                            )
-                            session.add(db_task)
-                            scheduled_buildups += 1
-                            logger.info(f"Immediately dispatched build-up post for match {match.id}, task_id={celery_task.id}")
-                        # If match already started, skip — too late for a pre-match build-up
+                    if _ensure_prematch_task(
+                        session, match.id, TaskType.BUILDUP_POST, buildup_time,
+                        match_dt, now, already_posted=match.buildup_posted
+                    ):
+                        scheduled_buildups += 1
 
                     # Schedule live reporting start (configurable minutes before, default 5)
                     live_start_time = match_dt - timedelta(minutes=live_reporting_minutes)
@@ -355,8 +306,10 @@ def schedule_upcoming_matches(self, session):
                         ).first()
 
                         if not existing_live_session:
-                            if live_start_time > now:
-                                # Future: create ScheduledTask record only (no Celery dispatch)
+                            # Create the row unless the match ended long ago
+                            # (matches last ~2 hours, give buffer). Overdue rows
+                            # are fired by the dispatch phase below in this run.
+                            if match_dt > now or now - match_dt < timedelta(hours=3):
                                 db_task = ScheduledTask(
                                     task_type=TaskType.LIVE_REPORTING_START,
                                     match_id=match.id,
@@ -366,48 +319,89 @@ def schedule_upcoming_matches(self, session):
                                 )
                                 session.add(db_task)
                                 scheduled_live += 1
-                                logger.info(f"Scheduled live reporting for match {match.id} at {live_start_time} (poll-dispatch, no ETA)")
-                            elif match_dt > now:
-                                # Past due but match hasn't started yet or is in progress:
-                                # start immediately
-                                celery_task = start_mls_live_reporting_task.apply_async(
-                                    args=[match.id]
-                                )
-                                db_task = ScheduledTask(
-                                    task_type=TaskType.LIVE_REPORTING_START,
-                                    match_id=match.id,
-                                    celery_task_id=celery_task.id,
-                                    scheduled_time=live_start_time,
-                                    state=TaskState.RUNNING,
-                                    execution_time=now
-                                )
-                                session.add(db_task)
-                                scheduled_live += 1
-                                logger.info(f"Immediately started live reporting for match {match.id}, task_id={celery_task.id}")
-                            else:
-                                # Match start time has passed — check if within 3 hours
-                                # (matches last ~2 hours, give buffer)
-                                if now - match_dt < timedelta(hours=3):
-                                    celery_task = start_mls_live_reporting_task.apply_async(
-                                        args=[match.id]
-                                    )
-                                    db_task = ScheduledTask(
-                                        task_type=TaskType.LIVE_REPORTING_START,
-                                        match_id=match.id,
-                                        celery_task_id=celery_task.id,
-                                        scheduled_time=live_start_time,
-                                        state=TaskState.RUNNING,
-                                        execution_time=now
-                                    )
-                                    session.add(db_task)
-                                    scheduled_live += 1
-                                    logger.info(f"Immediately started live reporting for match {match.id} (match in progress), task_id={celery_task.id}")
+                                logger.info(f"Scheduled live reporting for match {match.id} at {live_start_time} (poll-dispatch)")
 
                 except Exception as e:
+                    # Roll back so a failed match can't poison the session and
+                    # sink the commit below (loses only uncommitted row adds —
+                    # they get recreated next beat run).
+                    session.rollback()
                     logger.error(f"Error scheduling MLS match {match.id}: {e}")
 
             # Commit all database task records
             session.commit()
+
+            # ── Dispatch phase: fire any ScheduledTasks whose time has come ──
+            # Each row is claimed (state=RUNNING, committed) BEFORE apply_async,
+            # so a crash or Celery retry of this task can never re-dispatch a
+            # post that already fired.
+            due_tasks = session.query(ScheduledTask).filter(
+                ScheduledTask.state == TaskState.SCHEDULED,
+                ScheduledTask.celery_task_id.is_(None),
+                ScheduledTask.scheduled_time <= now
+            ).all()
+
+            dispatched_count = 0
+            for due_task in due_tasks:
+                try:
+                    _match = session.query(MLSMatch).filter_by(id=due_task.match_id).first()
+                    _dt = _match.date_time if _match else None
+                    if _dt is not None and _dt.tzinfo is None:
+                        _dt = _dt.replace(tzinfo=timezone.utc)
+
+                    # Skip work that no longer makes sense.
+                    if due_task.task_type == TaskType.THREAD_CREATION and _match and _match.thread_created:
+                        due_task.mark_completed()
+                        session.commit()
+                        logger.info(f"Dispatch: thread already created for match {due_task.match_id}, marking completed")
+                        continue
+                    if due_task.task_type in (TaskType.BUILDUP_POST, TaskType.LINEUP_POST):
+                        if _dt is None or _dt <= now:
+                            due_task.mark_expired()
+                            due_task.last_error = 'match already started — pre-match post skipped'
+                            session.commit()
+                            continue
+
+                    # Claim before dispatch.
+                    due_task.mark_running()
+                    session.commit()
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"Error claiming due task {due_task.id}: {e}")
+                    continue
+
+                try:
+                    if due_task.task_type == TaskType.THREAD_CREATION:
+                        celery_result = create_mls_match_thread_task.apply_async(args=[due_task.match_id])
+                    elif due_task.task_type == TaskType.BUILDUP_POST:
+                        celery_result = post_match_buildup_task.apply_async(args=[due_task.match_id])
+                    elif due_task.task_type == TaskType.LINEUP_POST:
+                        celery_result = post_match_lineups_task.apply_async(args=[due_task.match_id])
+                    elif due_task.task_type == TaskType.LIVE_REPORTING_START:
+                        celery_result = start_mls_live_reporting_task.apply_async(args=[due_task.match_id])
+                    else:
+                        due_task.mark_expired()
+                        due_task.last_error = f"unknown task type {due_task.task_type}"
+                        session.commit()
+                        continue
+
+                    due_task.celery_task_id = celery_result.id
+                    session.commit()
+                    dispatched_count += 1
+                    logger.info(f"Dispatched due task {due_task.id} (type={due_task.task_type}) for match {due_task.match_id}, celery_id={celery_result.id}")
+                except Exception as e:
+                    # Broker hiccup — release the claim so the next beat run retries.
+                    session.rollback()
+                    logger.error(f"Error dispatching due task {due_task.id}: {e}")
+                    try:
+                        due_task.state = TaskState.SCHEDULED
+                        due_task.last_error = f"dispatch failed: {e}"
+                        session.commit()
+                    except Exception:
+                        session.rollback()
+
+            if dispatched_count:
+                logger.info(f"Dispatched {dispatched_count} due tasks")
 
             result = {
                 'success': True,
@@ -416,6 +410,7 @@ def schedule_upcoming_matches(self, session):
                 'reporting_scheduled': scheduled_live,
                 'lineups_scheduled': scheduled_lineups,
                 'buildups_scheduled': scheduled_buildups,
+                'dispatched': dispatched_count,
             }
 
         if result['success']:
@@ -913,6 +908,16 @@ def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
             if not match:
                 return {"success": False, "error": f"Match {match_id} not found"}
 
+            # ── Idempotency guard: durable flag survives any scheduler/session
+            # rollback, so duplicate dispatches can never double-post. ──
+            if match.lineups_posted:
+                logger.info(f"Lineups already posted for match {match_id}, skipping")
+                task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.LINEUP_POST)
+                if task:
+                    task.mark_completed()
+                    db_session.commit()
+                return {"success": True, "message": "Lineups already posted", "already_posted": True}
+
             thread_id = match.discord_thread_id
             if not thread_id:
                 logger.warning(f"No Discord thread for match {match_id}, skipping lineup post")
@@ -967,7 +972,19 @@ def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
                     db_session.commit()
                 return {"success": False, "message": reason}
 
+            # ── Redis claim: serialize concurrent duplicate dispatches. Taken
+            # only once lineup data exists so ESPN-not-ready retries above are
+            # unaffected. Advisory only — if Redis is down we still post and
+            # rely on the durable lineups_posted flag. ──
+            from app.utils.safe_redis import get_safe_redis
+            redis = get_safe_redis()
+            claim_key = f"mls_lineups_posted:{match_id}"
+            if redis.is_available and not redis.set(claim_key, self.request.id or 'unknown', nx=True, ex=21600):
+                logger.info(f"Lineup post for match {match_id} already claimed by another task, skipping")
+                return {"success": True, "message": "Lineup post already in progress", "already_posted": True}
+
             # Build lineup embeds for each team
+            posted_any = False
             for side in ('home', 'away'):
                 team_data = lineups.get(side)
                 if not team_data:
@@ -996,7 +1013,7 @@ def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
                     'title': f'{team_name} Lineup',
                     'description': description,
                     'color': 0x005F4F if side == 'home' else 0x666666,
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'footer': {'text': 'Starting XI'},
                     'fields': [],
                 }
@@ -1014,16 +1031,34 @@ def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
 
                 response = send_to_discord_bot('/api/live-reporting/event', request_data)
                 if response and response.get('success'):
+                    posted_any = True
                     logger.info(f"Posted {side} lineup for match {match_id}")
                 else:
                     error_msg = response.get('error', 'Unknown') if response else 'No response'
                     logger.error(f"Failed to post {side} lineup: {error_msg}")
 
-            # Mark task completed
+            if not posted_any:
+                # Nothing landed in Discord. Release the claim and retry — safe
+                # because no embed posted, so a re-run can't duplicate (and the
+                # match hasn't started, else we'd have bailed above). A single
+                # flag can't safely retry a PARTIAL post, which is why a partial
+                # success below is treated as terminal instead.
+                redis.delete(claim_key)
+                if self.request.retries < self.max_retries:
+                    logger.warning(f"Discord post failed for both lineups (match {match_id}), retrying in 2min")
+                    raise self.retry(countdown=120)
+                task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.LINEUP_POST)
+                if task:
+                    task.mark_failed('Discord post failed for both lineups')
+                    db_session.commit()
+                return {"success": False, "error": "Discord post failed for both lineups"}
+
+            # Durable flag written only after a confirmed successful send.
+            match.lineups_posted = True
             task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.LINEUP_POST)
             if task:
                 task.mark_completed()
-                db_session.commit()
+            db_session.commit()
 
             return {"success": True, "message": "Lineups posted"}
 
@@ -1050,6 +1085,7 @@ def post_match_buildup_task(self, session, match_id: int) -> Dict[str, Any]:
     form (WWLDW), venue, and a live kickoff countdown. Factual, no AI — fills
     the dead air between thread creation (T-48h) and lineups (T-30m).
     """
+    from celery.exceptions import Retry
     try:
         from datetime import timezone
         from zoneinfo import ZoneInfo
@@ -1062,6 +1098,16 @@ def post_match_buildup_task(self, session, match_id: int) -> Dict[str, Any]:
             match = db_session.query(MLSMatch).filter_by(id=match_id).first()
             if not match:
                 return {"success": False, "error": f"Match {match_id} not found"}
+
+            # ── Idempotency guard: durable flag survives any scheduler/session
+            # rollback, so duplicate dispatches can never double-post. ──
+            if match.buildup_posted:
+                logger.info(f"Build-up already posted for match {match_id}, skipping")
+                task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.BUILDUP_POST)
+                if task:
+                    task.mark_completed()
+                    db_session.commit()
+                return {"success": True, "message": "Build-up already posted", "already_posted": True}
 
             thread_id = match.discord_thread_id
             if not thread_id:
@@ -1118,7 +1164,7 @@ def post_match_buildup_task(self, session, match_id: int) -> Dict[str, Any]:
                 'title': 'Matchday Build-Up',
                 'description': espn_description,
                 'color': 0x005F4F,
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'footer': {'text': f'{home_team} vs {away_team}'},
                 'fields': fields,
             }
@@ -1131,22 +1177,43 @@ def post_match_buildup_task(self, session, match_id: int) -> Dict[str, Any]:
                 'match_data': {'match_id': str(match_id)},
             }
 
+            # ── Redis claim: serialize concurrent duplicate dispatches.
+            # Advisory only — if Redis is down we still post and rely on the
+            # durable buildup_posted flag. ──
+            from app.utils.safe_redis import get_safe_redis
+            redis = get_safe_redis()
+            claim_key = f"mls_buildup_posted:{match_id}"
+            if redis.is_available and not redis.set(claim_key, self.request.id or 'unknown', nx=True, ex=21600):
+                logger.info(f"Build-up post for match {match_id} already claimed by another task, skipping")
+                return {"success": True, "message": "Build-up post already in progress", "already_posted": True}
+
             response = send_to_discord_bot('/api/live-reporting/event', request_data)
             task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.BUILDUP_POST)
             if response and response.get('success'):
                 logger.info(f"Posted build-up for match {match_id}")
+                # Durable flag written only after a confirmed successful send.
+                match.buildup_posted = True
                 if task:
                     task.mark_completed()
-                    db_session.commit()
+                db_session.commit()
                 return {"success": True, "message": "Build-up posted"}
 
+            # Nothing landed in Discord. Release the claim and retry — safe
+            # because no embed posted, so a re-run can't duplicate.
+            redis.delete(claim_key)
             error_msg = response.get('error', 'Unknown') if response else 'No response'
             logger.error(f"Failed to post build-up for match {match_id}: {error_msg}")
+            if self.request.retries < self.max_retries:
+                logger.warning(f"Retrying build-up post for match {match_id} in 2min")
+                raise self.retry(countdown=120)
             if task:
                 task.mark_failed(error_msg)
                 db_session.commit()
             return {"success": False, "error": error_msg}
 
+    except Retry:
+        # Celery's retry mechanism — must propagate, not swallow
+        raise
     except Exception as e:
         logger.error(f"Error posting build-up for match {match_id}: {e}")
         return {"success": False, "error": str(e)}

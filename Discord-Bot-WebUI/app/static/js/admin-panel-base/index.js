@@ -25,7 +25,6 @@ import { showMobileToast, confirmAction, showLoading, hideLoading, optimizedFetc
 
 // State tracking
 let _initialized = false;
-let _serviceWorkerRegistered = false;
 
 /**
  * Admin Panel Base Controller
@@ -73,25 +72,10 @@ const AdminPanelBase = {
     fetch: optimizedFetch
 };
 
-/**
- * Service Worker Registration (for offline support)
- */
-function registerServiceWorker() {
-    if (_serviceWorkerRegistered) return;
-    _serviceWorkerRegistered = true;
-
-    if ('serviceWorker' in navigator && 'caches' in window) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/static/js/service-worker.js')
-                .then(registration => {
-                    console.log('Service Worker registered:', registration);
-                })
-                .catch(error => {
-                    console.log('Service Worker registration failed:', error);
-                });
-        });
-    }
-}
+// Service worker registration removed 2026-07: it registered
+// /static/js/service-worker.js, whose implicit scope (/static/js/) can never
+// control an actual page, so its offline/caching layer was dead code from day
+// one. base_flowbite.html now actively unregisters any legacy registrations.
 
 // Expose AdminPanel globally
 window.AdminPanel = AdminPanelBase;
@@ -101,14 +85,9 @@ window.AdminPanelBase = AdminPanelBase;
 if (window.InitSystem) {
     window.InitSystem.register('AdminPanelBase', function(context) {
         AdminPanelBase.init(context);
-        registerServiceWorker();
     }, {
         priority: 15
     });
 }
 
-// Backward compatibility
-window.registerServiceWorker = registerServiceWorker;
-
 export default AdminPanelBase;
-export { registerServiceWorker };

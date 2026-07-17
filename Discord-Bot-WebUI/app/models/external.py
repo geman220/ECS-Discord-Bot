@@ -91,6 +91,11 @@ class MLSMatch(db.Model):
     live_reporting_task_id = db.Column(db.String(50))
     espn_match_id = db.Column(db.String(50), nullable=True)  # ESPN match ID for live data
     broadcast = db.Column(db.String(200))  # Broadcast info from ESPN
+    # One-shot pre-match post flags — same idempotency pattern as thread_created.
+    # Set only after a confirmed successful Discord send; checked before posting
+    # so scheduler retries/re-dispatches can never duplicate these posts.
+    buildup_posted = db.Column(db.Boolean, default=False)
+    lineups_posted = db.Column(db.Boolean, default=False)
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

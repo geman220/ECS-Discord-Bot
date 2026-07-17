@@ -55,8 +55,9 @@ export default defineConfig({
       input: {
         // Main application bundle
         main: resolve(__dirname, 'app/static/js/main-entry.js'),
-        // CSS entry - Using CSS Cascade Layers architecture
-        styles: resolve(__dirname, 'app/static/css/main-entry.css'),
+        // NOTE: css/main-entry.css (the Bootstrap-era cascade-layers bundle) was
+        // built here as a `styles` entry for years but NOTHING ever linked its
+        // output — 1.9 MB of dead weight in every build. Removed 2026-07.
         // Note: Tailwind CSS is compiled separately via npm run build:tailwind
       },
       output: {
@@ -68,6 +69,34 @@ export default defineConfig({
             return 'css/[name]-[hash][extname]';
           }
           return 'assets/[name]-[hash][extname]';
+        },
+
+        // Split the big third-party libraries out of the main app bundle.
+        //
+        // WHY: the app bundle was one 1.8 MB file. Every deploy changes its hash, so
+        // every returning user re-downloaded all 1.8 MB just because one app file
+        // changed. Vendor libs change only when package.json does — giving each its
+        // own immutable-cached chunk means a normal deploy re-downloads just the small
+        // app chunk, and the vendor chunks stay cached for months.
+        //
+        // SAFETY: this does NOT change init order. ES modules evaluate strictly in
+        // import-graph order and Rollup never violates it, so vendor-globals.js still
+        // runs (and sets window.jQuery/$ etc.) before any app module that uses them,
+        // exactly as before. Chunk boundaries only affect file grouping, not sequence.
+        // vite_asset() emits modulepreload for the full transitive chunk set so there
+        // is no load waterfall.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined; // app code stays in main
+          // One chunk per heavy library (each cached independently across deploys).
+          if (id.includes('datatables')) return 'vendor-datatables';
+          if (id.includes('sweetalert2')) return 'vendor-swal';
+          if (id.includes('cropperjs')) return 'vendor-cropper';
+          if (id.includes('flowbite')) return 'vendor-flowbite';
+          if (id.includes('flatpickr')) return 'vendor-flatpickr';
+          if (id.includes('socket.io') || id.includes('engine.io')) return 'vendor-socketio';
+          if (id.includes('/jquery/') || id.includes('jquery/dist')) return 'vendor-jquery';
+          // Everything smaller (hammerjs, sortablejs, …) shares one chunk.
+          return 'vendor-misc';
         },
       },
     },

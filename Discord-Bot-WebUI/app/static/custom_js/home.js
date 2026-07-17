@@ -216,27 +216,6 @@ function enableFastClick() {
 
 /**
  * ============================================================================
- * SERVICE WORKER REGISTRATION
- * Enables offline capabilities and performance improvements
- * ============================================================================
- */
-function registerServiceWorker() {
-    if (!('serviceWorker' in navigator)) {
-        console.log('Service Workers not supported');
-        return;
-    }
-
-    navigator.serviceWorker.register('/static/js/service-worker.js')
-        .then(registration => {
-            console.log('ServiceWorker registered:', registration.scope);
-        })
-        .catch(error => {
-            console.error('ServiceWorker registration failed:', error);
-        });
-}
-
-/**
- * ============================================================================
  * DISCORD MEMBERSHIP CHECK
  * Prompts user to join Discord server if not already a member
  * Uses cached membership status from database (stored in data attributes)
@@ -425,9 +404,6 @@ function initHome() {
 
     // Initialize modal iOS fix
     initializeModalIosFix();
-
-    // Register service worker
-    registerServiceWorker();
 
     // Initialize Discord membership check
     initializeDiscordMembershipCheck();

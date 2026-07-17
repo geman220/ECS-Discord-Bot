@@ -20,8 +20,8 @@
 'use strict';
 
 // Import and re-export from modular implementation
-import AdminPanelBase, { registerServiceWorker } from './admin-panel-base/index.js';
+import AdminPanelBase from './admin-panel-base/index.js';
 
 // Re-export for backward compatibility
-export { AdminPanelBase, registerServiceWorker };
+export { AdminPanelBase };
 export default AdminPanelBase;

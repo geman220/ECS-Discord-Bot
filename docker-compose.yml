@@ -528,6 +528,20 @@ services:
       - "traefik.http.routers.webui-socketio.priority=20"
       - "traefik.http.routers.webui-socketio.service=webui"
       - "traefik.http.routers.webui-socketio.middlewares=secure-headers"
+      # Static assets router (HTTPS, NO rate limit). A browser fanning out 50+
+      # asset requests on a cold page load is normal, not abuse — the rate-limit
+      # middleware was 429ing render-blocking CSS mid-navigation, which painted
+      # the page unstyled (the intermittent "unthemed flash with giant logo" bug).
+      # Also deliberately NO webui-errors middleware: rewriting a 502 into the
+      # maintenance HTML page on a stylesheet request feeds the browser HTML as
+      # CSS; a raw error is more honest and the browser just retries next paint.
+      - "traefik.http.routers.webui-static.entrypoints=websecure"
+      - "traefik.http.routers.webui-static.rule=Host(`portal.ecsfc.com`) && PathPrefix(`/static/`)"
+      - "traefik.http.routers.webui-static.tls=true"
+      - "traefik.http.routers.webui-static.tls.certresolver=myresolver"
+      - "traefik.http.routers.webui-static.priority=30"
+      - "traefik.http.routers.webui-static.service=webui"
+      - "traefik.http.routers.webui-static.middlewares=secure-headers,gzip-compress"
       # HTTPS redirect middleware
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"

@@ -13,10 +13,12 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/img/favicon/favicon.png') }}" />
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='assets/img/favicon/apple-touch-icon.png') }}" />
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Fonts — Inter, self-hosted (no third-party request; see vendor/fonts/inter.css).
+         Preload the latin woff2 so text paints without waiting on the CSS parse. The
+         preload href must byte-match the url() inside inter.css (bare, no ?v=) or the
+         browser fetches the font twice. -->
+    <link rel="preload" href="{{ url_for('static', filename='vendor/fonts/inter/inter-latin.woff2') }}" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="{{ static_v('vendor/fonts/inter.css') }}" />
 
     <!-- Critical CSS: Prevent flash of wrong theme -->
     <script>
@@ -32,22 +34,26 @@
         })();
     </script>
 
+    {# All render-blocking CSS goes through static_v(): a ?v=<content-hash> param
+       lets compression.py serve it `immutable` for a year, so browsers never
+       re-request these between deploys. Without it, every re-validation raced the
+       Traefik rate limiter and a dropped stylesheet painted the page unstyled. #}
     <!-- Tailwind CSS (Flowbite) - Pre-compiled by tailwindcss CLI -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vite-dist/css/tailwind.css') }}" />
+    <link rel="stylesheet" href="{{ static_v('vite-dist/css/tailwind.css') }}" />
 
     <!-- Tabler Icons -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" />
+    <link rel="stylesheet" href="{{ static_v('vendor/fonts/tabler-icons.css') }}" />
 
     <!-- Chat Widget CSS (for messaging functionality) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/c-chat-widget.css') }}" />
+    <link rel="stylesheet" href="{{ static_v('css/components/c-chat-widget.css') }}" />
 
     <!-- jQuery UI CSS removed - using vanilla JS autocomplete -->
 
     <!-- Template Styles (includes jQuery UI autocomplete overrides) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/template-styles.css') }}" />
+    <link rel="stylesheet" href="{{ static_v('css/template-styles.css') }}" />
 
     <!-- Modern a11y baseline: global focus-visible ring + prefers-reduced-motion (ui-ux-pro-max §1/§7) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/a11y-modern.css') }}" />
+    <link rel="stylesheet" href="{{ static_v('css/components/a11y-modern.css') }}" />
 
     <!-- NOTE: Flowbite JS is bundled via npm in our Vite build (vendor-globals.js).
          CDN script REMOVED to prevent double-initialization and timing issues. -->
@@ -276,7 +282,7 @@
         <!-- Footer -->
         <footer class="p-4 lg:p-6 border-t border-gray-200 dark:border-gray-700">
             <div class="flex flex-col md:flex-row items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                <span>© <script>document.write(new Date().getFullYear());</script>, made with ❤️ by <a href="https://gronix.dev/" target="_blank" class="text-ecs-green hover:underline">George</a></span>
+                <span>© <span id="footer-year"></span>, made with ❤️ by <a href="https://gronix.dev/" target="_blank" class="text-ecs-green hover:underline">George</a></span>
                 <a href="https://github.com/geman220/ECS-Discord-Bot" target="_blank" class="text-ecs-green hover:underline">Github</a>
             </div>
         </footer>
@@ -284,6 +290,26 @@
 
     <!-- Theme Toggle Script -->
     <script>
+        var footerYear = document.getElementById('footer-year');
+        if (footerYear) footerYear.textContent = new Date().getFullYear();
+
+        // Legacy PWA cleanup: old service workers (ecs-soccer-*/ecs-mobile-* caches)
+        // were registered over the years but never actually controlled any page.
+        // Unregister them and drop their caches so no stale copy of an asset can
+        // ever be served from a client again. Remove this block after a few months.
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations()
+                .then(function(regs) { regs.forEach(function(r) { r.unregister(); }); })
+                .catch(function() {});
+            if (window.caches && caches.keys) {
+                caches.keys().then(function(keys) {
+                    keys.forEach(function(k) {
+                        if (k.indexOf('ecs-') === 0) caches.delete(k);
+                    });
+                }).catch(function() {});
+            }
+        }
+
         const themeToggleBtn = document.getElementById('theme-toggle');
         if (themeToggleBtn) {
             themeToggleBtn.addEventListener('click', function() {
@@ -465,10 +491,10 @@
 
     <!-- Chat Widget JS -->
     {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
-    <script type="module" src="{{ url_for('static', filename='js/chat-widget.js') }}"></script>
+    <script type="module" src="{{ static_v('js/chat-widget.js') }}"></script>
     {# messenger-widget.js dropped: its template (components/messenger_widget.html) was
        unreachable and has been deleted. #}
-    <script type="module" src="{{ url_for('static', filename='js/online-status.js') }}"></script>
+    <script type="module" src="{{ static_v('js/online-status.js') }}"></script>
     {% endif %}
     {% endblock %}
 

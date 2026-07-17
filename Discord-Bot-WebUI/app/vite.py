@@ -13,14 +13,15 @@ In production mode:
 - Uses manifest.json for cache-busted filenames
 
 Usage in templates:
-    {{ vite_asset('js/main-entry.js') }}
-    {{ vite_asset('css/main-entry.css') }}
+    {{ vite_asset('js/main-entry.js') }}          — manifest-resolved, content-hashed bundle
+    {{ static_v('vite-dist/css/tailwind.css') }}  — fixed-name asset with ?v=<content-hash>
 
 Configuration:
     VITE_DEV_MODE: Set to True to use Vite dev server (default: based on FLASK_DEBUG)
     VITE_DEV_SERVER_URL: URL of Vite dev server (default: http://localhost:5173)
 """
 
+import hashlib
 import json
 import os
 from functools import lru_cache
@@ -70,19 +71,20 @@ def init_app(app):
         return {
             'vite_asset': vite_asset,
             'vite_asset_url': vite_asset_url,
+            'static_v': static_v,
             'vite_dev_mode': lambda: current_app.config.get('VITE_DEV_MODE', False),
             'vite_production_mode': lambda: current_app.config.get('VITE_PRODUCTION_MODE', False),
         }
 
-    # Clear manifest cache on each request (always, not just debug mode)
-    @app.before_request
-    def clear_vite_cache():
-        get_manifest.cache_clear()
+
+# Manifest cache keyed by mtime: a deploy rewrites manifest.json, the mtime changes,
+# and the next request re-reads it. Between deploys it costs one os.stat per request
+# instead of a full open+parse (the old code cache_clear()ed on EVERY request).
+_manifest_cache = {'mtime': None, 'data': {}}
 
 
-@lru_cache(maxsize=1)
 def get_manifest():
-    """Load and cache the Vite manifest file."""
+    """Load the Vite manifest file, cached until the file's mtime changes."""
     manifest_path = os.path.join(
         current_app.static_folder,
         current_app.config.get('VITE_MANIFEST_PATH', 'dist/.vite/manifest.json')
@@ -98,11 +100,47 @@ def get_manifest():
             return {}
 
     try:
+        mtime = os.path.getmtime(manifest_path)
+        if _manifest_cache['mtime'] == mtime:
+            return _manifest_cache['data']
         with open(manifest_path, 'r') as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError) as e:
+            data = json.load(f)
+        _manifest_cache['mtime'] = mtime
+        _manifest_cache['data'] = data
+        return data
+    except (json.JSONDecodeError, IOError, OSError) as e:
         current_app.logger.error(f'Error loading Vite manifest: {e}')
         return {}
+
+
+@lru_cache(maxsize=512)
+def _static_file_hash(abs_path: str, mtime: float) -> str:
+    """Short content hash of a static file. mtime is part of the key so a
+    deploy that rewrites the file busts this cache automatically."""
+    h = hashlib.md5()
+    with open(abs_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(65536), b''):
+            h.update(chunk)
+    return h.hexdigest()[:8]
+
+
+def static_v(filename: str) -> str:
+    """
+    url_for('static', ...) with a content-hash ?v= query param.
+
+    Use for fixed-name assets (vite-dist/css/tailwind.css, css/*.css, raw js/*.js)
+    that templates reference directly. The ?v= param gives the URL a new identity
+    whenever the file's bytes change, so compression.py can serve it with
+    `max-age=31536000, immutable` — browsers then never re-request it between
+    deploys, and a deploy lands instantly because the HTML links a new URL.
+    """
+    try:
+        abs_path = os.path.join(current_app.static_folder, filename)
+        mtime = os.path.getmtime(abs_path)
+        return url_for('static', filename=filename, v=_static_file_hash(abs_path, mtime))
+    except OSError:
+        # Missing file: emit the plain URL and let the 404 surface normally.
+        return url_for('static', filename=filename)
 
 
 def vite_asset(entry_point: str) -> Markup:
@@ -216,13 +254,24 @@ def _vite_prod_asset(entry_point: str) -> Markup:
     for css_file in entry.get('css', []):
         tags.append(f'<link rel="stylesheet" href="{url_for("static", filename=f"vite-dist/{css_file}")}">')
 
-    # Add preload hints for imports
-    for import_file in entry.get('imports', []):
-        if import_file in manifest:
-            import_entry = manifest[import_file]
-            import_path = import_entry.get('file', '')
+    # Preload the FULL transitive set of chunk imports, not just direct ones. With
+    # vendor libraries split into their own chunks (see vite.config.js manualChunks),
+    # a one-level preload would leave nested vendor chunks (e.g. datatables imported
+    # by vendor-globals) to be discovered only mid-evaluation — a load waterfall.
+    # Walking the graph lets the browser fetch every chunk up front, in parallel.
+    seen = set()
+
+    def _collect(key):
+        for import_file in manifest.get(key, {}).get('imports', []):
+            if import_file in seen:
+                continue
+            seen.add(import_file)
+            import_path = manifest.get(import_file, {}).get('file', '')
             if import_path:
                 tags.append(f'<link rel="modulepreload" href="{url_for("static", filename=f"vite-dist/{import_path}")}">')
+            _collect(import_file)
+
+    _collect(entry_key)
 
     return Markup('\n'.join(tags))
 

@@ -12,7 +12,7 @@
    gray to the mock's near-black zinc. .dark lives on <html>, so
    `html.dark .admin-area .dark\:X` outranks Tailwind's `.dark .dark\:X`. #}
 {% block custom_css %}{{ super() }}
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ static_v('vendor/fonts/jetbrains-mono.css') }}">
 <style>
   .admin-area .font-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; }
   /* Dark theme: prod gray utilities -> mock zinc, admin-only. */

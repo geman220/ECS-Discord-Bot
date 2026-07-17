@@ -7,7 +7,7 @@
 {{ super() }}
 {# Shepherd.js tour styling — the onboarding tour (custom_js/tour.js) needs this
    or its popup renders unstyled (close-icon/buttons collapse into the body). #}
-<link rel="stylesheet" href="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.css') }}">
+<link rel="stylesheet" href="{{ static_v('assets/vendor/libs/shepherd/shepherd.css') }}">
 {% endblock %}
 
 {% block main_content %}

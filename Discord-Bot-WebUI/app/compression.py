@@ -25,6 +25,13 @@ from flask_compress import Compress
 # js/some-verylongname.js and pin it in every browser cache for a year.
 _HASHED_ASSET_RE = re.compile(r'/static/vite-dist/.*-[A-Za-z0-9_-]{8}\.(?:js|css)$')
 
+# static_v() stamps ?v=<8 lowercase-hex content hash>. ONLY that exact shape may be
+# treated as content-addressed. A hand-written ?v=2 (see messages-inbox.js) or a
+# ?v=<unix-timestamp> on a profile photo is NOT content-addressed — pinning those
+# `immutable` for a year would freeze the old bytes until someone manually bumped
+# the string. Matching the hash shape precisely keeps them on the short policy.
+_CONTENT_HASH_V_RE = re.compile(r'^[a-f0-9]{8}$')
+
 _LONG_LIVED_SUFFIXES = ('.woff', '.woff2', '.ttf', '.eot',
                         '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp')
 
@@ -73,10 +80,29 @@ def init_compression(app):
     def _static_cache_control(response):
         path = request.path or ''
         if not path.startswith('/static/'):
+            # Non-static (HTML pages, JSON). If nothing downstream set an explicit
+            # policy, mark dynamic responses `no-store`. Two reasons:
+            #   1. Freshness: a fixed-name asset linked via static_v() is only
+            #      re-fetched when the HTML hands the browser a new ?v= hash — that
+            #      only works if the HTML itself is never served stale. no-store
+            #      guarantees every navigation re-renders and picks up a deploy.
+            #   2. Security: these pages are per-user and carry a CSRF token; they
+            #      should never be written to a shared/back disk cache.
+            # Leaves alone anything that deliberately set its own Cache-Control
+            # (etag_utils, cache_management, API endpoints with their own policy).
+            if 'Cache-Control' not in response.headers:
+                ctype = (response.headers.get('Content-Type') or '').split(';')[0].strip()
+                if ctype in ('text/html', 'application/xhtml+xml'):
+                    response.headers['Cache-Control'] = 'no-store, private'
             return response
 
-        if _HASHED_ASSET_RE.search(path):
-            # Vite content-hashed: the bytes at this URL can never change.
+        if _HASHED_ASSET_RE.search(path) or _CONTENT_HASH_V_RE.match(request.args.get('v', '')):
+            # Content-addressed URL: either a Vite-hashed filename, or a fixed-name
+            # asset linked via static_v() with a ?v=<content-hash> param. Both give
+            # the URL a new identity when the bytes change, so `immutable` is safe —
+            # and it keeps render-blocking CSS out of the per-navigation request
+            # storm entirely (a re-fetched stylesheet that 429s/502s at the edge is
+            # exactly the "unstyled flash" bug).
             response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
         elif path.endswith(_LONG_LIVED_SUFFIXES):
             # Fonts/images: change rarely and are normally renamed when they do.

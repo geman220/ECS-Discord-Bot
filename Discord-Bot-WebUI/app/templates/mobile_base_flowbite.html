@@ -7,14 +7,10 @@
     <title>{% block title %}ECS FC Profile Update{% endblock %}</title>
 
     <!-- Tailwind CSS (Flowbite) -->
-    {% if vite_production_mode is defined and vite_production_mode() %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='vite-dist/css/tailwind.css') }}">
-    {% else %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='vite-dist/css/tailwind.css') }}">
-    {% endif %}
+    <link rel="stylesheet" href="{{ static_v('vite-dist/css/tailwind.css') }}">
 
     <!-- Tabler Icons -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" />
+    <link rel="stylesheet" href="{{ static_v('vendor/fonts/tabler-icons.css') }}" />
 
     <!-- Cropper.js CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />

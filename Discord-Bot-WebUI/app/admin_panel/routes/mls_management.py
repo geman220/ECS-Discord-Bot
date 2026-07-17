@@ -364,12 +364,20 @@ def mls_matches():
             MLSMatch.date_time < recent_cutoff
         ).order_by(MLSMatch.date_time.desc()).all()
 
+        # Matches are stored in UTC but this is a Pacific-time community, and a
+        # 7:30pm PDT kickoff is 02:30 UTC the NEXT day. The calendar grid buckets
+        # by day server-side (Jinja), so bucket by Pacific day or matches land on
+        # the wrong date. Attach a Pacific-local datetime the template uses for
+        # all date bucketing / month-grid placement.
+        pacific = pytz.timezone('America/Los_Angeles')
+
         # Add enhanced data for visible matches
         for match in visible_matches:
             match.status_color = get_status_color(match.live_reporting_status)
             match.status_icon = get_status_icon(match.live_reporting_status)
             match.status_display = get_status_display(match.live_reporting_status)
             match.task_details = {'status': 'LOADING'}
+            match.local_dt = match.date_time.astimezone(pacific) if match.date_time else None
 
         # Add enhanced data for historical matches
         for match in historical_matches:
@@ -377,13 +385,23 @@ def mls_matches():
             match.status_icon = get_status_icon(match.live_reporting_status)
             match.status_display = get_status_display(match.live_reporting_status)
             match.task_details = {'status': 'HISTORICAL'}
+            match.local_dt = match.date_time.astimezone(pacific) if match.date_time else None
+
+        # The "Next Match" feature card must be the soonest UPCOMING match, not
+        # visible_matches[0] — that list starts 3 days in the past, so the card
+        # was showing yesterday's completed game. Fall back to the most recent
+        # past match only if nothing is upcoming (keeps the card populated).
+        next_match = next((m for m in visible_matches if m.date_time and m.date_time >= now), None)
+        if next_match is None and visible_matches:
+            next_match = visible_matches[-1]
 
         return render_template(
             'admin_panel/mls/matches_flowbite.html',
             matches=visible_matches,
             historical_matches=historical_matches,
             historical_count=len(historical_matches),
-            current_time=datetime.utcnow(),
+            next_match=next_match,
+            current_time=datetime.now(pacific),
             timedelta=timedelta,
             competition_mappings=COMPETITION_MAPPINGS
         )
@@ -393,6 +411,7 @@ def mls_matches():
                              matches=[],
                              historical_matches=[],
                              historical_count=0,
+                             next_match=None,
                              current_time=datetime.utcnow(),
                              timedelta=timedelta,
                              competition_mappings=COMPETITION_MAPPINGS,

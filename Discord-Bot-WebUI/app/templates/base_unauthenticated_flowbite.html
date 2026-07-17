@@ -6,16 +6,16 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}ECS FC{% endblock %}</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Fonts — Inter, self-hosted (no third-party request; see vendor/fonts/inter.css).
+         Preload href must byte-match the url() in inter.css (bare, no ?v=). -->
+    <link rel="preload" href="{{ url_for('static', filename='vendor/fonts/inter/inter-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{{ static_v('vendor/fonts/inter.css') }}">
 
     <!-- Tailwind CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vite-dist/css/tailwind.css') }}">
+    <link rel="stylesheet" href="{{ static_v('vite-dist/css/tailwind.css') }}">
 
     <!-- Icons -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}">
+    <link rel="stylesheet" href="{{ static_v('vendor/fonts/tabler-icons.css') }}">
 
     <!-- NOTE: Flowbite JS is bundled via npm in our Vite build (vendor-globals.js).
          CDN script REMOVED to prevent double-initialization and timing issues. -->
