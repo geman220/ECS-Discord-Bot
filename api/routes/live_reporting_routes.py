@@ -28,7 +28,11 @@ router = APIRouter(prefix="/api/live-reporting", tags=["live-reporting"])
 # cross-restart duplicate is rare; this covers the common same-process retry. ---
 import time as _time
 _recent_events: Dict[str, float] = {}
-_IDEMPOTENCY_TTL = 600  # seconds
+# 30 min: comfortably spans the WebUI's pre-match retry cadence (task self-retry
+# ~2min + the 10-min beat re-arm) so a resend of a post whose confirmation the
+# WebUI lost still gets deduped here. The WebUI also keeps a durable DB marker,
+# so this in-memory cache is a fast second layer, not the sole guarantee.
+_IDEMPOTENCY_TTL = 1800  # seconds
 
 
 def _seen_event(thread_id: int, key: Optional[str]) -> bool:

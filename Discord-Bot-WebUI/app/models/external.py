@@ -106,6 +106,52 @@ class MLSMatch(db.Model):
         return f'<MLSMatch {self.match_id}: {self.opponent} on {self.date_time}>'
 
 
+class MlsPostMarker(db.Model):
+    """
+    Durable idempotency marker for one-shot MLS pre-match Discord posts.
+
+    One row per (match, post unit) that has been confirmed-posted — e.g.
+    'buildup:42', 'lineup:42:home', 'lineup:42:away'. The UNIQUE dedup_key is the
+    arbiter: a post is attempted only when no marker exists, and the marker is
+    written after a confirmed send. Unlike the bot's in-memory idempotency cache
+    (10-30 min TTL) and the old advisory Redis claim, this survives worker
+    restarts and Redis outages, so a post can never be duplicated across
+    concurrent dispatch or Celery redelivery. Per-unit granularity lets a partial
+    lineup post (one side's send failed) retry only the side still missing.
+    """
+    __tablename__ = 'mls_post_markers'
+
+    id = db.Column(db.Integer, primary_key=True)
+    dedup_key = db.Column(db.String(120), unique=True, nullable=False)
+    match_id = db.Column(db.Integer, nullable=False, index=True)
+    post_type = db.Column(db.String(30), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow)
+
+    @classmethod
+    def exists(cls, session, dedup_key):
+        """True if this post unit has already been confirmed-posted."""
+        return session.query(cls.id).filter_by(dedup_key=dedup_key).first() is not None
+
+    @classmethod
+    def record(cls, session, dedup_key, match_id, post_type):
+        """
+        Durably record a marker, committing immediately so it survives a crash.
+
+        Returns True if newly recorded, False if it already existed (a
+        unique-constraint race — another worker recorded it first). Either way the
+        marker exists afterward, so the caller treats both as "posted". Rolls back
+        only the marker insert on conflict; call this before mutating other rows.
+        """
+        from sqlalchemy.exc import IntegrityError
+        session.add(cls(dedup_key=dedup_key, match_id=match_id, post_type=post_type))
+        try:
+            session.commit()
+            return True
+        except IntegrityError:
+            session.rollback()
+            return False
+
+
 class Progress(db.Model):
     """Model representing the progress of a task."""
     __tablename__ = 'progress'

@@ -899,7 +899,7 @@ def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
     from celery.exceptions import Retry
     try:
         from datetime import timezone
-        from app.models.external import MLSMatch
+        from app.models.external import MLSMatch, MlsPostMarker
         from app.utils.espn_api_client import ESPNAPIClient
         from app.utils.discord_request_handler import send_to_discord_bot
 
@@ -908,8 +908,9 @@ def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
             if not match:
                 return {"success": False, "error": f"Match {match_id} not found"}
 
-            # ── Idempotency guard: durable flag survives any scheduler/session
-            # rollback, so duplicate dispatches can never double-post. ──
+            # ── Fast idempotency gate: the denormalized flag means both sides
+            # already posted. The per-side durable markers below are the real
+            # arbiter and handle partial-completion; this just short-circuits. ──
             if match.lineups_posted:
                 logger.info(f"Lineups already posted for match {match_id}, skipping")
                 task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.LINEUP_POST)
@@ -972,22 +973,23 @@ def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
                     db_session.commit()
                 return {"success": False, "message": reason}
 
-            # ── Redis claim: serialize concurrent duplicate dispatches. Taken
-            # only once lineup data exists so ESPN-not-ready retries above are
-            # unaffected. Advisory only — if Redis is down we still post and
-            # rely on the durable lineups_posted flag. ──
-            from app.utils.safe_redis import get_safe_redis
-            redis = get_safe_redis()
-            claim_key = f"mls_lineups_posted:{match_id}"
-            if redis.is_available and not redis.set(claim_key, self.request.id or 'unknown', nx=True, ex=21600):
-                logger.info(f"Lineup post for match {match_id} already claimed by another task, skipping")
-                return {"success": True, "message": "Lineup post already in progress", "already_posted": True}
-
-            # Build lineup embeds for each team
-            posted_any = False
+            # Post each side independently, tracked by its own durable marker
+            # (`lineup:{id}:home` / `:away`). Per-side markers mean a retry
+            # re-sends ONLY the side still missing — never the one already up —
+            # so a partial failure (one team's send errored) self-heals without
+            # duplicating the other. `needed` = sides ESPN actually gave us data
+            # for; `done` = sides now confirmed posted (this run or a prior one).
+            needed_sides = []
+            done_sides = []
             for side in ('home', 'away'):
                 team_data = lineups.get(side)
                 if not team_data:
+                    continue
+                needed_sides.append(side)
+
+                dedup_key = f"lineup:{match_id}:{side}"
+                if MlsPostMarker.exists(db_session, dedup_key):
+                    done_sides.append(side)
                     continue
 
                 starters = team_data.get('starters', [])
@@ -1026,41 +1028,46 @@ def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
                     'event_type': 'lineup',
                     'content': f"{team_name} starting XI",
                     'embed': embed,
-                    'match_data': {'match_id': str(match_id)}
+                    'match_data': {'match_id': str(match_id)},
+                    'idempotency_key': dedup_key,
                 }
 
                 response = send_to_discord_bot('/api/live-reporting/event', request_data)
                 if response and response.get('success'):
-                    posted_any = True
+                    # Durable marker recorded only after a confirmed send.
+                    MlsPostMarker.record(db_session, dedup_key, match_id, 'lineup')
+                    done_sides.append(side)
                     logger.info(f"Posted {side} lineup for match {match_id}")
                 else:
                     error_msg = response.get('error', 'Unknown') if response else 'No response'
                     logger.error(f"Failed to post {side} lineup: {error_msg}")
 
-            if not posted_any:
-                # Nothing landed in Discord. Release the claim and retry — safe
-                # because no embed posted, so a re-run can't duplicate (and the
-                # match hasn't started, else we'd have bailed above). A single
-                # flag can't safely retry a PARTIAL post, which is why a partial
-                # success below is treated as terminal instead.
-                redis.delete(claim_key)
-                if self.request.retries < self.max_retries:
-                    logger.warning(f"Discord post failed for both lineups (match {match_id}), retrying in 2min")
-                    raise self.retry(countdown=120)
-                task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.LINEUP_POST)
-                if task:
-                    task.mark_failed('Discord post failed for both lineups')
-                    db_session.commit()
-                return {"success": False, "error": "Discord post failed for both lineups"}
-
-            # Durable flag written only after a confirmed successful send.
-            match.lineups_posted = True
             task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.LINEUP_POST)
-            if task:
-                task.mark_completed()
-            db_session.commit()
 
-            return {"success": True, "message": "Lineups posted"}
+            # All sides ESPN gave us are now posted → done.
+            if needed_sides and set(done_sides) >= set(needed_sides):
+                match.lineups_posted = True
+                if task:
+                    task.mark_completed()
+                db_session.commit()
+                return {"success": True, "message": f"Lineups posted ({', '.join(done_sides)})"}
+
+            # A side is still missing (its send failed). Retry — the markers make
+            # this re-send only the missing side, so it can't duplicate.
+            missing = [s for s in needed_sides if s not in done_sides]
+            if self.request.retries < self.max_retries:
+                logger.warning(f"Lineup post incomplete for match {match_id} (missing {missing}), retrying in 2min")
+                if task:
+                    task.last_error = f"Awaiting Discord for lineup sides: {missing}"
+                db_session.commit()
+                raise self.retry(countdown=120)
+
+            # Retries exhausted with a side still missing — leave the flag false
+            # so the beat scheduler re-arms and keeps trying until kickoff.
+            if task:
+                task.mark_failed(f"Lineup sides still missing after retries: {missing}")
+                db_session.commit()
+            return {"success": False, "error": f"Lineup sides missing: {missing}"}
 
     except Retry:
         # Celery's retry mechanism — must propagate, not swallow
@@ -1089,7 +1096,7 @@ def post_match_buildup_task(self, session, match_id: int) -> Dict[str, Any]:
     try:
         from datetime import timezone
         from zoneinfo import ZoneInfo
-        from app.models.external import MLSMatch
+        from app.models.external import MLSMatch, MlsPostMarker
         from app.utils.espn_api_client import ESPNAPIClient
         from app.utils.competition_mappings import resolve_league_code
         from app.utils.discord_request_handler import send_to_discord_bot
@@ -1169,38 +1176,47 @@ def post_match_buildup_task(self, session, match_id: int) -> Dict[str, Any]:
                 'fields': fields,
             }
 
+            # Stable idempotency key: the bot dedupes concurrent/redelivered
+            # sends on (thread_id, key); the durable marker below is the
+            # cross-restart backstop. Together they guarantee at-most-once.
+            dedup_key = f"buildup:{match_id}"
+
+            # Durable dedup: if a marker already exists this build-up posted on a
+            # prior attempt (that we may have crashed before recording the flag).
+            if MlsPostMarker.exists(db_session, dedup_key):
+                logger.info(f"Build-up marker present for match {match_id}, skipping")
+                match.buildup_posted = True
+                task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.BUILDUP_POST)
+                if task:
+                    task.mark_completed()
+                db_session.commit()
+                return {"success": True, "message": "Build-up already posted", "already_posted": True}
+
             request_data = {
                 'thread_id': thread_id,
                 'event_type': 'buildup',
                 'content': f"{home_team} vs {away_team}",
                 'embed': embed,
                 'match_data': {'match_id': str(match_id)},
+                'idempotency_key': dedup_key,
             }
-
-            # ── Redis claim: serialize concurrent duplicate dispatches.
-            # Advisory only — if Redis is down we still post and rely on the
-            # durable buildup_posted flag. ──
-            from app.utils.safe_redis import get_safe_redis
-            redis = get_safe_redis()
-            claim_key = f"mls_buildup_posted:{match_id}"
-            if redis.is_available and not redis.set(claim_key, self.request.id or 'unknown', nx=True, ex=21600):
-                logger.info(f"Build-up post for match {match_id} already claimed by another task, skipping")
-                return {"success": True, "message": "Build-up post already in progress", "already_posted": True}
 
             response = send_to_discord_bot('/api/live-reporting/event', request_data)
             task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.BUILDUP_POST)
             if response and response.get('success'):
                 logger.info(f"Posted build-up for match {match_id}")
-                # Durable flag written only after a confirmed successful send.
+                # Record the durable marker FIRST (its own commit), then the
+                # denormalized flag — order chosen so a crash can't leave a
+                # posted-but-unmarked state that would re-post.
+                MlsPostMarker.record(db_session, dedup_key, match_id, 'buildup')
                 match.buildup_posted = True
                 if task:
                     task.mark_completed()
                 db_session.commit()
                 return {"success": True, "message": "Build-up posted"}
 
-            # Nothing landed in Discord. Release the claim and retry — safe
-            # because no embed posted, so a re-run can't duplicate.
-            redis.delete(claim_key)
+            # Nothing landed in Discord — retry. Safe because no embed posted
+            # (and if one somehow did, the marker/idempotency key dedupes it).
             error_msg = response.get('error', 'Unknown') if response else 'No response'
             logger.error(f"Failed to post build-up for match {match_id}: {error_msg}")
             if self.request.retries < self.max_retries:
