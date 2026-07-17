@@ -181,7 +181,11 @@
                              class="w-9 h-9 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700 shrink-0">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-2">
-                                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</span>
+                                <span class="flex items-center gap-1 min-w-0">
+                                    <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</span>
+                                    {% if player.is_new %}<span class="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300" title="Brand new — no prior team history"><i class="ti ti-sparkles"></i>NEW</span>{% endif %}
+                                    {% if player.is_admin %}<span class="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300" title="Admin"><i class="ti ti-shield-check"></i>ADMIN</span>{% endif %}
+                                </span>
                                 <span class="shrink-0 inline-flex items-center justify-center min-w-[2.25rem] px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide font-mono {{ 'bg-ecs-green/10 text-ecs-green' if player.favorite_position and player.favorite_position != 'Any' else 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' }}">{{ player.favorite_position|format_position or 'Any' }}</span>
                             </div>
                             <div class="flex items-center gap-2.5 text-xs text-gray-500 dark:text-gray-400 mt-0.5">

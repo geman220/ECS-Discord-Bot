@@ -381,8 +381,11 @@ def register_with_discord():
         if pl_order_id and pl_token:
             return redirect(url_for('pub_league.link_order', order_id=pl_order_id, token=pl_token))
 
-        # Redirect to main index which will handle onboarding and show the sweet alert
-        return redirect(url_for('main.index'))
+        # Send brand-new registrants straight into onboarding (real name, photo,
+        # league preference) BEFORE they hit the pending-approval wait screen, so
+        # the admin approving them sees a complete profile. The league-access gate
+        # also enforces this for any not-yet-approved user who lands elsewhere.
+        return redirect(url_for('main.onboarding'))
 
     except Exception as e:
         logger.error(f"Discord registration error: {str(e)}", exc_info=True)

@@ -635,6 +635,14 @@ class DraftService:
         image_data = ImageCacheService.get_player_image_data(player_ids)
         logger.debug(f"Image data loaded in {(datetime.now() - image_start).total_seconds():.2f}s")
 
+        # Admin membership for the roster-composition requirement ("each team needs X admins").
+        admin_user_ids = DraftService._batch_load_admin_user_ids(
+            [getattr(p, 'user_id', None) for p in players if getattr(p, 'user_id', None)]
+        )
+        # "Brand new" = no team history in any PRIOR season (excludes the current season, so a
+        # new player stays flagged 'new' even after this draft assigns them a current-season row).
+        new_player_ids = DraftService._batch_load_new_player_ids(player_ids, current_season_id)
+
         # Load previous season draft positions if league_id is provided
         draft_position_start = datetime.now()
         prev_draft_positions = {}
@@ -718,6 +726,11 @@ class DraftService:
                 'league_experience_seasons': teams_played_on,
                 'experience_level': 'Veteran' if teams_played_on >= 3 else 'Experienced' if teams_played_on >= 1 else 'New Player',
 
+                # Roster-composition flags: 'new' = no prior-season team history; 'admin' = holds
+                # a Pub League Admin / Global Admin role. Drive the per-team requirement counters.
+                'is_new': player.id in new_player_ids,
+                'is_admin': getattr(player, 'user_id', None) in admin_user_ids,
+
                 # Previous season draft position (None = not drafted previously)
                 'prev_draft_position': prev_draft_position,
 
@@ -739,7 +752,54 @@ class DraftService:
         logger.debug(f"Enhanced player data processing completed in {total_time:.2f}s for {len(enhanced_players)} players")
         
         return enhanced_players
-    
+
+    @staticmethod
+    def _batch_load_admin_user_ids(user_ids: List[int]) -> set:
+        """Return the subset of `user_ids` that hold a Pub League Admin / Global Admin role.
+
+        Used to flag drafted players as 'admins' for the per-team roster requirement.
+        """
+        ids = [uid for uid in set(user_ids or []) if uid]
+        if not ids:
+            return set()
+        try:
+            from app.models.core import Role, user_roles
+            session = g.db_session
+            role_ids = [r.id for r in session.query(Role.id).filter(
+                Role.name.in_(['Pub League Admin', 'Global Admin'])).all()]
+            if not role_ids:
+                return set()
+            rows = session.query(user_roles.c.user_id).filter(
+                user_roles.c.user_id.in_(ids),
+                user_roles.c.role_id.in_(role_ids),
+            ).all()
+            return {uid for (uid,) in rows}
+        except Exception as e:
+            logger.warning(f"admin user-id batch load failed: {e}")
+            return set()
+
+    @staticmethod
+    def _batch_load_new_player_ids(player_ids: List[int], current_season_id: Optional[int] = None) -> set:
+        """Player ids that are BRAND NEW — no team history in any prior season.
+
+        Excludes the current season so a player stays flagged 'new' even after this draft
+        creates their current-season PlayerTeamSeason row (keeps the counter refresh-stable).
+        """
+        if not player_ids:
+            return set()
+        try:
+            from app.models import PlayerTeamSeason
+            session = g.db_session
+            q = session.query(func.distinct(PlayerTeamSeason.player_id)).filter(
+                PlayerTeamSeason.player_id.in_(player_ids))
+            if current_season_id:
+                q = q.filter(PlayerTeamSeason.season_id != current_season_id)
+            has_prior = {pid for (pid,) in q.all()}
+            return set(player_ids) - has_prior
+        except Exception as e:
+            logger.warning(f"new-player batch load failed: {e}")
+            return set()
+
     @staticmethod
     def _batch_load_attendance(player_ids: List[int], season_id: Optional[int] = None) -> Dict[int, Dict]:
         """Fast batch load of cached attendance data using AttendanceService."""

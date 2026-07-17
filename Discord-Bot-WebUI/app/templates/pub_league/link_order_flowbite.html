@@ -195,6 +195,39 @@
                     </div>
                 </div>
                 <div class="p-4">
+                    {% if auto_confirm_item %}
+                    <!-- Auto-linked single pass awaiting the buyer's confirmation.
+                         The pass is already linked server-side (so people who bounce
+                         still get activated); this is the explicit "yes, that's me". -->
+                    <div id="autoConfirmCard" class="mb-4 rounded-xl border border-ecs-green/30 dark:border-ecs-gold/30 bg-ecs-green/5 dark:bg-ecs-gold/5 p-5">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-full bg-ecs-green/10 dark:bg-ecs-gold/10 flex items-center justify-center flex-shrink-0">
+                                <i class="ti ti-user-check text-xl text-ecs-green dark:text-ecs-gold"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <h2 class="font-semibold text-gray-900 dark:text-white">Confirm your pass</h2>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                    We've linked your <span class="font-medium text-gray-900 dark:text-white">{{ auto_confirm_item.division or 'Pub League' }} pass</span> to your account{% if profile_prefill.name %}, {{ profile_prefill.name }}{% endif %}. Tap below to confirm it's yours.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mt-4 space-y-2">
+                            <button type="button"
+                                    data-action="pub-league-confirm-link"
+                                    data-line-item-id="{{ auto_confirm_item.id }}"
+                                    class="w-full flex items-center justify-center gap-2 min-h-[44px] px-4 py-3.5 text-base font-semibold text-white bg-ecs-green hover:bg-ecs-green/90 dark:bg-ecs-gold dark:hover:bg-ecs-gold/90 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-ecs-green">
+                                <i class="ti ti-check text-lg"></i>
+                                Yes — confirm my pass
+                            </button>
+                            <button type="button"
+                                    data-action="pub-league-reject-auto-link"
+                                    data-line-item-id="{{ auto_confirm_item.id }}"
+                                    class="w-full flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                                This isn't for me — assign to someone else
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
                     <!-- Unassigned Passes List -->
                     <div id="unassignedPasses" class="space-y-3">
                         {% for item in unassigned_items %}
@@ -612,7 +645,7 @@
                     <i class="ti ti-ticket"></i>
                     You're all set{% if order.season_name %} for {{ order.season_name }}{% endif %}!
                 </h1>
-                <p class="text-white/80">Grab your pass below and we'll see you on the pitch.</p>
+                <p class="text-white/80">You're fully registered — we'll see you on the pitch. The wallet pass below is completely optional.</p>
             </div>
 
             <!-- Pending-approval hero -->
@@ -652,9 +685,12 @@
                         <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                             <i class="ti ti-wallet text-green-600 dark:text-green-400"></i>
                         </div>
-                        <div>
-                            <h2 class="font-semibold text-gray-900 dark:text-white">Download Your Pass</h2>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Add to Apple or Google Wallet</p>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 class="font-semibold text-gray-900 dark:text-white">Download Your Pass</h2>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-300">Optional</span>
+                            </div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">This step is completely optional.</p>
                         </div>
                     </div>
                 </div>
@@ -673,8 +709,8 @@
                             <div>
                                 <p class="font-medium mb-1">What's next?</p>
                                 <ul class="list-disc list-inside space-y-1 text-blue-600 dark:text-blue-400">
-                                    <li>Your pass lives in your phone's wallet</li>
-                                    <li>Show it at check-in on game days</li>
+                                    <li>The wallet pass is completely optional</li>
+                                    <li>If you grab it, it lives in your phone's wallet</li>
                                     {% if is_approved %}
                                     <li>Your Discord league roles are all set</li>
                                     {% else %}
@@ -871,15 +907,24 @@ document.addEventListener('DOMContentLoaded', function() {
             nextBtn.classList.add('hidden');
             prevBtn.classList.add('hidden');
         } else if (step === 3) {
-            // Assignment step - Continue enabled only when every pass is handled
-            nextBtn.classList.remove('hidden');
             prevBtn.classList.remove('hidden');
-            nextBtn.querySelector('span').textContent = 'Continue';
-            const unassignedCount = document.querySelectorAll('.pass-item:not(.assigned)').length;
-            nextBtn.disabled = unassignedCount > 0;
-            if (unassignedCount > 0) {
-                nextHelper.textContent = 'Assign or gift each pass to continue';
-                nextHelper.classList.remove('hidden');
+            const autoCard = document.getElementById('autoConfirmCard');
+            if (autoCard && autoCard.dataset.confirmed !== 'true') {
+                // Auto-linked single pass awaiting confirmation — the card's own
+                // "Confirm my pass" button is the primary action, so suppress the
+                // generic Continue to force an explicit yes.
+                nextBtn.classList.add('hidden');
+                nextHelper.classList.add('hidden');
+            } else {
+                // Assignment step - Continue enabled only when every pass is handled
+                nextBtn.classList.remove('hidden');
+                nextBtn.querySelector('span').textContent = 'Continue';
+                const unassignedCount = document.querySelectorAll('.pass-item:not(.assigned)').length;
+                nextBtn.disabled = unassignedCount > 0;
+                if (unassignedCount > 0) {
+                    nextHelper.textContent = 'Assign or gift each pass to continue';
+                    nextHelper.classList.remove('hidden');
+                }
             }
         } else if (step === 5) {
             // Profile confirmation - Continue gated until each section is confirmed
@@ -1060,6 +1105,76 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             if (btn) btn.disabled = false;
         } finally {
+            hideLoading();
+        }
+    }
+
+    // Confirm an auto-linked pass is really mine ("Yes — confirm my pass").
+    async function confirmMyPass(lineItemId, btn) {
+        if (btn) btn.disabled = true;
+        showLoading('Confirming your pass...');
+        try {
+            const response = await fetch('/pub-league/link-order/confirm-link', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({ order_id: state.orderId, line_item_id: lineItemId })
+            });
+            const data = await response.json();
+            if (data.success) {
+                if (typeof data.is_approved === 'boolean') state.isApproved = data.is_approved;
+                if (typeof data.is_current_player === 'boolean') state.isCurrentPlayer = data.is_current_player;
+                const card = document.getElementById('autoConfirmCard');
+                if (card) { card.dataset.confirmed = 'true'; card.classList.add('hidden'); }
+                goToNextStep();
+            } else {
+                throw new Error(data.message || 'Could not confirm your pass');
+            }
+        } catch (error) {
+            console.error('Error confirming pass:', error);
+            Swal.fire({ icon: 'error', title: 'Error', text: error.message || 'Please try again.' });
+            if (btn) btn.disabled = false;
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // "This isn't for me" — unlink so they can gift/assign to the right person.
+    async function rejectAutoLink(lineItemId, btn) {
+        const confirmed = await Swal.fire({
+            icon: 'question',
+            title: 'Assign to someone else?',
+            text: "We'll unlink this pass from your account so you can gift it or assign it to the right person.",
+            showCancelButton: true,
+            confirmButtonText: 'Yes, unlink it',
+            cancelButtonText: 'Keep it'
+        });
+        if (!confirmed.isConfirmed) return;
+        if (btn) btn.disabled = true;
+        showLoading('Unlinking pass...');
+        try {
+            const response = await fetch('/pub-league/link-order/reject-auto-link', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({ order_id: state.orderId, line_item_id: lineItemId })
+            });
+            const data = await response.json();
+            if (data.success) {
+                // Reload so the server re-renders the standard assignment step
+                // (the pass is now unassigned and gains its own assign/gift card).
+                location.reload();
+            } else {
+                throw new Error(data.message || 'Could not unlink the pass');
+            }
+        } catch (error) {
+            console.error('Error unlinking pass:', error);
+            Swal.fire({ icon: 'error', title: 'Error', text: error.message || 'Please try again.' });
+            if (btn) btn.disabled = false;
             hideLoading();
         }
     }
@@ -1410,6 +1525,10 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (e) { serverIds = []; }
             const lineItemIds = [...new Set([...domIds, ...serverIds])];
             const passes = [];
+            // Only offer Google Wallet when the backend reports it's actually
+            // configured — otherwise the button dead-ends on a "coming soon"
+            // page, which reads as a broken pass. Apple is always available.
+            let googleAvailable = false;
 
             for (const lineItemId of lineItemIds) {
                 const response = await fetch('/pub-league/link-order/generate-pass', {
@@ -1424,6 +1543,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 if (data.success && data.wallet_pass) {
                     passes.push(data.wallet_pass);
+                    if (data.google_available) googleAvailable = true;
                 }
             }
 
@@ -1437,21 +1557,27 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div>
                                 <p class="font-semibold text-gray-900 dark:text-white">Your Pub League Pass</p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">Ready for download</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Optional — grab it if you like</p>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid ${googleAvailable ? 'grid-cols-2' : 'grid-cols-1'} gap-3">
                             <a href="${pass.download_url}&platform=apple"
                                class="flex items-center justify-center gap-2 px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors">
                                 <i class="ti ti-brand-apple text-xl"></i>
                                 <span class="font-medium">Apple Wallet</span>
                             </a>
+                            ${googleAvailable ? `
                             <a href="${pass.download_url}&platform=google"
                                class="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                                 <i class="ti ti-brand-google text-xl"></i>
                                 <span class="font-medium">Google Wallet</span>
-                            </a>
+                            </a>` : ''}
                         </div>
+                        ${googleAvailable ? '' : `
+                        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                            <i class="ti ti-brand-android"></i>
+                            Google Wallet for Android is coming soon — you're fully registered either way.
+                        </p>`}
                     </div>
                 `).join('');
             } else {
@@ -1468,12 +1594,13 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error generating passes:', error);
             container.innerHTML = `
                 <div class="text-center py-6">
-                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/50 mb-4">
-                        <i class="ti ti-alert-circle text-3xl text-red-600 dark:text-red-400"></i>
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/50 mb-4">
+                        <i class="ti ti-circle-check text-3xl text-green-600 dark:text-green-400"></i>
                     </div>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4">There was an error generating your pass.</p>
+                    <p class="text-gray-700 dark:text-gray-300 font-medium mb-1">You're registered — you're all set.</p>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">We couldn't build your wallet pass just now, but it's optional and your spot is saved. You can grab it later from your dashboard.</p>
                     <button type="button" onclick="location.reload()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
-                        Try Again
+                        Try the pass again
                     </button>
                 </div>
             `;
@@ -1491,6 +1618,14 @@ document.addEventListener('DOMContentLoaded', function() {
         switch (action) {
             case 'pub-league-link-self':
                 linkPassToSelf(lineItemId, target);
+                break;
+
+            case 'pub-league-confirm-link':
+                confirmMyPass(lineItemId, target);
+                break;
+
+            case 'pub-league-reject-auto-link':
+                rejectAutoLink(lineItemId, target);
                 break;
 
             case 'pub-league-copy-claim':

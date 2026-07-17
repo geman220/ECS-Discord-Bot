@@ -156,11 +156,21 @@ def handle_draft_player_enhanced(data):
                     ds = draft_clock.get_session(session, season_id, league_id)
                     if (ds and ds.status == 'active' and ds.lock_to_clock
                             and ds.current_team_id and ds.current_team_id != team_id):
-                        on_clock = session.query(Team).filter(Team.id == ds.current_team_id).first()
-                        on_clock_name = on_clock.name if on_clock else 'another team'
-                        print(f"🚫 Out-of-turn pick blocked: {team_name} (on the clock: {on_clock_name})")
-                        emit('draft_error', {'message': f"It's {on_clock_name}'s pick — they're on the clock"})
-                        return
+                        # Admins may draft OUT OF TURN (an extra pick / correction for a team
+                        # that isn't on the clock). This does not consume the on-the-clock
+                        # team's turn — the clock only advances when THAT team picks (below).
+                        is_admin = False
+                        try:
+                            is_admin = current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin')
+                        except Exception:
+                            is_admin = False
+                        if not is_admin:
+                            on_clock = session.query(Team).filter(Team.id == ds.current_team_id).first()
+                            on_clock_name = on_clock.name if on_clock else 'another team'
+                            print(f"🚫 Out-of-turn pick blocked: {team_name} (on the clock: {on_clock_name})")
+                            emit('draft_error', {'message': f"It's {on_clock_name}'s pick — they're on the clock"})
+                            return
+                        print(f"🛡️ Admin out-of-turn pick allowed: {team_name} (clock stays on team {ds.current_team_id})")
                 except Exception as _clock_err:
                     logger.warning(f"Draft on-the-clock check skipped: {_clock_err}")
 
@@ -287,6 +297,29 @@ def handle_draft_player_enhanced(data):
             with managed_session() as session:
                 player = session.query(Player).filter(Player.id == player_id).first()
 
+                # Roster-composition flags for the live per-team requirement counters.
+                # 'new' = no team history in a PRIOR season (exclude the row we just wrote);
+                # 'admin' = holds a Pub League Admin / Global Admin role.
+                is_new_flag, is_admin_flag = False, False
+                try:
+                    from app.models import PlayerTeamSeason
+                    from app.models.core import Role, user_roles
+                    prior = session.query(PlayerTeamSeason.id).filter(
+                        PlayerTeamSeason.player_id == player_id,
+                        PlayerTeamSeason.season_id != season_id,
+                    ).first()
+                    is_new_flag = prior is None
+                    if player and player.user_id:
+                        arole = session.query(user_roles.c.user_id).join(
+                            Role, Role.id == user_roles.c.role_id
+                        ).filter(
+                            user_roles.c.user_id == player.user_id,
+                            Role.name.in_(['Pub League Admin', 'Global Admin']),
+                        ).first()
+                        is_admin_flag = arole is not None
+                except Exception as _flag_err:
+                    logger.warning(f"draft flags compute skipped: {_flag_err}")
+
                 # Success response with full player data including all position fields
                 response_data = {
                     'success': True,
@@ -316,7 +349,9 @@ def handle_draft_player_enhanced(data):
                         'attendance_estimate': 75,
                         'experience_level': 'New Player',
                         'prev_draft_position': None,  # New draft, no previous position yet
-                        'current_position': position  # Position on the pitch (from pitch view)
+                        'current_position': position,  # Position on the pitch (from pitch view)
+                        'is_new': is_new_flag,
+                        'is_admin': is_admin_flag
                     },
                     'team_id': team_id,
                     'team_name': team_name,
@@ -335,7 +370,13 @@ def handle_draft_player_enhanced(data):
                 with managed_session() as clock_session:
                     ds = draft_clock.get_session(clock_session, season_id, league_id)
                     if ds and ds.status == 'active':
-                        clock_state = draft_clock.advance(clock_session, ds)
+                        # Advance ONLY when the team that was on the clock made this pick. An
+                        # admin adding a player to a DIFFERENT team must not skip the on-the-clock
+                        # team's turn — the clock stays put (we re-emit the unchanged state).
+                        if not ds.current_team_id or ds.current_team_id == team_id:
+                            clock_state = draft_clock.advance(clock_session, ds)
+                        else:
+                            clock_state = draft_clock.build_state(clock_session, ds)
                         # commit happens on managed_session exit; emit after
                 clock_state = locals().get('clock_state')
                 if clock_state:
@@ -624,7 +665,9 @@ def handle_remove_player_enhanced(data):
                             'league_experience_seasons': enhanced_player['league_experience_seasons'],
                             'attendance_estimate': enhanced_player['attendance_estimate'],
                             'experience_level': enhanced_player['experience_level'],
-                            'expected_weeks_available': enhanced_player['expected_weeks_available']
+                            'expected_weeks_available': enhanced_player['expected_weeks_available'],
+                            'is_new': enhanced_player.get('is_new', False),
+                            'is_admin': enhanced_player.get('is_admin', False)
                         }
                     else:
                         print(f"❌ No enhanced data returned for {player.name}, using fallback")
@@ -652,7 +695,9 @@ def handle_remove_player_enhanced(data):
                         'attendance_estimate': None,  # No historical data for fallback case
                         'experience_level': 'New Player',
                         'expected_weeks_available': player.expected_weeks_available or 'All weeks',
-                        'prev_draft_position': None
+                        'prev_draft_position': None,
+                        'is_new': False,  # fallback path only; the counter re-seeds on refresh
+                        'is_admin': False
                     }
 
                 # Commit the transaction

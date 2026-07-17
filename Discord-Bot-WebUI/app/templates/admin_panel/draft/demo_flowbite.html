@@ -38,6 +38,38 @@
   </div>
 
   <div id="demoBody">
+    <!-- ===== HOW IT WORKS + ROSTER REQUIREMENTS ===== -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-4">
+      <details>
+        <summary class="px-4 py-3 cursor-pointer list-none flex items-center justify-between gap-2 text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">
+          <span class="flex items-center gap-2"><i class="ti ti-help-circle text-ecs-green" aria-hidden="true"></i> How this draft works</span>
+          <i class="ti ti-chevron-down text-gray-400" aria-hidden="true"></i>
+        </summary>
+        <div class="px-4 pb-4 grid sm:grid-cols-3 gap-3 text-sm text-gray-600 dark:text-gray-300">
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+            <div class="font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 mb-1"><i class="ti ti-arrows-left-right text-ecs-green"></i> Snake order</div>
+            The pick order <strong>reverses every round</strong> (E→L, then L→E, then E→L…). Whoever picks last in round 1 picks first in round 2, so no team is stuck picking last every round. This is the fair default.
+          </div>
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+            <div class="font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 mb-1"><i class="ti ti-arrow-right text-ecs-green"></i> Linear order</div>
+            The <strong>same order every round</strong> (E→L, E→L…). Simpler, but the first team always picks first — a slight advantage each round.
+          </div>
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+            <div class="font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 mb-1"><i class="ti ti-list-numbers text-ecs-green"></i> Rounds</div>
+            Auto-calculated to draft <strong>everyone</strong>: players ÷ teams, rounded up. One pick per team per round, in order. Here: <strong id="roundsInfo">—</strong>.
+          </div>
+        </div>
+      </details>
+      <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-x-4 gap-y-2 bg-gray-50/60 dark:bg-gray-900/30">
+        <span class="text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">Roster requirements (per team)</span>
+        <label class="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-1.5"><i class="ti ti-sparkles text-violet-500"></i> New players
+          <input type="number" min="0" id="reqNew" value="0" class="input-ecs h-8 w-16 text-sm"></label>
+        <label class="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-1.5"><i class="ti ti-shield-check text-sky-500"></i> Admins
+          <input type="number" min="0" id="reqAdmin" value="0" class="input-ecs h-8 w-16 text-sm"></label>
+        <span class="text-[11px] text-gray-400 dark:text-gray-500">Coaches see live counters; admins can exceed or override.</span>
+      </div>
+    </section>
+
     <!-- ===== TURN STRIP (the shared board everyone watches) ===== -->
     <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-4">
       <div class="p-3 sm:p-4 flex flex-col lg:flex-row lg:items-center gap-3">
@@ -80,6 +112,12 @@
 
   <!-- announcement toast -->
   <div id="demoToast" class="fixed inset-x-0 top-16 z-[70] flex justify-center px-4 pointer-events-none"></div>
+
+  <!-- quick-view profile modal -->
+  <div id="profileModal" class="hidden fixed inset-0 z-[80] items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/50" data-profile-close></div>
+    <div id="profileCard" class="relative w-full max-w-sm rounded-2xl bg-white dark:bg-gray-800 shadow-2xl overflow-hidden"></div>
+  </div>
 </div>
 {% endblock %}
 
@@ -113,7 +151,8 @@
 
   function reset() {
     stopPlay();
-    var byId = {}; PLAYERS.forEach(function (p) { byId[p.id] = { id: p.id, name: p.name, pos: p.pos }; });
+    var byId = {}; PLAYERS.forEach(function (p) { byId[p.id] = p; });
+    var prevReqNew = S ? S.reqNew : 0, prevReqAdmin = S ? S.reqAdmin : 0;
     S = {
       rounds: Math.ceil(PLAYERS.length / TEAMS.length),
       total: PLAYERS.length,           // draft everyone
@@ -125,6 +164,8 @@
       picks: {},                       // teamId -> [{player, pos, overall}]
       log: [],                         // [{overall, teamId, player, pos}]
       deadline: Date.now() + 60000,
+      reqNew: prevReqNew || 0,          // per-team minimum brand-new players
+      reqAdmin: prevReqAdmin || 0,      // per-team minimum admins
       phone: {
         A: { sel: String(TEAMS[0].id), tab: 'list', armed: null, q: '' },
         B: { sel: String(TEAMS[1] ? TEAMS[1].id : TEAMS[0].id), tab: 'list', armed: null, q: '' }
@@ -132,6 +173,38 @@
     };
     TEAMS.forEach(function (t) { S.picks[t.id] = []; });
     renderAll(); runTick();
+  }
+
+  // ---- roster-composition requirements (New / Admin quotas per team) ----
+  function teamReqCounts(teamId) {
+    var roster = S.picks[teamId] || [], nw = 0, ad = 0;
+    roster.forEach(function (e) { if (e.player.isNew) nw++; if (e.player.isAdmin) ad++; });
+    return { newC: nw, adminC: ad };
+  }
+  function reqBadges(teamId) {
+    if (!S.reqNew && !S.reqAdmin) return '';
+    var c = teamReqCounts(teamId), out = [];
+    function pill(label, have, need, icon) {
+      var ok = have >= need;
+      var cls = ok ? 'bg-ecs-green/15 text-ecs-green' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300';
+      return '<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ' + cls + '"><i class="ti ' + icon + '"></i>' + label + ' ' + have + '/' + need + (ok ? ' <i class="ti ti-check"></i>' : '') + '</span>';
+    }
+    if (S.reqNew) out.push(pill('New', c.newC, S.reqNew, 'ti-sparkles'));
+    if (S.reqAdmin) out.push(pill('Admin', c.adminC, S.reqAdmin, 'ti-shield-check'));
+    return '<div class="flex flex-wrap gap-1">' + out.join('') + '</div>';
+  }
+  function newChip() { return '<span class="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300" title="Brand new — no team history"><i class="ti ti-sparkles"></i>NEW</span>'; }
+  function adminChip() { return '<span class="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300" title="Admin"><i class="ti ti-shield-check"></i>ADMIN</span>'; }
+  function statLine(p) {
+    return '<span class="inline-flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400">' +
+      '<span class="inline-flex items-center gap-0.5 text-green-600 dark:text-green-400"><i class="ti ti-ball-football"></i>' + (p.goals || 0) + '</span>' +
+      '<span class="inline-flex items-center gap-0.5 text-blue-600 dark:text-blue-400"><i class="ti ti-shoe"></i>' + (p.assists || 0) + '</span>' +
+      (p.att != null ? '<span class="inline-flex items-center gap-0.5"><i class="ti ti-calendar-check"></i>' + p.att + '%</span>' : '') +
+      '</span>';
+  }
+  function avatar(p, size) {
+    var s = size || 'w-9 h-9';
+    return '<img src="' + esc(p.img) + '" onerror="this.onerror=null;this.src=\'/static/img/default_player.png\'" alt="' + esc(p.name) + '" class="' + s + ' rounded-full object-cover object-top ring-1 ring-gray-200 dark:ring-gray-700 shrink-0">';
   }
 
   // ---- snake math ----
@@ -248,7 +321,11 @@
   // ============================ RENDER ============================
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
-  function renderAll() { renderTurnStrip(); renderPhone('A'); renderPhone('B'); renderLog(); setPlayLabel(); }
+  function renderAll() {
+    var ri = document.getElementById('roundsInfo');
+    if (ri) ri.textContent = S.rounds + ' rounds · ' + S.total + ' picks · ' + TEAMS.length + ' teams';
+    renderTurnStrip(); renderPhone('A'); renderPhone('B'); renderLog(); setPlayLabel();
+  }
 
   function renderTurnStrip() {
     var oc = current();
@@ -323,10 +400,15 @@
   }
 
   function phoneHeader(team) {
-    return '<div class="flex items-center gap-2 px-3 py-2.5 border-b border-gray-200 dark:border-gray-700">' +
-      '<span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-ecs-green/10 text-ecs-green shrink-0"><i class="ti ti-shield-half"></i></span>' +
-      '<div class="min-w-0"><div class="text-sm font-bold text-gray-900 dark:text-white truncate leading-tight">' + esc(team.name) + '</div>' +
-      '<div class="text-[11px] text-gray-500 dark:text-gray-400 truncate">' + esc(coachesStr(team)) + '</div></div></div>';
+    var badges = reqBadges(team.id);
+    return '<div class="px-3 py-2.5 border-b border-gray-200 dark:border-gray-700">' +
+      '<div class="flex items-center gap-2">' +
+        '<span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-ecs-green/10 text-ecs-green shrink-0"><i class="ti ti-shield-half"></i></span>' +
+        '<div class="min-w-0"><div class="text-sm font-bold text-gray-900 dark:text-white truncate leading-tight">' + esc(team.name) + '</div>' +
+        '<div class="text-[11px] text-gray-500 dark:text-gray-400 truncate">' + esc(coachesStr(team)) + '</div></div>' +
+      '</div>' +
+      (badges ? '<div class="mt-1.5">' + badges + '</div>' : '') +
+      '</div>';
   }
 
   function lastPickRibbon(last) {
@@ -361,34 +443,71 @@
     var list = pool().filter(function (p) { return !q || p.name.toLowerCase().indexOf(q) >= 0; });
     return '<div class="px-3 pb-3">' +
       '<input type="text" data-phone-search="' + slot + '" value="' + esc(st.q || '') + '" placeholder="Search players…" class="input-ecs w-full text-sm mb-2">' +
-      '<p class="text-[11px] text-gray-400 mb-1">Tap a player to draft them</p>' +
-      '<div class="space-y-1 max-h-[240px] overflow-y-auto">' +
-        list.slice(0, 40).map(function (p) {
-          return '<button type="button" data-phone-draft="' + slot + ':' + p.id + '" class="w-full flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-ecs-green/10 text-left">' +
-            posBadge(p.pos) + '<span class="flex-1 min-w-0 text-sm font-medium text-gray-900 dark:text-white truncate">' + esc(p.name) + '</span><i class="ti ti-plus text-ecs-green"></i></button>';
-        }).join('') || '<p class="text-xs text-gray-400 text-center py-4">No players match.</p>' +
+      '<p class="text-[11px] text-gray-400 mb-1">Tap a player to draft · ⓘ for full profile</p>' +
+      '<div class="space-y-1 max-h-[280px] overflow-y-auto">' +
+        (list.slice(0, 40).map(function (p) {
+          return '<div class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-ecs-green/5">' +
+            avatar(p, 'w-10 h-10') +
+            '<button type="button" data-phone-draft="' + slot + ':' + p.id + '" class="flex-1 min-w-0 text-left">' +
+              '<div class="flex items-center gap-1.5"><span class="text-sm font-semibold text-gray-900 dark:text-white truncate">' + esc(p.name) + '</span>' + (p.isNew ? newChip() : '') + (p.isAdmin ? adminChip() : '') + '</div>' +
+              '<div class="flex items-center gap-2 mt-0.5">' + posBadge(p.pos) + statLine(p) + '</div>' +
+            '</button>' +
+            '<button type="button" data-phone-profile="' + p.id + '" class="w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full text-gray-400 hover:text-ecs-green hover:bg-ecs-green/10" aria-label="View profile"><i class="ti ti-info-circle"></i></button>' +
+          '</div>';
+        }).join('')) || '<p class="text-xs text-gray-400 text-center py-4">No players match.</p>' +
       '</div></div>';
   }
 
+  // Position spots on a portrait pitch (percent coords), matching SLOTS keys (minus bench).
+  var PITCH_SPOTS = {
+    st: [50, 11], lw: [19, 17], rw: [81, 17], cam: [50, 30],
+    cm: [31, 45], cdm: [63, 47], lb: [15, 66], cb: [46, 69], rb: [83, 66], gk: [50, 88]
+  };
   function pitchBody(slot, team) {
     var st = S.phone[slot];
     var armed = st.armed ? S.byId[st.armed] : null;
-    var counts = {}; (S.picks[team.id] || []).forEach(function (e) { counts[e.pos] = (counts[e.pos] || 0) + 1; });
-    var slotsHtml = SLOTS.map(function (s) {
-      var c = counts[s.key] || 0;
-      return '<button type="button" data-phone-slot="' + slot + ':' + s.key + '" class="relative px-2 py-2 rounded-lg border text-xs font-semibold ' +
-        (armed ? 'border-ecs-green bg-ecs-green/10 text-ecs-green animate-pulse' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300') + '">' +
-        s.label + (c ? '<span class="ml-1 font-mono text-[10px] text-ecs-green">' + c + '</span>' : '') + '</button>';
+    var placed = {}; (S.picks[team.id] || []).forEach(function (e) { (placed[e.pos] = placed[e.pos] || []).push(e); });
+
+    var spots = Object.keys(PITCH_SPOTS).map(function (key) {
+      var xy = PITCH_SPOTS[key], on = (placed[key] || []);
+      var filled = on.length > 0;
+      var ring = armed ? 'ring-2 ring-white ring-offset-1 ring-offset-green-700 animate-pulse' : '';
+      var face = filled
+        ? '<span class="w-10 h-10 rounded-full overflow-hidden ring-2 ring-white shadow">' + avatar(on[on.length - 1].player, 'w-10 h-10') + '</span>' + (on.length > 1 ? '<span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-green-700 text-[9px] font-bold flex items-center justify-center">' + on.length + '</span>' : '')
+        : '<span class="w-9 h-9 rounded-full bg-white/15 border border-white/60 border-dashed flex items-center justify-center text-white text-[10px] font-bold">' + key.toUpperCase() + '</span>';
+      return '<button type="button" data-phone-slot="' + slot + ':' + key + '" style="left:' + xy[0] + '%;top:' + xy[1] + '%" ' +
+        'class="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center ' + ring + '">' +
+        '<span class="relative flex items-center justify-center">' + face + '</span>' +
+        '<span class="mt-0.5 px-1 rounded bg-black/30 text-white text-[8px] font-bold uppercase tracking-wide">' + key + '</span>' +
+        '</button>';
     }).join('');
-    var poolMini = pool().slice(0, 24).map(function (p) {
-      var on = armed && armed.id === p.id;
-      return '<button type="button" data-phone-arm="' + slot + ':' + p.id + '" class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ' + (on ? 'bg-ecs-green text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200') + '">' + posBadgeSmall(p.pos) + esc(p.name.split(' ')[0]) + '</button>';
+
+    // Bench (off the field)
+    var bench = (placed['bench'] || []);
+    var benchHtml = '<button type="button" data-phone-slot="' + slot + ':bench" class="w-full mt-2 rounded-lg border ' +
+      (armed ? 'border-ecs-green bg-ecs-green/10 text-ecs-green animate-pulse' : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400') + ' px-2 py-1.5 text-xs font-semibold flex items-center gap-2">' +
+      '<i class="ti ti-armchair"></i> Bench <span class="font-mono text-[10px]">' + bench.length + '</span>' +
+      '<span class="ml-auto flex -space-x-1.5">' + bench.slice(-5).map(function (e) { return avatar(e.player, 'w-5 h-5'); }).join('') + '</span></button>';
+
+    var poolMini = pool().slice(0, 18).map(function (p) {
+      var onp = armed && armed.id === p.id;
+      return '<button type="button" data-phone-arm="' + slot + ':' + p.id + '" class="inline-flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full text-xs ' + (onp ? 'bg-ecs-green text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200') + '">' + avatar(p, 'w-5 h-5') + esc(p.name.split(' ')[0]) + (p.isNew ? '<i class="ti ti-sparkles text-violet-500 text-[10px]"></i>' : '') + '</button>';
     }).join('');
+
     return '<div class="px-3 pb-3">' +
-      '<p class="text-[11px] text-gray-400 mb-1.5">' + (armed ? 'Tap a position for <strong>' + esc(armed.name) + '</strong>' : 'Tap a player, then tap a position') + '</p>' +
-      '<div class="grid grid-cols-4 gap-1.5 mb-2">' + slotsHtml + '</div>' +
-      '<div class="text-[10px] uppercase tracking-wide text-gray-400 mb-1">Players</div>' +
-      '<div class="flex flex-wrap gap-1 max-h-[150px] overflow-y-auto">' + (poolMini || '<span class="text-xs text-gray-400">Pool empty</span>') + '</div>' +
+      '<p class="text-[11px] ' + (armed ? 'text-ecs-green font-semibold' : 'text-gray-400') + ' mb-1.5">' + (armed ? 'Tap a position on the pitch for <strong>' + esc(armed.name) + '</strong>' : 'Tap a player below, then tap a spot on the pitch') + '</p>' +
+      // the field
+      '<div class="relative w-full rounded-xl overflow-hidden border border-green-800" style="aspect-ratio:3/4;background:repeating-linear-gradient(0deg,#15803d 0,#15803d 8%,#16a34a 8%,#16a34a 16%)">' +
+        '<div class="absolute inset-2 border-2 border-white/40 rounded"></div>' +
+        '<div class="absolute left-1/2 -translate-x-1/2 top-1/2 w-16 h-16 border-2 border-white/40 rounded-full"></div>' +
+        '<div class="absolute left-2 right-2 top-1/2 border-t-2 border-white/40"></div>' +
+        '<div class="absolute left-1/2 -translate-x-1/2 top-2 w-24 h-10 border-2 border-t-0 border-white/40"></div>' +
+        '<div class="absolute left-1/2 -translate-x-1/2 bottom-2 w-24 h-10 border-2 border-b-0 border-white/40"></div>' +
+        spots +
+      '</div>' +
+      benchHtml +
+      '<div class="text-[10px] uppercase tracking-wide text-gray-400 mt-2 mb-1">Available (' + pool().length + ')</div>' +
+      '<div class="flex flex-wrap gap-1 max-h-[110px] overflow-y-auto">' + (poolMini || '<span class="text-xs text-gray-400">Pool empty</span>') + '</div>' +
       '</div>';
   }
 
@@ -397,6 +516,52 @@
     return '<span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-ecs-green/10 text-ecs-green shrink-0">' + esc(p.substr(0, 3).toUpperCase()) + '</span>';
   }
   function posBadgeSmall(pos) { return '<span class="font-mono text-[9px] text-ecs-green">' + esc((pos || '').substr(0, 2).toUpperCase()) + '</span>'; }
+
+  // ---- quick-view profile ----
+  function openProfile(playerId) {
+    var p = S.byId[playerId]; if (!p) return;
+    var oc = current();
+    var draftable = S.status === 'active' && oc; // admin demo — can draft to the team on the clock
+    var stat = function (label, val, cls) {
+      return '<div class="rounded-lg bg-gray-50 dark:bg-gray-700/50 p-2 text-center"><div class="text-lg font-bold ' + (cls || 'text-gray-900 dark:text-white') + '">' + val + '</div><div class="text-[10px] uppercase tracking-wide text-gray-400">' + label + '</div></div>';
+    };
+    var card = document.getElementById('profileCard');
+    card.innerHTML =
+      '<div class="relative bg-gradient-to-br from-ecs-green to-ecs-green-700 px-5 pt-5 pb-4 text-white">' +
+        '<button type="button" data-profile-close class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 inline-flex items-center justify-center" aria-label="Close"><i class="ti ti-x"></i></button>' +
+        '<div class="flex items-center gap-3">' +
+          '<img src="' + esc(p.imgMed || p.img) + '" onerror="this.onerror=null;this.src=\'/static/img/default_player.png\'" alt="' + esc(p.name) + '" class="w-20 h-20 rounded-2xl object-cover object-top ring-4 ring-white/30 shrink-0">' +
+          '<div class="min-w-0">' +
+            '<h3 class="text-xl font-extrabold leading-tight truncate">' + esc(p.name) + '</h3>' +
+            '<div class="flex flex-wrap items-center gap-1.5 mt-1">' +
+              '<span class="inline-flex items-center px-2 py-0.5 rounded bg-white/20 text-xs font-bold">' + esc(p.pos) + '</span>' +
+              (p.isNew ? '<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded bg-violet-500 text-white text-[10px] font-bold"><i class="ti ti-sparkles"></i> NEW</span>' : '') +
+              (p.isAdmin ? '<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded bg-sky-500 text-white text-[10px] font-bold"><i class="ti ti-shield-check"></i> ADMIN</span>' : '') +
+            '</div>' +
+            (p.otherPos ? '<div class="text-[11px] text-white/80 mt-1 truncate">Also: ' + esc(p.otherPos) + '</div>' : '') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="p-4">' +
+        '<div class="grid grid-cols-3 gap-2 mb-3">' +
+          stat('Goals', p.goals || 0, 'text-green-600 dark:text-green-400') +
+          stat('Assists', p.assists || 0, 'text-blue-600 dark:text-blue-400') +
+          stat('Attend.', (p.att != null ? p.att + '%' : '—')) +
+          stat('Yellow', p.yellow || 0, 'text-amber-500') +
+          stat('Red', p.red || 0, 'text-red-500') +
+          stat('Seasons', p.seasons || 0) +
+        '</div>' +
+        '<div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-3"><span>Experience</span><span class="font-semibold text-gray-800 dark:text-gray-100">' + esc(p.exp) + '</span></div>' +
+        (draftable ? '<button type="button" data-profile-draft="' + p.id + '" class="w-full h-11 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold text-sm inline-flex items-center justify-center gap-2"><i class="ti ti-user-plus"></i> Draft to ' + esc(oc.team.name) + '</button>'
+          : '<div class="text-center text-xs text-gray-400 py-2">Draft is complete.</div>') +
+      '</div>';
+    var modal = document.getElementById('profileModal');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+  }
+  function closeProfile() {
+    var modal = document.getElementById('profileModal');
+    modal.classList.add('hidden'); modal.classList.remove('flex');
+  }
 
   function renderLog() {
     document.getElementById('logCount').textContent = '(' + S.log.length + ')';
@@ -422,6 +587,16 @@
     var b = document.getElementById('logBody'), c = document.getElementById('logChevron');
     b.classList.toggle('hidden'); c.classList.toggle('rotate-180');
   });
+  document.getElementById('reqNew').addEventListener('input', function () { S.reqNew = Math.max(0, parseInt(this.value, 10) || 0); renderAll(); });
+  document.getElementById('reqAdmin').addEventListener('input', function () { S.reqAdmin = Math.max(0, parseInt(this.value, 10) || 0); renderAll(); });
+
+  // quick-profile open/close
+  document.getElementById('profileModal').addEventListener('click', function (e) {
+    if (e.target.closest('[data-profile-close]')) { closeProfile(); return; }
+    var d = e.target.closest('[data-profile-draft]');
+    if (d) { var oc = current(); var pid = +d.getAttribute('data-profile-draft'); if (oc) makePick(oc.team.id, S.byId[pid], 'bench'); closeProfile(); }
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeProfile(); });
 
   root.addEventListener('change', function (e) {
     var sel = e.target.getAttribute && e.target.getAttribute('data-phone-sel');
@@ -432,8 +607,10 @@
     if (s) { S.phone[s].q = e.target.value; renderPhone(s); var inp = document.querySelector('[data-phone-search="' + s + '"]'); if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } }
   });
   root.addEventListener('click', function (e) {
-    var el = e.target.closest ? e.target.closest('[data-phone-tab],[data-phone-draft],[data-phone-arm],[data-phone-slot]') : null;
+    var el = e.target.closest ? e.target.closest('[data-phone-tab],[data-phone-draft],[data-phone-arm],[data-phone-slot],[data-phone-profile]') : null;
     if (!el) return;
+    var prof = el.getAttribute('data-phone-profile');
+    if (prof) { openProfile(+prof); return; }
     var tab = el.getAttribute('data-phone-tab');
     if (tab) { var a = tab.split(':'); S.phone[a[0]].tab = a[1]; S.phone[a[0]].armed = null; renderPhone(a[0]); return; }
     var draft = el.getAttribute('data-phone-draft');

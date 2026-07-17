@@ -348,9 +348,10 @@ def pub_league_link_self():
                 }), 409
         else:
             # Claim the pass and stamp the primary user in ONE transaction.
+            # Explicit in-app "link my pass" tap = a confirmed, human decision.
             if not order.primary_user_id:
                 order.primary_user_id = user.id
-            PubLeagueOrderService.link_pass_to_player(line_item, player, user)
+            PubLeagueOrderService.link_pass_to_player(line_item, player, user, method='user_confirmed')
 
         # Snapshot the response while the link is fresh — re-reading these after
         # the (slower) activation step would re-query the DB, and a dropped

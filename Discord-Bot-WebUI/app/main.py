@@ -597,11 +597,11 @@ def index():
                         else:
                             handle_profile_update(player, onboarding_form)
 
-                        # Process league selection (if present)
+                        # Process league selection (if present). Store the raw
+                        # value INCLUDING 'not_sure' so the approvals/waitlist
+                        # screen can flag players who need league guidance.
                         preferred_league = request.form.get('preferred_league')
-                        if preferred_league == 'not_sure':
-                            preferred_league = None
-                        if preferred_league and db_user:
+                        if preferred_league in ('pub_league_classic', 'pub_league_premier', 'ecs_fc', 'not_sure') and db_user:
                             db_user.preferred_league = preferred_league
                             db_user.league_selection_method = 'onboarding'
 
@@ -1081,6 +1081,14 @@ def pending_status():
     if is_approved:
         return redirect(url_for('main.index'))
 
+    # New players must complete onboarding (real name, photo, league answer)
+    # BEFORE they reach the wait screen, so the admin approving them sees a
+    # complete profile. main.onboarding is allowlisted by the access gate and
+    # early-returns to index once completed, so this can't loop. Waitlist users
+    # are marked complete at signup, so they skip straight through.
+    if not getattr(user, 'has_completed_onboarding', True):
+        return redirect(url_for('main.onboarding'))
+
     # Passes are bought on the external WooCommerce shop; the claim/link-order
     # pages require a token/order_id from the post-purchase email, so the CTA
     # points at the shop itself.
@@ -1134,64 +1142,75 @@ def onboarding():
     )
     
     # Handle form submission
+    # Onboarding is REQUIRED for new players: real name + a league answer are
+    # mandatory (the form is novalidate, so these are enforced here, server-side).
+    # "Not sure yet" is a valid answer — we record it so an admin can steer them.
+    valid_leagues = {'pub_league_classic', 'pub_league_premier', 'ecs_fc', 'not_sure'}
+    preferred_league = request.form.get('preferred_league')
+
     if request.method == 'POST' and onboarding_form.validate_on_submit():
-        try:
-            logger.info(f"Processing onboarding form submission for user {safe_current_user.id}")
-            
-            # Create or update player profile
-            if not player:
-                player = create_player_profile(onboarding_form)
-            else:
-                handle_profile_update(player, onboarding_form)
-            
-            # Load fresh User model for mutations — UserWrapper.__setattr__
-            # writes to the wrapper's __dict__, not the ORM model
-            from app.models import User
-            db_user = session.query(User).get(safe_current_user.id)
+        # Guard the two required answers before we touch the DB.
+        if not (onboarding_form.name.data or '').strip():
+            show_error('Please enter your full name so coaches know who you are.')
+        elif preferred_league not in valid_leagues:
+            show_error('Please choose which league you\'re interested in — pick "Not sure yet" if you\'d like an admin to help.')
+        else:
+            try:
+                logger.info(f"Processing onboarding form submission for user {safe_current_user.id}")
 
-            # Process league selection
-            preferred_league = request.form.get('preferred_league')
-            if preferred_league == 'not_sure':
-                preferred_league = None
-            if preferred_league and db_user:
-                db_user.preferred_league = preferred_league
-                db_user.league_selection_method = 'onboarding'
+                # Create or update player profile
+                if not player:
+                    player = create_player_profile(onboarding_form)
+                else:
+                    handle_profile_update(player, onboarding_form)
+
+                # Load fresh User model for mutations — UserWrapper.__setattr__
+                # writes to the wrapper's __dict__, not the ORM model
+                from app.models import User
+                db_user = session.query(User).get(safe_current_user.id)
+
+                # Persist the league choice. We store the raw value INCLUDING
+                # 'not_sure' so the approvals/waitlist screen can flag players
+                # who need league guidance (see needs_league_guidance).
+                if db_user:
+                    db_user.preferred_league = preferred_league
+                    db_user.league_selection_method = 'onboarding'
                 logger.info(f"User {safe_current_user.id} selected league: {preferred_league}")
-            else:
-                logger.warning(f"User {safe_current_user.id} completed onboarding without selecting a league")
 
-            # Check SMS verification if needed
-            sms_notifications = request.form.get('sms_notifications') == 'y'
-            sms_verified = request.form.get('sms_verified') == 'true'
-            already_verified = player and player.is_phone_verified
+                # SMS must never trap onboarding. If the user asked for SMS but
+                # hasn't verified their phone, finish onboarding with SMS left
+                # OFF and tell them they can enable it later — do NOT block.
+                sms_notifications = request.form.get('sms_notifications') == 'y'
+                sms_verified = request.form.get('sms_verified') == 'true'
+                already_verified = player and player.is_phone_verified
+                if sms_notifications and not (sms_verified or already_verified):
+                    if db_user:
+                        db_user.sms_notifications = False
+                    show_warning("SMS notifications weren't enabled because your phone isn't verified yet — you can turn them on later in Settings.")
 
-            # If SMS is enabled but not verified, show warning
-            if sms_notifications and not (sms_verified or already_verified):
-                show_warning('Please verify your phone number to enable SMS notifications.')
-            else:
                 # Mark onboarding as complete
                 if db_user:
                     db_user.has_completed_onboarding = True
                     session.add(db_user)
                 try:
                     session.commit()
-                    show_success('Profile created successfully!')
-                    
+                    show_success('Your profile is all set!')
+
                     # Trigger new player notification if user already has Discord linked
                     if player and player.discord_id:
                         trigger_immediate_new_player_notification(player.discord_id)
-                    
+
                     return redirect(url_for('main.index'))
                 except Exception as e:
                     session.rollback()
                     logger.exception(f"Error completing onboarding for user {safe_current_user.id}: {str(e)}")
                     show_error('Error saving profile. Please try again.')
                     return redirect(url_for('main.onboarding'))
-                
-        except Exception as e:
-            session.rollback()
-            logger.error(f"Error saving profile: {e}", exc_info=True)
-            show_error('An error occurred. Please try again.')
+
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error saving profile: {e}", exc_info=True)
+                show_error('An error occurred. Please try again.')
     
     # Get Discord invite link from session
     discord_invite_link = flask_session.get('discord_invite_link', "https://discord.gg/weareecs")

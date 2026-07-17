@@ -413,3 +413,40 @@ def check_stuck_campaigns(self, session, stuck_minutes: int = 30) -> Dict[str, A
             'success': False,
             'error': str(e)
         }
+
+
+@celery_task(
+    name='app.tasks.tasks_push_notifications.send_account_approval_push',
+    bind=True,
+    max_retries=2,
+    default_retry_delay=30
+)
+def send_account_approval_push(self, session, user_id: int, role_label: str = None,
+                               kind: str = 'approved') -> Dict[str, Any]:
+    """
+    Fire the "you're in" / "new role" push for a user, out-of-band.
+
+    This runs in a Celery worker with a fresh DB session because the trigger
+    point — a SQLAlchemy ``after_commit`` event on the web request session —
+    is forbidden from emitting SQL (the session is in 'committed' state, so the
+    orchestrator's user/preference lookup raises InvalidRequestError). Deferring
+    to a task moves the orchestrator work onto a session that can actually query.
+
+    Args:
+        session: Database session from decorator (unused directly; the
+            orchestrator uses db.session, which is valid in this worker context)
+        user_id: User to notify
+        role_label: Optional human role label ("Premier Sub", etc.)
+        kind: 'approved' (first-time approval) or 'role' (new role on an
+            already-approved account)
+    """
+    from app.services.account_approval_push import (
+        push_account_approved, push_role_assigned
+    )
+
+    if kind == 'role' and role_label:
+        push_role_assigned(user_id, role_label=role_label)
+    else:
+        push_account_approved(user_id, role_label=role_label)
+
+    return {'success': True, 'user_id': user_id, 'kind': kind}

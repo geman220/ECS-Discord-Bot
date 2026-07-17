@@ -268,8 +268,26 @@ class TaskMonitor:
             if cursor == 0:
                 break
 
-        for key in keys:
-            task_info = self.redis.hgetall(key)
+        # Batch the per-key hgetall through a pipeline instead of issuing one
+        # blocking round-trip per key. With thousands of task keys, the old
+        # sequential loop was the bulk of a ~40s request that held a DB
+        # transaction open the whole time — long enough for pgbouncer to kill
+        # the connection with "idle transaction timeout". detect_zombie_tasks()
+        # already batches this way; this loop simply hadn't been updated.
+        task_infos = []
+        for i in range(0, len(keys), 500):
+            chunk = keys[i:i + 500]
+            try:
+                pipe = self.redis.pipeline()
+                for key in chunk:
+                    pipe.hgetall(key)
+                task_infos.extend(pipe.execute())
+            except Exception as e:
+                logger.error(f"Error executing Redis pipeline for task stats: {e}")
+
+        for task_info in task_infos:
+            if not task_info:
+                continue
             start_time = float(task_info.get("start_time", 0))
 
             # Skip if outside the time window

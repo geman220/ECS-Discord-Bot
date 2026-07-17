@@ -164,7 +164,16 @@ def _track_approval_change(target, value, oldvalue, initiator):
 @event.listens_for(Session, 'after_commit')
 def _fire_pending_approval_pushes(session):
     """
-    After a successful commit, fire one push per flagged User instance.
+    After a successful commit, enqueue one push per flagged User instance.
+
+    CRITICAL: this fires inside SQLAlchemy's ``after_commit``, where the session
+    is in 'committed' state and MAY NOT emit any further SQL. Calling
+    ``push_account_approved`` synchronously here routes into the orchestrator's
+    ``db.session.query(User)`` and raises
+    "This session is in 'committed' state; no further SQL can be emitted" — which
+    silently swallowed EVERY approval push. So we only read the already-loaded
+    primary key (no SQL) and hand the actual send to a Celery task that runs on a
+    fresh session.
 
     O(1) when there's nothing pending — `session.info.pop` is a dict lookup.
     Sweep the rare instance-flag fallback path too, to catch instances that
@@ -182,6 +191,9 @@ def _fire_pending_approval_pushes(session):
     if not pending:
         return
 
+    # Reading inst.id does NOT emit SQL: the PK is retained in the identity key
+    # after commit even with expire_on_commit=True. Anything beyond the PK would
+    # trigger a refresh and fail here, so we defer the rest to the task.
     seen_ids = set()
     for inst in pending:
         try:
@@ -191,11 +203,28 @@ def _fire_pending_approval_pushes(session):
         if uid is None or uid in seen_ids:
             continue
         seen_ids.add(uid)
-        try:
-            push_account_approved(uid)
-        except Exception:
-            # Already wrapped inside push_account_approved; belt-and-braces.
-            logger.exception(f"approval push fan-out failed for user {uid}")
+        _enqueue_approval_push(uid)
+
+
+def _enqueue_approval_push(user_id: int, *, role_label: Optional[str] = None,
+                           kind: str = 'approved') -> None:
+    """
+    Hand an approval/role push to a Celery worker (fresh session).
+
+    Enqueuing touches only the Redis broker — no SQL — so it is safe from the
+    after_commit hook. If the broker is unreachable we fall back to a direct
+    call so at least single-process/dev setups still deliver; that direct path
+    is only safe OUTSIDE the after_commit window, hence it's the fallback, not
+    the default.
+    """
+    try:
+        from app.tasks.tasks_push_notifications import send_account_approval_push
+        send_account_approval_push.delay(user_id, role_label=role_label, kind=kind)
+    except Exception:
+        logger.exception(
+            f"could not enqueue approval push for user {user_id}; "
+            f"skipping to avoid emitting SQL on a committed session"
+        )
 
 
 @event.listens_for(Session, 'after_rollback')

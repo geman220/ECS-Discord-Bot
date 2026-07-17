@@ -121,7 +121,25 @@
           </div>
           <div>
             <label for="rounds" class="block font-medium text-gray-900 dark:text-white mb-1.5">Rounds (picks per team)</label>
-            <input id="rounds" type="number" min="1" value="{{ clk.rounds if clk and clk.rounds else 12 }}" class="w-28 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono">
+            <div class="flex items-center gap-2">
+              <input id="rounds" type="number" min="1" value="{{ clk.rounds if clk and clk.rounds else suggested_rounds }}" class="w-28 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono">
+              {% if suggested_rounds %}
+              <button type="button" id="autoRoundsBtn" data-suggested="{{ suggested_rounds }}" class="h-9 px-2.5 inline-flex items-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700" title="Set to {{ suggested_rounds }} — enough to draft all {{ available_players }} available players">
+                <i class="ti ti-wand"></i> Auto ({{ suggested_rounds }})
+              </button>
+              {% endif %}
+            </div>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Auto = {{ suggested_rounds }} rounds to draft all {{ available_players }} available players.</p>
+          </div>
+          <div>
+            <label class="block font-medium text-gray-900 dark:text-white mb-1.5">Roster requirements <span class="font-normal text-xs text-gray-400">(per team · soft — shows counters, never blocks)</span></label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300"><i class="ti ti-sparkles text-violet-500"></i> New players
+                <input id="minNew" type="number" min="0" value="{{ clk.min_new_players if clk and clk.min_new_players else 0 }}" class="w-16 h-9 px-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono"></label>
+              <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300"><i class="ti ti-shield-check text-sky-500"></i> Admins
+                <input id="minAdmins" type="number" min="0" value="{{ clk.min_admins if clk and clk.min_admins else 0 }}" class="w-16 h-9 px-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono"></label>
+            </div>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">New = no prior team history · Admins = Pub League/Global Admin role.</p>
           </div>
           <div>
             <label class="block font-medium text-gray-900 dark:text-white mb-1.5">When the clock hits 0</label>
@@ -142,7 +160,7 @@
 
       <!-- summary -->
       {% set s_teams = teams|length %}
-      {% set s_rounds = (clk.rounds if clk and clk.rounds else 12) %}
+      {% set s_rounds = (clk.rounds if clk and clk.rounds else suggested_rounds) %}
       {% set s_picks = s_teams * s_rounds %}
       {% set s_spp = (clk.seconds_per_pick if clk and clk.seconds_per_pick else 90) %}
       {% set s_total_secs = s_picks * s_spp %}
@@ -252,6 +270,11 @@
     }
   }
   ['rounds', 'spp'].forEach(function (id) { var el = document.getElementById(id); el && el.addEventListener('input', updateSummary); });
+  // Auto-fill rounds = enough to draft everyone (players / teams, rounded up).
+  (function () {
+    var b = document.getElementById('autoRoundsBtn'), r = document.getElementById('rounds');
+    if (b && r) b.addEventListener('click', function () { r.value = b.getAttribute('data-suggested'); r.dispatchEvent(new Event('input', { bubbles: true })); });
+  })();
 
   function payload() {
     return {
@@ -262,7 +285,9 @@
       seconds_per_pick: +document.getElementById('spp').value || 0,
       rounds: +document.getElementById('rounds').value || 0,
       timeout_action: (document.querySelector('input[name=timeout]:checked') || {}).value || 'alert',
-      lock_to_clock: document.getElementById('lockToggle').checked
+      lock_to_clock: document.getElementById('lockToggle').checked,
+      min_new_players: +document.getElementById('minNew').value || 0,
+      min_admins: +document.getElementById('minAdmins').value || 0
     };
   }
   function post(path, body) {

@@ -218,6 +218,23 @@ def orders_list():
             'cancelled': _order_count(PubLeagueOrderStatus.CANCELLED.value),
         }
 
+        # Passes auto-linked to the buyer but never confirmed by them. These are
+        # almost always fine (the buyer is Discord-authenticated), but this is the
+        # one place an auto-link could theoretically catch the wrong person, so
+        # surface a count for a quick eyeball.
+        auto_unconfirmed_q = (
+            db.session.query(func.count(PubLeagueOrderLineItem.id))
+            .join(PubLeagueOrder, PubLeagueOrderLineItem.order_id == PubLeagueOrder.id)
+            .filter(
+                PubLeagueOrderLineItem.link_method == 'auto',
+                PubLeagueOrderLineItem.link_confirmed_at.is_(None),
+                PubLeagueOrderLineItem.assigned_player_id.isnot(None),
+            )
+        )
+        if season_condition is not None:
+            auto_unconfirmed_q = auto_unconfirmed_q.filter(season_condition)
+        stats['auto_unconfirmed'] = auto_unconfirmed_q.scalar() or 0
+
         # Season options for the filter dropdown — only seasons that actually
         # have orders, newest first.
         season_options = [
@@ -522,6 +539,8 @@ def api_manual_link():
             line_item.assigned_at = None
             line_item.wallet_pass_id = None
             line_item.pass_created_at = None
+            line_item.link_method = None
+            line_item.link_confirmed_at = None
             line_item.status = PubLeagueLineItemStatus.UNASSIGNED.value
             if line_item.order:
                 line_item.order.linked_passes = max(0, line_item.order.linked_passes - 1)
@@ -538,10 +557,12 @@ def api_manual_link():
         # Import services
         from app.pub_league.services import PubLeagueOrderService, PlayerActivationService
 
-        # Link the pass
+        # Link the pass. Stamped 'admin' so the orders page shows it was linked
+        # by staff (via the name-match suggestion, which can pick the wrong
+        # same-named player) rather than confirmed by the buyer themselves.
         user = player.user if player.user_id else None
         player_name = player.name
-        PubLeagueOrderService.link_pass_to_player(line_item, player, user)
+        PubLeagueOrderService.link_pass_to_player(line_item, player, user, method='admin')
 
         # Snapshot the response while the link is fresh — activation below is
         # best-effort, and the assignment is already committed either way.
@@ -817,6 +838,8 @@ def api_unassign_pass():
         line_item.assigned_at = None
         line_item.wallet_pass_id = None
         line_item.pass_created_at = None
+        line_item.link_method = None
+        line_item.link_confirmed_at = None
         line_item.status = PubLeagueLineItemStatus.UNASSIGNED.value
 
         # Update order linked count

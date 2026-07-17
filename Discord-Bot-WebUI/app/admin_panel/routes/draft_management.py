@@ -451,6 +451,8 @@ def draft_session_setup():
     ds.timeout_action = timeout_action if timeout_action in ('alert', 'skip', 'pause') else 'alert'
     ds.lock_to_clock = bool(data.get('lock_to_clock', True))
     ds.rounds = int(data.get('rounds') or 0)
+    ds.min_new_players = max(0, int(data.get('min_new_players') or 0))
+    ds.min_admins = max(0, int(data.get('min_admins') or 0))
     ds.status = 'setup'
     ds.current_overall_pick = None
     ds.current_round = None
@@ -512,14 +514,48 @@ def draft_demo_page():
             db.session.query(Player)
             .filter(belongs)
             .filter(Player.is_current_player.is_(True))
+            .options(
+                joinedload(Player.career_stats),
+                joinedload(Player.season_stats),
+                selectinload(Player.teams),
+            )
             .order_by(Player.name.asc())
             .all()
         )
-        for p in players:
+        # Reuse the REAL board's enrichment so the demo cards carry identical images/stats/
+        # attendance/experience. `league_experience_seasons == 0` == brand new (no team history).
+        enhanced = DraftService.get_enhanced_player_data(players, current_league.season_id, current_league.id)
+
+        # Which players are admins? (Pub League Admin / Global Admin Flask roles.) Used for the
+        # per-team "needs X admins" roster-composition requirement.
+        from app.models.core import Role, user_roles
+        admin_role_ids = [r.id for r in db.session.query(Role.id).filter(
+            Role.name.in_(['Pub League Admin', 'Global Admin'])).all()]
+        admin_user_ids = set()
+        if admin_role_ids:
+            admin_user_ids = {uid for (uid,) in db.session.query(user_roles.c.user_id).filter(
+                user_roles.c.role_id.in_(admin_role_ids)).all()}
+        user_by_player = {p.id: p.user_id for p in players}
+
+        for e in enhanced:
+            seasons = e.get('league_experience_seasons') or 0
+            att = e.get('attendance_estimate')
             demo_players.append({
-                'id': p.id,
-                'name': p.name,
-                'pos': (p.favorite_position or 'Any'),
+                'id': e['id'],
+                'name': e['name'],
+                'pos': e.get('favorite_position') or 'Any',
+                'otherPos': e.get('other_positions') or '',
+                'img': e.get('profile_picture_url') or '/static/img/default_player.png',
+                'imgMed': e.get('profile_picture_medium') or e.get('profile_picture_url') or '/static/img/default_player.png',
+                'goals': e.get('career_goals') or 0,
+                'assists': e.get('career_assists') or 0,
+                'yellow': e.get('career_yellow_cards') or 0,
+                'red': e.get('career_red_cards') or 0,
+                'att': (round(att) if att is not None else None),
+                'seasons': seasons,
+                'exp': e.get('experience_level') or ('New Player' if seasons == 0 else 'Experienced'),
+                'isNew': seasons == 0,
+                'isAdmin': user_by_player.get(e['id']) in admin_user_ids,
             })
 
     return render_template(
@@ -602,6 +638,9 @@ def draft_setup_page():
             if not ({tm.id for tm in p.teams} & team_id_set)
         )
 
+    # Suggested roster size = enough rounds to draft everyone (players ÷ teams, rounded up).
+    suggested_rounds = max(1, -(-available_players // len(teams))) if teams else 12
+
     return render_template(
         'admin_panel/draft/setup_flowbite.html',
         title='Draft Setup',
@@ -611,6 +650,7 @@ def draft_setup_page():
         teams=teams,
         draft_clock_state=state,
         available_players=available_players,
+        suggested_rounds=suggested_rounds,
         shell='console',
     )
 

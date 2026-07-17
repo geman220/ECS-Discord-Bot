@@ -203,6 +203,8 @@
               <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Pub League Premier</span>
               {% elif user.preferred_league == 'ecs_fc' %}
               <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">ECS FC</span>
+              {% elif user.preferred_league == 'not_sure' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30" title="Player picked &quot;Not sure yet&quot; — an admin should help them choose a league"><i class="ti ti-help-circle text-[12px]" aria-hidden="true"></i>Needs league guidance</span>
               {% else %}
               <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ user.preferred_league }}</span>
               {% endif %}
@@ -266,8 +268,10 @@
             <button type="button" class="block max-w-full truncate text-left font-semibold text-gray-900 dark:text-white hover:text-ecs-green focus:outline-none focus:underline" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</button>
             <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.player.name if user.player else 'No player record' }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
-            <p class="text-xs text-gray-400 dark:text-gray-500 font-mono mt-0.5">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}{% if user.preferred_league %} · {{ user.preferred_league.replace('pub_league_', '').replace('_', ' ').title() }}{% endif %}</p>
-            {% if not user.preferred_league and not user.has_completed_onboarding %}
+            <p class="text-xs text-gray-400 dark:text-gray-500 font-mono mt-0.5">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}{% if user.preferred_league and user.preferred_league != 'not_sure' %} · {{ user.preferred_league.replace('pub_league_', '').replace('_', ' ').title() }}{% endif %}</p>
+            {% if user.preferred_league == 'not_sure' %}
+            <p class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30"><i class="ti ti-help-circle text-[11px]" aria-hidden="true"></i>Needs league guidance</p>
+            {% elif not user.preferred_league and not user.has_completed_onboarding %}
             <p class="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 mt-0.5"><i class="ti ti-alert-triangle text-[11px]" aria-hidden="true"></i>Onboarding incomplete</p>
             {% endif %}
           </div>
@@ -522,6 +526,8 @@
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Pub League Premier</span>
                         {% elif user.preferred_league == 'ecs_fc' %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">ECS FC</span>
+                        {% elif user.preferred_league == 'not_sure' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30" title="Player picked &quot;Not sure yet&quot; — an admin should help them choose a league"><i class="ti ti-help-circle text-[12px]" aria-hidden="true"></i>Needs league guidance</span>
                         {% else %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ user.preferred_league }}</span>
                         {% endif %}

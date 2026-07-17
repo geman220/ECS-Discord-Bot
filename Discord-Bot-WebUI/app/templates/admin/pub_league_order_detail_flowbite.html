@@ -2,6 +2,24 @@
 {% from 'macros/flowbite.html' import modal, badge %}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, alert, empty_state %}
 
+{# How a pass got linked, so an auto-linked-but-unconfirmed pass (possible wrong
+   person) stands out from a buyer-confirmed / admin / claimed one. #}
+{% macro link_method_badge(item) %}
+{%- if item.assigned_player -%}
+  {%- if item.link_method == 'auto' and not item.link_confirmed_at -%}
+    <span title="Auto-linked to the logged-in buyer but not yet confirmed by them — worth a glance" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-bolt" aria-hidden="true"></i>Auto · unconfirmed</span>
+  {%- elif item.link_method == 'user_confirmed' -%}
+    <span title="Confirmed by the buyer" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-user-check" aria-hidden="true"></i>Confirmed</span>
+  {%- elif item.link_method == 'admin' -%}
+    <span title="Linked by an admin (name match — can pick the wrong same-named player)" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400"><i class="ti ti-shield-half" aria-hidden="true"></i>Admin</span>
+  {%- elif item.link_method == 'claim' -%}
+    <span title="Claimed via a claim link" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-gift" aria-hidden="true"></i>Claimed</span>
+  {%- elif item.link_method == 'gift' -%}
+    <span title="Gifted to another player by the buyer" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-gift" aria-hidden="true"></i>Gifted</span>
+  {%- endif -%}
+{%- endif -%}
+{% endmacro %}
+
 {% block admin_title %}Order #{{ order.woo_order_id }}{% endblock %}
 {% block panel_description %}{{ order.customer_name }} - {{ order.customer_email }}{% endblock %}
 
@@ -197,7 +215,8 @@
           <td class="px-4 py-3">
             {% if item.assigned_player %}
             <span class="font-medium text-gray-900 dark:text-white">{{ item.assigned_player.name }}</span>
-            {% if item.assigned_at %}<br><span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ item.assigned_at.strftime('%b %d, %Y') }}</span>{% endif %}
+            <div class="mt-0.5">{{ link_method_badge(item) }}</div>
+            {% if item.assigned_at %}<span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ item.assigned_at.strftime('%b %d, %Y') }}</span>{% endif %}
             {% else %}<span class="text-gray-400 dark:text-gray-500">-</span>{% endif %}
           </td>
           <td class="px-4 py-3 text-right">
@@ -235,7 +254,7 @@
         <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
           {% if item.division %}<span>Division: {{ item.division }}</span>{% endif %}
           {% if item.jersey_size %}<span>Size: {{ item.jersey_size }}</span>{% endif %}
-          {% if item.assigned_player %}<span class="text-gray-900 dark:text-white font-medium">{{ item.assigned_player.name }}</span>{% endif %}
+          {% if item.assigned_player %}<span class="text-gray-900 dark:text-white font-medium">{{ item.assigned_player.name }}</span>{{ link_method_badge(item) }}{% endif %}
         </div>
         <div class="mt-2 flex flex-wrap gap-3">
           <button type="button" class="text-xs font-medium text-gray-600 dark:text-gray-400 hover:underline edit-line-item-btn" data-line-item-id="{{ item.id }}" data-division="{{ item.division or '' }}" data-jersey-size="{{ item.jersey_size or '' }}" title="Edit">Edit</button>
@@ -703,8 +722,9 @@
                                 {% if item.assigned_player %}
                                 <div>
                                     <span class="font-medium text-gray-900 dark:text-white">{{ item.assigned_player.name }}</span>
+                                    <div class="mt-0.5">{{ link_method_badge(item) }}</div>
                                     {% if item.assigned_at %}
-                                    <br><span class="text-xs text-gray-500 dark:text-gray-400">{{ item.assigned_at.strftime('%b %d, %Y') }}</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ item.assigned_at.strftime('%b %d, %Y') }}</span>
                                     {% endif %}
                                 </div>
                                 {% else %}

@@ -185,6 +185,11 @@ class DraftSession(db.Model):
     timeout_action = db.Column(db.String(10), nullable=False, default='alert')  # alert | skip | pause
     lock_to_clock = db.Column(db.Boolean, nullable=False, default=True)      # only current team may be assigned
     rounds = db.Column(db.Integer, nullable=False, default=0)                # roster-size target (picks per team)
+    # Roster-composition requirements (soft — shown as live counters/warnings, never blocks a
+    # pick; admins can always exceed/override). 'new' = players with no prior team history;
+    # 'admin' = players who hold a Pub League Admin / Global Admin role.
+    min_new_players = db.Column(db.Integer, nullable=False, default=0, server_default='0')
+    min_admins = db.Column(db.Integer, nullable=False, default=0, server_default='0')
 
     # live state
     status = db.Column(db.String(12), nullable=False, default='setup')      # setup|active|paused|complete

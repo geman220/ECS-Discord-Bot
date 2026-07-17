@@ -299,7 +299,8 @@ class PubLeagueOrderService:
         return order
 
     @staticmethod
-    def link_pass_to_player(line_item: PubLeagueOrderLineItem, player: Player, user: User = None) -> None:
+    def link_pass_to_player(line_item: PubLeagueOrderLineItem, player: Player, user: User = None,
+                            method: str = None) -> None:
         """
         Link a line item (pass) to a player.
 
@@ -307,13 +308,17 @@ class PubLeagueOrderService:
             line_item: PubLeagueOrderLineItem to assign
             player: Player to assign the pass to
             user: Optional User associated with the player
+            method: Provenance of the link (see PubLeagueOrderLineItem.link_method).
         """
-        line_item.assign_to_player(player, user)
+        line_item.assign_to_player(player, user, method=method)
 
         session = getattr(g, 'db_session', db.session)
         session.commit()
 
-        logger.info(f"Linked line item {line_item.id} to player {player.id} ({player.name})")
+        logger.info(
+            f"Linked line item {line_item.id} to player {player.id} ({player.name}) "
+            f"via {method or 'unspecified'}"
+        )
 
     @staticmethod
     def create_claim_link(

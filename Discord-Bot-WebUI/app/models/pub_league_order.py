@@ -220,6 +220,18 @@ class PubLeagueOrderLineItem(db.Model):
     # Claim link reference (if sent to someone else)
     claim_id = db.Column(db.Integer, db.ForeignKey('pub_league_order_claim.id'), nullable=True)
 
+    # How this pass got linked, so the admin orders page can tell an
+    # auto-linked-but-unconfirmed pass (possible wrong person) apart from one
+    # the buyer explicitly confirmed / an admin linked / one that was claimed.
+    #   'auto'           -> auto-linked to the logged-in buyer on page load
+    #   'user_confirmed' -> buyer explicitly tapped Confirm / Assign to Me
+    #   'gift'           -> assigned to another player via search
+    #   'claim'          -> claimed via a claim link
+    #   'admin'          -> linked by an admin from the orders page
+    #   None             -> linked before provenance tracking (unknown)
+    link_method = db.Column(db.String(20), nullable=True)
+    link_confirmed_at = db.Column(db.DateTime, nullable=True)
+
     # Timestamps
     assigned_at = db.Column(db.DateTime, nullable=True)
     pass_created_at = db.Column(db.DateTime, nullable=True)
@@ -235,23 +247,42 @@ class PubLeagueOrderLineItem(db.Model):
     def __repr__(self):
         return f'<PubLeagueOrderLineItem {self.id} order={self.order_id} division={self.division} status={self.status}>'
 
-    def assign_to_player(self, player, user=None):
+    def assign_to_player(self, player, user=None, method=None):
         """
         Assign this line item to a player.
 
         Args:
             player: Player model instance
             user: Optional User model instance
+            method: How the link happened (see link_method column). A
+                'user_confirmed'/'admin'/'claim'/'gift' link is an explicit
+                human decision, so it also stamps link_confirmed_at; an 'auto'
+                link is left unconfirmed until the buyer taps Confirm.
         """
         self.assigned_player_id = player.id
         self.assigned_user_id = user.id if user else (player.user_id if player.user_id else None)
         self.status = PubLeagueLineItemStatus.ASSIGNED.value
         self.assigned_at = datetime.utcnow()
 
+        if method:
+            self.link_method = method
+            if method != 'auto':
+                self.link_confirmed_at = datetime.utcnow()
+
         # Update parent order's linked count
         if self.order:
             self.order.linked_passes += 1
             self.order.update_status()
+
+    def confirm_link(self):
+        """Buyer explicitly confirmed an auto-linked pass is theirs."""
+        self.link_method = 'user_confirmed'
+        self.link_confirmed_at = datetime.utcnow()
+
+    @property
+    def is_auto_unconfirmed(self):
+        """Auto-linked to the buyer but not yet confirmed by them."""
+        return self.link_method == 'auto' and self.link_confirmed_at is None
 
     def mark_pass_created(self, wallet_pass):
         """Mark that the wallet pass has been generated."""
@@ -279,7 +310,9 @@ class PubLeagueOrderLineItem(db.Model):
             'assigned_user_id': self.assigned_user_id,
             'wallet_pass_id': self.wallet_pass_id,
             'claim_id': self.claim_id,
-            'assigned_at': self.assigned_at.isoformat() if self.assigned_at else None
+            'assigned_at': self.assigned_at.isoformat() if self.assigned_at else None,
+            'link_method': self.link_method,
+            'link_confirmed_at': self.link_confirmed_at.isoformat() if self.link_confirmed_at else None
         }
 
 
@@ -418,7 +451,7 @@ class PubLeagueOrderClaim(db.Model):
 
         # Assign line item to player
         if self.line_item:
-            self.line_item.assign_to_player(player, user)
+            self.line_item.assign_to_player(player, user, method='claim')
             self.line_item.status = PubLeagueLineItemStatus.CLAIMED.value
 
     def to_dict(self):

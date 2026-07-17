@@ -9,7 +9,7 @@ Provides secure error responses that don't leak sensitive information.
 
 import logging
 
-from flask import request, redirect, url_for, render_template, session as flask_session, jsonify
+from flask import request, redirect, url_for, render_template, session as flask_session, jsonify, Response
 from werkzeug.routing import BuildError
 from werkzeug.routing.exceptions import WebsocketMismatch
 from werkzeug.exceptions import HTTPException
@@ -206,10 +206,23 @@ def install_error_handlers(app):
         '/api/v1/v1/',
     )
 
+    static_prefix = (app.static_url_path or '/static') + '/'
+
     @app.errorhandler(404)
     def not_found(error):
         """Handle 404 not found errors."""
         path = request.path
+
+        # Missing static asset (typically a stale, content-hashed bundle URL that
+        # a cached client is still requesting after a redeploy moved it). There's
+        # no user-facing page to show a <script>/<link> fetch, and rendering the
+        # full 404 template pulls in base_flowbite's context processors — ~13 DB
+        # queries and connection checkouts per miss, which under a burst of stale
+        # bundle requests is real DB pressure. Answer with a bare, DB-free 404.
+        if path.startswith(static_prefix):
+            logger.debug(f"404 (static asset): {path}")
+            return Response('Not Found', status=404, mimetype='text/plain')
+
         if any(path == p or path.startswith(p) for p in QUIET_404_PATHS):
             logger.debug(f"404 (suppressed): {path}")
         else:

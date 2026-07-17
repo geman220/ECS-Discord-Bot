@@ -41,36 +41,46 @@
                 </div>
 
                 <!-- Existing User Section -->
-                <p class="text-gray-600 dark:text-gray-300 text-center mb-4">
-                    <strong>Already have an account?</strong> Login with Discord to join the waitlist.
-                </p>
-
-                <a href="{{ url_for('auth.waitlist_discord_login') }}"
-                   class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors mb-6">
-                    <i class="ti ti-brand-discord text-xl"></i>
-                    Login with Discord
-                </a>
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="ti ti-user-check text-ecs-green"></i>
+                        <h4 class="font-semibold text-gray-900 dark:text-white">I already have an account</h4>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Sign in with the Discord you already registered — we'll add you straight to the waitlist.</p>
+                    <a href="{{ url_for('auth.waitlist_discord_login') }}"
+                       class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors">
+                        <i class="ti ti-brand-discord text-xl"></i>
+                        Sign in with Discord
+                    </a>
+                </div>
 
                 <!-- Divider -->
-                <div class="relative mb-6">
+                <div class="relative mb-4">
                     <div class="absolute inset-0 flex items-center">
                         <div class="w-full border-t border-gray-200 dark:border-gray-700"></div>
                     </div>
                     <div class="relative flex justify-center text-sm">
-                        <span class="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">New to Pub League?</span>
+                        <span class="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">or</span>
                     </div>
                 </div>
 
                 <!-- New User Section -->
-                <p class="text-gray-600 dark:text-gray-300 text-center mb-4">
-                    Create a new account with Discord to join the waitlist.
-                </p>
-
-                <a href="{{ url_for('auth.waitlist_discord_register') }}"
-                   class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors mb-6">
-                    <i class="ti ti-user-plus"></i>
-                    Register with Discord
-                </a>
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-6">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="ti ti-user-plus text-ecs-green"></i>
+                        <h4 class="font-semibold text-gray-900 dark:text-white">I'm new here</h4>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Create your account with Discord to join the waitlist for the first time.</p>
+                    <p class="flex items-start gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-3">
+                        <i class="ti ti-info-circle mt-0.5 shrink-0"></i>
+                        <span>New members complete a quick profile and are approved by an admin before joining a team.</span>
+                    </p>
+                    <a href="{{ url_for('auth.waitlist_discord_register') }}"
+                       class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <i class="ti ti-user-plus"></i>
+                        Create account with Discord
+                    </a>
+                </div>
 
                 <!-- Info Note -->
                 <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">

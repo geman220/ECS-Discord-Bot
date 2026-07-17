@@ -289,6 +289,8 @@
                              data-attendance="{{ player.attendance_estimate if player.attendance_estimate is not none else '' }}"
                              data-goals="{{ player.career_goals }}"
                              data-prev-draft="{{ player.prev_draft_position or 999 }}"
+                             data-is-new="{{ '1' if player.is_new else '0' }}"
+                             data-is-admin="{{ '1' if player.is_admin else '0' }}"
                              draggable="true">
                             <!-- avatar + experience ring -->
                             <div class="relative shrink-0">
@@ -312,6 +314,12 @@
                                     {% endif %}
                                     {% if player.is_ref %}
                                     <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500 text-white shrink-0">REF</span>
+                                    {% endif %}
+                                    {% if player.is_new %}
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 shrink-0" title="Brand new — no prior team history"><i class="ti ti-sparkles text-[9px]"></i>NEW</span>
+                                    {% endif %}
+                                    {% if player.is_admin %}
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 shrink-0" title="Admin"><i class="ti ti-shield-check text-[9px]"></i>ADMIN</span>
                                     {% endif %}
                                 </div>
                                 <!-- position form-pills (primary green / alt orange / avoid red) -->
@@ -457,6 +465,8 @@
             {% set _my_teams = viewer_team_ids or [] %}
             {% set _scoped_default = '1' if (_my_teams and not nav_is_admin) else '0' %}
             <section id="rostersSection" data-my-teams="{{ _my_teams|join(',') }}" data-scoped-default="{{ _scoped_default }}"
+                     data-min-new="{{ draft_clock_state.min_new_players if draft_clock_state else 0 }}"
+                     data-min-admin="{{ draft_clock_state.min_admins if draft_clock_state else 0 }}"
                      class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
                 <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
                     <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
@@ -494,13 +504,14 @@
                                 <span class="mt-1.5 block h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                                     <span class="block h-full rounded-full {{ 'bg-ecs-green' if _fillpct >= 100 else 'bg-blue-500' if _fillpct >= 60 else 'bg-yellow-500' }}" style="width: {{ _fillpct }}%"></span>
                                 </span>
+                                <span class="mt-1 flex flex-wrap gap-1" data-req-team="{{ team.id }}"></span>
                             </span>
                             <i class="ti ti-chevron-down transform group-open:rotate-180 transition-transform text-gray-400 shrink-0" aria-hidden="true"></i>
                         </summary>
                         <div class="p-4 pt-0">
                             <div id="teamPlayers{{ team.id }}" class="space-y-1.5 js-draft-drop-zone rounded-lg border border-dashed border-gray-200 dark:border-gray-700 p-2" data-team-id="{{ team.id }}" data-drop-target="team">
                                 {% for player in drafted_players_by_team[team.id] %}
-                                <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg js-draggable-player cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" draggable="true" data-player-id="{{ player.id }}">
+                                <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg js-draggable-player cursor-grab active:cursor-grabbing hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" draggable="true" data-player-id="{{ player.id }}" data-is-new="{{ '1' if player.is_new else '0' }}" data-is-admin="{{ '1' if player.is_admin else '0' }}">
                                     <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}" onerror="this.onerror=null;this.src='/static/img/default_player.png'"
                                          alt="{{ player.name }}"
                                          class="w-8 h-8 rounded-lg object-cover object-top shrink-0">
@@ -1160,6 +1171,67 @@
   apply(initial);
   btnMine.addEventListener('click', function () { apply('mine'); });
   btnAll.addEventListener('click', function () { apply('all'); });
+})();
+</script>
+<script>
+/* Per-team roster requirements: live New/Admin counters (needs X new, X admins). No-op unless
+   the draft session set a requirement. Counts are kept in memory (seeded from the server-rendered
+   rosters) and adjusted from the socket draft/remove payloads, so they stay correct without a
+   full re-render. Soft: shows progress, never blocks a pick. */
+(function () {
+  var sec = document.getElementById('rostersSection');
+  if (!sec) return;
+  var minNew = parseInt(sec.getAttribute('data-min-new'), 10) || 0;
+  var minAdmin = parseInt(sec.getAttribute('data-min-admin'), 10) || 0;
+  if (!minNew && !minAdmin) return;  // no requirement configured
+
+  var counts = {};  // teamId -> {n: newCount, a: adminCount}
+  function ensure(t) { if (!counts[t]) counts[t] = { n: 0, a: 0 }; return counts[t]; }
+
+  // seed from the server-rendered roster cards
+  sec.querySelectorAll('[data-req-team]').forEach(function (badge) {
+    var tid = badge.getAttribute('data-req-team');
+    var c = ensure(tid);
+    var roster = document.getElementById('teamPlayers' + tid);
+    if (roster) roster.querySelectorAll('[data-player-id]').forEach(function (card) {
+      if (card.getAttribute('data-is-new') === '1') c.n++;
+      if (card.getAttribute('data-is-admin') === '1') c.a++;
+    });
+  });
+
+  function pill(label, have, need, icon) {
+    var ok = have >= need;
+    var cls = ok ? 'bg-ecs-green/15 text-ecs-green' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300';
+    return '<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ' + cls + '"><i class="ti ' + icon + '"></i>' + label + ' ' + have + '/' + need + (ok ? ' <i class="ti ti-check"></i>' : '') + '</span>';
+  }
+  function renderTeam(tid) {
+    var badge = sec.querySelector('[data-req-team="' + tid + '"]'); if (!badge) return;
+    var c = ensure(tid), out = '';
+    if (minNew) out += pill('New', c.n, minNew, 'ti-sparkles');
+    if (minAdmin) out += pill('Admin', c.a, minAdmin, 'ti-shield-check');
+    badge.innerHTML = out;
+  }
+  function renderAll() { Object.keys(counts).forEach(renderTeam); }
+  renderAll();
+
+  function adjust(teamId, player, delta) {
+    if (teamId == null || !player) return;
+    var c = ensure(String(teamId));
+    if (player.is_new) c.n = Math.max(0, c.n + delta);
+    if (player.is_admin) c.a = Math.max(0, c.a + delta);
+    renderTeam(String(teamId));
+  }
+
+  // hook the live socket (retry until it exists, same pattern as the clock JS)
+  var attempts = 0;
+  var iv = setInterval(function () {
+    var sock = window.socket;
+    if (sock && !sock._reqBound) {
+      sock._reqBound = true; clearInterval(iv);
+      sock.on('player_drafted_enhanced', function (d) { if (d && d.player) adjust(d.team_id, d.player, +1); });
+      sock.on('player_removed_enhanced', function (d) { if (d && d.player) adjust(d.team_id, d.player, -1); });
+    } else if (++attempts > 40) { clearInterval(iv); }
+  }, 500);
 })();
 </script>
 {% endblock %}

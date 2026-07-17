@@ -184,6 +184,8 @@ def build_state(session, ds, team_ids=None):
         'lock_to_clock': ds.lock_to_clock,
         'timeout_action': ds.timeout_action,
         'rounds': ds.rounds,
+        'min_new_players': getattr(ds, 'min_new_players', 0) or 0,
+        'min_admins': getattr(ds, 'min_admins', 0) or 0,
         'overall_pick': ds.current_overall_pick,
         'total_picks': total,
         'round': ds.current_round,

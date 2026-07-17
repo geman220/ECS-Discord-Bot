@@ -342,20 +342,81 @@ def link_order():
         flash('An error occurred processing your order. Please try again or contact support.', 'error')
         return redirect(url_for('main.index'))
 
+    # Get line items for display
+    line_items = list(order.line_items.all())
+
+    # Logged-in user context -------------------------------------------------
+    player = safe_current_user.player if current_user.is_authenticated else None
+
+    # Auto-link the common case: a logged-in buyer whose order is a SINGLE
+    # unassigned pass. This catches everyone who pays and then closes the tab
+    # without tapping a button — they still get linked and activated for the
+    # season — while recording the link as 'auto' (unconfirmed). The buyer is
+    # Discord-authenticated, so this is genuinely them; the wizard still shows
+    # a prominent "Confirm my pass" card below, and confirming flips it to
+    # 'user_confirmed'. The admin orders page flags anything left 'auto' so a
+    # mistaken link is easy to spot. Multi-pass orders stay manual (gifts).
+    if (current_user.is_authenticated and len(line_items) == 1
+            and not line_items[0].is_assigned()):
+        try:
+            db_sess = get_db_session()
+            user = db_sess.query(User).get(safe_current_user.id)
+            if user:
+                player = PlayerActivationService.ensure_player_for_user(user, order_data)
+                item = line_items[0]
+                division, li_jersey_size = item.division, item.jersey_size
+                if not order.primary_user_id:
+                    order.primary_user_id = user.id
+                # Commits the link before the slower activation, exactly like
+                # link-self, so a failure in activation can't undo the link.
+                PubLeagueOrderService.link_pass_to_player(item, player, user, method='auto')
+                try:
+                    PlayerActivationService.activate_player_for_league(
+                        player=player, user=user, division=division,
+                        jersey_size=li_jersey_size
+                    )
+                except Exception as act_err:
+                    logger.error(
+                        f"Auto-link activation failed for order {order_id} "
+                        f"(pass IS linked, player stays non-current until confirmed): {act_err}",
+                        exc_info=True
+                    )
+                    try:
+                        db_sess.rollback()
+                    except Exception:
+                        pass
+                logger.info(f"Auto-linked single pass on order {order_id} to user {user.id}")
+        except Exception as e:
+            # Auto-link is a convenience; never let it break the page. The buyer
+            # can still link manually on the assignment step below.
+            logger.error(f"Auto-link failed for order {order_id}: {e}", exc_info=True)
+            try:
+                get_db_session().rollback()
+            except Exception:
+                pass
+        # Re-read: the assignment state changed under us.
+        line_items = list(order.line_items.all())
+        player = safe_current_user.player if current_user.is_authenticated else player
+
+    unassigned_items = [item for item in line_items if not item.is_assigned()]
+
+    # A single pass auto-linked to this buyer but not yet confirmed -> show the
+    # focused confirm card instead of dropping straight to the download step.
+    auto_confirm_item = next(
+        (li for li in line_items
+         if getattr(li, 'is_auto_unconfirmed', False)
+         and li.assigned_user_id == safe_current_user.id), None
+    ) if current_user.is_authenticated else None
+
     # Determine initial step
     if not current_user.is_authenticated:
         initial_step = 2  # Login step
+    elif auto_confirm_item:
+        initial_step = 3  # Confirm-your-pass card (auto-linked, unconfirmed)
     elif order.is_fully_linked():
         initial_step = 6  # Download step (all passes already linked)
     else:
         initial_step = 3  # Assignment step
-
-    # Get line items for display
-    line_items = list(order.line_items.all())
-    unassigned_items = [item for item in line_items if not item.is_assigned()]
-
-    # Logged-in user context -------------------------------------------------
-    player = safe_current_user.player if current_user.is_authenticated else None
 
     # Membership (is_approved) is admin-granted and separate from payment.
     # A brand-new buyer ends up PAID (is_current_player) but PENDING APPROVAL.
@@ -428,6 +489,7 @@ def link_order():
         line_items=line_items,
         unassigned_items=unassigned_items,
         my_line_item_ids=my_line_item_ids,
+        auto_confirm_item=auto_confirm_item,
         initial_step=initial_step,
         conflicts=conflicts,
         profile_needs_update=profile_needs_update,
@@ -583,7 +645,8 @@ def link_self():
             # failure downstream can't leave the order half-linked.
             if not order.primary_user_id:
                 order.primary_user_id = user.id
-            PubLeagueOrderService.link_pass_to_player(line_item, player, user)
+            # Explicit tap on "Assign to Me" = a confirmed, human decision.
+            PubLeagueOrderService.link_pass_to_player(line_item, player, user, method='user_confirmed')
 
         # Snapshot the response now, while the link is fresh. Everything below is
         # best-effort and re-reading these afterwards would re-query the DB — a
@@ -635,6 +698,161 @@ def link_self():
 
     except Exception as e:
         logger.error(f"Error linking pass: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+
+@pub_league_bp.route('/link-order/confirm-link', methods=['POST'])
+@login_required
+def confirm_link():
+    """
+    Buyer confirms an auto-linked pass is really theirs.
+
+    Flips link_method 'auto' -> 'user_confirmed' and (idempotently) ensures the
+    player is activated for the season, in case the auto-link's activation step
+    failed. Only the user the pass is already linked to can confirm it.
+
+    Request JSON:
+        order_id, line_item_id, token (optional; falls back to session)
+    """
+    data = request.get_json() or {}
+    order_id = data.get('order_id')
+    line_item_id = data.get('line_item_id')
+
+    if not order_id or not line_item_id:
+        return jsonify({'success': False, 'message': 'Missing order_id or line_item_id'}), 400
+
+    try:
+        session = get_db_session()
+
+        order = session.query(PubLeagueOrder).get(order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'Order not found'}), 404
+
+        if not _order_token_ok(order, data.get('token')):
+            return _forbidden()
+
+        line_item = session.query(PubLeagueOrderLineItem).get(line_item_id)
+        if not line_item or line_item.order_id != order_id:
+            return jsonify({'success': False, 'message': 'Line item not found'}), 404
+
+        # Only the person the pass is linked to may confirm it. Load the user
+        # and player through THIS session (not safe_current_user.player, which
+        # binds to db.session) so the commit below actually persists.
+        if line_item.assigned_user_id != safe_current_user.id:
+            return jsonify({'success': False, 'message': 'This pass is not linked to your account.'}), 403
+        user = session.query(User).get(safe_current_user.id)
+        player = PlayerActivationService.ensure_player_for_user(user) if user else None
+        if not user or not player:
+            return jsonify({'success': False, 'message': 'Account not found'}), 400
+
+        line_item.confirm_link()
+        session.commit()
+
+        # Snapshot before best-effort activation (a commit expires instances).
+        is_approved = bool(getattr(user, 'is_approved', False))
+        is_current_player = bool(player.is_current_player)
+
+        # Activation is idempotent; re-run in case the auto-link's activation
+        # step failed and left the player non-current.
+        try:
+            PlayerActivationService.activate_player_for_league(
+                player=player, user=user, division=line_item.division,
+                jersey_size=None  # profile confirmation owns jersey size from here
+            )
+            is_current_player = bool(player.is_current_player)
+        except Exception as e:
+            logger.error(f"Confirm-link activation retry failed for line item {line_item_id}: {e}",
+                         exc_info=True)
+            try:
+                session.rollback()
+            except Exception:
+                pass
+
+        return jsonify({
+            'success': True,
+            'message': 'Pass confirmed',
+            'is_approved': is_approved,
+            'is_current_player': is_current_player,
+        })
+
+    except Exception as e:
+        logger.error(f"Error confirming pass link: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+
+@pub_league_bp.route('/link-order/reject-auto-link', methods=['POST'])
+@login_required
+def reject_auto_link():
+    """
+    Undo an auto-link the buyer says isn't theirs (e.g. a single pass bought as
+    a gift). Returns the pass to a clean unassigned state so they can gift or
+    assign it, and deactivates them for the season unless they hold another pass.
+
+    Only the user the pass is auto-linked to can reject it, and only while it's
+    still an unconfirmed auto-link — once confirmed, it's a deliberate choice.
+
+    Request JSON:
+        order_id, line_item_id, token (optional; falls back to session)
+    """
+    data = request.get_json() or {}
+    order_id = data.get('order_id')
+    line_item_id = data.get('line_item_id')
+
+    if not order_id or not line_item_id:
+        return jsonify({'success': False, 'message': 'Missing order_id or line_item_id'}), 400
+
+    try:
+        session = get_db_session()
+
+        order = session.query(PubLeagueOrder).get(order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'Order not found'}), 404
+
+        if not _order_token_ok(order, data.get('token')):
+            return _forbidden()
+
+        line_item = session.query(PubLeagueOrderLineItem).get(line_item_id)
+        if not line_item or line_item.order_id != order_id:
+            return jsonify({'success': False, 'message': 'Line item not found'}), 404
+
+        # Guard: only an unconfirmed auto-link, and only the user it's linked to.
+        if line_item.assigned_user_id != safe_current_user.id or not line_item.is_auto_unconfirmed:
+            return jsonify({'success': False, 'message': 'This pass can no longer be changed here.'}), 409
+
+        old_player_id = line_item.assigned_player_id
+
+        # Return to a clean unassigned state (mirrors the admin unassign path).
+        line_item.assigned_player_id = None
+        line_item.assigned_user_id = None
+        line_item.assigned_at = None
+        line_item.wallet_pass_id = None
+        line_item.pass_created_at = None
+        line_item.link_method = None
+        line_item.link_confirmed_at = None
+        line_item.status = PubLeagueLineItemStatus.UNASSIGNED.value
+        if order.linked_passes:
+            order.linked_passes = max(0, order.linked_passes - 1)
+        order.update_status()
+        session.commit()
+
+        # Drop is_current_player unless they still hold another pass this season.
+        PlayerActivationService.deactivate_player_if_no_current_pass(
+            old_player_id, order, exclude_line_item_id=line_item.id
+        )
+        session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Pass unlinked',
+            'line_item': line_item.to_dict(),
+        })
+
+    except Exception as e:
+        logger.error(f"Error rejecting auto-link: {e}", exc_info=True)
+        try:
+            get_db_session().rollback()
+        except Exception:
+            pass
         return jsonify({'success': False, 'message': 'An error occurred'}), 500
 
 
@@ -709,8 +927,8 @@ def assign_to_user():
         # Get user associated with player
         user = player.user if player.user_id else None
 
-        # Link the pass
-        PubLeagueOrderService.link_pass_to_player(line_item, player, user)
+        # Assigning to someone the buyer searched for = a gift.
+        PubLeagueOrderService.link_pass_to_player(line_item, player, user, method='gift')
 
         # Activate player for the division (set is_current_player, sync roles)
         # Only activates roles if user exists and is approved
@@ -1008,11 +1226,21 @@ def generate_pass():
         if not _order_token_ok(line_item.order, data.get('token')):
             return _forbidden()
 
+        # Whether the Google Wallet button should even be offered — an
+        # unconfigured Google setup makes the button dead-end on a "coming soon"
+        # page, which reads as "my pass is broken." Apple is always available.
+        try:
+            from app.wallet_pass.services.pass_service import pass_service
+            google_available = bool(pass_service.get_google_config_status().get('configured'))
+        except Exception:
+            google_available = False
+
         # Check if pass already created
         if line_item.wallet_pass_id:
             wallet_pass = line_item.wallet_pass
             return jsonify({
                 'success': True,
+                'google_available': google_available,
                 'wallet_pass': {
                     'id': wallet_pass.id,
                     'download_token': wallet_pass.download_token,
@@ -1025,6 +1253,7 @@ def generate_pass():
 
         return jsonify({
             'success': True,
+            'google_available': google_available,
             'wallet_pass': {
                 'id': wallet_pass.id,
                 'download_token': wallet_pass.download_token,

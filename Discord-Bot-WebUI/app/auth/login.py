@@ -40,6 +40,25 @@ def is_safe_url(target):
     return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 
+def login_entry_flags():
+    """
+    Which sign-up path the login page should offer.
+
+    Drives a mutually-exclusive entry UI: when registration is OPEN we show
+    "Register", and when it's CLOSED (season full) we show "Join the Waitlist"
+    instead — never both at once. Both are admin toggles (registration_enabled /
+    waitlist_registration_enabled). Fails open to registration-open so a DB blip
+    never hides the sign-up button.
+    """
+    from app.models.admin_config import AdminConfig
+    try:
+        registration_open = bool(AdminConfig.get_setting('registration_enabled', True))
+        waitlist_enabled = bool(AdminConfig.get_setting('waitlist_registration_enabled', True))
+    except Exception:
+        registration_open, waitlist_enabled = True, True
+    return {'registration_open': registration_open, 'waitlist_enabled': waitlist_enabled}
+
+
 @auth.route('/login', methods=['GET', 'POST'])
 @limiter.limit(
     "10 per minute",
@@ -59,6 +78,8 @@ def login():
 
     # Initialize form at the start to prevent UnboundLocalError
     form = LoginForm()
+    # Entry-UI switches (register vs waitlist) — passed to every login render.
+    entry_flags = login_entry_flags()
 
     try:
         if safe_current_user.is_authenticated:
@@ -75,13 +96,13 @@ def login():
 
         if request.method == 'GET':
             logger.debug("GET request - rendering login form")
-            return render_template('login_flowbite.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form, **entry_flags)
 
         logger.debug("Processing login POST request")
         if not form.validate_on_submit():
             logger.debug(f"Form validation failed: {form.errors}")
             show_error('Please check your form inputs.')
-            return render_template('login_flowbite.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form, **entry_flags)
 
         email = form.email.data.lower()
         logger.debug(f"Attempting login for email: {email}")
@@ -90,7 +111,7 @@ def login():
         if not users:
             logger.debug("No user found with provided email")
             show_error('Invalid email or password')
-            return render_template('login_flowbite.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form, **entry_flags)
 
         if len(users) > 1:
             logger.debug(f"Multiple users found for email {email}")
@@ -99,7 +120,7 @@ def login():
             problematic_players = [p for p in players if p.needs_manual_review]
             if problematic_players:
                 show_warning('Multiple profiles found. Please contact an admin.')
-                return render_template('login_flowbite.html', title='Login', form=form)
+                return render_template('login_flowbite.html', title='Login', form=form, **entry_flags)
 
         user = users[0]
         logger.debug(f"Found user: {user.id}")
@@ -107,7 +128,7 @@ def login():
         if not user.check_password(form.password.data):
             logger.debug("Invalid password")
             show_error('Invalid email or password')
-            return render_template('login_flowbite.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form, **entry_flags)
 
         # Only DENIED applicants are blocked at login. Pending (awaiting admin
         # approval) and unpaid users log in fine — the league-access gate then
@@ -115,7 +136,7 @@ def login():
         if getattr(user, 'approval_status', None) == 'denied':
             logger.debug("User application was denied")
             show_error('Your application was not approved. Please contact an admin if you believe this is a mistake.')
-            return render_template('login_flowbite.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form, **entry_flags)
 
         # If 2FA is enabled, redirect to 2FA verification.
         if user.is_2fa_enabled:
@@ -163,17 +184,17 @@ def login():
             else:
                 logger.error("Failed to update last login")
                 show_error('Login failed. Please try again.')
-                return render_template('login_flowbite.html', title='Login', form=form)
+                return render_template('login_flowbite.html', title='Login', form=form, **entry_flags)
 
         except Exception as e:
             logger.error(f"Error during login: {str(e)}", exc_info=True)
             show_error('Login failed. Please try again.')
-            return render_template('login_flowbite.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form, **entry_flags)
 
     except Exception as e:
         logger.error(f"Unexpected error in login route: {str(e)}", exc_info=True)
         show_error('An unexpected error occurred. Please try again.')
-        return render_template('login_flowbite.html', title='Login', form=form)
+        return render_template('login_flowbite.html', title='Login', form=form, **entry_flags)
 
 
 @auth.route('/auth-check')
