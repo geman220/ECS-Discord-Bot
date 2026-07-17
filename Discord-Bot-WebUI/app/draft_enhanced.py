@@ -1269,6 +1269,27 @@ def draft_league(league_name: str):
     # Get draft analytics
     analytics = DraftService.get_draft_analytics(db_league_name)
 
+    # Ordered draft history (pick log) for the always-visible live feed everyone watches.
+    draft_history = []
+    try:
+        from app.models import DraftOrderHistory
+        _hist = (
+            g.db_session.query(DraftOrderHistory, Player.name, Team.name)
+            .join(Player, Player.id == DraftOrderHistory.player_id)
+            .join(Team, Team.id == DraftOrderHistory.team_id)
+            .filter(DraftOrderHistory.season_id == current_league.season_id,
+                    DraftOrderHistory.league_id == current_league.id)
+            .order_by(DraftOrderHistory.draft_position.asc())
+            .all()
+        )
+        draft_history = [
+            {'pos': dh.draft_position, 'player_id': dh.player_id, 'team_id': dh.team_id,
+             'player': pname, 'team': tname}
+            for (dh, pname, tname) in _hist
+        ]
+    except Exception as _hist_err:
+        logger.warning(f"draft history load failed: {_hist_err}")
+
     # On-the-clock draft state. The live draft board is coach-facing, so we force the
     # Modern ('console') board for everyone allowed here (Coach + Admin) — Classic stays
     # byte-identical and simply isn't served on this focused draft route. The bar only
@@ -1310,6 +1331,7 @@ def draft_league(league_name: str):
         available_players=available_players,
         drafted_players_by_team=drafted_by_team,
         analytics=analytics,
+        draft_history=draft_history,
         current_season_id=current_league.season_id,
         current_league_id=current_league.id,
         draft_clock_state=draft_clock_state,

@@ -356,7 +356,8 @@ def handle_draft_player_enhanced(data):
                     'team_id': team_id,
                     'team_name': team_name,
                     'league_name': league_name,
-                    'position': position  # Include position at top level for easier access
+                    'position': position,  # Include position at top level for easier access
+                    'draft_position': locals().get('draft_position')  # overall pick # for the live history feed
                 }
 
             # Broadcast to all clients in the draft room so everyone sees the update

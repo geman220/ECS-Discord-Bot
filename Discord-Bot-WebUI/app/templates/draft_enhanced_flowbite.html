@@ -436,6 +436,54 @@
         <div class="lg:col-span-4">
             <div class="sticky top-20 space-y-6">
 
+            <!-- ===== DRAFT HISTORY (always visible, live pick feed everyone watches) ===== -->
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-history text-ecs-green" aria-hidden="true"></i> Draft History</h3>
+                    <span class="text-xs font-mono text-gray-400 dark:text-gray-500"><span id="histCount">{{ draft_history|length if draft_history else 0 }}</span> picks</span>
+                </div>
+                <div id="draftHistoryList" class="max-h-[280px] overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/60">
+                    {% for h in (draft_history or [])|reverse %}
+                    <div class="px-4 py-2 flex items-center gap-2 text-sm" data-hist-player="{{ h.player_id }}" data-hist-team="{{ h.team_id }}">
+                        <span class="font-mono text-xs text-gray-400 w-7 shrink-0">#{{ h.pos }}</span>
+                        <span class="font-semibold text-gray-900 dark:text-white truncate max-w-[40%]">{{ h.team }}</span>
+                        <span class="text-gray-400" aria-hidden="true">→</span>
+                        <span class="flex-1 min-w-0 truncate text-gray-700 dark:text-gray-200">{{ h.player }}</span>
+                    </div>
+                    {% endfor %}
+                    <div id="histEmpty" class="px-4 py-6 text-center text-sm text-gray-400 {{ 'hidden' if draft_history else '' }}">No picks yet — they'll appear here live.</div>
+                </div>
+            </section>
+
+            {% if nav_is_admin %}
+            <!-- ===== ADMIN CONTROLS (admin-only: manual assign + undo) ===== -->
+            <section id="adminDraftPanel" data-league="{{ league_name }}" data-season="{{ current_season_id }}" data-league-id="{{ current_league_id }}"
+                     class="rounded-xl border-2 border-ecs-green/40 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 bg-ecs-green-50 dark:bg-ecs-green-900/10">
+                    <i class="ti ti-shield-cog text-ecs-green" aria-hidden="true"></i>
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Admin Controls</h3>
+                </div>
+                <div class="p-4 space-y-3">
+                    <div>
+                        <label for="adminAssignPlayer" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Assign a player to a team</label>
+                        <select id="adminAssignPlayer" class="input-ecs w-full text-sm mb-2"><option value="">Select player…</option></select>
+                        <div class="flex gap-2">
+                            <select id="adminAssignTeam" class="input-ecs flex-1 text-sm">
+                                <option value="">Select team…</option>
+                                {% for team in teams %}<option value="{{ team.id }}">{{ team.name }}</option>{% endfor %}
+                            </select>
+                            <button type="button" id="adminAssignBtn" class="h-9 px-3 shrink-0 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold inline-flex items-center gap-1.5"><i class="ti ti-user-plus" aria-hidden="true"></i> Assign</button>
+                        </div>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Assigns out of turn if needed — the clock stays on whoever it was on.</p>
+                    </div>
+                    <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
+                        <button type="button" id="adminUndoBtn" class="w-full h-9 rounded-lg border border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-300 text-sm font-semibold inline-flex items-center justify-center gap-1.5 hover:bg-amber-50 dark:hover:bg-amber-900/20"><i class="ti ti-arrow-back-up" aria-hidden="true"></i> Undo last pick</button>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Removes the most recent pick &amp; steps the clock back. Pause / Skip / Back / End live on the clock bar above.</p>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+
             <!-- Position needs (real data: analytics.position_distribution across drafted players) -->
             {% if analytics.position_distribution %}
             <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
@@ -1230,6 +1278,111 @@
       sock._reqBound = true; clearInterval(iv);
       sock.on('player_drafted_enhanced', function (d) { if (d && d.player) adjust(d.team_id, d.player, +1); });
       sock.on('player_removed_enhanced', function (d) { if (d && d.player) adjust(d.team_id, d.player, -1); });
+    } else if (++attempts > 40) { clearInterval(iv); }
+  }, 500);
+})();
+</script>
+<script>
+/* Live draft-history feed: everyone watches picks land in real time. Seeded server-side,
+   updated from the socket draft/remove events. Self-contained; no-op if the panel is absent. */
+(function () {
+  var list = document.getElementById('draftHistoryList');
+  if (!list) return;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function setCount(n) { var c = document.getElementById('histCount'); if (c) c.textContent = n; var e = document.getElementById('histEmpty'); if (e) e.classList.toggle('hidden', n > 0); }
+  function count() { return list.querySelectorAll('[data-hist-player]').length; }
+
+  function add(d) {
+    var pos = d.draft_position != null ? d.draft_position : (count() + 1);
+    var row = document.createElement('div');
+    row.className = 'px-4 py-2 flex items-center gap-2 text-sm bg-ecs-green/5';
+    row.setAttribute('data-hist-player', d.player.id);
+    row.setAttribute('data-hist-team', d.team_id);
+    row.innerHTML = '<span class="font-mono text-xs text-gray-400 w-7 shrink-0">#' + pos + '</span>' +
+      '<span class="font-semibold text-gray-900 dark:text-white truncate max-w-[40%]">' + esc(d.team_name) + '</span>' +
+      '<span class="text-gray-400" aria-hidden="true">&rarr;</span>' +
+      '<span class="flex-1 min-w-0 truncate text-gray-700 dark:text-gray-200">' + esc(d.player.name) + '</span>';
+    list.insertBefore(row, list.firstChild);  // newest on top
+    setTimeout(function () { row.classList.remove('bg-ecs-green/5'); }, 1500);
+    setCount(count());
+  }
+  function remove(d) {
+    var r = list.querySelector('[data-hist-player="' + d.player.id + '"]');
+    if (r) r.remove();
+    setCount(count());
+  }
+
+  var attempts = 0;
+  var iv = setInterval(function () {
+    var sock = window.socket;
+    if (sock && !sock._histBound) {
+      sock._histBound = true; clearInterval(iv);
+      sock.on('player_drafted_enhanced', function (d) { if (d && d.player) add(d); });
+      sock.on('player_removed_enhanced', function (d) { if (d && d.player) remove(d); });
+    } else if (++attempts > 40) { clearInterval(iv); }
+  }, 500);
+})();
+</script>
+<script>
+/* Admin draft panel: assign any player to any team + undo the last pick. Reuses the tested
+   socket draft/remove flows + the clock 'back' endpoint. Admin-only (panel absent otherwise). */
+(function () {
+  var panel = document.getElementById('adminDraftPanel');
+  if (!panel) return;
+  var league = panel.getAttribute('data-league');
+  var season = +panel.getAttribute('data-season');
+  var leagueId = +panel.getAttribute('data-league-id');
+  var sel = document.getElementById('adminAssignPlayer');
+  function csrf() { return (document.querySelector('meta[name=csrf-token]') || {}).content || ''; }
+
+  // Populate the player dropdown from the CURRENT available pool (the board JS keeps the pool
+  // in sync on draft/remove), so it never offers an already-drafted player.
+  function refreshPlayers() {
+    var cur = sel.value;
+    var names = [];
+    document.querySelectorAll('#available-players .js-draggable-player').forEach(function (c) {
+      var id = c.getAttribute('data-player-id');
+      var nmEl = c.querySelector('.font-semibold');
+      var nm = (nmEl ? nmEl.textContent : (c.getAttribute('data-player-name') || ('Player ' + id))).trim();
+      if (id) names.push({ id: id, nm: nm });
+    });
+    names.sort(function (a, b) { return a.nm.localeCompare(b.nm); });
+    sel.innerHTML = '<option value="">Select player…</option>' + names.map(function (p) {
+      return '<option value="' + p.id + '">' + p.nm.replace(/</g, '&lt;') + '</option>';
+    }).join('');
+    if (cur) sel.value = cur;
+  }
+  refreshPlayers();
+  sel.addEventListener('focus', refreshPlayers);
+
+  document.getElementById('adminAssignBtn').addEventListener('click', function () {
+    var pid = +sel.value, tid = +document.getElementById('adminAssignTeam').value;
+    if (!pid || !tid) { alert('Pick a player and a team.'); return; }
+    var s = window.socket;
+    if (s) { s.emit('draft_player_enhanced', { player_id: pid, team_id: tid, league_name: league }); sel.value = ''; }
+    else { alert('Not connected to the draft — refresh and try again.'); }
+  });
+
+  document.getElementById('adminUndoBtn').addEventListener('click', function () {
+    var top = document.querySelector('#draftHistoryList [data-hist-player]');
+    if (!top) { alert('No picks to undo yet.'); return; }
+    if (!confirm('Undo the last pick? This removes that player from their team and steps the clock back.')) return;
+    var pid = +top.getAttribute('data-hist-player'), tid = +top.getAttribute('data-hist-team');
+    var s = window.socket;
+    if (s) s.emit('remove_player_enhanced', { player_id: pid, team_id: tid, league_name: league });
+    fetch('/admin-panel/draft/session/back', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify({ season_id: season, league_id: leagueId })
+    }).catch(function () {});
+  });
+
+  // keep the dropdown fresh as picks land (slight delay so the board moves the card first)
+  var attempts = 0, iv = setInterval(function () {
+    var s = window.socket;
+    if (s && !s._adminBound) {
+      s._adminBound = true; clearInterval(iv);
+      s.on('player_drafted_enhanced', function () { setTimeout(refreshPlayers, 350); });
+      s.on('player_removed_enhanced', function () { setTimeout(refreshPlayers, 350); });
     } else if (++attempts > 40) { clearInterval(iv); }
   }, 500);
 })();

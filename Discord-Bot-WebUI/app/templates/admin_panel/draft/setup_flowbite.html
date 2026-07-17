@@ -113,6 +113,10 @@
               <label class="flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer {{ 'border-ecs-green bg-ecs-green-50 dark:bg-ecs-green-900/20' if not clk or clk.format=='snake' else 'border-gray-300 dark:border-gray-600' }}"><input type="radio" name="format" value="snake" {{ 'checked' if not clk or clk.format=='snake' }}> Snake</label>
               <label class="flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer {{ 'border-ecs-green bg-ecs-green-50 dark:bg-ecs-green-900/20' if clk and clk.format=='linear' else 'border-gray-300 dark:border-gray-600' }}"><input type="radio" name="format" value="linear" {{ 'checked' if clk and clk.format=='linear' }}> Linear</label>
             </div>
+            <div class="mt-2 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 p-2.5 text-xs text-gray-600 dark:text-gray-300 space-y-1">
+              <p><i class="ti ti-arrows-left-right text-ecs-green"></i> <strong>Snake</strong> — the order reverses each round (E→L, then L→E, then E→L…). Whoever picks last in round 1 picks first in round 2, so no team is stuck picking last every round. <span class="text-gray-400">Fairest — recommended.</span></p>
+              <p><i class="ti ti-arrow-right text-ecs-green"></i> <strong>Linear</strong> — the same order every round (E→L, E→L…). Simpler, but the first team always picks first.</p>
+            </div>
           </div>
           <div>
             <label for="spp" class="block font-medium text-gray-900 dark:text-white mb-1.5">Seconds per pick</label>

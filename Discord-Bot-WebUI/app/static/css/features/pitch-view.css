@@ -905,7 +905,10 @@ html[data-style="dark"] .c-pitch-stats {
   background: rgba(37, 99, 235, 0.3);
   border-color: rgba(37, 99, 235, 0.7);
   border-style: solid;
-  transform: scale(1.05);
+  /* NOTE: no `transform` here. The zones are centered with transform: translate(-50%,-50%);
+     a `transform: scale(...)` overrides that (transforms aren't additive) and makes the icon
+     JUMP off-center on hover/highlight. The color + border change is enough feedback. */
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5);
 }
 
 /* Dragging state for player cards in pitch view */
