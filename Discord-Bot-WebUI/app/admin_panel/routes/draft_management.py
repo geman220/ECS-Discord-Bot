@@ -477,26 +477,57 @@ def draft_demo_page():
     """Global-Admin-only, fully SANDBOXED draft walkthrough for showing coaches how the
     on-the-clock draft works.
 
-    Nothing here touches the database, sockets, or Discord — the page is entirely
-    self-contained (the snake math + clock + alert all run client-side against in-memory
-    demo state). Seeded with the real Premier team + coach names for relatability; the
-    player pool is fake. Reset re-seeds in the browser.
+    Reads the REAL teams, coaches, and eligible player pool (read-only) so the demo is a 1:1
+    of Monday, then runs the whole draft ENTIRELY client-side against in-memory state — it
+    never writes player_teams / PlayerTeamSeason / DraftOrderHistory, never emits a socket,
+    and never touches Discord. Reset re-seeds in the browser. Two simulated coach phones react
+    to each other so a room can see the turn-passing + alerts without any real devices.
     """
-    # Real team/coach order for Monday's Premier draft (read-only seed; nothing is written).
-    demo_teams = [
-        {'id': 'E', 'name': 'Team E', 'coaches': ['Emmy', 'Duane']},
-        {'id': 'F', 'name': 'Team F', 'coaches': ['Greg', 'Stephen']},
-        {'id': 'G', 'name': 'Team G', 'coaches': ['James', 'Jake']},
-        {'id': 'H', 'name': 'Team H', 'coaches': ['Ian', 'Tabitha', 'Aaron']},
-        {'id': 'I', 'name': 'Team I', 'coaches': ['Lars', 'Brian', 'Erik']},
-        {'id': 'J', 'name': 'Team J', 'coaches': ['John', 'Kris', 'Ameer']},
-        {'id': 'K', 'name': 'Team K', 'coaches': ['Steven', 'Matt', 'Tom']},
-        {'id': 'L', 'name': 'Team L', 'coaches': ['Michael', 'Dave P.']},
-    ]
+    from sqlalchemy import or_, and_, exists
+    from app.models import player_league
+    league_name = request.args.get('league', 'Premier')
+    current_league, _all = DraftService.get_league_data(league_name)
+
+    demo_teams, demo_players = [], []
+    if current_league:
+        teams = [t for t in current_league.teams if t.name != 'Practice']
+        # Order by the saved draft slot if a session exists; otherwise by name.
+        ds = draft_clock.get_session(db.session, current_league.season_id, current_league.id)
+        order = {s.team_id: s.slot for s in ds.slots} if ds else {}
+        teams = sorted(teams, key=lambda t: order.get(t.id, 10_000)) if order else sorted(teams, key=lambda t: t.name)
+        for t in teams:
+            coaches = draft_clock.get_team_coaches(db.session, t.id)
+            demo_teams.append({'id': t.id, 'name': t.name, 'coaches': [c['name'] for c in coaches]})
+
+        # Full eligible pool for this league (same definition the real board uses), so the
+        # demo drafts EVERYONE across as many rounds as needed — a true 1:1 dry run.
+        belongs = or_(
+            Player.primary_league_id == current_league.id,
+            exists().where(and_(
+                player_league.c.player_id == Player.id,
+                player_league.c.league_id == current_league.id,
+            )),
+        )
+        players = (
+            db.session.query(Player)
+            .filter(belongs)
+            .filter(Player.is_current_player.is_(True))
+            .order_by(Player.name.asc())
+            .all()
+        )
+        for p in players:
+            demo_players.append({
+                'id': p.id,
+                'name': p.name,
+                'pos': (p.favorite_position or 'Any'),
+            })
+
     return render_template(
         'admin_panel/draft/demo_flowbite.html',
         title='Draft Demo (Sandbox)',
         demo_teams=demo_teams,
+        demo_players=demo_players,
+        demo_league=(current_league.name if current_league else league_name),
         shell='console',
     )
 

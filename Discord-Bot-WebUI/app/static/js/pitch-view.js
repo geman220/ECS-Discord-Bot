@@ -201,6 +201,8 @@ class PitchViewSystem {
 
         // Setup drag and drop event delegation
         this.setupDragAndDropEvents();
+        // Touch/click drafting (phones can't HTML5-drag) — additive to drag-and-drop.
+        this.setupTapToDraft();
     }
 
     setupDragAndDropEvents() {
@@ -271,6 +273,110 @@ class PitchViewSystem {
                 }
             }
         });
+    }
+
+    setupTapToDraft() {
+        /**
+         * Touchscreen-friendly drafting. HTML5 drag-and-drop doesn't work on phones, so this
+         * adds a tap-to-arm then tap-a-slot flow: tap a pool player (it highlights + the
+         * positions light up), then tap a position (or Bench) to draft them there. Also works
+         * as click-to-draft on a laptop. Coexists with the existing drag-and-drop path.
+         */
+        const self = this;
+        this.armedPlayer = null; // { id, positioned }
+
+        function clearArmed() {
+            document.querySelectorAll('.pv-armed').forEach(function (el) {
+                el.classList.remove('pv-armed', 'ring-2', 'ring-ecs-green', 'ring-offset-2', 'ring-offset-white', 'dark:ring-offset-gray-800');
+            });
+            document.querySelectorAll('.js-position-drop-zone.pv-hot').forEach(function (z) {
+                z.classList.remove('pv-hot', 'drag-over');
+            });
+            self.armedPlayer = null;
+            self.hideArmHint();
+        }
+        this.clearArmedSelection = clearArmed;
+
+        function arm(cardEl, playerId, positioned) {
+            clearArmed();
+            self.armedPlayer = { id: playerId, positioned: !!positioned };
+            cardEl.classList.add('pv-armed', 'ring-2', 'ring-ecs-green', 'ring-offset-2', 'ring-offset-white', 'dark:ring-offset-gray-800');
+            // Light up the drop targets so it's obvious where to tap next.
+            document.querySelectorAll('.js-position-drop-zone').forEach(function (z) {
+                z.classList.add('pv-hot', 'drag-over');
+            });
+            const name = cardEl.getAttribute('data-player-name') ||
+                cardEl.querySelector('.font-semibold')?.textContent?.trim() ||
+                cardEl.querySelector('.font-medium')?.textContent?.trim() || 'player';
+            self.showArmHint(name, positioned);
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!e.target || typeof e.target.closest !== 'function') return;
+
+            // 1) A player is armed and a position slot was tapped -> place there.
+            const zone = e.target.closest('.js-position-drop-zone');
+            if (zone && self.armedPlayer) {
+                e.preventDefault();
+                const position = zone.dataset.position;
+                const teamId = zone.dataset.teamId;
+                const armed = self.armedPlayer;
+                const cont = zone.querySelector('.position-players') || document.getElementById(`position-${position}-${teamId}`);
+                const cur = cont ? cont.children.length : 0;
+                const max = self.getRecommendedMax(position);
+                if (cur >= max) self.showPositionWarning(position, cur + 1, max);
+                clearArmed();
+                if (armed.positioned) self.movePlayerBetweenPositions(armed.id, position, teamId);
+                else self.draftPlayerToPosition(armed.id, position, teamId);
+                setTimeout(function () { self.updatePositionCapacity(position, teamId); }, 100);
+                return;
+            }
+
+            // 2) A pool player was tapped -> arm it (ignore inner buttons/links).
+            const pool = e.target.closest('.js-draggable-player');
+            if (pool && !e.target.closest('button, a, [data-action]')) {
+                if (self.armedPlayer && !self.armedPlayer.positioned && self.armedPlayer.id === pool.dataset.playerId) {
+                    clearArmed(); // tapping the armed player again disarms
+                } else {
+                    arm(pool, pool.dataset.playerId, false);
+                }
+                return;
+            }
+
+            // 3) A placed chip was tapped (not its remove button) -> arm it to move positions.
+            const chip = e.target.closest('.positioned-player');
+            if (chip && !e.target.closest('button, a')) {
+                const pid = chip.getAttribute('data-player-id') || chip.dataset.playerId;
+                if (pid) { arm(chip, pid, true); return; }
+            }
+
+            // 4) Tapped empty space while armed -> disarm.
+            if (self.armedPlayer && !e.target.closest('.js-draggable-player, .positioned-player, .js-position-drop-zone')) {
+                clearArmed();
+            }
+        });
+    }
+
+    showArmHint(name, positioned) {
+        let hint = document.getElementById('pvArmHint');
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.id = 'pvArmHint';
+            hint.className = 'fixed inset-x-0 bottom-4 z-[70] flex justify-center px-4 pointer-events-none';
+            document.body.appendChild(hint);
+        }
+        hint.innerHTML = '<div class="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-ecs-green text-white shadow-lg px-4 py-2.5 text-sm font-semibold">' +
+            '<i class="ti ti-hand-finger" aria-hidden="true"></i>' +
+            '<span>' + (positioned ? 'Moving' : 'Drafting') + ' <strong>' + name + '</strong> — tap a position or Bench</span>' +
+            '<button type="button" id="pvArmCancel" class="ml-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/20 hover:bg-white/30" aria-label="Cancel"><i class="ti ti-x text-xs"></i></button>' +
+            '</div>';
+        const cancel = document.getElementById('pvArmCancel');
+        if (cancel) cancel.addEventListener('click', () => this.clearArmedSelection && this.clearArmedSelection());
+    }
+
+    hideArmHint() {
+        const hint = document.getElementById('pvArmHint');
+        if (hint) hint.remove();
     }
 
     setupSearch() {
