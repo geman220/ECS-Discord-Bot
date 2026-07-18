@@ -236,6 +236,38 @@
     announce(teamById(teamId), player, pos);
     advance();
   }
+
+  function slotLabel(k) { return k === 'bench' ? 'Bench' : (k || '').toUpperCase(); }
+
+  // Confirm a draft before it happens. Names tab -> bench (just confirm). Pitch tab -> confirm
+  // the selected position, or ASK which position if none is picked yet.
+  function confirmDraft(slot, playerId) {
+    var team = resolveTeam(slot), p = S.byId[playerId], st = S.phone[slot];
+    if (!team || !p || S.status !== 'active') return;
+    var Sw = window.Swal;
+    var go = function (pos) { makePick(team.id, p, pos); };
+
+    if (st.tab === 'pitch' && !st.pitchPos) {
+      // ask which position
+      if (Sw) {
+        var opts = {}; SLOTS.forEach(function (s) { opts[s.key] = s.label; });
+        Sw.fire({ title: 'Draft ' + p.name, text: 'To which position on ' + team.name + '?', input: 'select',
+          inputOptions: opts, inputPlaceholder: 'Choose a position', showCancelButton: true,
+          confirmButtonText: 'Draft', confirmButtonColor: '#16a34a' }).then(function (r) { if (r.isConfirmed && r.value) go(r.value); });
+      } else {
+        var v = prompt('Draft ' + p.name + ' to which position? (st, cm, cb, gk, bench, …)', 'bench');
+        if (v) go(v.toLowerCase());
+      }
+      return;
+    }
+
+    var pos = (st.tab === 'pitch' && st.pitchPos) ? st.pitchPos : 'bench';
+    var msg = pos === 'bench' ? ('To ' + team.name + ' (bench)') : ('To ' + slotLabel(pos) + ' on ' + team.name);
+    if (Sw) {
+      Sw.fire({ icon: 'question', title: 'Draft ' + p.name + '?', text: msg, showCancelButton: true,
+        confirmButtonText: 'Draft', confirmButtonColor: '#16a34a' }).then(function (r) { if (r.isConfirmed) go(pos); });
+    } else if (confirm('Draft ' + p.name + '? ' + msg)) { go(pos); }
+  }
   function advance() {
     if (S.pick + 1 > S.total || !S.poolIds.length) { S.status = 'complete'; stopPlay(); renderAll(); return; }
     S.pick += 1; S.deadline = Date.now() + S.secs * 1000; pingPhones(); renderAll();
@@ -564,11 +596,13 @@
       var face = filled
         ? '<span class="w-10 h-10 rounded-full overflow-hidden ring-2 ' + (isSel ? 'ring-yellow-300' : 'ring-white') + ' shadow">' + avatar(on[on.length - 1].player, 'w-10 h-10') + '</span>' + (on.length > 1 ? '<span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-green-700 text-[9px] font-bold flex items-center justify-center">' + on.length + '</span>' : '')
         : '<span class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[10px] font-bold ' + (isSel ? 'bg-yellow-400/90 text-green-900 ring-2 ring-yellow-200' : 'bg-white/15 border border-white/60 border-dashed') + '">' + key.toUpperCase() + '</span>';
-      return '<button type="button" data-phone-slot="' + slot + ':' + key + '" style="left:' + xy[0] + '%;top:' + xy[1] + '%" ' +
-        'class="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">' +
+      // Centering lives on the WRAPPER div (not the button) so a global button:hover transform
+      // can't override translate(-50%,-50%) and make the spot jump.
+      return '<div class="absolute -translate-x-1/2 -translate-y-1/2" style="left:' + xy[0] + '%;top:' + xy[1] + '%">' +
+        '<button type="button" data-phone-slot="' + slot + ':' + key + '" class="flex flex-col items-center bg-transparent border-0 p-0">' +
         '<span class="relative flex items-center justify-center">' + face + '</span>' +
         '<span class="mt-0.5 px-1 rounded ' + (isSel ? 'bg-yellow-400 text-green-900' : 'bg-black/30 text-white') + ' text-[8px] font-bold uppercase tracking-wide">' + key + '</span>' +
-        '</button>';
+        '</button></div>';
     }).join('');
 
     var bench = (placed['bench'] || []), benchSel = sel === 'bench';
@@ -680,7 +714,13 @@
   document.getElementById('profileModal').addEventListener('click', function (e) {
     if (e.target.closest('[data-profile-close]')) { closeProfile(); return; }
     var d = e.target.closest('[data-profile-draft]');
-    if (d) { var oc = current(); var pid = +d.getAttribute('data-profile-draft'); if (oc) makePick(oc.team.id, S.byId[pid], 'bench'); closeProfile(); }
+    if (d) {
+      var oc = current(); var pid = +d.getAttribute('data-profile-draft'); var p = S.byId[pid];
+      if (!oc || !p) return;
+      closeProfile();
+      if (window.Swal) window.Swal.fire({ icon: 'question', title: 'Draft ' + p.name + '?', text: 'To ' + oc.team.name + ' (bench)', showCancelButton: true, confirmButtonText: 'Draft', confirmButtonColor: '#16a34a' }).then(function (r) { if (r.isConfirmed) makePick(oc.team.id, p, 'bench'); });
+      else if (confirm('Draft ' + p.name + '?')) makePick(oc.team.id, p, 'bench');
+    }
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeProfile(); });
 
@@ -709,12 +749,7 @@
     var group = el.getAttribute('data-phone-group');
     if (group) { var gp = group.split(':'); S.phone[gp[0]].posFilter = gp[1] || ''; renderPhone(gp[0]); return; }
     var draft = el.getAttribute('data-phone-draft');
-    if (draft) {
-      var d = draft.split(':'), team = resolveTeam(d[0]), stt = S.phone[d[0]];
-      var pos = (stt.tab === 'pitch' && stt.pitchPos) ? stt.pitchPos : 'bench';
-      if (team) makePick(team.id, S.byId[+d[1]], pos);
-      return;
-    }
+    if (draft) { var d = draft.split(':'); confirmDraft(d[0], +d[1]); return; }
     var slotpos = el.getAttribute('data-phone-slot');
     if (slotpos !== null && slotpos !== undefined && el.hasAttribute('data-phone-slot')) {
       var sp = slotpos.split(':'), stp = S.phone[sp[0]], pk = sp[1] || '';

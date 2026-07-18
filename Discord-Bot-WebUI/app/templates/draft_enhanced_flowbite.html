@@ -71,12 +71,6 @@
               <button type="button" id="clockAdd30Btn" class="h-7 w-9 inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 text-xs hover:bg-gray-50 dark:hover:bg-gray-700" aria-label="Add 30 seconds to the current pick" title="+30s">+30</button>
               <button type="button" id="clockTimerBtn" class="h-7 px-2 inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700" aria-label="Adjust the per-pick time"><i class="ti ti-clock-cog text-xs" aria-hidden="true"></i> Timer</button>
             </div>
-            <div class="flex gap-1">
-              <button type="button" id="clockPauseBtn" class="h-7 px-2 inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 text-xs hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-player-pause text-xs" aria-hidden="true"></i> <span class="clock-pause-label">{{ 'Resume' if clk.status == 'paused' else 'Pause' }}</span></button>
-              <button type="button" id="clockBackBtn" class="h-7 px-2 inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 text-xs hover:bg-gray-50 dark:hover:bg-gray-700" aria-label="Move the clock back one pick" title="Back one pick"><i class="ti ti-player-skip-back text-xs" aria-hidden="true"></i> Back</button>
-              <button type="button" id="clockSkipBtn" class="h-7 px-2 inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 text-xs hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-player-skip-forward text-xs" aria-hidden="true"></i> Skip</button>
-              <button type="button" id="clockEndBtn" class="h-7 px-2 inline-flex items-center gap-1 rounded-md border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-300 text-xs hover:bg-red-50 dark:hover:bg-red-900/30" aria-label="End the draft"><i class="ti ti-player-stop text-xs" aria-hidden="true"></i> End</button>
-            </div>
           </div>
           {% endif %}
         </div>
@@ -455,30 +449,39 @@
                 </div>
             </section>
 
-            {% if nav_is_admin %}
-            <!-- ===== ADMIN CONTROLS (admin-only: manual assign + undo) ===== -->
+            {% if nav_is_admin and draft_clock_state and draft_clock_state.status in ['active', 'paused'] %}
+            <!-- ===== ADMIN CONTROLS (only while a draft is running) ===== -->
             <section id="adminDraftPanel" data-league="{{ league_name }}" data-season="{{ current_season_id }}" data-league-id="{{ current_league_id }}"
+                     data-status="{{ draft_clock_state.status }}"
                      class="rounded-xl border-2 border-ecs-green/40 bg-white dark:bg-gray-800 overflow-hidden">
                 <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 bg-ecs-green-50 dark:bg-ecs-green-900/10">
                     <i class="ti ti-shield-cog text-ecs-green" aria-hidden="true"></i>
                     <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Admin Controls</h3>
                 </div>
                 <div class="p-4 space-y-3">
-                    <div>
-                        <label for="adminAssignPlayer" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Assign a player to a team</label>
-                        <select id="adminAssignPlayer" class="input-ecs w-full text-sm mb-2"><option value="">Select player…</option></select>
-                        <div class="flex gap-2">
-                            <select id="adminAssignTeam" class="input-ecs flex-1 text-sm">
-                                <option value="">Select team…</option>
-                                {% for team in teams %}<option value="{{ team.id }}">{{ team.name }}</option>{% endfor %}
-                            </select>
-                            <button type="button" id="adminAssignBtn" class="h-9 px-3 shrink-0 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold inline-flex items-center gap-1.5"><i class="ti ti-user-plus" aria-hidden="true"></i> Assign</button>
-                        </div>
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Assigns out of turn if needed — the clock stays on whoever it was on.</p>
+                    <!-- draft flow controls -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="acPause" class="h-9 px-2 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-player-pause" aria-hidden="true"></i> <span id="acPauseLabel">Pause</span></button>
+                        <button type="button" id="acSkip" class="h-9 px-2 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-player-skip-forward" aria-hidden="true"></i> Skip turn</button>
+                        <button type="button" id="acUndo" class="h-9 px-2 inline-flex items-center justify-center gap-1.5 rounded-lg border border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-300 text-sm font-semibold hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:opacity-40 disabled:cursor-not-allowed"><i class="ti ti-arrow-back-up" aria-hidden="true"></i> Back</button>
+                        <button type="button" id="acRedo" class="h-9 px-2 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed" disabled><i class="ti ti-arrow-forward-up" aria-hidden="true"></i> Redo</button>
+                        <button type="button" id="acEnd" class="col-span-2 h-9 px-2 inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-300 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/30"><i class="ti ti-player-stop" aria-hidden="true"></i> End draft</button>
                     </div>
-                    <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
-                        <button type="button" id="adminUndoBtn" class="w-full h-9 rounded-lg border border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-300 text-sm font-semibold inline-flex items-center justify-center gap-1.5 hover:bg-amber-50 dark:hover:bg-amber-900/20"><i class="ti ti-arrow-back-up" aria-hidden="true"></i> Undo last pick</button>
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Removes the most recent pick &amp; steps the clock back. Pause / Skip / Back / End live on the clock bar above.</p>
+                    <p class="text-[11px] text-gray-400 dark:text-gray-500"><strong>Back</strong> undoes the last pick and puts that team back on the clock. <strong>Redo</strong> re-applies it. <strong>Skip</strong> moves to the next team without a pick.</p>
+
+                    <!-- search + assign -->
+                    <div class="pt-3 border-t border-gray-100 dark:border-gray-700">
+                        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Manually assign a player</label>
+                        <select id="acTeam" class="input-ecs w-full text-sm mb-2">
+                            <option value="">Assign to which team…</option>
+                            {% for team in teams %}<option value="{{ team.id }}">{{ team.name }}</option>{% endfor %}
+                        </select>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="ti ti-search text-sm" aria-hidden="true"></i></span>
+                            <input type="text" id="acSearch" placeholder="Search a player by name…" class="input-ecs w-full pl-9 text-sm" autocomplete="off">
+                        </div>
+                        <div id="acResults" class="mt-1.5 max-h-56 overflow-y-auto space-y-1"></div>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Pick a team, search a name, tap the player. Assigns out of turn if needed — the clock stays put.</p>
                     </div>
                 </div>
             </section>
@@ -1324,67 +1327,172 @@
 })();
 </script>
 <script>
-/* Admin draft panel: assign any player to any team + undo the last pick. Reuses the tested
-   socket draft/remove flows + the clock 'back' endpoint. Admin-only (panel absent otherwise). */
+/* Admin draft control hub (only present while a draft is running). Pause/Resume, Skip, Back
+   (undo last pick + put that team back on the clock), Redo, End, and a name-search assign with
+   photos. Uses SweetAlert2 for confirms/errors and reuses the tested socket + clock endpoints. */
 (function () {
   var panel = document.getElementById('adminDraftPanel');
   if (!panel) return;
   var league = panel.getAttribute('data-league');
   var season = +panel.getAttribute('data-season');
   var leagueId = +panel.getAttribute('data-league-id');
-  var sel = document.getElementById('adminAssignPlayer');
   function csrf() { return (document.querySelector('meta[name=csrf-token]') || {}).content || ''; }
+  function sock() { return window.socket; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
-  // Populate the player dropdown from the CURRENT available pool (the board JS keeps the pool
-  // in sync on draft/remove), so it never offers an already-drafted player.
-  function refreshPlayers() {
-    var cur = sel.value;
-    var names = [];
+  function swalErr(msg) { if (window.Swal) window.Swal.fire({ icon: 'error', title: 'Draft', text: msg }); else alert(msg); }
+  function swalToast(msg) { if (window.Swal) window.Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: msg, showConfirmButton: false, timer: 1600 }); }
+  function confirmSwal(opts) {
+    if (window.Swal) return window.Swal.fire(Object.assign({ showCancelButton: true, confirmButtonColor: '#16a34a', cancelButtonText: 'Cancel' }, opts)).then(function (r) { return r.isConfirmed; });
+    return Promise.resolve(window.confirm(opts.text || opts.title || 'Are you sure?'));
+  }
+  function post(path, extra) {
+    return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() }, body: JSON.stringify(Object.assign({ season_id: season, league_id: leagueId }, extra || {})) }).then(function (r) { return r.json(); });
+  }
+
+  // ---- flow controls ----
+  var pauseBtn = document.getElementById('acPause'), pauseLabel = document.getElementById('acPauseLabel');
+  function setPauseLabel(status) {
+    if (pauseLabel) pauseLabel.textContent = status === 'paused' ? 'Resume' : 'Pause';
+    if (pauseBtn) { var i = pauseBtn.querySelector('i'); if (i) i.className = status === 'paused' ? 'ti ti-player-play' : 'ti ti-player-pause'; }
+  }
+  setPauseLabel(panel.getAttribute('data-status'));
+  if (pauseBtn) pauseBtn.addEventListener('click', function () {
+    var paused = pauseLabel && pauseLabel.textContent === 'Resume';
+    post(paused ? '/admin-panel/draft/session/resume' : '/admin-panel/draft/session/pause').then(function (d) {
+      if (d && d.success && d.state) setPauseLabel(d.state.status);
+      else if (d && !d.success) swalErr(d.message || 'Could not update the draft.');
+    });
+  });
+  var skipBtn = document.getElementById('acSkip');
+  if (skipBtn) skipBtn.addEventListener('click', function () {
+    confirmSwal({ icon: 'question', title: 'Skip this turn?', text: 'Moves to the next team without recording a pick.', confirmButtonText: 'Skip' })
+      .then(function (ok) { if (ok) post('/admin-panel/draft/session/skip').then(function (d) { if (d && !d.success) swalErr(d.message || 'Could not skip.'); }); });
+  });
+  var endBtn = document.getElementById('acEnd');
+  if (endBtn) endBtn.addEventListener('click', function () {
+    confirmSwal({ icon: 'warning', title: 'End the draft?', text: 'The clock stops for everyone. The order and all picks are kept.', confirmButtonText: 'End draft', confirmButtonColor: '#dc2626' })
+      .then(function (ok) { if (ok) post('/admin-panel/draft/session/end').then(function (d) { if (d && !d.success) swalErr(d.message || 'Could not end the draft.'); }); });
+  });
+
+  // ---- back (undo) / redo — reversible, no confirm needed ----
+  var undoBtn = document.getElementById('acUndo'), redoBtn = document.getElementById('acRedo');
+  var redoStack = [], redoing = false;
+  function topHistory() { return document.querySelector('#draftHistoryList [data-hist-player]'); }
+  function updateUndoRedo() { if (undoBtn) undoBtn.disabled = !topHistory(); if (redoBtn) redoBtn.disabled = redoStack.length === 0; }
+  updateUndoRedo();
+  if (undoBtn) undoBtn.addEventListener('click', function () {
+    var top = topHistory(); if (!top) return;
+    var pid = +top.getAttribute('data-hist-player'), tid = +top.getAttribute('data-hist-team');
+    var s = sock();
+    if (s) s.emit('remove_player_enhanced', { player_id: pid, team_id: tid, league_name: league });
+    post('/admin-panel/draft/session/back').catch(function () {});
+    redoStack.push({ player_id: pid, team_id: tid });
+    setTimeout(updateUndoRedo, 450);
+  });
+  if (redoBtn) redoBtn.addEventListener('click', function () {
+    if (!redoStack.length) return;
+    var it = redoStack.pop(); redoing = true;
+    var s = sock();
+    if (s) s.emit('draft_player_enhanced', { player_id: it.player_id, team_id: it.team_id, league_name: league });
+    setTimeout(function () { redoing = false; updateUndoRedo(); }, 650);
+  });
+
+  // ---- name search + assign (with photos) ----
+  var searchEl = document.getElementById('acSearch'), resultsEl = document.getElementById('acResults'), teamEl = document.getElementById('acTeam');
+  function availablePlayers() {
+    var out = [];
     document.querySelectorAll('#available-players .js-draggable-player').forEach(function (c) {
-      var id = c.getAttribute('data-player-id');
+      var id = c.getAttribute('data-player-id'); if (!id) return;
       var nmEl = c.querySelector('.font-semibold');
       var nm = (nmEl ? nmEl.textContent : (c.getAttribute('data-player-name') || ('Player ' + id))).trim();
-      if (id) names.push({ id: id, nm: nm });
+      var imgEl = c.querySelector('img'); var img = imgEl ? imgEl.getAttribute('src') : '';
+      out.push({ id: id, nm: nm, img: img });
     });
-    names.sort(function (a, b) { return a.nm.localeCompare(b.nm); });
-    sel.innerHTML = '<option value="">Select player…</option>' + names.map(function (p) {
-      return '<option value="' + p.id + '">' + p.nm.replace(/</g, '&lt;') + '</option>';
-    }).join('');
-    if (cur) sel.value = cur;
+    return out;
   }
-  refreshPlayers();
-  sel.addEventListener('focus', refreshPlayers);
-
-  document.getElementById('adminAssignBtn').addEventListener('click', function () {
-    var pid = +sel.value, tid = +document.getElementById('adminAssignTeam').value;
-    if (!pid || !tid) { alert('Pick a player and a team.'); return; }
-    var s = window.socket;
-    if (s) { s.emit('draft_player_enhanced', { player_id: pid, team_id: tid, league_name: league }); sel.value = ''; }
-    else { alert('Not connected to the draft — refresh and try again.'); }
+  function renderResults() {
+    if (!resultsEl) return;
+    var q = (searchEl.value || '').toLowerCase().trim();
+    if (!q) { resultsEl.innerHTML = ''; return; }
+    var matches = availablePlayers().filter(function (p) { return p.nm.toLowerCase().indexOf(q) >= 0; }).slice(0, 15);
+    resultsEl.innerHTML = matches.map(function (p) {
+      return '<button type="button" data-assign-id="' + p.id + '" data-assign-name="' + esc(p.nm) + '" class="w-full flex items-center gap-2 p-1.5 rounded-lg hover:bg-ecs-green/10 text-left">' +
+        '<img src="' + esc(p.img) + '" onerror="this.onerror=null;this.src=\'/static/img/default_player.png\'" class="w-8 h-8 rounded-full object-cover object-top shrink-0">' +
+        '<span class="flex-1 min-w-0 text-sm font-medium text-gray-900 dark:text-white truncate">' + esc(p.nm) + '</span>' +
+        '<i class="ti ti-user-plus text-ecs-green shrink-0"></i></button>';
+    }).join('') || '<p class="text-xs text-gray-400 text-center py-3">No available player matches.</p>';
+  }
+  if (searchEl) searchEl.addEventListener('input', renderResults);
+  if (resultsEl) resultsEl.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-assign-id]'); if (!b) return;
+    var pid = +b.getAttribute('data-assign-id'), pname = b.getAttribute('data-assign-name') || 'this player';
+    var tid = +(teamEl && teamEl.value);
+    if (!tid) { swalErr('Pick a team to assign to first.'); return; }
+    var tname = (teamEl.options[teamEl.selectedIndex] || {}).text || 'the team';
+    confirmSwal({ icon: 'question', title: 'Draft ' + pname + '?', text: 'Assign to ' + tname + '.', confirmButtonText: 'Draft' }).then(function (ok) {
+      if (!ok) return;
+      var s = sock();
+      if (s) { s.emit('draft_player_enhanced', { player_id: pid, team_id: tid, league_name: league }); searchEl.value = ''; renderResults(); swalToast('Drafted ' + pname); }
+      else swalErr('Not connected — refresh and try again.');
+    });
   });
 
-  document.getElementById('adminUndoBtn').addEventListener('click', function () {
-    var top = document.querySelector('#draftHistoryList [data-hist-player]');
-    if (!top) { alert('No picks to undo yet.'); return; }
-    if (!confirm('Undo the last pick? This removes that player from their team and steps the clock back.')) return;
-    var pid = +top.getAttribute('data-hist-player'), tid = +top.getAttribute('data-hist-team');
-    var s = window.socket;
-    if (s) s.emit('remove_player_enhanced', { player_id: pid, team_id: tid, league_name: league });
-    fetch('/admin-panel/draft/session/back', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-      body: JSON.stringify({ season_id: season, league_id: leagueId })
-    }).catch(function () {});
-  });
-
-  // keep the dropdown fresh as picks land (slight delay so the board moves the card first)
+  // keep the search list + undo/redo state + pause label in sync as the draft moves
   var attempts = 0, iv = setInterval(function () {
     var s = window.socket;
     if (s && !s._adminBound) {
       s._adminBound = true; clearInterval(iv);
-      s.on('player_drafted_enhanced', function () { setTimeout(refreshPlayers, 350); });
-      s.on('player_removed_enhanced', function () { setTimeout(refreshPlayers, 350); });
+      s.on('player_drafted_enhanced', function () { if (!redoing) redoStack = []; setTimeout(function () { renderResults(); updateUndoRedo(); }, 350); });
+      s.on('player_removed_enhanced', function () { setTimeout(function () { renderResults(); updateUndoRedo(); }, 350); });
+      s.on('draft_clock_update', function (st) { if (st && st.status) setPauseLabel(st.status); });
     } else if (++attempts > 40) { clearInterval(iv); }
   }, 500);
+})();
+</script>
+<script>
+/* Available-players paging: show the pool in pages instead of one 100+ long list. While a
+   search or position filter is active, paging steps aside (the filter controls visibility and
+   results are few). Self-contained; no-op if the pool is absent. */
+(function () {
+  var pool = document.getElementById('available-players');
+  if (!pool) return;
+  var PAGE = 50;
+  var search = document.getElementById('playerSearch');
+  var posFilter = document.getElementById('positionFilter');
+  // display:none must beat the responsive lg:flex on cards, hence !important.
+  var st = document.createElement('style');
+  st.textContent = '#available-players .pv-paged-out{display:none !important;}';
+  document.head.appendChild(st);
+
+  var moreWrap = document.createElement('div');
+  moreWrap.className = 'py-3 text-center';
+  moreWrap.innerHTML = '<button type="button" id="poolShowMore" class="h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"></button>';
+  pool.parentNode.insertBefore(moreWrap, pool.nextSibling);
+  var moreBtn = document.getElementById('poolShowMore');
+  var shown = PAGE;
+
+  function filterActive() { return (search && search.value.trim()) || (posFilter && posFilter.value); }
+  function cards() { return Array.prototype.slice.call(pool.querySelectorAll('.js-draggable-player')); }
+  function apply() {
+    var all = cards();
+    if (filterActive()) { all.forEach(function (c) { c.classList.remove('pv-paged-out'); }); moreWrap.style.display = 'none'; return; }
+    all.forEach(function (c, i) { c.classList.toggle('pv-paged-out', i >= shown); });
+    var remaining = all.length - shown;
+    if (remaining > 0) { moreWrap.style.display = ''; moreBtn.textContent = 'Show ' + Math.min(PAGE, remaining) + ' more (' + remaining + ' left)'; }
+    else moreWrap.style.display = 'none';
+  }
+  moreBtn.addEventListener('click', function () { shown += PAGE; apply(); });
+  if (search) search.addEventListener('input', function () { shown = PAGE; apply(); });
+  if (posFilter) posFilter.addEventListener('change', apply);
+  var a2 = 0, iv2 = setInterval(function () {
+    var s = window.socket;
+    if (s && !s._pageBound) { s._pageBound = true; clearInterval(iv2);
+      s.on('player_drafted_enhanced', function () { setTimeout(apply, 400); });
+      s.on('player_removed_enhanced', function () { setTimeout(apply, 400); });
+    } else if (++a2 > 40) { clearInterval(iv2); }
+  }, 500);
+  apply();
 })();
 </script>
 {% endblock %}

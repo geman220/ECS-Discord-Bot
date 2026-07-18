@@ -1,177 +1,160 @@
 /**
  * Draft System - Search and Filter
- * Player search, filtering, and sorting functionality
+ * Player search, filtering, and sorting for the pool.
+ *
+ * Works with the current Flowbite pool cards (`.js-draggable-player`, with data-player-name /
+ * data-position / data-goals / data-attendance / data-experience on the card itself). The
+ * position filter groups by the canonical position groups (goalkeeper / defender / midfielder /
+ * forward), so filtering "Forward" matches Striker, Winger, CF, etc.
  *
  * @module draft-system/search
  */
 
+// Canonical slug -> group (mirrors app/draft_position_analyzer.PositionAnalyzer.POSITION_GROUPS
+// and app/constants/positions.SOCCER_POSITIONS). Keep in sync with the backend source of truth.
+const SLUG_GROUP = {
+    goalkeeper: 'goalkeeper',
+    defender: 'defender', center_back: 'defender', left_back: 'defender', right_back: 'defender',
+    full_back: 'defender', wing_back: 'defender',
+    midfielder: 'midfielder', defensive_midfielder: 'midfielder', central_midfielder: 'midfielder',
+    left_midfielder: 'midfielder', right_midfielder: 'midfielder', attacking_midfielder: 'midfielder',
+    winger: 'forward', left_winger: 'forward', right_winger: 'forward', forward: 'forward',
+    center_forward: 'forward', striker: 'forward', support_striker: 'forward'
+};
+
+function posGroupOf(raw) {
+    const s = (raw || '').trim().toLowerCase().replace(/\s+/g, '_');
+    return SLUG_GROUP[s] || '';
+}
+
+/** Does a player's stored position match a group filter (goalkeeper/defender/midfielder/forward)? */
+function matchesPositionFilter(playerPosition, filter) {
+    if (!filter) return true;
+    const g = posGroupOf(playerPosition);
+    if (g) return g === filter;
+    // Legacy/unknown value: fall back to a loose substring match so nothing silently vanishes.
+    return (playerPosition || '').toLowerCase().indexOf(filter) >= 0;
+}
+
+/** Resolve the player card element from a container child (the child usually IS the card). */
+function getCard(col) {
+    if (col.classList && col.classList.contains('js-draggable-player')) return col;
+    return col.querySelector ? col.querySelector('.js-draggable-player, [data-component="player-card"]') : null;
+}
+
+function setVisible(col, show) {
+    if (show) col.classList.remove('hidden');
+    else col.classList.add('hidden');
+}
+
 /**
- * Handle player search by name
- * @param {Event} event - Input event
- * @param {Function} onUpdate - Callback for count update
+ * Handle player search by name.
+ * @param {Event} event
+ * @param {Function} onUpdate - called with the visible count
  */
 export function handleSearch(event, onUpdate) {
-    const searchTerm = event.target.value.toLowerCase();
+    const searchTerm = (event.target.value || '').toLowerCase();
     const container = document.getElementById('available-players');
-    if (!container) return;
+    if (!container) return 0;
 
-    const playerColumns = Array.from(container.children);
     let visibleCount = 0;
-
-    playerColumns.forEach(column => {
-        const playerCard = column.querySelector('[data-component="player-card"]');
-        if (playerCard) {
-            const playerName = playerCard.getAttribute('data-player-name') || '';
-            const shouldShow = playerName.includes(searchTerm);
-
-            if (shouldShow) {
-                column.classList.remove('hidden');
-                column.classList.add('block');
-                visibleCount++;
-            } else {
-                column.classList.add('hidden');
-                column.classList.remove('block');
-            }
-        }
+    Array.from(container.children).forEach(col => {
+        const card = getCard(col);
+        if (!card) return;
+        const playerName = card.getAttribute('data-player-name') || '';
+        const show = !searchTerm || playerName.includes(searchTerm);
+        setVisible(col, show);
+        if (show) visibleCount++;
     });
 
-    if (onUpdate) {
-        onUpdate(visibleCount);
-    }
-
+    if (onUpdate) onUpdate(visibleCount);
     return visibleCount;
 }
 
 /**
- * Handle position filter
- * @param {Event} event - Change event
- * @param {Function} onUpdate - Callback for count update
+ * Handle position filter (grouped: Forward matches Striker/Winger/CF, etc.).
+ * @param {Event} event
+ * @param {Function} onUpdate - called with the visible count
  */
 export function handleFilter(event, onUpdate) {
-    const position = event.target.value.toLowerCase();
+    const position = (event.target.value || '').toLowerCase();
     const container = document.getElementById('available-players');
-    if (!container) return;
+    if (!container) return 0;
 
-    const playerColumns = Array.from(container.children);
     let visibleCount = 0;
-
-    playerColumns.forEach(column => {
-        const playerCard = column.querySelector('[data-component="player-card"]');
-        if (playerCard) {
-            const playerPosition = playerCard.getAttribute('data-position') || '';
-            const shouldShow = !position || playerPosition.includes(position);
-
-            if (shouldShow) {
-                column.classList.remove('hidden');
-                column.classList.add('block');
-                visibleCount++;
-            } else {
-                column.classList.add('hidden');
-                column.classList.remove('block');
-            }
-        }
+    Array.from(container.children).forEach(col => {
+        const card = getCard(col);
+        if (!card) return;
+        const playerPosition = card.getAttribute('data-position') || '';
+        const show = matchesPositionFilter(playerPosition, position);
+        setVisible(col, show);
+        if (show) visibleCount++;
     });
 
-    if (onUpdate) {
-        onUpdate(visibleCount);
-    }
-
+    if (onUpdate) onUpdate(visibleCount);
     return visibleCount;
 }
 
 /**
- * Handle player sorting
- * @param {Event} event - Change event
+ * Handle player sorting.
+ * @param {Event} event
  */
 export function handleSort(event) {
     const sortBy = event.target.value;
     const container = document.getElementById('available-players');
     if (!container) return;
 
-    const players = Array.from(container.children);
-
-    players.sort((a, b) => {
-        const cardA = a.querySelector('[data-component="player-card"]');
-        const cardB = b.querySelector('[data-component="player-card"]');
-
+    const cols = Array.from(container.children);
+    cols.sort((a, b) => {
+        const cardA = getCard(a), cardB = getCard(b);
         if (!cardA || !cardB) return 0;
-
-        let aValue, bValue;
-
         switch (sortBy) {
             case 'name':
-                aValue = cardA.getAttribute('data-player-name') || '';
-                bValue = cardB.getAttribute('data-player-name') || '';
-                return aValue.localeCompare(bValue);
-
+                return (cardA.getAttribute('data-player-name') || '').localeCompare(cardB.getAttribute('data-player-name') || '');
             case 'experience':
-                aValue = parseInt(cardA.getAttribute('data-experience')) || 0;
-                bValue = parseInt(cardB.getAttribute('data-experience')) || 0;
-                return bValue - aValue;
-
+                return (parseInt(cardB.getAttribute('data-experience')) || 0) - (parseInt(cardA.getAttribute('data-experience')) || 0);
             case 'attendance':
-                aValue = parseInt(cardA.getAttribute('data-attendance')) || 0;
-                bValue = parseInt(cardB.getAttribute('data-attendance')) || 0;
-                return bValue - aValue;
-
+                return (parseInt(cardB.getAttribute('data-attendance')) || 0) - (parseInt(cardA.getAttribute('data-attendance')) || 0);
             case 'goals':
-                aValue = parseInt(cardA.getAttribute('data-goals')) || 0;
-                bValue = parseInt(cardB.getAttribute('data-goals')) || 0;
-                return bValue - aValue;
-
+                return (parseInt(cardB.getAttribute('data-goals')) || 0) - (parseInt(cardA.getAttribute('data-goals')) || 0);
             default:
                 return 0;
         }
     });
-
-    // Clear the container and re-add in sorted order
-    players.forEach(player => {
-        container.appendChild(player);
-    });
-
-    // Clean up any empty column divs
-    cleanupEmptyColumns(container);
+    cols.forEach(col => container.appendChild(col));
 }
 
-/**
- * Remove empty player column divs
- * @param {HTMLElement} container - Players container
- */
+/** Legacy no-op kept for API compatibility (the Flowbite board has no empty column wrappers). */
 export function cleanupEmptyColumns(container) {
+    if (!container) return;
     Array.from(container.children).forEach(child => {
-        if (child.hasAttribute('data-component') &&
-            child.getAttribute('data-component') === 'player-column' &&
-            !child.querySelector('[data-component="player-card"]')) {
+        if (child.getAttribute && child.getAttribute('data-component') === 'player-column' &&
+            !child.querySelector('[data-component="player-card"], .js-draggable-player')) {
             child.remove();
         }
     });
 }
 
 /**
- * Apply current filters to a newly added player card
- * @param {HTMLElement} playerCard - Player card element
+ * Re-apply the active search + position filter to a card that just (re)entered the pool.
+ * @param {HTMLElement} col - the card / column element
  */
-export function applyCurrentFilters(playerCard) {
-    const searchInput = document.getElementById('searchPlayers');
-    const positionFilter = document.getElementById('filterPosition');
+export function applyCurrentFilters(col) {
+    const searchInput = document.getElementById('playerSearch');
+    const positionFilter = document.getElementById('positionFilter');
+    const card = getCard(col);
+    if (!card) return;
 
     if (searchInput && searchInput.value) {
-        const searchTerm = searchInput.value.toLowerCase();
-        const cardElement = playerCard.querySelector('[data-component="player-card"]');
-        const playerName = cardElement?.getAttribute('data-player-name') || '';
-        if (!playerName.includes(searchTerm)) {
-            playerCard.classList.add('hidden');
-        }
+        const name = (card.getAttribute('data-player-name') || '');
+        if (!name.includes(searchInput.value.toLowerCase())) { setVisible(col, false); return; }
     }
-
     if (positionFilter && positionFilter.value) {
-        const filterPosition = positionFilter.value.toLowerCase();
-        const cardElement = playerCard.querySelector('[data-component="player-card"]');
-        const playerPosition = cardElement?.getAttribute('data-position') || '';
-        if (filterPosition && !playerPosition.includes(filterPosition)) {
-            playerCard.classList.add('hidden');
+        if (!matchesPositionFilter(card.getAttribute('data-position') || '', positionFilter.value.toLowerCase())) {
+            setVisible(col, false); return;
         }
     }
+    setVisible(col, true);
 }
 
 export default {

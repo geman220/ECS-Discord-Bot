@@ -91,11 +91,13 @@ def apply_draft_coach_status(session, player_id: int, team_id: int, league_name:
             )
             .values(is_coach=True)
         )
+    # Coaches are active for the season even without a pass (they often buy later / from a
+    # different inventory), so promoting to coach also activates them.
     session.execute(
-        update(Player).where(Player.id == player_id).values(is_coach=True)
+        update(Player).where(Player.id == player_id).values(is_coach=True, is_current_player=True)
     )
     logger.info(
         f"Auto-promoted player {player_id} to coach of team {team_id} "
-        f"({league_name} division coach)"
+        f"({league_name} division coach) + marked active for the season"
     )
     return True

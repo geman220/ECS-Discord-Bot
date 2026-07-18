@@ -46,6 +46,33 @@ export function normalizePosition(position) {
         .join(' ');
 }
 
+// Canonical position slug -> group (mirrors app/draft_position_analyzer.POSITION_GROUPS and
+// app/constants/positions.SOCCER_POSITIONS). So filtering "Forward" matches Striker, Winger,
+// CF, etc. — not just the literal word "forward". Keep in sync with the backend source of truth.
+const POSITION_SLUG_GROUP = {
+    goalkeeper: 'goalkeeper',
+    defender: 'defender', center_back: 'defender', left_back: 'defender', right_back: 'defender',
+    full_back: 'defender', wing_back: 'defender',
+    midfielder: 'midfielder', defensive_midfielder: 'midfielder', central_midfielder: 'midfielder',
+    left_midfielder: 'midfielder', right_midfielder: 'midfielder', attacking_midfielder: 'midfielder',
+    winger: 'forward', left_winger: 'forward', right_winger: 'forward', forward: 'forward',
+    center_forward: 'forward', striker: 'forward', support_striker: 'forward'
+};
+
+function positionGroupOf(raw) {
+    const s = (raw || '').trim().toLowerCase().replace(/\s+/g, '_');
+    return POSITION_SLUG_GROUP[s] || '';
+}
+
+/** Does a player's stored position match a group filter (goalkeeper/defender/midfielder/forward)? */
+function matchesPositionGroup(playerPosition, filter) {
+    if (!filter) return true;
+    const g = positionGroupOf(playerPosition);
+    if (g) return g === filter;
+    // Legacy/unknown value: loose substring so nothing silently vanishes.
+    return (playerPosition || '').toLowerCase().indexOf(filter) >= 0;
+}
+
 /**
  * Filter players in real-time
  */
@@ -75,8 +102,8 @@ export function filterPlayers() {
         // Check search term match
         const matchesSearch = !searchTerm || playerName.includes(searchTerm);
 
-        // Check position filter match (use includes for partial matching)
-        const matchesPosition = !positionFilter || playerPosition.includes(positionFilter);
+        // Check position filter match — grouped, so "Forward" catches Striker/Winger/CF, etc.
+        const matchesPosition = matchesPositionGroup(playerPosition, positionFilter);
 
         // Check attendance filter match
         let matchesAttendance = true;
