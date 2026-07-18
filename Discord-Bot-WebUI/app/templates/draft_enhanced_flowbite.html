@@ -1377,7 +1377,7 @@
 
   // ---- back (undo) / redo — reversible, no confirm needed ----
   var undoBtn = document.getElementById('acUndo'), redoBtn = document.getElementById('acRedo');
-  var redoStack = [], redoing = false;
+  var redoStack = [], pendingRedoPlayer = null;  // pendingRedoPlayer = the player id we just re-drafted
   function topHistory() { return document.querySelector('#draftHistoryList [data-hist-player]'); }
   function updateUndoRedo() { if (undoBtn) undoBtn.disabled = !topHistory(); if (redoBtn) redoBtn.disabled = redoStack.length === 0; }
   updateUndoRedo();
@@ -1386,16 +1386,19 @@
     var pid = +top.getAttribute('data-hist-player'), tid = +top.getAttribute('data-hist-team');
     var s = sock();
     if (s) s.emit('remove_player_enhanced', { player_id: pid, team_id: tid, league_name: league });
-    post('/admin-panel/draft/session/back').catch(function () {});
+    // Pass the removed team so the server only rewinds the clock when this pick actually
+    // advanced it (an admin out-of-turn add didn't, so it must NOT rewind).
+    post('/admin-panel/draft/session/back', { team_id: tid }).catch(function () {});
     redoStack.push({ player_id: pid, team_id: tid });
     setTimeout(updateUndoRedo, 450);
   });
   if (redoBtn) redoBtn.addEventListener('click', function () {
     if (!redoStack.length) return;
-    var it = redoStack.pop(); redoing = true;
+    var it = redoStack.pop();
+    pendingRedoPlayer = it.player_id;  // deterministic: identify our redo by player id, not a timer
     var s = sock();
     if (s) s.emit('draft_player_enhanced', { player_id: it.player_id, team_id: it.team_id, league_name: league });
-    setTimeout(function () { redoing = false; updateUndoRedo(); }, 650);
+    updateUndoRedo();
   });
 
   // ---- name search + assign (with photos) ----
@@ -1443,7 +1446,12 @@
     var s = window.socket;
     if (s && !s._adminBound) {
       s._adminBound = true; clearInterval(iv);
-      s.on('player_drafted_enhanced', function () { if (!redoing) redoStack = []; setTimeout(function () { renderResults(); updateUndoRedo(); }, 350); });
+      s.on('player_drafted_enhanced', function (d) {
+        // A new pick invalidates redo — UNLESS it's the redo we just issued (matched by player id).
+        if (d && d.player && d.player.id === pendingRedoPlayer) pendingRedoPlayer = null;
+        else redoStack = [];
+        setTimeout(function () { renderResults(); updateUndoRedo(); }, 350);
+      });
       s.on('player_removed_enhanced', function () { setTimeout(function () { renderResults(); updateUndoRedo(); }, 350); });
       s.on('draft_clock_update', function (st) { if (st && st.status) setPauseLabel(st.status); });
     } else if (++attempts > 40) { clearInterval(iv); }

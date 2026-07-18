@@ -796,12 +796,27 @@ def draft_session_skip():
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def draft_session_back():
-    """Move the clock back one pick (admin correction). Does not un-draft a player."""
+    """Move the clock back one pick (admin correction). Does not un-draft a player.
+
+    Optional `team_id` = the team whose pick was just removed. If that pick was NOT the
+    on-the-clock team's pick (e.g. an admin out-of-turn add, which never advanced the clock),
+    we must NOT rewind — doing so would steal the real on-clock team's turn. Only step back
+    when the removed pick actually advanced the clock (or the draft was completed)."""
     data = request.get_json() or {}
     ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'))
     if not ds or ds.status not in ('active', 'paused', 'complete'):
         return jsonify({'success': False, 'message': 'No live draft to step back'}), 400
-    state = draft_clock.step_back(db.session, ds)
+    undone_team_id = data.get('team_id')
+    team_ids = draft_clock.ordered_team_ids(db.session, ds)
+    should_step = True
+    if undone_team_id and ds.status != 'complete':
+        prev = (ds.current_overall_pick or 1) - 1
+        on_clock_prev = draft_clock.team_on_clock(team_ids, ds.format, prev)[0] if prev >= 1 else None
+        should_step = (on_clock_prev == int(undone_team_id))
+    if should_step:
+        state = draft_clock.step_back(db.session, ds)
+    else:
+        state = draft_clock.build_state(db.session, ds, team_ids=team_ids)
     AdminAuditLog.log_action(
         user_id=current_user.id, action='draft_session_back', resource_type='draft_session',
         resource_id=str(ds.id), new_value=f'stepped back to pick {ds.current_overall_pick}',

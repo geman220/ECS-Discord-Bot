@@ -282,6 +282,8 @@ class PitchViewSystem {
          * positions light up), then tap a position (or Bench) to draft them there. Also works
          * as click-to-draft on a laptop. Coexists with the existing drag-and-drop path.
          */
+        if (this._tapToDraftBound) return;  // idempotent — never double-bind the document listener
+        this._tapToDraftBound = true;
         const self = this;
         this.armedPlayer = null; // { id, positioned }
 

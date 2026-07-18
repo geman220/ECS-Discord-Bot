@@ -159,9 +159,19 @@ def handle_draft_player_enhanced(data):
                         # Admins may draft OUT OF TURN (an extra pick / correction for a team
                         # that isn't on the clock). This does not consume the on-the-clock
                         # team's turn — the clock only advances when THAT team picks (below).
+                        # Query the roles via the live session (current_user.has_role lazy-loads
+                        # a relationship that may not be attached in the socket context).
                         is_admin = False
                         try:
-                            is_admin = current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin')
+                            from app.models.core import Role, user_roles
+                            uid = getattr(current_user, 'id', None)
+                            if uid:
+                                is_admin = session.query(user_roles.c.user_id).join(
+                                    Role, Role.id == user_roles.c.role_id
+                                ).filter(
+                                    user_roles.c.user_id == uid,
+                                    Role.name.in_(['Global Admin', 'Pub League Admin']),
+                                ).first() is not None
                         except Exception:
                             is_admin = False
                         if not is_admin:

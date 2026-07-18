@@ -125,7 +125,10 @@ def step_back(session, ds):
     team_ids = ordered_team_ids(session, ds)
     total = total_picks(ds, team_ids)
     if ds.status == 'complete':
-        target = total or 1
+        # Completed normally => current_overall_pick ran to total+1, land on the last real pick.
+        # Ended early by an admin at pick N => current_overall_pick == N, resume there.
+        cur = ds.current_overall_pick or (total + 1)
+        target = min(cur, total) if total else 1
         ds.completed_at = None
     else:
         target = (ds.current_overall_pick or 1) - 1
