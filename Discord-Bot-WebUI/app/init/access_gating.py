@@ -62,6 +62,7 @@ _BYPASS_ROLES = frozenset({
 # cover blueprints where only *some* routes are safe.
 _ALLOW_PREFIXES = (
     '/static/',            # static assets
+    '/preview',            # public marketing site demo (pre-cutover) — fully public pages
     '/auth/',              # entire auth blueprint (login/logout/register/discord/waitlist/2FA)
     '/api',                # ENTIRE JSON/mobile API — Flutter + XHR handle their own auth/state
     '/socket.io/',         # realtime transport, self-authenticated

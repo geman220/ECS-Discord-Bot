@@ -690,6 +690,13 @@ class DraftService:
                 'profile_picture_webp': player_images.get('webp_url', original_url),
                 'image_optimized': player_images.get('is_optimized', False),
                 'player_notes': player.player_notes or '',
+                # Draft-prep notes for the mobile client. Aliases of the same
+                # Player.player_notes field already exposed above — the app reads
+                # `notes` (or `draft_notes`); web ignores these extra keys. If the
+                # draft ever needs a note distinct from the profile note, split this
+                # to its own column and only these two keys change.
+                'notes': player.player_notes or None,
+                'draft_notes': player.player_notes or None,
                 'favorite_position': player.favorite_position or 'Any',
                 'other_positions': player.other_positions or '',
                 'positions_not_to_play': player.positions_not_to_play or '',

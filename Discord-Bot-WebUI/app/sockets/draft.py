@@ -8,8 +8,8 @@ Handlers for draft room management and player drafting operations.
 
 import logging
 
-from flask import g
-from flask_socketio import emit, join_room
+from flask import g, request
+from flask_socketio import emit, join_room, leave_room
 
 from app.core import socketio
 from app.core.session_manager import managed_session
@@ -475,8 +475,12 @@ def handle_draft_player_enhanced(data):
                     'draft_position': locals().get('draft_position')  # overall pick # for the live history feed
                 }
 
-            # Broadcast to all clients in the draft room so everyone sees the update
+            # Broadcast to all clients in the draft room so everyone sees the update.
+            # Also mirror to the '/draft' namespace so the mobile app (which connects
+            # there, not on the web '/' namespace) sees web-board picks live.
             emit('player_drafted_enhanced', response_data, room=f'draft_{league_name}')
+            socketio.emit('player_drafted_enhanced', response_data,
+                          room=f'draft_{league_name}', namespace='/draft')
             print(f"✅ Successfully drafted {player_name} to {team_name} - broadcasted to room draft_{league_name}")
             logger.info(f"✅ Successfully drafted {player_name} to {team_name}")
 
@@ -485,6 +489,8 @@ def handle_draft_player_enhanced(data):
             try:
                 if clock_state:
                     emit('draft_clock_update', clock_state, room=f'draft_{league_name}')
+                    socketio.emit('draft_clock_update', clock_state,
+                                  room=f'draft_{league_name}', namespace='/draft')
             except Exception as _adv_err:
                 logger.warning(f"Draft clock update emit skipped: {_adv_err}")
 
@@ -594,13 +600,16 @@ def handle_update_player_position(data):
                 'favorite_position': player.favorite_position
             }
 
-            emit('player_position_updated', {
+            position_payload = {
                 'player': player_data,
                 'team_id': team_id,
                 'team_name': team.name,
                 'position': position,
                 'league_name': league_name
-            }, room=room)
+            }
+            emit('player_position_updated', position_payload, room=room)
+            socketio.emit('player_position_updated', position_payload,
+                          room=room, namespace='/draft')
 
             logger.info(f"Updated {player.name} position to {position} on team {team.name}")
 
@@ -838,7 +847,10 @@ def handle_remove_player_enhanced(data):
             }
 
             # Broadcast to all clients in the draft room so everyone sees the update
+            # (web '/' + mobile '/draft' namespaces).
             emit('player_removed_enhanced', response_data, room=f'draft_{league_name}')
+            socketio.emit('player_removed_enhanced', response_data,
+                          room=f'draft_{league_name}', namespace='/draft')
             print(f"✅ Successfully removed {player_name_local} from {team_name_local} - broadcasted to room draft_{league_name}")
             logger.info(f"✅ Successfully removed {player_name_local} from {team_name_local}")
 
@@ -867,3 +879,129 @@ def handle_remove_player_enhanced(data):
         print(f"💥 Remove error: {str(e)}")
         logger.error(f"💥 Remove error: {str(e)}", exc_info=True)
         emit('remove_error', {'message': 'Internal server error occurred during player removal'})
+
+
+# =============================================================================
+# Mobile draft namespace ('/draft')
+#
+# The web board runs on the default '/' namespace (Flask-Login session cookies).
+# The mobile app can't use those cookies, so it connects to a dedicated '/draft'
+# namespace and authenticates the handshake with the same JWT it uses everywhere
+# else (query ?token=, auth:{token}, or Authorization: Bearer). All draft
+# broadcasts are fanned out to BOTH namespaces (see draft_clock.broadcast_draft and
+# the socketio.emit(..., namespace='/draft') mirrors above), so a phone joined to
+# draft_<league> receives every clock/roster change whether it originated on the
+# web board, a REST admin action, the timeout task, or another phone.
+# =============================================================================
+
+def _extract_socket_token():
+    """Pull the JWT off the handshake: Authorization: Bearer, ?token=, or the
+    Socket.IO auth payload {token: ...}. Returns the raw token string or None."""
+    # Authorization header
+    auth_header = request.headers.get('Authorization', '') or ''
+    if auth_header.startswith('Bearer '):
+        return auth_header.split(' ', 1)[1].strip()
+    # Query param
+    token = request.args.get('token')
+    if token:
+        return token
+    # Socket.IO auth dict (client passes auth={'token': ...})
+    try:
+        auth = getattr(request, 'event', {}) or {}
+        # flask-socketio stashes the connect auth on the environ
+        auth_data = request.environ.get('saved_auth') if request.environ else None
+        if isinstance(auth_data, dict) and auth_data.get('token'):
+            return auth_data['token']
+    except Exception:
+        pass
+    return None
+
+
+@socketio.on('connect', namespace='/draft')
+def handle_draft_connect(auth=None):
+    """Authenticate the mobile draft socket. A valid, approved user's token connects;
+    anything else is rejected (return False) so only real members subscribe to draft
+    rooms. Room membership itself happens via join_draft_room after connect."""
+    # Flask-SocketIO passes the client's auth dict here on 5.x; stash the token.
+    token = None
+    if isinstance(auth, dict) and auth.get('token'):
+        token = auth['token']
+    if not token:
+        token = _extract_socket_token()
+
+    if not token:
+        logger.info("draft namespace: connect rejected (no token)")
+        return False
+
+    try:
+        from flask_jwt_extended import decode_token
+        decoded = decode_token(token)
+        raw_id = decoded.get('sub') or decoded.get('identity')
+        user_id = int(raw_id) if raw_id is not None else None
+    except Exception as e:
+        logger.warning(f"draft namespace: rejecting token: {e}")
+        return False
+
+    if not user_id:
+        return False
+
+    # Confirm the user exists + is approved before letting them subscribe.
+    from app.models import User
+    with managed_session() as session:
+        user = session.query(User).get(user_id)
+        if not user or not user.is_approved:
+            logger.info(f"draft namespace: connect rejected for user {user_id} (missing/unapproved)")
+            return False
+        username = user.username
+
+    g.socket_user_id = user_id
+    logger.info(f"draft namespace: {username} (id={user_id}) connected")
+    emit('authentication_success', {'user_id': user_id, 'username': username})
+    return True
+
+
+@socketio.on('disconnect', namespace='/draft')
+def handle_draft_disconnect(reason=None):
+    """Rooms are cleaned up automatically by Flask-SocketIO on disconnect."""
+    if reason:
+        logger.debug(f"draft namespace disconnect: {reason}")
+
+
+@socketio.on('join_draft_room', namespace='/draft')
+def handle_join_draft_room_mobile(data):
+    """Join draft_<league_name> on the '/draft' namespace. Payload {league_name}."""
+    league_name = (data or {}).get('league_name')
+    if not league_name:
+        emit('error', {'message': 'league_name is required'})
+        return
+    room = f'draft_{league_name}'
+    join_room(room)
+    emit('joined_room', {'room': room, 'league': league_name})
+    logger.debug(f"draft namespace: socket joined {room}")
+
+
+@socketio.on('leave_draft_room', namespace='/draft')
+def handle_leave_draft_room_mobile(data):
+    """Leave draft_<league_name> on the '/draft' namespace. Payload {league_name}."""
+    league_name = (data or {}).get('league_name')
+    if not league_name:
+        return
+    room = f'draft_{league_name}'
+    leave_room(room)
+    emit('left_room', {'room': room, 'league': league_name})
+
+
+@socketio.on('user_drafting', namespace='/draft')
+def handle_user_drafting(data):
+    """Relay a 'coach is mid-pick' banner hint to the rest of the room. Optional/cosmetic.
+    Payload {league_name, username, player_name}."""
+    data = data or {}
+    league_name = data.get('league_name')
+    if not league_name:
+        return
+    room = f'draft_{league_name}'
+    # Broadcast to everyone else in the room (not the sender).
+    emit('user_drafting', {
+        'username': data.get('username'),
+        'player_name': data.get('player_name'),
+    }, room=room, include_self=False)

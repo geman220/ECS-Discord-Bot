@@ -329,15 +329,43 @@ def queue_on_clock_push(ds):
         logger.warning(f"queue_on_clock_push failed: {e}")
 
 
+# Namespaces every draft broadcast fans out to. '/' is the web board (Flask-Login
+# session sockets); '/draft' is the mobile app (JWT-handshake sockets — see the
+# connect handler in app/sockets/draft.py). Emitting to BOTH on every state change
+# keeps the web board and every coach's phone in lockstep on the same rooms.
+DRAFT_NAMESPACES = ('/', '/draft')
+
+
+def draft_rooms(*league_names):
+    """Room name(s) a draft broadcast targets. The web board joins
+    `draft_<getLeagueName()>`, whose casing may differ from League.name (url slug vs
+    DB name), so we fan out to the exact + lower-cased variants of every name given;
+    the mobile client joins `draft_<league_name>` as sent. De-duped."""
+    rooms = set()
+    for name in league_names:
+        if not name:
+            continue
+        rooms.add(f'draft_{name}')
+        rooms.add(f'draft_{str(name).lower()}')
+    return rooms
+
+
+def broadcast_draft(event, payload, *league_names):
+    """Emit a draft event to every draft room on BOTH the web ('/') and mobile
+    ('/draft') namespaces. Best-effort — a socket failure must never break a pick or
+    clock transition, so every emit is guarded."""
+    rooms = draft_rooms(*league_names)
+    for ns in DRAFT_NAMESPACES:
+        for room in rooms:
+            try:
+                socketio.emit(event, payload, room=room, namespace=ns)
+            except Exception as e:
+                logger.warning(f"draft broadcast {event} -> {ns}{room} failed: {e}")
+
+
 def emit_clock(league_name, state):
-    """Broadcast the clock state to the draft room(s). The board joins
-    `draft_<getLeagueName()>`, whose casing may differ from League.name — emit to
-    both the exact and lower-cased room so route/task updates always land."""
+    """Broadcast the clock state to the draft room(s) on both namespaces. Used by the
+    web routes and the draft-clock timeout task, so those changes push to mobile too."""
     if not league_name:
         return
-    rooms = {f'draft_{league_name}', f'draft_{str(league_name).lower()}'}
-    for room in rooms:
-        try:
-            socketio.emit('draft_clock_update', state, room=room)
-        except Exception as e:  # never let an emit failure break a pick
-            logger.warning(f"draft_clock_update emit failed ({room}): {e}")
+    broadcast_draft('draft_clock_update', state, league_name)

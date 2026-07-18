@@ -24,7 +24,8 @@ from app.decorators import jwt_role_required
 from app.core.session_manager import managed_session
 from app.models import (
     User, Player, Team, League, Season,
-    player_teams, player_league, DraftOrderHistory, PlayerTeamSeason
+    player_teams, player_league, DraftOrderHistory, PlayerTeamSeason,
+    DraftSession, DraftPickSlot
 )
 from app.draft_enhanced import DraftService
 from app.draft_cache_service import DraftCacheService
@@ -51,6 +52,13 @@ def get_db_league_name(league_name: str) -> str:
 DRAFT_ROLES = ['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin']
 # Roles allowed to RUN the clock (start/skip/undo/pause/resume/end) — admins only
 DRAFT_ADMIN_ROLES = ['Pub League Admin', 'Global Admin']
+
+# Valid pitch slots for a drafted player (mirrors the web board's update_player_position
+# vocabulary; lm/rm included so the mobile 4-4-2 has its wide-mid slots).
+VALID_PITCH_POSITIONS = {
+    'gk', 'lb', 'cb', 'rb', 'lwb', 'rwb', 'cdm', 'cm', 'cam',
+    'lm', 'rm', 'lw', 'rw', 'st', 'bench',
+}
 
 
 def _current_league(session, db_league_name):
@@ -87,15 +95,13 @@ def _my_coached_team_ids(session, user_id, league_id):
 
 
 def _emit_to_draft_rooms(event, payload, url_name, db_name):
-    """Emit a draft socket event to every room the web board might have joined
-    (the board joins draft_<getLeagueName()>, whose casing varies)."""
-    from app.core import socketio
-    rooms = {f'draft_{url_name}', f'draft_{db_name}', f'draft_{str(db_name).lower()}'}
-    for room in rooms:
-        try:
-            socketio.emit(event, payload, room=room)
-        except Exception as e:  # never let an emit failure break the API response
-            logger.warning(f"draft emit {event} -> {room} failed: {e}")
+    """Emit a draft socket event to every room the web board / mobile app might have
+    joined, on BOTH the web ('/') and mobile ('/draft') namespaces. The web board
+    joins draft_<getLeagueName()> (casing varies: url slug vs DB name); the mobile
+    client joins draft_<url_name>. Delegates to the shared broadcaster so the room +
+    namespace fan-out stays identical to the web routes and the timeout task."""
+    from app import draft_clock
+    draft_clock.broadcast_draft(event, payload, url_name, db_name)
 
 
 @mobile_api_v2.route('/draft/leagues', methods=['GET'])
@@ -854,6 +860,7 @@ def get_draft_history(league_name: str):
         league_name: URL-friendly league name
 
     Query Parameters:
+        season_id: Browse a PRIOR season's draft (default: current season)
         page: Page number (default: 1)
         per_page: Items per page (default: 50, max: 100)
 
@@ -866,13 +873,22 @@ def get_draft_history(league_name: str):
 
     page = request.args.get('page', 1, type=int)
     per_page = min(request.args.get('per_page', 50, type=int), 100)
+    season_id = request.args.get('season_id', type=int)
 
     with managed_session() as session:
-        # Get league from current season
-        league = session.query(League).join(Season).filter(
-            League.name == db_league_name,
-            Season.is_current == True
-        ).first()
+        if season_id:
+            # Past-season browse: each season has its own League row with the same
+            # name, so resolve the league for THAT (name, season).
+            league = session.query(League).filter(
+                League.name == db_league_name,
+                League.season_id == season_id
+            ).first()
+        else:
+            # Default to the current-season league.
+            league = session.query(League).join(Season).filter(
+                League.name == db_league_name,
+                Season.is_current == True
+            ).first()
 
         if not league:
             return jsonify({"msg": "League not found"}), 404
@@ -925,12 +941,19 @@ def get_draft_history(league_name: str):
                     "id": pick.team.id,
                     "name": pick.team.name
                 } if pick.team else None,
+                # Draft-prep / edit note for this pick (DraftOrderHistory.notes).
+                "notes": pick.notes,
+                # Drafter attribution: flat `drafted_by` (kept for back-compat) plus a
+                # nested `drafter` object the client also accepts. Only the username is
+                # available on the User row here.
                 "drafted_by": pick.drafter.username if pick.drafter else None,
+                "drafter": {"username": pick.drafter.username} if pick.drafter else None,
                 "drafted_at": pick.created_at.isoformat() if pick.created_at else None
             })
 
         return jsonify({
             "history": history,
+            "season_id": league.season_id,
             "total": total_count,
             "page": page,
             "per_page": per_page,
@@ -1209,3 +1232,329 @@ def undo_last_pick(league_name: str):
         "team_id": undo_team_id,
         "state": clock_state,
     }), 200
+
+
+# =============================================================================
+# Draft setup (configure + optionally start the on-the-clock session) — admin only.
+# Mobile equivalent of the web /admin_panel/draft/session/setup + /start routes.
+# =============================================================================
+
+@mobile_api_v2.route('/draft/<league_name>/setup', methods=['POST'])
+@jwt_required()
+@jwt_role_required(DRAFT_ADMIN_ROLES)
+def setup_draft_session(league_name: str):
+    """Create/replace the on-the-clock config for a league, and optionally start it.
+
+    Body: team_order (required, ordered team ids), format, seconds_per_pick, rounds,
+    min_new_players, min_admins, timeout_action, lock_to_clock, start.
+    When start=true the first team is put on the clock (status -> active); otherwise
+    the config is saved and status stays 'setup'.
+
+    Response: {success, state} where state is the clock object (same shape as
+    GET /clock's `clock`), so the app can drive the board straight from the reply.
+    """
+    db_league_name = get_db_league_name(league_name)
+    if not db_league_name:
+        return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
+
+    data = request.get_json() or {}
+    team_order = data.get('team_order') or []
+    if not team_order:
+        return jsonify({"success": False, "msg": "team_order is required"}), 400
+
+    from datetime import datetime
+    from app import draft_clock
+
+    started = False
+    with managed_session() as session:
+        league = _current_league(session, db_league_name)
+        if not league:
+            return jsonify({"success": False, "msg": f"No current {db_league_name} league found"}), 404
+
+        # Validate every team belongs to THIS league (no cross-league pick order).
+        valid_ids = {t[0] for t in session.query(Team.id).filter(Team.league_id == league.id).all()}
+        bad = [tid for tid in team_order if tid not in valid_ids]
+        if bad:
+            return jsonify({"success": False, "msg": f"Teams not in this league: {bad}"}), 400
+
+        # Lock the session row so setup serialises against any live pick/clock change.
+        ds = draft_clock.get_session(session, league.season_id, league.id, for_update=True)
+        if not ds:
+            ds = DraftSession(season_id=league.season_id, league_id=league.id)
+            session.add(ds)
+            session.flush()
+        elif ds.status == 'active':
+            return jsonify({"success": False,
+                            "msg": "Draft is active — pause or reset before changing the order"}), 409
+
+        fmt = (data.get('format') or 'snake').lower()
+        ds.format = fmt if fmt in ('snake', 'linear', 'rotating') else 'snake'
+        ds.seconds_per_pick = max(0, int(data.get('seconds_per_pick', 90) or 0))
+        timeout_action = (data.get('timeout_action') or 'alert').lower()
+        ds.timeout_action = timeout_action if timeout_action in ('alert', 'skip', 'pause') else 'alert'
+        ds.lock_to_clock = bool(data.get('lock_to_clock', True))
+        ds.rounds = max(0, int(data.get('rounds') or 0))
+        ds.min_new_players = max(0, int(data.get('min_new_players') or 0))
+        ds.min_admins = max(0, int(data.get('min_admins') or 0))
+        # reset live state to a clean 'setup'
+        ds.status = 'setup'
+        ds.current_overall_pick = None
+        ds.current_round = None
+        ds.current_team_id = None
+        ds.pick_deadline = None
+        ds.pause_remaining_seconds = None
+        ds.completed_at = None
+
+        # Replace the pick-order slots (bulk delete executes immediately, so the
+        # unique (session, slot)/(session, team) constraints don't trip on re-add).
+        session.query(DraftPickSlot).filter_by(draft_session_id=ds.id).delete()
+        for i, tid in enumerate(team_order, start=1):
+            session.add(DraftPickSlot(draft_session_id=ds.id, team_id=tid, slot=i))
+        session.flush()
+
+        if data.get('start'):
+            team_ids = draft_clock.ordered_team_ids(session, ds)
+            if not team_ids or not ds.rounds:
+                return jsonify({"success": False, "msg": "Set the pick order and rounds first"}), 400
+            ds.status = 'active'
+            ds.started_at = datetime.utcnow()
+            ds.started_by = int(get_jwt_identity())
+            draft_clock.set_clock_to(ds, 1, team_ids)
+            started = True
+
+        state = draft_clock.build_state(session, ds)
+    # ---- committed ----
+
+    if started:
+        draft_clock.queue_on_clock_push(ds)  # ping the first team's coaches
+    _emit_to_draft_rooms('draft_clock_update', state, league_name.lower(), db_league_name)
+    return jsonify({"success": True, "state": state}), 200
+
+
+# =============================================================================
+# Reposition a drafted player's pitch slot — admin or the player's own coach.
+# Mobile equivalent of the update_player_position socket event. Path-shaped to
+# match the Flutter contract (/pick/<player_id>/position).
+# =============================================================================
+
+@mobile_api_v2.route('/draft/<league_name>/pick/<int:player_id>/position', methods=['PATCH'])
+@jwt_required()
+@jwt_role_required(DRAFT_ROLES)
+def reposition_drafted_player(league_name: str, player_id: int):
+    """Update the pitch slot (gk..bench) on an existing player_teams row.
+
+    Body: {team_id, position}. Admins may reposition any team's player; a coach may
+    only reposition on a team they coach. Broadcasts player_position_updated so the
+    web board + other phones move the card live.
+    """
+    db_league_name = get_db_league_name(league_name)
+    if not db_league_name:
+        return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
+
+    data = request.get_json() or {}
+    team_id = data.get('team_id')
+    position = (data.get('position') or '').lower()
+    if not team_id:
+        return jsonify({"success": False, "msg": "team_id is required"}), 400
+    if position not in VALID_PITCH_POSITIONS:
+        return jsonify({"success": False, "msg": f"Invalid position: {position}"}), 400
+
+    current_user_id = int(get_jwt_identity())
+    from sqlalchemy import update as _sa_update
+
+    with managed_session() as session:
+        league = _current_league(session, db_league_name)
+        if not league:
+            return jsonify({"success": False, "msg": f"No current {db_league_name} league found"}), 404
+
+        # Team must be in this league.
+        team = session.query(Team).filter(Team.id == team_id, Team.league_id == league.id).first()
+        if not team:
+            return jsonify({"success": False, "msg": "Team not found in this league"}), 404
+
+        # Permission: admin, or a coach of THIS team.
+        if not _user_is_admin(session, current_user_id):
+            if int(team_id) not in _my_coached_team_ids(session, current_user_id, league.id):
+                return jsonify({"success": False, "msg": "You don't coach this team"}), 403
+
+        result = session.execute(_sa_update(player_teams).where(
+            player_teams.c.player_id == player_id,
+            player_teams.c.team_id == team_id,
+        ).values(position=position))
+        if result.rowcount == 0:
+            return jsonify({"success": False, "msg": "Player is not on this team"}), 404
+
+        player = session.query(Player).get(player_id)
+        player_name = player.name if player else 'Player'
+        team_name = team.name
+        profile_url = player.profile_picture_url if player else None
+        fav = player.favorite_position if player else None
+    # ---- committed ----
+
+    _emit_to_draft_rooms('player_position_updated', {
+        'player': {'id': player_id, 'name': player_name,
+                   'profile_picture_url': profile_url, 'favorite_position': fav},
+        'team_id': team_id,
+        'team_name': team_name,
+        'position': position,
+        'league_name': league_name.lower(),
+    }, league_name.lower(), db_league_name)
+
+    return jsonify({"success": True, "player_id": player_id,
+                    "team_id": team_id, "position": position}), 200
+
+
+# =============================================================================
+# Seasons with draft history (drives the mobile past-season picker) — view roles.
+# =============================================================================
+
+@mobile_api_v2.route('/draft/<league_name>/seasons', methods=['GET'])
+@jwt_required()
+@jwt_role_required(DRAFT_ROLES)
+def get_draft_seasons(league_name: str):
+    """Seasons that have at least one recorded pick for a league of this name, newest
+    first. Returns a bare array [{id, name, is_current}] per the mobile contract."""
+    db_league_name = get_db_league_name(league_name)
+    if not db_league_name:
+        return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
+
+    with managed_session() as session:
+        rows = session.query(
+            Season.id, Season.name, Season.is_current
+        ).join(League, League.season_id == Season.id).join(
+            DraftOrderHistory, DraftOrderHistory.league_id == League.id
+        ).filter(
+            League.name == db_league_name
+        ).distinct().order_by(Season.id.desc()).all()
+
+        seasons = [
+            {"id": r.id, "name": r.name, "is_current": bool(r.is_current)}
+            for r in rows
+        ]
+        return jsonify(seasons), 200
+
+
+# =============================================================================
+# Admin history editing (M6): edit a pick's number/slot/notes, and normalize the
+# pick sequence. Admin only — mirrors the web edit-pick modal + normalize button.
+# =============================================================================
+
+@mobile_api_v2.route('/draft/<league_name>/pick/<int:player_id>', methods=['PATCH'])
+@jwt_required()
+@jwt_role_required(DRAFT_ADMIN_ROLES)
+def edit_draft_pick(league_name: str, player_id: int):
+    """Edit an existing pick for this player in the current-season league.
+
+    Body (all optional): draft_position (int), position (pitch slot str), notes (str),
+    mode ('cascading'|'smart'|'absolute'|'insert', default 'cascading') — how a
+    draft_position change re-sequences the other picks. Mirrors the web edit modal.
+    """
+    db_league_name = get_db_league_name(league_name)
+    if not db_league_name:
+        return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
+
+    data = request.get_json() or {}
+    new_position = data.get('draft_position')
+    new_slot = data.get('position')
+    new_notes = data.get('notes')
+    mode = (data.get('mode') or 'cascading').lower()
+
+    with managed_session() as session:
+        league = _current_league(session, db_league_name)
+        if not league:
+            return jsonify({"success": False, "msg": f"No current {db_league_name} league found"}), 404
+
+        pick = session.query(DraftOrderHistory).filter(
+            DraftOrderHistory.league_id == league.id,
+            DraftOrderHistory.season_id == league.season_id,
+            DraftOrderHistory.player_id == player_id,
+        ).first()
+        if not pick:
+            return jsonify({"success": False, "msg": "No draft pick for this player"}), 404
+
+        from datetime import datetime
+        position_changed = False
+        swap_result = None
+
+        # 1) Pick number (draft_position) — re-sequences per `mode`.
+        if new_position is not None and int(new_position) != pick.draft_position:
+            new_position = int(new_position)
+            if mode == 'absolute':
+                swap_result = DraftService.set_absolute_draft_position(session, pick.id, new_position)
+            elif mode == 'smart':
+                swap_result = DraftService.insert_draft_position_smart(session, pick.id, new_position)
+            elif mode == 'insert':
+                swap_result = DraftService.insert_draft_position(session, pick.id, new_position)
+            else:
+                swap_result = DraftService.swap_draft_positions(session, pick.id, new_position)
+            if not swap_result.get('success'):
+                return jsonify(swap_result), 400
+            position_changed = True
+
+        # 2) Pitch slot — lives on player_teams.position, keyed by (player, team).
+        slot_changed = False
+        if new_slot is not None:
+            slot = str(new_slot).lower()
+            if slot not in VALID_PITCH_POSITIONS:
+                return jsonify({"success": False, "msg": f"Invalid position: {new_slot}"}), 400
+            from sqlalchemy import update as _sa_update
+            session.execute(_sa_update(player_teams).where(
+                player_teams.c.player_id == player_id,
+                player_teams.c.team_id == pick.team_id,
+            ).values(position=slot))
+            slot_changed = True
+
+        # 3) Notes.
+        notes_changed = False
+        if new_notes is not None:
+            cleaned = (new_notes or '').strip() or None
+            if cleaned != pick.notes:
+                pick.notes = cleaned
+                pick.updated_at = datetime.utcnow()
+                notes_changed = True
+
+        response = {
+            "success": True,
+            "pick": {
+                "player_id": player_id,
+                "team_id": pick.team_id,
+                "draft_position": pick.draft_position,
+                "notes": pick.notes,
+            },
+            "position_changed": position_changed,
+            "slot_changed": slot_changed,
+            "notes_changed": notes_changed,
+            "affected_picks": swap_result.get('affected_picks', 0) if swap_result else 0,
+        }
+    # ---- committed ----
+
+    DraftCacheService.clear_all_league_caches(db_league_name)
+    return jsonify(response), 200
+
+
+@mobile_api_v2.route('/draft/<league_name>/normalize-positions', methods=['POST'])
+@jwt_required()
+@jwt_role_required(DRAFT_ADMIN_ROLES)
+def normalize_draft_positions(league_name: str):
+    """Re-sequence the current-season league's pick numbers to close gaps
+    (1,2,4,7 -> 1,2,3,4). Returns the normalize result plus the live clock."""
+    db_league_name = get_db_league_name(league_name)
+    if not db_league_name:
+        return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
+
+    from app import draft_clock
+
+    with managed_session() as session:
+        league = _current_league(session, db_league_name)
+        if not league:
+            return jsonify({"success": False, "msg": f"No current {db_league_name} league found"}), 404
+
+        result = DraftService.normalize_draft_positions(session, league.season_id, league.id)
+
+        ds = draft_clock.get_session(session, league.season_id, league.id)
+        clock = draft_clock.build_state(session, ds) if ds else None
+        result['clock'] = clock
+    # ---- committed ----
+
+    DraftCacheService.clear_all_league_caches(db_league_name)
+    return jsonify(result), 200

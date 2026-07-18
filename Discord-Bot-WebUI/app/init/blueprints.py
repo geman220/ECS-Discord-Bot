@@ -108,6 +108,7 @@ def _import_blueprints():
     from app.routes.app_links import app_links_bp
     from app.routes.check_in_public import check_in_public_bp
     from app.routes.survey_public import survey_public_bp
+    from app.public_site import public_bp
 
     return {
         'auth_bp': auth_bp,
@@ -171,6 +172,7 @@ def _import_blueprints():
         'app_links_bp': app_links_bp,
         'check_in_public_bp': check_in_public_bp,
         'survey_public_bp': survey_public_bp,
+        'public_bp': public_bp,
     }
 
 
@@ -395,6 +397,12 @@ def _register_additional_blueprints(app, bp, csrf):
     # Public survey form: GET/POST /s/<token>. Honors per-survey login-gate +
     # anonymity toggles; CSRF token is rendered in the form (no exemption).
     app.register_blueprint(bp['survey_public_bp'])
+
+    # Public marketing site (rebuilt ecspubleague.org). Mounted at /preview for
+    # the pre-cutover live demo; flip url_prefix to '' at cutover (links use
+    # url_for). Fully public — anonymous users bypass the access gate, and
+    # '/preview' is allowlisted in access_gating.py for pending logged-in users.
+    app.register_blueprint(bp['public_bp'], url_prefix='/preview')
 
 
 def _init_enterprise_systems(app):
