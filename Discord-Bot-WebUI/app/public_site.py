@@ -134,7 +134,7 @@ def _inject_public_context():
         'division_cta': _cta_state,   # callable: division_cta('classic'|'premier')
         'season_name': _current_season_name(),
         'current_year': datetime.now().year,
-        'discord_invite_url': discord_invite_url or 'https://weareecs.com/fc',
+        'discord_invite_url': discord_invite_url or 'https://discord.gg/weareecs',
         'ga_measurement_id': ga_id,
         'is_prod_marketing_domain': host in _PROD_MARKETING_HOSTS,
         'imgs': _public_images(),

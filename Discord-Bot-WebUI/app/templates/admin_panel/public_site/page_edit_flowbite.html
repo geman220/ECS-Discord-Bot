@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/_modern_kit.html' import page_header %}
+{% from 'macros/_rich_editor.html' import rich_editor %}
 
 {% block admin_title %}Edit Page — {{ page.slug }}{% endblock %}
 
@@ -26,7 +27,7 @@
     </div>
     <div>
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Content</label>
-      <textarea name="body_html" id="body_html" rows="14" class="mt-1 block w-full">{{ page.body_html or '' }}</textarea>
+      <textarea name="body_html" id="body_html" rows="14" class="wp-editor mt-1 block w-full">{{ page.body_html or '' }}</textarea>
     </div>
   </div>
 
@@ -40,6 +41,19 @@
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Meta description</label>
       <textarea name="meta_description" rows="2" maxlength="320" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">{{ page.meta_description or '' }}</textarea>
     </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Hero / social image
+        <span class="text-gray-400 font-normal">{% if page.slug == 'home_hero' %}(this is the big image at the top of the home page){% else %}(image used when this page is shared){% endif %}</span></label>
+      <div class="mt-1 flex items-center gap-2">
+        <label class="inline-flex items-center gap-1.5 cursor-pointer rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <i class="ti ti-upload"></i> Upload
+          <input type="file" id="og-file" accept="image/*" class="hidden">
+        </label>
+        <span id="og-upload-status" class="text-xs text-gray-400"></span>
+      </div>
+      <input type="text" name="og_image_url" id="og_image_url" value="{{ page.og_image_url or '' }}" placeholder="…or paste an image URL / path" class="mt-2 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+      <img id="og-preview" src="{{ page.og_image_url or '' }}" alt="" class="mt-2 rounded-lg max-h-32 object-cover {{ '' if page.og_image_url else 'hidden' }}">
+    </div>
   </div>
 
   <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-ecs-green text-white px-5 py-2.5 text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-device-floppy"></i> Save page</button>
@@ -48,40 +62,22 @@
 
 {% block custom_js %}
 {{ super() }}
-<script src="{{ url_for('static', filename='vendor/tinymce/tinymce.min.js') }}"></script>
+{{ rich_editor('#body_html') }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    if (!window.tinymce) return;
-    var UPLOAD_URL = "{{ url_for('admin_panel.public_site_upload_image') }}";
-    function csrf() {
-        var m = document.querySelector('meta[name="csrf-token"]');
-        if (m) return m.getAttribute('content');
-        var i = document.querySelector('input[name="csrf_token"]');
-        return i ? i.value : '';
-    }
-    function uploadImage(file) {
-        var fd = new FormData(); fd.append('file', file);
-        return fetch(UPLOAD_URL, { method: 'POST', body: fd, credentials: 'same-origin',
-            headers: { 'X-CSRFToken': csrf() } })
-            .then(function (r) { return r.json().then(function (j) {
-                if (!r.ok) throw new Error(j.error || 'Upload failed'); return j.url; }); });
-    }
-    var isDark = document.documentElement.classList.contains('dark');
-    window.tinymce.init({
-        selector: '#body_html',
-        height: 420,
-        menubar: false,
-        plugins: 'lists link image table code wordcount autolink',
-        toolbar: 'undo redo | blocks | bold italic underline | bullist numlist | link image table | alignleft aligncenter alignright | code',
-        toolbar_mode: 'sliding',
-        branding: false, promotion: false,
-        skin: isDark ? 'oxide-dark' : 'oxide',
-        content_css: isDark ? 'dark' : 'default',
-        automatic_uploads: true,
-        images_upload_handler: function (blobInfo) { return uploadImage(blobInfo.blob()); }
+    // Hero / social image upload widget (reuses window.publicSiteUpload from the editor macro)
+    var ogFile = document.getElementById('og-file');
+    if (ogFile) ogFile.addEventListener('change', function () {
+        if (!this.files || !this.files[0] || !window.publicSiteUpload) return;
+        var status = document.getElementById('og-upload-status');
+        status.textContent = 'Uploading…';
+        window.publicSiteUpload(this.files[0]).then(function (url) {
+            document.getElementById('og_image_url').value = url;
+            var prev = document.getElementById('og-preview');
+            prev.src = url; prev.classList.remove('hidden');
+            status.textContent = 'Uploaded ✓';
+        }).catch(function (e) { status.textContent = e.message; });
     });
-    var form = document.getElementById('page-form');
-    if (form) form.addEventListener('submit', function () { if (window.tinymce) window.tinymce.triggerSave(); });
 });
 </script>
 {% endblock %}

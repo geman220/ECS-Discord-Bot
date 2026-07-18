@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/_modern_kit.html' import page_header %}
+{% from 'macros/_rich_editor.html' import rich_editor %}
 
 {% block admin_title %}{{ 'Edit' if post else 'New' }} News Post{% endblock %}
 
@@ -32,7 +33,7 @@
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Body</label>
-        <textarea name="body_html" id="body_html" rows="16" class="mt-1 block w-full">{{ post.body_html if post else '' }}</textarea>
+        <textarea name="body_html" id="body_html" rows="16" class="wp-editor mt-1 block w-full">{{ post.body_html if post else '' }}</textarea>
       </div>
     </div>
 
@@ -103,65 +104,21 @@
 
 {% block custom_js %}
 {{ super() }}
-<script src="{{ url_for('static', filename='vendor/tinymce/tinymce.min.js') }}"></script>
+{{ rich_editor('#body_html') }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    var UPLOAD_URL = "{{ url_for('admin_panel.public_site_upload_image') }}";
-    function csrf() {
-        var m = document.querySelector('meta[name="csrf-token"]');
-        if (m) return m.getAttribute('content');
-        var i = document.querySelector('input[name="csrf_token"]');
-        return i ? i.value : '';
-    }
-    // Shared uploader: POST a File/Blob, resolve to the stored URL.
-    function uploadImage(file) {
-        var fd = new FormData();
-        fd.append('file', file);
-        return fetch(UPLOAD_URL, {
-            method: 'POST', body: fd, credentials: 'same-origin',
-            headers: { 'X-CSRFToken': csrf() }
-        }).then(function (r) { return r.json().then(function (j) {
-            if (!r.ok) throw new Error(j.error || 'Upload failed');
-            return j.url;
-        }); });
-    }
-
-    // Featured image upload widget
+    // Featured image upload widget (reuses window.publicSiteUpload from the editor macro)
     var fileInput = document.getElementById('featured-file');
     if (fileInput) fileInput.addEventListener('change', function () {
-        if (!this.files || !this.files[0]) return;
+        if (!this.files || !this.files[0] || !window.publicSiteUpload) return;
         var status = document.getElementById('featured-upload-status');
         status.textContent = 'Uploading…';
-        uploadImage(this.files[0]).then(function (url) {
+        window.publicSiteUpload(this.files[0]).then(function (url) {
             document.getElementById('featured_image_url').value = url;
             var prev = document.getElementById('featured-preview');
             prev.src = url; prev.classList.remove('hidden');
             status.textContent = 'Uploaded ✓';
         }).catch(function (e) { status.textContent = e.message; });
-    });
-
-    // TinyMCE with inline image upload (drag/drop or the image button)
-    if (window.tinymce) {
-        var isDark = document.documentElement.classList.contains('dark');
-        window.tinymce.init({
-            selector: '#body_html',
-            height: 480,
-            menubar: false,
-            plugins: 'lists link image table code wordcount autolink',
-            toolbar: 'undo redo | blocks | bold italic underline | bullist numlist | link image table | alignleft aligncenter alignright | code',
-            toolbar_mode: 'sliding',
-            branding: false, promotion: false,
-            skin: isDark ? 'oxide-dark' : 'oxide',
-            content_css: isDark ? 'dark' : 'default',
-            automatic_uploads: true,
-            images_upload_handler: function (blobInfo) {
-                return uploadImage(blobInfo.blob());
-            }
-        });
-    }
-    var form = document.getElementById('news-form');
-    if (form) form.addEventListener('submit', function () {
-        if (window.tinymce) window.tinymce.triggerSave();
     });
 });
 </script>

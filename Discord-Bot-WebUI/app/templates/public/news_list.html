@@ -27,9 +27,9 @@
                 {% endif %}
                 <div class="flex flex-col flex-1 p-5">
                     <p class="text-xs text-gray-500 dark:text-gray-400">{{ post.display_date.strftime('%B %-d, %Y') if post.display_date else '' }}</p>
-                    <h2 class="mt-1 font-semibold text-lg text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">{{ post.title }}</h2>
+                    <h2 class="mt-1 font-semibold text-lg text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-blue-400">{{ post.title }}</h2>
                     {% if post.excerpt %}<p class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{{ post.excerpt }}</p>{% endif %}
-                    <span class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-ecs-green dark:text-ecs-gold">Read more <i class="ti ti-arrow-right"></i></span>
+                    <span class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-ecs-green dark:text-blue-400">Read more <i class="ti ti-arrow-right"></i></span>
                 </div>
             </a>
             {% endfor %}

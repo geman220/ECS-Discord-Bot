@@ -3,7 +3,7 @@
 {% block content %}
 <article class="py-12 sm:py-16">
     <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <a href="{{ url_for('public.news_list') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green dark:text-ecs-gold hover:underline">
+        <a href="{{ url_for('public.news_list') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green dark:text-blue-400 hover:underline">
             <i class="ti ti-arrow-left"></i> Back to news
         </a>
 
@@ -17,7 +17,7 @@
         <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" class="mt-8 w-full rounded-2xl object-cover">
         {% endif %}
 
-        <div class="mt-8 prose prose-lg dark:prose-invert max-w-none prose-headings:text-gray-900 dark:prose-headings:text-white prose-a:text-ecs-green dark:prose-a:text-ecs-gold prose-img:rounded-xl">
+        <div class="mt-8 prose prose-lg dark:prose-invert max-w-none prose-headings:text-gray-900 dark:prose-headings:text-white prose-a:text-ecs-green dark:prose-a:text-blue-600 prose-img:rounded-xl">
             {{ post.body_html | safe }}
         </div>
 

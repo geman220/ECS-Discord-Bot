@@ -6,7 +6,7 @@
 <section class="relative overflow-hidden">
     {# Player photo background (like the WordPress hero) with a warm overlay for legibility #}
     <div class="absolute inset-0">
-        <img src="{{ imgs.hero }}" alt="ECS Pub League players on the pitch" class="h-full w-full object-cover">
+        <img src="{{ (hero.og_image_url if hero and hero.og_image_url else imgs.hero) }}" alt="ECS Pub League players on the pitch" class="h-full w-full object-cover object-center">
         <div class="absolute inset-0 bg-gradient-to-r from-ecs-green-dark/95 via-ecs-green/80 to-ecs-green/40"></div>
         <div class="absolute inset-0 bg-gradient-to-t from-gray-950/60 via-transparent to-transparent"></div>
     </div>
@@ -26,7 +26,7 @@
             </div>
             <div class="mt-8 flex flex-col sm:flex-row gap-3">
                 <a href="{{ cta.url }}"
-                   class="inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-gold px-6 py-3 text-base font-bold text-gray-950 shadow-lg hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-white/60 transition">
+                   class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-base font-bold text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-white/60 transition">
                     <i class="ti ti-user-plus text-lg"></i> {{ cta.label }}
                 </a>
                 <a href="{{ url_for('public.calendar') }}"
@@ -54,7 +54,7 @@
                 ('ti-run', 'Beginner-friendly', 'Never played? Perfect. Coaches and teammates have your back.'),
             ] %}
             <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
-                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-ecs-green/10 text-ecs-green dark:text-ecs-gold">
+                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-ecs-green/10 text-ecs-green dark:text-blue-400">
                     <i class="ti {{ feat[0] }} text-2xl"></i>
                 </div>
                 <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">{{ feat[1] }}</h3>
@@ -76,7 +76,7 @@
             {% set classic_cta = division_cta('classic') %}
             <div class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-sm">
                 <div class="aspect-[16/9] w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
-                    <img src="{{ url_for('static', filename='img/publeague/2026-07__ZUZU-TEAM-1024x683.jpg') }}" alt="ECS Pub League Classic division" class="h-full w-full object-cover" loading="lazy">
+                    <img src="{{ url_for('static', filename='img/publeague/2026-07__ZUZU-TEAM-1024x683.jpg') }}" alt="ECS Pub League Classic division" class="h-full w-full object-cover object-[center_30%]" loading="lazy">
                 </div>
                 <div class="flex flex-1 flex-col p-8">
                     <div class="flex items-center gap-3">
@@ -84,7 +84,7 @@
                         <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Classic</h3>
                     </div>
                     <p class="mt-4 flex-1 text-gray-600 dark:text-gray-300">Beginner-friendly and focused on fun and skill development over competition. Everyone gets equal playing time, and every team makes the playoffs. New players start here.</p>
-                    <a href="{{ classic_cta.url }}" class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green dark:text-ecs-gold">
+                    <a href="{{ classic_cta.url }}" class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green dark:text-blue-400">
                         {{ classic_cta.label }} — Classic <i class="ti ti-arrow-right"></i>
                     </a>
                 </div>
@@ -92,15 +92,15 @@
             {% set premier_cta = division_cta('premier') %}
             <div class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-sm">
                 <div class="aspect-[16/9] w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
-                    <img src="{{ url_for('static', filename='img/publeague/2026-07__Astral_Shield-1024x576.jpg') }}" alt="ECS Pub League Premier division" class="h-full w-full object-cover" loading="lazy">
+                    <img src="{{ url_for('static', filename='img/publeague/2026-07__Astral_Shield-1024x576.jpg') }}" alt="ECS Pub League Premier division" class="h-full w-full object-cover object-[center_30%]" loading="lazy">
                 </div>
                 <div class="flex flex-1 flex-col p-8">
                     <div class="flex items-center gap-3">
-                        <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-ecs-gold text-gray-950"><i class="ti ti-trophy text-xl"></i></span>
+                        <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white"><i class="ti ti-trophy text-xl"></i></span>
                         <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Premier</h3>
                     </div>
                     <p class="mt-4 flex-1 text-gray-600 dark:text-gray-300">A slightly higher level of friendly competition — still low/no contact and laid-back, with the same emphasis on development, team play, and fun. Everyone plays.</p>
-                    <a href="{{ premier_cta.url }}" class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green dark:text-ecs-gold">
+                    <a href="{{ premier_cta.url }}" class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green dark:text-blue-400">
                         {{ premier_cta.label }} — Premier <i class="ti ti-arrow-right"></i>
                     </a>
                 </div>
@@ -116,7 +116,7 @@
         <div class="order-1 lg:order-2">
             <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">Just for fun</h2>
             <p class="mt-4 text-lg text-gray-600 dark:text-gray-300">Both divisions play 8v8 on a half-field with unlimited subs. If you've played in the other Seattle leagues (RATS, GSSL, Arena Sports) or have college or club experience, this probably isn't the league for you — our level is well below even their lowest divisions, and that's the point.</p>
-            <p class="mt-3 text-gray-600 dark:text-gray-400">ECS Pub League is part of <a href="https://weareecs.com/fc" class="text-ecs-green dark:text-ecs-gold font-medium">ECS FC</a>, the nonprofit soccer club established by Emerald City Supporters.</p>
+            <p class="mt-3 text-gray-600 dark:text-gray-400">ECS Pub League is part of <a href="https://weareecs.com/fc" class="text-ecs-green dark:text-blue-400 font-medium">ECS FC</a>, the nonprofit soccer club established by Emerald City Supporters.</p>
         </div>
     </div>
 </section>
@@ -137,14 +137,14 @@
             <div class="relative">
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-ecs-green text-white text-lg font-bold">{{ step[0] }}</div>
                 <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti {{ step[1] }} text-ecs-green dark:text-ecs-gold"></i> {{ step[2] }}
+                    <i class="ti {{ step[1] }} text-ecs-green dark:text-blue-400"></i> {{ step[2] }}
                 </h3>
                 <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{{ step[3] }}</p>
             </div>
             {% endfor %}
         </div>
         <div class="mt-10 text-center">
-            <a href="{{ url_for('public.faqs') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green dark:text-ecs-gold hover:underline">
+            <a href="{{ url_for('public.faqs') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green dark:text-blue-400 hover:underline">
                 Read the full FAQ <i class="ti ti-arrow-right"></i>
             </a>
         </div>
@@ -157,7 +157,7 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between">
             <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Latest news</h2>
-            <a href="{{ url_for('public.news_list') }}" class="text-sm font-semibold text-ecs-green dark:text-ecs-gold hover:underline">All news →</a>
+            <a href="{{ url_for('public.news_list') }}" class="text-sm font-semibold text-ecs-green dark:text-blue-400 hover:underline">All news →</a>
         </div>
         <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {% for post in latest_news %}
@@ -170,7 +170,7 @@
                 {% endif %}
                 <div class="p-5">
                     <p class="text-xs text-gray-500 dark:text-gray-400">{{ post.display_date.strftime('%B %-d, %Y') if post.display_date else '' }}</p>
-                    <h3 class="mt-1 font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">{{ post.title }}</h3>
+                    <h3 class="mt-1 font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-blue-400">{{ post.title }}</h3>
                     {% if post.excerpt %}<p class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{{ post.excerpt }}</p>{% endif %}
                 </div>
             </a>
@@ -186,7 +186,7 @@
         <h2 class="text-3xl sm:text-4xl font-bold text-white">Ready to play?</h2>
         <p class="mt-3 text-lg text-green-50/90 max-w-xl mx-auto">Come as you are. We'll take care of the rest.</p>
         <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="{{ cta.url }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-gold px-6 py-3 text-base font-semibold text-gray-950 shadow-lg hover:bg-yellow-400 transition">
+            <a href="{{ cta.url }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-lg hover:bg-blue-700 transition">
                 <i class="ti ti-user-plus text-lg"></i> {{ cta.label }}
             </a>
             <a href="{{ url_for('public.contact') }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-6 py-3 text-base font-semibold text-white ring-1 ring-inset ring-white/25 hover:bg-white/20 transition">

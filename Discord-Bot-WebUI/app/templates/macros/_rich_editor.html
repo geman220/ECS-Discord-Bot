@@ -1,0 +1,67 @@
+{#
+  Reusable WordPress-style rich editor (TinyMCE) for the public-site CMS.
+  - Full toolbar (headings, bold/italic, lists, links, images, tables, align)
+  - Drag/drop + paste + button image UPLOAD (to our media dir), plus resize & align
+  - Inline "quickbar" toolbars on selection / on image (WordPress-like)
+  - content_css loads the live-site styling so it's WYSIWYG
+
+  Usage:  {% from 'macros/_rich_editor.html' import rich_editor %}
+          <textarea class="wp-editor" ...>...</textarea>
+          {{ rich_editor() }}                  {# defaults to '.wp-editor' #}
+  Exposes window.publicSiteUpload(file) so image-field widgets can reuse it.
+#}
+{% macro rich_editor(selector='.wp-editor') %}
+<script src="{{ url_for('static', filename='vendor/tinymce/tinymce.min.js') }}"></script>
+<script>
+(function () {
+  var UPLOAD_URL = "{{ url_for('admin_panel.public_site_upload_image') }}";
+  function csrf() {
+    var m = document.querySelector('meta[name="csrf-token"]');
+    if (m) return m.getAttribute('content');
+    var i = document.querySelector('input[name="csrf_token"]');
+    return i ? i.value : '';
+  }
+  function uploadImage(file) {
+    var fd = new FormData(); fd.append('file', file);
+    return fetch(UPLOAD_URL, { method: 'POST', body: fd, credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrf() } })
+      .then(function (r) { return r.json().then(function (j) {
+        if (!r.ok) throw new Error(j.error || 'Upload failed'); return j.url; }); });
+  }
+  window.publicSiteUpload = uploadImage;  // reused by featured/hero image widgets
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!window.tinymce) return;
+    var isDark = document.documentElement.classList.contains('dark');
+    window.tinymce.init({
+      selector: '{{ selector }}',
+      height: 500,
+      menubar: 'edit insert format table',
+      plugins: 'lists link image media table code autolink wordcount quickbars',
+      toolbar: 'undo redo | blocks | bold italic underline | forecolor | ' +
+               'alignleft aligncenter alignright | bullist numlist | ' +
+               'link image media table | outdent indent | removeformat | code',
+      toolbar_mode: 'sliding',
+      // WordPress-like inline toolbars
+      quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote',
+      quickbars_insert_toolbar: 'quickimage quicktable',
+      quickbars_image_toolbar: 'alignleft aligncenter alignright | imageoptions',
+      image_caption: true,
+      image_advtab: true,
+      object_resizing: true,          // drag image corners to resize
+      paste_data_images: true,        // paste screenshots -> uploaded
+      automatic_uploads: true,
+      images_upload_handler: function (blobInfo) { return uploadImage(blobInfo.blob()); },
+      convert_urls: false,
+      branding: false, promotion: false,
+      skin: isDark ? 'oxide-dark' : 'oxide',
+      content_css: "{{ url_for('static', filename='css/public-content.css') }}"
+    });
+    // Sync all editors back to their textareas before any form submits.
+    document.querySelectorAll('form').forEach(function (f) {
+      f.addEventListener('submit', function () { if (window.tinymce) window.tinymce.triggerSave(); });
+    });
+  });
+})();
+</script>
+{% endmacro %}

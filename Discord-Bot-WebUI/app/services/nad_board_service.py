@@ -157,7 +157,11 @@ def compute_nad_board(session, *, season_id=None, search='', limit=100, viewer_u
         ~User.roles.any(Role.name.in_(NOT_ACTIVE_ROLE_NAMES)),
     )
     if search:
-        players_q = players_q.filter(Player.name.ilike(f'%{search}%'))
+        # Match each whitespace-separated term against the name independently, so
+        # "jane", "doe", "jane doe", and "doe jane" all match "Jane Doe" (first,
+        # last, or both, in any order; partials welcome).
+        for term in search.split():
+            players_q = players_q.filter(Player.name.ilike(f'%{term}%'))
     candidate_players = players_q.options(joinedload(Player.user)).order_by(Player.id.desc()).all()
 
     # --- team names/leagues for referenced teams ---
