@@ -56,17 +56,21 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   var INITIAL = {{ (page.body_html or '') | tojson }};
 
+  // The preset UMD exposes itself as window['grapesjs-preset-webpage'] (it does
+  // NOT self-register), so pass the function directly.
+  var presetWebpage = window['grapesjs-preset-webpage'];
   var editor = grapesjs.init({
     container: '#gjs',
     height: '72vh',
     fromElement: false,
     storageManager: false,
-    plugins: ['grapesjs-preset-webpage'],
-    pluginsOpts: {
-      'grapesjs-preset-webpage': {
-        modalImportTitle: 'Import HTML',
-        showStylesOnChange: true
-      }
+    plugins: presetWebpage ? [presetWebpage] : [],
+    // Load the live-site styling into the canvas so blocks look like the real page.
+    canvas: {
+      styles: [
+        "{{ url_for('static', filename='vite-dist/css/tailwind.css') }}",
+        "{{ url_for('static', filename='css/public-content.css') }}"
+      ]
     },
     assetManager: {
       // Upload straight to our media dir (same endpoint the rich editor uses)

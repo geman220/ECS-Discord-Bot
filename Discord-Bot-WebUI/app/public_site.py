@@ -236,6 +236,80 @@ def about():
              'soccer in Seattle since 2012. Classic and Premier divisions. Everybody plays.')
 
 
+# Slugs that are NOT standalone public pages: home content blocks, plus pages
+# that already have their own explicit route.
+_RESERVED_PAGE_SLUGS = frozenset({
+    'home_hero', 'home_intro', 'home_justforfun', 'about', 'guide', 'guests',
+})
+
+# Built-in nav destinations admins can pick when editing the menu.
+_BUILTIN_NAV = {
+    'home': ('Home', 'public.home'),
+    'about': ('About', 'public.about'),
+    'calendar': ('Calendar', 'public.calendar'),
+    'faqs': ('FAQs', 'public.faqs'),
+    'news': ('News', 'public.news_list'),
+    'contact': ('Contact', 'public.contact'),
+    'guide': ('Guide', 'public.guide'),
+    'guests': ('Guests', 'public.guests'),
+}
+_DEFAULT_NAV = [
+    {'kind': 'builtin', 'value': 'home'},
+    {'kind': 'builtin', 'value': 'about'},
+    {'kind': 'builtin', 'value': 'calendar'},
+    {'kind': 'builtin', 'value': 'faqs'},
+    {'kind': 'builtin', 'value': 'news'},
+]
+
+
+def _nav_items():
+    """Resolve the (admin-editable) public nav menu to [{label,url,key}]."""
+    try:
+        raw = AdminConfig.get_setting('public_nav_menu', None)
+    except Exception:
+        raw = None
+    items = raw if isinstance(raw, list) and raw else _DEFAULT_NAV
+    out = []
+    for it in items:
+        try:
+            if not it.get('visible', True):
+                continue
+            kind, val, label = it.get('kind'), it.get('value'), it.get('label')
+            if kind == 'builtin' and val in _BUILTIN_NAV:
+                dl, ep = _BUILTIN_NAV[val]
+                out.append({'label': label or dl, 'url': url_for(ep), 'key': val})
+            elif kind == 'page' and val:
+                pg = SitePage.query.filter_by(slug=val).first()
+                if pg:
+                    out.append({'label': label or pg.title or val,
+                                'url': url_for('public.dynamic_page', slug=val), 'key': val})
+            elif kind == 'url' and val:
+                out.append({'label': label or val, 'url': val, 'key': 'url'})
+        except Exception:
+            continue
+    return out
+
+
+@public_bp.route('/<slug>')
+def dynamic_page(slug):
+    """Render any admin-created SitePage at /<slug> (WordPress-style). Explicit
+    routes (/about, /faqs, ...) take precedence; block slugs are hidden."""
+    if slug in _RESERVED_PAGE_SLUGS or slug.startswith('home_'):
+        abort(404)
+    page = _page_block(slug)
+    if not page:
+        abort(404)
+    seo = _seo(
+        title=page.meta_title or f'{page.title or slug.title()} — ECS Pub League',
+        description=page.meta_description,
+        canonical_endpoint='public.dynamic_page', canonical_values={'slug': slug},
+        json_ld=[_org_json_ld()],
+    )
+    return render_template('public/page.html', active_page=slug, seo=seo, page=page,
+                           title_fallback=page.title or slug.replace('-', ' ').title(),
+                           edit_url=url_for('admin_panel.public_site_page_builder', page_id=page.id))
+
+
 def _render_site_page(slug, title_fallback, active='', desc=None):
     """Render a generic editable SitePage (guide, guests, ...)."""
     page = _page_block(slug)

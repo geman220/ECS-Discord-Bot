@@ -16,6 +16,7 @@ for asset building without external service dependencies.
 
 import os
 import logging
+import mimetypes
 from flask import Flask
 
 from app.assets import init_assets
@@ -23,6 +24,16 @@ from app.core import db
 from app import vite
 
 logger = logging.getLogger(__name__)
+
+# Ensure JS/CSS are served with correct Content-Type. In minimal containers the
+# system mime database can map .js -> text/plain, which makes browsers BLOCK
+# ES-module <script type="module"> loads (Vite chunks, admin-entry, main-entry).
+# Registering explicitly here fixes module loading app-wide.
+mimetypes.add_type('text/javascript', '.js')
+mimetypes.add_type('text/javascript', '.mjs')
+mimetypes.add_type('text/css', '.css')
+mimetypes.add_type('application/json', '.json')
+mimetypes.add_type('image/svg+xml', '.svg')
 
 
 def create_app(config_object='web_config.Config'):
