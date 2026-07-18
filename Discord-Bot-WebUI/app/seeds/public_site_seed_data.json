@@ -411,5 +411,223 @@
     "home_classic": "/static/img/publeague/2026-07__ZUZU-TEAM-1024x683.jpg",
     "home_premier": "/static/img/publeague/2026-07__Astral_Shield-1024x576.jpg",
     "home_fun": "/static/img/publeague/2023-08__355098481_10227903474124662_4103553356561754271_n.jpg"
-  }
+  },
+  "events": [
+    {
+      "title": "Spring Season Week 10 – Playoffs and Finals",
+      "start": "2026-06-21 08:00",
+      "end": "2026-06-21 15:00",
+      "location": "Robert Eagle Staff Middle School",
+      "description": "<p>Premier matches at 8:10/9:20/10:30/11:40Classic matches at 1:10/2:20</p>\\n",
+      "event_type": "other"
+    },
+    {
+      "title": "End of Season Party",
+      "start": "2026-06-21 18:00",
+      "end": "2026-06-21 18:00",
+      "location": "Robert Eagle Staff Middle School",
+      "description": null,
+      "event_type": "party"
+    },
+    {
+      "title": "6/28 PLOP",
+      "start": "2026-06-28 09:30",
+      "end": "2026-06-28 11:30",
+      "location": "Robert Eagle Staff Middle School",
+      "description": "<p>Pub League Offseason Practices (PLOPs) are for current and prospective players only. All new players must attend at least one PLOP and be approved before registering for the league.</p>\\n",
+      "event_type": "plop"
+    },
+    {
+      "title": "7/5 PLOP",
+      "start": "2026-07-05 09:30",
+      "end": "2026-07-05 11:30",
+      "location": "Robert Eagle Staff Middle School",
+      "description": "<p>Pub League Offseason Practices (PLOPs) are for current and prospective players only. All new players must attend at least one PLOP and be approved before registering for the league.</p>\\n",
+      "event_type": "plop"
+    },
+    {
+      "title": "Fall Pre-Registration Party",
+      "start": "2026-07-11 16:30",
+      "end": "2026-07-11 20:00",
+      "location": "Beer Authority",
+      "description": "<p>All players returning to the league and approved to re-register can pre-register for the Fall season. Prospective new players are invited and encouraged to attend, but may not register until July 13.</p>\\n",
+      "event_type": "party"
+    },
+    {
+      "title": "7/12 PLOP",
+      "start": "2026-07-12 09:30",
+      "end": "2026-07-12 11:30",
+      "location": "Robert Eagle Staff Middle School",
+      "description": "<p>Pub League Offseason Practices (PLOPs) are for current and prospective players only. All new players must attend at least one PLOP and be approved before registering for the league.</p>\\n",
+      "event_type": "plop"
+    },
+    {
+      "title": "Fall Registration Opens",
+      "start": "2026-07-13 19:00",
+      "end": "2026-07-13 19:00",
+      "location": null,
+      "description": "<p>Registration for new and returning players approved to register will open online at 7:00PM. https://ecspubleague.org/register/</p>\\n",
+      "event_type": "other"
+    },
+    {
+      "title": "Team formation Player Combine",
+      "start": "2026-07-18 09:30",
+      "end": "2026-07-18 11:30",
+      "location": "Robert Eagle Staff Middle School",
+      "description": "<p>This is only for players registered for the Fall 2026 season to help coaches form equally competitive teams. All new players must attend at least one PLOP and be approved before registering for the league.</p>\\n",
+      "event_type": "other"
+    },
+    {
+      "title": "7/19 PLOP",
+      "start": "2026-07-19 09:30",
+      "end": "2026-07-19 11:30",
+      "location": "Robert Eagle Staff Middle School",
+      "description": "<p>Pub League Offseason Practices (PLOPs) are for current and prospective players only. All new players must attend at least one PLOP and be approved before registering for the league.</p>\\n",
+      "event_type": "plop"
+    },
+    {
+      "title": "7/26 PLOP",
+      "start": "2026-07-26 09:30",
+      "end": "2026-07-26 11:30",
+      "location": "Robert Eagle Staff Middle School",
+      "description": "<p>Pub League Offseason Practices (PLOPs) are for current and prospective players only. All new players must attend at least one PLOP and be approved before registering for the league.</p>\\n",
+      "event_type": "plop"
+    },
+    {
+      "title": "8/2 PLOP",
+      "start": "2026-08-02 09:30",
+      "end": "2026-08-02 11:30",
+      "location": "Robert Eagle Staff Middle School",
+      "description": "<p>Pub League Offseason Practices (PLOPs) are for current and prospective players only. All new players must attend at least one PLOP and be approved before registering for the league.</p>\\n",
+      "event_type": "plop"
+    },
+    {
+      "title": "8/9 PLOP",
+      "start": "2026-08-09 09:30",
+      "end": "2026-08-09 11:30",
+      "location": "Robert Eagle Staff Middle School",
+      "description": "<p>Pub League Offseason Practices (PLOPs) are for current and prospective players only. All new players must attend at least one PLOP and be approved before registering for the league.</p>\\n",
+      "event_type": "plop"
+    },
+    {
+      "title": "8/16 PLOP",
+      "start": "2026-08-16 09:30",
+      "end": "2026-08-16 11:30",
+      "location": "Robert Eagle Staff Middle School",
+      "description": "<p>Pub League Offseason Practices (PLOPs) are for current and prospective players only. All new players must attend at least one PLOP and be approved before registering for the league.</p>\\n",
+      "event_type": "plop"
+    },
+    {
+      "title": "8/23 PLOP",
+      "start": "2026-08-23 09:30",
+      "end": "2026-08-23 11:30",
+      "location": "Robert Eagle Staff Middle School",
+      "description": "<p>Pub League Offseason Practices (PLOPs) are for current and prospective players only. All new players must attend at least one PLOP and be approved before registering for the league.</p>\\n",
+      "event_type": "plop"
+    },
+    {
+      "title": "8/30 PLOP",
+      "start": "2026-08-30 09:30",
+      "end": "2026-08-30 11:30",
+      "location": "Robert Eagle Staff Middle School",
+      "description": "<p>Pub League Offseason Practices (PLOPs) are for current and prospective players only. All new players must attend at least one PLOP and be approved before registering for the league.</p>\\n",
+      "event_type": "plop"
+    },
+    {
+      "title": "9/6 PLOP",
+      "start": "2026-09-06 09:30",
+      "end": "2026-09-06 11:30",
+      "location": "Robert Eagle Staff Middle School",
+      "description": null,
+      "event_type": "plop"
+    },
+    {
+      "title": "Fall Season Week 1",
+      "start": "2026-09-13 08:00",
+      "end": "2026-09-13 15:00",
+      "location": "Robert Eagle Staff Middle School",
+      "description": null,
+      "event_type": "other"
+    },
+    {
+      "title": "Fall Season Week 2",
+      "start": "2026-09-20 08:00",
+      "end": "2026-09-20 15:00",
+      "location": "Robert Eagle Staff Middle School",
+      "description": null,
+      "event_type": "other"
+    },
+    {
+      "title": "Fall Season Week 3",
+      "start": "2026-09-27 08:00",
+      "end": "2026-09-27 15:00",
+      "location": "Robert Eagle Staff Middle School",
+      "description": null,
+      "event_type": "other"
+    },
+    {
+      "title": "Fall Season Week 4",
+      "start": "2026-10-04 08:00",
+      "end": "2026-10-04 15:00",
+      "location": "Robert Eagle Staff Middle School",
+      "description": null,
+      "event_type": "other"
+    },
+    {
+      "title": "Midseason “TST” Tournament",
+      "start": "2026-10-11 09:00",
+      "end": "2026-10-11 15:00",
+      "location": "Robert Eagle Staff Middle School",
+      "description": null,
+      "event_type": "tournament"
+    },
+    {
+      "title": "Fall Season Week 5",
+      "start": "2026-10-18 08:00",
+      "end": "2026-10-18 15:00",
+      "location": "Robert Eagle Staff Middle School",
+      "description": null,
+      "event_type": "other"
+    },
+    {
+      "title": "Fall Season Week 6",
+      "start": "2026-10-25 08:00",
+      "end": "2026-10-25 15:00",
+      "location": "Robert Eagle Staff Middle School",
+      "description": null,
+      "event_type": "other"
+    },
+    {
+      "title": "Fall season Week 7",
+      "start": "2026-11-01 08:00",
+      "end": "2026-11-01 15:00",
+      "location": "Robert Eagle Staff Middle School",
+      "description": null,
+      "event_type": "other"
+    },
+    {
+      "title": "Fall Season Week 8",
+      "start": "2026-11-08 08:00",
+      "end": "2026-11-08 15:00",
+      "location": "Robert Eagle Staff Middle School",
+      "description": null,
+      "event_type": "other"
+    },
+    {
+      "title": "Fall Season Week 9 – Fun Week!",
+      "start": "2026-11-15 10:00",
+      "end": "2026-11-15 13:00",
+      "location": "Robert Eagle Staff Middle School",
+      "description": null,
+      "event_type": "other"
+    },
+    {
+      "title": "Fall Season playoffs & Final",
+      "start": "2026-11-22 08:00",
+      "end": "2026-11-22 15:00",
+      "location": "Robert Eagle Staff Middle School",
+      "description": null,
+      "event_type": "other"
+    }
+  ]
 }
