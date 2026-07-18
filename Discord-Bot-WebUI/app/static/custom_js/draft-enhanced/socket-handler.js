@@ -242,20 +242,33 @@ function addPlayerBackToAvailable(player) {
         return;
     }
 
-    // Create player card HTML matching the template structure
+    // Escape/format helpers (mirror the server template's Jinja output)
+    const esc = (s) => String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const fmtPos = (p) => !p ? p : String(p).replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+
+    // Create the dense player row — MUST match the server-rendered markup in
+    // draft_enhanced_flowbite.html so undrafted players look identical to the rest.
     const card = document.createElement('div');
     card.id = `player-${player.id}`;
-    card.className = 'bg-white dark:bg-gray-700 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden js-draggable-player';
+    card.className = 'group relative js-draggable-player cursor-grab active:cursor-grabbing ' +
+        'flex items-center gap-3 px-3 lg:px-5 py-3 rounded-xl lg:rounded-none ' +
+        'border border-gray-200 dark:border-gray-600 lg:border-x-0 lg:border-t-0 lg:border-b-0 ' +
+        'bg-white dark:bg-gray-700 lg:bg-transparent lg:dark:bg-transparent ' +
+        'hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors';
     card.setAttribute('data-player-id', player.id);
     card.setAttribute('data-player-name', (player.name || '').toLowerCase());
     card.setAttribute('data-position', (player.favorite_position || '').toLowerCase());
     card.setAttribute('data-experience', player.league_experience_seasons || 0);
-    card.setAttribute('data-attendance', player.attendance_estimate || '');
+    card.setAttribute('data-attendance', (player.attendance_estimate === null || player.attendance_estimate === undefined) ? '' : player.attendance_estimate);
     card.setAttribute('data-goals', player.career_goals || 0);
     card.setAttribute('data-prev-draft', player.prev_draft_position || 999);
+    card.setAttribute('data-is-new', player.is_new ? '1' : '0');
+    card.setAttribute('data-is-admin', player.is_admin ? '1' : '0');
     card.setAttribute('draggable', 'true');
 
-    const profilePic = player.profile_picture_medium || player.profile_picture_webp || player.profile_picture_url || '/static/img/default_player.png';
+    const profilePic = player.profile_picture_url || player.profile_picture_medium || '/static/img/default_player.png';
     const position = player.favorite_position || 'Any';
     const goals = player.career_goals || 0;
     const assists = player.career_assists || 0;
@@ -263,75 +276,102 @@ function addPlayerBackToAvailable(player) {
     const redCards = player.career_red_cards || 0;
     const attendance = player.attendance_estimate;
 
-    // Build position badges HTML
+    // Experience ring + corner badge
+    const exp = player.experience_level || '';
+    const seasons = player.league_experience_seasons || 0;
+    const ringClass = exp === 'Veteran' ? 'ring-green-500' : exp === 'Experienced' ? 'ring-yellow-500' : 'ring-gray-300 dark:ring-gray-500';
+    const badgeBg = exp === 'Veteran' ? 'bg-green-500' : exp === 'Experienced' ? 'bg-yellow-500' : 'bg-gray-400';
+    const expInitial = exp ? exp[0] : 'N';
+
+    // Name-row badges (prev draft pick / ref / new / admin)
+    let nameBadges = '';
+    if (player.prev_draft_position) {
+        nameBadges += `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold mono bg-blue-600 text-white shrink-0" title="Last season draft pick #${player.prev_draft_position}">#${player.prev_draft_position}</span>`;
+    }
+    if (player.is_ref) {
+        nameBadges += `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500 text-white shrink-0">REF</span>`;
+    }
+    if (player.is_new) {
+        nameBadges += `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 shrink-0" title="Brand new — no prior team history"><i class="ti ti-sparkles text-[9px]"></i>NEW</span>`;
+    }
+    if (player.is_admin) {
+        nameBadges += `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 shrink-0" title="Admin"><i class="ti ti-shield-check text-[9px]"></i>ADMIN</span>`;
+    }
+
+    // Position pills (primary green / alt orange / avoid red)
     let positionBadges = '';
     if (position && position !== 'Any') {
-        positionBadges = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700">
-            <i class="ti ti-star-filled mr-1 text-green-500 text-[10px]"></i>${position}
-        </span>`;
+        positionBadges = `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700"><i class="ti ti-star-filled mr-0.5 text-[9px]"></i>${esc(fmtPos(position))}</span>`;
     } else {
-        positionBadges = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300">Any Position</span>`;
+        positionBadges = `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300">Any</span>`;
     }
-
-    // Add secondary positions (orange)
     if (player.other_positions) {
-        const cleanPositions = player.other_positions.replace(/[{}]/g, '');
-        cleanPositions.split(',').forEach(pos => {
+        player.other_positions.replace(/[{}]/g, '').split(',').forEach((pos) => {
             const cleanPos = pos.trim();
             if (cleanPos && cleanPos !== position) {
-                positionBadges += `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">${cleanPos}</span>`;
+                positionBadges += `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">${esc(fmtPos(cleanPos))}</span>`;
             }
         });
     }
-
-    // Add positions not to play (red)
     if (player.positions_not_to_play) {
-        const cleanNotPositions = player.positions_not_to_play.replace(/[{}]/g, '');
-        cleanNotPositions.split(',').forEach(pos => {
+        player.positions_not_to_play.replace(/[{}]/g, '').split(',').forEach((pos) => {
             const cleanPos = pos.trim();
             if (cleanPos) {
-                positionBadges += `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700">
-                    <i class="ti ti-x mr-1 text-red-500 text-[10px]"></i>${cleanPos}
-                </span>`;
+                positionBadges += `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700"><i class="ti ti-x mr-0.5 text-[9px]"></i>${esc(fmtPos(cleanPos))}</span>`;
             }
         });
     }
 
-    // Attendance display
-    let attendanceHtml = '<div class="font-bold text-gray-400">N/A</div>';
-    if (attendance !== null && attendance !== undefined && attendance !== '') {
-        const attendanceNum = parseFloat(attendance);
-        const attendanceClass = attendanceNum >= 80 ? 'text-green-500' : (attendanceNum >= 60 ? 'text-yellow-500' : 'text-red-500');
-        attendanceHtml = `<div class="font-bold ${attendanceClass}">${Math.round(attendanceNum)}%</div>`;
-    }
+    // Attendance (lg column + mobile strip)
+    const hasAttendance = attendance !== null && attendance !== undefined && attendance !== '';
+    const attNum = hasAttendance ? parseFloat(attendance) : null;
+    const attClass = !hasAttendance ? '' : attNum >= 80 ? 'text-green-600 dark:text-green-400' : attNum >= 60 ? 'text-yellow-500' : 'text-red-500';
+    const attLg = hasAttendance
+        ? `<span class="font-mono font-bold text-sm ${attClass}">${Math.round(attNum)}%</span>`
+        : `<span class="font-mono text-sm text-gray-400">—</span>`;
+    const attMobile = hasAttendance
+        ? `<span class="${attClass}" title="Attendance"><i class="ti ti-calendar-check text-[11px]"></i> ${Math.round(attNum)}%</span>`
+        : '';
 
     card.innerHTML = `
-        <div class="relative h-32 bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-600 dark:to-gray-700">
-            <img src="${profilePic}" alt="${player.name}" class="w-full h-full object-cover object-top" loading="lazy">
-            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                <h3 class="text-white font-bold text-sm truncate">${player.name}</h3>
-            </div>
+        <div class="relative shrink-0">
+            <img src="${esc(profilePic)}" onerror="this.onerror=null;this.src='/static/img/default_player.png'"
+                 alt="${esc(player.name)}" loading="lazy"
+                 class="w-9 h-9 rounded-lg object-cover object-top ring-2 ${ringClass}">
+            <span class="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold mono text-white ring-2 ring-white dark:ring-gray-800 ${badgeBg}"
+                  title="${esc(exp || 'New Player')} · ${seasons} seasons">${esc(expInitial)}</span>
         </div>
-        <div class="p-3">
-            <div class="text-center mb-2 flex flex-wrap justify-center gap-1">${positionBadges}</div>
-            <div class="grid grid-cols-2 gap-2 text-center text-xs mb-2">
-                <div><div class="font-bold text-green-500">${goals}</div><div class="text-gray-500 dark:text-gray-400">Goals</div></div>
-                <div><div class="font-bold text-blue-500">${assists}</div><div class="text-gray-500 dark:text-gray-400">Assists</div></div>
+
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">${esc(player.name)}</span>
+                ${nameBadges}
             </div>
-            <div class="grid grid-cols-2 gap-2 text-center text-xs mb-3">
-                <div><div class="font-bold"><span class="text-yellow-500">${yellowCards}</span>/<span class="text-red-500">${redCards}</span></div><div class="text-gray-500 dark:text-gray-400">Cards</div></div>
-                <div>${attendanceHtml}<div class="text-gray-500 dark:text-gray-400">Attend</div></div>
-            </div>
-            <div class="space-y-1">
-                <button class="w-full px-3 py-1.5 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green/90 transition-colors"
-                        data-action="draft-player" data-target-player-id="${player.id}" data-player-name="${player.name}">
-                    <i class="ti ti-user-plus mr-1"></i>Draft
-                </button>
-                <button class="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                        data-action="view-player-profile" data-target-player-id="${player.id}">
-                    <i class="ti ti-info-circle mr-1"></i>More Info
-                </button>
-            </div>
+            <div class="flex flex-wrap items-center gap-1 mt-1">${positionBadges}</div>
+        </div>
+
+        <div class="hidden lg:flex items-center shrink-0">
+            <div class="w-12 text-center"><div class="font-mono font-bold text-sm text-green-600 dark:text-green-400">${goals}</div></div>
+            <div class="w-12 text-center"><div class="font-mono font-bold text-sm text-blue-600 dark:text-blue-400">${assists}</div></div>
+            <div class="w-16 text-center font-mono font-bold text-sm"><span class="text-yellow-500">${yellowCards}</span><span class="text-gray-300 dark:text-gray-600">/</span><span class="text-red-500">${redCards}</span></div>
+            <div class="w-14 text-center">${attLg}</div>
+        </div>
+
+        <div class="flex lg:hidden items-center gap-2.5 shrink-0 text-[11px] font-mono">
+            <span class="text-green-600 dark:text-green-400" title="Goals"><i class="ti ti-ball-football text-[11px]"></i> ${goals}</span>
+            <span class="text-blue-600 dark:text-blue-400" title="Assists"><i class="ti ti-arrow-forward-up text-[11px]"></i> ${assists}</span>
+            ${attMobile}
+        </div>
+
+        <div class="flex items-center gap-1.5 shrink-0 lg:w-[150px] lg:justify-end">
+            <button class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green text-white text-xs font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                    data-action="draft-player" data-target-player-id="${player.id}" data-player-name="${esc(player.name)}">
+                <i class="ti ti-user-plus"></i><span class="hidden sm:inline">Draft</span>
+            </button>
+            <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    data-action="view-player-profile" data-target-player-id="${player.id}" aria-label="More info on ${esc(player.name)}">
+                <i class="ti ti-info-circle"></i>
+            </button>
         </div>
     `;
 
