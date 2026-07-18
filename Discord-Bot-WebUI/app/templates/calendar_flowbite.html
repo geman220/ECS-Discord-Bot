@@ -1248,6 +1248,17 @@
         </label>
     </div>
 
+    <div>
+        <label class="flex items-center">
+            <input type="checkbox" id="eventPublic" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                <i class="ti ti-world mr-1"></i>
+                Show on public site calendar
+            </span>
+        </label>
+        <p class="ml-6 text-xs text-gray-400">Uncheck to keep this event internal (hidden from ecspubleague.org).</p>
+    </div>
+
     <!-- Recurring Event Section -->
     <div id="recurringSection" class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
         <label class="flex items-center cursor-pointer">
@@ -3376,6 +3387,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const allDayEl = document.getElementById('eventAllDay');
                 if (allDayEl) allDayEl.checked = eventData.allDay || false;
 
+                const publicEl = document.getElementById('eventPublic');
+                if (publicEl) publicEl.checked = (eventData.is_public
+                    ?? eventData.extendedProps?.is_public ?? true);
+
                 if (eventData.start) setElementValue('eventStartDate', formatDateTimeLocal(eventData.start));
                 if (eventData.end) setElementValue('eventEndDate', formatDateTimeLocal(eventData.end));
 
@@ -3488,6 +3503,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 location: getElementValue('eventLocation') || null,
                 description: getElementValue('eventDescription') || null,
                 is_all_day: getElementChecked('eventAllDay'),
+                is_public: getElementChecked('eventPublic'),
                 notify_discord: getElementChecked('eventNotifyDiscord'),
                 send_reminder: getElementChecked('eventSendReminder'),
                 reminder_days_before: parseInt(getElementValue('eventReminderDays')) || 2

@@ -1,49 +1,62 @@
-{% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state %}
+{% extends "base_flowbite.html" %}
 
-{% block admin_title %}NAD Board{% endblock %}
-{% block panel_description %}Newly Acquired Drinkers — approved players in their first season, with shared scouting notes{% endblock %}
+{% block title %}NAD Board{% endblock %}
+{% block page_title %}NAD Board{% endblock %}
 
-{% block breadcrumb_items %}
-<li><div class="flex items-center">
-    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">NAD Board</span>
-</div></li>
-{% endblock %}
-
-{% block panel_content %}
-<div id="nad-board-root"
-     data-notes-url-template="{{ url_for('admin_panel.nad_board_get_notes', player_id=999999) }}"
+{% block main_content %}
+<div id="nad-board-root" class="max-w-[1500px] w-full mx-auto px-3 sm:px-4 py-4 space-y-4 sm:space-y-5"
+     data-notes-url-template="{{ url_for('nad_board.get_notes', player_id=999999) }}"
      data-is-global-admin="{{ 'true' if is_global_admin else 'false' }}"
      data-current-user-id="{{ current_user.id }}">
 
-    {% call page_header('NAD Board', subtitle=(('Season: ' ~ season_name) if season_name else 'New players in their first season'), icon='ti-user-plus') %}
-    <form method="get" class="flex items-center gap-2" role="search">
-        <div class="relative">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="ti ti-search text-sm"></i></span>
-            <input type="text" name="search" value="{{ search }}" placeholder="Search by name…"
-                   class="pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green w-48 sm:w-64">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div class="min-w-0">
+            {% if season_name %}<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 truncate">Season: {{ season_name }}</p>{% endif %}
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-user-plus text-ecs-green shrink-0"></i><span>NAD Board</span>
+            </h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">New players in their first season — pool your scouting notes.</p>
         </div>
-        <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">
-            <i class="ti ti-search text-sm"></i><span class="hidden sm:inline">Search</span>
-        </button>
-        {% if search %}
-        <a href="{{ url_for('admin_panel.nad_board') }}" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-            <i class="ti ti-x text-sm"></i><span class="hidden sm:inline">Clear</span>
-        </a>
-        {% endif %}
-    </form>
-    {% endcall %}
+        <form method="get" class="flex items-center gap-2" role="search">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="ti ti-search text-sm"></i></span>
+                <input type="text" name="search" value="{{ search }}" placeholder="Search by name…"
+                       class="pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green w-48 sm:w-64">
+            </div>
+            <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">
+                <i class="ti ti-search text-sm"></i><span class="hidden sm:inline">Search</span>
+            </button>
+            {% if search %}
+            <a href="{{ url_for('nad_board.index') }}" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <i class="ti ti-x text-sm"></i><span class="hidden sm:inline">Clear</span>
+            </a>
+            {% endif %}
+        </form>
+    </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5">
-        {{ stat_card('ti-users', 'Total NADs', stats.total, tone='primary') }}
-        {{ stat_card('ti-shield-check', 'Assigned', stats.assigned, sublabel='on a team', tone='success') }}
-        {{ stat_card('ti-user-question', 'Unassigned', stats.unassigned, sublabel='pre-draft pool', tone='warning') }}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-ecs-green/10 text-ecs-green flex items-center justify-center"><i class="ti ti-users text-lg"></i></div>
+            <div><div class="text-2xl font-extrabold text-gray-900 dark:text-white leading-none">{{ stats.total }}</div><div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total NADs</div></div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center"><i class="ti ti-shield-check text-lg"></i></div>
+            <div><div class="text-2xl font-extrabold text-gray-900 dark:text-white leading-none">{{ stats.assigned }}</div><div class="text-xs text-gray-500 dark:text-gray-400 mt-1">On a team</div></div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-user-question text-lg"></i></div>
+            <div><div class="text-2xl font-extrabold text-gray-900 dark:text-white leading-none">{{ stats.unassigned }}</div><div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Unassigned</div></div>
+        </div>
     </div>
 
     {% if not nads %}
-        {{ empty_state('ti-user-plus', 'No NADs yet', 'No approved first-season players match this view. New players appear here once approved.') }}
+    <div class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+        <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4"><i class="ti ti-user-plus text-2xl text-gray-400 dark:text-gray-500"></i></div>
+        <h3 class="text-base font-semibold text-gray-900 dark:text-white">No NADs yet</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">No new first-season players match this view. Players show up here once they're approved.</p>
+    </div>
     {% else %}
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
         {% for nad in nads %}
@@ -53,13 +66,9 @@
                 <img src="{{ nad.profile_picture_url }}" alt="{{ nad.name }}"
                      class="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 shrink-0"
                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="w-14 h-14 rounded-full bg-ecs-green/10 text-ecs-green items-center justify-center text-lg font-semibold shrink-0" style="display:none;">
-                    {{ nad.name[:1]|upper }}
-                </div>
+                <div class="w-14 h-14 rounded-full bg-ecs-green/10 text-ecs-green items-center justify-center text-lg font-semibold shrink-0" style="display:none;">{{ nad.name[:1]|upper }}</div>
                 {% else %}
-                <div class="w-14 h-14 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center text-lg font-semibold shrink-0">
-                    {{ nad.name[:1]|upper }}
-                </div>
+                <div class="w-14 h-14 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center text-lg font-semibold shrink-0">{{ nad.name[:1]|upper }}</div>
                 {% endif %}
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2 flex-wrap">
@@ -68,13 +77,9 @@
                     </div>
                     <div class="mt-1">
                     {% if nad.team_name %}
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
-                            <i class="ti ti-shield text-xs"></i>{{ nad.team_name }}
-                        </span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"><i class="ti ti-shield text-xs"></i>{{ nad.team_name }}</span>
                     {% else %}
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
-                            <i class="ti ti-user-question text-xs"></i>Unassigned
-                        </span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"><i class="ti ti-user-question text-xs"></i>Unassigned</span>
                     {% endif %}
                     </div>
                 </div>
@@ -92,9 +97,7 @@
                 <div class="flex items-start gap-1.5">
                     <span class="text-gray-400 w-16 shrink-0 pt-0.5">Also</span>
                     <span class="flex flex-wrap gap-1">
-                        {% for pos in nad.other_positions_list %}
-                        <span class="inline-flex px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ pos }}</span>
-                        {% endfor %}
+                        {% for pos in nad.other_positions_list %}<span class="inline-flex px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ pos }}</span>{% endfor %}
                     </span>
                 </div>
                 {% endif %}
@@ -102,9 +105,7 @@
                 <div class="flex items-start gap-1.5">
                     <span class="text-gray-400 w-16 shrink-0 pt-0.5">Avoid</span>
                     <span class="flex flex-wrap gap-1">
-                        {% for pos in nad.positions_not_to_play_list %}
-                        <span class="inline-flex px-2 py-0.5 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 line-through">{{ pos }}</span>
-                        {% endfor %}
+                        {% for pos in nad.positions_not_to_play_list %}<span class="inline-flex px-2 py-0.5 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 line-through">{{ pos }}</span>{% endfor %}
                     </span>
                 </div>
                 {% endif %}
@@ -130,18 +131,14 @@
 {% endblock %}
 
 {% block modals %}
-<!-- Scouting notes modal -->
-<div id="nad-notes-modal" tabindex="-1" aria-hidden="true"
-     class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 p-4">
+<div id="nad-notes-modal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 p-4">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col">
         <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
             <div>
                 <h3 class="text-base font-semibold text-gray-900 dark:text-white">Scouting Notes</h3>
                 <p id="nad-notes-player-name" class="text-sm text-gray-500 dark:text-gray-400"></p>
             </div>
-            <button type="button" id="nad-notes-close" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                <i class="ti ti-x text-lg"></i>
-            </button>
+            <button type="button" id="nad-notes-close" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><i class="ti ti-x text-lg"></i></button>
         </div>
         <div id="nad-notes-list" class="flex-1 overflow-y-auto px-5 py-4 space-y-3">
             <div class="text-center text-sm text-gray-400 py-6">Loading…</div>
@@ -197,8 +194,9 @@
             return;
         }
         listEl.innerHTML = notes.map(n => {
-            const author = n.author_name || n.author_username || 'Unknown';
-            const canEdit = isGlobalAdmin || n.author_id === currentUserId;
+            const a = n.author || {};
+            const author = a.name || a.username || 'Unknown';
+            const canEdit = isGlobalAdmin || a.id === currentUserId;
             const when = n.updated_at || n.created_at || '';
             return `
             <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3" data-note-id="${n.id}">
@@ -239,7 +237,6 @@
         }
     }
 
-    // Open modal
     document.querySelectorAll('.nad-notes-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             activePlayerId = btn.dataset.playerId;
@@ -254,7 +251,6 @@
     document.getElementById('nad-notes-close').addEventListener('click', closeModal);
     modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
-    // Add note
     addBtn.addEventListener('click', async () => {
         const content = inputEl.value.trim();
         if (!content || !activePlayerId) return;
@@ -266,18 +262,13 @@
                 body: JSON.stringify({ content })
             });
             const data = await res.json();
-            if (data.success) {
-                inputEl.value = '';
-                loadNotes(activePlayerId);
-            } else {
-                alert(data.message || 'Failed to add note');
-            }
+            if (data.success) { inputEl.value = ''; loadNotes(activePlayerId); }
+            else { alert(data.message || 'Failed to add note'); }
         } finally {
             addBtn.disabled = false;
         }
     });
 
-    // Edit / delete (delegated on the list)
     listEl.addEventListener('click', async (e) => {
         const wrap = e.target.closest('[data-note-id]');
         if (!wrap) return;
@@ -285,9 +276,7 @@
 
         if (e.target.classList.contains('note-delete')) {
             if (!confirm('Delete this note?')) return;
-            const res = await fetch(`${notesUrl(activePlayerId)}/${noteId}`, {
-                method: 'DELETE', headers: { 'X-CSRFToken': csrf }
-            });
+            const res = await fetch(`${notesUrl(activePlayerId)}/${noteId}`, { method: 'DELETE', headers: { 'X-CSRFToken': csrf } });
             const data = await res.json();
             if (data.success) loadNotes(activePlayerId); else alert(data.message || 'Failed to delete');
         }

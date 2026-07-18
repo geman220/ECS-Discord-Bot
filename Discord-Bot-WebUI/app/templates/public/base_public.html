@@ -69,6 +69,14 @@
     </script>
     {% endif %}
 
+    <style>
+        /* Public site link styling: no default underlines (cleaner, modern);
+           color carries the affordance. Prose bodies keep readable underlines. */
+        main a, header a, footer a { text-decoration: none; }
+        main a:hover, footer a:hover { text-decoration: none; }
+        .prose a { text-decoration: underline; text-underline-offset: 2px; }
+    </style>
+
     {% block extra_css %}{% endblock %}
     {% block head_extra %}{% endblock %}
 </head>
@@ -88,7 +96,7 @@
                 {% for item in [
                     ('home', 'Home', url_for('public.home')),
                     ('about', 'About', url_for('public.about')),
-                    ('calendar', 'Calendar', url_for('calendar.calendar_view')),
+                    ('calendar', 'Calendar', url_for('public.calendar')),
                     ('faqs', 'FAQs', url_for('public.faqs')),
                     ('news', 'News', url_for('public.news_list')),
                 ] %}
@@ -131,7 +139,7 @@
             <div class="space-y-1 px-4 py-3">
                 <a href="{{ url_for('public.home') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">Home</a>
                 <a href="{{ url_for('public.about') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">About</a>
-                <a href="{{ url_for('calendar.calendar_view') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">Calendar</a>
+                <a href="{{ url_for('public.calendar') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">Calendar</a>
                 <a href="{{ url_for('public.faqs') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">FAQs</a>
                 <a href="{{ url_for('public.news_list') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">News</a>
                 <a href="{{ url_for('auth.login') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">Log in</a>
@@ -160,7 +168,7 @@
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Explore</h3>
                 <ul class="mt-3 space-y-2 text-sm text-gray-500 dark:text-gray-400">
                     <li><a href="{{ url_for('public.about') }}" class="hover:text-ecs-green dark:hover:text-white">About</a></li>
-                    <li><a href="{{ url_for('calendar.calendar_view') }}" class="hover:text-ecs-green dark:hover:text-white">Calendar</a></li>
+                    <li><a href="{{ url_for('public.calendar') }}" class="hover:text-ecs-green dark:hover:text-white">Calendar</a></li>
                     <li><a href="{{ url_for('public.faqs') }}" class="hover:text-ecs-green dark:hover:text-white">FAQs</a></li>
                     <li><a href="{{ url_for('public.news_list') }}" class="hover:text-ecs-green dark:hover:text-white">News</a></li>
                 </ul>

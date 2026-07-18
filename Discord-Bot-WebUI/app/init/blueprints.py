@@ -109,6 +109,7 @@ def _import_blueprints():
     from app.routes.check_in_public import check_in_public_bp
     from app.routes.survey_public import survey_public_bp
     from app.public_site import public_bp
+    from app.nad_board import nad_board_bp
 
     return {
         'auth_bp': auth_bp,
@@ -173,6 +174,7 @@ def _import_blueprints():
         'check_in_public_bp': check_in_public_bp,
         'survey_public_bp': survey_public_bp,
         'public_bp': public_bp,
+        'nad_board_bp': nad_board_bp,
     }
 
 
@@ -190,6 +192,7 @@ def _register_core_blueprints(app, bp):
     app.register_blueprint(bp['match_pages'])
     app.register_blueprint(bp['bot_admin_bp'])
     app.register_blueprint(bp['main_bp'])
+    app.register_blueprint(bp['nad_board_bp'], url_prefix='/nad-board')
     # DEPRECATED 2026-03-31: Legacy admin — most routes migrated to admin_panel.
     # Still registered because admin_panel templates reference admin.* routes for:
     #   - Polls (create_poll, poll_results, close_poll, delete_poll)

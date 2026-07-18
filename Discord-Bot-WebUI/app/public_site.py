@@ -42,28 +42,37 @@ public_bp = Blueprint('public', __name__, template_folder='templates/public')
 # Shared context — injected into every public template.
 # --------------------------------------------------------------------------- #
 
-def _cta_state():
+def _cta_state(league=None):
     """
-    The primary call-to-action, derived from live backend flags.
+    The primary call-to-action, derived from the live waitlist flag.
 
-    Mirrors app/auth/login.py: ``registration_enabled`` gates buying/registering,
-    ``waitlist_registration_enabled`` gates the waitlist. Falls back to a Contact
-    link when both are closed so the button is never a dead end.
+    The waitlist is the switch, matching how the league actually operates:
+      * waitlist ON  -> the season is full: send people to the WAITLIST flow.
+      * waitlist OFF -> registration is the active path: send them to the
+        REGISTRATION flow (account/approval), NOT straight to a purchase — new
+        players must be approved (PLOP) before they can pay, so we never link to
+        the buy-a-pass step here.
+
+    ``league`` ('classic' | 'premier') is carried through so a division-specific
+    button prefills the choice in the flow. Maps to the app's preferred_league
+    values (pub_league_classic / pub_league_premier).
     """
     try:
-        registration_open = bool(AdminConfig.get_setting('registration_enabled', True))
         waitlist_open = bool(AdminConfig.get_setting('waitlist_registration_enabled', True))
     except Exception:
-        # Fail toward the most useful CTA rather than 500 the marketing page.
-        registration_open, waitlist_open = True, True
+        waitlist_open = True
 
-    if registration_open:
-        return {'label': 'Register Now', 'url': url_for('pub_league.buy'),
-                'mode': 'register'}
+    pref = {'classic': 'pub_league_classic', 'premier': 'pub_league_premier'}.get(
+        (league or '').lower())
+    args = {'league': pref} if pref else {}
+
     if waitlist_open:
-        return {'label': 'Join the Waitlist', 'url': url_for('auth.waitlist_register'),
-                'mode': 'waitlist'}
-    return {'label': 'Contact Us', 'url': url_for('public.contact'), 'mode': 'closed'}
+        return {'label': 'Join the Waitlist',
+                'url': url_for('auth.waitlist_register', **args),
+                'mode': 'waitlist', 'league': league}
+    return {'label': 'Register',
+            'url': url_for('auth.register', **args),
+            'mode': 'register', 'league': league}
 
 
 def _current_season_name():
@@ -96,6 +105,7 @@ def _inject_public_context():
     host = (request.host or '').split(':')[0].lower()
     return {
         'cta': _cta_state(),
+        'division_cta': _cta_state,   # callable: division_cta('classic'|'premier')
         'season_name': _current_season_name(),
         'current_year': datetime.now().year,
         'discord_invite_url': discord_invite_url or 'https://weareecs.com/fc',
@@ -295,6 +305,34 @@ def news_detail(slug):
                            post=post)
 
 
+@public_bp.route('/calendar')
+def calendar():
+    """Public calendar (marketing shell) — upcoming PUBLIC league events only
+    (PLOPs, parties, key dates). Never sends visitors into the portal."""
+    from app.models.calendar import LeagueEvent
+    from datetime import timedelta
+    now = datetime.utcnow()
+    try:
+        events = (LeagueEvent.query
+                  .filter(LeagueEvent.is_active.is_(True),
+                          LeagueEvent.is_public.is_(True),
+                          LeagueEvent.start_datetime >= (now - timedelta(hours=18)))
+                  .order_by(LeagueEvent.start_datetime.asc()).limit(80).all())
+    except Exception:
+        events = []
+    grouped = {}
+    for e in events:
+        grouped.setdefault(e.start_datetime.strftime('%B %Y'), []).append(e)
+    seo = _seo(
+        title='Calendar — ECS Pub League',
+        description='Upcoming ECS Pub League PLOPs, games, and events in Seattle.',
+        canonical_endpoint='public.calendar',
+        json_ld=[_org_json_ld()],
+    )
+    return render_template('public/calendar.html', active_page='calendar', seo=seo,
+                           grouped=grouped, total=len(events))
+
+
 @public_bp.route('/register')
 def register():
     """How-to-join hub. Preserves the legacy /register/ URL and shows the live
@@ -374,7 +412,7 @@ def sitemap_xml():
         (url_for('public.register', _external=True), '0.9', 'weekly'),
         (url_for('public.news_list', _external=True), '0.8', 'weekly'),
         (url_for('public.contact', _external=True), '0.5', 'yearly'),
-        (url_for('calendar.calendar_view', _external=True), '0.8', 'weekly'),
+        (url_for('public.calendar', _external=True), '0.8', 'weekly'),
     ]
     try:
         for p in (NewsPost.query

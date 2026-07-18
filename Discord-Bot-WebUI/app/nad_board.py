@@ -1,32 +1,37 @@
-# app/admin_panel/routes/nad_board.py
+# app/nad_board.py
 
 """
-Admin Panel NAD Board Routes
+NAD Board — coach + admin facing page (NOT part of the admin panel).
 
 The NAD board surfaces *approved* players in their first league season ("Newly
-Acquired Drinkers") so coaches + admins can pool scouting notes and place them
-fairly (the 3-NADs-per-team rule). It is the web front-end onto the same data
-the mobile app reads via GET /api/v1/admin/nad-board — both derive the list from
-app.services.nad_board_service.compute_nad_board so they can't drift.
+Acquired Drinkers") so coaches can pool scouting notes and place them fairly (the
+3-NADs-per-team rule). Pub League coaches rotate often and are NOT admins, so this
+lives in the normal player shell with no admin chrome or "admin" wording — it's
+just a sidebar link. Admins get the same page.
 
-Notes here reuse the shared PlayerAdminNote thread (the very same notes shown in
-the mobile Waiting Room / player admin screens), keyed by Player.id.
+It's the web front-end onto the same data the mobile app reads via
+GET /api/v1/admin/nad-board and the Discord /nads command — all three derive the
+list from app.services.nad_board_service.compute_nad_board so they can't drift.
+
+Notes reuse the shared PlayerAdminNote thread (the same notes the mobile Waiting
+Room / player admin screens use), keyed by Player.id.
 """
 
 import logging
 
-from flask import render_template, request, jsonify, flash, redirect, url_for, g
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, g
 from flask_login import login_required, current_user
 
-from .. import admin_panel_bp
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.services.nad_board_service import compute_nad_board
 
 logger = logging.getLogger(__name__)
 
-# Admins + coaches: coaches scope to their division inside compute_nad_board().
-NAD_ROLES = ['Pub League Admin', 'Global Admin', 'Pub League Coach']
+nad_board_bp = Blueprint('nad_board', __name__)
+
+# Pub League coaches + admins. Coaches are scoped to their division in the service.
+NAD_ROLES = ['Global Admin', 'Pub League Admin', 'Pub League Coach']
 
 
 def _labels_to_list(value):
@@ -41,12 +46,12 @@ def _labels_to_list(value):
 
 # ==================== Main Board ====================
 
-@admin_panel_bp.route('/nad-board')
+@nad_board_bp.route('/')
 @login_required
 @role_required(NAD_ROLES)
 @transactional
-def nad_board():
-    """NAD board dashboard — new players with photos, positions, and shared notes."""
+def index():
+    """NAD board — new players with photos, positions, and shared notes."""
     try:
         search = (request.args.get('search') or '').strip()
         season_id = request.args.get('season_id', type=int)
@@ -59,7 +64,6 @@ def nad_board():
             viewer_user_id=current_user.id,
         )
 
-        # Normalize the {Label,Label} position strings into lists for the template.
         for nad in result['nads']:
             nad['other_positions_list'] = _labels_to_list(nad.get('other_positions'))
             nad['positions_not_to_play_list'] = _labels_to_list(nad.get('positions_not_to_play'))
@@ -73,12 +77,10 @@ def nad_board():
         }
 
         return render_template(
-            'admin_panel/nad_board/board_flowbite.html',
+            'nad_board/board_flowbite.html',
             nads=nads,
             stats=stats,
             season_name=result['season_name'],
-            season_id=result['season_id'],
-            team_nad_counts=result['team_nad_counts'],
             search=search,
             is_global_admin=current_user.has_role('Global Admin'),
         )
@@ -86,18 +88,18 @@ def nad_board():
     except Exception as e:
         logger.error(f"Error loading NAD board: {e}", exc_info=True)
         flash('Error loading the NAD board. Please try again.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
+        return redirect(url_for('main.index'))
 
 
 # ==================== Shared Notes (reuse PlayerAdminNote) ====================
-# Web-session counterparts of the mobile /admin/players/<id>/notes endpoints,
-# delegating to the same PlayerAdminService so the thread is one and the same.
+# Delegate to the same PlayerAdminService the mobile API uses, so the scouting
+# thread is one and the same across web, mobile, and the player admin screens.
 
-@admin_panel_bp.route('/nad-board/players/<int:player_id>/notes', methods=['GET'])
+@nad_board_bp.route('/players/<int:player_id>/notes', methods=['GET'])
 @login_required
 @role_required(NAD_ROLES)
 @transactional
-def nad_board_get_notes(player_id: int):
+def get_notes(player_id: int):
     """List the shared scouting notes for a NAD."""
     from app.services.mobile.player_admin_service import PlayerAdminService
     service = PlayerAdminService(g.db_session)
@@ -107,11 +109,11 @@ def nad_board_get_notes(player_id: int):
     return jsonify({'success': True, **result.data}), 200
 
 
-@admin_panel_bp.route('/nad-board/players/<int:player_id>/notes', methods=['POST'])
+@nad_board_bp.route('/players/<int:player_id>/notes', methods=['POST'])
 @login_required
 @role_required(NAD_ROLES)
 @transactional
-def nad_board_create_note(player_id: int):
+def create_note(player_id: int):
     """Add a shared scouting note to a NAD."""
     from app.services.mobile.player_admin_service import PlayerAdminService
     data = request.get_json() or {}
@@ -127,11 +129,11 @@ def nad_board_create_note(player_id: int):
     return jsonify({'success': True, **result.data}), 201
 
 
-@admin_panel_bp.route('/nad-board/players/<int:player_id>/notes/<int:note_id>', methods=['PUT'])
+@nad_board_bp.route('/players/<int:player_id>/notes/<int:note_id>', methods=['PUT'])
 @login_required
 @role_required(NAD_ROLES)
 @transactional
-def nad_board_update_note(player_id: int, note_id: int):
+def update_note(player_id: int, note_id: int):
     """Edit a scouting note (own note, or any note for Global Admins)."""
     from app.services.mobile.player_admin_service import PlayerAdminService
     data = request.get_json() or {}
@@ -153,11 +155,11 @@ def nad_board_update_note(player_id: int, note_id: int):
     return jsonify({'success': True, **result.data}), 200
 
 
-@admin_panel_bp.route('/nad-board/players/<int:player_id>/notes/<int:note_id>', methods=['DELETE'])
+@nad_board_bp.route('/players/<int:player_id>/notes/<int:note_id>', methods=['DELETE'])
 @login_required
 @role_required(NAD_ROLES)
 @transactional
-def nad_board_delete_note(player_id: int, note_id: int):
+def delete_note(player_id: int, note_id: int):
     """Delete a scouting note (own note, or any note for Global Admins)."""
     from app.services.mobile.player_admin_service import PlayerAdminService
     service = PlayerAdminService(g.db_session)

@@ -68,6 +68,10 @@ class LeagueEvent(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    # Whether this event appears on the PUBLIC marketing calendar
+    # (ecspubleague.org). Default True keeps existing behavior; admins can hide
+    # internal events from the public side by unchecking it.
+    is_public = db.Column(db.Boolean, default=True, nullable=False)
 
     # Relationships
     season = db.relationship('Season', backref=db.backref('league_events', lazy='dynamic'))
@@ -92,6 +96,7 @@ class LeagueEvent(db.Model):
             'reminder_days_before': self.reminder_days_before,
             'reminder_sent_at': self.reminder_sent_at.isoformat() if self.reminder_sent_at else None,
             'is_active': self.is_active,
+            'is_public': self.is_public,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

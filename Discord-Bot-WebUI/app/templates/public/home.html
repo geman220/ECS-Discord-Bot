@@ -25,7 +25,7 @@
                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-gold px-6 py-3 text-base font-semibold text-gray-950 shadow-lg hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-ecs-gold/60 transition">
                     <i class="ti ti-user-plus text-lg"></i> {{ cta.label }}
                 </a>
-                <a href="{{ url_for('calendar.calendar_view') }}"
+                <a href="{{ url_for('public.calendar') }}"
                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-6 py-3 text-base font-semibold text-white ring-1 ring-inset ring-white/25 hover:bg-white/20 transition">
                     <i class="ti ti-calendar text-lg"></i> View the Schedule
                 </a>
@@ -69,25 +69,37 @@
             <p class="mt-4 text-lg text-gray-600 dark:text-gray-300">Pick the pace that fits you. You can always move between them season to season.</p>
         </div>
         <div class="mt-12 grid gap-6 lg:grid-cols-2">
-            <div class="rounded-2xl border-2 border-ecs-green/20 bg-white dark:bg-gray-950 p-8 shadow-sm">
-                <div class="flex items-center gap-3">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-ecs-green text-white"><i class="ti ti-ball-football text-xl"></i></span>
-                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Classic</h3>
+            {% set classic_cta = division_cta('classic') %}
+            <div class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-sm">
+                <div class="aspect-[16/9] w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
+                    <img src="{{ url_for('static', filename='img/publeague/2026-07__ZUZU-TEAM-1024x683.jpg') }}" alt="ECS Pub League Classic division" class="h-full w-full object-cover" loading="lazy">
                 </div>
-                <p class="mt-4 text-gray-600 dark:text-gray-300">The heart of the league — relaxed, welcoming, and built for players who want to have fun and improve at their own pace. New players start here.</p>
-                <a href="{{ cta.url }}" class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green dark:text-ecs-gold hover:underline">
-                    {{ cta.label }} <i class="ti ti-arrow-right"></i>
-                </a>
+                <div class="flex flex-1 flex-col p-8">
+                    <div class="flex items-center gap-3">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-ecs-green text-white"><i class="ti ti-ball-football text-xl"></i></span>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Classic</h3>
+                    </div>
+                    <p class="mt-4 flex-1 text-gray-600 dark:text-gray-300">Beginner-friendly and focused on fun and skill development over competition. Everyone gets equal playing time, and every team makes the playoffs. New players start here.</p>
+                    <a href="{{ classic_cta.url }}" class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green dark:text-ecs-gold">
+                        {{ classic_cta.label }} — Classic <i class="ti ti-arrow-right"></i>
+                    </a>
+                </div>
             </div>
-            <div class="rounded-2xl border-2 border-ecs-gold/30 bg-white dark:bg-gray-950 p-8 shadow-sm">
-                <div class="flex items-center gap-3">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-ecs-gold text-gray-950"><i class="ti ti-trophy text-xl"></i></span>
-                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Premier</h3>
+            {% set premier_cta = division_cta('premier') %}
+            <div class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-sm">
+                <div class="aspect-[16/9] w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
+                    <img src="{{ url_for('static', filename='img/publeague/2026-07__Astral_Shield-1024x576.jpg') }}" alt="ECS Pub League Premier division" class="h-full w-full object-cover" loading="lazy">
                 </div>
-                <p class="mt-4 text-gray-600 dark:text-gray-300">A step up in pace and competition for players who want a bigger challenge — still radically inclusive, just a little more intense.</p>
-                <a href="{{ cta.url }}" class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green dark:text-ecs-gold hover:underline">
-                    {{ cta.label }} <i class="ti ti-arrow-right"></i>
-                </a>
+                <div class="flex flex-1 flex-col p-8">
+                    <div class="flex items-center gap-3">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-ecs-gold text-gray-950"><i class="ti ti-trophy text-xl"></i></span>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Premier</h3>
+                    </div>
+                    <p class="mt-4 flex-1 text-gray-600 dark:text-gray-300">A slightly higher level of friendly competition — still low/no contact and laid-back, with the same emphasis on development, team play, and fun. Everyone plays.</p>
+                    <a href="{{ premier_cta.url }}" class="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green dark:text-ecs-gold">
+                        {{ premier_cta.label }} — Premier <i class="ti ti-arrow-right"></i>
+                    </a>
+                </div>
             </div>
         </div>
     </div>

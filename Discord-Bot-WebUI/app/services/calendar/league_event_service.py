@@ -52,7 +52,8 @@ class LeagueEventService(BaseService):
         league_id: Optional[int] = None,
         notify_discord: bool = False,
         send_reminder: bool = True,
-        reminder_days_before: int = 2
+        reminder_days_before: int = 2,
+        is_public: bool = True
     ) -> ServiceResult[LeagueEvent]:
         """
         Create a new league event.
@@ -119,7 +120,8 @@ class LeagueEventService(BaseService):
                 send_reminder=send_reminder,
                 reminder_days_before=reminder_days_before,
                 created_by=created_by,
-                is_active=True
+                is_active=True,
+                is_public=is_public
             )
 
             self.session.add(event)
@@ -186,7 +188,7 @@ class LeagueEventService(BaseService):
                 'title', 'description', 'event_type', 'location',
                 'start_datetime', 'end_datetime', 'is_all_day',
                 'season_id', 'league_id', 'notify_discord', 'is_active',
-                'send_reminder', 'reminder_days_before'
+                'send_reminder', 'reminder_days_before', 'is_public'
             }
 
             for field, value in updates.items():

@@ -46,7 +46,7 @@ def internal_list_nads():
         result = compute_nad_board(session, search=search, limit=limit, viewer_user_id=None)
 
     base = (os.getenv('WEBUI_BASE_URL') or 'https://portal.ecsfc.com').rstrip('/')
-    board_url = f"{base}/admin-panel/nad-board"
+    board_url = f"{base}/nad-board/"
 
     # Trim to the fields the bot renders in an embed.
     nads = [{

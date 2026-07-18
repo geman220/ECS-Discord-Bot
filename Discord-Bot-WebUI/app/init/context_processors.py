@@ -74,6 +74,11 @@ def build_nav_sections(user_roles, admin_settings):
             main_items.append(item('Submit Feedback', 'ti-message-report', 'feedback.submit_feedback'))
         if has_any('Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'):
             main_items.append(item('Coach Dashboard', 'ti-clipboard', 'teams.coach_dashboard'))
+        # NAD Board — scouting board for newly acquired Pub League players. Coaches
+        # (who rotate often and are NOT admins) get it here in the normal shell; it
+        # is deliberately NOT in the admin panel and carries no "admin" wording.
+        if has_any('Pub League Coach', 'Pub League Admin', 'Global Admin'):
+            main_items.append(item('NAD Board', 'ti-user-plus', 'nad_board.index'))
         if authenticated:
             main_items.append(item('Help Topics', 'ti-help-circle', 'help.index'))
         if main_items:
