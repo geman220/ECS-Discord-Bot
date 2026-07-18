@@ -6,33 +6,18 @@
 {% block main_content %}
 <div id="nad-board-root" class="max-w-[1500px] w-full mx-auto px-3 sm:px-4 py-4 space-y-4 sm:space-y-5"
      data-notes-url-template="{{ url_for('nad_board.get_notes', player_id=999999) }}"
+     data-photo-url-template="{{ url_for('nad_board.update_photo', player_id=999999) }}"
+     data-can-edit-photo="{{ 'true' if can_edit_photo else 'false' }}"
      data-is-global-admin="{{ 'true' if is_global_admin else 'false' }}"
      data-current-user-id="{{ current_user.id }}">
 
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div class="min-w-0">
-            {% if season_name %}<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 truncate">Season: {{ season_name }}</p>{% endif %}
-            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-                <i class="ti ti-user-plus text-ecs-green shrink-0"></i><span>NAD Board</span>
-            </h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">New players in their first season — pool your scouting notes.</p>
-        </div>
-        <form method="get" class="flex items-center gap-2" role="search">
-            <div class="relative">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="ti ti-search text-sm"></i></span>
-                <input type="text" name="search" value="{{ search }}" placeholder="Search by name…"
-                       class="pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green w-48 sm:w-64">
-            </div>
-            <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">
-                <i class="ti ti-search text-sm"></i><span class="hidden sm:inline">Search</span>
-            </button>
-            {% if search %}
-            <a href="{{ url_for('nad_board.index') }}" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-                <i class="ti ti-x text-sm"></i><span class="hidden sm:inline">Clear</span>
-            </a>
-            {% endif %}
-        </form>
+    <div class="min-w-0">
+        {% if season_name %}<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 truncate">Season: {{ season_name }}</p>{% endif %}
+        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-user-plus text-ecs-green shrink-0"></i><span>NAD Board</span>
+        </h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Approved new players in their first season — pool your scouting notes.</p>
     </div>
 
     <!-- Stats -->
@@ -51,25 +36,60 @@
         </div>
     </div>
 
+    <!-- Controls: live search + filters + sort -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex flex-wrap items-center gap-2">
+        <div class="relative flex-1 min-w-[180px]">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="ti ti-search text-sm"></i></span>
+            <input type="text" id="nad-search" value="{{ search }}" placeholder="Search by name…" autocomplete="off"
+                   class="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+        </div>
+        <select id="nad-status" class="py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+            <option value="all">All players</option>
+            <option value="assigned">On a team</option>
+            <option value="unassigned">Unassigned</option>
+        </select>
+        <select id="nad-position" class="py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+            <option value="">All positions</option>
+        </select>
+        <select id="nad-sort" class="py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+            <option value="name-asc">Name (A–Z)</option>
+            <option value="name-desc">Name (Z–A)</option>
+            <option value="newest">Newest first</option>
+            <option value="notes">Most notes</option>
+        </select>
+        <span id="nad-count" class="text-xs text-gray-500 dark:text-gray-400 ml-auto shrink-0"></span>
+    </div>
+
     {% if not nads %}
     <div class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
         <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4"><i class="ti ti-user-plus text-2xl text-gray-400 dark:text-gray-500"></i></div>
         <h3 class="text-base font-semibold text-gray-900 dark:text-white">No NADs yet</h3>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">No new first-season players match this view. Players show up here once they're approved.</p>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">No approved first-season players match this view. Players show up here once they're approved and active for the season.</p>
     </div>
     {% else %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+    <div id="nad-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
         {% for nad in nads %}
-        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3">
+        {% set all_positions = ([nad.favorite_position] if nad.favorite_position else []) + nad.other_positions_list %}
+        <div class="nad-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3"
+             data-name="{{ nad.name|lower }}"
+             data-assigned="{{ '1' if nad.team_id else '0' }}"
+             data-notes="{{ nad.note_count }}"
+             data-created="{{ nad.created_at or '' }}"
+             data-index="{{ loop.index0 }}"
+             data-positions="{{ all_positions|join('|')|lower }}">
             <div class="flex items-start gap-3">
-                {% if nad.profile_picture_url %}
-                <img src="{{ nad.profile_picture_url }}" alt="{{ nad.name }}"
-                     class="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 shrink-0"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="w-14 h-14 rounded-full bg-ecs-green/10 text-ecs-green items-center justify-center text-lg font-semibold shrink-0" style="display:none;">{{ nad.name[:1]|upper }}</div>
-                {% else %}
-                <div class="w-14 h-14 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center text-lg font-semibold shrink-0">{{ nad.name[:1]|upper }}</div>
-                {% endif %}
+                <div class="relative shrink-0">
+                    <img class="nad-avatar w-14 h-14 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 {{ '' if nad.profile_picture_url else 'hidden' }}"
+                         {% if nad.profile_picture_url %}src="{{ nad.profile_picture_url }}"{% endif %} alt="{{ nad.name }}"
+                         onerror="this.classList.add('hidden'); this.parentElement.querySelector('.nad-initials').classList.remove('hidden');">
+                    <div class="nad-initials w-14 h-14 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center text-lg font-semibold {{ 'hidden' if nad.profile_picture_url else '' }}">{{ nad.name[:1]|upper }}</div>
+                    {% if can_edit_photo %}
+                    <button type="button" class="nad-photo-btn absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center ring-2 ring-white dark:ring-gray-800 hover:bg-ecs-green/90"
+                            data-player-id="{{ nad.id }}" title="Set / change photo">
+                        <i class="ti ti-camera text-xs"></i>
+                    </button>
+                    {% endif %}
+                </div>
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2 flex-wrap">
                         <h3 class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ nad.name }}</h3>
@@ -126,7 +146,15 @@
         </div>
         {% endfor %}
     </div>
+
+    <div id="nad-empty-filtered" class="hidden flex-col items-center justify-center text-center px-6 py-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+        <div class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3"><i class="ti ti-search-off text-xl text-gray-400"></i></div>
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">No matches</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Try a different search or filter.</p>
+    </div>
     {% endif %}
+
+    {% if can_edit_photo %}<input type="file" id="nad-photo-input" accept="image/png,image/jpeg,image/webp" class="hidden">{% endif %}
 </div>
 {% endblock %}
 
@@ -164,26 +192,131 @@
     const root = document.getElementById('nad-board-root');
     if (!root) return;
 
-    const notesTemplate = root.dataset.notesUrlTemplate; // .../players/999999/notes
+    const notesTemplate = root.dataset.notesUrlTemplate;
+    const photoTemplate = root.dataset.photoUrlTemplate;
+    const canEditPhoto = root.dataset.canEditPhoto === 'true';
     const isGlobalAdmin = root.dataset.isGlobalAdmin === 'true';
     const currentUserId = parseInt(root.dataset.currentUserId, 10);
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
-    const modal = document.getElementById('nad-notes-modal');
-    const listEl = document.getElementById('nad-notes-list');
-    const nameEl = document.getElementById('nad-notes-player-name');
-    const inputEl = document.getElementById('nad-note-input');
-    const addBtn = document.getElementById('nad-note-add');
-
-    let activePlayerId = null;
-    let activeButton = null;
-
-    function notesUrl(playerId) { return notesTemplate.replace('999999', playerId); }
+    function tmplUrl(t, id) { return t.replace('999999', id); }
     function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, m => (
             { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]
         ));
     }
+
+    // ---------- Live search / filter / sort ----------
+    const grid = document.getElementById('nad-grid');
+    const cards = grid ? Array.from(grid.querySelectorAll('.nad-card')) : [];
+    const searchEl = document.getElementById('nad-search');
+    const statusEl = document.getElementById('nad-status');
+    const positionEl = document.getElementById('nad-position');
+    const sortEl = document.getElementById('nad-sort');
+    const countEl = document.getElementById('nad-count');
+    const emptyFiltered = document.getElementById('nad-empty-filtered');
+
+    // Populate the position dropdown from what's actually present.
+    if (positionEl && cards.length) {
+        const set = new Map(); // lower -> display
+        cards.forEach(c => (c.dataset.positions || '').split('|').forEach(p => {
+            const key = p.trim();
+            if (key) set.set(key, key.replace(/\b\w/g, m => m.toUpperCase()));
+        }));
+        Array.from(set.keys()).sort().forEach(k => {
+            const opt = document.createElement('option');
+            opt.value = k; opt.textContent = set.get(k);
+            positionEl.appendChild(opt);
+        });
+    }
+
+    function apply() {
+        const q = (searchEl?.value || '').trim().toLowerCase();
+        const status = statusEl?.value || 'all';
+        const pos = positionEl?.value || '';
+        let visible = 0;
+
+        cards.forEach(c => {
+            let show = true;
+            if (q && !c.dataset.name.includes(q)) show = false;
+            if (show && status === 'assigned' && c.dataset.assigned !== '1') show = false;
+            if (show && status === 'unassigned' && c.dataset.assigned !== '0') show = false;
+            if (show && pos && !('|' + c.dataset.positions + '|').includes('|' + pos + '|')) show = false;
+            c.classList.toggle('hidden', !show);
+            if (show) visible++;
+        });
+
+        // Sort the currently-visible cards.
+        const sort = sortEl?.value || 'name-asc';
+        const shown = cards.filter(c => !c.classList.contains('hidden'));
+        shown.sort((a, b) => {
+            switch (sort) {
+                case 'name-desc': return b.dataset.name.localeCompare(a.dataset.name);
+                case 'newest':    return (b.dataset.created || '').localeCompare(a.dataset.created || '');
+                case 'notes':     return (parseInt(b.dataset.notes, 10) || 0) - (parseInt(a.dataset.notes, 10) || 0);
+                default:          return a.dataset.name.localeCompare(b.dataset.name);
+            }
+        });
+        shown.forEach(c => grid.appendChild(c));
+
+        if (countEl) countEl.textContent = visible + ' of ' + cards.length + ' shown';
+        if (emptyFiltered) emptyFiltered.classList.toggle('hidden', visible !== 0);
+        if (grid) grid.classList.toggle('hidden', visible === 0);
+    }
+
+    let searchTimer = null;
+    searchEl && searchEl.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(apply, 120); });
+    [statusEl, positionEl, sortEl].forEach(el => el && el.addEventListener('change', apply));
+    if (cards.length) apply();
+
+    // ---------- Photo upload (admins) ----------
+    if (canEditPhoto) {
+        const photoInput = document.getElementById('nad-photo-input');
+        let activePhotoCard = null;
+
+        document.querySelectorAll('.nad-photo-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                activePhotoCard = { id: btn.dataset.playerId, card: btn.closest('.nad-card') };
+                photoInput.value = '';
+                photoInput.click();
+            });
+        });
+
+        photoInput && photoInput.addEventListener('change', async () => {
+            const file = photoInput.files && photoInput.files[0];
+            if (!file || !activePhotoCard) return;
+            if (file.size > 5 * 1024 * 1024) { alert('Image too large (max 5MB).'); return; }
+            const fd = new FormData();
+            fd.append('file', file);
+            try {
+                const res = await fetch(tmplUrl(photoTemplate, activePhotoCard.id), {
+                    method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd
+                });
+                const data = await res.json();
+                if (data.success && data.profile_picture_url) {
+                    const card = activePhotoCard.card;
+                    const img = card.querySelector('.nad-avatar');
+                    const initials = card.querySelector('.nad-initials');
+                    img.src = data.profile_picture_url + (data.profile_picture_url.includes('?') ? '&' : '?') + 't=' + Date.now();
+                    img.classList.remove('hidden');
+                    if (initials) initials.classList.add('hidden');
+                } else {
+                    alert(data.message || 'Failed to update photo');
+                }
+            } catch (e) {
+                alert('Failed to update photo');
+            }
+        });
+    }
+
+    // ---------- Notes ----------
+    const modal = document.getElementById('nad-notes-modal');
+    const listEl = document.getElementById('nad-notes-list');
+    const nameEl = document.getElementById('nad-notes-player-name');
+    const inputEl = document.getElementById('nad-note-input');
+    const addBtn = document.getElementById('nad-note-add');
+    let activePlayerId = null;
+    let activeButton = null;
 
     function openModal() { modal.classList.remove('hidden'); modal.classList.add('flex'); }
     function closeModal() { modal.classList.add('hidden'); modal.classList.remove('flex'); activePlayerId = null; }
@@ -219,12 +352,14 @@
         badge.textContent = count;
         badge.className = 'nad-note-count inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs rounded-full ' +
             (count ? 'bg-ecs-green text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300');
+        const card = btn.closest('.nad-card');
+        if (card) card.dataset.notes = count;
     }
 
     async function loadNotes(playerId) {
         listEl.innerHTML = '<div class="text-center text-sm text-gray-400 py-6">Loading…</div>';
         try {
-            const res = await fetch(notesUrl(playerId), { headers: { 'Accept': 'application/json' } });
+            const res = await fetch(tmplUrl(notesTemplate, playerId), { headers: { 'Accept': 'application/json' } });
             const data = await res.json();
             if (data.success) {
                 renderNotes(data.notes);
@@ -256,7 +391,7 @@
         if (!content || !activePlayerId) return;
         addBtn.disabled = true;
         try {
-            const res = await fetch(notesUrl(activePlayerId), {
+            const res = await fetch(tmplUrl(notesTemplate, activePlayerId), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
                 body: JSON.stringify({ content })
@@ -276,7 +411,7 @@
 
         if (e.target.classList.contains('note-delete')) {
             if (!confirm('Delete this note?')) return;
-            const res = await fetch(`${notesUrl(activePlayerId)}/${noteId}`, { method: 'DELETE', headers: { 'X-CSRFToken': csrf } });
+            const res = await fetch(`${tmplUrl(notesTemplate, activePlayerId)}/${noteId}`, { method: 'DELETE', headers: { 'X-CSRFToken': csrf } });
             const data = await res.json();
             if (data.success) loadNotes(activePlayerId); else alert(data.message || 'Failed to delete');
         }
@@ -286,7 +421,7 @@
             const current = p.textContent;
             const updated = prompt('Edit note:', current);
             if (updated == null || updated.trim() === '' || updated.trim() === current) return;
-            const res = await fetch(`${notesUrl(activePlayerId)}/${noteId}`, {
+            const res = await fetch(`${tmplUrl(notesTemplate, activePlayerId)}/${noteId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
                 body: JSON.stringify({ content: updated.trim() })

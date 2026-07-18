@@ -1,43 +1,93 @@
 {% extends "public/base_public.html" %}
 
 {% block content %}
-<section class="bg-gradient-to-br from-ecs-green to-ecs-green-dark">
-    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
-            {{ page.title if page and page.title else 'About ECS Pub League' }}
-        </h1>
-        <p class="mt-4 text-lg text-green-50/90 max-w-2xl">
-            Radically inclusive, beginner-friendly adult soccer in Seattle — part of the Emerald City Supporters community.
+{# ---- Hero ---- #}
+<section class="relative overflow-hidden">
+    <div class="absolute inset-0">
+        <img src="{{ imgs.community1 }}" alt="ECS Pub League community" class="h-full w-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-r from-ecs-green-dark/95 via-ecs-green/85 to-ecs-green/50"></div>
+    </div>
+    <div class="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-20 sm:py-24">
+        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white drop-shadow-sm">Bring your C game.</h1>
+        <p class="mt-4 text-lg text-white/90 max-w-2xl drop-shadow">
+            Founded in 2012, ECS Pub League is a non-profit, radically inclusive, beginner-friendly
+            recreational soccer league in Seattle. Everybody plays.
         </p>
     </div>
 </section>
 
+{# ---- Intro ---- #}
 <section class="py-16 sm:py-20">
-    <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <div class="prose prose-lg dark:prose-invert max-w-none prose-headings:text-gray-900 dark:prose-headings:text-white prose-a:text-ecs-green dark:prose-a:text-ecs-gold">
-            {% if page and page.body_html %}
-                {{ page.body_html | safe }}
-            {% else %}
-                <p>ECS Pub League is where Seattle comes to play. We're a radically inclusive, beginner-friendly adult soccer league built on one simple idea: <strong>soccer for all</strong>.</p>
-                <p>Whether you're a lifelong player or you've never touched a ball, there's a place for you here. We care more about who you are than how you play, and our community extends far beyond the pitch.</p>
-                <h2>What makes us different</h2>
-                <ul>
-                    <li><strong>Everyone plays.</strong> No benchwarming, no gatekeeping.</li>
-                    <li><strong>Two divisions</strong> — Classic and Premier — so you can find your pace.</li>
-                    <li><strong>A real community</strong> that hangs out on and off the field.</li>
-                </ul>
-                <p>New players start by coming to a Pub League Open Practice (PLOP) and getting approved — then you're in.</p>
-            {% endif %}
+    <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 grid gap-10 lg:grid-cols-2 lg:items-center">
+        <div>
+            <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Beginner soccer in Seattle</h2>
+            <p class="mt-4 text-gray-600 dark:text-gray-300">We play 8v8 (including goalkeepers) on a half-size turf field, with unlimited substitutions and shifts of 5–10 minutes. Two ten-week seasons a year — Spring (April–June) and Fall (Labor Day–Thanksgiving) — scheduled around Sounders matches.</p>
+            <p class="mt-3 text-gray-600 dark:text-gray-300">We form new teams every season, so this year's opponents become next year's teammates. Each team picks its own name, theme, and custom jersey — and there's an end-of-season party at a sponsor pub.</p>
         </div>
+        <img src="{{ imgs.community2 }}" alt="Players on the pitch" class="rounded-2xl object-cover w-full aspect-[4/3] shadow-sm">
+    </div>
+</section>
 
-        <div class="mt-10 flex flex-col sm:flex-row gap-3">
-            <a href="{{ cta.url }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-green px-6 py-3 text-base font-semibold text-white hover:bg-ecs-green-dark transition">
-                <i class="ti ti-user-plus text-lg"></i> {{ cta.label }}
-            </a>
-            <a href="{{ url_for('public.faqs') }}" class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-700 px-6 py-3 text-base font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 transition">
-                <i class="ti ti-help text-lg"></i> Read the FAQ
-            </a>
+{# ---- Divisions ---- #}
+<section class="py-16 sm:py-20 bg-gray-50 dark:bg-gray-900">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-bold tracking-tight text-center text-gray-900 dark:text-white">Two divisions, everybody plays</h2>
+        <div class="mt-12 grid gap-8 md:grid-cols-2">
+            <div class="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-sm">
+                <img src="{{ imgs.classic }}" alt="Classic division" class="w-full aspect-[16/9] object-cover">
+                <div class="p-6">
+                    <h3 class="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white"><i class="ti ti-ball-football text-ecs-green dark:text-ecs-gold"></i> Classic</h3>
+                    <p class="mt-3 text-gray-600 dark:text-gray-300">For players with little to no experience, or anyone easing back into the game. A slower pace, a teaching environment, and equal playing time for everyone. Haven't played in years? Never played at all? Come on out anyway.</p>
+                </div>
+            </div>
+            <div class="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-sm">
+                <img src="{{ imgs.premier }}" alt="Premier division" class="w-full aspect-[16/9] object-cover">
+                <div class="p-6">
+                    <h3 class="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white"><i class="ti ti-trophy text-ecs-green dark:text-ecs-gold"></i> Premier</h3>
+                    <p class="mt-3 text-gray-600 dark:text-gray-300">A slightly higher level of friendly competition — still low/no contact and laid-back, with the same focus on development, team play, and fun. If you've played GSSL, RATS, or Arena, this probably isn't the league for you.</p>
+                </div>
+            </div>
         </div>
+    </div>
+</section>
+
+{# ---- Everybody plays + cups ---- #}
+<section class="py-16 sm:py-20">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 grid gap-10 lg:grid-cols-2 lg:items-center">
+        <div class="grid grid-cols-2 gap-4 order-2 lg:order-1">
+            <img src="{{ imgs.cup1 }}" alt="Pub League Cup champions" class="rounded-2xl object-cover w-full aspect-square shadow-sm">
+            <img src="{{ imgs.cup2 }}" alt="Pub League Cup champions" class="rounded-2xl object-cover w-full aspect-square shadow-sm mt-6">
+        </div>
+        <div class="order-1 lg:order-2">
+            <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Everybody plays</h2>
+            <p class="mt-4 text-gray-600 dark:text-gray-300">We hold "tryouts" only to build evenly balanced teams — not to cut anyone. Everyone gets equal playing time regardless of ability or fitness, and every team makes the playoffs for a shot at the Pub League Cup.</p>
+            <p class="mt-3 text-gray-600 dark:text-gray-300">Unlimited subs and short shifts make it a great place to learn the game or get back into it later in life. Week 9 is Fun Week — costumes, a potluck BBQ, and the ever-popular "multiball."</p>
+        </div>
+    </div>
+</section>
+
+{# ---- PLOP ---- #}
+<section class="py-16 sm:py-20 bg-gray-50 dark:bg-gray-900">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 grid gap-10 lg:grid-cols-2 lg:items-center">
+        <div>
+            <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Start with a PLOP</h2>
+            <p class="mt-4 text-gray-600 dark:text-gray-300">Most Sundays in the summer and winter offseasons we hold free, open Pub League Offseason Practices. PLOP is the best way to check us out — and it's how we find the right place for you to play. All new players attend a PLOP and get approved before registering.</p>
+            <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                <a href="{{ url_for('public.register') }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-green px-5 py-2.5 text-sm font-semibold text-white hover:bg-ecs-green-dark transition"><i class="ti ti-user-plus"></i> {{ cta.label }}</a>
+                <a href="{{ url_for('public.calendar') }}" class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-700 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-800 transition"><i class="ti ti-calendar"></i> PLOP dates</a>
+            </div>
+        </div>
+        <img src="{{ imgs.plop }}" alt="Pub League Offseason Practice" class="rounded-2xl object-cover w-full aspect-[16/9] shadow-sm">
+    </div>
+</section>
+
+{# ---- Mission ---- #}
+<section class="bg-ecs-green">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-16 text-center">
+        <p class="text-sm font-semibold uppercase tracking-wide text-ecs-gold">Our mission</p>
+        <p class="mt-3 text-2xl sm:text-3xl font-bold text-white">Fun and friendly soccer for adults. We're radically inclusive — but we're not for everyone.</p>
+        <p class="mt-4 text-green-50/90">We're soccer fans of beginner to low-intermediate levels who get together to play in a fun, safe, organized environment for the love of the game and a little friendly competition.</p>
+        <a href="{{ url_for('public.faqs') }}" class="mt-8 inline-flex items-center gap-2 rounded-lg bg-ecs-gold px-5 py-2.5 text-sm font-bold text-gray-950 hover:bg-yellow-400 transition"><i class="ti ti-help"></i> Read the FAQ</a>
     </div>
 </section>
 {% endblock %}

@@ -30,10 +30,17 @@
                 <h2 class="mt-4 text-2xl font-bold text-gray-900 dark:text-white">Not open right now</h2>
                 <p class="mt-2 text-gray-600 dark:text-gray-300">Registration isn't open at the moment — reach out and we'll let you know when it is.</p>
             {% endif %}
-            <a href="{{ cta.url }}" class="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-green px-6 py-3 text-base font-semibold text-white hover:bg-ecs-green-dark transition">
-                <i class="ti ti-user-plus text-lg"></i> {{ cta.label }}
-            </a>
-            <p class="mt-3 text-xs text-gray-400">Already a member? <a href="{{ url_for('auth.login') }}" class="text-ecs-green dark:text-ecs-gold font-medium hover:underline">Log in</a>.</p>
+            {% set classic_cta = division_cta('classic') %}
+            {% set premier_cta = division_cta('premier') %}
+            <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                <a href="{{ classic_cta.url }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-green px-6 py-3 text-base font-semibold text-white hover:bg-ecs-green-dark transition">
+                    <i class="ti ti-ball-football text-lg"></i> {{ classic_cta.label }} — Classic
+                </a>
+                <a href="{{ premier_cta.url }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-gold px-6 py-3 text-base font-semibold text-gray-950 hover:bg-yellow-400 transition">
+                    <i class="ti ti-trophy text-lg"></i> {{ premier_cta.label }} — Premier
+                </a>
+            </div>
+            <p class="mt-4 text-xs text-gray-400">Not sure which division? Either is a great start — we'll help you find the right fit at a PLOP. Already a member? <a href="{{ url_for('auth.login') }}" class="text-ecs-green dark:text-ecs-gold font-medium">Log in</a>.</p>
         </div>
     </div>
 </section>

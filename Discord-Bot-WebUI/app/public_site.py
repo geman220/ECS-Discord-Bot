@@ -90,6 +90,32 @@ def _current_season_name():
 _DEFAULT_GA4_ID = 'G-B3QLJS4BJK'
 _PROD_MARKETING_HOSTS = frozenset({'ecspubleague.org', 'www.ecspubleague.org'})
 
+# Named marketing images (migrated from WordPress). Centralized so templates
+# reference imgs.logo / imgs.hero, not long filenames. Files live in
+# static/img/publeague/ (gitignored; rsync'd to the server).
+_IMG_FILES = {
+    'logo': '2025-02__ECSPL-4-Color-With-Outline-transparent.png',
+    'hero': '2023-08__355098481_10227903474124662_4103553356561754271_n.jpg',
+    'classic': '2026-07__ZUZU-TEAM-1024x683.jpg',
+    'premier': '2026-07__Astral_Shield-1024x576.jpg',
+    'plop': '2024-03__PLOP-1024x536.png',
+    'cup1': '2025-11__Ball-Lobbers-F25-Cup-1024x768.jpeg',
+    'cup2': '2025-11__Wasteland-Wanders-F25-Cup-1024x768.jpeg',
+    'funweek': '2025-01__354555603_261773156445157_1463948238121785202_n-edited-1.jpg',
+    'community1': '2024-07__449616069_475069395115531_7943264348607003846_n-1024x576.jpg',
+    'community2': '2024-07__449510587_474189858536818_1170912284728314372_n-1024x683.jpg',
+}
+
+
+def _public_images():
+    out = {}
+    for key, fn in _IMG_FILES.items():
+        try:
+            out[key] = url_for('static', filename=f'img/publeague/{fn}')
+        except Exception:
+            out[key] = ''
+    return out
+
 
 @public_bp.context_processor
 def _inject_public_context():
@@ -111,6 +137,8 @@ def _inject_public_context():
         'discord_invite_url': discord_invite_url or 'https://weareecs.com/fc',
         'ga_measurement_id': ga_id,
         'is_prod_marketing_domain': host in _PROD_MARKETING_HOSTS,
+        'imgs': _public_images(),
+        'is_site_admin': _is_site_admin(),
     }
 
 
@@ -156,6 +184,20 @@ def _page_block(slug):
         return None
 
 
+def _is_site_admin():
+    """True for Global/Pub League admins — gates the inline 'Edit this page' UI."""
+    try:
+        from app.role_impersonation import get_effective_roles
+        roles = get_effective_roles()
+    except Exception:
+        try:
+            from app.utils.user_helpers import safe_current_user
+            roles = [r.name for r in (getattr(safe_current_user, 'roles', None) or [])]
+        except Exception:
+            roles = []
+    return any(r in ('Global Admin', 'Pub League Admin') for r in (roles or []))
+
+
 # --------------------------------------------------------------------------- #
 # Pages
 # --------------------------------------------------------------------------- #
@@ -180,20 +222,16 @@ def home():
         json_ld=[_org_json_ld()],
     )
     return render_template('public/home.html', active_page='home', seo=seo,
-                           hero=hero, intro=intro, latest_news=latest_news)
+                           hero=hero, intro=intro, latest_news=latest_news,
+                           edit_url=url_for('admin_panel.public_site_pages'))
 
 
 @public_bp.route('/about')
 def about():
-    page = _page_block('about')
-    seo = _seo(
-        title='About — ECS Pub League',
-        description=('What ECS Pub League is: radically inclusive, '
-                     'beginner-friendly adult soccer in Seattle.'),
-        canonical_endpoint='public.about',
-        json_ld=[_org_json_ld()],
-    )
-    return render_template('public/about.html', active_page='about', seo=seo, page=page)
+    return _render_site_page(
+        'about', 'About ECS Pub League', active='about',
+        desc='ECS Pub League: radically inclusive, beginner-friendly adult '
+             'soccer in Seattle since 2012. Classic and Premier divisions. Everybody plays.')
 
 
 def _render_site_page(slug, title_fallback, active='', desc=None):
@@ -207,8 +245,10 @@ def _render_site_page(slug, title_fallback, active='', desc=None):
         canonical_endpoint=f'public.{slug}',
         json_ld=[_org_json_ld()],
     )
+    edit_url = (url_for('admin_panel.public_site_page_edit', page_id=page.id)
+                if page else url_for('admin_panel.public_site_pages'))
     return render_template('public/page.html', active_page=active, seo=seo,
-                           page=page, title_fallback=title_fallback)
+                           page=page, title_fallback=title_fallback, edit_url=edit_url)
 
 
 @public_bp.route('/guide')
@@ -254,7 +294,8 @@ def faqs():
         json_ld=[faq_json_ld] if faq_json_ld else [_org_json_ld()],
     )
     return render_template('public/faqs.html', active_page='faqs', seo=seo,
-                           grouped=grouped, total=len(rows))
+                           grouped=grouped, total=len(rows),
+                           edit_url=url_for('admin_panel.public_site_faqs'))
 
 
 @public_bp.route('/news')
@@ -273,7 +314,7 @@ def news_list():
         json_ld=[_org_json_ld()],
     )
     return render_template('public/news_list.html', active_page='news', seo=seo,
-                           posts=posts)
+                           posts=posts, edit_url=url_for('admin_panel.public_site_news'))
 
 
 @public_bp.route('/news/<slug>')
@@ -302,7 +343,8 @@ def news_detail(slug):
         json_ld=[article_ld],
     )
     return render_template('public/news_detail.html', active_page='news', seo=seo,
-                           post=post)
+                           post=post,
+                           edit_url=url_for('admin_panel.public_site_news_edit', post_id=post.id))
 
 
 @public_bp.route('/calendar')

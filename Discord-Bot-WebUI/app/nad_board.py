@@ -32,6 +32,8 @@ nad_board_bp = Blueprint('nad_board', __name__)
 
 # Pub League coaches + admins. Coaches are scoped to their division in the service.
 NAD_ROLES = ['Global Admin', 'Pub League Admin', 'Pub League Coach']
+# Photo edits are admin-only (coaches scout + take notes, they don't edit photos).
+NAD_ADMIN_ROLES = ['Global Admin', 'Pub League Admin']
 
 
 def _labels_to_list(value):
@@ -83,12 +85,59 @@ def index():
             season_name=result['season_name'],
             search=search,
             is_global_admin=current_user.has_role('Global Admin'),
+            can_edit_photo=(current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin')),
         )
 
     except Exception as e:
         logger.error(f"Error loading NAD board: {e}", exc_info=True)
         flash('Error loading the NAD board. Please try again.', 'error')
         return redirect(url_for('main.index'))
+
+
+# ==================== Photo (admin only) ====================
+
+@nad_board_bp.route('/players/<int:player_id>/photo', methods=['POST'])
+@login_required
+@role_required(NAD_ADMIN_ROLES)
+@transactional
+def update_photo(player_id: int):
+    """Admin: set / change / update a NAD's profile photo.
+
+    Accepts multipart form-data with a 'file' field, or JSON with
+    'cropped_image_data'/'photo_base64' (data URL). Reuses the shared player
+    photo service so the picture is the player's real profile picture everywhere.
+    """
+    from app.services.mobile.player_admin_service import PlayerAdminService
+
+    content_type = request.content_type or ''
+    if 'multipart/form-data' in content_type:
+        file = request.files.get('file')
+        if not file or file.filename == '':
+            return jsonify({'success': False, 'message': 'No file provided'}), 400
+        allowed = {'png', 'jpg', 'jpeg', 'webp'}
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        if ext not in allowed:
+            return jsonify({'success': False, 'message': 'Invalid file type. Allowed: png, jpg, jpeg, webp'}), 400
+        import base64
+        data = file.read()
+        if len(data) > 5 * 1024 * 1024:
+            return jsonify({'success': False, 'message': 'File too large. Maximum size: 5MB'}), 400
+        mime = file.content_type or f'image/{ext}'
+        image_data = f"data:{mime};base64,{base64.b64encode(data).decode('utf-8')}"
+    else:
+        body = request.get_json() or {}
+        image_data = body.get('cropped_image_data') or body.get('photo_base64')
+        if not image_data:
+            return jsonify({'success': False, 'message': 'Missing image data'}), 400
+
+    service = PlayerAdminService(g.db_session)
+    result = service.upload_player_profile_picture(
+        player_id=player_id, uploader_id=current_user.id, image_data=image_data
+    )
+    if not result.success:
+        status = 404 if result.error_code == 'PLAYER_NOT_FOUND' else 400
+        return jsonify({'success': False, 'message': result.message}), status
+    return jsonify({'success': True, 'profile_picture_url': result.data.get('profile_picture_url')}), 200
 
 
 # ==================== Shared Notes (reuse PlayerAdminNote) ====================

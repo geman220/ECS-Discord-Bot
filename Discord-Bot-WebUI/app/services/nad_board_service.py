@@ -24,16 +24,22 @@ Visibility:
 
 import logging
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 
-from app.models import User, Player, Season
+from app.models import User, Player, Season, League, Role
 from app.models.players import PlayerTeamSeason, Team, PlayerAdminNote, player_teams
 from app.constants.positions import label_for, to_label_array
 
 logger = logging.getLogger(__name__)
 
 ADMIN_ROLE_NAMES = {'Global Admin', 'Pub League Admin'}
+
+# 'pl-unverified' means the player was never approved — they must NEVER be a NAD,
+# even if their approval_status somehow reads 'approved' (a data gap we also surface
+# via sql_list_active_pl_unverified.sql). 'pl-waitlist' is intentionally NOT excluded:
+# an approved-but-waitlisted new player can legitimately be a NAD.
+NOT_ACTIVE_ROLE_NAMES = ['pl-unverified']
 
 
 def current_pub_league_season(session):
@@ -66,6 +72,13 @@ def compute_nad_board(session, *, season_id=None, search='', limit=100, viewer_u
 
     is_current_target = bool(target_season.is_current)
 
+    # Leagues that belong to the target (Pub League) season — used to keep ECS FC
+    # players OUT: a NAD is a Pub League player, and ECS FC players carry an ECS FC
+    # league_id, so they never match these.
+    pub_league_league_ids = [
+        lid for (lid,) in session.query(League.id).filter(League.season_id == target_season.id).all()
+    ]
+
     # --- prior Pub League seasons (a NAD has none) ---
     prior_q = session.query(Season.id).filter(
         Season.league_type == 'Pub League', Season.id != target_season.id
@@ -87,13 +100,20 @@ def compute_nad_board(session, *, season_id=None, search='', limit=100, viewer_u
 
     candidate_ids = set(target_team_by_player.keys())
 
-    # For the CURRENT season, also surface approved active players not yet drafted.
-    if is_current_target:
+    # For the CURRENT season, also surface approved active players not yet drafted —
+    # but ONLY Pub League ones (league_id / primary_league_id points at a league in
+    # this Pub League season). Without this gate, ECS FC members with is_current_player
+    # set (e.g. an ECS FC coach) would wrongly appear as unassigned NADs.
+    if is_current_target and pub_league_league_ids:
         for (pid,) in session.query(Player.id).join(
             User, Player.user_id == User.id
         ).filter(
             Player.is_current_player == True,  # noqa: E712
-            User.approval_status == 'approved'
+            User.approval_status == 'approved',
+            or_(
+                Player.primary_league_id.in_(pub_league_league_ids),
+                Player.league_id.in_(pub_league_league_ids),
+            )
         ).all():
             candidate_ids.add(pid)
 
@@ -133,7 +153,8 @@ def compute_nad_board(session, *, season_id=None, search='', limit=100, viewer_u
     # --- fetch candidate players (approved only) ---
     players_q = session.query(Player).join(User, Player.user_id == User.id).filter(
         Player.id.in_(candidate_ids),
-        User.approval_status == 'approved'
+        User.approval_status == 'approved',
+        ~User.roles.any(Role.name.in_(NOT_ACTIVE_ROLE_NAMES)),
     )
     if search:
         players_q = players_q.filter(Player.name.ilike(f'%{search}%'))
