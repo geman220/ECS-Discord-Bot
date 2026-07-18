@@ -34,7 +34,8 @@
         <td class="px-4 py-3 hidden md:table-cell text-gray-900 dark:text-white">{{ page.title or '—' }}</td>
         <td class="px-4 py-3 hidden md:table-cell text-gray-500 dark:text-gray-400">{{ page.updated_at.strftime('%b %-d, %Y') if page.updated_at else '—' }}</td>
         <td class="px-4 py-3 text-right">
-          <a href="{{ url_for('admin_panel.public_site_page_edit', page_id=page.id) }}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-edit"></i> Edit</a>
+          <a href="{{ url_for('admin_panel.public_site_page_builder', page_id=page.id) }}" class="inline-flex items-center gap-1 rounded-lg bg-ecs-green/10 border border-ecs-green/20 px-2.5 py-1.5 text-xs font-medium text-ecs-green hover:bg-ecs-green/20"><i class="ti ti-layout-board"></i> Visual builder</a>
+          <a href="{{ url_for('admin_panel.public_site_page_edit', page_id=page.id) }}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-forms"></i> Simple</a>
         </td>
       </tr>
       {% endfor %}

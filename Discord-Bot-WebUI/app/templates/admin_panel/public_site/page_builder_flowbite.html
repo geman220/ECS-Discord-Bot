@@ -1,0 +1,99 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header %}
+
+{% block admin_title %}Visual Builder — {{ page.slug }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <a href="{{ url_for('admin_panel.public_site_pages') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Public Site · Pages</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Visual builder · {{ page.slug }}</span></div></li>
+{% endblock %}
+
+{% block extra_css %}{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/grapesjs/grapes.min.css') }}">
+<style>
+  /* Give the builder real estate; GrapesJS renders its own panels around #gjs. */
+  #gjs-wrap { border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden; }
+  .gjs-editor { min-height: 72vh; }
+</style>
+{% endblock %}
+
+{% block panel_content %}
+{% call page_header("Visual builder", subtitle="Public Site · " + page.slug) %}
+  <a href="{{ url_for('public.about') if page.slug == 'about' else url_for('public.guide') if page.slug == 'guide' else url_for('public.guests') if page.slug == 'guests' else '#' }}" target="_blank" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-external-link"></i> View</a>
+  <a href="{{ url_for('admin_panel.public_site_page_edit', page_id=page.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-forms"></i> Simple editor</a>
+  <button type="button" id="gjs-save" class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-device-floppy"></i> Save</button>
+{% endcall %}
+
+<p class="mb-3 text-sm text-gray-500 dark:text-gray-400">
+  Drag blocks from the right panel onto the page. Click anything to edit it; use the
+  Style panel to change fonts, colors, spacing and layout. Drop in images or use the
+  image block to upload. Click <strong>Save</strong> when you're done.
+</p>
+
+<div id="gjs-wrap"><div id="gjs"></div></div>
+
+<form method="POST" action="{{ url_for('admin_panel.public_site_page_builder_save', page_id=page.id) }}" id="builder-form" class="hidden">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="body_html" id="body_html_field">
+</form>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script src="{{ url_for('static', filename='vendor/grapesjs/grapes.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/grapesjs/grapesjs-preset-webpage.min.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.grapesjs) { console.error('GrapesJS failed to load'); return; }
+  var UPLOAD_URL = "{{ url_for('admin_panel.public_site_upload_image') }}";
+  function csrf() {
+    var m = document.querySelector('meta[name="csrf-token"]');
+    if (m) return m.getAttribute('content');
+    var i = document.querySelector('input[name="csrf_token"]');
+    return i ? i.value : '';
+  }
+  var INITIAL = {{ (page.body_html or '') | tojson }};
+
+  var editor = grapesjs.init({
+    container: '#gjs',
+    height: '72vh',
+    fromElement: false,
+    storageManager: false,
+    plugins: ['grapesjs-preset-webpage'],
+    pluginsOpts: {
+      'grapesjs-preset-webpage': {
+        modalImportTitle: 'Import HTML',
+        showStylesOnChange: true
+      }
+    },
+    assetManager: {
+      // Upload straight to our media dir (same endpoint the rich editor uses)
+      uploadFile: function (e) {
+        var files = (e.dataTransfer ? e.dataTransfer.files : (e.target ? e.target.files : []));
+        Array.prototype.forEach.call(files, function (file) {
+          var fd = new FormData(); fd.append('file', file);
+          fetch(UPLOAD_URL, { method: 'POST', body: fd, credentials: 'same-origin',
+              headers: { 'X-CSRFToken': csrf() } })
+            .then(function (r) { return r.json(); })
+            .then(function (j) { if (j && j.url) editor.AssetManager.add(j.url); })
+            .catch(function () {});
+        });
+      }
+    }
+  });
+
+  // Load existing content (GrapesJS parses inline <style> into its CSS).
+  if (INITIAL) { try { editor.setComponents(INITIAL); } catch (err) { console.error(err); } }
+
+  document.getElementById('gjs-save').addEventListener('click', function () {
+    var css = editor.getCss();
+    var html = editor.getHtml();
+    document.getElementById('body_html_field').value =
+      (css ? '<style>' + css + '</style>\n' : '') + html;
+    document.getElementById('builder-form').submit();
+  });
+});
+</script>
+{% endblock %}

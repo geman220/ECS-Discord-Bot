@@ -309,6 +309,33 @@ def public_site_page_edit(page_id):
     return render_template('admin_panel/public_site/page_edit_flowbite.html', page=page)
 
 
+@admin_panel_bp.route('/public-site/pages/<int:page_id>/builder')
+@login_required
+@role_required(_ROLES)
+def public_site_page_builder(page_id):
+    """Full drag-and-drop visual builder (GrapesJS) for a page body."""
+    page = SitePage.query.get_or_404(page_id)
+    return render_template('admin_panel/public_site/page_builder_flowbite.html', page=page)
+
+
+@admin_panel_bp.route('/public-site/pages/<int:page_id>/builder/save', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_page_builder_save(page_id):
+    page = g.db_session.query(SitePage).get(page_id)
+    if not page:
+        abort(404)
+    page.body_html = request.form.get('body_html') or None
+    page.updated_at = datetime.utcnow()
+    try:
+        page.updated_by_id = current_user.id
+    except Exception:
+        pass
+    flash('Page saved.', 'success')
+    return redirect(url_for('admin_panel.public_site_page_builder', page_id=page.id))
+
+
 @admin_panel_bp.route('/public-site/pages/save', methods=['POST'])
 @login_required
 @role_required(_ROLES)

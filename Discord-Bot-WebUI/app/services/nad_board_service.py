@@ -23,6 +23,7 @@ Visibility:
 """
 
 import logging
+from difflib import SequenceMatcher
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
@@ -40,6 +41,43 @@ ADMIN_ROLE_NAMES = {'Global Admin', 'Pub League Admin'}
 # via sql_list_active_pl_unverified.sql). 'pl-waitlist' is intentionally NOT excluded:
 # an approved-but-waitlisted new player can legitimately be a NAD.
 NOT_ACTIVE_ROLE_NAMES = ['pl-unverified']
+
+
+# Similarity threshold for the fuzzy name fallback (0..1). "signey" vs "signy" ~0.9.
+_FUZZY_THRESHOLD = 0.7
+
+
+def _match_names(search, players):
+    """Filter players by name: exact/substring first, fuzzy fallback if none match.
+
+    Each whitespace term must match (AND). Substring pass handles "jane", "doe",
+    "jane doe", "doe jane". If that finds nothing (e.g. a typo like "Signey" for
+    "Signy"), fall back to per-term similarity against the name and each of its
+    tokens, keep names where every term clears the threshold, best matches first.
+    """
+    terms = [t for t in search.lower().split() if t]
+    if not terms:
+        return players
+
+    substring = [p for p in players if all(t in (p.name or '').lower() for t in terms)]
+    if substring:
+        return substring
+
+    def term_score(term, name_low, tokens):
+        best = SequenceMatcher(None, term, name_low).ratio()
+        for tok in tokens:
+            best = max(best, SequenceMatcher(None, term, tok).ratio())
+        return best
+
+    scored = []
+    for p in players:
+        low = (p.name or '').lower()
+        tokens = low.split()
+        score = min(term_score(t, low, tokens) for t in terms)
+        if score >= _FUZZY_THRESHOLD:
+            scored.append((score, p))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [p for _, p in scored]
 
 
 def current_pub_league_season(session):
@@ -156,13 +194,12 @@ def compute_nad_board(session, *, season_id=None, search='', limit=100, viewer_u
         User.approval_status == 'approved',
         ~User.roles.any(Role.name.in_(NOT_ACTIVE_ROLE_NAMES)),
     )
-    if search:
-        # Match each whitespace-separated term against the name independently, so
-        # "jane", "doe", "jane doe", and "doe jane" all match "Jane Doe" (first,
-        # last, or both, in any order; partials welcome).
-        for term in search.split():
-            players_q = players_q.filter(Player.name.ilike(f'%{term}%'))
     candidate_players = players_q.options(joinedload(Player.user)).order_by(Player.id.desc()).all()
+
+    # Name search: substring first, fuzzy fallback (so "Signey" still finds "Signy").
+    # The NAD set is bounded, so filtering in Python is cheap and lets us fuzzy-match.
+    if search:
+        candidate_players = _match_names(search, candidate_players)
 
     # --- team names/leagues for referenced teams ---
     team_ids = {tid for tid in target_team_by_player.values() if tid}

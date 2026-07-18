@@ -247,7 +247,7 @@ def _render_site_page(slug, title_fallback, active='', desc=None):
         canonical_endpoint=f'public.{slug}',
         json_ld=[_org_json_ld()],
     )
-    edit_url = (url_for('admin_panel.public_site_page_edit', page_id=page.id)
+    edit_url = (url_for('admin_panel.public_site_page_builder', page_id=page.id)
                 if page else url_for('admin_panel.public_site_pages'))
     return render_template('public/page.html', active_page=active, seo=seo,
                            page=page, title_fallback=title_fallback, edit_url=edit_url)
