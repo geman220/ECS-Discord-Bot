@@ -252,6 +252,47 @@ def public_site_faq_delete(faq_id):
 # Editable pages
 # --------------------------------------------------------------------------- #
 
+@admin_panel_bp.route('/public-site/home')
+@login_required
+@role_required(_ROLES)
+def public_site_home_edit():
+    """Friendly one-screen editor for the home page's content blocks."""
+    slugs = ['home_hero', 'home_intro', 'home_justforfun']
+    blocks = {b.slug: b for b in SitePage.query.filter(SitePage.slug.in_(slugs)).all()}
+    return render_template('admin_panel/public_site/home_edit_flowbite.html', blocks=blocks)
+
+
+@admin_panel_bp.route('/public-site/home/save', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_home_save():
+    def upsert(slug, **fields):
+        pg = g.db_session.query(SitePage).filter_by(slug=slug).first()
+        if not pg:
+            pg = SitePage(slug=slug)
+            g.db_session.add(pg)
+        for k, v in fields.items():
+            setattr(pg, k, (v or None))
+        pg.updated_at = datetime.utcnow()
+        try:
+            pg.updated_by_id = current_user.id
+        except Exception:
+            pass
+
+    upsert('home_hero',
+           title=(request.form.get('hero_title') or '').strip(),
+           body_html=request.form.get('hero_body'),
+           og_image_url=(request.form.get('hero_image') or '').strip())
+    upsert('home_intro',
+           title=(request.form.get('intro_title') or '').strip(),
+           body_html=request.form.get('intro_body'))
+    upsert('home_justforfun',
+           body_html=request.form.get('justforfun_body'))
+    flash('Home page updated.', 'success')
+    return redirect(url_for('admin_panel.public_site_home_edit'))
+
+
 @admin_panel_bp.route('/public-site/pages')
 @login_required
 @role_required(_ROLES)

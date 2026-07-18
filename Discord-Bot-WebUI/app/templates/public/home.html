@@ -115,8 +115,14 @@
         <img src="{{ imgs.community2 }}" alt="ECS Pub League players" class="rounded-2xl object-cover w-full aspect-[4/3] shadow-sm order-2 lg:order-1">
         <div class="order-1 lg:order-2">
             <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">Just for fun</h2>
-            <p class="mt-4 text-lg text-gray-600 dark:text-gray-300">Both divisions play 8v8 on a half-field with unlimited subs. If you've played in the other Seattle leagues (RATS, GSSL, Arena Sports) or have college or club experience, this probably isn't the league for you — our level is well below even their lowest divisions, and that's the point.</p>
-            <p class="mt-3 text-gray-600 dark:text-gray-400">ECS Pub League is part of <a href="https://weareecs.com/fc" class="text-ecs-green dark:text-blue-400 font-medium">ECS FC</a>, the nonprofit soccer club established by Emerald City Supporters.</p>
+            <div class="mt-4 text-lg text-gray-600 dark:text-gray-300 space-y-3 [&_a]:text-ecs-green dark:[&_a]:text-blue-400 [&_a]:font-medium">
+            {% if justforfun and justforfun.body_html %}
+                {{ justforfun.body_html | safe }}
+            {% else %}
+                <p>Both divisions play 8v8 on a half-field with unlimited subs. If you've played in the other Seattle leagues (RATS, GSSL, Arena Sports) or have college or club experience, this probably isn't the league for you — our level is well below even their lowest divisions, and that's the point.</p>
+                <p>ECS Pub League is part of <a href="https://weareecs.com/fc">ECS FC</a>, the nonprofit soccer club established by Emerald City Supporters.</p>
+            {% endif %}
+            </div>
         </div>
     </div>
 </section>

@@ -1,0 +1,93 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header %}
+{% from 'macros/_rich_editor.html' import rich_editor %}
+
+{% block admin_title %}Public Site — Home Page{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Public Site · Home Page</span></div></li>
+{% endblock %}
+
+{% set hero = blocks.get('home_hero') %}
+{% set intro = blocks.get('home_intro') %}
+{% set jff = blocks.get('home_justforfun') %}
+
+{% block panel_content %}
+{% call page_header("Home Page", subtitle="Public Site") %}
+  <a href="{{ url_for('public.home') }}" target="_blank" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-external-link"></i> View</a>
+  <a href="{{ url_for('admin_panel.public_site_news') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-news"></i> News</a>
+  <a href="{{ url_for('admin_panel.public_site_pages') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-file-text"></i> Pages</a>
+{% endcall %}
+
+<form method="POST" action="{{ url_for('admin_panel.public_site_home_save') }}" id="home-form" class="max-w-3xl space-y-6">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4">
+    <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-photo text-ecs-green"></i> Hero (top of the page)</h3>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Big headline</label>
+      <input type="text" name="hero_title" value="{{ hero.title if hero else '' }}" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Sub-text</label>
+      <textarea name="hero_body" class="wp-editor mt-1 block w-full">{{ hero.body_html if hero else '' }}</textarea>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Hero image <span class="text-gray-400 font-normal">(the big background photo)</span></label>
+      <div class="mt-1 flex items-center gap-2">
+        <label class="inline-flex items-center gap-1.5 cursor-pointer rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <i class="ti ti-upload"></i> Upload
+          <input type="file" id="hero-file" accept="image/*" class="hidden">
+        </label>
+        <span id="hero-upload-status" class="text-xs text-gray-400"></span>
+      </div>
+      <input type="text" name="hero_image" id="hero_image" value="{{ hero.og_image_url if hero else '' }}" placeholder="…or paste an image URL" class="mt-2 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+      <img id="hero-preview" src="{{ hero.og_image_url if hero and hero.og_image_url else '' }}" alt="" class="mt-2 rounded-lg max-h-40 w-full object-cover {{ '' if hero and hero.og_image_url else 'hidden' }}">
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4">
+    <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-align-left text-ecs-green"></i> “Soccer for all” intro</h3>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Heading</label>
+      <input type="text" name="intro_title" value="{{ intro.title if intro else 'Soccer for all' }}" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Text</label>
+      <textarea name="intro_body" class="wp-editor mt-1 block w-full">{{ intro.body_html if intro else '' }}</textarea>
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4">
+    <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-ball-football text-ecs-green"></i> “Just for fun” section</h3>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Text</label>
+      <textarea name="justforfun_body" class="wp-editor mt-1 block w-full">{{ jff.body_html if jff else '' }}</textarea>
+    </div>
+  </div>
+
+  <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-ecs-green text-white px-5 py-2.5 text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-device-floppy"></i> Save home page</button>
+</form>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+{{ rich_editor('.wp-editor') }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var heroFile = document.getElementById('hero-file');
+    if (heroFile) heroFile.addEventListener('change', function () {
+        if (!this.files || !this.files[0] || !window.publicSiteUpload) return;
+        var status = document.getElementById('hero-upload-status');
+        status.textContent = 'Uploading…';
+        window.publicSiteUpload(this.files[0]).then(function (url) {
+            document.getElementById('hero_image').value = url;
+            var prev = document.getElementById('hero-preview');
+            prev.src = url; prev.classList.remove('hidden');
+            status.textContent = 'Uploaded ✓';
+        }).catch(function (e) { status.textContent = e.message; });
+    });
+});
+</script>
+{% endblock %}

@@ -14,7 +14,8 @@ Discord user must map to an app user with an admin/coach role. Authorization is
 done SERVER-SIDE off the real app role model (so a Global Admin in the app can
 run it regardless of their Discord roles), and the board is scoped to that viewer.
 
-The successful list is posted publicly; permission denials and errors are ephemeral.
+Restricted to the coaches channels; the wrong-channel nudge is ephemeral, everything
+else (the list, plus any error/denial) posts publicly so coaches can collaborate.
 """
 
 import os
@@ -36,6 +37,10 @@ FLASK_TOKEN = os.getenv("FLASK_TOKEN", "")
 
 ECS_GREEN = 0x1A472A
 
+# /nads only works in the coaches channels (keeps the public roster chatter where
+# coaches collaborate). Matched case-insensitively by channel name.
+ALLOWED_CHANNELS = {"pl-classic-coaches", "pl-premier-coaches", "pl-all-coaches"}
+
 
 class NadCommands(commands.Cog):
     def __init__(self, bot):
@@ -48,9 +53,20 @@ class NadCommands(commands.Cog):
     @app_commands.guilds(discord.Object(id=server_id))
     @app_commands.describe(person="Filter by name — first, last, or both (optional)")
     async def nads(self, interaction: discord.Interaction, person: str = None):
-        # Ephemeral "thinking" — the successful list is sent as a public followup
-        # below; denials/errors stay ephemeral.
-        await interaction.response.defer(ephemeral=True)
+        # Restrict to the coaches channels (ephemeral nudge if used elsewhere, so it
+        # doesn't spam other channels). This check happens BEFORE we defer so it can
+        # stay private.
+        channel_name = (getattr(interaction.channel, "name", "") or "").lower()
+        if channel_name not in ALLOWED_CHANNELS:
+            await interaction.response.send_message(
+                "Use `/nads` in a coaches channel: **#pl-classic-coaches**, "
+                "**#pl-premier-coaches**, or **#pl-all-coaches**.",
+                ephemeral=True,
+            )
+            return
+
+        # Public "thinking" so the result is visible to the whole channel for collab.
+        await interaction.response.defer()
 
         url = f"{API_BASE_URL.rstrip('/')}/v1/internal/nads"
         params = {"limit": 25, "discord_id": str(interaction.user.id)}
@@ -66,19 +82,17 @@ class NadCommands(commands.Cog):
         except Exception:
             logger.exception("NAD board fetch failed")
             await interaction.followup.send(
-                "Couldn't pull up the board right now — give it a minute and try again.",
-                ephemeral=True,
+                "Couldn't pull up the board right now — give it a minute and try again."
             )
             return
 
         if status == 403:
-            await interaction.followup.send("This one's for coaches and admins only.", ephemeral=True)
+            await interaction.followup.send("This one's for coaches and admins only.")
             return
         if status != 200 or not data.get("success"):
             logger.warning("NAD board returned status %s", status)
             await interaction.followup.send(
-                "Couldn't pull up the board right now — give it a minute and try again.",
-                ephemeral=True,
+                "Couldn't pull up the board right now — give it a minute and try again."
             )
             return
 

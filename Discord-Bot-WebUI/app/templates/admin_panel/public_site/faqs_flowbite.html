@@ -18,8 +18,8 @@
     <input type="text" name="question" required value="{{ faq.question if faq else '' }}" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
   </div>
   <div>
-    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">Answer <span class="font-normal">(HTML allowed)</span></label>
-    <textarea name="answer_html" rows="4" required class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">{{ faq.answer_html if faq else '' }}</textarea>
+    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">Answer</label>
+    <textarea name="answer_html" rows="4" required class="wp-editor mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">{{ faq.answer_html if faq else '' }}</textarea>
   </div>
   <div class="grid grid-cols-3 gap-3">
     <div>
@@ -83,4 +83,9 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+{{ rich_editor('.wp-editor') }}
 {% endblock %}

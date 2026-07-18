@@ -206,6 +206,7 @@ def _is_site_admin():
 def home():
     hero = _page_block('home_hero')
     intro = _page_block('home_intro')
+    justforfun = _page_block('home_justforfun')
     try:
         latest_news = (NewsPost.query
                        .filter(NewsPost.status == 'published',
@@ -222,8 +223,9 @@ def home():
         json_ld=[_org_json_ld()],
     )
     return render_template('public/home.html', active_page='home', seo=seo,
-                           hero=hero, intro=intro, latest_news=latest_news,
-                           edit_url=url_for('admin_panel.public_site_pages'))
+                           hero=hero, intro=intro, justforfun=justforfun,
+                           latest_news=latest_news,
+                           edit_url=url_for('admin_panel.public_site_home_edit'))
 
 
 @public_bp.route('/about')
@@ -373,6 +375,46 @@ def calendar():
     )
     return render_template('public/calendar.html', active_page='calendar', seo=seo,
                            grouped=grouped, total=len(events))
+
+
+@public_bp.route('/calendar.ics')
+def calendar_ics():
+    """Public iCal feed of public events, so anyone can subscribe/sync it into
+    Google/Apple/Outlook calendars (like WordPress's export links)."""
+    from app.models.calendar import LeagueEvent
+    try:
+        events = (LeagueEvent.query
+                  .filter(LeagueEvent.is_active.is_(True), LeagueEvent.is_public.is_(True))
+                  .order_by(LeagueEvent.start_datetime.asc()).all())
+    except Exception:
+        events = []
+
+    def esc(s):
+        return (str(s or '').replace('\\', '\\\\').replace(';', '\\;')
+                .replace(',', '\\,').replace('\r\n', '\\n').replace('\n', '\\n'))
+
+    def fmt(dt):
+        return dt.strftime('%Y%m%dT%H%M%S') if dt else ''
+
+    stamp = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ECS Pub League//Public Calendar//EN',
+             'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:ECS Pub League',
+             'X-WR-TIMEZONE:America/Los_Angeles']
+    for e in events:
+        if not e.start_datetime:
+            continue
+        lines += ['BEGIN:VEVENT', f'UID:leagueevent-{e.id}@ecspubleague.org',
+                  f'DTSTAMP:{stamp}', f'DTSTART:{fmt(e.start_datetime)}',
+                  f'DTEND:{fmt(e.end_datetime or e.start_datetime)}',
+                  f'SUMMARY:{esc(e.title)}']
+        if e.location:
+            lines.append(f'LOCATION:{esc(e.location)}')
+        if e.description:
+            lines.append(f'DESCRIPTION:{esc(_strip_html(e.description))}')
+        lines.append('END:VEVENT')
+    lines.append('END:VCALENDAR')
+    return Response('\r\n'.join(lines) + '\r\n', mimetype='text/calendar',
+                    headers={'Content-Disposition': 'attachment; filename="ecs-pub-league.ics"'})
 
 
 @public_bp.route('/register')
