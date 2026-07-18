@@ -728,13 +728,11 @@ def edit_user(user_id):
                     user.roles = current_non_league_roles + required_league_roles
                     logger.info(f"Updated roles to: {[role.name for role in user.roles]}")
                 
-                    # Update approval status if user has league roles
-                    if assigned_leagues and user.approval_status != 'approved':
-                        user.approval_status = 'approved'
-                        user.is_approved = True
-                        user.approval_league = list(assigned_leagues)[0].lower().replace(' ', '-')
-                        user.approved_at = datetime.utcnow()
-                        # Note: approved_by would need to be set to current user if we track that
+                    # NOTE: assigning a league here does NOT approve the user. Approval
+                    # is a deliberate act via the approvals queue (approve_user / bulk
+                    # approve) — an admin must approve everyone. Editing a pending user
+                    # (e.g. to fix a jersey size) must never silently flip them to
+                    # approved, so no approval_status/is_approved change happens here.
 
                 session.add(user)
                 if user.player:
@@ -2232,13 +2230,15 @@ def create_quick_player():
             temp_suffix = str(uuid.uuid4())[:8]
             player_phone = f"000-000-{temp_suffix[:4]}"
         
-        # Create user first with proper approval status
+        # Create the user PENDING approval. Importing a paid WooCommerce order proves
+        # they paid (is_current_player below), NOT that an admin approved them — an
+        # admin must still approve everyone via the approvals queue. Matches the
+        # multi-order "new player" branch, which already creates pending.
         new_user = User(
             username=generate_unique_username(name, session),
             email=user_email,
-            is_approved=True,
-            approval_status='approved',
-            approved_at=datetime.utcnow()
+            is_approved=False,
+            approval_status='pending'
         )
         new_user.set_password('ChangeMe123!')  # Default password
         session.add(new_user)
