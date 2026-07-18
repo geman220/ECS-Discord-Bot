@@ -892,10 +892,31 @@ def get_draft_history(league_name: str):
         query = query.offset((page - 1) * per_page).limit(per_page)
         picks = query.all()
 
+        # Batch-load the drafted FIELD position (pitch slot: 'st','bench','gk',...) for
+        # the picks on this page. It lives on player_teams.position — NOT on
+        # DraftOrderHistory — and is keyed by (player_id, team_id) so an ECS FC
+        # multi-team player resolves to the correct roster spot. One query, no N+1.
+        slot_by_key = {}
+        _keys = [(p.player_id, p.team_id) for p in picks if p.player_id and p.team_id]
+        if _keys:
+            _pids = list({pid for pid, _ in _keys})
+            _tids = list({tid for _, tid in _keys})
+            for r in session.query(
+                player_teams.c.player_id, player_teams.c.team_id, player_teams.c.position
+            ).filter(
+                player_teams.c.player_id.in_(_pids),
+                player_teams.c.team_id.in_(_tids),
+            ).all():
+                slot_by_key[(r.player_id, r.team_id)] = r.position
+
         history = []
         for pick in picks:
             history.append({
                 "position": pick.draft_position,
+                # Drafted pitch slot ('st','bench','gk',...). Null if the roster spot
+                # was since removed. Web shows this as "(ST)"; see the socket
+                # player_drafted_enhanced 'position' field — same vocabulary.
+                "field_position": slot_by_key.get((pick.player_id, pick.team_id)),
                 "player": {
                     "id": pick.player.id,
                     "name": pick.player.name
