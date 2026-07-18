@@ -404,6 +404,16 @@ def _register_additional_blueprints(app, bp, csrf):
     # '/preview' is allowlisted in access_gating.py for pending logged-in users.
     app.register_blueprint(bp['public_bp'], url_prefix='/preview')
 
+    # Seed the public marketing site from migrated WordPress content on first
+    # boot (web process only; idempotent + advisory-locked so concurrent workers
+    # don't double-seed). Never blocks startup on failure.
+    try:
+        if not app.config.get('TESTING') and not os.environ.get('CELERY_WORKER'):
+            from app.seeds.public_site_seed import seed_public_site
+            seed_public_site(app)
+    except Exception as e:
+        logger.warning(f"Public-site seed hook failed: {e}")
+
 
 def _init_enterprise_systems(app):
     """Initialize enterprise systems on app startup."""

@@ -1,0 +1,43 @@
+{% extends "public/base_public.html" %}
+
+{% block content %}
+<section class="bg-gradient-to-br from-ecs-green to-ecs-green-dark">
+    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
+            {{ page.title if page and page.title else 'About ECS Pub League' }}
+        </h1>
+        <p class="mt-4 text-lg text-green-50/90 max-w-2xl">
+            Radically inclusive, beginner-friendly adult soccer in Seattle — part of the Emerald City Supporters community.
+        </p>
+    </div>
+</section>
+
+<section class="py-16 sm:py-20">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+        <div class="prose prose-lg dark:prose-invert max-w-none prose-headings:text-gray-900 dark:prose-headings:text-white prose-a:text-ecs-green dark:prose-a:text-ecs-gold">
+            {% if page and page.body_html %}
+                {{ page.body_html | safe }}
+            {% else %}
+                <p>ECS Pub League is where Seattle comes to play. We're a radically inclusive, beginner-friendly adult soccer league built on one simple idea: <strong>soccer for all</strong>.</p>
+                <p>Whether you're a lifelong player or you've never touched a ball, there's a place for you here. We care more about who you are than how you play, and our community extends far beyond the pitch.</p>
+                <h2>What makes us different</h2>
+                <ul>
+                    <li><strong>Everyone plays.</strong> No benchwarming, no gatekeeping.</li>
+                    <li><strong>Two divisions</strong> — Classic and Premier — so you can find your pace.</li>
+                    <li><strong>A real community</strong> that hangs out on and off the field.</li>
+                </ul>
+                <p>New players start by coming to a Pub League Open Practice (PLOP) and getting approved — then you're in.</p>
+            {% endif %}
+        </div>
+
+        <div class="mt-10 flex flex-col sm:flex-row gap-3">
+            <a href="{{ cta.url }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-green px-6 py-3 text-base font-semibold text-white hover:bg-ecs-green-dark transition">
+                <i class="ti ti-user-plus text-lg"></i> {{ cta.label }}
+            </a>
+            <a href="{{ url_for('public.faqs') }}" class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-700 px-6 py-3 text-base font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 transition">
+                <i class="ti ti-help text-lg"></i> Read the FAQ
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -98,6 +98,7 @@ def register_mobile_api_routes():
         admin_feedback,
         engagement,
         pub_league,
+        nad_internal,
     )
 
 

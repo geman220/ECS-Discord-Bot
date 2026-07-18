@@ -119,6 +119,11 @@ def create_app(config_object='web_config.Config'):
     from app.init.access_gating import register_access_gating
     register_access_gating(app)
 
+    # Legacy WordPress → new-site 301 redirects (SEO). Host-gated to
+    # ecspubleague.org, so this is dormant on portal.ecsfc.com until DNS cutover.
+    from app.public_redirects import register_public_redirects
+    register_public_redirects(app)
+
     # The mobile counterpart. access_gating exempts /api wholesale (the JSON API
     # is trusted to enforce its own state), and pending users now hold real JWTs
     # so they can link the pass they bought — this is what keeps them out of

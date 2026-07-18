@@ -29,7 +29,6 @@ from flask import (
 from app.core import db
 from app.models import NewsPost, Faq, SitePage
 from app.models.admin_config import AdminConfig
-from app.forms import FeedbackForm
 from app.feedback import create_feedback_entry
 from app.alert_helpers import show_success, show_error
 from app.utils.db_utils import transactional
@@ -75,18 +74,33 @@ def _current_season_name():
         return None
 
 
+# GA4 property carried over from the WordPress site (analytics continuity).
+# Overridable via AdminConfig 'ga4_measurement_id'. Only emitted on the live
+# marketing domain (see _inject_public_context) so the /preview demo on
+# portal.ecsfc.com never pollutes analytics.
+_DEFAULT_GA4_ID = 'G-B3QLJS4BJK'
+_PROD_MARKETING_HOSTS = frozenset({'ecspubleague.org', 'www.ecspubleague.org'})
+
+
 @public_bp.context_processor
 def _inject_public_context():
-    """Nav CTA, season, footer bits — available to every public template."""
+    """Nav CTA, season, GA4, footer bits — available to every public template."""
     try:
         discord_invite_url = AdminConfig.get_setting('discord_invite_url', None)
     except Exception:
         discord_invite_url = None
+    try:
+        ga_id = AdminConfig.get_setting('ga4_measurement_id', _DEFAULT_GA4_ID) or _DEFAULT_GA4_ID
+    except Exception:
+        ga_id = _DEFAULT_GA4_ID
+    host = (request.host or '').split(':')[0].lower()
     return {
         'cta': _cta_state(),
         'season_name': _current_season_name(),
         'current_year': datetime.now().year,
         'discord_invite_url': discord_invite_url or 'https://weareecs.com/fc',
+        'ga_measurement_id': ga_id,
+        'is_prod_marketing_domain': host in _PROD_MARKETING_HOSTS,
     }
 
 
@@ -140,6 +154,13 @@ def _page_block(slug):
 def home():
     hero = _page_block('home_hero')
     intro = _page_block('home_intro')
+    try:
+        latest_news = (NewsPost.query
+                       .filter(NewsPost.status == 'published',
+                               NewsPost.published_at.isnot(None))
+                       .order_by(NewsPost.published_at.desc()).limit(3).all())
+    except Exception:
+        latest_news = []
     seo = _seo(
         title='ECS Pub League — Radically Inclusive Adult Soccer in Seattle',
         description=('Beginner-friendly, radically inclusive adult soccer in '
@@ -149,7 +170,7 @@ def home():
         json_ld=[_org_json_ld()],
     )
     return render_template('public/home.html', active_page='home', seo=seo,
-                           hero=hero, intro=intro)
+                           hero=hero, intro=intro, latest_news=latest_news)
 
 
 @public_bp.route('/about')
@@ -163,6 +184,33 @@ def about():
         json_ld=[_org_json_ld()],
     )
     return render_template('public/about.html', active_page='about', seo=seo, page=page)
+
+
+def _render_site_page(slug, title_fallback, active='', desc=None):
+    """Render a generic editable SitePage (guide, guests, ...)."""
+    page = _page_block(slug)
+    title = (page.meta_title if page and page.meta_title
+             else f'{(page.title if page and page.title else title_fallback)} — ECS Pub League')
+    seo = _seo(
+        title=title,
+        description=(page.meta_description if page and page.meta_description else desc),
+        canonical_endpoint=f'public.{slug}',
+        json_ld=[_org_json_ld()],
+    )
+    return render_template('public/page.html', active_page=active, seo=seo,
+                           page=page, title_fallback=title_fallback)
+
+
+@public_bp.route('/guide')
+def guide():
+    return _render_site_page('guide', 'The Pub League Guide',
+                             desc='The ECS Pub League unofficial guide — for players new to the league or to soccer.')
+
+
+@public_bp.route('/guests')
+def guests():
+    return _render_site_page('guests', 'PLOP Guest Policy',
+                             desc='ECS Pub League guest policy for Pub League Offseason Practices.')
 
 
 @public_bp.route('/faqs')
@@ -247,18 +295,40 @@ def news_detail(slug):
                            post=post)
 
 
+@public_bp.route('/register')
+def register():
+    """How-to-join hub. Preserves the legacy /register/ URL and shows the live
+    registration state (open / waitlist / closed) with the matching backend
+    action, plus the PLOP → approval → register requirement for new players."""
+    seo = _seo(
+        title='Register — ECS Pub League',
+        description=('How to join ECS Pub League: attend a PLOP, get approved for '
+                     'league fit, then register. New players always welcome.'),
+        canonical_endpoint='public.register',
+        json_ld=[_org_json_ld()],
+    )
+    return render_template('public/register.html', active_page='register', seo=seo)
+
+
 @public_bp.route('/contact', methods=['GET', 'POST'])
 @transactional
 def contact():
-    form = FeedbackForm()
-    # The public contact form only needs name/message; category is fixed.
+    submitted = {'name': '', 'email': '', 'subject': '', 'message': ''}
     if request.method == 'POST':
+        # Honeypot: real users leave the hidden 'website' field empty; bots fill
+        # it. Silently accept (don't tip off the bot) and drop the submission.
+        if (request.form.get('website') or '').strip():
+            show_success("Thanks — we got your message and will be in touch.")
+            return redirect(url_for('public.contact'))
+
         name = (request.form.get('name') or '').strip()
         email = (request.form.get('email') or '').strip()
         message = (request.form.get('message') or '').strip()
-        subject = (request.form.get('subject') or 'Website contact').strip()
-        if not (name and message):
-            show_error('Please add your name and a message.')
+        subject = (request.form.get('subject') or '').strip() or 'Website contact'
+        submitted = {'name': name, 'email': email, 'subject': subject, 'message': message}
+
+        if not name or not message:
+            show_error('Please add your name and a message so we can help.')
         else:
             try:
                 # Reuse the feedback backend (anonymous submission, admin-notified).
@@ -266,18 +336,19 @@ def contact():
                     {
                         'name': name,
                         'category': 'Contact',
-                        'title': subject or 'Website contact',
+                        'title': subject,
                         'description': (f'From: {name} <{email}>\n\n{message}'
                                         if email else f'From: {name}\n\n{message}'),
                     },
                     user_id=None, username=name,
                 )
                 _notify_admins_contact(name, email, subject, message)
-                show_success("Thanks — we got your message and will be in touch.")
+                show_success("Thanks — we got your message and will be in touch soon.")
                 return redirect(url_for('public.contact'))
             except Exception as e:
                 logger.error(f"Public contact submission failed: {e}", exc_info=True)
-                show_error('Something went wrong sending your message. Please email us directly.')
+                show_error('Something went wrong sending your message. '
+                           'Please email us directly at ecspubleague@gmail.com.')
 
     seo = _seo(
         title='Contact — ECS Pub League',
@@ -286,7 +357,7 @@ def contact():
         json_ld=[_org_json_ld()],
     )
     return render_template('public/contact.html', active_page='contact', seo=seo,
-                           form=form)
+                           submitted=submitted)
 
 
 @public_bp.route('/sitemap.xml')
@@ -298,6 +369,9 @@ def sitemap_xml():
         (url_for('public.home', _external=True), '1.0', 'weekly'),
         (url_for('public.about', _external=True), '0.7', 'monthly'),
         (url_for('public.faqs', _external=True), '0.7', 'monthly'),
+        (url_for('public.guide', _external=True), '0.5', 'yearly'),
+        (url_for('public.guests', _external=True), '0.4', 'yearly'),
+        (url_for('public.register', _external=True), '0.9', 'weekly'),
         (url_for('public.news_list', _external=True), '0.8', 'weekly'),
         (url_for('public.contact', _external=True), '0.5', 'yearly'),
         (url_for('calendar.calendar_view', _external=True), '0.8', 'weekly'),
@@ -326,15 +400,16 @@ def sitemap_xml():
 # --------------------------------------------------------------------------- #
 
 def _abs_static(path):
-    """Absolute URL for a /static-relative image path (or None)."""
+    """Absolute URL for an image path (or None). Handles remote URLs, absolute
+    /static paths, and bare static-relative filenames."""
     if not path:
         return None
     if path.startswith('http'):
         return path
     try:
-        return url_for('static', filename=path.lstrip('/').replace('static/', '', 1),
-                       _external=True) if not path.startswith('/static') else \
-            request.url_root.rstrip('/') + path
+        if path.startswith('/'):
+            return request.url_root.rstrip('/') + path
+        return url_for('static', filename=path, _external=True)
     except Exception:
         return None
 
@@ -357,16 +432,19 @@ def _notify_admins_contact(name, email, subject, message):
         admin_ids = [u.id for u in User.query.filter(User.roles.contains(admin_role)).all()]
         if not admin_ids:
             return
+        import html as _html
+        e_name, e_email = _html.escape(name), _html.escape(email or '')
+        e_subject, e_message = _html.escape(subject), _html.escape(message)
         orchestrator.send_async(NotificationPayload(
             notification_type=NotificationType.FEEDBACK_NEW,
             title=f"Website contact: {subject}",
             message=f"{name}{f' <{email}>' if email else ''}: {message[:140]}",
             user_ids=admin_ids,
             email_subject=f"Website contact from {name}",
-            email_html_body=(f"<p><strong>From:</strong> {name} "
-                             f"{f'&lt;{email}&gt;' if email else ''}</p>"
-                             f"<p><strong>Subject:</strong> {subject}</p>"
-                             f"<p>{message}</p>"),
+            email_html_body=(f"<p><strong>From:</strong> {e_name} "
+                             f"{f'&lt;{e_email}&gt;' if e_email else ''}</p>"
+                             f"<p><strong>Subject:</strong> {e_subject}</p>"
+                             f"<p>{e_message.replace(chr(10), '<br>')}</p>"),
         ))
     except Exception as e:
         logger.error(f"Contact admin notify failed: {e}")

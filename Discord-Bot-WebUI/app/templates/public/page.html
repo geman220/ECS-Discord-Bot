@@ -1,0 +1,28 @@
+{% extends "public/base_public.html" %}
+
+{% block content %}
+<section class="bg-gradient-to-br from-ecs-green to-ecs-green-dark">
+    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
+        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
+            {{ page.title if page and page.title else title_fallback }}
+        </h1>
+    </div>
+</section>
+
+<section class="py-14 sm:py-16">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+        <div class="prose prose-lg dark:prose-invert max-w-none prose-headings:text-gray-900 dark:prose-headings:text-white prose-a:text-ecs-green dark:prose-a:text-ecs-gold">
+            {% if page and page.body_html %}
+                {{ page.body_html | safe }}
+            {% else %}
+                <p>This page is being updated. Please <a href="{{ url_for('public.contact') }}">get in touch</a> if you need this information.</p>
+            {% endif %}
+        </div>
+        <div class="mt-10">
+            <a href="{{ cta.url }}" class="inline-flex items-center gap-2 rounded-lg bg-ecs-green px-6 py-3 text-base font-semibold text-white hover:bg-ecs-green-dark transition">
+                <i class="ti ti-user-plus"></i> {{ cta.label }}
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header %}
+
+{% block admin_title %}Public Site — FAQs{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Public Site · FAQs</span></div></li>
+{% endblock %}
+
+{% macro faq_form(faq=None) %}
+<form method="POST" action="{{ url_for('admin_panel.public_site_faq_save') }}" class="space-y-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if faq %}<input type="hidden" name="id" value="{{ faq.id }}">{% endif %}
+  <div>
+    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">Question</label>
+    <input type="text" name="question" required value="{{ faq.question if faq else '' }}" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+  </div>
+  <div>
+    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">Answer <span class="font-normal">(HTML allowed)</span></label>
+    <textarea name="answer_html" rows="4" required class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">{{ faq.answer_html if faq else '' }}</textarea>
+  </div>
+  <div class="grid grid-cols-3 gap-3">
+    <div>
+      <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">Category</label>
+      <input type="text" name="category" value="{{ faq.category if faq else 'General' }}" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">Sort order</label>
+      <input type="number" name="sort_order" value="{{ faq.sort_order if faq else 0 }}" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+    </div>
+    <div class="flex items-end pb-2">
+      <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+        <input type="checkbox" name="is_published" {{ 'checked' if (faq is none) or faq.is_published else '' }} class="rounded border-gray-300 text-ecs-green focus:ring-ecs-green"> Published
+      </label>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg bg-ecs-green text-white px-3.5 py-2 text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-device-floppy"></i> {{ 'Save' if faq else 'Add FAQ' }}</button>
+  </div>
+</form>
+{% endmacro %}
+
+{% block panel_content %}
+{% call page_header("FAQs", subtitle="Public Site") %}
+  <a href="{{ url_for('admin_panel.public_site_news') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-news"></i> News</a>
+  <a href="{{ url_for('admin_panel.public_site_pages') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-file-text"></i> Pages</a>
+{% endcall %}
+
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="lg:col-span-2 space-y-3">
+    {% if not faqs %}
+    <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-8 text-center text-gray-400"><i class="ti ti-help-circle text-3xl"></i><p class="mt-2 text-sm">No FAQs yet — add your first on the right.</p></div>
+    {% endif %}
+    {% for faq in faqs %}
+    <details class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <summary class="flex cursor-pointer items-center justify-between gap-3 p-4 list-none">
+        <span class="flex items-center gap-2 font-medium text-gray-900 dark:text-white">
+          {% if not faq.is_published %}<i class="ti ti-eye-off text-gray-400" title="Hidden"></i>{% endif %}
+          {{ faq.question }}
+        </span>
+        <span class="flex items-center gap-2">
+          <span class="text-xs text-gray-400">{{ faq.category }} · #{{ faq.sort_order }}</span>
+          <i class="ti ti-chevron-down text-gray-400 group-open:rotate-180 transition-transform"></i>
+        </span>
+      </summary>
+      <div class="border-t border-gray-100 dark:border-gray-700 p-4">
+        {{ faq_form(faq) }}
+        <form method="POST" action="{{ url_for('admin_panel.public_site_faq_delete', faq_id=faq.id) }}" class="mt-2" onsubmit="return confirm('Delete this FAQ?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="inline-flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 hover:underline"><i class="ti ti-trash"></i> Delete FAQ</button>
+        </form>
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+
+  <div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 sticky top-4">
+      <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4"><i class="ti ti-plus text-ecs-green"></i> Add a new FAQ</h3>
+      {{ faq_form() }}
+    </div>
+  </div>
+</div>
+{% endblock %}

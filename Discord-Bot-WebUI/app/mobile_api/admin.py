@@ -704,6 +704,60 @@ def get_waiting_room():
         }), 200
 
 
+# ==================== NAD Board (Newly Acquired Drinkers) ====================
+# NADs are *approved* players in their FIRST league season. Unlike the waiting
+# room (which asks "do we let them in?"), the NAD board asks "who is this new
+# player and how do we place them fairly?" — so coaches + admins pool scouting
+# notes to support the 3-NADs-per-team rule. NADs already have a Player row, so
+# notes/photo/profile edits reuse the existing /admin/players/<id>/... endpoints.
+
+@mobile_api_v2.route('/admin/nad-board', methods=['GET'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def get_nad_board():
+    """
+    List NADs (approved players in their first league season) with positions
+    inline (allocation is all about positions, so we return them so the client
+    doesn't fan out N /players/<id> calls) and a shared-notes count.
+
+    Derivation + visibility scoping live in app.services.nad_board_service so the
+    mobile app, the admin-panel web board, and the Discord /nads command can never
+    drift. Admins see every NAD; coaches see the shared pre-draft pool (unassigned
+    NADs) plus NADs assigned to a team in a league they coach.
+
+    Query params:
+        search: case-insensitive name filter
+        limit: max items (default 100, max 200)
+        season_id: target season (default = current Pub League season)
+
+    Returns:
+        JSON: { success, total, season_id, season_name, team_nad_counts, nads: [...] }
+    """
+    from app.services.nad_board_service import compute_nad_board
+
+    limit = min(request.args.get('limit', 100, type=int), 200)
+    search = (request.args.get('search') or '').strip()
+    season_id_param = request.args.get('season_id', type=int)
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        result = compute_nad_board(
+            session,
+            season_id=season_id_param,
+            search=search,
+            limit=limit,
+            viewer_user_id=current_user_id,
+        )
+        return jsonify({
+            'success': True,
+            'total': len(result['nads']),
+            'season_id': result['season_id'],
+            'season_name': result['season_name'],
+            'team_nad_counts': result['team_nad_counts'],
+            'nads': result['nads'],
+        }), 200
+
+
 # ==================== Quick Profile (waiting-room) Notes ====================
 # Same note system as players; the quick profile is just the other intake. Coaches
 # can add + edit/delete their OWN notes; Global Admins can edit/delete any.

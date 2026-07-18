@@ -84,6 +84,15 @@ def register_all_routes(admin_panel_bp):
     # Phase 8: Quick Profiles (Tryout Players)
     from . import quick_profiles
 
+    # NAD Board (Newly Acquired Drinkers) — approved players in their first season.
+    # Isolated so a fault in this newer module can't block the admin panel booting.
+    try:
+        from . import nad_board
+    except Exception:
+        import logging
+        logging.getLogger(__name__).error(
+            "Failed to register NAD Board routes", exc_info=True)
+
     # Phase 9: Coach Dashboard (Admin view of all team dashboards)
     from . import coach_dashboard
 
@@ -99,6 +108,15 @@ def register_all_routes(admin_panel_bp):
         import logging
         logging.getLogger(__name__).error(
             "Failed to register Surveys & Polls routes", exc_info=True)
+
+    # Phase 12: Public marketing site content (News / FAQs / editable Pages).
+    # Isolated like Surveys so a fault here can't block the admin panel booting.
+    try:
+        from . import public_site
+    except Exception:
+        import logging
+        logging.getLogger(__name__).error(
+            "Failed to register Public Site routes", exc_info=True)
 
     # All routes are automatically registered when modules are imported
     # due to the @admin_panel_bp.route decorators

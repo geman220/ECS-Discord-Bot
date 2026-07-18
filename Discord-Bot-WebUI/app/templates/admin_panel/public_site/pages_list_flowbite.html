@@ -1,0 +1,45 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+
+{% block admin_title %}Public Site — Pages{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Public Site · Pages</span></div></li>
+{% endblock %}
+
+{% block panel_content %}
+{% call page_header("Editable pages", subtitle="Public Site") %}
+  <a href="{{ url_for('admin_panel.public_site_news') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-news"></i> News</a>
+  <a href="{{ url_for('admin_panel.public_site_faqs') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-help"></i> FAQs</a>
+{% endcall %}
+
+{% if not pages %}
+  {{ empty_state("ti-file-text", "No editable pages yet", "Page content blocks are seeded on first deploy.") }}
+{% else %}
+<div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+  <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+    <thead class="bg-gray-50 dark:bg-gray-900/50">
+      <tr>
+        <th class="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400">Page block</th>
+        <th class="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400 hidden md:table-cell">Title</th>
+        <th class="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400 hidden md:table-cell">Updated</th>
+        <th class="px-4 py-3 text-right font-semibold text-gray-500 dark:text-gray-400">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50">
+      {% for page in pages %}
+      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+        <td class="px-4 py-3"><code class="text-xs bg-gray-100 dark:bg-gray-900 px-1.5 py-0.5 rounded text-ecs-green">{{ page.slug }}</code></td>
+        <td class="px-4 py-3 hidden md:table-cell text-gray-900 dark:text-white">{{ page.title or '—' }}</td>
+        <td class="px-4 py-3 hidden md:table-cell text-gray-500 dark:text-gray-400">{{ page.updated_at.strftime('%b %-d, %Y') if page.updated_at else '—' }}</td>
+        <td class="px-4 py-3 text-right">
+          <a href="{{ url_for('admin_panel.public_site_page_edit', page_id=page.id) }}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-edit"></i> Edit</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

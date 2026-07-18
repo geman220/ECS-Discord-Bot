@@ -1,0 +1,415 @@
+{
+  "pages": [
+    {
+      "slug": "home_hero",
+      "title": "Radically inclusive, beginner-friendly adult soccer in Seattle.",
+      "body_html": "<p>Soccer for all. No experience needed, no pressure — just a welcoming community, real games, and a good time. This is the league putting the Pub back in Pub League.</p>",
+      "meta_description": null
+    },
+    {
+      "slug": "home_intro",
+      "title": "Soccer for all",
+      "body_html": "<p>Seattle has a robust and talented soccer community that sometimes makes it hard for beginners and recreational players to find a place to play. That’s why we’re here.</p><p>This is the league where you score a goal and your opponents give you a high five — especially if it’s the first one you’ve ever scored. This is the league where when teammates yell at you, it’s to say “nice pass!” This is the league for people tired of hyper-competitiveness and physical play.</p><p>ECS Pub League is a radically inclusive, beginner-friendly recreational league. If you just want to have fun with friends while learning — or getting back into — the beautiful game, you’ve come to the right place.</p>",
+      "meta_description": null
+    },
+    {
+      "slug": "about",
+      "title": "About ECS Pub League",
+      "body_html": "<h3>Beginner Soccer in Seattle</h3><p>Founded in 2012, ECS Pub League is a non-profit league that plays fun and beginner-friendly recreational soccer with 8 players a side (including goalkeepers) in Seattle on a half-size turf field. We have unlimited substitutions in and out, with most shifts lasting 5 to 10 minutes.</p><h3>Classic Division</h3><p>The Classic division is meant for players with little to no experience. It also has a number of beginner-friendly players who want to play in a more relaxed environment, many of them getting back into the game after a little (or a lot) of time away. Classic plays early Sunday afternoons, right after Premier.</p><p>If you… haven’t played in years, come on out anyway! Think you’re too out of shape, come on out anyway! Think you’re not good enough, come on out anyway! Have never played soccer at all, come on out anyway!</p><h3>Premier Division</h3><p>The Premier division is a little higher level of competition, but it is still low/no contact and pretty laid-back compared to most leagues. There is a healthy environment of friendly competition, but we still focus on development, team play, and fun. Premier plays Sunday mornings, right before Classic.</p><h3>Everybody Plays</h3><p>We hold “tryouts” in both divisions only to make sure we can build evenly balanced teams. Everyone gets equal playing time, regardless of ability or fitness, and every team makes the playoffs. Unlimited subs and short playing shifts make it a great place to learn the game or get back into it later in life.</p><p>Both divisions play a ten-week season every Spring (usually April through June) and Fall (roughly between Labor Day and Thanksgiving). Games are scheduled so as not to conflict with Sounders home matches or popular away trips. We form new teams every season to keep it fun and competitive — and to build new friendships. Each season, teams decide their theme and name and design their own custom jerseys, and there’s an end-of-season party at a sponsor pub.</p><h3>PLOP (Pub League Offseason Practices)</h3><p>Most every Sunday in the summer and winter offseasons we hold open, informal PLOPs. PLOP is a great way to check us out and gives us a chance to find the right place for you to play. All players new to the league must attend a PLOP and be approved before registering.</p><h3>Our Mission</h3><p>Fun and friendly soccer for adults. We’re radically inclusive, but we’re not for everyone. ECS Pub League is made up of soccer fans of beginner/newcomer/low-intermediate levels who get together to play in a fun, safe, and organized environment for the love of the game and a little friendly competition.</p>",
+      "meta_description": "ECS Pub League: radically inclusive, beginner-friendly adult soccer in Seattle since 2012. Classic and Premier divisions. Everybody plays."
+    },
+    {
+      "slug": "guide",
+      "title": "The Pub League Guide",
+      "body_html": "<h3>The Pub League (Unofficial) Guide</h3><p>This unofficial guide was created independently by players and coaches to help people of all ages and experience levels who are new to ECS Pub League. It is especially designed for those with little to no soccer experience, to learn and have fun in the Classic division.</p><p><a href=\"https://docs.google.com/document/d/1ubX6prasXWGot6l_PpmYZOfYJMcHzAr3bG8X9vehjjM/edit?usp=sharing\" target=\"_blank\" rel=\"noopener\">Read or download the full guide on Google Docs &rarr;</a></p>",
+      "meta_description": "The ECS Pub League unofficial guide — for players new to the league or to soccer."
+    },
+    {
+      "slug": "guests",
+      "title": "PLOP Guest Policy",
+      "body_html": "<h3>Bringing Guests to PLOPs — What You Should Know</h3><p>We love that folks want to bring friends and family out to kick the ball around with us—it's part of what makes our community great. That said, here's where we stand when it comes to non-league players, including minors, joining Pub League Offseason Practices (PLOPs):</p><h4>TL;DR</h4><ul><li>PLOPs are for league players first.</li><li>Potential league-appropriate players actively considering the league, especially adult beginners, are always welcome.</li><li>Minors are generally discouraged from playing.</li><li>If you're not sure, ask first.</li></ul><h4>Why we're cautious</h4><ul><li>Safety is our first priority, and mixing minors and/or more experienced players with Pub League players isn't always a great fit.</li><li>We've got limited space, gear, and time, and we want to make sure current league players can maximize playing time.</li><li>Players of any age who are above our level and/or pace of play can throw off the chill and inclusive vibe unique to our league.</li></ul><h4>But exceptions?</h4><p>Yeah, they've happened—and sometimes they've worked out just fine. We're more inclined to grant exceptions where exceptional circumstances are involved, but we'd rather talk it through first, not after.</p><h4>So what should I do?</h4><p>If you're thinking of bringing someone who isn't already in the league—especially if they're under 21—just reach out. We're not trying to be gatekeepers, but we do want to make sure everyone has a good (and safe) time and that we prioritize a good experience for league players.</p>",
+      "meta_description": "ECS Pub League guest policy for Pub League Offseason Practices (PLOPs)."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "What makes ECS Pub League so special?",
+      "answer_html": "<p>We’re a nonprofit with a clear mission: Fun and friendly soccer for adults. We’re radically inclusive, but we’re not for everyone. ECS Pub League is made up of soccer fans of beginner/newcomer/low intermediate levels who get together to play in a fun, safe, and organized environment for the love of the game and a little friendly competition.</p><p>New teams are formed in both divisions every season to keep it fun and competitive for everyone, and that also helps to build new friendships. Your competitors one season can become your teammates the next, and vice-versa.</p><p>Strict vetting of new players: all players new to the league must attend at least one Pub League Offseason Practice (PLOP) and be approved for league fit before registering.</p><p>All players must abide by our Code of Conduct.</p>",
+      "category": "General",
+      "sort_order": 0,
+      "is_published": true
+    },
+    {
+      "question": "Where does the league play?",
+      "answer_html": "<p>North Seattle. Most games are held at Robert Eagle Staff Middle School, but some games and Pub League Offseason Practices are held at other locations if that field is not available. Check our schedule page for details.</p><p>All games and practices are played on turf fields.</p>",
+      "category": "General",
+      "sort_order": 1,
+      "is_published": true
+    },
+    {
+      "question": "When does the league play?",
+      "answer_html": "<p>We play on Sundays in the spring (roughly April through June) and in the fall (roughly between Labor Day and Thanksgiving).</p><p>Each team in our upper division (Premier) plays 2 games in the morning (~8:00 – 12:30), and each team in our beginner division (Classic) plays 2 games in the early afternoon (~1:00 – 3:30).</p><p>During the summer and winter offseasons we have free Pub League Offseason Practices (PLOP) on Sunday mornings, open to prospective players.</p>",
+      "category": "General",
+      "sort_order": 2,
+      "is_published": true
+    },
+    {
+      "question": "How much does it cost?",
+      "answer_html": "<p>For the last few seasons fees have been $110 for a ten week season, including a Fun Week BBQ and playoffs. It also includes a custom jersey designed by you and your teammates. This is subject to change, but we are not anticipating any increases at this time.</p><p>There is a discount available for ECS members. We are a nonprofit organization staffed entirely by volunteers, including our admins, coaches, and referees.</p>",
+      "category": "General",
+      "sort_order": 3,
+      "is_published": true
+    },
+    {
+      "question": "What equipment do I need?",
+      "answer_html": "<p>The only required equipment is shinguards for safety.</p><p>Games are played on artificial turf, so any kind of athletic shoes will work; but soccer shoes made for turf or “firm ground cleats” will give you more support, traction, and protection than running shoes. Players are about 50/50 split on turf shoes vs. firm ground cleats. No metal studded cleats are allowed.</p>",
+      "category": "General",
+      "sort_order": 4,
+      "is_published": true
+    },
+    {
+      "question": "Who can play in the league?",
+      "answer_html": "<p>ECS Pub League is a 21+ adult recreational league. We do not discriminate on the basis of race, color, religion, gender, gender expression, age, national origin, ancestry, disability, marital status, sexual orientation, or military status, in any of our activities or operations.</p><p>We do, however, reserve the right to deny play for anyone deemed a poor fit for the league’s mission and the unique community we serve because of skill, experience, physicality, competitiveness, or similar reasons. All players must agree to our Liability Waiver and Code of Conduct.</p>",
+      "category": "General",
+      "sort_order": 5,
+      "is_published": true
+    },
+    {
+      "question": "What if I’m out of shape?",
+      "answer_html": "<p>One of us! One of us! This is a radically inclusive recreational league that plays just for fun. We play 8v8 (+/- depending on numbers) on a half-size field, with two 25-minute halves. We have unlimited substitutions, with players subbing in and out every 5 to 10 minutes. You can totally do this.</p>",
+      "category": "General",
+      "sort_order": 6,
+      "is_published": true
+    },
+    {
+      "question": "What if I’ve never played soccer before?",
+      "answer_html": "<p>Awesome! The Classic division was created just for you. It is beginner-friendly and focuses on fun and skill development over competition.</p><p>Everyone gets equal playing time, regardless of skill, fitness, or experience. The idea is that a person who has never played soccer before should feel comfortable on the field and be able to contribute to the team. The pace of the game is slower, and coaches emphasize a teaching environment where players can develop basic skills. Stats and standings are not tracked, and awards are based on development and fun.</p><p>Warning: May be habit-forming.</p>",
+      "category": "General",
+      "sort_order": 7,
+      "is_published": true
+    },
+    {
+      "question": "What if I’m a more experienced player?",
+      "answer_html": "<p>That all depends. If you have competed in any of the other soccer leagues around Seattle (RATS, GSSL, Arena Sports), or have college or club experience, this league is probably not for you. Our level of skill, physicality, and competitiveness is typically well below even the lowest divisions of other leagues.</p><p>Our Premier division is designed for players who are not quite beginners and who desire a slightly more competitive environment, but are typically not playing full field soccer elsewhere. It’s a healthy environment of friendly competition, but there is still an emphasis on development, team play, and fun. Everyone gets equal playing time.</p><p>ECS Pub League is part of ECS FC, the nonprofit soccer club established by Emerald City Supporters, a Sounders FC supporters group. If you’re not sure, send us a message and we’ll work with you to find the right place to play.</p>",
+      "category": "General",
+      "sort_order": 8,
+      "is_published": true
+    },
+    {
+      "question": "Can I bring a friend?",
+      "answer_html": "<p>We welcome new players interested in the league to PLOP (Pub League Offseason Practices) so we can both assess mutual fit. All players who wish to register must first attend a PLOP to determine appropriate league fit.</p><p>We’ll do our best to put friends on the same team when we can, especially in their first season. Since we’re a small league that plays two games at a time on the same field, friends will definitely get to see one another regardless. Plus, you’re sure to make some new friends along the way!</p>",
+      "category": "General",
+      "sort_order": 9,
+      "is_published": true
+    },
+    {
+      "question": "How can I get involved?",
+      "answer_html": "<p>Send us a message and tell us a little bit about your soccer experience and what you’re looking for. We’ll find a way to get you involved at the right level.</p><p>We have free PLOP (Pub League Offseason Practices) every Sunday during the summer and winter offseasons. If the season has already started we can try to work you in as a sub.</p>",
+      "category": "General",
+      "sort_order": 10,
+      "is_published": true
+    },
+    {
+      "question": "How do I sign up for the league?",
+      "answer_html": "<p>A link will be posted when registration is open. In order to maintain competitive balance, all new players must be approved by league management prior to registering. Reach out to join us at a Pub League Offseason Practice (PLOP) or as a substitute to ensure appropriate league fit.</p>",
+      "category": "General",
+      "sort_order": 11,
+      "is_published": true
+    },
+    {
+      "question": "Still have questions?",
+      "answer_html": "<p>Read and download our 48-page Pub League Unofficial Guide. It should tell you more than you ever wanted to know.</p>",
+      "category": "General",
+      "sort_order": 12,
+      "is_published": true
+    }
+  ],
+  "news": [
+    {
+      "slug": "fall-2026-timeline",
+      "title": "Fall 2026 Timeline",
+      "excerpt": "Registration for the Fall 2026 season will open at 7:00 PM on Monday July 13 on our registration page . All players new to the league must attend a PLOP (Pub League Offseason Practice) and be…",
+      "body_html": "<p>Registration for the Fall 2026 season will open at 7:00 PM on Monday July 13 on our registration page . All players new to the league must attend a PLOP (Pub League Offseason Practice) and be approved before registering. All players must agree to our our player code of conduct .</p>",
+      "featured_image_url": "/static/img/publeague/2026-07__Fall-2026-Key-Dates-1.png",
+      "published_at": "2026-07-05 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "spring-2026-timeline",
+      "title": "Spring 2026 Timeline",
+      "excerpt": "Winter break is over, and it’s time for Pub League Offseason Practices…",
+      "body_html": "<p>Winter break is over, and it’s time for Pub League Offseason Practices (PLOPs).</p>\n<p>All players new to the league must be approved at a PLOP before registering.</p>\n<p>- Sunday January 4 – PLOP 9:30 – 11:30 at Nathan Eckstein Middle School</p>\n<p>- Sunday January 11 – PLOP 9:30 – 11:30 at Nathan Eckstein Middle School</p>\n<p>- Sunday January 18 – PLOP 9:30 – 11:30 at Nathan Eckstein Middle School</p>\n<p>- Saturday January 24 – Pre-Registration Party 5:00 – 8:00PM at Nun Chuck’s Brewery – All welcome to attend, but only returning players can pre-register</p>\n<p>- Sunday January 25 – PLOP 9:30 – 11:30 at Nathan Eckstein Middle School</p>\n<p>- Saturday January 31 – Team Formation Combine 12:00 – 2:00PM at Ballard High School – This is for registered players to meet coaches and start forming teams</p>\n<p>PLOPs will continue until the spring season starts on March 29, but the location may vary. Check our calendar or our Discord community for locations.</p>",
+      "featured_image_url": "/static/img/publeague/2026-01__Spring-26-Jan-Calendar-1024x576.png",
+      "published_at": "2026-01-03 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "preseason-party",
+      "title": "Preseason Party!",
+      "excerpt": "Mark your calendar! Our spring preseason party will be Taco Tuesday, March 25 @ 6:00 at Lucky Liquor in…",
+      "body_html": "<p>Mark your calendar! Our spring preseason party will be Taco Tuesday, March 25 @ 6:00 at Lucky Liquor in Tukwilla.</p>",
+      "featured_image_url": "/static/img/publeague/2025-03__Preseason-Party-1920-x-800-px-1024x427.png",
+      "published_at": "2025-03-01 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "fall-2025-information-for-new-players",
+      "title": "Fall 2025 Information for New Players",
+      "excerpt": "Open registration for the fall 2025 season will open at 7:00PM on Monday July 14. ALL players new to the league MUST attend at least one PLOP (Pub League Offseason Practice) and be approved to play…",
+      "body_html": "<p>Open registration for the fall 2025 season will open at 7:00PM on Monday July 14. ALL players new to the league MUST attend at least one PLOP (Pub League Offseason Practice) and be approved to play before registering.</p>\n<p>PLOPs will be held every Sunday from June 29 to August 31 at Robert Eagle Staff Middle School.</p>\n<p>ECS Pub League is a 21+ adult recreational league for very casual no/low contact soccer for beginners and beginner-friendly low-intermediate recreational players. We’re not for everyone. Our level of skill, physicality, and competitiveness is typically well below even the lowest divisions of other leagues.</p>\n<p>We do not discriminate based on race, color, religion, gender, gender expression, age, national origin, ancestry, disability, marital status, sexual orientation, or military status, in any of our activities or operations.</p>\n<p>We do, however, reserve the right to deny play at any time for anyone who is deemed a poor fit for the league’s mission and the culture of the unique community we serve because of skill, experience, physicality, competitiveness, or similar reasons.</p>",
+      "featured_image_url": "/static/img/publeague/2025-05__Information-for-new-players-1024x576.png",
+      "published_at": "2025-05-31 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-real-hellmouth",
+      "title": "Team Reveal: Real Hellmouth",
+      "excerpt": "It’s time for our last team reveal of the fall season… Real Hellmouth , playing in our Classic division and sponsored by Vino FC . They might look like rubber monsters, but the players from Real…",
+      "body_html": "<p>It’s time for our last team reveal of the fall season… Real Hellmouth , playing in our Classic division and sponsored by Vino FC . They might look like rubber monsters, but the players from Real Hellmouth are not harmless as bunnies. Representing the town of Sunnydale, sitting on top of the Hellmouth, both the team and the town are more dangerous than they seem. They have players like Spike, with a chip in his brain that prevents him from breaking your skin, but not from breaking down your defense. And then there’s Anya who tried to be patient on the ball, but it took too long. Instead of waiting, she took vengeance on the back of the net. Just like the Kalderash stole Angelus’s soul, these players will steal your ball and wreak havoc on the scoreboard. Never satisfied with just one Mr. Pointy, Real Hellmouth plays for all 3 and shoves a stake in the heart of their opponent’s dreams of ever winning the cup of perpetual torment. You can catch them at The Bronze after the game, plotting to take down the next Big Bad as well as their next drink. Beer Good. The Slayers In Waiting are led by: Victoria “Dead But Still Pretty” Mercado Taylor “Turfherder” Reynolds Katie “Wingers Ate My Baby” Hewitt. The Potentials are: Amanda “THE CHOSEN ONE” Mayberry Cameron “GRENDEL” Collins Christa “MYTH-TAKEN” Eve Daniel “SLAYER” Mayberry Devin “SPOIL MY RUN” Leatherman Dylan “BORED NOW” Abbott Jim “BIG BAD” Lancaster Jaya “SLAYER I HARDLY KNOW HER” Parsons Karen “LOW IRON” N Kenzie “BAT TRICK” Brough Nash “NASH” Benjamasutin Rebecca “BITEME” Aquino Scott “GRR. ARGH.” Chupack Thore “OUT FOR A GAME BITCH” Korsmo Tiffany “BIG VAMP ENERGY” Stonebraker Vineet “SLAYMAKER SUPREME” Tanna Yani “THE BRONZE” Ariunbold</p>",
+      "featured_image_url": "/static/img/publeague/2025-09__HellmouthStill-1024x576.png",
+      "published_at": "2025-09-06 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-townsville-fc",
+      "title": "Team Reveal: Townsville FC",
+      "excerpt": "The City of Townsville… IS UNDER ATTACK! The local Pitch at Pokey Oaks Kindergarten…. or Eagle Staff Middle School… is engulfed in tumultuous trials, as our Heroes meet new foes looking to bring…",
+      "body_html": "<p>The City of Townsville… IS UNDER ATTACK! The local Pitch at Pokey Oaks Kindergarten…. or Eagle Staff Middle School… is engulfed in tumultuous trials, as our Heroes meet new foes looking to bring chaos to the friendly neighborhood field. Born from sugar, spice, everything nice, along with several Seapine pints, Townsville FC is a squad that blends brains, brawn, and boundless energy, playing in our Premier Division and sponsored by Sea Pine Brewing . With speed that leaves defenders dizzy, strength that clears out the box, and teamwork tighter than a last-minute equalizer, this team is more than just a pretty kickoff. The villains of the Pub League may try their tricks — distracting tactics, wild shots, questionable offsides — but Townsville FC is always ready to save the day (and the scoreboard). Behind every kick, sprint, and goal celebration lies a simple mission: defend the pitch and leave no beer behind! Townsville FC, saving the day, one goal (and one pint) at a time. This team of superheroes was masterminded by Keith “Professor” Hodo, Tim “Buttercup” Eilerman, and Lacey “Fuzzy Drunkins” O’Connell Our Superheroes: Prashant “Boomer” Rana Jake “Blossom” Callaghan Nabeel “Mojo Jojo” Toubayly Ian “Snake” Williams Sam “Bubbles” Nicols Robert “Harmadillo” Ketcham Derek “Daddy Nobucks” Harding Nick “Hollywood” Hollywood Adam “Mayor of Beersville” Wesley Cesar “HIM” Gutierrez Shane “HOMAN” Homan Michael “Burba” Burba Jonathan “T Dog” Barrera-Calix Kelly “Ace” Oberbillig Sunil “Friends Win” Bajagain Our Subs: Ms. Keane Narrator Ms. Bellum Chemical X Mayor of Townsville</p>",
+      "featured_image_url": "/static/img/publeague/2025-09__TownsvilleStill-1024x576.png",
+      "published_at": "2025-09-05 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-wasteland-wanderers",
+      "title": "Team Reveal: Wasteland Wanderers",
+      "excerpt": "Next up to crawl out of their bunker and onto the pitch… the Wasteland Wanderers ! They’re ready to get on the field with the stamina of fusion-fueled power armor and the frenzied motivation of a…",
+      "body_html": "<p>Next up to crawl out of their bunker and onto the pitch… the Wasteland Wanderers ! They’re ready to get on the field with the stamina of fusion-fueled power armor and the frenzied motivation of a gang of ghouls. While it’s true that sometimes their level of play may make you feel you have radiation sickness, the camaraderie between them will be like a heaping dose of radaway to clear up the pain of the skied shots and missed passes.</p>\n<p>Whenever one of them is waiting for their turn to raid the enemy’s goal, you might find that dweller sipping Nuka Cola and heckling from the sidelines. It’s unclear if they’d even survive relegation, but they’re definitely putting all bottle caps on the table to bring this season’s trophy back to their vault.</p>\n<p>The Wasteland Wanderers play in our Premier Division and are sponsored by Elentone Wine.</p>\n<p>The Coaches: Greggory “Rad” Anderson Aryan “Butcher Pete” Sefidi Matt “S.P.E.C.I.A.L.” Look</p>\n<p>The Vault Dwellers: Anant “Tunnel Snakes Rule!” Robinson Anuj “BALLOUT” Saharan Christopher “Three Dog” Sherry Danny “Goalzilla” Zaragoza Duane “MR. HANDY” Nakamura Hugo “Pirata Favorito” Ramirez James “V.A.T.S.” Mayton John “Snip Snip” Clarke Kyle “Shamus McF*ckYourself” Sanavullah Lars “Vault” Guenther Mandi “MacLean” Marquardt Matt Han Nicholaus Biela Saket “Dogmeat ” Gayake Xavier “Vault-Tec X” Wilkening-Joly</p>",
+      "featured_image_url": "/static/img/publeague/2025-09__WastelandStill-1024x576.png",
+      "published_at": "2025-09-04 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-we-didnt-do-sht",
+      "title": "Team Reveal: We Didn’t Do Sh!t",
+      "excerpt": "The following program contains strong language, depictions of anger, excessively awkward moments and implied partial nudity. Viewer discretion is…",
+      "body_html": "<p>The following program contains strong language, depictions of anger, excessively awkward moments and implied partial nudity. Viewer discretion is advised.</p>\n<p>Has this ever happened to you? You join a soccer league and it’s not disclosed to you that they’ve all been playing since they were babies, so you have to act like you’ve also been playing since you were a baby so that you don’t have to sit on the bench all game next to the team dog, but then they say “prove it, show us a picture”, but you don’t have a picture of you as a baby playing soccer, so you have to  go home and edit a soccer ball into one of your baby pictures? But then when you show them the picture of you as a little soccer baby, they say “that’s not you, you’re not a part of the soccer babies! You don’t play! Only we play! Until you can prove you’re a soccer baby, sit on the bench!” So you go to the bench to lie down and look at your phone. But then you look down in the trash to see that there’s a crumpled up photo of a baby dog playing soccer, and he’s not allowed to play either? They put a dog on the bench and he’s more qualified to play than you are? Has that ever happened to you? Call us right now, please.</p>\n<p>We would like to remind you all that even though we may have been pieces of shit in the past, that doesn’t mean people can’t change. We’re not in trouble AT ALL.</p>\n<p>Introducing We Didn’t Do Shit</p>\n<p>We Didn’t Do Shit is sponsored by Seapine Brewing in Sodo Seattle.</p>\n<p>##### Premier Division – Spring 2025 Season</p>\n<figure><img src=\"/static/img/publeague/2025-04__We-Didnt-Do-Shit-Team-Photo-S25.jpg\" alt=\"\" loading=\"lazy\"></figure>\n<p>Coaches:</p>\n<p>Chris “Chunky” Duclos Gregg “Coffin FLopper” Anderson Kevin “Harley Jarvis” House</p>\n<p>Players: Adam “Here For The Beer” Wesley Ammar “No Rules” Ekbote Atsuhiro “Full Combo” Zoshima Brandon “BA” Arper Brian “Fake Gorilla Attack” Schroeder Brittany “But I Want To” Cruz Cesar “Gimme Dat!” Gutierrez Danny Wilson- “Baby Duck” DK “DK -What the Hell?” Divyakant Igor “I’m Doing Something” Legin John “Play It Forward” Curry Klay “Just Do It You’re Rich” Kepple Pallav “Triples Is Best” Mahapatra Scott “No Harm, No Foul” Bucklin Toby “Turbo Time” Jones Subs: IT CAN’T BE A TROLL BOY YOU’VE GOTTA GIVE BREWING UP GOLAZOS I’M NOT IN TROUBLE AT ALL SUNDAY FUNDAY JUST BREATHE NORMALLY</p>",
+      "featured_image_url": "/static/img/publeague/2025-04__RevealWE-1024x576.png",
+      "published_at": "2025-04-10 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-van-goal-fc",
+      "title": "Team Reveal: Van Goal FC",
+      "excerpt": "This season, Van Goal is bringing Vincent’s chaos to the pitch. With a bit of creativity, Van Goal will be unforgettable. We are here to bring a kind of beautiful madness that Van Gogh himself would…",
+      "body_html": "<p>This season, Van Goal is bringing Vincent’s chaos to the pitch. With a bit of creativity, Van Goal will be unforgettable. We are here to bring a kind of beautiful madness that Van Gogh himself would be proud of. Win or lose, every match is destined to be a work of art! Van Goal FC plays in our Premier Division and is sponsored by Max Aquino Photography.</p>\n<p>The Muses: Hayley “LET’S GOGH GIRLS” Thomas Mark “GOGHL FACILITATOR” Wenrick Tyler “FAR POST-IMPRESSIONISM” Frederickson The Artists: Aaron “SIMPLY EARRESISTIBLE” Kinion Aaron “THE STARRY CROSS” Bowers Ben “VINCENTIVIZED” Blain Eddie “OILY BOY” Schubert James “TWO SACKS AND A BOTTLE” Hong Jing “THE GOGH GETTER” Bissonnette Lily “INVINCENTBLE” Goodwin Loreto “VAN GOGHLAZZO” Julian Marcus “IT’S GOGH TIME” Tabert Marko “VAN GOAL” Ivanovic Max “VAN GOGHING NUTS” Aquino Ninad “NINCEPTION” Khargonkar Read “THE ARTIST” Langworthy Stephen “GIVE AND GOGH” Fedele Xuan “GOGHNERS” Zhang</p>",
+      "featured_image_url": "/static/img/publeague/2025-08__VanGoalStill-1024x576.png",
+      "published_at": "2025-08-30 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-twin-pks",
+      "title": "Team Reveal: Twin PKs",
+      "excerpt": "Diane, it’s March 30th and we’re entering Twin PK’s first and only season. Here’s your invitation to love them. Games are held at Robert Eaglestaff Middle School. Clean Place. Reasonably Priced. You…",
+      "body_html": "<p>Diane, it’s March 30th and we’re entering Twin PK’s first and only season. Here’s your invitation to love them. Games are held at Robert Eaglestaff Middle School. Clean Place. Reasonably Priced. You want to hear about their goals? They don’t have any.</p>\n<p>Their play on the field is dream-like, in that it doesn’t make sense. The goals are not what they seem. When someone is off-side their giant mascot simply says, “it is happening again.” When the ref gives them a card, they look at him like he’s talking backwards. If they score, it’s like they’re giving themselves a little present. Don’t plan it. Don’t wait for it. Just let it happen.</p>\n<p>I have no idea where this season will lead us but I have a definite feeling it will be a place both wonderful and strange. And for our picture, we want this across it: Their secret weapon is a One-Eyed Jack as good as Minoungou. Twin PKs is sponsored by Sounder at Heart.</p>\n<p>##### Classic Division – Spring 2025 Season</p>\n<figure><img src=\"/static/img/publeague/2025-04__Twin-PKs-Team-Photo-S25.jpg\" alt=\"\" loading=\"lazy\"></figure>\n<p>Leading the investigation:</p>\n<p>Gio “AGENT BLOOPER” Guillemette Katie “KILLER LOB” Hewitt Taylor “ONE FOOTED MAN” Reynolds Zack “LOG LADY” Donnel</p>\n<p>Denizens of this misty Pacific Northwest pitch include:</p>\n<p>Addeth “JELLY DONUT” Kim Amanda “DB COOPER” Mayberry Amanda “OWL CAVE ♥” Russell Andrea “FOULS ARE NOT WHAT THEY SEEM” Rivera Brittany “FEELING BETTER THAN LAURA” Wirtz Corey “DEPUTY GOAL-HAWK” Whitney Daniel “DOUBLE R DIVER” Mayberry Devin “MY LOG DOES NOT LINE JUDGE” Leatherman Dilip “DILIP” Kunderu Dré “STILL GOT LOVE FOR THE PEAKS” Jones Jaycie “DAMN FINE SOCCER” Mitchell Johnny “SNOQUALMIE FOULS” Tice Kevin “DAMN FINE CUP” Winters Melanie “FEBRUARY” Trichler Miguel “A FISH IN THE PERGOALATOR” Santos Sanjana “SANJANA NADI” Nadi Tiffany “HOMECOMING QUEEN BY DAY” Stonebraker Vikram “MY SOCKS ARE ON FIRE” Khatavkar Subs:</p>\n<p>LOG LADY BOBBY RIGGED THE GAME ONE EYED JUKES FIRE SHOTS WITH ME I LIKE PIE DIVES THAT’LL KILL YA DIVES ARE HAPPENING AGAIN</p>",
+      "featured_image_url": "/static/img/publeague/2025-04__RevealTWIN-1024x576.png",
+      "published_at": "2025-04-09 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-the-eh-team",
+      "title": "Team Reveal: The Eh Team",
+      "excerpt": "We’re The Eh Team, all dressed in our finest denim and toques, out and about on the pitch to represent the Great White North from Victoria to Halifax, all the way up to where the white bears call…",
+      "body_html": "<p>We’re The Eh Team, all dressed in our finest denim and toques, out and about on the pitch to represent the Great White North from Victoria to Halifax, all the way up to where the white bears call home. Let us set the tone. The strikers are like glaciers, deliberate and inevitable. Faster, though, we can confirm. Every goal is a beauty, eh! The wingers will sneak past ya, and we’ve heard rumours they’ve even scored goals on their own. Allegedly.</p>\n<p>The center midfielders will slow you down and the defense will redirect you, like beavers control rivers, and the keeper is always elbows up and ready for a kerfuffle. Yeah, no, for sure. After the game, we’ll join you for a case of beer and even some poutine if you can find some. You bet!</p>\n<p>The Eh Team is sponsored by The Doctors Office , and plays in our Classic Division.</p>\n<p>Our coaches this season are: Ben “APOLLO G” Lagler Gio “SORRY” Guillemette Halles “BEAVER TAILS! YUM!” Serres Sarah “SET THE TONE” Samson</p>\n<p>Our roster: Ameeth “EH-MEETH” Kanawaday Ann “SKODEN. STOODIS.” Yi Caroline “SORRY” Machart Corey “G-OH-L CANADA” Whitney Francisco “SOCCER EH” Lopez Irene “WINTER SOLDIER” Zuo Jesus “NICK- EH” Nicolas Jimi “JIM HORTONS” Hightower Kat “POUTINE KATASTROPHE” Wardrup Kevin “CHORIN” Winters Leta “OOT AND ABOOT” Albrecht Linda “YOU BET” Hanson Melanie “TO BE FAAAIIIRRR…” Trichler Neethu “GOOSE” Bipin Taylor “KRAFT WINNER” Wirtz Travis “CAN CONFIRM” Gunderson Victoria “VICTORIA, BC” Prestella</p>\n<p>Substitute field players: IT’S ZED SORREY GEZ A?</p>\n<p>Substitute keepers: ELBOWS UP YEAH, NO</p>",
+      "featured_image_url": "/static/img/publeague/2025-08__EhStill-1024x576.png",
+      "published_at": "2025-08-31 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-shire-united",
+      "title": "Team Reveal: Shire United",
+      "excerpt": "Shire United: Middle-Earth’s Mighty Warriors With Magic in Their…",
+      "body_html": "<p>Shire United: Middle-Earth’s Mighty Warriors With Magic in Their Boots</p>\n<p>Don’t let the rolling green hills and quaint village charm fool you—Shire United is no pastoral kickabout club. With a squad as diverse as the Fellowship itself, they blend hobbit tenacity, ranger resilience, dwarven grit, and elven elegance into a surprisingly fluid and fearless side.</p>\n<p>Known throughout Middle Earth for their intricate passing play (some say inspired by Elvish poetry) and a stubborn refusal to quit (a trait honed from long, perilous journeys), they’re a team that thrives on defying expectations. Opponents expecting a slow, pint-sipping side will find themselves undone by relentless pressing, uncanny teamwork, and a touch of wizardry in the final third. Shire United is a team that never walks alone—mostly because someone is always carrying someone else.</p>\n<p>Shire United is Sponsored by Full Moon Storytelling</p>\n<p>##### Classic Division – Spring 2025 Season</p>\n<figure><img src=\"/static/img/publeague/2025-04__Shire-United-Team-Photo-S25.jpg\" alt=\"\" loading=\"lazy\"></figure>\n<p>Leading the team to the fires of Mt. Doom</p>\n<p>Danyeal “PEREGRIN TOOK YOUR BALL” Wheeler Greg “SAURON’S INTERN” Van Belle Stephen “OFFSIDES GAMGEE” Hightower</p>\n<p>Currently enjoying Second Breakfast:</p>\n<p>Anna “BALLBO BAGGINS” Bentley Cat “SMAUG” Kashiwa Christa “PROUDFOOT” Lagler David “FRODO” Whitney Francisco “ARAGOAL” Lopez Hayley “LEGOLAS’ HAIRDRESSER” Serres Ike “BALLIN” Abioye Jai “A ELBERETH GILTHONIEL” Hillard Jaya “ONE WING TO RULE THEM ALL” Parsons Jim “EOWYNNER” Lancaster Jimi “LEGOALAS” Hightower Jonathan “BREAKFAST” Dean Michele “GOALADRIEL” Kowal Quinn “DRINKING IS A NASTY HOBBIT” Nichols Ryan “BOIL ‘EM” Hagstrom Sachin “OLÓRIN” Saligran Sheila “DIS DWARF” Redick Taylor “MASH ‘EM” Wirtz Travis “STICK ‘EM IN A STEW” Gunderson Vineet “GOAL-LUM” Tanna</p>\n<p>Subs: SMEAGOAL NAZGOAL SCOROMIR KELLAMON YOU SHALL NOT PASS</p>",
+      "featured_image_url": "/static/img/publeague/2025-04__RevealSHIRE-1024x576.png",
+      "published_at": "2025-04-12 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-pk-rangers",
+      "title": "Team Reveal: PK rangers",
+      "excerpt": "Hey Beer! Did you just say, Hey Bear? No. I said, Hey Beer because you know who’s about to take the field.. it’s the one and only PK Rangers! We all fondly remember our days of yore, well sorta……",
+      "body_html": "<p>Hey Beer! Did you just say, Hey Bear? No. I said, Hey Beer because you know who’s about to take the field.. it’s the one and only PK Rangers! We all fondly remember our days of yore, well sorta… eagerly awaiting our Highlights magazine to arrive or the smell of the newest Ranger Rick release. Missing out on hanging with friends on a Friday night because you couldn’t be torn away from an article on Arctic puffins in the latest edition of National Geographic. Our passion for the outdoors never wanes. We may be about 21 badges short of Eagle Scout, but we don’t care. We don’t need no stinking badges to rock the PK spot.</p>\n<p>And as our friend Woodsy the Owl says, Give A Hoot! They Can’t Shoot! The PK Rangers play in our Premier Division and are sponsored by Sounder at Heart . Coaches: Matthew “Muskeg” Chrisman Emily “Bunch Falls” Hennessy Andrew “Bumpass Hell” Zellman Players: Daniel “Bear Territory” Molina Stephen “Trailblazer” Hightower Edwin “Park the Bus” Khoo* Benjamin “Bear With Me” Lagler Christopher “Stratovolcanoe” Shainin Jay “Los Padres” Howell Mark “Camp” Langley Tabitha “I’ve Peaked” Dorn Joe “Swanson” Held Kieran “Glamper” Lampert David “Haleakalā” Noel Brian “S’More Cowbell” Heim Larry “Twin Peaks” Palazzolo Yilei “INFP” Zhong Brady “Big Butte” Thomas</p>\n<p>*Season Ending IR</p>",
+      "featured_image_url": "/static/img/publeague/2025-08__Screenshot-2025-08-26-at-8.17.10-PM-1024x575.png",
+      "published_at": "2025-08-26 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-olymplinkos",
+      "title": "Team Reveal: Olymplinkos",
+      "excerpt": "Come on down! You are the next person to shank a sitter ten feet wide of the…",
+      "body_html": "<p>Come on down! You are the next person to shank a sitter ten feet wide of the goal!</p>\n<p>When you pretended like you were sick and had to stay home from school (or in the 10% of cases, actually sick), you might be sipping a bowl of chicken noodle soup on the couch while hearing the legendary voices of Bob Barker and Drew Carey peddle countless household items while seeing people who probably should have had jobs taking wild guesses at the price of mundane items.</p>\n<p>Olymplinkos will attempt to replicate the same nostalgia by creating Pub League versions of The Big Wheel, which will just be players passing in a circle with no goals in mind; the Showcase Showdown, a ritual where our players attempt to intimidate our opponents by staring at them and not doing anything with the ball; and finally Barker’s Beauties, a pre-game ritual where we show off our stylish uniforms and unmatched class.</p>\n<p>The actual retail price of the above? $0, which means we will never be closest without going over (unless it’s over the net). And don’t you worry, we will attempt to control the pet population by having our pets spayed and neutered, while doing the same thing to our attack! All this can be yours, if the Price is Right!</p>\n<p>Olymplinkos plays in our Premier Division and is sponsored by Flatstick Pub .</p>\n<p>The hosts:</p>\n<p>Kristopher “THE PRICE IS WRONG” Antonelli Brandon “SPIN AGAIN” Hollis Erik “SHOWCASE SHOWBOAT” Montgelas</p>\n<p>The contestants:</p>\n<p>Alanna “BID &amp; BOUJEE” Diggs Ian “A TRIP TO SCOTLAND” Hajnosz Ben “ONE DOLLAR BID” Klingenstein Carlos “A TRIP TO MEXIGOL” Martinez Padilla Mohamed “A TRIP TO CANADA” Mohamed Brian “ROD RODDY” Schroeder Edward “BOB” Hoskin Miguel “COME ON DOWN!” Santos Juan “JUAN TRIP TO PUERTO RICO” Rubio Mitch “GILMORE” Jewell Tom “ACTUAL RETAIL PRICE” Eggerding Midas “LIVINGROOM SETPIECE” Davidson Dan “I’M GOING TO PASS, BOB” Fletcher Nate “A NEW CAR” Graves Brandon “CONTESTANT” Arper</p>",
+      "featured_image_url": "/static/img/publeague/2025-08__PlinkoStill-1024x576.png",
+      "published_at": "2025-08-29 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-not-a-phase",
+      "title": "Team Reveal: Not A Phase",
+      "excerpt": "Ugh. Have you ever felt like management just doesn’t… get you? Like this whole ‘being a team player’ thing was more than you bargained for? Ever wish you could get up and shout about how you’re NOT…",
+      "body_html": "<p>Ugh. Have you ever felt like management just doesn’t… get you? Like this whole ‘being a team player’ thing was more than you bargained for? Ever wish you could get up and shout about how you’re NOT OKAY (you promise) and show everyone it’s not a phase, it’s Who You Are? Well, have we got the parade for you.</p>\n<p>This is your sign to join Not A Phase AFC.We know that life is a nightmare, so you’re in luck that we’re in the business of misery. We’re here for all the misfits, the others, the ones who can’t hit a ball to save their life. Does every shot you take make you say “I Missed You”? Do you struggle not just with the big picture of the game, but all the small things as well? Would you usually wish we woke you up when the season ends? Are you among the broken ankles, the beaten on the dribble, and the damned near misses? Not a Phase is here to bring you to life. We are an Alternative Football Club with aims to give you an anthem to sing, and make mmrs you can say thnks fr.</p>\n<p>Not a Phase is sponsored by Beer Authority</p>\n<p>##### Classic Division – Spring 2025 Season</p>\n<figure><img src=\"/static/img/publeague/2025-04__Not-a-Phase-Team-Photo-S25.jpg\" alt=\"\" loading=\"lazy\"></figure>\n<p>Your grand marshals of this morbid marching band – Brian “MR. BRIGHTSIDE” Schroeder, McKenna “AND I’M SO SORRY” Bixby, and Henry “G5 // A FIRE OFFSIDE” Eliot – have such high high hopes for you, and are ready to see you victorious. Meet the band and say hi. We promise we don’t bite, much.</p>\n<p>Alok “SETPIECE CONFESSIONAL” Desai Bob “ENO? // BLINK” Davis Cameron “GRENDEL” Collins Drea “SAD BOI XP” Gramps Eddie “SUGAR, YOU’RE GOIN DOWN” Schubert Eleni “SINS AND TRAGEDIES” Comstock Em “FASHION STATEMENT // DEATHWISH” Richardson Erin “WHERE ARE YOU?” Alderman Irene “REBEL” Zuo Jessica “COURTNEY SHOVE” Aceti Jesús “LA BOMBA” Nicolas Luke “¡QUE NO! ¡NO SOY EMO!” Petschauer Nash “NASH NIGHTINGALE” Benjamasutin Noelle “PANIC! AT THE GOAL POST” McCabe Rachel “HURT COBAIN” Belle Robin “BROCKEN” Langley Ryan “THIERRY ENNUI” Peterson Tiffany “FELT EMO MIGHT DELETE” Atencio Yaya “SMELLS LIKE TEAM SPIRIT” Valdez</p>\n<p>Subs: PILOTS (#21) SUM YELLOWCARD BURC MODE DEATHWISH BLINK (#182)</p>",
+      "featured_image_url": "/static/img/publeague/2025-04__RevealPHASE-1024x576.png",
+      "published_at": "2025-04-11 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-nc-legends",
+      "title": "Team Reveal: NC Legends",
+      "excerpt": "The people of Night City tend to have all sorts of dreams. Install the newest chrome, make a bunch of ennies and become rich, blow up corpo scum. Few reach their dreams, and fewer become…",
+      "body_html": "<p>The people of Night City tend to have all sorts of dreams. Install the newest chrome, make a bunch of ennies and become rich, blow up corpo scum. Few reach their dreams, and fewer become Legends.</p>\n<p>From Cyberpunk 2077, NC Legends take on Night City, full of Netrunners and ready to flatline any corpos in their way. Flick ‘em the detes and they’ll be ready to delta in no time. Ready to score goals, dribble around opponents, win games then go celebrate at the Afterlife.</p>\n<p>##### Premier Division – Spring 2025 Season</p>\n<figure><img src=\"/static/img/publeague/2025-04__NC-Legends-Team-Photo-S25.jpg\" alt=\"\" loading=\"lazy\"></figure>\n<p>Their fixers (coaches) are Tyler “Edgerunner” Frederickson, Keith “Cyberkeef” Hodo, and Emily “Hennies” Hennessy.</p>\n<p>The legendary mercs are:</p>\n<p>Arthur “Feeling Lucky, Punk?” Kim Ben “Jacques the Ripper Doc” Lagler Brady “Ripper Doc” Thomas Dan “Netrunner” Fletcher Derek “Flatlined” Harding Hayden “Choom” Ross Ian “Netrunner” Williams Jeremy “Ronin” Gogoel Kelli “Rocker” Oberbillig Mark “Max Headeroom” Langley Mohamed “Goldfoot” Mohamed Stephen “Poser” Fedele Tara “The Face” Gregory Tom Powers Travis “Count” Boyle</p>\n<p>And a few of their chooms (subs):</p>\n<p>Silverhand Rogue Cyber Punk Blackwall</p>",
+      "featured_image_url": "/static/img/publeague/2025-04__RevealNC-1024x576.png",
+      "published_at": "2025-04-08 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-miami-rice",
+      "title": "Team Reveal: Miami Rice",
+      "excerpt": "After Crockett and Tubbs resigned from the Miami police force, they decided to get as far away as possible from all that the sand and sun. So they sailed to the Pacific Northwest and used a little…",
+      "body_html": "<p>After Crockett and Tubbs resigned from the Miami police force, they decided to get as far away as possible from all that the sand and sun. So they sailed to the Pacific Northwest and used a little “petty cash” from the vice squad to set up a venture capital firm.</p>\n<p>Their first purchase? A rag-tag bunch of semi-inebriated soccer players. And with this roll-up of raw talent, Miami Rice was born!</p>\n<p>Put on your sunglasses for this vapor wave squad!</p>\n<p>Full of soy-perstars rolling maki-nificient passes, Miami Rice leaves their fans eel-ated with tuna-cious defense and nigiri-fic footwork!</p>\n<p>Quick and precise, slicing through the defense with the finesse of thinly sliced salmon, their shots hit the back of the net like a glob of wasabi hits your sinuses!</p>\n<p>It’s gills, thrills and chills!</p>\n<p>Unagi-na believe it!</p>\n<p>Miami Rice is sponsored by Nun Chuck’s Brewing.</p>\n<p>##### Premier Division – Spring 2025 Season</p>\n<figure><img src=\"/static/img/publeague/2025-04__Miami-Rice-Team-Photo-S25.jpg\" alt=\"\" loading=\"lazy\"></figure>\n<p>The squad is led by Lieutenants James “SHRIMPLY THE BEST” Hong, Shaundra “FERRARI DAIKONA” Herrud and Geoff “FATTY TUNA” Redick,</p>\n<p>Miami Rice menu:</p>\n<p>Max “HAVE A RICE DAY” Aquino Charles “GIMBAP” Bahn Brian “RICE, RICE BABY” Crow Tabitha “SPAM MUSUBI” Dorn Loreto “OTORO” Julian David “FUTOMAKI” Killian Danny “CALI ROLL” Lopez JP “ROLL MODEL” Nicols Axel “SHRIMP TEMPURA” Rivera Anant “LIONEL MAKI” Robinson Kyle “NO MORE MISTER RICE GUY” Sanavullah Saara “SHE’S AS COLD AS RICE” Snow Marcus “SAKE BOMB” Tabert Luigi “SUSHI SHOOTER” Vacca Mark “SPICY TUNA” Wenrick Substitutions Allowed: CHUCK THE RAW DEAL SQUACH IDK, I JUST WORK HERE WASABI</p>",
+      "featured_image_url": "/static/img/publeague/2025-04__RevealMiamiRice-1024x576.png",
+      "published_at": "2025-04-09 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-meepchester-united",
+      "title": "Team Reveal: Meepchester United",
+      "excerpt": "In a world where pitches are greener than frogs on bicycles and players move like puppets tangled in strings, a band of colorful misfits has arrived, bringing chaos reminiscent of a certain classic…",
+      "body_html": "<p>In a world where pitches are greener than frogs on bicycles and players move like puppets tangled in strings, a band of colorful misfits has arrived, bringing chaos reminiscent of a certain classic variety show. Introducing the most sensational, inspirational, celebrational, recreational Sunday league soccer team ever assembled!</p>\n<p>They’re here to play the music, light the lights, and occasionally kick the ball roughly in the right direction. Every match promises a spectacle worthy of balcony hecklers and spontaneous musical numbers. Expect players moving with the grace of chickens in dance routines, and tactics fuzzier than a bear’s comedy sketch. Goalkeepers channel their inner stunt performers, making daring saves that defy logic, while midfielders pass with the precision of boomerang fish throws. Defenders manage chaos worthy of backstage antics, and forwards attack with the enthusiasm of chasing rainbows.</p>\n<p>Bring your friends, grab your banjos, and cheer for a squad whose greatest victory is always putting smiles on faces, one comedic tumble at a time.</p>\n<p>##### Premier Division – Spring 2025 Season</p>\n<figure><img src=\"/static/img/publeague/2025-04__Meepchester-United-Team-Photo-S25.jpg\" alt=\"\" loading=\"lazy\"></figure>\n<p>With coaches John “Rainbow Connection” Marshall, Lacey “Gonzo the Great” O’Connell, and Aryan “Big Bird” Sefidi pulling the strings, the team is comprised of an ensemble cast: Jacob “Swedish Chef” Alvarez Jordan “Pepé” Berke Scott “Scooter” Chupack John “Beaker” Clarke Saket “Kermit” Gayake Stephen “Mahna Mahna” Hightower Kai “Lew Zealand” Huang Daniel “Rowlf” Molina Azee “Rizzo” Murugan Anuj “Electric Mayhem” Saharan Christopher “Waldorf” Shainin Chris “Animal” Sherry Greg “Statler” Van Belle Daniel “The Count” Vaughan Andrew “Fozzie” Zellman Uncredited Extras: Elmo Money – Elmo Problems Wokka Wokka Dr. Bunsen Honeydew Sam Eagle Bork! Bork! Bork!</p>",
+      "featured_image_url": "/static/img/publeague/2025-04__RevealMEEP-1024x576.png",
+      "published_at": "2025-04-07 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-if-you-aint-first-youre-last",
+      "title": "Team Reveal: If You Ain’t First, You’re Last",
+      "excerpt": "Ladies and gentlemen, girls and boys, soccer fans of all ages, introducing If You’re Not First, You’re Last…",
+      "body_html": "<p>Ladies and gentlemen, girls and boys, soccer fans of all ages, introducing If You’re Not First, You’re Last (IYNFYL)!</p>\n<p>This is no ordinary team. We’re a squad built on speed, determination, and a whole lot of spunk. Instead of racing cars, we’re racing for victory. We’ve got players who don’t know the meaning of “slow down.”  From the goalkeeper with reflexes sharper than a NASCAR pit crew, to the strikers who’ll leave defenders eating their dust – this team is about one thing: winning.  So buckle up, because when we take the field, it’s going to be an all-out, pedal-to-the-metal ride. Like a spider monkey, we’re out to kick some grass and take home that trophy!  Boogity boogity boogity!</p>\n<p>And if you don’t chew Big Red, then f— you!</p>\n<p>##### Premier Division – Spring 2025 Season</p>\n<h3>Your Attractive Heading</h3>\n<figure><img src=\"/static/img/publeague/2025-04__If-You-Aint-First-Team-Photo-S25.jpg\" alt=\"\" loading=\"lazy\"></figure>\n<p>Our Crew Chiefs: Michael “SHAKE” Hennessy Duane “EL DIABLO” Nakamura Gregory “I’M ON FIRE” Potter</p>\n<p>Our crew for this season:</p>\n<p>Aaron “MAGIC MAN“ Perkins Alastair “AUTOGRAPH MODE“ Brewer Alec “PEYOTE” Kinczewski Amy “I WANNA GO FAST” Tomtan Chris “WALKER” Acelar Danny “BENCH WARMER” Zaragoza Edwin “ANARCHY” Khoo Girish “GT” Tejwani Jake “BAKE” Callaghan Jared “SLINGSHOT ENGAGED” Smith Jonathan “BABY J” Barrera-Calix Preston “TUXEDO JESUS” Hollis Ray “BOOGITY BOOGITY BOOGITY” Irizarry Shiva “SIVARAMAN” Sitaraman Tim “I’M ALL JACKED UP ON MT. DEW” Eilerman Substitute Drivers: SPIDER MONKEY I LOVE CREPES PSYCHOSOMATIC DUSTY OLD FART FIGHTING CHICKEN</p>",
+      "featured_image_url": "/static/img/publeague/2025-04__RevealSPEED-1024x576.png",
+      "published_at": "2025-04-10 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-hex-appeal",
+      "title": "Team Reveal: Hex Appeal",
+      "excerpt": "Creepin’ it cute, please put your wings together for the guys, gals, and goblins of Hex Appeal! Soccer has never been spookier AND sexier. We come alive (again) in Fall season – Watch out for our…",
+      "body_html": "<p>Creepin’ it cute, please put your wings together for the guys, gals, and goblins of Hex Appeal! Soccer has never been spookier AND sexier. We come alive (again) in Fall season – Watch out for our devilish swagger, wicked possessions, and haunting aim for the spiderwebbed portals. And if our spirit on the false cornfield isn’t scary enough, trust that we’ll still have the charm to get you wanting to play a little game… Time to jumpscare these #SquadGhouls: Hex Appeal plays in our Classic Division and is sponsored by Beer Authority . Coaches:</p>\n<p>Henry “UNDEADBALL” Eliot Dré “STRAIGHT OUTTA SPOOKY” Jones Amanda “CREEP IT REAL” Russell Players: Christian “FOOLISH MORTAL” Menjivar Damian “TOIL AND TROUBLE” O’Leary Drea “WITCH DON’T KILL MY VIBE” Gramps Emilie “GOAL DIFFERENTIHELL” Reynolds Jason “ROBIN VAN PYRE” Torla Johnny “HERE’S JOHNNY!” Tice Jonathan “AMOK” Dean Krishna “VAMP ME UP” Shah Michele “PUMPKIN HEADER” Kowal Nicole “WITCH, PLEASE!” Schreck Noelle “FINAL GIRL” McCabe Pear “PEAR” Sutarat Ryan “GHOULIO JONES” Hagstrom Sachin “SOUL FEEDER” Saligram Tiffany “DEVIL DOLL” Atencio</p>",
+      "featured_image_url": "/static/img/publeague/2025-08__HexStill-1-1024x576.png",
+      "published_at": "2025-08-28 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-futbol-heads",
+      "title": "Team Reveal: Futbol Heads",
+      "excerpt": "Before there were stadiums, there were stoops. Here from the streets of Hillwood to the heart of the Pub League, Futbol Heads bring enough energy to make their elementary selves proud. This isn’t…",
+      "body_html": "<p>Before there were stadiums, there were stoops. Here from the streets of Hillwood to the heart of the Pub League, Futbol Heads bring enough energy to make their elementary selves proud. This isn’t just a team—it’s a crew. A squad. A neighborhood. And when the final whistle blows, win or lose, you’ll find them back where it all started: in the streets, ready to go again.</p>\n<p>The Futbol Heads are sponsored by Hellbent Brewing</p>\n<p>##### Premier Division – Spring 2025 Season</p>\n<figure><img src=\"/static/img/publeague/2025-04__Futbol-Heads-Team-Photo-S25.jpg\" alt=\"\" loading=\"lazy\"></figure>\n<p>Hey Futbol Heads! The coaches are:</p>\n<p>Kristopher “COACH WITTENBERG” Antonelli Tom “MONKEY MAN” Eggerding Hayley “FUZZY SLIPPERS” Thomas</p>\n<p>Players: Aaron “COOL JERK” Kinion Ben “THE DARK AVENGER” Klingenstein Dave “Dino Spumoni” Noel George “QUANTITY TIME” Courville Jay “STEELY PHIL” Howel Kieran “ERNIE” Lampert Marko “EASY SQUEEZY LEMON PEASY” Ivanovic Matt “OPERATION RUTHLESS” Look Mike “BURBA” Burba Prashant “SHORTMAN” Rana Ryan “ERNIE POTTS” Dowsing Stevie “CHOCOLATE BOY ” Kepple Sunil “Football Head ” Bajagain Tigran “MAN, THIS IS WHACK!” Zakaryan Tim “LOCKJAW” Han</p>\n<p>Subs: STOPP KID Q.U.A.L…X? P.S. (#118) MR. HYUNH WEEZIN’ ED</p>",
+      "featured_image_url": "/static/img/publeague/2025-04__RevealFUTBOL-1024x576.png",
+      "published_at": "2025-04-11 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-fellowship-fc",
+      "title": "Team Reveal: Fellowship FC",
+      "excerpt": "No…",
+      "body_html": "<p>No Admittance!</p>\n<p>(Except on Party Business)</p>\n<p>Speak friend and enter the fields of the Fellowship FC in the lands of the Public League of the Emerald City. The fierce fellowship was brought together to capture the shield and the cup. We are willing to travel great distances over difficult terrain and during early mornings to be here. Here where the sweat, tears, and beers have spilt upon the ground. Our mettle will be tested, our hunger for second breakfast, and our muscles will be burning. Fellowship FC turns to the Great Eye of Sauron and are seeking, always seeking our Precious next goal.</p>\n<p>The elves of the fellowship strive to match the speed and energy of Morris. The dwarves are designed to be dangerous over short distances and shield like Nouhou. Jõao Paulo is held in great esteem by our halflings for his voraciousness. Humans and demi deities are represented in our Fellowship much like in the Sounders. Last, like Frei, there are monsters warped by exposure to the evils of the goalposts.</p>\n<p>Remember, Fellow, when you get the ball:</p>\n<p>Keep it secret, keep it safe!</p>\n<p>Fellowship FC is sponsored by PrizedHome</p>\n<p>##### Premier Division – Spring 2025 Season</p>\n<figure><img src=\"/static/img/publeague/2025-04__Fellowship-FC-Team-Photo-S25.jpg\" alt=\"\" loading=\"lazy\"></figure>\n<p>Guiding the journey are:</p>\n<p>Carissa “ELEVENSIES” Thornock Matt “EAAAAAGLE” Chrisman Steven “NAZ’GOLAZO” Candelaria The Fellowship: Ben “BALLBO” Blaine Darin “ELF #1” Schneider Eric “YOU SHALL NOT PASS” Baker Ernesto “WOODEN WISDOM” Perez Gary “J.R.R. TOLKIEN” Werden Gerard “WHATCHA TOLKIEN ‘BOUT” Gascon James “BOMBADIL ” Mayton Joe “STRIDER” Held Lars “RING TO RULE THEM ALL” Guenther Sam “SAMWISE” Nicols Scott “SHEPWISE GANJEE” Sheppick Shane “RADAGAST” Homan Waleed “SARUMAN OF MANY COLORS” Alzadjali Zack “PRANCING PONY” Donnel</p>\n<p>Reserves:</p>\n<p>SCOROMIR LEGOALESS D’ORC PIPPIN MY PRECIOUS</p>",
+      "featured_image_url": "/static/img/publeague/2025-04__RevealFELLOWSHIP.png",
+      "published_at": "2025-04-12 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-fc-candy-kingdom",
+      "title": "Team Reveal: FC Candy Kingdom",
+      "excerpt": "It’s Pub League time, come on grab your cleats, we’ll go to very distant fields. With FC Candy Kingdom, straight from the Land of…",
+      "body_html": "<p>It’s Pub League time, come on grab your cleats, we’ll go to very distant fields. With FC Candy Kingdom, straight from the Land of Ooo!</p>\n<p>They may seem whimsical, but they can straight skronk up your dome piece with their sweet ball skills. They’ll stretch your defense like Jake the Dog, and put a through ball into Lumpy Space. Next thing you know, the ball will hit the net like a Catalyst Comet. They know a thing or two about Football, and we’re not talking about BMO’s evil twin. Defeat is UNACCEPTABLE!</p>\n<p>Oh my Glob, all this talk of soccer skill is basically fan fiction, like Fionna and Cake. But that’s OK, because sucking at something is the first step to being sorta good at something. And even if they’re not celebrating a trophy with the Party God at the end of the season, Princess Bubblegum will still organize a parade, and it’ll be mathematical. So come along with me, and the Forwards and the D’s. We can wander through the midfield, and do so as we please.</p>\n<p>##### Classic Division – Spring 2025 Season</p>\n<figure><img src=\"/static/img/publeague/2025-04__FC-Candy-Kingdom-Team-Photo-S25.jpg\" alt=\"\" loading=\"lazy\"></figure>\n<p>Mentored by the Taskmasters of Fun Jasmine “Back Turned” Brown, Ben “Approximate Knowledge” Lagler, and Mark “Old Man Creampuff” Langley  , here’s your roster, a dream team straight from the mind of Prismo: Dylan “Golb” Abbott Maddy “Tree Trunks” Bixby Victoria “Flame Princess” Carlos-Mercado David “Ice King” Cravens O’Farrell Midas “Prismo” Davidson Michael “Land of” Dean Yancy “Unaligned Ant” Dominick Linda (TBA) Hanson Topher “Perfect Sandwich” Hines Bolor “Shake it Oooff” Jagdagdorj Jayant “Sir Jayant” Jirage Ameeth “Ameeth Finntastic” KanawadayMegan “Defenses Lowered” Langsev Caroline “Vampire Kick” Machart Karen “Cake” Nakagawa Damian “Day Long Nap” O’Leary Sarah “Old Lady Princess” Samson Nicole “Bacon Pankicks” Schreck Jann “Jannimal” Skotdal Ann “Graybles” Yi</p>\n<p>Substitutes:</p>\n<p>Sleepy Sub Nard-Kicking Ability Pete the Punk Nutmeg Princess Homies Help Homies</p>",
+      "featured_image_url": "/static/img/publeague/2025-04__RevealCANDY-1024x576.png",
+      "published_at": "2025-04-07 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-critical-goal",
+      "title": "Team Reveal: Critical Goal",
+      "excerpt": "The mist settles over the artificial turf. A campaign of intrepid adventurers emerge from the realm of Ball Toe’Play. With superior dexterity, athleticism, &amp; performance skills, Critical Goal is…",
+      "body_html": "<p>The mist settles over the artificial turf. A campaign of intrepid adventurers emerge from the realm of Ball Toe’Play. With superior dexterity, athleticism, &amp; performance skills, Critical Goal is ready to cast their D20 dice. Will these Wizards of the Goal Post roll with advantage or will a Nat 1 be their downfall?</p>\n<p>Critical Goal is sponsored by Full Moon Storytelling and plays in our Premier Division.</p>\n<p>The DMs: John “ROLL PLAYER” Marshall Michael “CHARISMA” Hennessy Shaundra “CHAOTIC GOOD” Herrud</p>\n<p>The PCs Aaron “PERK” Perkins Alberto “MOST WORSHIPFUL BR. NIGHTHAWK” Santiago Ameer TBD Fadaei Daniel “SLEIGHT OF HANDBALL” Vaughan George “ELDRIC GOALRUNNER” Courville Jacob “PASSIUS THE GREAT” Alvarez Jared “I WOULD LIKE TO RAGE” Smith Jordan “DONDO THE QUICK” Montreuil Kaichang “KANTELELÉ” Huang Luigi “CRITICAL FAILURE” Vacca Pallav “LORD OF WINGS” Mahapatra Steven “TRICKFOOT” Candelaria Thomas “POWERS” Powers Ulises “CULICHI” Rodriguez Zack “STEALTH NEGATIVE” Donnel</p>",
+      "featured_image_url": "/static/img/publeague/2025-09__CriticalStill-1024x576.png",
+      "published_at": "2025-09-01 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-cereal-killers",
+      "title": "Team Reveal: Cereal Killers",
+      "excerpt": "“Sleep all day. Party all night. Never grow old. Never die. It’s fun to be a Cereal…",
+      "body_html": "<p>“Sleep all day. Party all night. Never grow old. Never die. It’s fun to be a Cereal Killer.”</p>\n<p>This team may not be magically delicious, but don’t let that fool you. They’re Gr-r-eat! Packed with the “howling good taste” of goals, this team brings out the killer in you. They’re cereal tested, killer approved which means no goals will go empty and no beers will be left full.</p>\n<p>“The good news is your dates are here. The bad news is…they’re Cereal Killers.”</p>\n<p>The Cereal Killers are sponsored by The Doctors Office</p>\n<p>##### Premier Division – Spring 2025 Season</p>\n<figure><img src=\"/static/img/publeague/2025-04__Cereal-Killers-Team-Photo-S25.jpg\" alt=\"\" loading=\"lazy\"></figure>\n<p>This criminally delicious enterprise is masterminded by Arthur “Cookie Crook” Bednar, Brandon “Pop Pop” Hollis, and Mitch “Silly Rabbit” Jewell</p>\n<p>Their partners in crime include:</p>\n<p>Brent “Nintendo Cereal System” Stocking Carlos “Hominy Smacks” Martinez Padilla Corey “Franken Bury U” Osher David “H” Hollingsworth Erik “Balanced Breakfast” Montgelas Ian “Kix” Hajnosz Jon “Apple Jack the Ripper” Beardsley Jordan “Dondo” Montreuil Juan “Honey Nut Juanios” Rubio Kyle “Chexter Morgan” Gassler Matthew “Cinnamon Ghost Crunch” Powell Meisam “Coco Loco” Bokhari Nicholaus “Slice Krispies” Biela Ted “Shredded Cleats” Griffin Willow “Malevolently Delicious” Mosier</p>",
+      "featured_image_url": "/static/img/publeague/2025-04__RevealCEREAL-1024x576.png",
+      "published_at": "2025-04-08 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-bob-loblaws-ball-lobbers",
+      "title": "Team Reveal: Bob Loblaw’s Ball Lobbers",
+      "excerpt": "Now the story of a Pub League who lost everything, and the one team who had no choice but to keep them all together. It’s an(other) Arrested Development (-themed team). Sponsored by Nun Chuck’s…",
+      "body_html": "<p>Now the story of a Pub League who lost everything, and the one team who had no choice but to keep them all together. It’s an(other) Arrested Development (-themed team). Sponsored by Nun Chuck’s Brewing, Bob Loblaw’s Ball Lobbers play in our Classic Division.</p>\n<p>We’re Bob Loblaw’s Ball Lobbers, lobbing long balls on the field and law bombs on our law blog! Because why should you go to jail for a crime someone else noticed?</p>\n<p>Feeling blue? Well this team is solid as a rock. We’ll be using the man inside us to dribble balls and make huge mistakes. I mean it’s one season, Michael. How long could it last? Ten weeks?</p>\n<p>Here to help you score your first Hat Illusion (because a “trick” is something a ref does for money) are your coaches:</p>\n<p>Eddie “SAY GOODBYE TO THESE” Schubert Jasmine “VODKA ROCKS” Brown McKenna “PIECE OF TOAST” Bixby</p>\n<p>Your alliance-approved magicians on the field: Alok “LIGHT TREASON” Desai Amy “ANNYONG” Rotondo Anna “NEVER-NUDE” Bentley Bob “CHURCH AND STATE FAIR” Davis Christian “MAEBY SHE STRIKES” Woldemdhin Danyeal “MOTHERBOY” Wheeler David “GOB” Cravens Eleni “LIGHTER FLUID” Comstock Ike “PENNIES” Abioye Matt “J. REINHOLD” Jorgensen Megan “AGED GEORGE MICHAEL” Langsev Quinn “NEVER RUDE” Nichol Ria “LOOSE SEAL” Whipple Sanjana “SOCCER PLAYER” Nadi Sergio “SERGIO” Quintana Sheila “LUCILLE” Redick Topher “GENE PARMESAN” Hines Yancy “TOP BANANA” Dominick</p>",
+      "featured_image_url": "/static/img/publeague/2025-09__LobbersStill-1024x576.png",
+      "published_at": "2025-09-03 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-banana-kicks-fc",
+      "title": "Team Reveal: Banana Kicks FC",
+      "excerpt": "Narrator: It was Sunday morning, and Michael was making cornballs, a Bluth family favorite since George Sr. unsuccessfully tried to market the device in the mid-’70s. This is the story of Banana…",
+      "body_html": "<p>Narrator: It was Sunday morning, and Michael was making cornballs, a Bluth family favorite since George Sr. unsuccessfully tried to market the device in the mid-’70s. This is the story of Banana Kicks FC , sponsored by Lucky Liquor, and playing in our Premier Division. We can’t just go on a million bike rides whenever you want us to, OK? We’ll be on the field every Sunday, celebrating like it’s Cinco do Cuatro, because Army had half day. We may have committed a little light treason, but we know there’s always money in the banana stand. Our defense is solid because we use Faceblock, but our offense may not Sitwell with some, because it comes from Wee Britain. We’ll probably go ahead and order the ultra deluxe jerseys with lots of extra room, then that way we’ll have it. No hop-ons, and no touching! Martas 1, 2, &amp; 3: Carissa “USE YOU ALLUSIONS” Thornock Geoff “HOT HAM WATER” Redick Kevin “DR. HOUSE, ANALRAPIST” House</p>\n<p>Forget-Me-Nows: Andre “NOT A TRICK” Luis Birdi Atsuhiro “ILLUSIONS!” Zoshima Azee “THE FINAL COUNTDOWN” Brittany “LADY OF LITERACY” Cruz Chris “BOB LOBLAW” Acelar Gary “ANUSTART” Werden Harry “WEE BRITAIN” Stevenson Hayden “WE LOST HIM” Ross John “FAR FROM THE BEST” Curry JP “DEAD DOVE, DO NOT EAT” Nicols Ryan “LOOSE SEAL” Peterson Tara “THAT’S WHY WE DON’T RUN” Gregory Thomas “HEWYGO” Hewitt Travis “NO TOUCHING” Boyle Vedin “PAVLOVIĆ” Pavlović</p>",
+      "featured_image_url": "/static/img/publeague/2025-09__BananaStill-1024x576.png",
+      "published_at": "2025-09-02 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    },
+    {
+      "slug": "team-reveal-average-goals",
+      "title": "Team Reveal: Average Goals",
+      "excerpt": "Next up on the team reveals is Average Goals , sponsored by Fuel Sports Grill , and playing in our Premier Division. If You Can Dodge a Wrench, You Can Dodge a Red Card. Dodge. Duck. Dip. Dive. And…",
+      "body_html": "<p>Next up on the team reveals is Average Goals , sponsored by Fuel Sports Grill , and playing in our Premier Division. If You Can Dodge a Wrench, You Can Dodge a Red Card. Dodge. Duck. Dip. Dive. And defend the back-post runner. Please. This is a squad that thrives on chaos, weaving Dodgeball quotes into their warm-ups and convincing themselves that if you can dodge a wrench, you can absolutely chase down an attacker. The problem being, no one can dodge a wrench. Their training regimen may or may not involve actual wrenches, but the spirit is undeniable. Average by name, aggressively adequate by nature. This squad shows up like Globo Gym’s worst nightmare: matching pinnies, questionable cardio, and an unearned amount of belief. Coaches: Arthur “Mr Jokey Joke-Maker ” Bednar Jon “FCKN Chuck Norris” Beardsley Greg “Dodgefather” Van Belle Players: Al “Bold Strategy ” Brewer Alyssa “L For Love ” Brewer Bradley “Fizzle” Flotlin Brent “”The Ocho”” Stocking Corey “Ouchtown, Population: You!” Osher DK “DKoded” Divyakant Girish “GT” Tejwani Gregory “Feathered and Lethal” Potter Igor “Touché” Legin Jeremy “Air Goodman” Gogoel Megan “Megalodon” Long Saara “She Will Rock You” Snow Scott “Patches” Sheppick Tigran “Skillz That Killz!” Zakaryan Tim “Tazer” Han</p>",
+      "featured_image_url": "/static/img/publeague/2025-08__AverageStill-1024x576.png",
+      "published_at": "2025-08-27 12:00",
+      "author_name": "ECS Pub League",
+      "status": "published"
+    }
+  ],
+  "images": {
+    "logo": "/static/img/publeague/2025-02__ECSPL-4-Color-With-Outline-transparent-1024x1024.png",
+    "home_classic": "/static/img/publeague/2026-07__ZUZU-TEAM-1024x683.jpg",
+    "home_premier": "/static/img/publeague/2026-07__Astral_Shield-1024x576.jpg",
+    "home_fun": "/static/img/publeague/2023-08__355098481_10227903474124662_4103553356561754271_n.jpg"
+  }
+}

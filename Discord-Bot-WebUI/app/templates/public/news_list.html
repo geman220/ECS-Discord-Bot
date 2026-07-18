@@ -1,0 +1,40 @@
+{% extends "public/base_public.html" %}
+
+{% block content %}
+<section class="bg-gradient-to-br from-ecs-green to-ecs-green-dark">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-16">
+        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">News</h1>
+        <p class="mt-4 text-lg text-green-50/90">League announcements, team reveals, and season updates.</p>
+    </div>
+</section>
+
+<section class="py-16 sm:py-20">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        {% if not posts %}
+        <div class="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-10 text-center text-gray-500 dark:text-gray-400">
+            <i class="ti ti-news text-4xl"></i>
+            <p class="mt-3">No news posts yet — check back soon.</p>
+        </div>
+        {% else %}
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {% for post in posts %}
+            <a href="{{ url_for('public.news_detail', slug=post.slug) }}"
+               class="group flex flex-col rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden shadow-sm hover:shadow-md transition">
+                {% if post.featured_image_url %}
+                <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" class="h-48 w-full object-cover">
+                {% else %}
+                <div class="h-48 w-full bg-gradient-to-br from-ecs-green to-ecs-green-dark flex items-center justify-center"><i class="ti ti-news text-4xl text-white/40"></i></div>
+                {% endif %}
+                <div class="flex flex-col flex-1 p-5">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ post.display_date.strftime('%B %-d, %Y') if post.display_date else '' }}</p>
+                    <h2 class="mt-1 font-semibold text-lg text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">{{ post.title }}</h2>
+                    {% if post.excerpt %}<p class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{{ post.excerpt }}</p>{% endif %}
+                    <span class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-ecs-green dark:text-ecs-gold">Read more <i class="ti ti-arrow-right"></i></span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

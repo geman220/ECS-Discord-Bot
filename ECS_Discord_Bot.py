@@ -1502,7 +1502,8 @@ async def load_cogs():
         'clearchat_commands',
         'schedule_commands',
         'subs_commands',
-        'engagement_commands'
+        'engagement_commands',
+        'nad_commands'
     ]
     
     for extension in cog_extensions:

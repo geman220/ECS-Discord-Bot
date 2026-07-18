@@ -34,6 +34,10 @@ logger = logging.getLogger(__name__)
 # Admin roles allowed to access these endpoints
 ADMIN_ROLES = ['Pub League Admin', 'Global Admin']
 
+# Read-only visibility for the waiting room / NAD board: coaches may VIEW a
+# quick profile's detail (jersey#, intake note) but not create/link/delete/edit.
+COACH_VIEW_ROLES = ['Pub League Admin', 'Global Admin', 'Pub League Coach']
+
 # Similarity threshold for duplicate detection (0.85 = 85% match)
 SIMILARITY_THRESHOLD = 0.85
 
@@ -419,7 +423,7 @@ def list_quick_profiles():
 
 @mobile_api_v2.route('/quick-profiles/<int:profile_id>', methods=['GET'])
 @jwt_required()
-@jwt_role_required(ADMIN_ROLES)
+@jwt_role_required(COACH_VIEW_ROLES)
 def get_quick_profile(profile_id: int):
     """
     Get a single quick profile by id.
@@ -427,6 +431,9 @@ def get_quick_profile(profile_id: int):
     Mirrors the web admin get-details route so the mobile client's
     QuickProfileRepository.getQuickProfile(id) has a real endpoint (the list
     already carries the full profile, but the client calls this path directly).
+
+    Readable by coaches too (waiting-room / NAD-board scouting), so they can see
+    a prospect's jersey#/intake note; create/link/delete/photo stay admin-only.
 
     Returns:
         JSON with the full profile dict (+ linked_player if it was claimed/linked).
@@ -453,6 +460,113 @@ def get_quick_profile(profile_id: int):
             }
 
         return jsonify({'success': True, 'profile': data}), 200
+
+
+# ==================== Update Quick Profile Photo ====================
+
+@mobile_api_v2.route('/quick-profiles/<int:profile_id>/photo', methods=['POST'])
+@jwt_required()
+@jwt_role_required(ADMIN_ROLES)
+def update_quick_profile_photo(profile_id: int):
+    """
+    Replace a quick profile's photo (admin only). Lets admins re-take a field
+    profile picture from the waiting room without deleting/recreating the profile.
+
+    Supports two formats (same as the admin player picture endpoint):
+        1. Multipart form data with a 'file' field
+        2. Base64 JSON: {"photo_base64": "data:image/png;base64,..."} (also
+           accepts "cropped_image_data" for parity with the player endpoint)
+
+    Only PENDING profiles can be re-photographed; once claimed/linked the photo
+    lives on the real Player row (use the player photo endpoint).
+
+    Returns:
+        JSON with the new profile_picture_url.
+    """
+    content_type = request.content_type or ''
+
+    if 'multipart/form-data' in content_type:
+        if 'file' not in request.files:
+            return jsonify({
+                'success': False,
+                'error': {'code': 'VALIDATION_ERROR', 'message': 'No file provided', 'field': 'file'}
+            }), 400
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'error': {'code': 'VALIDATION_ERROR', 'message': 'No file selected', 'field': 'file'}
+            }), 400
+
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'webp'}
+        file_ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        if file_ext not in allowed_extensions:
+            return jsonify({
+                'success': False,
+                'error': {'code': 'INVALID_IMAGE',
+                          'message': f'Invalid file type. Allowed: {", ".join(sorted(allowed_extensions))}',
+                          'field': 'file'}
+            }), 400
+
+        import base64
+        file_data = file.read()
+        if len(file_data) > 5 * 1024 * 1024:
+            return jsonify({
+                'success': False,
+                'error': {'code': 'INVALID_IMAGE', 'message': 'File too large. Maximum size: 5MB', 'field': 'file'}
+            }), 400
+        mime_type = file.content_type or f'image/{file_ext}'
+        image_data = f"data:{mime_type};base64,{base64.b64encode(file_data).decode('utf-8')}"
+    else:
+        data = request.get_json() or {}
+        image_data = data.get('photo_base64') or data.get('cropped_image_data')
+        if not image_data:
+            return jsonify({
+                'success': False,
+                'error': {'code': 'VALIDATION_ERROR', 'message': 'Missing photo data', 'field': 'photo_base64'}
+            }), 400
+
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        profile = session.query(QuickProfile).get(profile_id)
+        if not profile:
+            return jsonify({
+                'success': False,
+                'error': {'code': 'NOT_FOUND', 'message': 'Quick profile not found'}
+            }), 404
+
+        if profile.status != QuickProfileStatus.PENDING.value:
+            return jsonify({
+                'success': False,
+                'error': {'code': 'ALREADY_CLAIMED',
+                          'message': 'Can only update photos for pending profiles'}
+            }), 400
+
+        try:
+            picture_url = save_quick_profile_picture(image_data, profile.id, profile.player_name)
+            profile.profile_picture_url = picture_url
+            session.commit()
+        except ValueError as e:
+            session.rollback()
+            return jsonify({
+                'success': False,
+                'error': {'code': 'INVALID_IMAGE', 'message': str(e), 'field': 'photo_base64'}
+            }), 400
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error updating quick profile {profile_id} photo: {e}", exc_info=True)
+            return jsonify({
+                'success': False,
+                'error': {'code': 'SERVER_ERROR', 'message': 'Failed to update photo'}
+            }), 500
+
+        logger.info(f"Quick profile {profile_id} photo updated by user {current_user_id}")
+        return jsonify({
+            'success': True,
+            'message': 'Photo updated',
+            'profile_picture_url': picture_url
+        }), 200
 
 
 # ==================== Delete Quick Profile ====================
