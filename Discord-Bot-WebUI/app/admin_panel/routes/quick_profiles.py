@@ -151,7 +151,7 @@ def check_quick_profile_duplicates():
     if not data:
         return jsonify({'success': False, 'error': 'Missing request data'}), 400
 
-    player_name = data.get('player_name', '').strip()
+    player_name = (data.get('player_name') or '').strip()
     if not player_name:
         return jsonify({'success': False, 'error': 'Player name is required'}), 400
 
@@ -177,7 +177,7 @@ def create_quick_profile():
         return jsonify({'success': False, 'error': 'Missing request data'}), 400
 
     # Validate required fields
-    player_name = data.get('player_name', '').strip()
+    player_name = (data.get('player_name') or '').strip()
     if not player_name:
         return jsonify({'success': False, 'error': 'Player name is required'}), 400
 
@@ -189,10 +189,10 @@ def create_quick_profile():
         return jsonify({'success': False, 'error': 'Photo is required'}), 400
 
     # Optional fields
-    notes = data.get('notes', '').strip() or None
+    notes = (data.get('notes') or '').strip() or None
     jersey_number = data.get('jersey_number')
-    jersey_size = data.get('jersey_size', '').strip() or None
-    pronouns = data.get('pronouns', '').strip() or None
+    jersey_size = (data.get('jersey_size') or '').strip() or None
+    pronouns = (data.get('pronouns') or '').strip() or None
 
     # Validate jersey_number
     if jersey_number is not None:
@@ -209,8 +209,8 @@ def create_quick_profile():
         return jsonify({'success': False, 'error': f'Invalid jersey size. Valid: {", ".join(valid_sizes)}'}), 400
 
     # Optional contact info
-    email = data.get('email', '').strip() or None
-    phone_number = data.get('phone_number', '').strip() or None
+    email = (data.get('email') or '').strip() or None
+    phone_number = (data.get('phone_number') or '').strip() or None
 
     # Basic email validation
     if email and '@' not in email:
@@ -248,7 +248,13 @@ def create_quick_profile():
             picture_url = save_quick_profile_picture(photo_base64, profile.id, player_name)
             profile.profile_picture_url = picture_url
         except ValueError as e:
-            return jsonify({'success': False, 'error': 'Internal Server Error'}), 400
+            # Roll back the flushed-but-uncommitted profile. @transactional only
+            # rolls back on a propagated exception; a plain `return ..., 400` is a
+            # normal return and would otherwise COMMIT a photo-less PENDING profile
+            # with a live claim code (photo "required" but NULL) — an orphan the
+            # admin can't see failed, so they retry and create a duplicate.
+            session.rollback()
+            return jsonify({'success': False, 'error': 'Invalid image'}), 400
 
         # Log the action
         AdminAuditLog.log_action(
@@ -261,11 +267,25 @@ def create_quick_profile():
 
         logger.info(f"Quick profile {profile.id} created by {current_user.username} with code {mask_code(profile.claim_code)}")
 
+        # Auto-deliver the claim code if the admin captured contact info. Deferred
+        # to after-commit so the email/SMS provider call never runs inside this
+        # @transactional request's DB transaction (pgbouncer slot budget).
+        # Email is free and SMS costs money, so prefer email: only text when there
+        # is a phone AND no email to fall back on.
+        from app.services.quick_profile_notifications import defer_claim_code_send, build_claim_url
+        will_email = bool(email)
+        will_sms = bool(phone_number) and not email
+        if will_email or will_sms:
+            defer_claim_code_send(profile.id, via_email=will_email, via_sms=will_sms)
+
         return jsonify({
             'success': True,
             'id': profile.id,
             'claim_code': profile.claim_code,
-            'expires_at': profile.expires_at.isoformat()
+            'claim_url': build_claim_url(profile),  # ready to encode into a QR
+            'expires_at': profile.expires_at.isoformat(),
+            'sent_email': will_email,
+            'sent_sms': will_sms
         }), 201
 
     except Exception as e:
@@ -439,8 +459,6 @@ def get_quick_profile_details(profile_id):
                 # commit on db.session the correction was silently discarded.
 def send_quick_profile_email(profile_id):
     """Send claim code to player via email."""
-    from flask import current_app
-
     data = request.get_json() or {}
     profile = QuickProfile.query.get(profile_id)
 
@@ -451,70 +469,22 @@ def send_quick_profile_email(profile_id):
         return jsonify({'success': False, 'error': 'Profile is no longer pending'}), 400
 
     # Use provided email or stored email
-    email = data.get('email', '').strip() or profile.email
+    email = (data.get('email') or '').strip() or profile.email
     if not email or '@' not in email:
         return jsonify({'success': False, 'error': 'Valid email address required'}), 400
 
-    # Update stored email if different
-    if email != profile.email:
-        profile.email = email
+    # Persist the (possibly corrected) address; @transactional commits it. The
+    # actual send is deferred to a Celery task that fires AFTER commit so the
+    # email-provider HTTP call never runs inside this open DB transaction
+    # (pgbouncer slot budget) — same design as the auto-send on create. The task
+    # reads profile.email, so the corrected address must be stored here first.
+    profile.email = email
 
-    try:
-        from app.email import send_email
+    from app.services.quick_profile_notifications import defer_claim_code_send
+    defer_claim_code_send(profile.id, via_email=True, via_sms=False)
 
-        # Generate registration URL with claim code (uses /claim route for QR code compatibility)
-        base_url = current_app.config.get('BASE_URL', 'https://ecsfc.com')
-        register_url = f"{base_url}/claim?code={profile.claim_code}"
-
-        # Send email
-        subject = "Your ECS FC Registration Code"
-        body = f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #1a5f2a;">Welcome to ECS FC!</h2>
-
-                <p>Hi {profile.player_name},</p>
-
-                <p>You've been added to our system. Use the code below to complete your registration:</p>
-
-                <div style="background: #f5f5f5; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
-                    <p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">Your Registration Code:</p>
-                    <p style="font-size: 32px; font-weight: bold; letter-spacing: 4px; margin: 0; color: #1a5f2a;">{profile.claim_code}</p>
-                </div>
-
-                <p><strong>To register:</strong></p>
-                <ol>
-                    <li>Click <a href="{register_url}" style="color: #1a5f2a;">this link</a> or go to {base_url}</li>
-                    <li>Authenticate with Discord</li>
-                    <li>Your profile will be automatically linked</li>
-                </ol>
-
-                <p style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 10px; font-size: 14px;">
-                    <strong>Note:</strong> This code expires on {profile.expires_at.strftime('%B %d, %Y')}.
-                </p>
-
-                <p style="margin-top: 30px; font-size: 14px; color: #666;">
-                    See you on the pitch!<br>
-                    <strong>ECS FC</strong>
-                </p>
-            </div>
-        </body>
-        </html>
-        """
-
-        result = send_email(email, subject, body)
-
-        if result:
-            logger.info(f"Claim code email sent to {email} for profile {profile_id}")
-            return jsonify({'success': True, 'message': f'Email sent to {email}'})
-        else:
-            logger.error(f"Failed to send claim code email to {email}")
-            return jsonify({'success': False, 'error': 'Failed to send email'}), 500
-
-    except Exception as e:
-        logger.error(f"Error sending claim code email: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': 'Failed to send email'}), 500
+    logger.info(f"Claim code email queued to {email} for profile {profile_id}")
+    return jsonify({'success': True, 'message': f'Email queued to {email}'})
 
 
 # ==================== Send Claim Code via SMS ====================
@@ -525,7 +495,7 @@ def send_quick_profile_email(profile_id):
 @transactional  # same as send-email: profile.phone_number correction must persist.
 def send_quick_profile_sms(profile_id):
     """Send claim code to player via SMS."""
-    from flask import current_app
+    import re
 
     data = request.get_json() or {}
     profile = QuickProfile.query.get(profile_id)
@@ -536,52 +506,23 @@ def send_quick_profile_sms(profile_id):
     if profile.status != QuickProfileStatus.PENDING.value:
         return jsonify({'success': False, 'error': 'Profile is no longer pending'}), 400
 
-    # Use provided phone or stored phone
-    import re
-    phone = data.get('phone_number', '').strip() or profile.phone_number
-    if phone:
-        phone = re.sub(r'\D', '', phone)
-
-    if not phone or len(phone) < 10:
+    # Use provided phone or stored phone; store canonical digits-only (the task's
+    # _normalize_phone re-derives +E.164 at send time). Keeping one stored format
+    # avoids the same number being persisted three different ways across writers.
+    phone_digits = re.sub(r'\D', '', (data.get('phone_number') or '').strip() or profile.phone_number or '')
+    if len(phone_digits) < 10:
         return jsonify({'success': False, 'error': 'Valid phone number required (at least 10 digits)'}), 400
 
-    # Format for Twilio (US numbers need +1)
-    if len(phone) == 10:
-        phone = f"+1{phone}"
-    elif not phone.startswith('+'):
-        phone = f"+{phone}"
+    # Persist correction; @transactional commits it. Send is deferred to a Celery
+    # task that fires AFTER commit so the SMS-provider HTTP call never runs inside
+    # this open DB transaction. The task reads profile.phone_number.
+    profile.phone_number = phone_digits
 
-    # Update stored phone if different
-    if phone != profile.phone_number:
-        profile.phone_number = re.sub(r'\D', '', phone)
+    from app.services.quick_profile_notifications import defer_claim_code_send
+    defer_claim_code_send(profile.id, via_email=False, via_sms=True)
 
-    try:
-        from app.sms_helpers import send_sms
-
-        # Generate registration URL with claim code (uses /claim route for QR code compatibility)
-        base_url = current_app.config.get('BASE_URL', 'https://ecsfc.com')
-        register_url = f"{base_url}/claim?code={profile.claim_code}"
-
-        # SMS message (keep it short with opt-out)
-        message = (
-            f"Hi {profile.player_name}! Your ECS FC registration code is: {profile.claim_code}\n\n"
-            f"Register at: {register_url}\n\n"
-            f"Code expires: {profile.expires_at.strftime('%b %d')}\n\n"
-            f"Reply STOP to opt out."
-        )
-
-        success, result = send_sms(phone, message)
-
-        if success:
-            logger.info(f"Claim code SMS sent to {phone} for profile {profile_id}")
-            return jsonify({'success': True, 'message': f'SMS sent to {phone}'})
-        else:
-            logger.error(f"Failed to send claim code SMS to {phone}: {result}")
-            return jsonify({'success': False, 'error': f'Failed to send SMS: {result}'}), 500
-
-    except Exception as e:
-        logger.error(f"Error sending claim code SMS: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': 'Failed to send SMS'}), 500
+    logger.info(f"Claim code SMS queued for profile {profile_id}")
+    return jsonify({'success': True, 'message': 'SMS queued'})
 
 
 # ==================== Update Contact Info ====================
@@ -604,8 +545,8 @@ def update_quick_profile_contact(profile_id):
     if not profile:
         return jsonify({'success': False, 'error': 'Quick profile not found'}), 404
 
-    email = data.get('email', '').strip() or None
-    phone_number = data.get('phone_number', '').strip() or None
+    email = (data.get('email') or '').strip() or None
+    phone_number = (data.get('phone_number') or '').strip() or None
 
     if email and '@' not in email:
         return jsonify({'success': False, 'error': 'Invalid email address'}), 400

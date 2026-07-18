@@ -134,7 +134,9 @@ class PlayerAdminService(BaseService):
         note_id: int,
         editor_id: int,
         content: str,
-        allow_edit_others: bool = False
+        allow_edit_others: bool = False,
+        expected_player_id: Optional[int] = None,
+        expected_quick_profile_id: Optional[int] = None
     ) -> ServiceResult[Dict[str, Any]]:
         """
         Update an existing admin note.
@@ -144,6 +146,9 @@ class PlayerAdminService(BaseService):
             editor_id: The user ID of the editor
             content: The new note content
             allow_edit_others: If True, allow editing notes by other authors (admin only)
+            expected_player_id / expected_quick_profile_id: if given, the note must
+                target that player/quick profile or it's treated as not found — keeps
+                a note scoped to the URL it was reached through (correct audit/scoping).
 
         Returns:
             ServiceResult with the updated note
@@ -157,6 +162,12 @@ class PlayerAdminService(BaseService):
         ).get(note_id)
 
         if not note:
+            return ServiceResult.fail("Note not found", "NOTE_NOT_FOUND")
+
+        # Scope the note to the URL it came through, if the caller asked.
+        if expected_player_id is not None and note.player_id != expected_player_id:
+            return ServiceResult.fail("Note not found", "NOTE_NOT_FOUND")
+        if expected_quick_profile_id is not None and note.quick_profile_id != expected_quick_profile_id:
             return ServiceResult.fail("Note not found", "NOTE_NOT_FOUND")
 
         # Check if user can edit this note
@@ -183,7 +194,9 @@ class PlayerAdminService(BaseService):
         self,
         note_id: int,
         deleter_id: int,
-        allow_delete_others: bool = False
+        allow_delete_others: bool = False,
+        expected_player_id: Optional[int] = None,
+        expected_quick_profile_id: Optional[int] = None
     ) -> ServiceResult[Dict[str, Any]]:
         """
         Delete an admin note.
@@ -192,6 +205,8 @@ class PlayerAdminService(BaseService):
             note_id: The note's ID
             deleter_id: The user ID of the deleter
             allow_delete_others: If True, allow deleting notes by other authors (admin only)
+            expected_player_id / expected_quick_profile_id: if given, the note must
+                target that player/quick profile or it's treated as not found.
 
         Returns:
             ServiceResult with deletion confirmation
@@ -201,6 +216,12 @@ class PlayerAdminService(BaseService):
         ).get(note_id)
 
         if not note:
+            return ServiceResult.fail("Note not found", "NOTE_NOT_FOUND")
+
+        # Scope the note to the URL it came through, if the caller asked.
+        if expected_player_id is not None and note.player_id != expected_player_id:
+            return ServiceResult.fail("Note not found", "NOTE_NOT_FOUND")
+        if expected_quick_profile_id is not None and note.quick_profile_id != expected_quick_profile_id:
             return ServiceResult.fail("Note not found", "NOTE_NOT_FOUND")
 
         # Check if user can delete this note
@@ -222,6 +243,81 @@ class PlayerAdminService(BaseService):
             "deleted_note_id": note_id,
             "player_id": player_id,
             "player_name": player_name
+        })
+
+    # ==================== Quick Profile (waiting-room) Notes ====================
+    # Same note system as players — a quick profile is just the other intake into
+    # the waiting room. update_admin_note / delete_admin_note above operate by
+    # note_id and are already target-agnostic, so they serve both.
+
+    def get_quick_profile_notes(
+        self,
+        quick_profile_id: int,
+        limit: int = 50,
+        offset: int = 0
+    ) -> ServiceResult[Dict[str, Any]]:
+        """Get waiting-room notes for a quick profile."""
+        from app.models.quick_profile import QuickProfile
+
+        qp = self.session.query(QuickProfile).get(quick_profile_id)
+        if not qp:
+            return ServiceResult.fail("Quick profile not found", "QUICK_PROFILE_NOT_FOUND")
+
+        notes_query = self.session.query(PlayerAdminNote).filter(
+            PlayerAdminNote.quick_profile_id == quick_profile_id
+        ).options(
+            joinedload(PlayerAdminNote.author).joinedload(User.player)
+        ).order_by(PlayerAdminNote.created_at.desc())
+
+        total_count = notes_query.count()
+        notes = notes_query.offset(offset).limit(limit).all()
+        notes_data = [note.to_dict(include_author=True) for note in notes]
+
+        return ServiceResult.ok({
+            "quick_profile_id": qp.id,
+            "player_name": qp.player_name,
+            "notes": notes_data,
+            "total": total_count,
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + len(notes_data) < total_count
+        })
+
+    def create_quick_profile_note(
+        self,
+        quick_profile_id: int,
+        author_id: int,
+        content: str
+    ) -> ServiceResult[Dict[str, Any]]:
+        """Create a waiting-room note on a quick profile."""
+        from app.models.quick_profile import QuickProfile
+
+        if not content or not content.strip():
+            return ServiceResult.fail("Note content is required", "CONTENT_REQUIRED")
+
+        qp = self.session.query(QuickProfile).get(quick_profile_id)
+        if not qp:
+            return ServiceResult.fail("Quick profile not found", "QUICK_PROFILE_NOT_FOUND")
+
+        author = self.session.query(User).get(author_id)
+        if not author:
+            return ServiceResult.fail("Author not found", "AUTHOR_NOT_FOUND")
+
+        note = PlayerAdminNote(
+            quick_profile_id=quick_profile_id,
+            author_id=author_id,
+            content=content.strip()
+        )
+        self.session.add(note)
+        self.session.commit()
+        self.session.refresh(note)
+
+        logger.info(f"Waiting-room note created for quick profile {quick_profile_id} by user {author_id}")
+
+        return ServiceResult.ok({
+            "note": note.to_dict(include_author=True),
+            "quick_profile_id": qp.id,
+            "player_name": qp.player_name
         })
 
     # ==================== Profile Management ====================

@@ -10,7 +10,7 @@ submission and manages database transactions and error handling to ensure a smoo
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, redirect, url_for, request, abort, g
 from flask_login import login_required
@@ -56,12 +56,36 @@ def create_feedback_entry(form_data, user_id=None, username=None):
         Feedback: The newly created feedback object.
     """
     try:
+        category = form_data.get('category')
+        title = form_data.get('title')
+        description = form_data.get('description')
+        name = username or form_data.get('name')
+
+        # Idempotency guard: if an identical feedback was created very recently,
+        # return the existing row instead of inserting a duplicate. Protects
+        # against double-clicks and browser POST re-submits (refresh / back).
+        recent_cutoff = datetime.utcnow() - timedelta(minutes=5)
+        dup_query = g.db_session.query(Feedback).filter(
+            Feedback.category == category,
+            Feedback.title == title,
+            Feedback.description == description,
+            Feedback.created_at >= recent_cutoff,
+        )
+        if user_id is not None:
+            dup_query = dup_query.filter(Feedback.user_id == user_id)
+        else:
+            dup_query = dup_query.filter(Feedback.user_id.is_(None), Feedback.name == name)
+        existing = dup_query.order_by(Feedback.created_at.desc()).first()
+        if existing:
+            logger.info(f"Duplicate feedback submission ignored; returning existing feedback {existing.id}")
+            return existing
+
         new_feedback = Feedback(
             user_id=user_id,
-            name=username or form_data.get('name'),
-            category=form_data.get('category'),
-            title=form_data.get('title'),
-            description=form_data.get('description'),
+            name=name,
+            category=category,
+            title=title,
+            description=description,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -145,7 +169,7 @@ def submit_feedback():
                         admin_users = User.query.filter(User.roles.contains(admin_role)).all()
                         admin_user_ids = [u.id for u in admin_users]
                         if admin_user_ids:
-                            orchestrator.send(NotificationPayload(
+                            orchestrator.send_async(NotificationPayload(
                                 notification_type=NotificationType.FEEDBACK_NEW,
                                 title=f"New Feedback: {new_feedback.title}",
                                 message=f"New {new_feedback.category} feedback from {new_feedback.name or 'Anonymous'}: {new_feedback.title}",
@@ -223,7 +247,7 @@ def view_feedback(feedback_id):
                         admin_users = User.query.filter(User.roles.contains(admin_role)).all()
                         admin_user_ids = [u.id for u in admin_users]
                         if admin_user_ids:
-                            orchestrator.send(NotificationPayload(
+                            orchestrator.send_async(NotificationPayload(
                                 notification_type=NotificationType.FEEDBACK_REPLY_FROM_USER,
                                 title=f"User Reply: {feedback.title}",
                                 message=f"{safe_current_user.username} replied to feedback #{feedback.id}: {feedback.title}",

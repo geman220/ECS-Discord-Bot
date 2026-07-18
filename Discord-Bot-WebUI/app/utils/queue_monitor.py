@@ -91,92 +91,63 @@ class QueueMonitor:
 
         return results
 
-    def _emergency_purge(self, queue_name: str, current_size: int) -> Dict[str, Any]:
-        """Emergency purge - remove 80% of tasks from queue."""
+    # IMPORTANT ordering note: Celery/Kombu LPUSHes new messages at the HEAD
+    # (LRANGE index 0) and workers BRPOP from the TAIL. So the tail is the
+    # next-to-run work. The previous implementation kept the NEWEST N (head) and
+    # deleted the tail — i.e. it threw away the tasks about to execute. That is
+    # the "recovery made it worse" bug: a backed-up queue would lose its
+    # next-to-run tasks every few minutes. Both methods below now remove ONLY
+    # genuinely expired/malformed messages and preserve every valid task in
+    # execution order — recovery can no longer drop live work. (Draft-critical
+    # tasks are additionally isolated on the unmonitored 'draft' queue.)
+
+    def _prune_expired(self, queue_name: str, current_size: int, action_label: str) -> Dict[str, Any]:
+        """Remove only expired + malformed messages; keep all valid tasks in order."""
         try:
-            # Keep only the newest 20% of tasks
-            keep_count = int(current_size * 0.2)
-
-            # Get the newest tasks
-            newest_tasks = self.redis.execute_command('LRANGE', queue_name, 0, keep_count - 1)
-
-            # Clear the entire queue
-            self.redis.execute_command('DEL', queue_name)
-
-            # Re-add only the newest tasks
-            if newest_tasks:
-                for task in reversed(newest_tasks):  # Add in reverse to maintain order
-                    self.redis.execute_command('LPUSH', queue_name, task)
-
-            purged_count = current_size - keep_count
-            logger.critical(f"EMERGENCY PURGE: Removed {purged_count} tasks from {queue_name}, kept {keep_count}")
-
-            return {
-                'action': 'emergency_purge',
-                'queue': queue_name,
-                'original_size': current_size,
-                'purged_count': purged_count,
-                'remaining_count': keep_count,
-                'timestamp': datetime.utcnow().isoformat()
-            }
-
-        except Exception as e:
-            logger.error(f"Error during emergency purge of {queue_name}: {e}")
-            return {
-                'action': 'emergency_purge_failed',
-                'queue': queue_name,
-                'error': str(e),
-                'timestamp': datetime.utcnow().isoformat()
-            }
-
-    def _critical_cleanup(self, queue_name: str, current_size: int) -> Dict[str, Any]:
-        """Critical cleanup - remove expired and old tasks."""
-        try:
-            removed_count = 0
-
-            # Get all tasks and check expiration
-            tasks = self.redis.execute_command('LRANGE', queue_name, 0, -1)
-            valid_tasks = []
-
             import json
             now = datetime.utcnow()
+
+            # LRANGE returns [head..tail] == [newest..oldest]. Preserve this order.
+            tasks = self.redis.execute_command('LRANGE', queue_name, 0, -1)
+            valid_tasks = []
+            removed_count = 0
 
             for task_data in tasks:
                 try:
                     task = json.loads(task_data)
-                    headers = task.get('headers', {})
-                    expires = headers.get('expires')
-
-                    # Remove expired tasks
+                    expires = task.get('headers', {}).get('expires')
                     if expires:
-                        expire_time = datetime.fromisoformat(expires.replace('Z', '+00:00').replace('+00:00', ''))
+                        expire_time = datetime.fromisoformat(
+                            expires.replace('Z', '+00:00').replace('+00:00', '')
+                        )
                         if expire_time < now:
                             removed_count += 1
                             continue
-
                     valid_tasks.append(task_data)
-
                 except Exception:
-                    # Remove malformed tasks
+                    # Malformed/unparseable message — safe to drop.
                     removed_count += 1
                     continue
 
-            # If still too many tasks, keep only newest 50%
-            if len(valid_tasks) > self.QUEUE_THRESHOLDS[queue_name]['warning']:
-                keep_count = len(valid_tasks) // 2
-                valid_tasks = valid_tasks[:keep_count]
-                removed_count += (current_size - keep_count)
-
-            # Replace queue contents
+            # Rebuild the queue with the SAME ordering: LPUSH oldest first so the
+            # newest ends back at the head (mirrors how Kombu built it).
             self.redis.execute_command('DEL', queue_name)
-            if valid_tasks:
-                for task in reversed(valid_tasks):
-                    self.redis.execute_command('LPUSH', queue_name, task)
+            for task in reversed(valid_tasks):
+                self.redis.execute_command('LPUSH', queue_name, task)
 
-            logger.warning(f"CRITICAL CLEANUP: Removed {removed_count} tasks from {queue_name}")
+            if len(valid_tasks) > self.QUEUE_THRESHOLDS.get(queue_name, {}).get('warning', 10**9):
+                # Deliberately do NOT trim valid tasks — dropping live work is exactly
+                # the failure we're preventing. Surface it loudly instead so a human
+                # (or the isolated worker topology) resolves the real backlog cause.
+                logger.critical(
+                    f"{action_label}: {queue_name} still has {len(valid_tasks)} VALID tasks after "
+                    f"pruning {removed_count} expired — NOT dropping live work; investigate the backlog source."
+                )
+            else:
+                logger.warning(f"{action_label}: removed {removed_count} expired/malformed tasks from {queue_name}")
 
             return {
-                'action': 'critical_cleanup',
+                'action': action_label.lower().replace(' ', '_'),
                 'queue': queue_name,
                 'original_size': current_size,
                 'removed_count': removed_count,
@@ -185,13 +156,21 @@ class QueueMonitor:
             }
 
         except Exception as e:
-            logger.error(f"Error during critical cleanup of {queue_name}: {e}")
+            logger.error(f"Error during {action_label} of {queue_name}: {e}")
             return {
-                'action': 'critical_cleanup_failed',
+                'action': f'{action_label.lower().replace(" ", "_")}_failed',
                 'queue': queue_name,
                 'error': str(e),
                 'timestamp': datetime.utcnow().isoformat()
             }
+
+    def _emergency_purge(self, queue_name: str, current_size: int) -> Dict[str, Any]:
+        """Emergency: prune expired/malformed only — never drop valid next-to-run tasks."""
+        return self._prune_expired(queue_name, current_size, 'EMERGENCY PRUNE')
+
+    def _critical_cleanup(self, queue_name: str, current_size: int) -> Dict[str, Any]:
+        """Critical: prune expired/malformed only — never drop valid next-to-run tasks."""
+        return self._prune_expired(queue_name, current_size, 'CRITICAL CLEANUP')
 
     def get_queue_summary(self) -> Dict[str, Any]:
         """Get a summary of all queue sizes."""

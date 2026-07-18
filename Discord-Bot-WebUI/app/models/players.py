@@ -717,16 +717,30 @@ def add_player_to_team(player, team, session, position='bench'):
 
 class PlayerAdminNote(db.Model):
     """
-    Admin notes for players with author attribution.
+    Admin/coach notes about a prospect, with author attribution.
 
-    Allows coaches and admins to add notes about players that are
-    visible only to other coaches/admins. Each note tracks who
-    created it and when.
+    A note targets EITHER a player (self-signup, has an account) OR a quick profile
+    (admin-made walk-in, no account yet) — the two intakes into the same "waiting
+    room" of not-yet-approved prospects. Exactly one of player_id / quick_profile_id
+    is set (enforced by a DB CHECK). When a quick profile is claimed, its notes are
+    re-pointed to the new player so the history follows the prospect.
+
+    Visible only to coaches/admins. Each note tracks who created it and when.
     """
     __tablename__ = 'player_admin_note'
+    __table_args__ = (
+        db.CheckConstraint(
+            '(player_id IS NOT NULL AND quick_profile_id IS NULL)'
+            ' OR (player_id IS NULL AND quick_profile_id IS NOT NULL)',
+            name='ck_player_admin_note_one_target'
+        ),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False, index=True)
+    # Exactly one target is set. Both nullable at the column level; the CHECK above
+    # guarantees exactly-one so a note is never orphaned or double-targeted.
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=True, index=True)
+    quick_profile_id = db.Column(db.Integer, db.ForeignKey('quick_profile.id', ondelete='CASCADE'), nullable=True, index=True)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -734,6 +748,7 @@ class PlayerAdminNote(db.Model):
 
     # Relationships - passive_deletes=True trusts DB's ON DELETE CASCADE
     player = db.relationship('Player', back_populates='admin_notes', passive_deletes=True)
+    quick_profile = db.relationship('QuickProfile', foreign_keys=[quick_profile_id], passive_deletes=True)
     author = db.relationship('User', foreign_keys=[author_id])
 
     def to_dict(self, include_author=True):
@@ -746,6 +761,7 @@ class PlayerAdminNote(db.Model):
         data = {
             'id': self.id,
             'player_id': self.player_id,
+            'quick_profile_id': self.quick_profile_id,
             'content': self.content,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,

@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 ABANDONED_AFTER = timedelta(hours=2)
 
 
-@celery_task(name='app.tasks.tasks_draft_clock.enforce_draft_clock', bind=True, queue='celery', max_retries=0)
+@celery_task(name='app.tasks.tasks_draft_clock.enforce_draft_clock', bind=True, queue='draft', max_retries=0, ignore_result=True)
 def enforce_draft_clock(self, session):
     """Advance or pause any active draft whose pick clock has expired."""
     from app.models import DraftSession
@@ -51,6 +51,7 @@ def enforce_draft_clock(self, session):
     acted = 0
     abandoned = 0
     for ds in expired:
+        alert_targets = None  # (discord_ids, message) resolved under the txn, sent after commit
         try:
             if (now - ds.pick_deadline) > ABANDONED_AFTER:
                 logger.warning(
@@ -88,17 +89,29 @@ def enforce_draft_clock(self, session):
                 session.flush()
                 # DM cadence: every cycle for the first 3, then ~once a minute, to escalate
                 # without spamming. On-screen overdue state is emitted every cycle regardless.
+                # Resolve the coach targets HERE (reads only), but DO NOT send the DM yet —
+                # the bot HTTP call must happen after commit so we never hold a pgbouncer
+                # transaction slot open across it (see resolve_coach_alert docstring).
                 if n <= 3 or n % 4 == 0:
                     try:
-                        sent = draft_clock.alert_team_coaches(session, ds, escalation=n)
-                        logger.info(f"Draft pick overdue: alerted {sent} coach(es) for session {ds.id} (escalation #{n})")
+                        alert_targets = draft_clock.resolve_coach_alert(session, ds, escalation=n)
                     except Exception as alert_err:
-                        logger.warning(f"coach alert failed for session {ds.id}: {alert_err}")
+                        logger.warning(f"coach alert resolve failed for session {ds.id}: {alert_err}")
                 state = draft_clock.build_state(session, ds)
                 label = f'alerted(#{n})'
+            # Capture the league name before commit so the post-commit emit doesn't lazy-load.
+            league_name = ds.league.name if ds.league else None
             session.commit()
+            # HTTP strictly AFTER commit — the transaction (and its DB slot) is already released.
+            if alert_targets:
+                try:
+                    _ids, _msg = alert_targets
+                    sent = draft_clock.dispatch_coach_dms(_ids, _msg)
+                    logger.info(f"Draft pick overdue: alerted {sent} coach(es) for session {ds.id}")
+                except Exception as alert_err:
+                    logger.warning(f"coach alert dispatch failed for session {ds.id}: {alert_err}")
             try:
-                draft_clock.emit_clock(ds.league.name, state)
+                draft_clock.emit_clock(league_name, state)
             except Exception as emit_err:
                 logger.warning(f"enforce_draft_clock emit failed for session {ds.id}: {emit_err}")
             logger.info(f"Draft clock {label} for session {ds.id} (S{ds.season_id}/L{ds.league_id})")

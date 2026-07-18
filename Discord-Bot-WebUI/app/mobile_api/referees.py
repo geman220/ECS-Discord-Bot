@@ -51,7 +51,7 @@ def _send_ref_assignment_push(match: Match, ref: Player) -> None:
         home_name = match.home_team.name if match.home_team else 'TBD'
         away_name = match.away_team.name if match.away_team else 'TBD'
         date_str = _format_match_date_for_body(match)
-        orchestrator.send(NotificationPayload(
+        orchestrator.send_async(NotificationPayload(
             notification_type=NotificationType.REF_ASSIGNMENT,
             title='Referee Assignment',
             message=f"You've been assigned to ref {home_name} vs {away_name} on {date_str}",
@@ -90,7 +90,7 @@ def _send_ref_unassigned_push(match: Match, ref_user_id: int,
             NotificationType,
         )
         date_str = _format_match_date_for_body(match)
-        orchestrator.send(NotificationPayload(
+        orchestrator.send_async(NotificationPayload(
             notification_type=NotificationType.REF_UNASSIGNED,
             title='Referee Assignment Removed',
             message=f"You're no longer assigned to ref {home_name} vs {away_name} on {date_str}",

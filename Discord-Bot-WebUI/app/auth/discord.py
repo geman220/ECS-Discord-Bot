@@ -450,7 +450,9 @@ def claim_quick_profile():
     """
     Entry point for QR code scans containing quick profile claim codes.
 
-    Mobile app generates QR codes encoding: https://portal.ecsfc.com/claim?code=XXXXXX
+    Mobile app generates QR codes encoding: https://portal.ecsfc.com/auth/claim?code=XXXXXX
+    (note the /auth prefix — this blueprint is registered at url_prefix='/auth'; a bare
+    /claim 404s). Prefer the `claim_url` returned by the create endpoint over hand-building.
     This route validates the code and redirects to Discord OAuth registration.
 
     Flow:

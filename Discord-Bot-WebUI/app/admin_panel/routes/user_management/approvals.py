@@ -22,6 +22,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models.core import User, Role
 from app.models.ecs_fc import is_ecs_fc_team
+from app.models.quick_profile import QuickProfile, QuickProfileStatus
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError, UserNotFoundError
@@ -131,11 +132,59 @@ def user_approvals():
             logger.error(f"Error loading audit logs: {str(e)}")
             audit_logs = []
 
+        # Field-created quick profiles that haven't been claimed yet. These are
+        # walk-in players an admin captured (name + photo + notes + claim code)
+        # who don't have a real account until they register with the code. We
+        # surface them here as an "unclaimed" group so the board can see them
+        # alongside real pending users — WITHOUT creating orphan User rows.
+        # (Only shown in the pending / all views; hidden when reviewing
+        # approved/denied history.)
+        field_profiles = []
+        if status_filter in ('pending', 'all'):
+            try:
+                field_profiles = db.session.query(QuickProfile).filter(
+                    QuickProfile.status == QuickProfileStatus.PENDING.value,
+                    QuickProfile.expires_at > datetime.utcnow()
+                ).order_by(QuickProfile.created_at.desc()).limit(100).all()
+            except Exception as e:
+                logger.error(f"Error loading field quick profiles: {str(e)}")
+                field_profiles = []
+
+        # Waiting-room review notes (coach/admin fit notes) for the prospects on
+        # this page — pending players and field/quick profiles share one note system.
+        # Loaded in two grouped queries and keyed for the template so admins can read
+        # the coach input while deciding. Author is eager-loaded for attribution.
+        notes_by_player = {}
+        notes_by_quick_profile = {}
+        try:
+            from app.models.players import PlayerAdminNote
+            _player_ids = [u.player.id for u in pending_users if u.player]
+            _qp_ids = [qp.id for qp in field_profiles]
+            if _player_ids:
+                for n in db.session.query(PlayerAdminNote).options(
+                    joinedload(PlayerAdminNote.author).joinedload(User.player)
+                ).filter(PlayerAdminNote.player_id.in_(_player_ids)).order_by(
+                    PlayerAdminNote.created_at.desc()
+                ):
+                    notes_by_player.setdefault(n.player_id, []).append(n)
+            if _qp_ids:
+                for n in db.session.query(PlayerAdminNote).options(
+                    joinedload(PlayerAdminNote.author).joinedload(User.player)
+                ).filter(PlayerAdminNote.quick_profile_id.in_(_qp_ids)).order_by(
+                    PlayerAdminNote.created_at.desc()
+                ):
+                    notes_by_quick_profile.setdefault(n.quick_profile_id, []).append(n)
+        except Exception as e:
+            logger.error(f"Error loading waiting-room notes: {str(e)}")
+
         return render_template(
             'admin_panel/users/user_approvals_flowbite.html',
             pending_users=pending_users,
             recent_actions=recent_actions,
             audit_logs=audit_logs,
+            field_profiles=field_profiles,
+            notes_by_player=notes_by_player,
+            notes_by_quick_profile=notes_by_quick_profile,
             stats=stats,
             # Pass filter values back to template for form persistence
             status_filter=status_filter,

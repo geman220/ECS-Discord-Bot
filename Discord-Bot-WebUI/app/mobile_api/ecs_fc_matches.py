@@ -2019,7 +2019,7 @@ def respond_to_ecs_fc_substitute_request(request_id: int):
                 availability_text = "is available" if is_available else "is NOT available"
                 match_text = f" for the match vs {match_info['opponent']} on {match_info['date']}" if match_info else ""
 
-                orchestrator.send(NotificationPayload(
+                orchestrator.send_async(NotificationPayload(
                     notification_type=NotificationType.SUB_REQUEST,
                     title="Sub Response Received",
                     message=f"{player_name} {availability_text}{match_text}",

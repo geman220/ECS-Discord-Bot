@@ -1027,7 +1027,7 @@ class DraftService:
             logger.debug(f"Using cached analytics for {league_name}")
             return cached_analytics
         
-        current_league, _ = DraftService.get_league_data(league_name)
+        current_league, all_leagues = DraftService.get_league_data(league_name)
         if not current_league:
             return {}
         
@@ -1046,7 +1046,31 @@ class DraftService:
         
         total_drafted = 0
         position_counts = {}
-        
+
+        # M1: batch the per-player "experience" count in ONE aggregate query instead
+        # of walking player.team_history -> th.team -> th.team.league lazily for every
+        # drafted player (an N+1 that reran on every post-pick analytics rebuild).
+        #
+        # Match the ORIGINAL cross-season semantics: the old code counted history rows
+        # where th.team.league.NAME == this league's name, i.e. across EVERY season's
+        # same-named league (a real veteran indicator). League name is not unique across
+        # seasons, so we filter on the ids of ALL same-named leagues (get_league_data's
+        # all_leagues), NOT just current_league.id — otherwise every drafted player
+        # collapses to ~1 and the veteran/rookie signal is lost.
+        history_counts = {}
+        try:
+            from sqlalchemy import func as _func
+            from app.models.players import PlayerTeamHistory as _PTH
+            from app.models import Team as _TeamModel
+            _league_ids = [l.id for l in (all_leagues or [current_league])] or [current_league.id]
+            _rows = (session.query(_PTH.player_id, _func.count(_PTH.id))
+                     .join(_TeamModel, _TeamModel.id == _PTH.team_id)
+                     .filter(_TeamModel.league_id.in_(_league_ids))
+                     .group_by(_PTH.player_id).all())
+            history_counts = {pid: cnt for pid, cnt in _rows}
+        except Exception as _hc_err:
+            logger.warning(f"draft analytics history batch failed (falling back to 0): {_hc_err}")
+
         for team in teams:
             team_players = [p for p in team.players if p.is_current_player]
             team_count = len(team_players)
@@ -1062,8 +1086,8 @@ class DraftService:
             if team_players:
                 total_experience = 0
                 for player in team_players:
-                    # Get player's team history count as experience indicator
-                    team_history_count = len([th for th in player.team_history if th.team.league.name == current_league_name]) if hasattr(player, 'team_history') else 0
+                    # Experience indicator: this league's team-history count (batched above).
+                    team_history_count = history_counts.get(player.id, 0)
                     total_experience += team_history_count
                 avg_experience = total_experience / team_count
             

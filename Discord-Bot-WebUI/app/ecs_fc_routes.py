@@ -1017,7 +1017,7 @@ def submit_sub_response(token: str):
                     orchestrator, NotificationType, NotificationPayload
                 )
                 availability_text = "is available" if is_available else "is NOT available"
-                orchestrator.send(NotificationPayload(
+                orchestrator.send_async(NotificationPayload(
                     notification_type=NotificationType.SUB_REQUEST,
                     title="Sub Response Received",
                     message=f"{player_name} {availability_text}{match_info_text}",

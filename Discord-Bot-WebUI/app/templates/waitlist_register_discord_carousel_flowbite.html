@@ -65,20 +65,21 @@
 
         <!-- Step 1: Contact Information -->
         <div class="step" id="step1" data-step="1">
-            <!-- Registration Code (Optional — collapsed by default) -->
-            <details class="bg-ecs-green/10 dark:bg-ecs-green/20 border border-ecs-green/30 rounded-lg mb-4 group"
-                     {{ 'open' if claim_code else '' }}>
+            <!-- Registration Code — open by default so walk-ins who were already
+                 set up by a coach link that profile instead of creating a duplicate. -->
+            <details class="bg-ecs-green/10 dark:bg-ecs-green/20 border border-ecs-green/30 rounded-lg mb-4 group" open>
                 <summary class="flex items-center gap-3 p-4 cursor-pointer list-none">
                     <i class="ti ti-ticket text-ecs-green text-lg"></i>
                     <span class="flex-1 font-medium text-gray-900 dark:text-white text-sm">
-                        Have a Pub League claim code? <span class="font-normal text-gray-500 dark:text-gray-400">(Optional)</span>
+                        Already signed up by a coach? <span class="font-normal text-gray-500 dark:text-gray-400">Enter your claim code</span>
                     </span>
                     <i class="ti ti-chevron-down text-gray-400 text-sm transition-transform group-open:rotate-180"></i>
                 </summary>
                 <div class="px-4 pb-4">
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        If a Pub League coach gave you a 6-character code at an event like PLOP, enter it here to link your player profile.
-                        No code? No problem — just skip this.
+                        If a coach or organizer already started a profile for you (for example at PLOP), they gave you a
+                        6-character code. Enter it here so we link that profile to your account instead of creating a
+                        duplicate. No code? No problem — just skip this and continue.
                     </p>
                     <div class="flex gap-2">
                         <input type="text" name="claim_code" id="claim_code"

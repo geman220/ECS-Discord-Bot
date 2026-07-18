@@ -177,6 +177,14 @@ def _init_rate_limiting(app):
 
                 # Email broadcast progress polling (polls every 5s during send)
                 '/admin-panel/api/email-broadcasts/',
+
+                # Live draft board, its player/state APIs and HTTP pick fallback.
+                # During a draft, many coaches often share ONE venue public IP and
+                # would otherwise share a single rate-limit bucket (200/min) on
+                # page loads/reloads. Picks themselves go over Socket.IO (already
+                # exempt above); this covers the board + supporting AJAX.
+                '/draft/',
+                '/admin-panel/draft/',
             ]
             return any(request.path.startswith(path) for path in exempt_paths)
 

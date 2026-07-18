@@ -867,7 +867,7 @@ def ispy_submit_mobile():
                     ).all()
                 ]
             if tagged_user_ids:
-                orchestrator.send(NotificationPayload(
+                orchestrator.send_async(NotificationPayload(
                     notification_type=NotificationType.ISPY_SPOTTED,
                     title="You've been spotted in iSpy",
                     message=f"{author_name} tagged you in an iSpy shot at {location}.",

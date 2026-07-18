@@ -92,6 +92,9 @@ class NotificationType(Enum):
     ACCOUNT_APPROVED = 'account_approved'
     ROLE_ASSIGNED = 'role_assigned'
 
+    # Draft
+    DRAFT_ON_THE_CLOCK = 'draft_on_the_clock'
+
 
 @dataclass
 class NotificationPayload:
@@ -129,6 +132,25 @@ class NotificationPayload:
     discord_view: Optional[str] = None
 
 
+def payload_to_dict(payload: 'NotificationPayload') -> Dict[str, Any]:
+    """Serialize a NotificationPayload to a JSON-safe dict for Celery.
+
+    The only non-primitive field is the ``notification_type`` enum, which is
+    stored by name so it survives Celery's JSON transport.
+    """
+    from dataclasses import asdict
+    data = asdict(payload)
+    data['notification_type'] = payload.notification_type.name
+    return data
+
+
+def payload_from_dict(data: Dict[str, Any]) -> 'NotificationPayload':
+    """Rebuild a NotificationPayload from :func:`payload_to_dict` output."""
+    data = dict(data)
+    data['notification_type'] = NotificationType[data['notification_type']]
+    return NotificationPayload(**data)
+
+
 # Default icons for notification types
 NOTIFICATION_ICONS = {
     NotificationType.MATCH_REMINDER: 'ti ti-calendar-event',
@@ -155,6 +177,7 @@ NOTIFICATION_ICONS = {
     NotificationType.FEEDBACK_REPLY_FROM_USER: 'ti ti-message-dots',
     NotificationType.FEEDBACK_STATUS_CHANGE: 'ti ti-exchange',
     NotificationType.FEEDBACK_CLOSED: 'ti ti-message-off',
+    NotificationType.DRAFT_ON_THE_CLOCK: 'ti ti-clock-play',
 }
 
 
@@ -173,6 +196,7 @@ NOTIFICATION_CHANNEL_IDS = {
     NotificationType.RSVP_CONFIRMED: 'rsvp_reminders',
     NotificationType.SUB_REQUEST: 'substitute_requests',
     NotificationType.SUB_FILLED: 'substitute_requests',
+    NotificationType.DRAFT_ON_THE_CLOCK: 'draft_alerts',
 }
 
 
@@ -296,6 +320,32 @@ class NotificationOrchestrator:
         except Exception as e:
             logger.error(f"Error in notification orchestrator: {e}", exc_info=True)
             return results
+
+    def send_async(self, payload: NotificationPayload) -> Dict[str, Any]:
+        """Enqueue delivery on Celery so the caller returns immediately.
+
+        ``send()`` performs blocking network I/O (SMTP email, Discord/FCM HTTP,
+        Twilio SMS) inline. In an HTTP request that stalls the response — and a
+        stalled response is what makes mobile clients retry and create duplicate
+        submissions. Use this from request handlers for fire-and-forget
+        notifications; use ``send()`` only when the caller needs the per-channel
+        result dict back synchronously.
+
+        Falls back to a synchronous ``send()`` if the task can't be enqueued
+        (broker unreachable, Celery not configured) so a notification is never
+        silently dropped.
+
+        Returns:
+            ``{'queued': True}`` when handed to Celery, otherwise the ``send()``
+            result dict from the synchronous fallback.
+        """
+        try:
+            from app.tasks.tasks_notifications import send_notification_async
+            send_notification_async.delay(payload_to_dict(payload))
+            return {'queued': True}
+        except Exception as e:
+            logger.warning(f"send_async enqueue failed ({e}); sending synchronously")
+            return self.send(payload)
 
     def _has_force_overrides(self, payload: NotificationPayload) -> bool:
         """Check if any force_* channel overrides are set."""

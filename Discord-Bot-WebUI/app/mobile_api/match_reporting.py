@@ -231,7 +231,7 @@ def _notify_opposing_coaches_to_verify(session, match: Match, just_verified: str
         )
         date_str = match.date.strftime('%b %-d') if match.date else 'recent'
         score_str = f"{match.home_team_score}-{match.away_team_score}"
-        orchestrator.send(NotificationPayload(
+        orchestrator.send_async(NotificationPayload(
             notification_type=NotificationType.MATCH_VERIFICATION_NEEDED,
             title="Match needs your verification",
             message=(

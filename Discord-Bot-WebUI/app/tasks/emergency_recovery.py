@@ -16,6 +16,23 @@ from app.utils.task_session_manager import task_session
 logger = logging.getLogger(__name__)
 
 
+def _scan_keys(redis_service, pattern: str, count: int = 200, max_keys: int = 5000):
+    """Non-blocking key enumeration via SCAN. `KEYS` blocks single-threaded Redis
+    for the whole keyspace walk (e.g. `celery-task-meta-*` can be huge) — during a
+    draft that freezes every worker's BRPOP and every session read. SCAN yields in
+    small batches so Redis keeps serving. Bounded by max_keys as a safety cap."""
+    keys = []
+    cursor = 0
+    while True:
+        cursor, batch = redis_service.execute_command('SCAN', cursor, 'MATCH', pattern, 'COUNT', count)
+        cursor = int(cursor)
+        if batch:
+            keys.extend(batch)
+        if cursor == 0 or len(keys) >= max_keys:
+            break
+    return keys
+
+
 @celery_task(
     name='app.tasks.emergency_recovery.emergency_queue_recovery',
     queue='celery',
@@ -119,8 +136,8 @@ def emergency_queue_recovery(self, session) -> Dict[str, Any]:
 def _clear_beat_locks(redis_service) -> int:
     """Clear expired Celery beat locks that might cause duplicate scheduling."""
     try:
-        # Look for celery beat locks
-        beat_keys = redis_service.execute_command('KEYS', 'celery-beat-lock*')
+        # Look for celery beat locks (SCAN, not KEYS — never block Redis)
+        beat_keys = _scan_keys(redis_service, 'celery-beat-lock*')
         cleared = 0
 
         for key in beat_keys:
@@ -149,7 +166,7 @@ def _clear_worker_locks(redis_service) -> int:
         cleared = 0
 
         for pattern in worker_patterns:
-            keys = redis_service.execute_command('KEYS', pattern)
+            keys = _scan_keys(redis_service, pattern)
             for key in keys:
                 try:
                     # Check if lock is old
@@ -173,8 +190,9 @@ def _clear_problem_keys(redis_service) -> int:
     try:
         cleared = 0
 
-        # Clear old task results that might be accumulating
-        result_keys = redis_service.execute_command('KEYS', 'celery-task-meta-*')
+        # Clear old task results that might be accumulating (SCAN, not KEYS —
+        # celery-task-meta-* can be enormous and KEYS would block all of Redis)
+        result_keys = _scan_keys(redis_service, 'celery-task-meta-*')
         old_threshold = datetime.utcnow() - timedelta(hours=2)
 
         for key in result_keys[:100]:  # Limit to 100 to avoid timeout

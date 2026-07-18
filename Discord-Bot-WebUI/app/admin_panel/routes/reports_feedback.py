@@ -28,6 +28,7 @@ from app.services.notification_orchestrator import orchestrator, NotificationPay
 from app.admin_helpers import get_rsvp_status_data, get_ecs_fc_rsvp_status_data
 from app.ecs_fc_schedule import EcsFcScheduleManager
 from app.utils.user_helpers import safe_current_user
+from app.alert_helpers import show_success
 
 logger = logging.getLogger(__name__)
 
@@ -311,7 +312,7 @@ def feedback_list():
                                 'In Progress': f"Your feedback is now being worked on: {selected_feedback.title}",
                                 'Open': f"Your feedback has been reopened: {selected_feedback.title}",
                             }
-                            orchestrator.send(NotificationPayload(
+                            orchestrator.send_async(NotificationPayload(
                                 notification_type=NotificationType.FEEDBACK_STATUS_CHANGE,
                                 title=f"Feedback Update: {selected_feedback.title}",
                                 message=status_messages.get(selected_feedback.status, f"Your feedback status changed to {selected_feedback.status}: {selected_feedback.title}"),
@@ -346,7 +347,7 @@ def feedback_list():
 
                     if selected_feedback.user_id:
                         try:
-                            orchestrator.send(NotificationPayload(
+                            orchestrator.send_async(NotificationPayload(
                                 notification_type=NotificationType.FEEDBACK_REPLY,
                                 title=f"Reply to: {selected_feedback.title}",
                                 message=f"An admin has replied to your feedback: {selected_feedback.title}",
@@ -496,7 +497,7 @@ def view_feedback(feedback_id):
                         'In Progress': f"Your feedback is now being worked on: {feedback.title}",
                         'Open': f"Your feedback has been reopened: {feedback.title}",
                     }
-                    orchestrator.send(NotificationPayload(
+                    orchestrator.send_async(NotificationPayload(
                         notification_type=NotificationType.FEEDBACK_STATUS_CHANGE,
                         title=f"Feedback Update: {feedback.title}",
                         message=status_messages.get(feedback.status, f"Your feedback status changed to {feedback.status}: {feedback.title}"),
@@ -531,7 +532,7 @@ def view_feedback(feedback_id):
 
             if feedback.user_id:
                 try:
-                    orchestrator.send(NotificationPayload(
+                    orchestrator.send_async(NotificationPayload(
                         notification_type=NotificationType.FEEDBACK_REPLY,
                         title=f"Reply to: {feedback.title}",
                         message=f"An admin has replied to your feedback: {feedback.title}",
@@ -593,7 +594,7 @@ def close_feedback(feedback_id):
 
     if feedback.user_id:
         try:
-            orchestrator.send(NotificationPayload(
+            orchestrator.send_async(NotificationPayload(
                 notification_type=NotificationType.FEEDBACK_CLOSED,
                 title=f"Feedback Closed: {feedback.title}",
                 message=f"Your feedback has been closed: {feedback.title}",
@@ -634,6 +635,7 @@ def delete_feedback(feedback_id):
     if not feedback:
         abort(404)
 
+    feedback_title = feedback.title
     session.delete(feedback)
 
     AdminAuditLog.log_action(
@@ -649,7 +651,16 @@ def delete_feedback(feedback_id):
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'success': True, 'message': 'Feedback deleted successfully'})
 
-    return redirect(url_for('admin_panel.feedback_list'))
+    show_success(f'Feedback deleted: {feedback_title}')
+
+    # Preserve the admin's active filters so the list returns to the same view
+    # (dropping them made a successful delete look like "nothing happened").
+    filter_params = {
+        key: request.form.get(key) or request.args.get(key)
+        for key in ('status', 'priority', 'source', 'category', 'show_closed')
+    }
+    filter_params = {k: v for k, v in filter_params.items() if v}
+    return redirect(url_for('admin_panel.feedback_list', **filter_params))
 
 
 # -----------------------------------------------------------

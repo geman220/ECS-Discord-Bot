@@ -47,6 +47,57 @@ def get_db_league_name(league_name: str) -> str:
     return VALID_LEAGUES.get(league_name.lower())
 
 
+# Roles allowed to VIEW/pick on the draft (coaches + admins)
+DRAFT_ROLES = ['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin']
+# Roles allowed to RUN the clock (start/skip/undo/pause/resume/end) — admins only
+DRAFT_ADMIN_ROLES = ['Pub League Admin', 'Global Admin']
+
+
+def _current_league(session, db_league_name):
+    """Resolve the current-season League row for a DB league name (or None)."""
+    return session.query(League).join(Season).filter(
+        League.name == db_league_name,
+        Season.is_current == True  # noqa: E712
+    ).first()
+
+
+def _user_is_admin(session, user_id) -> bool:
+    """True if the user holds a Pub League Admin / Global Admin role (session query,
+    so it works outside a request/current_user context)."""
+    from app.models.core import Role, user_roles
+    return session.query(user_roles.c.user_id).join(
+        Role, Role.id == user_roles.c.role_id
+    ).filter(
+        user_roles.c.user_id == user_id,
+        Role.name.in_(DRAFT_ADMIN_ROLES),
+    ).first() is not None
+
+
+def _my_coached_team_ids(session, user_id, league_id):
+    """Team ids in this league that the user coaches (player_teams.is_coach). Any one
+    coach of a team counts as that team being 'in the draft'."""
+    rows = session.query(player_teams.c.team_id).join(
+        Player, Player.id == player_teams.c.player_id
+    ).join(Team, Team.id == player_teams.c.team_id).filter(
+        Player.user_id == user_id,
+        player_teams.c.is_coach == True,  # noqa: E712
+        Team.league_id == league_id,
+    ).all()
+    return [r[0] for r in rows]
+
+
+def _emit_to_draft_rooms(event, payload, url_name, db_name):
+    """Emit a draft socket event to every room the web board might have joined
+    (the board joins draft_<getLeagueName()>, whose casing varies)."""
+    from app.core import socketio
+    rooms = {f'draft_{url_name}', f'draft_{db_name}', f'draft_{str(db_name).lower()}'}
+    for room in rooms:
+        try:
+            socketio.emit(event, payload, room=room)
+        except Exception as e:  # never let an emit failure break the API response
+            logger.warning(f"draft emit {event} -> {room} failed: {e}")
+
+
 @mobile_api_v2.route('/draft/leagues', methods=['GET'])
 @jwt_required()
 @jwt_role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
@@ -448,6 +499,7 @@ def draft_player(league_name: str):
 
     player_id = data.get('player_id')
     team_id = data.get('team_id')
+    position = (data.get('position') or 'bench')  # pitch-view slot; 'bench' from a list pick
 
     if not player_id or not team_id:
         return jsonify({"msg": "Missing player_id or team_id"}), 400
@@ -481,21 +533,48 @@ def draft_player(league_name: str):
         if not team:
             return jsonify({"msg": "Team not found in this league"}), 404
 
-        # Check if player is already on a team in this league
+        from app import draft_clock
+        from sqlalchemy import update as _sa_update
+
+        # ---- Claim the turn ATOMICALLY. Lock the draft_session row FOR UPDATE so this
+        # pick serialises against any other pick (web or mobile) for this draft. While we
+        # hold the lock we (re)check the turn AND the already-drafted guard, do the write,
+        # and advance — all in one transaction. A racing second pick blocks here until we
+        # commit, then sees the clock already moved and is rejected: no double-draft. ----
+        ds = draft_clock.get_session(session, league.season_id, league.id, for_update=True)
+        is_admin = _user_is_admin(session, current_user_id)
+
+        # Turn check under the lock (no-op in free-form / paused; admins may go out of turn).
+        ok, code = draft_clock.check_turn(ds, team_id, is_admin, data.get('expected_pick'))
+        if not ok:
+            if code == 'stale':
+                return jsonify({"success": False, "msg": "The board moved on — refresh and try again.",
+                                "stale": True}), 409
+            on_clock = session.query(Team).filter(Team.id == ds.current_team_id).first()
+            on_clock_name = on_clock.name if on_clock else 'another team'
+            return jsonify({"success": False,
+                            "msg": f"It's {on_clock_name}'s pick — they're on the clock",
+                            "on_the_clock": True}), 409
+
+        # Already-drafted guard, re-checked UNDER the lock (closes the free-form race too).
         existing = session.query(player_teams).filter(
             player_teams.c.player_id == player_id,
             player_teams.c.team_id.in_(
                 session.query(Team.id).filter(Team.league_id == league.id)
             )
         ).first()
-
-        # ECS FC allows multi-team membership, skip check for ECS FC leagues
         if existing and not is_ecs_fc_league(league.id):
-            return jsonify({"msg": "Player is already on a team in this league"}), 400
+            return jsonify({"success": False, "msg": "Player is already on a team in this league"}), 400
 
-        # Add player to team
-        team.players.append(player)
+        # Add player to team (with pitch-view position, matching the web socket path)
+        if player not in team.players:
+            team.players.append(player)
         player.primary_team_id = team_id
+        session.flush()  # ensure the player_teams row exists before we set its position
+        session.execute(_sa_update(player_teams).where(
+            player_teams.c.player_id == player_id,
+            player_teams.c.team_id == team_id,
+        ).values(position=position))
 
         # Create PlayerTeamSeason record for current season
         player_team_season = PlayerTeamSeason(
@@ -507,46 +586,85 @@ def draft_player(league_name: str):
         session.add(player_team_season)
         logger.info(f"Created PlayerTeamSeason record for {player.name} to {team.name} in season {league.season_id}")
 
-        # Record draft pick
+        # Auto-promote a division coach drafted onto a team in their division (mirrors web).
         try:
-            draft_position = DraftService.record_draft_pick(
-                session=session,
-                player_id=player_id,
-                team_id=team_id,
-                league_id=league.id,
-                season_id=league.season_id,
-                drafted_by_user_id=current_user_id,
-                notes=f"Drafted via mobile API by {user.username}"
-            )
+            from app.coach_assignment import apply_draft_coach_status
+            apply_draft_coach_status(session, player_id, team_id, team.league.name, league.season_id)
+        except Exception as _coach_err:
+            logger.warning(f"Mobile auto coach-assignment skipped for player {player_id}: {_coach_err}")
+
+        # Record draft pick. SAVEPOINT (begin_nested) so a history-write DB failure
+        # (e.g. an ECS FC player re-drafted to a 2nd team hits the player-uniqueness
+        # constraint) confines the rollback to the savepoint and does NOT poison the
+        # transaction that holds the actual roster write + clock advance.
+        draft_position = 0
+        try:
+            with session.begin_nested():
+                draft_position = DraftService.record_draft_pick(
+                    session=session,
+                    player_id=player_id,
+                    team_id=team_id,
+                    league_id=league.id,
+                    season_id=league.season_id,
+                    drafted_by_user_id=current_user_id,
+                    notes=f"Drafted via mobile API by {user.username}"
+                )
         except Exception as e:
-            logger.error(f"Failed to record draft pick: {e}")
+            logger.error(f"Failed to record draft pick (non-fatal): {e}")
             draft_position = 0
 
-        session.commit()
+        # Advance the clock UNDER THE SAME LOCK (only when the on-the-clock team picked;
+        # an admin's out-of-turn add leaves the clock put). Commit on with-exit releases
+        # the lock atomically after the write + advance are both persisted.
+        clock_payload = None
+        advanced = False
+        if ds and ds.status == 'active':
+            if not ds.current_team_id or ds.current_team_id == team_id:
+                clock_payload = draft_clock.advance(session, ds)
+                advanced = True
+            else:
+                clock_payload = draft_clock.build_state(session, ds)
 
-        # Mark player for Discord update
-        mark_player_for_discord_update(session, player_id)
+        # Capture everything needed for the response + broadcasts while still attached.
+        url_name = league_name.lower()
+        player_name = player.name
+        player_pos_label = label_for(player.favorite_position)
+        team_name = team.name
+        try:
+            enhanced = DraftService.get_enhanced_player_data([player], league.season_id)[0]
+        except Exception:
+            enhanced = {
+                'id': player.id, 'name': player.name,
+                'favorite_position': player.favorite_position or 'Any',
+                'profile_picture_url': player.profile_picture_url or '/static/img/default_player.png',
+            }
+    # ---- lock released (transaction committed) ----
 
-        # Queue Discord role assignment
-        assign_roles_to_player_task.delay(player_id=player_id, only_add=True)
+    # Post-commit side effects (NO lock held — never do broker/Discord/cache I/O inside
+    # the FOR UPDATE txn): coach push, Discord, cache, live broadcasts. `ds` is detached
+    # here but its column attributes were loaded/advanced above, so reads are safe.
+    if advanced:
+        draft_clock.queue_on_clock_push(ds)  # ping the NEXT team's coaches
+    with managed_session() as s2:
+        mark_player_for_discord_update(s2, player_id)
+    assign_roles_to_player_task.delay(player_id=player_id, only_add=True)
+    DraftCacheService.clear_all_league_caches(db_league_name)
 
-        # Invalidate cache
-        DraftCacheService.clear_all_league_caches(db_league_name)
+    _emit_to_draft_rooms('player_drafted_enhanced', {
+        'success': True, 'player': enhanced, 'team_id': team_id, 'team_name': team_name,
+        'league_name': url_name, 'position': position, 'draft_position': draft_position,
+    }, url_name, db_league_name)
+    if clock_payload:
+        _emit_to_draft_rooms('draft_clock_update', clock_payload, url_name, db_league_name)
 
-        return jsonify({
-            "success": True,
-            "message": f"{player.name} drafted to {team.name}",
-            "player": {
-                "id": player.id,
-                "name": player.name,
-                "position": label_for(player.favorite_position)
-            },
-            "team": {
-                "id": team.id,
-                "name": team.name
-            },
-            "draft_position": draft_position
-        }), 200
+    return jsonify({
+        "success": True,
+        "message": f"{player_name} drafted to {team_name}",
+        "player": {"id": player_id, "name": player_name, "position": player_pos_label},
+        "team": {"id": team_id, "name": team_name},
+        "draft_position": draft_position,
+        "clock": clock_payload
+    }), 200
 
 
 @mobile_api_v2.route('/draft/<league_name>/pick/<int:player_id>', methods=['DELETE'])
@@ -623,6 +741,15 @@ def remove_player_from_team(league_name: str, player_id: int):
 
         # Invalidate cache
         DraftCacheService.clear_all_league_caches(db_league_name)
+
+        # Broadcast so the web board / other phones drop the card live.
+        _emit_to_draft_rooms('player_removed_enhanced', {
+            'success': True,
+            'player': {'id': player_id, 'name': player.name},
+            'team_id': team.id,
+            'team_name': team_name,
+            'league_name': league_name.lower(),
+        }, league_name.lower(), db_league_name)
 
         return jsonify({
             "success": True,
@@ -788,3 +915,276 @@ def get_draft_history(league_name: str):
             "per_page": per_page,
             "total_pages": (total_count + per_page - 1) // per_page
         }), 200
+
+
+# =============================================================================
+# On-the-clock draft: live clock state + admin clock controls (mobile parity
+# with the web board). All mutations broadcast draft_clock_update (and, where a
+# roster changes, player_drafted_enhanced / player_removed_enhanced) to the web
+# socket rooms so the web board and every coach's phone stay in sync.
+# =============================================================================
+
+@mobile_api_v2.route('/draft/<league_name>/clock', methods=['GET'])
+@jwt_required()
+@jwt_role_required(DRAFT_ROLES)
+def get_draft_clock(league_name: str):
+    """Live on-the-clock state for the app to poll.
+
+    Returns the full clock (whose turn, round/pick, server deadline, up-next,
+    format incl. 'rotating', progress) plus, for the requesting coach:
+      - my_team_ids: teams they coach in this league
+      - on_clock_for_me: True when it's their team's pick (drives the in-app
+        beep/vibrate; the push covers them when the app isn't foregrounded)
+      - is_admin: whether they may run the clock controls
+    `active` is False when no draft has been set up yet (free-form mode).
+    """
+    db_league_name = get_db_league_name(league_name)
+    if not db_league_name:
+        return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
+
+    current_user_id = int(get_jwt_identity())
+    with managed_session() as session:
+        from app import draft_clock
+        league = _current_league(session, db_league_name)
+        if not league:
+            return jsonify({"msg": f"No current {db_league_name} league found"}), 404
+
+        my_ids = _my_coached_team_ids(session, current_user_id, league.id)
+        is_admin = _user_is_admin(session, current_user_id)
+
+        ds = draft_clock.get_session(session, league.season_id, league.id)
+        if not ds:
+            return jsonify({
+                "active": False,
+                "clock": None,
+                "my_team_ids": my_ids,
+                "on_clock_for_me": False,
+                "is_admin": is_admin,
+            }), 200
+
+        state = draft_clock.build_state(session, ds)
+        return jsonify({
+            "active": ds.status in ('active', 'paused'),
+            "clock": state,
+            "my_team_ids": my_ids,
+            "on_clock_for_me": bool(ds.current_team_id and ds.current_team_id in my_ids),
+            "is_admin": is_admin,
+        }), 200
+
+
+def _clock_control(league_name, mutate, allow_states, err_msg, push_next=False):
+    """Shared plumbing for the admin clock-control endpoints: resolve league + ds,
+    guard status, apply `mutate(session, ds) -> state`, broadcast, and return.
+
+    push_next=True fires the 'you're on the clock' push for the team the clock
+    now points at (used by start/skip)."""
+    db_league_name = get_db_league_name(league_name)
+    if not db_league_name:
+        return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
+
+    with managed_session() as session:
+        from app import draft_clock
+        league = _current_league(session, db_league_name)
+        if not league:
+            return jsonify({"success": False, "msg": f"No current {db_league_name} league found"}), 404
+        # Lock the session row so an admin clock change serialises against a concurrent
+        # pick (which also locks it) — no double-advance across web/mobile.
+        ds = draft_clock.get_session(session, league.season_id, league.id, for_update=True)
+        if not ds or (allow_states is not None and ds.status not in allow_states):
+            return jsonify({"success": False, "msg": err_msg}), 400
+        state = mutate(session, ds, draft_clock, league)
+        if push_next:
+            draft_clock.queue_on_clock_push(ds)
+        # commit happens on managed_session exit; broadcast after building the payload
+    _emit_to_draft_rooms('draft_clock_update', state, league_name.lower(), db_league_name)
+    return jsonify({"success": True, "state": state}), 200
+
+
+@mobile_api_v2.route('/draft/<league_name>/start', methods=['POST'])
+@jwt_required()
+@jwt_role_required(DRAFT_ADMIN_ROLES)
+def start_draft_clock(league_name: str):
+    """Put the first team on the clock."""
+    def _mutate(session, ds, draft_clock, league):
+        from datetime import datetime
+        team_ids = draft_clock.ordered_team_ids(session, ds)
+        if not team_ids or not ds.rounds:
+            raise ValueError('Set the pick order and rounds first')
+        ds.status = 'active'
+        ds.started_at = datetime.utcnow()
+        ds.started_by = int(get_jwt_identity())
+        ds.completed_at = None
+        draft_clock.set_clock_to(ds, 1, team_ids)
+        return draft_clock.build_state(session, ds, team_ids=team_ids)
+    try:
+        return _clock_control(league_name, _mutate, allow_states=None,
+                              err_msg='No draft set up for this league', push_next=True)
+    except ValueError as e:
+        return jsonify({"success": False, "msg": str(e)}), 400
+
+
+@mobile_api_v2.route('/draft/<league_name>/skip', methods=['POST'])
+@jwt_required()
+@jwt_role_required(DRAFT_ADMIN_ROLES)
+def skip_draft_clock(league_name: str):
+    """Advance the clock past the on-the-clock team WITHOUT recording a pick — the
+    team forfeits this pick (e.g. a coach-held spot). Does not touch rosters."""
+    def _mutate(session, ds, draft_clock, league):
+        return draft_clock.advance(session, ds)
+    return _clock_control(league_name, _mutate, allow_states=('active', 'paused'),
+                          err_msg='No live draft to advance', push_next=True)
+
+
+@mobile_api_v2.route('/draft/<league_name>/pause', methods=['POST'])
+@jwt_required()
+@jwt_role_required(DRAFT_ADMIN_ROLES)
+def pause_draft_clock(league_name: str):
+    def _mutate(session, ds, draft_clock, league):
+        from datetime import datetime
+        if ds.pick_deadline:
+            ds.pause_remaining_seconds = max(0, int((ds.pick_deadline - datetime.utcnow()).total_seconds()))
+        ds.status = 'paused'
+        ds.pick_deadline = None
+        return draft_clock.build_state(session, ds)
+    return _clock_control(league_name, _mutate, allow_states=('active',),
+                          err_msg='No active draft to pause')
+
+
+@mobile_api_v2.route('/draft/<league_name>/resume', methods=['POST'])
+@jwt_required()
+@jwt_role_required(DRAFT_ADMIN_ROLES)
+def resume_draft_clock(league_name: str):
+    def _mutate(session, ds, draft_clock, league):
+        from datetime import datetime, timedelta
+        ds.status = 'active'
+        if ds.seconds_per_pick:
+            # `or`, not `is not None`: a stored 0 means "no time left" -> give a fresh clock.
+            secs = ds.pause_remaining_seconds or ds.seconds_per_pick
+            ds.pick_deadline = datetime.utcnow() + timedelta(seconds=secs)
+        ds.pause_remaining_seconds = None
+        return draft_clock.build_state(session, ds)
+    return _clock_control(league_name, _mutate, allow_states=('paused',),
+                          err_msg='No paused draft to resume')
+
+
+@mobile_api_v2.route('/draft/<league_name>/end', methods=['POST'])
+@jwt_required()
+@jwt_role_required(DRAFT_ADMIN_ROLES)
+def end_draft_clock(league_name: str):
+    """End the draft immediately (admin stop)."""
+    def _mutate(session, ds, draft_clock, league):
+        return draft_clock.complete(session, ds)
+    return _clock_control(league_name, _mutate, allow_states=('active', 'paused'),
+                          err_msg='No live draft to end')
+
+
+@mobile_api_v2.route('/draft/<league_name>/back', methods=['POST'])
+@jwt_required()
+@jwt_role_required(DRAFT_ADMIN_ROLES)
+def back_draft_clock(league_name: str):
+    """Move the clock BACK one pick (admin correction). Does NOT un-draft a player —
+    use undo-last for that. Optional body {team_id} guards against rewinding when the
+    last action was an out-of-turn add that never advanced the clock."""
+    data = request.get_json(silent=True) or {}
+    undone_team_id = data.get('team_id')
+
+    def _mutate(session, ds, draft_clock, league):
+        team_ids = draft_clock.ordered_team_ids(session, ds)
+        should_step = True
+        if undone_team_id and ds.status != 'complete':
+            prev = (ds.current_overall_pick or 1) - 1
+            on_clock_prev = draft_clock.team_on_clock(team_ids, ds.format, prev)[0] if prev >= 1 else None
+            should_step = (on_clock_prev == int(undone_team_id))
+        if should_step:
+            return draft_clock.step_back(session, ds)
+        return draft_clock.build_state(session, ds, team_ids=team_ids)
+    return _clock_control(league_name, _mutate, allow_states=('active', 'paused', 'complete'),
+                          err_msg='No live draft to step back')
+
+
+@mobile_api_v2.route('/draft/<league_name>/undo-last', methods=['POST'])
+@jwt_required()
+@jwt_role_required(DRAFT_ADMIN_ROLES)
+def undo_last_pick(league_name: str):
+    """Undo the most recent pick: remove that player from their team AND step the
+    clock back onto them. The real 'oops' button. Broadcasts the removal + clock."""
+    db_league_name = get_db_league_name(league_name)
+    if not db_league_name:
+        return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
+
+    with managed_session() as session:
+        from app import draft_clock
+        league = _current_league(session, db_league_name)
+        if not league:
+            return jsonify({"success": False, "msg": f"No current {db_league_name} league found"}), 404
+
+        # Lock the session row FIRST so the whole undo (read last pick → remove → step back)
+        # serialises against any concurrent pick, which also locks it. ds may be None if the
+        # draft was never set up as an on-the-clock session (pure free-form) — that's fine.
+        ds = draft_clock.get_session(session, league.season_id, league.id, for_update=True)
+
+        last = session.query(DraftOrderHistory).filter(
+            DraftOrderHistory.league_id == league.id,
+            DraftOrderHistory.season_id == league.season_id
+        ).order_by(DraftOrderHistory.draft_position.desc()).first()
+        if not last or not last.player_id or not last.team_id:
+            return jsonify({"success": False, "msg": "Nothing to undo"}), 400
+
+        undo_player_id = last.player_id
+        undo_team_id = last.team_id
+
+        player = session.query(Player).options(selectinload(Player.teams)).get(undo_player_id)
+        team = session.query(Team).filter(Team.id == undo_team_id).first()
+        player_name = player.name if player else 'Player'
+        team_name = team.name if team else 'team'
+
+        # Remove from the team roster (mirrors the DELETE endpoint's removal).
+        if player and team and team in player.teams:
+            team.players.remove(player)
+        if player and player.primary_team_id == undo_team_id:
+            player.primary_team_id = None
+        try:
+            DraftService.remove_draft_pick(
+                session=session, player_id=undo_player_id,
+                season_id=league.season_id, league_id=league.id
+            )
+        except Exception as e:
+            logger.error(f"undo-last: failed to remove draft pick record: {e}")
+
+        # Step the clock back onto the undone pick, but only if that pick actually
+        # advanced the clock (guards an out-of-turn add — same logic as /back).
+        clock_state = None
+        if ds:
+            team_ids = draft_clock.ordered_team_ids(session, ds)
+            should_step = True
+            if ds.status != 'complete':
+                prev = (ds.current_overall_pick or 1) - 1
+                on_clock_prev = draft_clock.team_on_clock(team_ids, ds.format, prev)[0] if prev >= 1 else None
+                should_step = (on_clock_prev == undo_team_id)
+            clock_state = draft_clock.step_back(session, ds) if should_step else \
+                draft_clock.build_state(session, ds, team_ids=team_ids)
+        # commit on exit
+
+    with managed_session() as s2:
+        mark_player_for_discord_update(s2, undo_player_id)
+    remove_player_roles_task.delay(player_id=undo_player_id, team_id=undo_team_id)
+    DraftCacheService.clear_all_league_caches(db_league_name)
+
+    url_name = league_name.lower()
+    _emit_to_draft_rooms('player_removed_enhanced', {
+        'success': True,
+        'player': {'id': undo_player_id, 'name': player_name},
+        'team_id': undo_team_id,
+        'team_name': team_name,
+        'league_name': url_name,
+    }, url_name, db_league_name)
+    if clock_state:
+        _emit_to_draft_rooms('draft_clock_update', clock_state, url_name, db_league_name)
+
+    return jsonify({
+        "success": True,
+        "message": f"Undid {player_name} → {team_name}",
+        "player_id": undo_player_id,
+        "team_id": undo_team_id,
+        "state": clock_state,
+    }), 200

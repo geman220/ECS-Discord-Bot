@@ -165,7 +165,7 @@ def _dispatch_status_notification(feedback, new_status, actor_id):
         return
     try:
         if new_status == 'Closed':
-            orchestrator.send(NotificationPayload(
+            orchestrator.send_async(NotificationPayload(
                 notification_type=NotificationType.FEEDBACK_CLOSED,
                 title=f"Feedback Closed: {feedback.title}",
                 message=f"Your feedback has been closed: {feedback.title}",
@@ -180,7 +180,7 @@ def _dispatch_status_notification(feedback, new_status, actor_id):
                 'In Progress': f"Your feedback is now being worked on: {feedback.title}",
                 'Open': f"Your feedback has been reopened: {feedback.title}",
             }
-            orchestrator.send(NotificationPayload(
+            orchestrator.send_async(NotificationPayload(
                 notification_type=NotificationType.FEEDBACK_STATUS_CHANGE,
                 title=f"Feedback Update: {feedback.title}",
                 message=status_messages.get(new_status, f"Your feedback status changed to {new_status}: {feedback.title}"),
@@ -334,7 +334,7 @@ def admin_reply_to_feedback(feedback_id: int):
         # Notify owner unless owner is also the actor
         if feedback.user_id and feedback.user_id != actor_id:
             try:
-                orchestrator.send(NotificationPayload(
+                orchestrator.send_async(NotificationPayload(
                     notification_type=NotificationType.FEEDBACK_REPLY,
                     title=f"Reply to: {feedback.title}",
                     message=f"An admin has replied to your feedback: {feedback.title}",

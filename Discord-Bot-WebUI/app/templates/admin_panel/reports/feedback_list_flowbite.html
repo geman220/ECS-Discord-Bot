@@ -1016,7 +1016,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (result.isConfirmed) {
                     var form = document.createElement('form');
                     form.method = 'POST';
-                    form.action = '/admin-panel/feedback/' + feedbackId + '/delete';
+                    // Carry the current filters through so the list returns to
+                    // the same view after the delete.
+                    form.action = '/admin-panel/feedback/' + feedbackId + '/delete' + window.location.search;
 
                     var csrfToken = document.querySelector('meta[name=csrf-token]');
                     if (csrfToken) {

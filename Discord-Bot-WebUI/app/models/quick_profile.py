@@ -214,6 +214,10 @@ class QuickProfile(db.Model):
         self.claimed_at = datetime.utcnow()
         self.status = QuickProfileStatus.CLAIMED.value
 
+        # Carry any waiting-room notes over to the now-real player so the coach/admin
+        # review history follows the prospect through the account transition.
+        self._migrate_notes_to_player(player)
+
         logger.info(f"Quick profile {self.id} claimed by player {player.id}")
 
     def link_to_player(self, player, admin_user, overwrite_photo=False):
@@ -255,7 +259,43 @@ class QuickProfile(db.Model):
         self.linked_at = datetime.utcnow()
         self.status = QuickProfileStatus.LINKED.value
 
+        # Carry any waiting-room notes over to the linked player (see claim()).
+        self._migrate_notes_to_player(player)
+
         logger.info(f"Quick profile {self.id} linked to player {player.id} by admin {admin_user.id}")
+
+    def _migrate_notes_to_player(self, player):
+        """
+        Re-point this quick profile's waiting-room notes onto a real player.
+
+        Called when the prospect gets an account (claim) or is linked to an existing
+        one. After this, the notes are ordinary player notes (player_id set,
+        quick_profile_id NULL) so all downstream player-note code just works.
+
+        Two-session dependency: callers load the QuickProfile via find_by_code() ->
+        cls.query -> db.session, while the Player usually lives on g.db_session. These
+        note writes land on THIS object's session (db.session). That persists only
+        because every claim/link route is @transactional, which commits BOTH sessions.
+        If this flow is ever reused in a handler that is NOT @transactional, these
+        writes (and the claim status write) would be rolled back at teardown. See the
+        "two sessions = lost writes" note.
+        """
+        from sqlalchemy.orm import object_session
+        session = object_session(self)
+        if session is None:
+            # Detached/transient QuickProfile — no session to migrate on. Not reachable
+            # from current @transactional claim/link paths, but warn loudly rather than
+            # silently leave the notes orphaned on a claimed profile.
+            logger.warning(f"Cannot migrate notes for quick profile {self.id}: no active session")
+            return
+        # Lazy import avoids a models import cycle (players.py <-> quick_profile.py).
+        from app.models.players import PlayerAdminNote
+        notes = session.query(PlayerAdminNote).filter_by(quick_profile_id=self.id).all()
+        for note in notes:
+            note.player_id = player.id
+            note.quick_profile_id = None
+        if notes:
+            logger.info(f"Migrated {len(notes)} waiting-room note(s) from quick profile {self.id} to player {player.id}")
 
     def to_dict(self, include_created_by=True):
         """

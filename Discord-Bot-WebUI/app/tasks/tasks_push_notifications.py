@@ -450,3 +450,73 @@ def send_account_approval_push(self, session, user_id: int, role_label: str = No
         push_account_approved(user_id, role_label=role_label)
 
     return {'success': True, 'user_id': user_id, 'kind': kind}
+
+
+@celery_task(
+    name='app.tasks.tasks_push_notifications.send_on_the_clock_push',
+    bind=True,
+    max_retries=1,
+    default_retry_delay=10,
+    ignore_result=True  # fire-and-forget: don't accumulate result keys in Redis (fires per pick)
+)
+def send_on_the_clock_push(self, session, team_id: int, round_no: int = None,
+                           overall_pick: int = None, seconds_per_pick: int = None) -> Dict[str, Any]:
+    """Fire a "you're on the clock" push to EVERY coach of the on-the-clock team.
+
+    Runs out-of-band in a Celery worker (fresh session) so the push HTTP call
+    never happens inside the draft-pick DB transaction. Best-effort: a team with
+    no coaches, or coaches with no registered device, is a normal no-op.
+
+    Args:
+        team_id: the team now on the clock
+        round_no / overall_pick: for the message copy + deep-link data
+        seconds_per_pick: shown in the body when the clock is timed
+    """
+    from app.models import Player, Team
+    from app.models.players import player_teams
+    from app.services.notification_orchestrator import (
+        orchestrator, NotificationPayload, NotificationType,
+    )
+
+    team = session.query(Team).filter(Team.id == team_id).first()
+    if not team:
+        return {'success': False, 'reason': 'team_not_found', 'team_id': team_id}
+
+    # Coach user_ids for this team (any one coach counts as "in the draft" —
+    # we notify them all so whoever has their phone handy sees it).
+    user_ids = [uid for (uid,) in session.query(Player.user_id).join(
+        player_teams, player_teams.c.player_id == Player.id
+    ).filter(
+        player_teams.c.team_id == team_id,
+        player_teams.c.is_coach == True,  # noqa: E712
+        Player.user_id.isnot(None),
+    ).all()]
+
+    if not user_ids:
+        return {'success': True, 'team_id': team_id, 'notified': 0, 'reason': 'no_coaches'}
+
+    round_bit = f"Round {round_no} · " if round_no else ""
+    timed_bit = f" You have {seconds_per_pick}s." if seconds_per_pick else ""
+    try:
+        orchestrator.send(NotificationPayload(
+            notification_type=NotificationType.DRAFT_ON_THE_CLOCK,
+            title="You're on the clock! ⏱️",
+            message=f"{round_bit}{team.name} is up. Make your pick.{timed_bit}",
+            user_ids=user_ids,
+            data={
+                'type': 'draft_on_the_clock',
+                'team_id': str(team_id),
+                'round': str(round_no or ''),
+                'overall_pick': str(overall_pick or ''),
+            },
+            priority='high',
+            force_push=True,
+            force_email=False,
+            force_sms=False,
+            force_discord=False,
+        ))
+    except Exception:
+        logger.exception(f"on-the-clock push failed for team {team_id}")
+        return {'success': False, 'team_id': team_id}
+
+    return {'success': True, 'team_id': team_id, 'notified': len(user_ids)}

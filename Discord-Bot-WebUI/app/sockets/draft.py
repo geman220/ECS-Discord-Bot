@@ -218,8 +218,75 @@ def handle_draft_player_enhanced(data):
                     return
             # Transaction 1 committed automatically - connection released
 
-            # ===== TRANSACTION 2: Core write operation (~200ms) =====
+            # ===== TRANSACTION 2: Core write + history, ALL under the FOR UPDATE lock =====
+            # Claim the turn ATOMICALLY: lock the draft_session row FOR UPDATE so this
+            # write + advance serialise against any concurrent pick (web OR mobile) for
+            # this draft. A racing pick blocks here until we commit, then check_turn sees
+            # the clock has moved and rejects it — that is what prevents a double-draft.
+            #
+            # H5/M3: the already-drafted RE-CHECK and the draft-history write are BOTH
+            # done here under the lock now (they used to run unlocked — T1 and a later
+            # T3). Unlocked, a web+mobile race on the same player could double-roster,
+            # and two unserialised history writes could collide on the draft_position
+            # unique constraint and silently drop a row. Under the lock, both are safe.
+            advanced_clock = False
+            ds_present = False
+            draft_position = None
             with managed_session() as session:
+                from app import draft_clock
+                ds = draft_clock.get_session(session, season_id, league_id, for_update=True)
+                ds_present = ds is not None
+                if ds is not None:
+                    is_admin = False
+                    try:
+                        from app.models.core import Role, user_roles
+                        uid = getattr(current_user, 'id', None)
+                        if uid:
+                            is_admin = session.query(user_roles.c.user_id).join(
+                                Role, Role.id == user_roles.c.role_id
+                            ).filter(
+                                user_roles.c.user_id == uid,
+                                Role.name.in_(['Global Admin', 'Pub League Admin']),
+                            ).first() is not None
+                    except Exception:
+                        is_admin = False
+                    ok, code = draft_clock.check_turn(ds, team_id, is_admin, data.get('expected_pick'))
+                    if not ok:
+                        if code == 'stale':
+                            emit('draft_error', {'message': 'The board moved on — refresh and try again'})
+                        else:
+                            oc = session.query(Team).filter(Team.id == ds.current_team_id).first()
+                            emit('draft_error', {'message': f"It's {oc.name if oc else 'another team'}'s pick — they're on the clock"})
+                        return
+
+                # H5: re-check the already-drafted guard UNDER the lock (T1's identical
+                # check is unlocked, so a concurrent mobile pick of the same player to a
+                # DIFFERENT team could have committed since). ECS FC permits multi-team
+                # membership and is exempt. This mirrors the mobile pick path.
+                if not is_ecs_fc_league(league_id):
+                    conflict = session.query(player_teams).filter(
+                        player_teams.c.player_id == player_id,
+                        player_teams.c.team_id != team_id,
+                        player_teams.c.team_id.in_(
+                            session.query(Team.id).filter(Team.league_id == league_id)
+                        )
+                    ).first()
+                    if not conflict:
+                        conflict = session.query(PlayerTeamSeason).filter(
+                            PlayerTeamSeason.player_id == player_id,
+                            PlayerTeamSeason.season_id == season_id,
+                            PlayerTeamSeason.team_id != team_id,
+                            PlayerTeamSeason.team_id.in_(
+                                session.query(Team.id).filter(Team.league_id == league_id)
+                            )
+                        ).first()
+                    if conflict:
+                        oc = session.query(Team).filter(Team.id == conflict.team_id).first()
+                        oc_name = oc.name if oc else 'another team'
+                        print(f"🚫 Race guard (under lock): {player_name} already on {oc_name}")
+                        emit('draft_error', {'message': f'Player "{player_name}" is already assigned to {oc_name}'})
+                        return
+
                 # Re-fetch player and team for this transaction
                 player = session.query(Player).filter(Player.id == player_id).first()
                 team = session.query(Team).options(
@@ -270,31 +337,69 @@ def handle_draft_player_enhanced(data):
                         print(f"👑 {player_name} is the {team.league.name} division coach — set as coach of {team_name}")
                 except Exception as _coach_err:
                     logger.warning(f"Auto coach-assignment skipped for player {player_id}: {_coach_err}")
-            # Transaction 2 committed automatically - connection released
 
-            # ===== TRANSACTION 3: History & Discord marker (~50ms) =====
-            with managed_session() as session:
-                # Record the draft pick in history
+                # M3: record the draft pick in history UNDER THE LOCK (was an unlocked
+                # T3) so draft_position allocation is serialised with the roster write —
+                # no unique-constraint collision, no silently-lost history row.
+                #
+                # Wrapped in a SAVEPOINT (begin_nested): record_draft_pick flushes, and a
+                # DB-level failure there (e.g. an ECS FC player re-drafted to a 2nd team
+                # hits uq_draft_order_player_season_league) would otherwise poison the
+                # WHOLE transaction and roll back the actual roster write + clock advance.
+                # The savepoint confines a history-write failure to itself, so the pick
+                # itself still commits — restoring the old "history failure is non-fatal"
+                # guarantee while keeping the serialised position allocation.
                 try:
-                    draft_position = DraftService.record_draft_pick(
-                        session=session,
-                        player_id=player_id,
-                        team_id=team_id,
-                        league_id=league_id,
-                        season_id=season_id,
-                        drafted_by_user_id=current_user.id,
-                        notes=f"Drafted via Socket by {current_user.username}"
-                    )
+                    with session.begin_nested():
+                        draft_position = DraftService.record_draft_pick(
+                            session=session,
+                            player_id=player_id,
+                            team_id=team_id,
+                            league_id=league_id,
+                            season_id=season_id,
+                            drafted_by_user_id=current_user.id,
+                            notes=f"Drafted via Socket by {current_user.username}"
+                        )
                     print(f"📊 Draft pick #{draft_position} recorded for {player_name} to {team_name}")
                     logger.info(f"📊 Draft pick #{draft_position} recorded for {player_name} to {team_name}")
                 except Exception as e:
-                    print(f"⚠️ Failed to record draft pick: {str(e)}")
-                    logger.error(f"Failed to record draft pick: {str(e)}")
-                    # Don't fail the entire operation if draft history fails
+                    # SAVEPOINT rolled back — the roster write + advance below stay intact.
+                    print(f"⚠️ Failed to record draft pick (non-fatal): {str(e)}")
+                    logger.error(f"Failed to record draft pick (non-fatal): {str(e)}")
 
-                # Mark for Discord update
+                # Mark for Discord update (cheap flag write; safe under the lock)
                 mark_player_for_discord_update(session, player_id)
-            # Transaction 3 committed automatically - connection released
+
+                # Advance the clock UNDER THE SAME LOCK (only when the on-the-clock team made
+                # this pick; an admin's out-of-turn add to a different team leaves it put).
+                # M2: advance mutates the clock columns but SKIPS building the emit payload
+                # (with_state=False) — build_state's ~5 read queries are moved out of the
+                # lock (below) so the FOR UPDATE hold covers writes only.
+                if ds is not None and ds.status == 'active':
+                    if not ds.current_team_id or ds.current_team_id == team_id:
+                        draft_clock.advance(session, ds, with_state=False)
+                        advanced_clock = True
+            # Transaction 2 committed automatically - lock + connection released
+
+            # Ping the next team's coaches AFTER the lock is released (the .delay() is a
+            # broker call — keep it out of the FOR UPDATE txn). ds is detached but its
+            # advanced column attrs are loaded, so this read is safe.
+            if advanced_clock:
+                try:
+                    draft_clock.queue_on_clock_push(ds)
+                except Exception as _push_err:
+                    logger.warning(f"on-the-clock push enqueue skipped: {_push_err}")
+
+            # M2: build the clock state for the emit OUTSIDE the lock (pure reads). ds is
+            # detached but its scalar columns are loaded (expire_on_commit=False), and
+            # build_state only issues fresh reads via this new short session.
+            clock_state = None
+            if ds_present:
+                try:
+                    with managed_session() as _state_session:
+                        clock_state = draft_clock.build_state(_state_session, ds)
+                except Exception as _state_err:
+                    logger.warning(f"Draft clock state build skipped: {_state_err}")
 
             # ===== Post-transaction: Queue async tasks and emit response =====
             # Queue Discord role assignment task AFTER all commits
@@ -375,25 +480,13 @@ def handle_draft_player_enhanced(data):
             print(f"✅ Successfully drafted {player_name} to {team_name} - broadcasted to room draft_{league_name}")
             logger.info(f"✅ Successfully drafted {player_name} to {team_name}")
 
-            # Advance the on-the-clock draft (ADDITIVE: no-op when no active DraftSession).
+            # The on-the-clock advance already happened UNDER THE LOCK in Transaction 2
+            # (atomic with the write — see above). Just broadcast the captured state here.
             try:
-                from app import draft_clock
-                with managed_session() as clock_session:
-                    ds = draft_clock.get_session(clock_session, season_id, league_id)
-                    if ds and ds.status == 'active':
-                        # Advance ONLY when the team that was on the clock made this pick. An
-                        # admin adding a player to a DIFFERENT team must not skip the on-the-clock
-                        # team's turn — the clock stays put (we re-emit the unchanged state).
-                        if not ds.current_team_id or ds.current_team_id == team_id:
-                            clock_state = draft_clock.advance(clock_session, ds)
-                        else:
-                            clock_state = draft_clock.build_state(clock_session, ds)
-                        # commit happens on managed_session exit; emit after
-                clock_state = locals().get('clock_state')
                 if clock_state:
                     emit('draft_clock_update', clock_state, room=f'draft_{league_name}')
             except Exception as _adv_err:
-                logger.warning(f"Draft clock advance skipped: {_adv_err}")
+                logger.warning(f"Draft clock update emit skipped: {_adv_err}")
 
             # CRITICAL: Invalidate draft cache so page refresh shows correct data
             try:

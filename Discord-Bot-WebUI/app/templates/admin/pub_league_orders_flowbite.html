@@ -13,6 +13,30 @@
 {% endblock %}
 
 {% block panel_content %}
+{% set sort = sort or 'created_desc' %}
+{% set division_filter = division_filter or 'all' %}
+
+{# Server-side sortable column header: links back to the list with the sort
+   toggled, preserving the active status/search/season/division filters. #}
+{% macro sort_th(label, key, align='left', hide=None, default_dir='asc') %}
+    {% set active = sort.startswith(key ~ '_') %}
+    {% set cur_dir = sort[(key|length + 1):] if active else '' %}
+    {# First click on an inactive column uses its natural default (asc for
+       text/id, desc for dates); an active column just flips direction. #}
+    {% set next_dir = ('desc' if cur_dir == 'asc' else 'asc') if active else default_dir %}
+    <th scope="col"
+        class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 select-none text-{{ align }}
+               {% if hide == 'sm' %}hidden md:table-cell{% elif hide == 'md' %}hidden lg:table-cell{% endif %}">
+        <a href="{{ url_for('pub_league_orders_admin.orders_list', sort=key ~ '_' ~ next_dir, status=status_filter, search=search or None, season=season_filter, division=division_filter) }}"
+           class="inline-flex items-center gap-1 cursor-pointer hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded {{ 'flex-row-reverse' if align == 'right' else '' }}"
+           aria-label="Sort by {{ label }}">
+            {{ label }}
+            {% if active and cur_dir == 'asc' %}<i class="ti ti-sort-ascending text-xs text-ecs-green" aria-hidden="true"></i>
+            {% elif active and cur_dir == 'desc' %}<i class="ti ti-sort-descending text-xs text-ecs-green" aria-hidden="true"></i>
+            {% else %}<i class="ti ti-arrows-sort text-xs opacity-60" aria-hidden="true"></i>{% endif %}
+        </a>
+    </th>
+{% endmacro %}
 {% if shell == 'console' %}
 {% from 'macros/_modern_kit.html' import page_header, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
 {% from 'macros/flowbite.html' import button, badge %}
@@ -116,15 +140,15 @@
                 <span class="text-xs text-gray-500 dark:text-gray-400 mb-1.5">of {{ s_total }} orders open</span>
             </div>
             <div class="mt-4 grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700 pt-3 -mx-1">
-                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='not_started') }}" class="px-1 group focus:outline-none">
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='not_started', season=season_filter, division=division_filter) }}" class="px-1 group focus:outline-none">
                     <span class="block text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 group-hover:text-ecs-green transition-colors">Not Started</span>
                     <span class="block font-mono text-xl font-bold text-gray-900 dark:text-white">{{ s_not_started }}</span>
                 </a>
-                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='pending') }}" class="px-1 group focus:outline-none">
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='pending', season=season_filter, division=division_filter) }}" class="px-1 group focus:outline-none">
                     <span class="block text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 group-hover:text-ecs-green transition-colors">Pending</span>
                     <span class="block font-mono text-xl font-bold text-amber-600 dark:text-amber-400">{{ s_pending }}</span>
                 </a>
-                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='partially_linked') }}" class="px-1 group focus:outline-none">
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='partially_linked', season=season_filter, division=division_filter) }}" class="px-1 group focus:outline-none">
                     <span class="block text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 group-hover:text-ecs-green transition-colors">Partial</span>
                     <span class="block font-mono text-xl font-bold text-orange-600 dark:text-orange-400">{{ s_partial }}</span>
                 </a>
@@ -143,11 +167,11 @@
                     <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">of {{ linkable }} non-cancelled orders</p>
                 </div>
                 <div class="flex items-stretch gap-0 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="px-4 py-2 text-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                    <a href="{{ url_for('pub_league_orders_admin.orders_list', season=season_filter, division=division_filter) }}" class="px-4 py-2 text-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
                         <span class="block text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Total</span>
                         <span class="block font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ s_total }}</span>
                     </a>
-                    <a href="{{ url_for('pub_league_orders_admin.orders_list', status='cancelled') }}" class="px-4 py-2 text-center border-l border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                    <a href="{{ url_for('pub_league_orders_admin.orders_list', status='cancelled', season=season_filter, division=division_filter) }}" class="px-4 py-2 text-center border-l border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
                         <span class="block text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Cancelled</span>
                         <span class="block font-mono text-2xl font-bold text-red-600 dark:text-red-400">{{ s_cancelled }}</span>
                     </a>
@@ -155,32 +179,32 @@
             </div>
             <!-- Lifecycle breakdown (each segment links to its filtered view) -->
             <div class="mt-5 pt-4 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700">
-                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='fully_linked') }}" class="flex items-center gap-2 px-1 py-2 sm:pl-0 sm:pr-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='fully_linked', season=season_filter, division=division_filter) }}" class="flex items-center gap-2 px-1 py-2 sm:pl-0 sm:pr-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
                     <span class="w-2.5 h-2.5 rounded-sm bg-green-500 dark:bg-green-400 shrink-0" aria-hidden="true"></span>
                     <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 flex-1 truncate">Linked</span>
                     <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ s_linked }}</span>
                 </a>
-                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='partially_linked') }}" class="flex items-center gap-2 px-1 py-2 sm:px-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='partially_linked', season=season_filter, division=division_filter) }}" class="flex items-center gap-2 px-1 py-2 sm:px-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
                     <span class="w-2.5 h-2.5 rounded-sm bg-orange-400 dark:bg-orange-500 shrink-0" aria-hidden="true"></span>
                     <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 flex-1 truncate">Partial</span>
                     <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ s_partial }}</span>
                 </a>
-                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='pending') }}" class="flex items-center gap-2 px-1 py-2 sm:px-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='pending', season=season_filter, division=division_filter) }}" class="flex items-center gap-2 px-1 py-2 sm:px-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
                     <span class="w-2.5 h-2.5 rounded-sm bg-amber-400 dark:bg-amber-500 shrink-0" aria-hidden="true"></span>
                     <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 flex-1 truncate">Pending</span>
                     <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ s_pending }}</span>
                 </a>
-                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='not_started') }}" class="flex items-center gap-2 px-1 py-2 sm:pl-0 sm:pr-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='not_started', season=season_filter, division=division_filter) }}" class="flex items-center gap-2 px-1 py-2 sm:pl-0 sm:pr-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
                     <span class="w-2.5 h-2.5 rounded-sm bg-gray-400 dark:bg-gray-500 shrink-0" aria-hidden="true"></span>
                     <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 flex-1 truncate">Not Started</span>
                     <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ s_not_started }}</span>
                 </a>
-                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='cancelled') }}" class="flex items-center gap-2 px-1 py-2 sm:px-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', status='cancelled', season=season_filter, division=division_filter) }}" class="flex items-center gap-2 px-1 py-2 sm:px-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
                     <span class="w-2.5 h-2.5 rounded-sm bg-red-400 dark:bg-red-500 shrink-0" aria-hidden="true"></span>
                     <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 flex-1 truncate">Cancelled</span>
                     <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ s_cancelled }}</span>
                 </a>
-                <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="flex items-center gap-2 px-1 py-2 sm:px-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', season=season_filter, division=division_filter) }}" class="flex items-center gap-2 px-1 py-2 sm:px-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded">
                     <span class="w-2.5 h-2.5 rounded-sm bg-ecs-green shrink-0" aria-hidden="true"></span>
                     <span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 flex-1 truncate">All</span>
                     <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ s_total }}</span>
@@ -199,6 +223,8 @@
             <form method="get" class="flex-1 flex gap-2">
                 <input type="hidden" name="status" value="{{ status_filter }}">
                 <input type="hidden" name="season" value="{{ season_filter }}">
+                <input type="hidden" name="division" value="{{ division_filter }}">
+                <input type="hidden" name="sort" value="{{ sort }}">
                 <div class="relative flex-1 min-w-[180px]">
                     <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
                     <input type="text" name="search" value="{{ search or '' }}" placeholder="Search by name, email, or order ID…"
@@ -221,6 +247,15 @@
                     <option value="all" {{ 'selected' if season_filter == 'all' else '' }}>All Seasons</option>
                 </select>
             </div>
+            <div class="w-full md:w-44">
+                <select id="divisionFilter" aria-label="Filter by division"
+                        class="w-full h-10 px-3 text-sm rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-1 focus:ring-ecs-green focus:border-ecs-green">
+                    <option value="all" {{ 'selected' if division_filter == 'all' else '' }}>All Divisions</option>
+                    <option value="premier" {{ 'selected' if division_filter == 'premier' else '' }}>Premier</option>
+                    <option value="classic" {{ 'selected' if division_filter == 'classic' else '' }}>Classic</option>
+                    <option value="mixed" {{ 'selected' if division_filter == 'mixed' else '' }}>Mixed</option>
+                </select>
+            </div>
             <div class="w-full md:w-52">
                 <select id="statusFilter"
                         class="w-full h-10 px-3 text-sm rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-1 focus:ring-ecs-green focus:border-ecs-green">
@@ -233,13 +268,13 @@
                 </select>
             </div>
             <div class="flex items-center">
-                <a href="{{ url_for('pub_league_orders_admin.export_order_emails', status=status_filter, search=search or None, season=season_filter) }}"
+                <a href="{{ url_for('pub_league_orders_admin.export_order_emails', status=status_filter, search=search or None, season=season_filter, division=division_filter) }}"
                    title="Download a CSV of customer emails for the orders matching the current filters"
                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green whitespace-nowrap">
                     <i class="ti ti-download text-base" aria-hidden="true"></i> Export Emails
                 </a>
             </div>
-            {% if search or (status_filter and status_filter != 'all') %}
+            {% if search or (status_filter and status_filter != 'all') or (division_filter and division_filter != 'all') %}
             <div class="flex items-center">
                 <a href="{{ url_for('pub_league_orders_admin.orders_list') }}"
                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
@@ -254,13 +289,13 @@
         <table class="hidden md:table w-full text-sm">
             <thead class="bg-gray-50 dark:bg-gray-700/50">
                 <tr>
-                    {{ data_table_th("Woo ID", key="woo", sortable=False) }}
-                    {{ data_table_th("Customer", key="customer", sortable=False) }}
+                    {{ sort_th("Woo ID", key="woo") }}
+                    {{ sort_th("Customer", key="name") }}
                     {{ data_table_th("Status", key="status", sortable=False) }}
                     {{ data_table_th("Division", key="division", sortable=False, hide="sm") }}
                     {{ data_table_th("Passes", key="passes", sortable=False) }}
                     {{ data_table_th("Season", key="season", sortable=False, hide="md") }}
-                    {{ data_table_th("Created", key="created", sortable=False, hide="md") }}
+                    {{ sort_th("Created", key="created", hide="md", default_dir="desc") }}
                     {{ data_table_th("Expires", key="expires", sortable=False, hide="md") }}
                     {{ data_table_th("Actions", key="actions", sortable=False, align="right") }}
                 </tr>
@@ -371,7 +406,7 @@
         {% if orders.pages > 1 %}
         <nav class="flex items-center justify-center gap-1 px-4 py-4 border-t border-gray-200 dark:border-gray-700" aria-label="Pagination">
             {% if orders.has_prev %}
-            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.prev_num, status=status_filter, search=search, season=season_filter) }}" aria-label="Previous page"
+            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.prev_num, status=status_filter, search=search, season=season_filter, division=division_filter, sort=sort) }}" aria-label="Previous page"
                class="inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-chevron-left text-base" aria-hidden="true"></i>
             </a>
@@ -381,7 +416,7 @@
                     {% if page_num == orders.page %}
                     <span aria-current="page" class="inline-flex items-center justify-center min-w-[2.5rem] h-10 px-2 text-sm font-semibold text-white bg-ecs-green rounded-lg font-mono">{{ page_num }}</span>
                     {% else %}
-                    <a href="{{ url_for('pub_league_orders_admin.orders_list', page=page_num, status=status_filter, search=search, season=season_filter) }}"
+                    <a href="{{ url_for('pub_league_orders_admin.orders_list', page=page_num, status=status_filter, search=search, season=season_filter, division=division_filter, sort=sort) }}"
                        class="inline-flex items-center justify-center min-w-[2.5rem] h-10 px-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-ecs-green">{{ page_num }}</a>
                     {% endif %}
                 {% else %}
@@ -389,7 +424,7 @@
                 {% endif %}
             {% endfor %}
             {% if orders.has_next %}
-            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.next_num, status=status_filter, search=search, season=season_filter) }}" aria-label="Next page"
+            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.next_num, status=status_filter, search=search, season=season_filter, division=division_filter, sort=sort) }}" aria-label="Next page"
                class="inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-chevron-right text-base" aria-hidden="true"></i>
             </a>
@@ -542,6 +577,8 @@
                 <form method="get" class="flex gap-2">
                     <input type="hidden" name="status" value="{{ status_filter }}">
                     <input type="hidden" name="season" value="{{ season_filter }}">
+                    <input type="hidden" name="division" value="{{ division_filter }}">
+                    <input type="hidden" name="sort" value="{{ sort }}">
                     <input type="text" name="search" value="{{ search or '' }}" placeholder="Search by name, email, or order ID..." class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
                     <button type="submit" class="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -560,6 +597,15 @@
                     <option value="all" {{ 'selected' if season_filter == 'all' else '' }}>All Seasons</option>
                 </select>
             </div>
+            <div class="w-full md:w-44">
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Division</label>
+                <select id="divisionFilter" aria-label="Filter by division" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="all" {{ 'selected' if division_filter == 'all' else '' }}>All Divisions</option>
+                    <option value="premier" {{ 'selected' if division_filter == 'premier' else '' }}>Premier</option>
+                    <option value="classic" {{ 'selected' if division_filter == 'classic' else '' }}>Classic</option>
+                    <option value="mixed" {{ 'selected' if division_filter == 'mixed' else '' }}>Mixed</option>
+                </select>
+            </div>
             <div class="w-full md:w-48">
                 <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Status Filter</label>
                 <select id="statusFilter" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
@@ -571,7 +617,7 @@
                     <option value="cancelled" {{ 'selected' if status_filter == 'cancelled' else '' }}>Cancelled</option>
                 </select>
             </div>
-            {% if search or (status_filter and status_filter != 'all') %}
+            {% if search or (status_filter and status_filter != 'all') or (division_filter and division_filter != 'all') %}
             <div class="flex items-end">
                 <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="inline-flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Clear
@@ -586,13 +632,13 @@
             <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
-                        <th class="px-4 py-3">WooCommerce ID</th>
-                        <th class="px-4 py-3">Customer</th>
+                        {{ sort_th("WooCommerce ID", key="woo") }}
+                        {{ sort_th("Customer", key="name") }}
                         <th class="px-4 py-3">Status</th>
                         <th class="px-4 py-3">Division</th>
                         <th class="px-4 py-3">Passes</th>
                         <th class="px-4 py-3">Season</th>
-                        <th class="px-4 py-3">Created</th>
+                        {{ sort_th("Created", key="created", default_dir="desc") }}
                         <th class="px-4 py-3">Expires</th>
                         <th class="px-4 py-3 text-right">Actions</th>
                     </tr>
@@ -692,7 +738,7 @@
         {% if orders.pages > 1 %}
         <nav class="flex items-center justify-center gap-1 mt-6">
             {% if orders.has_prev %}
-            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.prev_num, status=status_filter, search=search, season=season_filter) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.prev_num, status=status_filter, search=search, season=season_filter, division=division_filter, sort=sort) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </a>
             {% endif %}
@@ -702,7 +748,7 @@
                     {% if page_num == orders.page %}
                     <span class="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg">{{ page_num }}</span>
                     {% else %}
-                    <a href="{{ url_for('pub_league_orders_admin.orders_list', page=page_num, status=status_filter, search=search, season=season_filter) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{{ page_num }}</a>
+                    <a href="{{ url_for('pub_league_orders_admin.orders_list', page=page_num, status=status_filter, search=search, season=season_filter, division=division_filter, sort=sort) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{{ page_num }}</a>
                     {% endif %}
                 {% else %}
                 <span class="px-3 py-2 text-sm text-gray-400 dark:text-gray-500">...</span>
@@ -710,7 +756,7 @@
             {% endfor %}
 
             {% if orders.has_next %}
-            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.next_num, status=status_filter, search=search, season=season_filter) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.next_num, status=status_filter, search=search, season=season_filter, division=division_filter, sort=sort) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </a>
             {% endif %}
@@ -765,6 +811,17 @@ document.addEventListener('DOMContentLoaded', function() {
         seasonFilter.addEventListener('change', function() {
             const url = new URL(window.location.href);
             url.searchParams.set('season', this.value);
+            url.searchParams.delete('page');
+            window.location.href = url.toString();
+        });
+    }
+
+    // Division filter change
+    const divisionFilter = document.getElementById('divisionFilter');
+    if (divisionFilter) {
+        divisionFilter.addEventListener('change', function() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('division', this.value);
             url.searchParams.delete('page');
             window.location.href = url.toString();
         });

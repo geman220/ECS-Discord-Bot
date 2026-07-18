@@ -1054,7 +1054,11 @@ async def update_player_roles_async_only(player_data: Dict[str, Any], force_upda
     
     guild_id = int(os.getenv('SERVER_ID'))
     try:
-        async with aiohttp.ClientSession() as http_session:
+        # Explicit timeout: aiohttp defaults to 300s total, so a HANGING (not down)
+        # bot could otherwise pin this task for minutes × retries and back up the
+        # discord queue during the draft. A down bot fails fast on connect regardless.
+        _timeout = aiohttp.ClientTimeout(total=20, connect=5, sock_read=10)
+        async with aiohttp.ClientSession(timeout=_timeout) as http_session:
             # Use the provided player data instead of database queries
             current_roles = player_data.get('current_roles', [])
             expected_roles = player_data.get('expected_roles', [])

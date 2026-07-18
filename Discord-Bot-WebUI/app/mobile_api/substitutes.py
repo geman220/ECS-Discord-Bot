@@ -2299,7 +2299,7 @@ def respond_to_request(request_id: int):
                 availability_text = "is available" if is_available else "is NOT available"
                 match_text = f" for {team_name} on {match_date_str}" if match_date_str else f" for {team_name}"
 
-                orchestrator.send(NotificationPayload(
+                orchestrator.send_async(NotificationPayload(
                     notification_type=NotificationType.SUB_REQUEST,
                     title="Sub Response Received",
                     message=f"{player_name} {availability_text}{match_text}",

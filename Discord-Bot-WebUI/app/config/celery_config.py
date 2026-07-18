@@ -65,9 +65,11 @@ class CeleryConfig:
         'app.tasks.security_cleanup',
         'app.tasks.emergency_recovery',
         'app.tasks.tasks_notification_reminders',  # Unified notification system reminders
+        'app.tasks.tasks_notifications',  # Async orchestrator delivery (send_async)
         'app.tasks.tasks_push_notifications',  # Push notification campaigns
         'app.tasks.tasks_api_logging',  # Async API request logging
         'app.tasks.tasks_email_broadcast',  # Email broadcast campaigns
+        'app.tasks.tasks_quick_profiles',  # Field quick-profile claim-code delivery
         'app.tasks.tasks_audit',  # Deferred admin audit log writes
         'app.tasks.tasks_data_export',  # User data export (GDPR)
         'app.tasks.tasks_waitlist',  # Waitlist confirmation email
@@ -103,7 +105,13 @@ class CeleryConfig:
     }
     
     # Task Result Settings - Industry Best Practices
-    result_expires = 604800  # Results expire after 7 days (safety net for scheduled tasks)
+    # 6h (was 7d): result keys are the main growth source in the shared Redis, and
+    # under the volatile-lru policy they're the expendable TTL'd keys we want kept
+    # small so Redis rarely has to evict anything. This is result RETENTION only —
+    # unrelated to broker visibility_timeout (still 7d) which governs task delivery
+    # for advance-scheduled tasks. The highest-frequency tasks (15s draft clock,
+    # per-pick role/push) additionally set ignore_result=True so they store nothing.
+    result_expires = 21600  # Results expire after 6 hours
     result_compression = 'gzip'  # Compress results to save memory
     result_accept_content = ['json']
     result_persistent = False  # Don't persist results beyond expiry
@@ -181,11 +189,30 @@ class CeleryConfig:
                 'x-message-ttl': 7200000,  # 2 hours TTL for player sync
                 'x-max-length': 200
             }
+        },
+        # Dedicated draft queue — consumed ONLY by celery_draft_worker.py so the
+        # 15s on-the-clock enforcer can never be starved behind a heavy task on
+        # the shared 'celery' worker. Deliberately NOT in QUEUE_THRESHOLDS
+        # (app/utils/queue_monitor.py) so the auto-purge machinery never touches
+        # it. Short TTL: these are real-time, a stale one is useless.
+        'draft': {
+            'exchange': 'draft',
+            'routing_key': 'draft',
+            'queue_arguments': {
+                'x-max-priority': 10,
+                'x-message-ttl': 120000,  # 2 minutes TTL (real-time draft events)
+                'x-max-length': 200
+            }
         }
     }
 
     # Task Routes
     task_routes = {
+        # Draft real-time tasks onto the isolated 'draft' queue/worker. These
+        # SPECIFIC entries must precede any module wildcard (e.g.
+        # tasks_push_notifications.*) so they win the route match.
+        'app.tasks.tasks_draft_clock.enforce_draft_clock': {'queue': 'draft'},
+        'app.tasks.tasks_push_notifications.send_on_the_clock_push': {'queue': 'draft'},
         'app.tasks.tasks_discord.*': {'queue': 'discord'},
         'app.tasks.discord_cleanup.*': {'queue': 'discord'},  # Season rollover cleanup
         'app.tasks.tasks_core.*': {'queue': 'celery'},
@@ -204,8 +231,10 @@ class CeleryConfig:
         'app.tasks.mobile_analytics_cleanup.*': {'queue': 'celery'},
         'app.tasks.security_cleanup.*': {'queue': 'celery'},
         'app.tasks.tasks_notification_reminders.*': {'queue': 'celery'},
+        'app.tasks.tasks_notifications.*': {'queue': 'celery'},
         'app.tasks.tasks_push_notifications.*': {'queue': 'celery'},
         'app.tasks.tasks_email_broadcast.*': {'queue': 'celery'},
+        'app.tasks.tasks_quick_profiles.*': {'queue': 'celery'},
         'app.tasks.tasks_audit.*': {'queue': 'celery'},
         'app.tasks.tasks_rsvp_dm_reminders.*': {'queue': 'discord'},
     }
@@ -278,7 +307,10 @@ class CeleryConfig:
         'enforce-draft-clock': {
             'task': 'app.tasks.tasks_draft_clock.enforce_draft_clock',
             'schedule': 15.0,
-            'options': {'queue': 'celery', 'expires': 14},
+            # Isolated 'draft' queue (celery_draft_worker.py) — NOT the shared
+            # 'celery' worker, where a long job could hold the single slot and
+            # make every 15s publish hit expires=14 and vanish (clock stall).
+            'options': {'queue': 'draft', 'expires': 14},
         },
 
         'collect-db-stats': {

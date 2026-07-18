@@ -533,7 +533,8 @@ def update_player_admin_note(player_id: int, note_id: int):
             note_id=note_id,
             editor_id=current_user_id,
             content=content,
-            allow_edit_others=is_global_admin
+            allow_edit_others=is_global_admin,
+            expected_player_id=player_id
         )
 
         if not result.success:
@@ -576,7 +577,8 @@ def delete_player_admin_note(player_id: int, note_id: int):
         result = service.delete_admin_note(
             note_id=note_id,
             deleter_id=current_user_id,
-            allow_delete_others=is_global_admin
+            allow_delete_others=is_global_admin,
+            expected_player_id=player_id
         )
 
         if not result.success:
@@ -590,6 +592,243 @@ def delete_player_admin_note(player_id: int, note_id: int):
             target_player_id=player_id,
             action='delete_admin_note'
         )
+
+        return jsonify({
+            "success": True,
+            "message": "Note deleted successfully",
+            **result.data
+        }), 200
+
+
+# ==================== Waiting Room (not-yet-approved prospects) ====================
+# One pool, two intakes: self-signup users pending approval, and admin-made quick
+# profiles. Coaches + admins browse it and leave fit notes; they cannot approve/deny.
+
+@mobile_api_v2.route('/admin/waiting-room', methods=['GET'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def get_waiting_room():
+    """
+    List every not-yet-approved prospect (self-signups pending approval + pending
+    quick profiles), league-wide, with photo/info and a note count. Read-only for
+    coaches — this endpoint never approves/denies.
+
+    Query params:
+        limit: max items per intake (default 100, max 200)
+        search: case-insensitive name filter
+
+    Returns:
+        JSON: { success, total, prospects: [ {type, id, name, ...notes_endpoint} ] }
+    """
+    from datetime import datetime
+    from sqlalchemy import func
+    from sqlalchemy.orm import joinedload
+    from app.models import User, Player
+    from app.models.players import PlayerAdminNote
+    from app.models.quick_profile import QuickProfile, QuickProfileStatus
+
+    limit = min(request.args.get('limit', 100, type=int), 200)
+    search = (request.args.get('search') or '').strip()
+
+    with managed_session() as session:
+        # --- self-signup prospects: users pending approval (with a player row) ---
+        players_q = session.query(Player).join(User, Player.user_id == User.id).filter(
+            User.approval_status == 'pending'
+        )
+        if search:
+            players_q = players_q.filter(Player.name.ilike(f'%{search}%'))
+        players_q = players_q.options(joinedload(Player.user)).order_by(Player.id.desc()).limit(limit)
+        pending_players = players_q.all()
+
+        # --- admin-made prospects: pending, non-expired quick profiles ---
+        qps_q = session.query(QuickProfile).filter(
+            QuickProfile.status == QuickProfileStatus.PENDING.value,
+            QuickProfile.expires_at > datetime.utcnow()
+        )
+        if search:
+            qps_q = qps_q.filter(QuickProfile.player_name.ilike(f'%{search}%'))
+        qps_q = qps_q.order_by(QuickProfile.created_at.desc()).limit(limit)
+        pending_qps = qps_q.all()
+
+        # Note counts in two grouped queries (no N+1).
+        player_ids = [p.id for p in pending_players]
+        qp_ids = [q.id for q in pending_qps]
+        player_counts = dict(
+            session.query(PlayerAdminNote.player_id, func.count(PlayerAdminNote.id))
+            .filter(PlayerAdminNote.player_id.in_(player_ids))
+            .group_by(PlayerAdminNote.player_id).all()
+        ) if player_ids else {}
+        qp_counts = dict(
+            session.query(PlayerAdminNote.quick_profile_id, func.count(PlayerAdminNote.id))
+            .filter(PlayerAdminNote.quick_profile_id.in_(qp_ids))
+            .group_by(PlayerAdminNote.quick_profile_id).all()
+        ) if qp_ids else {}
+
+        prospects = []
+        for p in pending_players:
+            prospects.append({
+                'type': 'player',
+                'id': p.id,                     # use with /admin/players/<id>/notes
+                'user_id': p.user_id,
+                'name': p.name,
+                'profile_picture_url': p.profile_picture_url,
+                'pronouns': p.pronouns,
+                'jersey_size': p.jersey_size,
+                'intake': 'self_signup',
+                'note_count': player_counts.get(p.id, 0),
+                'created_at': p.user.created_at.isoformat() if p.user and p.user.created_at else None,
+                'notes_endpoint': f'/api/v1/admin/players/{p.id}/notes',
+            })
+        for q in pending_qps:
+            prospects.append({
+                'type': 'quick_profile',
+                'id': q.id,                     # use with /admin/quick-profiles/<id>/notes
+                'user_id': None,
+                'name': q.player_name,
+                'profile_picture_url': q.profile_picture_url,
+                'pronouns': q.pronouns,
+                'jersey_size': q.jersey_size,
+                'intake': 'admin_quick_profile',
+                'note_count': qp_counts.get(q.id, 0),
+                'created_at': q.created_at.isoformat() if q.created_at else None,
+                'notes_endpoint': f'/api/v1/admin/quick-profiles/{q.id}/notes',
+            })
+
+        # Newest first across both intakes (None dates sort last).
+        prospects.sort(key=lambda x: x['created_at'] or '', reverse=True)
+
+        return jsonify({
+            'success': True,
+            'total': len(prospects),
+            'prospects': prospects
+        }), 200
+
+
+# ==================== Quick Profile (waiting-room) Notes ====================
+# Same note system as players; the quick profile is just the other intake. Coaches
+# can add + edit/delete their OWN notes; Global Admins can edit/delete any.
+
+@mobile_api_v2.route('/admin/quick-profiles/<int:quick_profile_id>/notes', methods=['GET'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def get_quick_profile_notes(quick_profile_id: int):
+    """Get waiting-room notes for a quick profile."""
+    limit = min(request.args.get('limit', 50, type=int), 100)
+    offset = request.args.get('offset', 0, type=int)
+
+    with managed_session() as session:
+        from app.services.mobile.player_admin_service import PlayerAdminService
+        service = PlayerAdminService(session)
+        result = service.get_quick_profile_notes(quick_profile_id, limit=limit, offset=offset)
+
+        if not result.success:
+            return jsonify({"msg": result.message}), 404
+
+        return jsonify(result.data), 200
+
+
+@mobile_api_v2.route('/admin/quick-profiles/<int:quick_profile_id>/notes', methods=['POST'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def create_quick_profile_note(quick_profile_id: int):
+    """Create a waiting-room note on a quick profile."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    content = data.get('content')
+    if not content or not content.strip():
+        return jsonify({"msg": "Note content is required"}), 400
+
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        from app.services.mobile.player_admin_service import PlayerAdminService
+        service = PlayerAdminService(session)
+        result = service.create_quick_profile_note(
+            quick_profile_id=quick_profile_id,
+            author_id=current_user_id,
+            content=content
+        )
+
+        if not result.success:
+            status_code = 404 if result.error_code == "QUICK_PROFILE_NOT_FOUND" else 400
+            return jsonify({"msg": result.message}), status_code
+
+        return jsonify({
+            "success": True,
+            "message": "Note created successfully",
+            **result.data
+        }), 201
+
+
+@mobile_api_v2.route('/admin/quick-profiles/<int:quick_profile_id>/notes/<int:note_id>', methods=['PUT'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def update_quick_profile_note(quick_profile_id: int, note_id: int):
+    """Update a waiting-room note (own note, or any if Global Admin)."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    content = data.get('content')
+    if not content or not content.strip():
+        return jsonify({"msg": "Note content is required"}), 400
+
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        from app.models import User
+        user = session.query(User).get(current_user_id)
+        is_global_admin = any(role.name == 'Global Admin' for role in user.roles) if user else False
+
+        from app.services.mobile.player_admin_service import PlayerAdminService
+        service = PlayerAdminService(session)
+        # Shared, target-agnostic (operates by note_id); scoped to this quick
+        # profile so a note reached through the wrong URL 404s.
+        result = service.update_admin_note(
+            note_id=note_id,
+            editor_id=current_user_id,
+            content=content,
+            allow_edit_others=is_global_admin,
+            expected_quick_profile_id=quick_profile_id
+        )
+
+        if not result.success:
+            status_code = 404 if result.error_code == "NOTE_NOT_FOUND" else 403
+            return jsonify({"msg": result.message}), status_code
+
+        return jsonify({
+            "success": True,
+            "message": "Note updated successfully",
+            **result.data
+        }), 200
+
+
+@mobile_api_v2.route('/admin/quick-profiles/<int:quick_profile_id>/notes/<int:note_id>', methods=['DELETE'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def delete_quick_profile_note(quick_profile_id: int, note_id: int):
+    """Delete a waiting-room note (own note, or any if Global Admin)."""
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        from app.models import User
+        user = session.query(User).get(current_user_id)
+        is_global_admin = any(role.name == 'Global Admin' for role in user.roles) if user else False
+
+        from app.services.mobile.player_admin_service import PlayerAdminService
+        service = PlayerAdminService(session)
+        result = service.delete_admin_note(
+            note_id=note_id,
+            deleter_id=current_user_id,
+            allow_delete_others=is_global_admin,
+            expected_quick_profile_id=quick_profile_id
+        )
+
+        if not result.success:
+            status_code = 404 if result.error_code == "NOTE_NOT_FOUND" else 403
+            return jsonify({"msg": result.message}), status_code
 
         return jsonify({
             "success": True,

@@ -12,7 +12,7 @@ Provides feedback functionality for mobile clients:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import jsonify, request, render_template, url_for
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -117,6 +117,23 @@ def submit_feedback():
         if not user:
             return jsonify({"msg": "User not found"}), 404
 
+        # Idempotency guard: the mobile client can retry a submit when the
+        # response is slow (the admin notification email is rendered inline),
+        # which previously produced duplicate rows. If an identical feedback
+        # from this user landed in the last few minutes, return it instead of
+        # inserting another copy.
+        recent_cutoff = datetime.utcnow() - timedelta(minutes=5)
+        existing = session.query(Feedback).filter(
+            Feedback.user_id == current_user_id,
+            Feedback.category == category,
+            Feedback.title == title,
+            Feedback.description == description,
+            Feedback.created_at >= recent_cutoff,
+        ).order_by(Feedback.created_at.desc()).first()
+        if existing:
+            logger.info(f"Duplicate app feedback submission ignored; returning existing feedback {existing.id}")
+            return jsonify(_feedback_to_dict(existing)), 200
+
         feedback = Feedback(
             user_id=current_user_id,
             name=user.username,
@@ -138,7 +155,7 @@ def submit_feedback():
                 admin_users = session.query(User).filter(User.roles.contains(admin_role)).all()
                 admin_user_ids = [u.id for u in admin_users]
                 if admin_user_ids:
-                    orchestrator.send(NotificationPayload(
+                    orchestrator.send_async(NotificationPayload(
                         notification_type=NotificationType.FEEDBACK_NEW,
                         title=f"New App Feedback: {feedback.title}",
                         message=f"New {feedback.category} feedback from {feedback.name}: {feedback.title}",
@@ -292,7 +309,7 @@ def reply_to_feedback(feedback_id):
                 admin_user_ids = [u.id for u in admin_users]
                 if admin_user_ids:
                     username = user.username if user else 'Unknown'
-                    orchestrator.send(NotificationPayload(
+                    orchestrator.send_async(NotificationPayload(
                         notification_type=NotificationType.FEEDBACK_REPLY_FROM_USER,
                         title=f"User Reply: {feedback.title}",
                         message=f"{username} replied to feedback #{feedback.id}: {feedback.title}",

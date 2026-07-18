@@ -858,7 +858,8 @@ def _update_player_after_assign_roles(session, result):
     bind=True,
     max_retries=3,
     retry_backoff=True,
-    rate_limit='50/s'
+    rate_limit='50/s',
+    ignore_result=True  # fire-and-forget role sync: don't accumulate result keys in Redis
 )
 async def assign_roles_to_player_task(self, session, player_id: int, team_id: Optional[int] = None, only_add: bool = True) -> Dict[str, Any]:
     """
@@ -1476,7 +1477,8 @@ def _update_player_after_role_removal(session, result):
     queue='discord',
     bind=True,
     max_retries=3,
-    retry_backoff=True
+    retry_backoff=True,
+    ignore_result=True  # fire-and-forget role sync: don't accumulate result keys in Redis
 )
 async def remove_player_roles_task(self, session, player_id: int, team_id: Optional[int] = None) -> Dict[str, Any]:
     """

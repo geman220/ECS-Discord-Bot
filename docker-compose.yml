@@ -17,7 +17,7 @@ services:
       --tcp-keepalive 60 
       --timeout 900
       --maxmemory 800mb
-      --maxmemory-policy allkeys-lru
+      --maxmemory-policy volatile-lru
       --save 900 1
       --save 300 10
       --save 60 10000
@@ -187,6 +187,52 @@ services:
   # celery-player-sync-worker REMOVED - consolidated into celery-worker
   # Player sync tasks now handled by main celery-worker (saves ~300-400MB RAM)
   # The player_sync queue is consumed by celery-worker via '-Q celery,player_sync'
+
+  # Dedicated DRAFT worker — isolates the 15s on-the-clock enforcer + the
+  # "you're on the clock" push onto their own queue/process so NO heavy task
+  # (player sync, email broadcast, data export, nightly recompute) can occupy
+  # the single concurrency-1 slot the clock needs. Near-idle: one sub-second
+  # task every 15s. This is the fix for the clock silently stalling behind a
+  # long job during the draft. Consumes ONLY the 'draft' queue.
+  celery-draft-worker:
+    build:
+      context: ./Discord-Bot-WebUI
+      dockerfile: Dockerfile.webui
+    restart: unless-stopped
+    logging: *default-logging
+    command: python celery_draft_worker.py
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${CELERY_DATABASE_URL}
+      - PYTHONPATH=/app
+      - TZ=America/Los_Angeles
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_WORKER=1
+      - REDIS_MAX_CONNECTIONS=10
+    volumes:
+      - ./Discord-Bot-WebUI:/app
+      - celery_data:/tmp/celery
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer-celery:
+        condition: service_healthy
+    networks:
+      - web
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
 
   celery-live-reporting-worker:
     build:
@@ -501,7 +547,7 @@ services:
       - ENABLE_DB_CONNECTION_MONITOR=${ENABLE_DB_CONNECTION_MONITOR:-false}
       - FLASK_DEBUG=${FLASK_DEBUG:-0}
       - REDIS_URL=redis://redis:6379/0
-      - REDIS_MAX_CONNECTIONS=150
+      - REDIS_MAX_CONNECTIONS=60
     env_file:
       - .env
     volumes:

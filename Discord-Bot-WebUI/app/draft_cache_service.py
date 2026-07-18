@@ -26,9 +26,16 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# Global state for active draft detection
+# Global state for active draft detection.
+# NOTE: this in-process set only reflects the gunicorn worker that handled the
+# start/stop request. With multiple web workers the others wouldn't know a draft
+# is active, so they'd use the wrong cache TTLs / invalidation branch. It is now
+# mirrored into a shared Redis set (_ACTIVE_DRAFT_REDIS_KEY) so ALL workers agree;
+# the in-process set remains the fallback when Redis is unavailable.
 _active_drafts = set()
 _active_draft_lock = threading.Lock()
+_ACTIVE_DRAFT_REDIS_KEY = 'draft:active_leagues'
+_ACTIVE_DRAFT_REDIS_TTL = 21600  # 6h safety expiry, refreshed on every mark_active
 
 class DraftCacheService:
     """
@@ -66,21 +73,42 @@ class DraftCacheService:
     
     @classmethod
     def mark_draft_active(cls, league_name: str):
-        """Mark a league as having an active draft session."""
+        """Mark a league as having an active draft session (shared across workers)."""
         with _active_draft_lock:
             _active_drafts.add(league_name)
-            logger.info(f"🎯 Marked {league_name} as ACTIVE DRAFT - extended cache TTLs enabled")
-    
-    @classmethod 
+        try:
+            with cls._redis_connection_safe() as redis_conn:
+                if redis_conn:
+                    redis_conn.sadd(_ACTIVE_DRAFT_REDIS_KEY, league_name)
+                    redis_conn.expire(_ACTIVE_DRAFT_REDIS_KEY, _ACTIVE_DRAFT_REDIS_TTL)
+        except Exception as e:
+            logger.warning(f"mark_draft_active redis sync failed (local only): {e}")
+        logger.info(f"🎯 Marked {league_name} as ACTIVE DRAFT - extended cache TTLs enabled")
+
+    @classmethod
     def mark_draft_inactive(cls, league_name: str):
-        """Mark a league as no longer having an active draft session."""
+        """Mark a league as no longer having an active draft session (shared)."""
         with _active_draft_lock:
             _active_drafts.discard(league_name)
-            logger.info(f"🎯 Marked {league_name} as INACTIVE DRAFT - normal cache TTLs restored")
-    
+        try:
+            with cls._redis_connection_safe() as redis_conn:
+                if redis_conn:
+                    redis_conn.srem(_ACTIVE_DRAFT_REDIS_KEY, league_name)
+        except Exception as e:
+            logger.warning(f"mark_draft_inactive redis sync failed (local only): {e}")
+        logger.info(f"🎯 Marked {league_name} as INACTIVE DRAFT - normal cache TTLs restored")
+
     @classmethod
     def is_draft_active(cls, league_name: str) -> bool:
-        """Check if a league has an active draft session."""
+        """Check if a league has an active draft session. Prefer the shared Redis
+        view so every worker agrees; fall back to the in-process set if Redis is
+        unavailable (never let this raise on the pick path)."""
+        try:
+            with cls._redis_connection_safe() as redis_conn:
+                if redis_conn:
+                    return bool(redis_conn.sismember(_ACTIVE_DRAFT_REDIS_KEY, league_name))
+        except Exception as e:
+            logger.warning(f"is_draft_active redis check failed, using local set: {e}")
         with _active_draft_lock:
             return league_name in _active_drafts
     

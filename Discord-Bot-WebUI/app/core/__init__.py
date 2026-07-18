@@ -35,7 +35,10 @@ socketio = SocketIO(
     async_mode='gevent',
     ping_timeout=60,
     ping_interval=25,
-    logger=True,
+    # logger=False: per-packet Socket.IO logging runs synchronously in the gevent
+    # hub. During the draft every pick fans out several room broadcasts; logging
+    # each packet is needless CPU on the event loop. Flip to True only to debug.
+    logger=False,
     engineio_logger=False
 )
 celery = Celery('app')

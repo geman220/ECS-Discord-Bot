@@ -18,7 +18,7 @@ from flask import (
     Blueprint, render_template, request, jsonify, url_for, send_file, abort, redirect, g,
 )
 from flask_login import login_required, current_user
-from sqlalchemy import desc, or_, and_, func, distinct
+from sqlalchemy import desc, asc, or_, and_, func, distinct, exists, nullslast
 from sqlalchemy.orm import joinedload
 
 from app.core import db
@@ -35,10 +35,44 @@ logger = logging.getLogger(__name__)
 pub_league_orders_admin_bp = Blueprint('pub_league_orders_admin', __name__, url_prefix='/admin-panel')
 
 
+# Sort options shared by the list view and the email export. The key is the
+# `sort` query param; the value is the ORDER BY clause. customer_name uses
+# nullslast so unnamed orders never lead an alphabetical list.
+ORDER_SORTS = {
+    'created_desc': lambda: desc(PubLeagueOrder.created_at),
+    'created_asc': lambda: asc(PubLeagueOrder.created_at),
+    'name_asc': lambda: nullslast(asc(PubLeagueOrder.customer_name)),
+    'name_desc': lambda: nullslast(desc(PubLeagueOrder.customer_name)),
+    'woo_asc': lambda: asc(PubLeagueOrder.woo_order_id),
+    'woo_desc': lambda: desc(PubLeagueOrder.woo_order_id),
+}
+DEFAULT_SORT = 'created_desc'
+
+
+def _division_condition(division_filter):
+    """
+    Build a WHERE condition matching the Division badge shown in the list:
+    'premier' = has Premier passes and no Classic; 'classic' = the reverse;
+    'mixed' = has both. Uses correlated EXISTS so it composes with the plain
+    PubLeagueOrder query (no join needed) and reuses across list/stats/export.
+    Returns None for 'all' (no filtering).
+    """
+    if division_filter not in ('premier', 'classic', 'mixed'):
+        return None
+    li = PubLeagueOrderLineItem
+    has_premier = exists().where(and_(li.order_id == PubLeagueOrder.id, li.division == 'Premier'))
+    has_classic = exists().where(and_(li.order_id == PubLeagueOrder.id, li.division == 'Classic'))
+    if division_filter == 'premier':
+        return and_(has_premier, ~has_classic)
+    if division_filter == 'classic':
+        return and_(has_classic, ~has_premier)
+    return and_(has_premier, has_classic)  # mixed
+
+
 def _parse_order_filters():
     """
-    Parse the status/search/season filter params shared by the orders list
-    and the email export, and build the season scope condition.
+    Parse the status/search/season/division/sort filter params shared by the
+    orders list and the email export, and build the season scope condition.
 
     Season scope defaults to the CURRENT Pub League season so the list is
     not clogged with last season's orders. This "ties to rollover": whichever
@@ -50,6 +84,15 @@ def _parse_order_filters():
     """
     status_filter = request.args.get('status', 'all')
     search = request.args.get('search', '').strip()
+
+    sort = request.args.get('sort', DEFAULT_SORT)
+    if sort not in ORDER_SORTS:
+        sort = DEFAULT_SORT
+
+    division_filter = request.args.get('division', 'all')
+    if division_filter not in ('all', 'premier', 'classic', 'mixed'):
+        division_filter = 'all'
+    division_condition = _division_condition(division_filter)
 
     current_season = db.session.query(Season).filter_by(
         league_type='Pub League', is_current=True
@@ -104,6 +147,9 @@ def _parse_order_filters():
         'is_current_view': is_current_view,
         'current_season': current_season,
         'season_condition': season_condition,
+        'sort': sort,
+        'division_filter': division_filter,
+        'division_condition': division_condition,
     }
 
 
@@ -123,6 +169,9 @@ def orders_list():
         selected_season_id = filters['selected_season_id']
         season_condition = filters['season_condition']
         current_season = filters['current_season']
+        sort = filters['sort']
+        division_filter = filters['division_filter']
+        division_condition = filters['division_condition']
 
         # Subquery for divisions - aggregates distinct divisions per order
         # Use string_agg for PostgreSQL (group_concat is MySQL)
@@ -166,8 +215,13 @@ def orders_list():
         if season_condition is not None:
             query = query.filter(season_condition)
 
-        # Order by created_at descending
-        query = query.order_by(desc(PubLeagueOrder.created_at))
+        # Apply division (Premier/Classic/Mixed) scope
+        if division_condition is not None:
+            query = query.filter(division_condition)
+
+        # Apply sort (name alphabetical, created, or woo order id), with a
+        # stable id tie-breaker so equal keys page consistently.
+        query = query.order_by(ORDER_SORTS[sort](), desc(PubLeagueOrder.id))
 
         # Paginate - need to handle the tuple results
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -205,6 +259,8 @@ def orders_list():
             q = db.session.query(func.count(PubLeagueOrder.id))
             if season_condition is not None:
                 q = q.filter(season_condition)
+            if division_condition is not None:
+                q = q.filter(division_condition)
             if status is not None:
                 q = q.filter(PubLeagueOrder.status == status)
             return q.scalar() or 0
@@ -233,6 +289,8 @@ def orders_list():
         )
         if season_condition is not None:
             auto_unconfirmed_q = auto_unconfirmed_q.filter(season_condition)
+        if division_condition is not None:
+            auto_unconfirmed_q = auto_unconfirmed_q.filter(division_condition)
         stats['auto_unconfirmed'] = auto_unconfirmed_q.scalar() or 0
 
         # Season options for the filter dropdown — only seasons that actually
@@ -264,6 +322,8 @@ def orders_list():
             selected_season_id=selected_season_id,
             season_options=season_options,
             current_season=current_season,
+            sort=sort,
+            division_filter=division_filter,
             user_roles=user_roles,
             PubLeagueOrderStatus=PubLeagueOrderStatus,
             premier_product_slug=premier_product_slug,
@@ -283,6 +343,8 @@ def orders_list():
             selected_season_id=None,
             season_options=[],
             current_season=None,
+            sort=DEFAULT_SORT,
+            division_filter='all',
             user_roles=[],
             now=datetime.utcnow()
         )
@@ -320,8 +382,14 @@ def export_order_emails():
         )
     if filters['season_condition'] is not None:
         query = query.filter(filters['season_condition'])
+    if filters['division_condition'] is not None:
+        query = query.filter(filters['division_condition'])
 
-    orders = query.order_by(desc(PubLeagueOrder.created_at)).all()
+    # Always dedup by NEWEST order per email (created_at desc), independent of
+    # the list's display sort. The CSV is for mail-merge, so row order doesn't
+    # matter — but which order supplies a duplicate-email customer's status/pass
+    # counts must be deterministic, not a side effect of the active sort.
+    orders = query.order_by(desc(PubLeagueOrder.created_at), desc(PubLeagueOrder.id)).all()
 
     buf = io.StringIO()
     writer = csv.writer(buf)

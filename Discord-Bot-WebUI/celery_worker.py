@@ -63,7 +63,13 @@ if __name__ == '__main__':
             'worker',
             '--loglevel=INFO',
             '--hostname=main-celery-worker@%h',  # Explicit hostname
-            '-Q', 'celery,player_sync',  # Combined: main queue + player sync
+            # Combined: main queue + player sync. Also consumes 'draft' as a SAFETY
+            # NET so the draft clock still runs if celery-draft-worker isn't deployed
+            # — the dedicated worker still provides the isolation guarantee (an always
+            # -free slot); this just prevents the clock from being orphaned on a queue
+            # nobody consumes. When both run, Celery hands draft tasks to whichever
+            # worker is free (the near-idle dedicated one, in practice).
+            '-Q', 'celery,player_sync,draft',
             '--pool=prefork',  # Changed from eventlet - eventlet was deadlocking
             '--concurrency=1',  # 2 vCPU droplet shared with gunicorn+redis+bot: 4 workers x 2 = 8 prefork procs thrashed the cores
             '--prefetch-multiplier=1',

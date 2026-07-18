@@ -20,6 +20,32 @@
 {% endblock %}
 
 {% block panel_content %}
+
+{# Waiting-room review notes (coach/admin fit notes). Read-only display here; coaches
+   add/edit via the mobile app. Shows content + author + date for each note. #}
+{% macro review_notes_block(notes) %}
+  {% if notes %}
+  <details class="mt-1.5 group">
+    <summary class="inline-flex items-center gap-1 cursor-pointer select-none text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+      <i class="ti ti-message-2 text-sm" aria-hidden="true"></i>
+      <span class="group-open:hidden">Review notes ({{ notes|length }})</span>
+      <span class="hidden group-open:inline">Hide notes</span>
+    </summary>
+    <ul class="mt-1.5 space-y-1.5 max-w-md" role="list">
+      {% for n in notes %}
+      <li class="rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 px-3 py-2">
+        <p class="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{{ n.content }}</p>
+        <p class="mt-1 text-[10px] uppercase tracking-wide text-indigo-700/70 dark:text-indigo-400/70 font-semibold">
+          {{ n.author.player.name if n.author and n.author.player else (n.author.username if n.author else 'Unknown') }}
+          · {{ n.created_at.strftime('%b %d, %Y') if n.created_at else '' }}
+        </p>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+{% endmacro %}
+
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, data_table_th, empty_state %}
@@ -191,6 +217,7 @@
                 {% else %}
                 <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="No active season pass yet"><i class="ti ti-ticket-off text-[11px]" aria-hidden="true"></i>Not paid</span>
                 {% endif %}
+                {% if user.player %}{{ review_notes_block(notes_by_player.get(user.player.id)) }}{% endif %}
               </div>
             </div>
           </td>
@@ -274,6 +301,7 @@
             {% elif not user.preferred_league and not user.has_completed_onboarding %}
             <p class="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 mt-0.5"><i class="ti ti-alert-triangle text-[11px]" aria-hidden="true"></i>Onboarding incomplete</p>
             {% endif %}
+            {% if user.player %}{{ review_notes_block(notes_by_player.get(user.player.id)) }}{% endif %}
           </div>
         </div>
         <div class="flex gap-2 mt-3">
@@ -299,6 +327,78 @@
     {% endif %}
     {% endif %}
   </section>
+
+  <!-- ===== Field profiles: admin-captured walk-ins awaiting claim ===== -->
+  {% if field_profiles %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-id-badge-2 text-ecs-green" aria-hidden="true"></i>
+        <span>Field Profiles</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400">{{ field_profiles|length }}</span>
+      </h2>
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] text-gray-500 dark:text-gray-400 font-mono hidden sm:inline">unclaimed · become pl-unverified on register</span>
+        <a href="{{ url_for('admin_panel.quick_profiles_management') }}"
+           class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <i class="ti ti-settings" aria-hidden="true"></i><span>Manage</span>
+        </a>
+      </div>
+    </div>
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+      {% for qp in field_profiles %}
+      <li class="flex items-start gap-3 sm:gap-4 px-4 sm:px-5 py-3">
+        <!-- Photo -->
+        {% if qp.profile_picture_url %}
+        <img src="{{ qp.profile_picture_url }}" alt="{{ qp.player_name }}"
+             class="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover shrink-0 ring-1 ring-gray-200 dark:ring-gray-700">
+        {% else %}
+        <span class="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500">
+          <i class="ti ti-user text-lg" aria-hidden="true"></i>
+        </span>
+        {% endif %}
+
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span class="font-semibold text-gray-900 dark:text-white truncate">{{ qp.player_name }}</span>
+            {% if qp.pronouns %}<span class="text-[11px] text-gray-500 dark:text-gray-400">({{ qp.pronouns }})</span>{% endif %}
+            <!-- Claim code chip with copy -->
+            <button type="button" data-action="copy-code" data-code="{{ qp.claim_code }}"
+                    title="Copy claim code"
+                    class="inline-flex items-center gap-1 h-6 pl-2 pr-1.5 rounded-md font-mono text-xs font-bold tracking-widest
+                           bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15 hover:bg-ecs-green/20 transition-colors">
+              {{ qp.claim_code }}<i class="ti ti-copy text-sm" aria-hidden="true"></i>
+            </button>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">
+            {{ qp.created_at.strftime('%Y-%m-%d') if qp.created_at else '' }}
+            {%- if qp.created_by %} · by {{ qp.created_by.username }}{% endif -%}
+            {%- if qp.jersey_size %} · {{ qp.jersey_size }}{% endif -%}
+            {%- if qp.jersey_number %} · #{{ qp.jersey_number }}{% endif -%}
+            {%- if qp.email %} · {{ qp.email }}{% endif -%}
+            {%- if qp.phone_number %} · {{ qp.phone_number }}{% endif -%}
+            {% if qp.expires_at %} · expires {{ qp.expires_at.strftime('%b %d') }}{% endif %}
+          </p>
+          {% if qp.notes %}
+          <details class="mt-1.5 group">
+            <summary class="inline-flex items-center gap-1 cursor-pointer select-none text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-ecs-green">
+              <i class="ti ti-notes text-sm" aria-hidden="true"></i>
+              <span class="group-open:hidden">Show notes</span>
+              <span class="hidden group-open:inline">Hide notes</span>
+            </summary>
+            <div class="mt-1.5 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 px-3 py-2">
+              {{ qp.notes }}
+              <p class="mt-1 text-[10px] uppercase tracking-wide text-amber-700/70 dark:text-amber-400/70 font-semibold">Admin only</p>
+            </div>
+          </details>
+          {% endif %}
+          {{ review_notes_block(notes_by_quick_profile.get(qp.id)) }}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
 
   <!-- ===== Two-up: Recently processed (activity feed) + Audit log ===== -->
   {% if recent_actions or audit_logs %}
@@ -772,6 +872,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Modal is shown by Flowbite via data-modal-toggle; load real data into it.
                 loadPlayerDetails(userId);
                 break;
+            case 'copy-code': {
+                // Re-view / copy a field profile's claim code (in case the player
+                // forgot it). Code is already visible on the chip; this just copies.
+                const code = target.dataset.code || '';
+                if (code && navigator.clipboard) {
+                    navigator.clipboard.writeText(code).then(function() {
+                        const original = target.innerHTML;
+                        target.innerHTML = code + '<i class="ti ti-check text-sm"></i>';
+                        setTimeout(function() { target.innerHTML = original; }, 1200);
+                    }).catch(function() { /* clipboard blocked; code still visible */ });
+                }
+                break;
+            }
         }
     });
 

@@ -180,7 +180,7 @@ class DraftSession(db.Model):
     league_id = db.Column(db.Integer, db.ForeignKey('league.id', ondelete='CASCADE'), nullable=False)
 
     # format / rules
-    format = db.Column(db.String(10), nullable=False, default='snake')      # 'snake' | 'linear'
+    format = db.Column(db.String(10), nullable=False, default='snake')      # 'snake' | 'linear' | 'rotating'
     seconds_per_pick = db.Column(db.Integer, nullable=False, default=90)     # 0 = untimed; adjustable live
     timeout_action = db.Column(db.String(10), nullable=False, default='alert')  # alert | skip | pause
     lock_to_clock = db.Column(db.Boolean, nullable=False, default=True)      # only current team may be assigned

@@ -14,8 +14,18 @@ historical behaviour) — every helper here is a no-op / returns None in that ca
 
 Pick-order math (1-based overall_pick):
   n = number of teams, round = (overall_pick-1)//n + 1, idx = (overall_pick-1)%n
-  linear -> slot index = idx
-  snake  -> even rounds reverse: idx = n-1-idx
+  linear   -> slot index = idx
+  snake    -> even rounds reverse: idx = n-1-idx
+  rotating -> snake, but the anchor rotates one seat every TWO rounds. Rounds pair
+              up (1&2, 3&4, ...); within a pair it snakes (forward then reversed),
+              and each successive pair rotates the base order left by one, so the
+              team that opened rounds 1-2 opens later and later. For base seats
+              [E,F,G,H,I,J,K,L]:
+                R1 E F G H I J K L    R2 L K J I H G F E
+                R3 F G H I J K L E    R4 E L K J I H G F
+                R5 G H I J K L E F    R6 F E L K J I H G  ...
+              (This is the "reverse each round, shift the start every 2 rounds"
+              scheme some pub-league drafts use for maximal seat fairness.)
 """
 
 import logging
@@ -27,13 +37,47 @@ from app.models import DraftSession, DraftPickSlot, Team
 logger = logging.getLogger(__name__)
 
 
-def get_session(session, season_id, league_id):
-    """Return the DraftSession for this (season, league), or None."""
+def get_session(session, season_id, league_id, for_update=False):
+    """Return the DraftSession for this (season, league), or None.
+
+    for_update=True issues SELECT ... FOR UPDATE so the caller holds a row lock on
+    the draft session for the rest of its transaction. This is the concurrency
+    primitive that makes a pick atomic: two picks racing for the same on-the-clock
+    team serialize on this lock, so only the first writes + advances and the second
+    sees the clock already moved (see check_turn). Works across web and mobile
+    because both hit the same DB row."""
     if not season_id or not league_id:
         return None
-    return session.query(DraftSession).filter_by(
+    q = session.query(DraftSession).filter_by(
         season_id=season_id, league_id=league_id
-    ).first()
+    )
+    if for_update:
+        q = q.with_for_update()
+    return q.first()
+
+
+def check_turn(ds, team_id, is_admin, expected_pick=None):
+    """Authoritative on-the-clock turn check. MUST be called while holding the
+    FOR UPDATE lock on `ds` (get_session(..., for_update=True)) so the claim is
+    atomic against concurrent picks — that is what prevents a double-draft.
+
+    Returns (ok: bool, code: str):
+      'ok'          -> allowed: on the clock, admin override, or free-form/paused
+      'out_of_turn' -> lock_to_clock on, a different team is on the clock, not admin
+      'stale'       -> expected_pick given but the board already moved on, not admin
+
+    No enforcement when there is no active session (free-form) or the draft is
+    paused/complete — that preserves the legacy any-player-any-team behaviour."""
+    if ds is None or ds.status != 'active':
+        return True, 'ok'
+    if (ds.lock_to_clock and ds.current_team_id and ds.current_team_id != team_id
+            and not is_admin):
+        return False, 'out_of_turn'
+    if (expected_pick is not None and not is_admin
+            and ds.current_overall_pick is not None
+            and int(expected_pick) != ds.current_overall_pick):
+        return False, 'stale'
+    return True, 'ok'
 
 
 def ordered_team_ids(session, ds):
@@ -55,6 +99,13 @@ def team_on_clock(team_ids, fmt, overall_pick):
         return None, None, None
     rnd = (overall_pick - 1) // n + 1
     idx = (overall_pick - 1) % n
+    if fmt == 'rotating':
+        # Snake within each 2-round pair, then rotate the anchor left by one per pair.
+        shift = (rnd - 1) // 2            # pairs 1&2 -> 0, 3&4 -> 1, 5&6 -> 2, ...
+        if rnd % 2 == 0:                  # second round of the pair reverses
+            idx = n - 1 - idx
+        slot = (idx + shift) % n
+        return team_ids[slot], rnd, slot + 1
     if fmt == 'snake' and rnd % 2 == 0:
         idx = n - 1 - idx
     return team_ids[idx], rnd, idx + 1
@@ -109,11 +160,16 @@ def get_team_coaches(session, team_id):
     return [{'player_id': p.id, 'name': p.name, 'discord_id': p.discord_id} for p in rows]
 
 
-def advance(session, ds):
-    """Advance the clock by one pick. Caller commits. Returns updated state dict."""
+def advance(session, ds, with_state=True):
+    """Advance the clock by one pick. Caller commits. Returns updated state dict.
+
+    with_state=False mutates the clock columns but skips building the emit payload,
+    so a caller holding a FOR UPDATE lock can advance and release the lock, then
+    build_state() afterwards OUTSIDE the lock (build_state issues ~5 read queries
+    that don't need to run under the lock). Returns None when with_state=False."""
     team_ids = ordered_team_ids(session, ds)
     set_clock_to(ds, (ds.current_overall_pick or 0) + 1, team_ids)
-    return build_state(session, ds, team_ids=team_ids)
+    return build_state(session, ds, team_ids=team_ids) if with_state else None
 
 
 def step_back(session, ds):
@@ -201,36 +257,76 @@ def build_state(session, ds, team_ids=None):
     }
 
 
-def alert_team_coaches(session, ds, escalation):
-    """Hyper-alert the on-the-clock team's coach(es) via Discord DM. Returns count DM'd.
+def _alert_message(team_name, escalation):
+    """Escalation copy for the on-the-clock coach DM (human tone, no AI vibe)."""
+    if escalation <= 1:
+        return (f"You're on the clock in the {team_name} draft. Make your pick when you get a sec — "
+                f"the board's waiting on you.")
+    if escalation == 2:
+        return (f"Still your pick in the {team_name} draft — clock's run out. Jump in and grab someone.")
+    return (f"Heads up — the {team_name} draft is held up on your pick (reminder #{escalation}). "
+            f"Please make a selection so we can keep moving.")
 
-    `escalation` (int, 1-based) drives the urgency of the message copy. Best-effort:
-    never raises (a failed alert must not stall the draft)."""
-    import os
-    import requests
+
+def resolve_coach_alert(session, ds, escalation):
+    """READ-ONLY: gather the on-the-clock coaches' discord_ids + the escalation
+    message. Call this INSIDE the DB transaction, commit, THEN hand the result to
+    dispatch_coach_dms() OUTSIDE the transaction. Splitting it this way is what
+    keeps the bot HTTP call from holding a pgbouncer slot open (the 1-vCPU DB has
+    a tiny transaction budget — never do HTTP inside an open txn). Returns
+    (discord_ids: list[str], message: str)."""
     coaches = get_team_coaches(session, ds.current_team_id)
     team = session.query(Team).filter(Team.id == ds.current_team_id).first()
     team_name = team.name if team else 'your team'
-    if escalation <= 1:
-        msg = (f"You're on the clock in the {team_name} draft. Make your pick when you get a sec — "
-               f"the board's waiting on you.")
-    elif escalation == 2:
-        msg = (f"Still your pick in the {team_name} draft — clock's run out. Jump in and grab someone.")
-    else:
-        msg = (f"Heads up — the {team_name} draft is held up on your pick (reminder #{escalation}). "
-               f"Please make a selection so we can keep moving.")
+    discord_ids = [c['discord_id'] for c in coaches if c.get('discord_id')]
+    return discord_ids, _alert_message(team_name, escalation)
+
+
+def dispatch_coach_dms(discord_ids, message):
+    """Send the coach alert DMs. Pure HTTP — NO DB session, so it is safe to call
+    after the transaction has committed. Best-effort: never raises. Returns count
+    sent. Tuple timeout is (connect, read) so a black-holing bot can't exceed it."""
+    import os
+    import requests
     bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
     sent = 0
-    for c in coaches:
-        if not c.get('discord_id'):
-            continue
+    for did in discord_ids:
         try:
             requests.post(f"{bot_api_url}/send_discord_dm",
-                          json={'discord_id': c['discord_id'], 'message': msg}, timeout=5)
+                          json={'discord_id': did, 'message': message}, timeout=(3, 5))
             sent += 1
         except Exception as e:
-            logger.warning(f"draft coach alert DM failed for {c['discord_id']}: {e}")
+            logger.warning(f"draft coach alert DM failed for {did}: {e}")
     return sent
+
+
+def alert_team_coaches(session, ds, escalation):
+    """Back-compat convenience: resolve targets + dispatch in one call. Prefer the
+    resolve_coach_alert()/dispatch_coach_dms() split in transactional contexts so
+    the HTTP runs strictly after commit."""
+    discord_ids, message = resolve_coach_alert(session, ds, escalation)
+    return dispatch_coach_dms(discord_ids, message)
+
+
+def queue_on_clock_push(ds):
+    """Enqueue the 'you're on the clock' push for the team `ds` now points at.
+
+    Best-effort, fire-and-forget; call after any real clock transition (a pick
+    advancing the clock, a skip, the draft starting). No-op unless the draft is
+    active with a team on the clock. The Celery task resolves the team's coaches
+    and pushes to all of them, so the HTTP send never touches the pick txn."""
+    try:
+        if not ds or ds.status != 'active' or not ds.current_team_id:
+            return
+        from app.tasks.tasks_push_notifications import send_on_the_clock_push
+        send_on_the_clock_push.delay(
+            team_id=ds.current_team_id,
+            round_no=ds.current_round,
+            overall_pick=ds.current_overall_pick,
+            seconds_per_pick=ds.seconds_per_pick or None,
+        )
+    except Exception as e:  # never let a push enqueue break the draft
+        logger.warning(f"queue_on_clock_push failed: {e}")
 
 
 def emit_clock(league_name, state):
