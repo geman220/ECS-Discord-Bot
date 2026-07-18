@@ -322,6 +322,17 @@ class AutoScheduleGenerator:
         # Balance North/South field assignments within windows (C5)
         weeks = self._assign_fields_to_windows(weeks_with_windows, team_ids)
 
+        # Week 4 (index 3) is the reversed mirror of week 1. Because
+        # _assign_fields_to_window_group derives its slot split from valid_splits[0]
+        # (the first combinatorial split of the match list), the reversed pairing
+        # order makes week 4's two time slots come out in the opposite order from
+        # the forward weeks - the pair that should play at 9:30/11:50 lands at
+        # 8:20/10:40. Swap each window's two time slots so week 4 follows the same
+        # slot pattern as every other week. This is a pure time-slot reorder:
+        # matches keep their North/South parity (even/odd position) and early/late
+        # half (index < 4), so C1-C7 are unaffected and no other week changes.
+        weeks[3] = self._swap_window_slots(weeks[3])
+
         # Validate all constraints
         self._validate_all_constraints(weeks, team_ids)
 
@@ -687,6 +698,21 @@ class AutoScheduleGenerator:
             result_weeks.append(final_early + final_late)
 
         return result_weeks
+
+    def _swap_window_slots(self, week: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+        """
+        Swap the two time slots within each window for a single week.
+
+        A week is ordered [e_s1_N, e_s1_S, e_s2_N, e_s2_S, l_s3_N, l_s3_S, l_s4_N, l_s4_S].
+        This swaps slot1<->slot2 in the early window and slot3<->slot4 in the late
+        window, i.e. positions [0,1]<->[2,3] and [4,5]<->[6,7].
+
+        Because North/South is encoded by position parity (even=North) and early/late
+        by position half (index < 4), this reorder preserves both - only the time slot
+        each match maps to (index // 2) changes. Used to correct the reversed week
+        (week 4) so its slot ordering matches the other weeks.
+        """
+        return week[2:4] + week[0:2] + week[6:8] + week[4:6]
 
     def _assign_fields_to_windows(self, weeks: List[List[Tuple[int, int]]],
                                     team_ids: List[int]) -> List[List[Tuple[int, int]]]:

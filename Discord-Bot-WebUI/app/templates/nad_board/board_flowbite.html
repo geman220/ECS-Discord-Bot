@@ -48,6 +48,11 @@
             <option value="assigned">On a team</option>
             <option value="unassigned">Unassigned</option>
         </select>
+        <select id="nad-division" class="py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+            <option value="">All divisions</option>
+            <option value="premier">Premier</option>
+            <option value="classic">Classic</option>
+        </select>
         <select id="nad-position" class="py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
             <option value="">All positions</option>
         </select>
@@ -73,6 +78,7 @@
         <div class="nad-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3"
              data-name="{{ nad.name|lower }}"
              data-assigned="{{ '1' if nad.team_id else '0' }}"
+             data-division="{{ nad.division|lower if nad.division else '' }}"
              data-notes="{{ nad.note_count }}"
              data-created="{{ nad.created_at or '' }}"
              data-index="{{ loop.index0 }}"
@@ -95,11 +101,16 @@
                         <h3 class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ nad.name }}</h3>
                         {% if nad.pronouns %}<span class="text-xs text-gray-400">{{ nad.pronouns }}</span>{% endif %}
                     </div>
-                    <div class="mt-1">
+                    <div class="mt-1 flex flex-wrap items-center gap-1">
                     {% if nad.team_name %}
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"><i class="ti ti-shield text-xs"></i>{{ nad.team_name }}</span>
                     {% else %}
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"><i class="ti ti-user-question text-xs"></i>Unassigned</span>
+                    {% endif %}
+                    {% if nad.division == 'Premier' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"><i class="ti ti-trophy text-xs"></i>Premier</span>
+                    {% elif nad.division == 'Classic' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300"><i class="ti ti-ball-football text-xs"></i>Classic</span>
                     {% endif %}
                     </div>
                 </div>
@@ -211,6 +222,7 @@
     const cards = grid ? Array.from(grid.querySelectorAll('.nad-card')) : [];
     const searchEl = document.getElementById('nad-search');
     const statusEl = document.getElementById('nad-status');
+    const divisionEl = document.getElementById('nad-division');
     const positionEl = document.getElementById('nad-position');
     const sortEl = document.getElementById('nad-sort');
     const countEl = document.getElementById('nad-count');
@@ -233,6 +245,7 @@
     function apply() {
         const q = (searchEl?.value || '').trim().toLowerCase();
         const status = statusEl?.value || 'all';
+        const division = divisionEl?.value || '';
         const pos = positionEl?.value || '';
         let visible = 0;
 
@@ -241,6 +254,7 @@
             if (q && !c.dataset.name.includes(q)) show = false;
             if (show && status === 'assigned' && c.dataset.assigned !== '1') show = false;
             if (show && status === 'unassigned' && c.dataset.assigned !== '0') show = false;
+            if (show && division && c.dataset.division !== division) show = false;
             if (show && pos && !('|' + c.dataset.positions + '|').includes('|' + pos + '|')) show = false;
             c.classList.toggle('hidden', !show);
             if (show) visible++;
@@ -266,7 +280,7 @@
 
     let searchTimer = null;
     searchEl && searchEl.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(apply, 120); });
-    [statusEl, positionEl, sortEl].forEach(el => el && el.addEventListener('change', apply));
+    [statusEl, divisionEl, positionEl, sortEl].forEach(el => el && el.addEventListener('change', apply));
     if (cards.length) apply();
 
     // ---------- Photo upload (admins) ----------

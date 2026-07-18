@@ -91,6 +91,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // Load existing content (GrapesJS parses inline <style> into its CSS).
   if (INITIAL) { try { editor.setComponents(INITIAL); } catch (err) { console.error(err); } }
 
+  // Populate the asset manager from the Media Library so past uploads are reusable.
+  fetch("{{ url_for('admin_panel.public_site_media_list') }}", { credentials: 'same-origin' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) { (d.assets || []).forEach(function (a) {
+      editor.AssetManager.add({ src: a.url, name: a.title }); }); })
+    .catch(function () {});
+
   document.getElementById('gjs-save').addEventListener('click', function () {
     var css = editor.getCss();
     var html = editor.getHtml();

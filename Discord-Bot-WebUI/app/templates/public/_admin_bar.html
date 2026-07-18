@@ -1,0 +1,30 @@
+{#
+  WordPress-style admin bar: a dark toolbar pinned to the top of the LIVE public
+  site, shown only to site admins. Gives the "edit directly on the page" round-trip
+  (View â‡„ Edit Page) that WordPress users expect. Rendered from base_public.html.
+#}
+{% if is_site_admin %}
+<div id="ecs-admin-bar" class="fixed top-0 inset-x-0 z-[100] h-8 bg-gray-900 text-gray-200 text-[13px] flex items-center px-3 gap-2 shadow-md">
+    <a href="{{ url_for('admin_panel.public_site_hub') }}" class="font-semibold text-white hover:text-ecs-gold flex items-center gap-1">
+        <i class="ti ti-world-www"></i><span class="hidden sm:inline">ECS Pub League</span>
+    </a>
+    <span class="text-gray-600">|</span>
+    {# + New (Page / Post) #}
+    <div class="relative group">
+        <button type="button" class="hover:text-white flex items-center gap-1"><i class="ti ti-plus"></i> New</button>
+        <div class="absolute left-0 top-full hidden group-hover:block bg-gray-900 border border-gray-700 rounded-b shadow-lg py-1 min-w-[9rem]">
+            <a href="{{ url_for('admin_panel.public_site_pages') }}" class="block px-3 py-1.5 hover:bg-gray-800">Page</a>
+            <a href="{{ url_for('admin_panel.public_site_news_new') }}" class="block px-3 py-1.5 hover:bg-gray-800">Post</a>
+        </div>
+    </div>
+    {% if edit_url is defined and edit_url %}
+    <span class="text-gray-600">|</span>
+    <a href="{{ edit_url }}" class="text-white hover:text-ecs-gold flex items-center gap-1 font-medium"><i class="ti ti-edit"></i> Edit Page</a>
+    {% endif %}
+    <div class="ml-auto flex items-center gap-3">
+        <a href="{{ url_for('main.index') }}" class="hover:text-white hidden sm:inline">Dashboard</a>
+        <span class="text-gray-400 hidden md:inline">Howdy, {{ current_user.username }}</span>
+        <a href="{{ url_for('auth.logout') }}" class="hover:text-white">Log out</a>
+    </div>
+</div>
+{% endif %}

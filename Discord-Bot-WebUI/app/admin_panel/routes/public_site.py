@@ -92,19 +92,85 @@ def public_site_upload_image():
         f.save(dest)
 
     url = url_for('static', filename=f'{_MEDIA_URL_PREFIX}/{name}')
+
+    # Record in the Media Library (best-effort — never fail the upload on this).
+    try:
+        from app.models import MediaAsset
+        if not g.db_session.query(MediaAsset).filter_by(url=url).first():
+            g.db_session.add(MediaAsset(
+                filename=name, url=url, mime=getattr(f, 'mimetype', None),
+                size_bytes=os.path.getsize(dest) if os.path.exists(dest) else None,
+                uploaded_by_id=getattr(current_user, 'id', None),
+                created_at=datetime.utcnow(),
+            ))
+            g.db_session.commit()
+    except Exception as e:
+        logger.warning(f"Media library record skipped ({e}).")
+        try:
+            g.db_session.rollback()
+        except Exception:
+            pass
+
     return jsonify({'url': url, 'location': url}), 200
+
+
+@admin_panel_bp.route('/public-site/media')
+@login_required
+@role_required(_ROLES)
+def public_site_media():
+    from app.models import MediaAsset
+    items = MediaAsset.query.order_by(MediaAsset.created_at.desc()).all()
+    return render_template('admin_panel/public_site/media_flowbite.html', items=items)
+
+
+@admin_panel_bp.route('/public-site/media/list')
+@login_required
+@role_required(_ROLES)
+def public_site_media_list():
+    from app.models import MediaAsset
+    items = MediaAsset.query.order_by(MediaAsset.created_at.desc()).limit(500).all()
+    return jsonify({'assets': [m.to_dict() for m in items]})
+
+
+@admin_panel_bp.route('/public-site/media/<int:asset_id>/save', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_media_save(asset_id):
+    from app.models import MediaAsset
+    m = g.db_session.query(MediaAsset).get(asset_id)
+    if not m:
+        abort(404)
+    m.alt_text = (request.form.get('alt_text') or '').strip() or None
+    m.title = (request.form.get('title') or '').strip() or None
+    flash('Image details saved.', 'success')
+    return redirect(url_for('admin_panel.public_site_media'))
+
+
+@admin_panel_bp.route('/public-site/media/<int:asset_id>/delete', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_media_delete(asset_id):
+    from app.models import MediaAsset
+    m = g.db_session.query(MediaAsset).get(asset_id)
+    if not m:
+        abort(404)
+    # Remove the file too (best-effort).
+    try:
+        fpath = os.path.join(current_app.root_path, *_MEDIA_SUBPATH, m.filename)
+        if os.path.exists(fpath):
+            os.remove(fpath)
+    except Exception:
+        pass
+    g.db_session.delete(m)
+    flash('Image deleted.', 'success')
+    return redirect(url_for('admin_panel.public_site_media'))
 
 
 # --------------------------------------------------------------------------- #
 # News
 # --------------------------------------------------------------------------- #
-
-@admin_panel_bp.route('/public-site')
-@login_required
-@role_required(_ROLES)
-def public_site_home():
-    return redirect(url_for('admin_panel.public_site_news'))
-
 
 @admin_panel_bp.route('/public-site/news')
 @login_required
@@ -293,12 +359,194 @@ def public_site_home_save():
     return redirect(url_for('admin_panel.public_site_home_edit'))
 
 
+_BLOCK_SLUGS = ('home_hero', 'home_intro', 'home_justforfun')
+
+
+_DEFAULT_MENU = [
+    {'kind': 'builtin', 'value': 'home', 'label': None, 'visible': True},
+    {'kind': 'builtin', 'value': 'about', 'label': None, 'visible': True},
+    {'kind': 'builtin', 'value': 'calendar', 'label': None, 'visible': True},
+    {'kind': 'builtin', 'value': 'faqs', 'label': None, 'visible': True},
+    {'kind': 'builtin', 'value': 'news', 'label': None, 'visible': True},
+]
+_BUILTIN_MENU_CHOICES = [('home', 'Home'), ('about', 'About'), ('calendar', 'Calendar'),
+                         ('faqs', 'FAQs'), ('news', 'News'), ('contact', 'Contact'),
+                         ('guide', 'Guide'), ('guests', 'Guests')]
+
+
+@admin_panel_bp.route('/public-site/menu')
+@login_required
+@role_required(_ROLES)
+def public_site_menu():
+    """Appearance → Menus: edit the public site's navigation."""
+    from app.models.admin_config import AdminConfig
+    items = AdminConfig.get_setting('public_nav_menu', None)
+    if not isinstance(items, list) or not items:
+        items = _DEFAULT_MENU
+    pages = (SitePage.query.filter(~SitePage.slug.in_(_BLOCK_SLUGS))
+             .order_by(SitePage.title.asc()).all())
+    return render_template('admin_panel/public_site/menu_flowbite.html',
+                           items=items, pages=pages, builtins=_BUILTIN_MENU_CHOICES)
+
+
+@admin_panel_bp.route('/public-site/menu/save', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_menu_save():
+    import json
+    from app.models.admin_config import AdminConfig
+    try:
+        raw = json.loads(request.form.get('menu_json') or '[]')
+    except Exception:
+        raw = []
+    clean = []
+    for it in raw if isinstance(raw, list) else []:
+        if isinstance(it, dict) and it.get('kind') in ('builtin', 'page', 'url'):
+            clean.append({
+                'kind': it['kind'],
+                'value': str(it.get('value', ''))[:200],
+                'label': (str(it.get('label', '')).strip()[:80] or None),
+                'visible': bool(it.get('visible', True)),
+            })
+    AdminConfig.set_setting('public_nav_menu', clean, data_type='json',
+                            category='public_site', user_id=current_user.id, auto_commit=False)
+    flash('Menu saved.', 'success')
+    return redirect(url_for('admin_panel.public_site_menu'))
+
+
+@admin_panel_bp.route('/public-site/appearance')
+@login_required
+@role_required(_ROLES)
+def public_site_appearance():
+    from app.models.admin_config import AdminConfig
+
+    def g_(k, d):
+        try:
+            return AdminConfig.get_setting(k, d)
+        except Exception:
+            return d
+    settings = {
+        'title': g_('public_site_title', 'ECS Pub League'),
+        'tagline': g_('public_tagline', 'Radically inclusive, beginner-friendly adult soccer in Seattle.'),
+        'logo_url': g_('public_logo_url', None),
+        'primary_hex': g_('public_primary_hex', '#1a472a'),
+    }
+    return render_template('admin_panel/public_site/appearance_flowbite.html', settings=settings)
+
+
+@admin_panel_bp.route('/public-site/appearance/save', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_appearance_save():
+    from app.models.admin_config import AdminConfig
+
+    def set_(k, v):
+        AdminConfig.set_setting(k, v, category='public_site',
+                                user_id=current_user.id, auto_commit=False)
+    set_('public_site_title', (request.form.get('title') or 'ECS Pub League').strip())
+    set_('public_tagline', (request.form.get('tagline') or '').strip())
+    set_('public_logo_url', (request.form.get('logo_url') or '').strip() or None)
+    set_('public_primary_hex', (request.form.get('primary_hex') or '#1a472a').strip())
+    flash('Appearance saved.', 'success')
+    return redirect(url_for('admin_panel.public_site_appearance'))
+
+
+@admin_panel_bp.route('/public-site')
+@login_required
+@role_required(_ROLES)
+def public_site_hub():
+    """Single 'Website' admin hub — the WordPress-style front door."""
+    counts = {}
+    try:
+        counts['pages'] = SitePage.query.filter(~SitePage.slug.in_(_BLOCK_SLUGS)).count()
+        counts['posts'] = NewsPost.query.count()
+        counts['faqs'] = Faq.query.count()
+    except Exception:
+        pass
+    return render_template('admin_panel/public_site/hub_flowbite.html', counts=counts)
+
+
 @admin_panel_bp.route('/public-site/pages')
 @login_required
 @role_required(_ROLES)
 def public_site_pages():
-    pages = SitePage.query.order_by(SitePage.slug.asc()).all()
-    return render_template('admin_panel/public_site/pages_list_flowbite.html', pages=pages)
+    # Real standalone pages only — the home_* rows are content blocks, not pages.
+    view = request.args.get('view', 'all')
+    base = SitePage.query.filter(~SitePage.slug.in_(_BLOCK_SLUGS))
+    if view == 'trash':
+        pages = base.filter(SitePage.deleted_at.isnot(None)).order_by(SitePage.title.asc()).all()
+    else:
+        pages = base.filter(SitePage.deleted_at.is_(None)).order_by(SitePage.title.asc()).all()
+    live_count = base.filter(SitePage.deleted_at.is_(None)).count()
+    trash_count = base.filter(SitePage.deleted_at.isnot(None)).count()
+    return render_template('admin_panel/public_site/pages_list_flowbite.html',
+                           pages=pages, view=view, live_count=live_count, trash_count=trash_count)
+
+
+@admin_panel_bp.route('/public-site/pages/<int:page_id>/trash', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_page_trash(page_id):
+    page = g.db_session.query(SitePage).get(page_id)
+    if not page:
+        abort(404)
+    page.deleted_at = datetime.utcnow()
+    flash('Page moved to Trash.', 'success')
+    return redirect(url_for('admin_panel.public_site_pages'))
+
+
+@admin_panel_bp.route('/public-site/pages/<int:page_id>/restore', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_page_restore(page_id):
+    page = g.db_session.query(SitePage).get(page_id)
+    if not page:
+        abort(404)
+    page.deleted_at = None
+    flash('Page restored.', 'success')
+    return redirect(url_for('admin_panel.public_site_pages', view='trash'))
+
+
+@admin_panel_bp.route('/public-site/pages/<int:page_id>/delete', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_page_delete(page_id):
+    page = g.db_session.query(SitePage).get(page_id)
+    if not page:
+        abort(404)
+    g.db_session.delete(page)
+    flash('Page permanently deleted.', 'success')
+    return redirect(url_for('admin_panel.public_site_pages', view='trash'))
+
+
+@admin_panel_bp.route('/public-site/pages/create', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_page_create():
+    """WordPress-style 'Add New Page' — create then open the builder."""
+    title = (request.form.get('title') or '').strip()
+    if not title:
+        flash('Enter a page title.', 'error')
+        return redirect(url_for('admin_panel.public_site_pages'))
+    reserved = set(_BLOCK_SLUGS) | {'about', 'guide', 'guests', 'home', 'news',
+                                    'faqs', 'calendar', 'register', 'contact'}
+    base = slugify(request.form.get('slug') or title)
+    slug, n = base, 2
+    while slug in reserved or g.db_session.query(SitePage).filter_by(slug=slug).first():
+        slug = f'{base}-{n}'
+        n += 1
+    page = SitePage(slug=slug, title=title,
+                    body_html='<p>New page — use the builder to add content.</p>')
+    g.db_session.add(page)
+    g.db_session.flush()
+    flash('Page created.', 'success')
+    return redirect(url_for('admin_panel.public_site_page_builder', page_id=page.id))
 
 
 @admin_panel_bp.route('/public-site/pages/<int:page_id>/edit')

@@ -1,0 +1,75 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header %}
+
+{% block admin_title %}Public Site — Appearance{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Public Site · Appearance</span></div></li>
+{% endblock %}
+
+{% block panel_content %}
+{% call page_header("Appearance", subtitle="Public Site · Branding") %}
+  <a href="{{ url_for('admin_panel.public_site_hub') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Website</a>
+{% endcall %}
+
+<form method="POST" action="{{ url_for('admin_panel.public_site_appearance_save') }}" id="appearance-form" class="max-w-2xl space-y-5">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4">
+    <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-photo text-ecs-green"></i> Site identity</h3>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Site title</label>
+      <input type="text" name="title" value="{{ settings.title or '' }}" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tagline</label>
+      <input type="text" name="tagline" value="{{ settings.tagline or '' }}" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Logo</label>
+      <div class="mt-1 flex items-center gap-3">
+        <img id="logo-preview" src="{{ settings.logo_url or url_for('static', filename='img/publeague/2025-02__ECSPL-4-Color-With-Outline-transparent.png') }}" alt="" class="h-12 w-12 object-contain rounded bg-gray-100 dark:bg-gray-900">
+        <label class="inline-flex items-center gap-1.5 cursor-pointer rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <i class="ti ti-upload"></i> Upload logo
+          <input type="file" id="logo-file" accept="image/*" class="hidden">
+        </label>
+        <span id="logo-status" class="text-xs text-gray-400"></span>
+      </div>
+      <input type="text" name="logo_url" id="logo_url" value="{{ settings.logo_url or '' }}" placeholder="Leave blank to use the default logo" class="mt-2 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4">
+    <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-palette text-ecs-green"></i> Colors</h3>
+    <div class="flex items-center gap-3">
+      <input type="color" name="primary_hex" value="{{ settings.primary_hex or '#1a472a' }}" class="h-10 w-16 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Primary color</label>
+        <p class="text-xs text-gray-400">Used for buttons, links, and accents across the site.</p>
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-ecs-green text-white px-5 py-2.5 text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-device-floppy"></i> Save appearance</button>
+</form>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function csrf() { var m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : ''; }
+  var lf = document.getElementById('logo-file');
+  if (lf) lf.addEventListener('change', function () {
+    if (!this.files || !this.files[0]) return;
+    var st = document.getElementById('logo-status'); st.textContent = 'Uploading…';
+    var fd = new FormData(); fd.append('file', this.files[0]);
+    fetch("{{ url_for('admin_panel.public_site_upload_image') }}", { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-CSRFToken': csrf() } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (j.url) { document.getElementById('logo_url').value = j.url; document.getElementById('logo-preview').src = j.url; st.textContent = 'Uploaded ✓'; } else { st.textContent = j.error || 'Failed'; } })
+      .catch(function () { st.textContent = 'Failed'; });
+  });
+});
+</script>
+{% endblock %}

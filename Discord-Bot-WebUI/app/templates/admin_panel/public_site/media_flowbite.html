@@ -1,0 +1,74 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+
+{% block admin_title %}Public Site — Media{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Public Site · Media</span></div></li>
+{% endblock %}
+
+{% block panel_content %}
+{% call page_header("Media Library", subtitle="Public Site") %}
+  <a href="{{ url_for('admin_panel.public_site_hub') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Website</a>
+  <label class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800 cursor-pointer">
+    <i class="ti ti-upload"></i> Upload
+    <input type="file" id="media-upload" accept="image/*" multiple class="hidden">
+  </label>
+  <span id="media-upload-status" class="text-xs text-gray-400 self-center"></span>
+{% endcall %}
+
+{% if not items %}
+  {{ empty_state("ti-photo", "No images yet", "Upload images here, or they'll appear as you add them in the editors.") }}
+{% else %}
+<div class="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+  {% for m in items %}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="aspect-square bg-gray-100 dark:bg-gray-900">
+      <img src="{{ m.url }}" alt="{{ m.alt_text or '' }}" class="h-full w-full object-cover" loading="lazy">
+    </div>
+    <div class="p-3 space-y-2">
+      <button type="button" data-copy="{{ m.url }}" class="w-full text-left text-xs text-gray-500 dark:text-gray-400 truncate hover:text-ecs-green" title="Click to copy URL">{{ m.filename }}</button>
+      <form method="POST" action="{{ url_for('admin_panel.public_site_media_save', asset_id=m.id) }}" class="flex gap-1">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" name="alt_text" value="{{ m.alt_text or '' }}" placeholder="Alt text" class="flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1 text-xs text-gray-900 dark:text-white">
+        <button type="submit" class="rounded bg-gray-100 dark:bg-gray-700 px-2 text-xs hover:bg-gray-200 dark:hover:bg-gray-600" title="Save alt text"><i class="ti ti-check"></i></button>
+      </form>
+      <form method="POST" action="{{ url_for('admin_panel.public_site_media_delete', asset_id=m.id) }}" onsubmit="return confirm('Delete this image?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="text-xs text-red-500 hover:text-red-700"><i class="ti ti-trash"></i> Delete</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function csrf() { var m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : ''; }
+  var input = document.getElementById('media-upload');
+  var status = document.getElementById('media-upload-status');
+  if (input) input.addEventListener('change', function () {
+    if (!this.files || !this.files.length) return;
+    var files = Array.from(this.files), done = 0;
+    status.textContent = 'Uploading…';
+    Promise.all(files.map(function (file) {
+      var fd = new FormData(); fd.append('file', file);
+      return fetch("{{ url_for('admin_panel.public_site_upload_image') }}", { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-CSRFToken': csrf() } })
+        .then(function (r) { return r.json(); }).then(function () { done++; });
+    })).then(function () { status.textContent = done + ' uploaded'; location.reload(); })
+      .catch(function () { status.textContent = 'Upload failed'; });
+  });
+  document.querySelectorAll('[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      navigator.clipboard && navigator.clipboard.writeText(b.getAttribute('data-copy'));
+      b.classList.add('text-ecs-green'); setTimeout(function () { b.classList.remove('text-ecs-green'); }, 800);
+    });
+  });
+});
+</script>
+{% endblock %}

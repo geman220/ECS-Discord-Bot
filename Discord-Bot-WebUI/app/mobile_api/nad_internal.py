@@ -126,6 +126,7 @@ def internal_list_nads():
                 'name': n['name'],
                 'favorite_position': n['favorite_position'],
                 'team_name': n['team_name'],
+                'division': n.get('division'),  # 'Premier' | 'Classic' | None
                 'note_count': n['note_count'],
             }
             if detail:

@@ -129,6 +129,40 @@ def _seed():
         logger.warning(f"Calendar event import skipped ({e.__class__.__name__}: {e}). "
                        "Did you run sql_add_league_event_is_public.sql?")
 
+    # ---- Media Library backfill (existing files -> catalog rows) ----
+    try:
+        added_media = _seed_media(session)
+        if added_media:
+            session.commit()
+            logger.info(f"Media library backfilled: {added_media} images.")
+        else:
+            session.rollback()
+    except Exception as e:
+        session.rollback()
+        logger.warning(f"Media backfill skipped ({e.__class__.__name__}: {e}). "
+                       "Did you run sql_create_media_asset.sql?")
+
+
+def _seed_media(session):
+    """Register existing static/img/publeague files in the Media Library."""
+    import os
+    from flask import current_app
+    from app.models import MediaAsset
+    folder = os.path.join(current_app.root_path, 'static', 'img', 'publeague')
+    if not os.path.isdir(folder):
+        return 0
+    existing = {row[0] for row in session.query(MediaAsset.url).all()}
+    added = 0
+    for fn in sorted(os.listdir(folder)):
+        if fn.startswith('.') or os.path.isdir(os.path.join(folder, fn)):
+            continue
+        url = f'/static/img/publeague/{fn}'
+        if url in existing:
+            continue
+        session.add(MediaAsset(filename=fn, url=url, created_at=datetime.utcnow()))
+        added += 1
+    return added
+
 
 def _seed_events(session, events):
     """Import WordPress calendar events as public LeagueEvents (idempotent)."""

@@ -37,6 +37,16 @@ FLASK_TOKEN = os.getenv("FLASK_TOKEN", "")
 
 ECS_GREEN = 0x1A472A
 
+# A quick visual cue for which division a NAD is in.
+DIVISION_EMOJI = {"Premier": "🏆", "Classic": "⚽"}
+
+
+def _division_tag(division):
+    """'Premier' -> '🏆 Premier'; unknown/None -> ''."""
+    if not division:
+        return ""
+    return f"{DIVISION_EMOJI.get(division, '')} {division}".strip()
+
 # /nads only works in the coaches channels (keeps the public roster chatter where
 # coaches collaborate). Matched case-insensitively by channel name.
 ALLOWED_CHANNELS = {"pl-classic-coaches", "pl-premier-coaches", "pl-all-coaches"}
@@ -126,9 +136,11 @@ class NadCommands(commands.Cog):
         for n in nads:
             pos = n.get("favorite_position") or "—"
             team = n.get("team_name") or "Unassigned"
+            div_tag = _division_tag(n.get("division"))
+            div_str = f" · {div_tag}" if div_tag else ""
             notes = n.get("note_count") or 0
             note_str = f" · 📝 {notes}" if notes else ""
-            lines.append(f"**{n.get('name')}** · {pos} · {team}{note_str}")
+            lines.append(f"**{n.get('name')}** · {pos} · {team}{div_str}{note_str}")
         desc = "\n".join(lines)
         if len(desc) > 3600:
             desc = desc[:3600].rsplit("\n", 1)[0] + "\n…and more"
@@ -148,6 +160,8 @@ class NadCommands(commands.Cog):
             embed.set_thumbnail(url=photo)
 
         embed.add_field(name="Team", value=n.get("team_name") or "Unassigned", inline=True)
+        if n.get("division"):
+            embed.add_field(name="Division", value=_division_tag(n["division"]), inline=True)
         if n.get("jersey_size"):
             embed.add_field(name="Jersey", value=n["jersey_size"], inline=True)
         if n.get("pronouns"):

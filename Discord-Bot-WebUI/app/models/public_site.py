@@ -148,9 +148,16 @@ class SitePage(db.Model):
     meta_description = db.Column(db.String(320), nullable=True)
     og_image_url = db.Column(db.String(500), nullable=True)
 
+    created_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow,
                            onupdate=datetime.utcnow)
     updated_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    # Soft delete (WordPress-style Trash). NULL = live; set = in Trash.
+    deleted_at = db.Column(db.DateTime, nullable=True, index=True)
+
+    @property
+    def is_trashed(self):
+        return self.deleted_at is not None
 
     def to_dict(self):
         return {
@@ -163,3 +170,26 @@ class SitePage(db.Model):
 
     def __repr__(self):
         return f"<SitePage {self.id} {self.slug!r}>"
+
+
+class MediaAsset(db.Model):
+    """An uploaded image in the Media Library (WordPress-style). Files live under
+    static/img/publeague/; this row is the browsable/reusable catalog entry."""
+    __tablename__ = 'media_asset'
+
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    url = db.Column(db.String(500), nullable=False)           # /static/img/publeague/<file>
+    alt_text = db.Column(db.String(300), nullable=True)
+    title = db.Column(db.String(255), nullable=True)
+    mime = db.Column(db.String(80), nullable=True)
+    size_bytes = db.Column(db.Integer, nullable=True)
+    uploaded_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+    def to_dict(self):
+        return {'id': self.id, 'url': self.url, 'alt': self.alt_text or '',
+                'title': self.title or self.filename, 'filename': self.filename}
+
+    def __repr__(self):
+        return f"<MediaAsset {self.id} {self.filename!r}>"

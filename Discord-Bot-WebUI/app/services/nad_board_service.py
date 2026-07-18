@@ -47,6 +47,23 @@ NOT_ACTIVE_ROLE_NAMES = ['pl-unverified']
 _FUZZY_THRESHOLD = 0.7
 
 
+def _normalize_division(league_name):
+    """Map a Pub League league name to a canonical division: 'Premier' / 'Classic'.
+
+    League rows are named "Premier" / "Classic" (see auto_schedule_routes), but we
+    match on substring to tolerate variants like "Spring Premier". Anything that
+    isn't clearly one or the other returns None so the UI can show "Unassigned".
+    """
+    if not league_name:
+        return None
+    low = league_name.lower()
+    if 'premier' in low:
+        return 'Premier'
+    if 'classic' in low:
+        return 'Classic'
+    return None
+
+
 def _match_names(search, players):
     """Filter players by name: exact/substring first, fuzzy fallback if none match.
 
@@ -112,10 +129,15 @@ def compute_nad_board(session, *, season_id=None, search='', limit=100, viewer_u
 
     # Leagues that belong to the target (Pub League) season — used to keep ECS FC
     # players OUT: a NAD is a Pub League player, and ECS FC players carry an ECS FC
-    # league_id, so they never match these.
-    pub_league_league_ids = [
-        lid for (lid,) in session.query(League.id).filter(League.season_id == target_season.id).all()
-    ]
+    # league_id, so they never match these. We also keep the id→name map so each NAD
+    # can be tagged with its division (Premier / Classic).
+    season_league_name_by_id = {
+        lid: lname
+        for lid, lname in session.query(League.id, League.name).filter(
+            League.season_id == target_season.id
+        ).all()
+    }
+    pub_league_league_ids = list(season_league_name_by_id.keys())
 
     # --- prior Pub League seasons (a NAD has none) ---
     prior_q = session.query(Season.id).filter(
@@ -237,6 +259,13 @@ def compute_nad_board(session, *, season_id=None, search='', limit=100, viewer_u
         tinfo = teams_map.get(tid) if tid else None
         if tid:
             team_nad_counts[str(tid)] = team_nad_counts.get(str(tid), 0) + 1
+        # Division: a drafted NAD inherits their team's league; an undrafted one
+        # falls back to their own primary/secondary league assignment.
+        if tinfo:
+            division_league_id = tinfo['league_id']
+        else:
+            division_league_id = p.primary_league_id or p.league_id
+        division = _normalize_division(season_league_name_by_id.get(division_league_id))
         nads.append({
             'type': 'player',
             'id': p.id,                      # use with /admin/players/<id>/notes + edits
@@ -251,6 +280,7 @@ def compute_nad_board(session, *, season_id=None, search='', limit=100, viewer_u
             'jersey_size': p.jersey_size,
             'team_id': tid,
             'team_name': tinfo['name'] if tinfo else None,
+            'division': division,  # 'Premier' | 'Classic' | None
             'note_count': note_counts.get(p.id, 0),
             'created_at': (
                 p.created_at.isoformat() if p.created_at

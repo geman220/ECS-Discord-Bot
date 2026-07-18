@@ -107,6 +107,37 @@ _IMG_FILES = {
 }
 
 
+def _hex_to_rgb_triplet(hex_str):
+    """'#1a472a' -> '26 71 42' (for the --color-primary-rgb CSS var)."""
+    try:
+        h = (hex_str or '').lstrip('#')
+        if len(h) == 3:
+            h = ''.join(c * 2 for c in h)
+        if len(h) != 6:
+            return None
+        return f"{int(h[0:2],16)} {int(h[2:4],16)} {int(h[4:6],16)}"
+    except Exception:
+        return None
+
+
+def _appearance():
+    """Editable site branding (Appearance screen), with sensible fallbacks."""
+    def get(k, d=None):
+        try:
+            return AdminConfig.get_setting(k, d)
+        except Exception:
+            return d
+    primary_hex = get('public_primary_hex', '#1a472a')
+    return {
+        'title': get('public_site_title', 'ECS Pub League'),
+        'tagline': get('public_tagline',
+                       'Radically inclusive, beginner-friendly adult soccer in Seattle.'),
+        'logo_url': get('public_logo_url', None),
+        'primary_hex': primary_hex,
+        'primary_rgb': _hex_to_rgb_triplet(primary_hex),
+    }
+
+
 def _public_images():
     out = {}
     for key, fn in _IMG_FILES.items():
@@ -139,6 +170,8 @@ def _inject_public_context():
         'is_prod_marketing_domain': host in _PROD_MARKETING_HOSTS,
         'imgs': _public_images(),
         'is_site_admin': _is_site_admin(),
+        'nav_items': _nav_items(),
+        'appearance': _appearance(),
     }
 
 
@@ -177,11 +210,18 @@ def _org_json_ld():
 
 
 def _page_block(slug):
-    """Fetch an editable SitePage by slug (None if not seeded yet)."""
+    """Fetch a live (non-trashed) SitePage by slug (None if missing/trashed)."""
     try:
-        return SitePage.query.filter_by(slug=slug).first()
+        return SitePage.query.filter(
+            SitePage.slug == slug,
+            SitePage.deleted_at.is_(None),
+        ).first()
     except Exception:
-        return None
+        # deleted_at column may not exist until the SQL runs — fall back.
+        try:
+            return SitePage.query.filter_by(slug=slug).first()
+        except Exception:
+            return None
 
 
 def _is_site_admin():

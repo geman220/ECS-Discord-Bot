@@ -1,0 +1,130 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header %}
+
+{% block admin_title %}Public Site — Menus{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Public Site · Menus</span></div></li>
+{% endblock %}
+
+{% block panel_content %}
+{% call page_header("Menus", subtitle="Public Site · Navigation") %}
+  <a href="{{ url_for('admin_panel.public_site_hub') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Website</a>
+  <button type="button" id="menu-save" class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-device-floppy"></i> Save menu</button>
+{% endcall %}
+
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="lg:col-span-2">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+      <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Menu structure</h3>
+      <ul id="menu-list" class="space-y-2"></ul>
+      <p id="menu-empty" class="hidden text-sm text-gray-400 py-6 text-center">No items — add some from the right.</p>
+    </div>
+  </div>
+
+  <div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 sticky top-4 space-y-4">
+      <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-plus text-ecs-green"></i> Add to menu</h3>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">Built-in page</label>
+        <div class="mt-1 flex gap-2">
+          <select id="add-builtin" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1.5 text-sm text-gray-900 dark:text-white">
+            {% for val, label in builtins %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+          </select>
+          <button type="button" data-add="builtin" class="rounded-lg bg-gray-100 dark:bg-gray-700 px-3 py-1.5 text-sm hover:bg-gray-200 dark:hover:bg-gray-600">Add</button>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">Your page</label>
+        <div class="mt-1 flex gap-2">
+          <select id="add-page" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1.5 text-sm text-gray-900 dark:text-white">
+            {% for p in pages %}<option value="{{ p.slug }}">{{ p.title or p.slug }}</option>{% endfor %}
+          </select>
+          <button type="button" data-add="page" class="rounded-lg bg-gray-100 dark:bg-gray-700 px-3 py-1.5 text-sm hover:bg-gray-200 dark:hover:bg-gray-600">Add</button>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">Custom link</label>
+        <input id="add-url" type="text" placeholder="https://…" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1.5 text-sm text-gray-900 dark:text-white">
+        <input id="add-url-label" type="text" placeholder="Link text" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1.5 text-sm text-gray-900 dark:text-white">
+        <button type="button" data-add="url" class="mt-1 rounded-lg bg-gray-100 dark:bg-gray-700 px-3 py-1.5 text-sm hover:bg-gray-200 dark:hover:bg-gray-600">Add link</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="POST" action="{{ url_for('admin_panel.public_site_menu_save') }}" id="menu-form" class="hidden">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="menu_json" id="menu-json">
+</form>
+
+<script id="menu-initial" type="application/json">{{ items | tojson }}</script>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var BUILTIN = { {% for v,l in builtins %}'{{ v }}':'{{ l }}',{% endfor %} };
+  var PAGES = { {% for p in pages %}'{{ p.slug }}':{{ (p.title or p.slug) | tojson }},{% endfor %} };
+  var menu = [];
+  try { menu = JSON.parse(document.getElementById('menu-initial').textContent) || []; } catch (e) { menu = []; }
+
+  function labelFor(it) {
+    if (it.label) return it.label;
+    if (it.kind === 'builtin') return BUILTIN[it.value] || it.value;
+    if (it.kind === 'page') return PAGES[it.value] || it.value;
+    return it.value;
+  }
+  function render() {
+    var ul = document.getElementById('menu-list'); ul.innerHTML = '';
+    document.getElementById('menu-empty').classList.toggle('hidden', menu.length > 0);
+    menu.forEach(function (it, i) {
+      var li = document.createElement('li');
+      li.className = 'flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2';
+      var kindBadge = { builtin: 'Built-in', page: 'Page', url: 'Link' }[it.kind] || it.kind;
+      li.innerHTML =
+        '<span class="text-gray-400 cursor-default"><i class="ti ti-grip-vertical"></i></span>' +
+        '<input class="mi-label flex-1 bg-transparent text-sm text-gray-900 dark:text-white focus:outline-none" value="' + (labelFor(it) || '').replace(/"/g,'&quot;') + '">' +
+        '<span class="text-[10px] uppercase text-gray-400">' + kindBadge + '</span>' +
+        '<button type="button" data-op="up" class="text-gray-400 hover:text-ecs-green" title="Up"><i class="ti ti-chevron-up"></i></button>' +
+        '<button type="button" data-op="down" class="text-gray-400 hover:text-ecs-green" title="Down"><i class="ti ti-chevron-down"></i></button>' +
+        '<button type="button" data-op="vis" class="text-gray-400 hover:text-ecs-green" title="Show/hide"><i class="ti ' + (it.visible === false ? 'ti-eye-off' : 'ti-eye') + '"></i></button>' +
+        '<button type="button" data-op="del" class="text-red-400 hover:text-red-600" title="Remove"><i class="ti ti-trash"></i></button>';
+      li.querySelector('.mi-label').addEventListener('input', function (e) { menu[i].label = e.target.value; });
+      li.querySelectorAll('button').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var op = b.getAttribute('data-op');
+          if (op === 'up' && i > 0) { var t = menu[i-1]; menu[i-1] = menu[i]; menu[i] = t; }
+          else if (op === 'down' && i < menu.length-1) { var t2 = menu[i+1]; menu[i+1] = menu[i]; menu[i] = t2; }
+          else if (op === 'del') { menu.splice(i, 1); }
+          else if (op === 'vis') { menu[i].visible = (menu[i].visible === false); }
+          render();
+        });
+      });
+      ul.appendChild(li);
+    });
+  }
+  document.querySelectorAll('[data-add]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var kind = btn.getAttribute('data-add');
+      if (kind === 'builtin') menu.push({ kind: 'builtin', value: document.getElementById('add-builtin').value, visible: true });
+      else if (kind === 'page') menu.push({ kind: 'page', value: document.getElementById('add-page').value, visible: true });
+      else if (kind === 'url') {
+        var u = document.getElementById('add-url').value.trim();
+        if (!u) return;
+        menu.push({ kind: 'url', value: u, label: document.getElementById('add-url-label').value.trim() || u, visible: true });
+        document.getElementById('add-url').value = ''; document.getElementById('add-url-label').value = '';
+      }
+      render();
+    });
+  });
+  document.getElementById('menu-save').addEventListener('click', function () {
+    document.getElementById('menu-json').value = JSON.stringify(menu);
+    document.getElementById('menu-form').submit();
+  });
+  render();
+});
+</script>
+{% endblock %}

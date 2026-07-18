@@ -76,35 +76,35 @@
         main a:hover, footer a:hover { text-decoration: none; }
         .prose a { text-decoration: underline; text-underline-offset: 2px; }
     </style>
+    {% if appearance and appearance.primary_rgb %}
+    {# Admin-chosen primary color re-skins every ecs-green utility. #}
+    <style>:root { --color-primary-rgb: {{ appearance.primary_rgb }}; }</style>
+    {% endif %}
 
     {% block extra_css %}{% endblock %}
     {% block head_extra %}{% endblock %}
 </head>
-<body class="bg-white dark:bg-gray-950 text-gray-800 dark:text-gray-200 antialiased min-h-screen flex flex-col">
+<body class="bg-white dark:bg-gray-950 text-gray-800 dark:text-gray-200 antialiased min-h-screen flex flex-col {{ 'pt-8' if is_site_admin else '' }}">
+
+    {% include 'public/_admin_bar.html' %}
 
     {# =================== NAV =================== #}
-    <header class="sticky top-0 z-40 w-full border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-950/90 backdrop-blur">
+    <header class="sticky {{ 'top-8' if is_site_admin else 'top-0' }} z-40 w-full border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-950/90 backdrop-blur">
         <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
             <a href="{{ url_for('public.home') }}" class="flex items-center gap-2.5 font-bold text-lg text-gray-900 dark:text-white">
-                <img src="{{ imgs.logo }}" alt="ECS Pub League" class="h-10 w-10 object-contain">
+                <img src="{{ appearance.logo_url or imgs.logo }}" alt="{{ appearance.title }}" class="h-10 w-10 object-contain">
                 <span class="hidden sm:inline">ECS Pub League</span>
             </a>
 
-            {# Desktop links #}
+            {# Desktop links (admin-editable menu via Appearance -> Menus) #}
             <div class="hidden md:flex items-center gap-1">
                 {% set nav_active = active_page | default('') %}
-                {% for item in [
-                    ('home', 'Home', url_for('public.home')),
-                    ('about', 'About', url_for('public.about')),
-                    ('calendar', 'Calendar', url_for('public.calendar')),
-                    ('faqs', 'FAQs', url_for('public.faqs')),
-                    ('news', 'News', url_for('public.news_list')),
-                ] %}
-                <a href="{{ item[2] }}"
+                {% for item in nav_items %}
+                <a href="{{ item.url }}"
                    class="px-3 py-2 text-sm font-medium rounded-lg transition
-                          {{ 'text-ecs-green dark:text-blue-400' if nav_active == item[0]
+                          {{ 'text-ecs-green dark:text-blue-400' if nav_active == item.key
                              else 'text-gray-600 dark:text-gray-300 hover:text-ecs-green dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-900' }}">
-                    {{ item[1] }}
+                    {{ item.label }}
                 </a>
                 {% endfor %}
                 {% if current_user.is_authenticated %}
@@ -144,11 +144,9 @@
         {# Mobile menu panel #}
         <div id="mobile-menu" class="hidden md:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
             <div class="space-y-1 px-4 py-3">
-                <a href="{{ url_for('public.home') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">Home</a>
-                <a href="{{ url_for('public.about') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">About</a>
-                <a href="{{ url_for('public.calendar') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">Calendar</a>
-                <a href="{{ url_for('public.faqs') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">FAQs</a>
-                <a href="{{ url_for('public.news_list') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">News</a>
+                {% for item in nav_items %}
+                <a href="{{ item.url }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">{{ item.label }}</a>
+                {% endfor %}
                 {% if current_user.is_authenticated %}
                 <a href="{{ url_for('main.index') }}" class="mt-2 block rounded-lg bg-ecs-green px-3 py-2 text-center text-base font-semibold text-white">Go to Portal</a>
                 {% else %}
@@ -169,7 +167,7 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <div class="sm:col-span-2 lg:col-span-1">
                 <div class="flex items-center gap-2.5 font-bold text-lg text-gray-900 dark:text-white">
-                    <img src="{{ imgs.logo }}" alt="ECS Pub League" class="h-9 w-9 object-contain"> ECS Pub League
+                    <img src="{{ appearance.logo_url or imgs.logo }}" alt="{{ appearance.title }}" class="h-9 w-9 object-contain"> {{ appearance.title }}
                 </div>
                 <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs">
                     Radically inclusive, beginner-friendly adult soccer in Seattle.
@@ -207,16 +205,6 @@
             </div>
         </div>
     </footer>
-
-    {# Inline admin editing: a floating button (admins only) that jumps straight
-       into the editor for whatever page you're viewing. #}
-    {% if is_site_admin and edit_url is defined and edit_url %}
-    <a href="{{ edit_url }}"
-       class="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-ecs-green px-4 py-3 text-sm font-semibold text-white shadow-lg ring-2 ring-white/40 hover:bg-ecs-green-dark transition"
-       title="Edit this page in the admin panel">
-        <i class="ti ti-edit text-base"></i> Edit this page
-    </a>
-    {% endif %}
 
     {# Flash messages via SweetAlert (bundled in the Vite build) #}
     <script>
