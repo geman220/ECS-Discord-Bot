@@ -68,6 +68,7 @@ class PlayerAdminService(BaseService):
             return ServiceResult.ok({
                 "player_id": player.id,
                 "player_name": player.name,
+                "is_nad": False,
                 "notes": [],
                 "total": 0,
                 "limit": limit,
@@ -90,6 +91,7 @@ class PlayerAdminService(BaseService):
         return ServiceResult.ok({
             "player_id": player.id,
             "player_name": player.name,
+            "is_nad": True,
             "notes": notes_data,
             "total": total_count,
             "limit": limit,
@@ -558,6 +560,7 @@ class PlayerAdminService(BaseService):
 
         return ServiceResult.ok({
             "player": self._build_player_response(player, include_admin_fields=True),
+            "is_nad": show_scouting,
             "admin_notes": [
                 note.to_dict(include_author=True)
                 for note in player.admin_notes[:10]  # Last 10 notes

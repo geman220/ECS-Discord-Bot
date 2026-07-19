@@ -61,6 +61,14 @@ services:
     volumes:
       - ./Discord-Bot-WebUI:/app
       - ./Discord-Bot-WebUI/instance/firebase-service-account.json:/app/instance/firebase-service-account.json
+      # CRITICAL: publicweb's OWN build output, isolated from webui. Both containers
+      # share the /app bind-mount, and BOTH run `npm run build` into
+      # app/static/vite-dist. Without this, a publicweb rebuild rewrites the SAME
+      # tailwind.css/bundle the live portal is serving -> portal flashes unstyled
+      # for the ~30-60s of the build. This named volume gives publicweb a private
+      # vite-dist, so its build can never touch the portal's assets (and vice-versa).
+      # Media (static/img/publeague) is elsewhere under /app, so it stays shared.
+      - publicweb_vitedist:/app/app/static/vite-dist
     depends_on:
       redis:
         condition: service_healthy
@@ -107,3 +115,8 @@ services:
       # ecspubleague.org gets INDEXED by Google (portal stays noindex).
       - "traefik.http.middlewares.public-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
       - "traefik.http.middlewares.public-headers.headers.customresponseheaders.X-Content-Type-Options=nosniff"
+
+# publicweb's private build-output volume (see the volumes: block on the service).
+# Merged with the base file's top-level volumes (redis_data, celery_data).
+volumes:
+  publicweb_vitedist:
