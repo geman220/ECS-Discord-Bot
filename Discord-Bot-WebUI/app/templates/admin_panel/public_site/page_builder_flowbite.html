@@ -121,27 +121,27 @@ document.addEventListener('DOMContentLoaded', function () {
        '<p class="mt-4 text-lg text-white/90 max-w-2xl">Supporting sentence that explains what this is.</p>' +
        '<a href="#" class="mt-6 inline-block rounded-lg bg-ecs-blue px-6 py-3 font-semibold text-white">Call to action</a></div></section>'],
     ['ps-section', 'Section', 'ti-layout-rows',
-     '<section class="py-16 px-6"><div class="max-w-4xl mx-auto"><h2 class="text-3xl font-bold text-gray-900">Section heading</h2>' +
-       '<p class="mt-4 text-gray-600">Write your content here. Click to edit.</p></div></section>'],
+     '<section class="py-16 px-6"><div class="max-w-4xl mx-auto"><h2 class="text-3xl font-bold text-gray-900 dark:text-white">Section heading</h2>' +
+       '<p class="mt-4 text-gray-600 dark:text-gray-300">Write your content here. Click to edit.</p></div></section>'],
     ['ps-two-col', '2 columns', 'ti-columns-2',
      '<div class="max-w-5xl mx-auto grid gap-8 md:grid-cols-2 py-10 px-6">' +
-       '<div class="text-gray-600">Left column. Drag anything in here.</div>' +
-       '<div class="text-gray-600">Right column. Drag anything in here.</div></div>'],
+       '<div class="text-gray-600 dark:text-gray-300">Left column. Drag anything in here.</div>' +
+       '<div class="text-gray-600 dark:text-gray-300">Right column. Drag anything in here.</div></div>'],
     ['ps-three-col', '3 columns', 'ti-columns-3',
      '<div class="max-w-6xl mx-auto grid gap-6 md:grid-cols-3 py-10 px-6">' +
-       '<div class="text-gray-600">Column one.</div><div class="text-gray-600">Column two.</div><div class="text-gray-600">Column three.</div></div>'],
+       '<div class="text-gray-600 dark:text-gray-300">Column one.</div><div class="text-gray-600 dark:text-gray-300">Column two.</div><div class="text-gray-600 dark:text-gray-300">Column three.</div></div>'],
     ['ps-image', 'Image', 'ti-photo',
      '<div class="max-w-4xl mx-auto py-6 px-6"><img src="' + PH + '" alt="" class="w-full rounded-2xl object-cover"></div>'],
     ['ps-image-text', 'Image + text', 'ti-layout-sidebar',
      '<div class="max-w-5xl mx-auto grid gap-8 md:grid-cols-2 md:items-center py-12 px-6">' +
        '<img src="' + PH + '" alt="" class="w-full rounded-2xl object-cover aspect-[4/3]">' +
-       '<div><h3 class="text-2xl font-bold text-gray-900">Headline</h3><p class="mt-3 text-gray-600">Describe it here.</p></div></div>'],
+       '<div><h3 class="text-2xl font-bold text-gray-900 dark:text-white">Headline</h3><p class="mt-3 text-gray-600 dark:text-gray-300">Describe it here.</p></div></div>'],
     ['ps-card', 'Card', 'ti-id',
-     '<div class="max-w-sm rounded-2xl border border-gray-200 overflow-hidden shadow-sm bg-white m-4">' +
+     '<div class="max-w-sm rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm bg-white dark:bg-gray-900 m-4">' +
        '<img src="' + PH + '" alt="" class="w-full aspect-[16/9] object-cover">' +
-       '<div class="p-6"><h3 class="text-xl font-bold text-gray-900">Card title</h3>' +
-       '<p class="mt-2 text-gray-600">Short description.</p>' +
-       '<a href="#" class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-ecs-green">Learn more →</a></div></div>'],
+       '<div class="p-6"><h3 class="text-xl font-bold text-gray-900 dark:text-white">Card title</h3>' +
+       '<p class="mt-2 text-gray-600 dark:text-gray-400">Short description.</p>' +
+       '<a href="#" class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-ecs-green dark:text-ecs-blue-400">Learn more →</a></div></div>'],
     ['ps-button', 'Button', 'ti-square-rounded',
      '<a href="#" class="inline-block rounded-lg bg-ecs-green px-6 py-3 font-semibold text-white m-2">Button text</a>'],
     ['ps-cta', 'CTA band', 'ti-speakerphone',
@@ -149,15 +149,15 @@ document.addEventListener('DOMContentLoaded', function () {
        '<p class="mt-3 text-white/90">A short line of encouragement.</p>' +
        '<a href="#" class="mt-6 inline-block rounded-lg bg-ecs-blue px-6 py-3 font-semibold text-white">Join now</a></section>'],
     ['ps-callout', 'Callout', 'ti-info-circle',
-     '<div class="max-w-3xl mx-auto my-6 rounded-xl border-l-4 border-ecs-green bg-ecs-green/5 p-5 text-gray-700">' +
+     '<div class="max-w-3xl mx-auto my-6 rounded-xl border-l-4 border-ecs-green bg-ecs-green/5 dark:bg-ecs-green/10 p-5 text-gray-700 dark:text-gray-200">' +
        '<strong>Heads up:</strong> put an important note here.</div>'],
     ['ps-heading', 'Heading', 'ti-heading',
-     '<h2 class="max-w-4xl mx-auto px-6 text-3xl font-bold text-gray-900 mt-8">Heading text</h2>'],
+     '<h2 class="max-w-4xl mx-auto px-6 text-3xl font-bold text-gray-900 dark:text-white mt-8">Heading text</h2>'],
     ['ps-text', 'Text', 'ti-align-left',
-     '<p class="max-w-4xl mx-auto px-6 text-gray-600 my-3">Paragraph text — click to edit.</p>'],
+     '<p class="max-w-4xl mx-auto px-6 text-gray-600 dark:text-gray-300 my-3">Paragraph text — click to edit.</p>'],
     ['ps-spacer', 'Spacer', 'ti-arrows-vertical', '<div style="height:48px"></div>'],
     ['ps-divider', 'Divider', 'ti-separator-horizontal',
-     '<hr class="max-w-4xl mx-auto my-8 border-gray-200">'],
+     '<hr class="max-w-4xl mx-auto my-8 border-gray-200 dark:border-gray-800">'],
   ];
   try {
     WIDGETS.forEach(function (w) {

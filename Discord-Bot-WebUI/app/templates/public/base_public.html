@@ -43,19 +43,31 @@
     {% endfor %}
     {% endif %}
 
+    {# ---- Dark mode BEFORE any stylesheet loads, so the correct theme paints on
+       the first frame (no flash of unstyled/light content). Must stay ahead of the
+       CSS links below. Uses the same 'theme' localStorage key as the toggle + the
+       portal's theme switcher, so it persists across pages and both sites. ---- #}
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('theme');
+                if (t !== 'dark' && t !== 'light') {
+                    // No explicit choice yet: resolve from system + PERSIST it, so the
+                    // portal's theme switcher (which defaults to light) can't flip it
+                    // back after load. This is what makes the theme stick per page.
+                    t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    localStorage.setItem('theme', t);
+                }
+                document.documentElement.classList.toggle('dark', t === 'dark');
+            } catch (e) {}
+        })();
+    </script>
+
     {# ---- Fonts / CSS / Icons (identical to the app shell) ---- #}
     <link rel="preload" href="{{ url_for('static', filename='vendor/fonts/inter/inter-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="{{ static_v('vendor/fonts/inter.css') }}">
     <link rel="stylesheet" href="{{ static_v('vite-dist/css/tailwind.css') }}">
     <link rel="stylesheet" href="{{ static_v('vendor/fonts/tabler-icons.css') }}">
-
-    <script>
-        // Respect saved / system dark-mode preference before paint (no FOUC).
-        if (localStorage.getItem('theme') === 'dark' ||
-            (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        }
-    </script>
 
     {# GA4 — carried over from the WordPress site. Only on the live marketing
        domain so the /preview demo never pollutes analytics. #}

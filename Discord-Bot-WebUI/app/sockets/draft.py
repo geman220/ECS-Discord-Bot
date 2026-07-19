@@ -367,6 +367,21 @@ def handle_draft_player_enhanced(data):
                     print(f"⚠️ Failed to record draft pick (non-fatal): {str(e)}")
                     logger.error(f"Failed to record draft pick (non-fatal): {str(e)}")
 
+                # A rostered player must not keep a Pub League sub role. Drop any
+                # Classic/Premier sub-pool membership + Flask sub role in THIS txn
+                # (so it commits with the roster write); the reconcile queued below
+                # then strips the stale ECS-FC-PL-*-SUB Discord role. ECS FC sub
+                # status is intentionally preserved. This is what stranded a player
+                # moved to Premier while still carrying a Classic sub role.
+                sub_cleanup = None
+                try:
+                    from app.services.sub_status_service import remove_conflicting_sub_status
+                    sub_cleanup = remove_conflicting_sub_status(
+                        session, player_id, performed_by_user_id=current_user.id
+                    )
+                except Exception as _sub_err:
+                    logger.warning(f"Sub-status cleanup skipped for player {player_id}: {_sub_err}")
+
                 # Mark for Discord update (cheap flag write; safe under the lock)
                 mark_player_for_discord_update(session, player_id)
 
@@ -402,11 +417,21 @@ def handle_draft_player_enhanced(data):
                     logger.warning(f"Draft clock state build skipped: {_state_err}")
 
             # ===== Post-transaction: Queue async tasks and emit response =====
-            # Queue Discord role assignment task AFTER all commits
+            # Queue Discord role assignment task AFTER all commits.
+            # Normally only_add=True (additive — never strips team/coach roles mid-draft).
+            # BUT when we just removed a stale sub role above, only_add=True would leave
+            # the ECS-FC-PL-*-SUB Discord role orphaned; flip to a full reconcile
+            # (only_add=False) for THIS pick so the stale sub role is actually removed.
+            from app.services.sub_status_service import sub_status_removed, sub_removal_notice
             from app.tasks.tasks_discord import assign_roles_to_player_task
-            assign_roles_to_player_task.delay(player_id=player_id, only_add=True)
-            print(f"🎭 Queued Discord role update for {player_name} (only_add = True to keep existing roles)")
-            logger.info(f"🎭 Queued Discord role update for {player_name} (only_add = True to keep existing roles)")
+            _reconcile_removals = sub_status_removed(sub_cleanup)
+            _sub_removal_notice = sub_removal_notice(sub_cleanup)
+            if _sub_removal_notice:
+                logger.info(f"📋 {_sub_removal_notice}")
+            assign_roles_to_player_task.delay(player_id=player_id, only_add=not _reconcile_removals)
+            _mode = "full reconcile (removing stale sub role)" if _reconcile_removals else "only_add=True"
+            print(f"🎭 Queued Discord role update for {player_name} ({_mode})")
+            logger.info(f"🎭 Queued Discord role update for {player_name} ({_mode})")
 
             # Fetch player data for response in a final read-only transaction
             with managed_session() as session:
@@ -472,7 +497,10 @@ def handle_draft_player_enhanced(data):
                     'team_name': team_name,
                     'league_name': league_name,
                     'position': position,  # Include position at top level for easier access
-                    'draft_position': locals().get('draft_position')  # overall pick # for the live history feed
+                    'draft_position': locals().get('draft_position'),  # overall pick # for the live history feed
+                    # Non-blocking notice for the draft board when a stale Pub League
+                    # sub role was auto-removed as part of this pick (or None).
+                    'sub_removal_notice': _sub_removal_notice,
                 }
 
             # Broadcast to all clients in the draft room so everyone sees the update.

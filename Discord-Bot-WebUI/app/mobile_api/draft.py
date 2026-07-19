@@ -599,6 +599,19 @@ def draft_player(league_name: str):
         except Exception as _coach_err:
             logger.warning(f"Mobile auto coach-assignment skipped for player {player_id}: {_coach_err}")
 
+        # A rostered player must not keep a Pub League sub role. Drop any
+        # Classic/Premier sub-pool membership + Flask sub role in THIS txn; the
+        # Discord reconcile queued post-commit then strips the stale sub role.
+        # ECS FC sub status is intentionally preserved. Mirrors the web socket path.
+        sub_cleanup = None
+        try:
+            from app.services.sub_status_service import remove_conflicting_sub_status
+            sub_cleanup = remove_conflicting_sub_status(
+                session, player_id, performed_by_user_id=current_user_id
+            )
+        except Exception as _sub_err:
+            logger.warning(f"Mobile sub-status cleanup skipped for player {player_id}: {_sub_err}")
+
         # Record draft pick. SAVEPOINT (begin_nested) so a history-write DB failure
         # (e.g. an ECS FC player re-drafted to a 2nd team hits the player-uniqueness
         # constraint) confines the rollback to the savepoint and does NOT poison the

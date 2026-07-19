@@ -394,28 +394,28 @@ def _home_body_starter():
     return f'''
 <section class="py-16 sm:py-20">
   <div class="max-w-2xl mx-auto text-center px-6">
-    <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">Soccer for all</h2>
-    <p class="mt-4 text-lg text-gray-600">Whether you last played in high school, kicked a ball once, or never at all — you belong here. We built a league where showing up is the only requirement.</p>
+    <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Soccer for all</h2>
+    <p class="mt-4 text-lg text-gray-600 dark:text-gray-300">Whether you last played in high school, kicked a ball once, or never at all — you belong here. We built a league where showing up is the only requirement.</p>
   </div>
   <div class="max-w-7xl mx-auto px-6 mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"><h3 class="text-lg font-semibold text-gray-900">Radically inclusive</h3><p class="mt-2 text-sm text-gray-600">All skill levels, all backgrounds, all bodies. We mean it.</p></div>
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"><h3 class="text-lg font-semibold text-gray-900">Real community</h3><p class="mt-2 text-sm text-gray-600">A Discord full of teammates who become friends off the pitch too.</p></div>
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"><h3 class="text-lg font-semibold text-gray-900">Beginner-friendly</h3><p class="mt-2 text-sm text-gray-600">Never played? Perfect. Coaches and teammates have your back.</p></div>
+    <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm"><h3 class="text-lg font-semibold text-gray-900 dark:text-white">Radically inclusive</h3><p class="mt-2 text-sm text-gray-600 dark:text-gray-400">All skill levels, all backgrounds, all bodies. We mean it.</p></div>
+    <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm"><h3 class="text-lg font-semibold text-gray-900 dark:text-white">Real community</h3><p class="mt-2 text-sm text-gray-600 dark:text-gray-400">A Discord full of teammates who become friends off the pitch too.</p></div>
+    <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm"><h3 class="text-lg font-semibold text-gray-900 dark:text-white">Beginner-friendly</h3><p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Never played? Perfect. Coaches and teammates have your back.</p></div>
   </div>
 </section>
-<section class="py-16 sm:py-20 bg-gray-50">
+<section class="py-16 sm:py-20 bg-gray-50 dark:bg-gray-900">
   <div class="max-w-2xl mx-auto text-center px-6">
-    <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">Two divisions, one community</h2>
-    <p class="mt-4 text-lg text-gray-600">Pick the pace that fits you. You can always move between them season to season.</p>
+    <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Two divisions, one community</h2>
+    <p class="mt-4 text-lg text-gray-600 dark:text-gray-300">Pick the pace that fits you. You can always move between them season to season.</p>
   </div>
   <div class="max-w-7xl mx-auto px-6 mt-12 grid gap-6 lg:grid-cols-2">
-    <div class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-sm">
       <img src="{img_classic}" alt="Classic division" class="aspect-[16/9] w-full object-cover">
-      <div class="p-8"><h3 class="text-2xl font-bold text-gray-900">Classic</h3><p class="mt-4 text-gray-600">Beginner-friendly and focused on fun and skill development over competition. Everyone gets equal playing time, and every team makes the playoffs. New players start here.</p></div>
+      <div class="p-8"><h3 class="text-2xl font-bold text-gray-900 dark:text-white">Classic</h3><p class="mt-4 text-gray-600 dark:text-gray-300">Beginner-friendly and focused on fun and skill development over competition. Everyone gets equal playing time, and every team makes the playoffs. New players start here.</p></div>
     </div>
-    <div class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-sm">
       <img src="{img_premier}" alt="Premier division" class="aspect-[16/9] w-full object-cover">
-      <div class="p-8"><h3 class="text-2xl font-bold text-gray-900">Premier</h3><p class="mt-4 text-gray-600">A slightly higher level of friendly competition — still low/no contact and laid-back, with the same emphasis on development, team play, and fun. Everyone plays.</p></div>
+      <div class="p-8"><h3 class="text-2xl font-bold text-gray-900 dark:text-white">Premier</h3><p class="mt-4 text-gray-600 dark:text-gray-300">A slightly higher level of friendly competition — still low/no contact and laid-back, with the same emphasis on development, team play, and fun. Everyone plays.</p></div>
     </div>
   </div>
 </section>
@@ -423,20 +423,20 @@ def _home_body_starter():
   <div class="max-w-6xl mx-auto px-6 grid gap-10 lg:grid-cols-2 lg:items-center">
     <img src="{img_comm}" alt="ECS Pub League players" class="rounded-2xl object-cover w-full aspect-[4/3] shadow-sm">
     <div>
-      <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">Just for fun</h2>
-      <p class="mt-4 text-lg text-gray-600">Both divisions play 8v8 on a half-field with unlimited subs. Our level is well below even the lowest divisions of the other Seattle leagues — and that's the point. ECS Pub League is part of ECS FC, the nonprofit soccer club established by Emerald City Supporters.</p>
+      <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Just for fun</h2>
+      <p class="mt-4 text-lg text-gray-600 dark:text-gray-300">Both divisions play 8v8 on a half-field with unlimited subs. Our level is well below even the lowest divisions of the other Seattle leagues — and that's the point. ECS Pub League is part of ECS FC, the nonprofit soccer club established by Emerald City Supporters.</p>
     </div>
   </div>
 </section>
 <section class="py-16 sm:py-20">
   <div class="max-w-2xl mx-auto text-center px-6">
-    <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">How to join</h2>
-    <p class="mt-4 text-lg text-gray-600">New players are always welcome. Here's the path in.</p>
+    <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">How to join</h2>
+    <p class="mt-4 text-lg text-gray-600 dark:text-gray-300">New players are always welcome. Here's the path in.</p>
   </div>
   <div class="max-w-7xl mx-auto px-6 mt-12 grid gap-8 sm:grid-cols-3">
-    <div><div class="flex h-12 w-12 items-center justify-center rounded-full bg-ecs-green text-white text-lg font-bold">1</div><h3 class="mt-4 text-lg font-semibold text-gray-900">Come to a PLOP</h3><p class="mt-2 text-sm text-gray-600">Attend at least one Pub League Open Practice to meet the community and get a feel for the game — no commitment.</p></div>
-    <div><div class="flex h-12 w-12 items-center justify-center rounded-full bg-ecs-green text-white text-lg font-bold">2</div><h3 class="mt-4 text-lg font-semibold text-gray-900">Get approved</h3><p class="mt-2 text-sm text-gray-600">New players are approved before registering, so every team stays balanced and welcoming.</p></div>
-    <div><div class="flex h-12 w-12 items-center justify-center rounded-full bg-ecs-green text-white text-lg font-bold">3</div><h3 class="mt-4 text-lg font-semibold text-gray-900">Register or join the waitlist</h3><p class="mt-2 text-sm text-gray-600">When registration is open, sign up. When a season is full, hop on the waitlist and we'll reach out.</p></div>
+    <div><div class="flex h-12 w-12 items-center justify-center rounded-full bg-ecs-green text-white text-lg font-bold">1</div><h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">Come to a PLOP</h3><p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Attend at least one Pub League Open Practice to meet the community and get a feel for the game — no commitment.</p></div>
+    <div><div class="flex h-12 w-12 items-center justify-center rounded-full bg-ecs-green text-white text-lg font-bold">2</div><h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">Get approved</h3><p class="mt-2 text-sm text-gray-600 dark:text-gray-400">New players are approved before registering, so every team stays balanced and welcoming.</p></div>
+    <div><div class="flex h-12 w-12 items-center justify-center rounded-full bg-ecs-green text-white text-lg font-bold">3</div><h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">Register or join the waitlist</h3><p class="mt-2 text-sm text-gray-600 dark:text-gray-400">When registration is open, sign up. When a season is full, hop on the waitlist and we'll reach out.</p></div>
   </div>
 </section>
 '''
