@@ -69,14 +69,22 @@ def _seed():
     seeded = []
 
     # ---- Editable pages ----
-    if SitePage.query.count() == 0:
-        for p in data.get('pages', []):
-            session.add(SitePage(
-                slug=p['slug'], title=p.get('title'),
-                body_html=p.get('body_html'),
-                meta_description=p.get('meta_description'),
-            ))
-        seeded.append(f"{len(data.get('pages', []))} pages")
+    # Pages are seeded PER-SLUG (insert any that are missing) so blocks added to
+    # the seed later — e.g. home_justforfun — backfill on a restart instead of
+    # being skipped because the table already has rows.
+    existing_page_slugs = {row[0] for row in session.query(SitePage.slug).all()}
+    _pages_added = 0
+    for p in data.get('pages', []):
+        if p['slug'] in existing_page_slugs:
+            continue
+        session.add(SitePage(
+            slug=p['slug'], title=p.get('title'),
+            body_html=p.get('body_html'),
+            meta_description=p.get('meta_description'),
+        ))
+        _pages_added += 1
+    if _pages_added:
+        seeded.append(f"{_pages_added} pages")
 
     # ---- FAQs ----
     if Faq.query.count() == 0:

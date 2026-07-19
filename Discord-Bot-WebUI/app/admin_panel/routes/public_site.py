@@ -224,7 +224,7 @@ def public_site_news_save():
     # Slug: keep existing on edit unless the user typed one; else derive from title.
     typed_slug = (request.form.get('slug') or '').strip()
     if typed_slug:
-        post.slug = slugify(typed_slug)
+        post.slug = _unique_slug(slugify(typed_slug), exclude_id=post.id)
     elif not post.slug:
         post.slug = _unique_slug(slugify(title), exclude_id=post.id)
 
@@ -323,7 +323,8 @@ def public_site_faq_delete(faq_id):
 @role_required(_ROLES)
 def public_site_home_edit():
     """Friendly one-screen editor for the home page's content blocks."""
-    slugs = ['home_hero', 'home_intro', 'home_justforfun']
+    slugs = ['home_hero', 'home_intro', 'home_justforfun',
+             'home_division_classic', 'home_division_premier']
     blocks = {b.slug: b for b in SitePage.query.filter(SitePage.slug.in_(slugs)).all()}
     return render_template('admin_panel/public_site/home_edit_flowbite.html', blocks=blocks)
 
@@ -355,11 +356,20 @@ def public_site_home_save():
            body_html=request.form.get('intro_body'))
     upsert('home_justforfun',
            body_html=request.form.get('justforfun_body'))
+    upsert('home_division_classic',
+           title=(request.form.get('classic_title') or '').strip(),
+           body_html=request.form.get('classic_body'),
+           og_image_url=(request.form.get('classic_image') or '').strip())
+    upsert('home_division_premier',
+           title=(request.form.get('premier_title') or '').strip(),
+           body_html=request.form.get('premier_body'),
+           og_image_url=(request.form.get('premier_image') or '').strip())
     flash('Home page updated.', 'success')
     return redirect(url_for('admin_panel.public_site_home_edit'))
 
 
-_BLOCK_SLUGS = ('home_hero', 'home_intro', 'home_justforfun')
+_BLOCK_SLUGS = ('home_hero', 'home_intro', 'home_justforfun',
+                'home_division_classic', 'home_division_premier')
 
 
 _DEFAULT_MENU = [
@@ -430,7 +440,7 @@ def public_site_appearance():
         'title': g_('public_site_title', 'ECS Pub League'),
         'tagline': g_('public_tagline', 'Radically inclusive, beginner-friendly adult soccer in Seattle.'),
         'logo_url': g_('public_logo_url', None),
-        'primary_hex': g_('public_primary_hex', '#1a472a'),
+        'primary_hex': g_('public_primary_hex', '#2e9d44'),
     }
     return render_template('admin_panel/public_site/appearance_flowbite.html', settings=settings)
 
@@ -448,7 +458,7 @@ def public_site_appearance_save():
     set_('public_site_title', (request.form.get('title') or 'ECS Pub League').strip())
     set_('public_tagline', (request.form.get('tagline') or '').strip())
     set_('public_logo_url', (request.form.get('logo_url') or '').strip() or None)
-    set_('public_primary_hex', (request.form.get('primary_hex') or '#1a472a').strip())
+    set_('public_primary_hex', (request.form.get('primary_hex') or '#2e9d44').strip())
     flash('Appearance saved.', 'success')
     return redirect(url_for('admin_panel.public_site_appearance'))
 

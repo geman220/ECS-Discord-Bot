@@ -11,6 +11,32 @@ import { setupImageErrorHandlers } from './image-handlers.js';
 import { confirmDraftPlayer } from './draft-confirmation.js';
 
 /**
+ * Escape HTML before inserting authored note text into innerHTML (XSS defense).
+ * @param {string} value
+ * @returns {string}
+ */
+function esc(value) {
+    if (value == null) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
+ * Format a scouting-note ISO timestamp for display (e.g. "Jul 18, 2026").
+ * @param {string} iso
+ * @returns {string}
+ */
+function formatNoteDate(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/**
  * Build position preference grid HTML
  * @param {string} favoritePosition - Player's preferred position
  * @param {string} otherPositions - Comma-separated list of other positions
@@ -183,7 +209,28 @@ export function displayPlayerProfile(data, playerId) {
             </div>
             ` : ''}
 
-            <!-- Admin Notes -->
+            <!-- Scouting Notes (real PlayerAdminNote thread from the NAD board / profile) -->
+            ${(data.scouting_notes && data.scouting_notes.length) ? `
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h5 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    <i class="ti ti-notes mr-2"></i>Scouting Notes
+                </h5>
+                <div class="space-y-2">
+                    ${data.scouting_notes.map(n => `
+                    <div class="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                        <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">${esc(n.content)}</p>
+                        <div class="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <i class="ti ti-user"></i>
+                            <span>${esc(n.author || 'Unknown')}</span>
+                            ${n.created_at ? `<span>&middot;</span><span>${formatNoteDate(n.created_at)}</span>` : ''}
+                        </div>
+                    </div>
+                    `).join('')}
+                </div>
+            </div>
+            ` : ''}
+
+            <!-- Admin Notes (deprecated legacy free-text column; shown only if present) -->
             ${data.admin_notes ? `
             <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <h5 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">

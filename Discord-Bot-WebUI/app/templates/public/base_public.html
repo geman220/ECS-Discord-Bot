@@ -102,7 +102,7 @@
                 {% for item in nav_items %}
                 <a href="{{ item.url }}"
                    class="px-3 py-2 text-sm font-medium rounded-lg transition
-                          {{ 'text-ecs-green dark:text-blue-400' if nav_active == item.key
+                          {{ 'text-ecs-green dark:text-ecs-blue-400' if nav_active == item.key
                              else 'text-gray-600 dark:text-gray-300 hover:text-ecs-green dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-900' }}">
                     {{ item.label }}
                 </a>

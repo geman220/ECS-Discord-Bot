@@ -17,7 +17,7 @@ for asset building without external service dependencies.
 import os
 import logging
 import mimetypes
-from flask import Flask
+from flask import Flask, request
 
 from app.assets import init_assets
 from app.core import db
@@ -173,6 +173,22 @@ def create_app(config_object='web_config.Config'):
     else:
         logger.info("Skipping services initialization (SKIP_CELERY=true)")
     init_cli_commands(app)
+
+    # Bulletproof JS/CSS content-type. Some container mime databases map .js ->
+    # text/plain, which makes browsers BLOCK <script type="module"> (Vite chunks,
+    # admin-entry, main-entry) — breaking JS app-wide. Force the correct type on
+    # every static .js/.mjs/.css response regardless of the environment.
+    @app.after_request
+    def _force_static_mime(response):
+        try:
+            p = request.path or ''
+            if p.endswith(('.js', '.mjs')):
+                response.headers['Content-Type'] = 'text/javascript; charset=utf-8'
+            elif p.endswith('.css'):
+                response.headers['Content-Type'] = 'text/css; charset=utf-8'
+        except Exception:
+            pass
+        return response
 
     return app
 

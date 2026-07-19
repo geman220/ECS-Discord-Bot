@@ -669,8 +669,8 @@
                 </div>
             </div>
 
-            <!-- Admin Notes Section -->
-            {% if can_view_admin_notes %}
+            <!-- Admin Notes Section — scouting thread, shown only while the player is a NAD -->
+            {% if can_view_admin_notes and player_is_nad %}
             <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between mb-4">
                     <div>
@@ -1683,8 +1683,8 @@
                         </div>
                     </div>
 
-                    <!-- Admin Notes Section -->
-                    {% if can_view_admin_notes %}
+                    <!-- Admin Notes Section — scouting thread, shown only while the player is a NAD -->
+                    {% if can_view_admin_notes and player_is_nad %}
                     <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between mb-4">
                             <div>

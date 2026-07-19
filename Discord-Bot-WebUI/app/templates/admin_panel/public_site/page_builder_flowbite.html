@@ -21,7 +21,7 @@
 
 {% block panel_content %}
 {% call page_header("Visual builder", subtitle="Public Site · " + page.slug) %}
-  <a href="{{ url_for('public.about') if page.slug == 'about' else url_for('public.guide') if page.slug == 'guide' else url_for('public.guests') if page.slug == 'guests' else '#' }}" target="_blank" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-external-link"></i> View</a>
+  <a href="{{ url_for('public.about') if page.slug == 'about' else url_for('public.guide') if page.slug == 'guide' else url_for('public.guests') if page.slug == 'guests' else url_for('public.dynamic_page', slug=page.slug) }}" target="_blank" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-external-link"></i> View</a>
   <a href="{{ url_for('admin_panel.public_site_page_edit', page_id=page.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-forms"></i> Simple editor</a>
   <button type="button" id="gjs-save" class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-device-floppy"></i> Save</button>
 {% endcall %}
@@ -88,8 +88,19 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Load existing content (GrapesJS parses inline <style> into its CSS).
-  if (INITIAL) { try { editor.setComponents(INITIAL); } catch (err) { console.error(err); } }
+  // Load existing content. Split the leading <style>…</style> (our saved CSS)
+  // from the HTML and load them via the proper channels, so styling persists
+  // across save→reload and <style> blocks don't accumulate.
+  if (INITIAL) {
+    try {
+      var css = '';
+      var html = INITIAL;
+      var m = INITIAL.match(/^\s*<style[^>]*>([\s\S]*?)<\/style>\s*/i);
+      if (m) { css = m[1]; html = INITIAL.slice(m[0].length); }
+      editor.setComponents(html);
+      if (css) editor.setStyle(css);
+    } catch (err) { console.error(err); }
+  }
 
   // Populate the asset manager from the Media Library so past uploads are reusable.
   fetch("{{ url_for('admin_panel.public_site_media_list') }}", { credentials: 'same-origin' })
@@ -97,6 +108,65 @@ document.addEventListener('DOMContentLoaded', function () {
     .then(function (d) { (d.assets || []).forEach(function (a) {
       editor.AssetManager.add({ src: a.url, name: a.title }); }); })
     .catch(function () {});
+
+  // ---- ECS brand WIDGETS (drag onto the page) ---------------------------------
+  // Content uses the site's own Tailwind classes (the canvas loads tailwind.css
+  // + public-content.css), so widgets look like the live site while editing.
+  var PH = "{{ url_for('static', filename='img/publeague/2023-08__355098481_10227903474124662_4103553356561754271_n.jpg') }}";
+  var WIDGETS = [
+    ['ps-hero', 'Hero banner', 'ti-photo',
+     '<section class="relative bg-gradient-to-br from-ecs-green to-ecs-green-dark text-white py-20 px-6">' +
+       '<div class="max-w-4xl mx-auto"><h1 class="text-4xl sm:text-5xl font-extrabold">Your big headline</h1>' +
+       '<p class="mt-4 text-lg text-white/90 max-w-2xl">Supporting sentence that explains what this is.</p>' +
+       '<a href="#" class="mt-6 inline-block rounded-lg bg-ecs-blue px-6 py-3 font-semibold text-white">Call to action</a></div></section>'],
+    ['ps-section', 'Section', 'ti-layout-rows',
+     '<section class="py-16 px-6"><div class="max-w-4xl mx-auto"><h2 class="text-3xl font-bold text-gray-900">Section heading</h2>' +
+       '<p class="mt-4 text-gray-600">Write your content here. Click to edit.</p></div></section>'],
+    ['ps-two-col', '2 columns', 'ti-columns-2',
+     '<div class="max-w-5xl mx-auto grid gap-8 md:grid-cols-2 py-10 px-6">' +
+       '<div class="text-gray-600">Left column. Drag anything in here.</div>' +
+       '<div class="text-gray-600">Right column. Drag anything in here.</div></div>'],
+    ['ps-three-col', '3 columns', 'ti-columns-3',
+     '<div class="max-w-6xl mx-auto grid gap-6 md:grid-cols-3 py-10 px-6">' +
+       '<div class="text-gray-600">Column one.</div><div class="text-gray-600">Column two.</div><div class="text-gray-600">Column three.</div></div>'],
+    ['ps-image', 'Image', 'ti-photo',
+     '<div class="max-w-4xl mx-auto py-6 px-6"><img src="' + PH + '" alt="" class="w-full rounded-2xl object-cover"></div>'],
+    ['ps-image-text', 'Image + text', 'ti-layout-sidebar',
+     '<div class="max-w-5xl mx-auto grid gap-8 md:grid-cols-2 md:items-center py-12 px-6">' +
+       '<img src="' + PH + '" alt="" class="w-full rounded-2xl object-cover aspect-[4/3]">' +
+       '<div><h3 class="text-2xl font-bold text-gray-900">Headline</h3><p class="mt-3 text-gray-600">Describe it here.</p></div></div>'],
+    ['ps-card', 'Card', 'ti-id',
+     '<div class="max-w-sm rounded-2xl border border-gray-200 overflow-hidden shadow-sm bg-white m-4">' +
+       '<img src="' + PH + '" alt="" class="w-full aspect-[16/9] object-cover">' +
+       '<div class="p-6"><h3 class="text-xl font-bold text-gray-900">Card title</h3>' +
+       '<p class="mt-2 text-gray-600">Short description.</p>' +
+       '<a href="#" class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-ecs-green">Learn more →</a></div></div>'],
+    ['ps-button', 'Button', 'ti-square-rounded',
+     '<a href="#" class="inline-block rounded-lg bg-ecs-green px-6 py-3 font-semibold text-white m-2">Button text</a>'],
+    ['ps-cta', 'CTA band', 'ti-speakerphone',
+     '<section class="bg-ecs-green text-white py-14 px-6 text-center"><h2 class="text-3xl font-bold">Ready to play?</h2>' +
+       '<p class="mt-3 text-white/90">A short line of encouragement.</p>' +
+       '<a href="#" class="mt-6 inline-block rounded-lg bg-ecs-blue px-6 py-3 font-semibold text-white">Join now</a></section>'],
+    ['ps-callout', 'Callout', 'ti-info-circle',
+     '<div class="max-w-3xl mx-auto my-6 rounded-xl border-l-4 border-ecs-green bg-ecs-green/5 p-5 text-gray-700">' +
+       '<strong>Heads up:</strong> put an important note here.</div>'],
+    ['ps-heading', 'Heading', 'ti-heading',
+     '<h2 class="max-w-4xl mx-auto px-6 text-3xl font-bold text-gray-900 mt-8">Heading text</h2>'],
+    ['ps-text', 'Text', 'ti-align-left',
+     '<p class="max-w-4xl mx-auto px-6 text-gray-600 my-3">Paragraph text — click to edit.</p>'],
+    ['ps-spacer', 'Spacer', 'ti-arrows-vertical', '<div style="height:48px"></div>'],
+    ['ps-divider', 'Divider', 'ti-separator-horizontal',
+     '<hr class="max-w-4xl mx-auto my-8 border-gray-200">'],
+  ];
+  try {
+    WIDGETS.forEach(function (w) {
+      editor.BlockManager.add(w[0], {
+        label: '<div style="text-align:center"><i class="ti ' + w[2] + '" style="font-size:20px"></i><div style="font-size:11px;margin-top:2px">' + w[1] + '</div></div>',
+        category: 'ECS Widgets',
+        content: w[3],
+      });
+    });
+  } catch (err) { console.error('widget blocks', err); }
 
   document.getElementById('gjs-save').addEventListener('click', function () {
     var css = editor.getCss();

@@ -52,6 +52,15 @@
       paste_data_images: true,        // paste screenshots -> uploaded
       automatic_uploads: true,
       images_upload_handler: function (blobInfo) { return uploadImage(blobInfo.blob()); },
+      // Media Library: populate the image dialog's "image list" dropdown from
+      // previously-uploaded assets so authors can reuse instead of re-uploading.
+      image_list: function (cb) {
+        fetch("{{ url_for('admin_panel.public_site_media_list') }}", { credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (d) { cb((d.assets || []).map(function (a) {
+            return { title: a.title || a.filename, value: a.url }; })); })
+          .catch(function () { cb([]); });
+      },
       convert_urls: false,
       branding: false, promotion: false,
       skin: isDark ? 'oxide-dark' : 'oxide',

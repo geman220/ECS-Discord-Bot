@@ -12,6 +12,8 @@
 {% set hero = blocks.get('home_hero') %}
 {% set intro = blocks.get('home_intro') %}
 {% set jff = blocks.get('home_justforfun') %}
+{% set classic = blocks.get('home_division_classic') %}
+{% set premier = blocks.get('home_division_premier') %}
 
 {% block panel_content %}
 {% call page_header("Home Page", subtitle="Public Site") %}
@@ -67,6 +69,41 @@
     </div>
   </div>
 
+  {# ---- Division cards (Classic / Premier) ---- #}
+  {% for d in [
+      {'key': 'classic', 'blk': classic, 'icon': 'ti-ball-football', 'name': 'Classic',
+       'dtitle': 'Classic', 'dbody': 'Beginner-friendly and focused on fun and skill development over competition. Everyone gets equal playing time, and every team makes the playoffs. New players start here.',
+       'dimg': url_for('static', filename='img/publeague/2026-07__ZUZU-TEAM-1024x683.jpg')},
+      {'key': 'premier', 'blk': premier, 'icon': 'ti-trophy', 'name': 'Premier',
+       'dtitle': 'Premier', 'dbody': 'A slightly higher level of friendly competition — still low/no contact and laid-back, with the same emphasis on development, team play, and fun. Everyone plays.',
+       'dimg': url_for('static', filename='img/publeague/2026-07__Astral_Shield-1024x576.jpg')}
+  ] %}
+  {% set b = d.blk %}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4">
+    <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti {{ d.icon }} text-ecs-green"></i> {{ d.name }} division card</h3>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+      <input type="text" name="{{ d.key }}_title" value="{{ b.title if b and b.title else d.dtitle }}" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+      <textarea name="{{ d.key }}_body" class="wp-editor mt-1 block w-full">{{ b.body_html if b and b.body_html else ('<p>' + d.dbody + '</p>') }}</textarea>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Card image</label>
+      <div class="mt-1 flex items-center gap-2">
+        <label class="inline-flex items-center gap-1.5 cursor-pointer rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <i class="ti ti-upload"></i> Upload
+          <input type="file" accept="image/*" class="hidden ps-upload" data-target="{{ d.key }}_image" data-preview="{{ d.key }}-preview" data-status="{{ d.key }}-upload-status">
+        </label>
+        <span id="{{ d.key }}-upload-status" class="text-xs text-gray-400"></span>
+      </div>
+      <input type="text" name="{{ d.key }}_image" id="{{ d.key }}_image" value="{{ b.og_image_url if b and b.og_image_url else '' }}" placeholder="…or paste an image URL" class="mt-2 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+      <img id="{{ d.key }}-preview" src="{{ b.og_image_url if b and b.og_image_url else d.dimg }}" alt="" class="mt-2 rounded-lg max-h-40 w-full object-cover">
+    </div>
+  </div>
+  {% endfor %}
+
   <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-ecs-green text-white px-5 py-2.5 text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-device-floppy"></i> Save home page</button>
 </form>
 {% endblock %}
@@ -87,6 +124,22 @@ document.addEventListener('DOMContentLoaded', function () {
             prev.src = url; prev.classList.remove('hidden');
             status.textContent = 'Uploaded ✓';
         }).catch(function (e) { status.textContent = e.message; });
+    });
+
+    // Generic image uploaders (division cards etc.)
+    document.querySelectorAll('.ps-upload').forEach(function (input) {
+        input.addEventListener('change', function () {
+            if (!this.files || !this.files[0] || !window.publicSiteUpload) return;
+            var status = document.getElementById(this.dataset.status);
+            var targetEl = document.getElementById(this.dataset.target);
+            var prev = document.getElementById(this.dataset.preview);
+            if (status) status.textContent = 'Uploading…';
+            window.publicSiteUpload(this.files[0]).then(function (url) {
+                if (targetEl) targetEl.value = url;
+                if (prev) { prev.src = url; prev.classList.remove('hidden'); }
+                if (status) status.textContent = 'Uploaded ✓';
+            }).catch(function (e) { if (status) status.textContent = e.message; });
+        });
     });
 });
 </script>

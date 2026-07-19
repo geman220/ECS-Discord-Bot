@@ -1,6 +1,16 @@
 {% extends "public/base_public.html" %}
 
 {% block content %}
+{# Pages built in the visual builder carry their own <style> + full layout, so
+   render them FULL-WIDTH exactly as built (no prose clamp, no extra hero).
+   Simple rich-text pages get the styled hero + prose column. #}
+{% set is_builder = page and page.body_html and '<style' in page.body_html %}
+
+{% if is_builder %}
+<div class="ps-builder-page">
+    {{ page.body_html | safe }}
+</div>
+{% else %}
 <section class="bg-gradient-to-br from-ecs-green to-ecs-green-dark">
     <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
         <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
@@ -13,7 +23,7 @@
     <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <div class="prose prose-lg dark:prose-invert max-w-none
                     prose-headings:text-gray-900 dark:prose-headings:text-white
-                    prose-a:text-ecs-green dark:prose-a:text-blue-600
+                    prose-a:text-ecs-green dark:prose-a:text-ecs-blue-600
                     prose-img:rounded-2xl prose-img:w-full prose-img:shadow-sm prose-figure:my-8
                     [&_.lead]:text-xl [&_.lead]:text-gray-600 dark:[&_.lead]:text-gray-300 [&_.lead]:font-normal">
             {% if page and page.body_html %}
@@ -29,4 +39,5 @@
         </div>
     </div>
 </section>
+{% endif %}
 {% endblock %}

@@ -26,7 +26,10 @@ export default {
       colors: {
         // ECS Brand Colors
         'ecs-green': {
-          DEFAULT: 'rgb(var(--color-primary-rgb, 26 71 42) / <alpha-value>)',
+          // Themed to the ECS Pub League LOGO green (#40b050), slightly deepened
+          // for readable white text. Overridable via Appearance (--color-primary-rgb).
+          DEFAULT: 'rgb(var(--color-primary-rgb, 46 157 68) / <alpha-value>)',
+          dark: 'rgb(var(--color-primary-dark-rgb, 28 122 52) / <alpha-value>)',
           50: '#f0fdf4',
           100: '#dcfce7',
           200: '#bbf7d0',
@@ -51,6 +54,20 @@ export default {
           700: '#a16207',
           800: '#854d0e',
           900: '#713f12',
+        },
+        // ECS Pub League LOGO blue (#203090) — the brand accent (green + blue).
+        'ecs-blue': {
+          DEFAULT: '#203090',
+          50: '#eef1fb',
+          100: '#d8def5',
+          200: '#b3bdec',
+          300: '#8593de',
+          400: '#5e6fd0',
+          500: '#3a49a8',
+          600: '#203090',
+          700: '#1a2775',
+          800: '#161f5e',
+          900: '#121847',
         },
         // Dark theme backgrounds (matching Flowbite dark mode)
         'dark': {

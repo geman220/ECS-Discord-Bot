@@ -1,9 +1,9 @@
 {% extends "public/base_public.html" %}
 
 {% set type_meta = {
-    'plop': ('ti-ball-football', 'PLOP', 'bg-ecs-green/10 text-ecs-green dark:text-blue-400'),
-    'party': ('ti-confetti', 'Party', 'bg-blue-500/20 text-blue-700 dark:text-blue-400'),
-    'social': ('ti-users-group', 'Social', 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'),
+    'plop': ('ti-ball-football', 'PLOP', 'bg-ecs-green/10 text-ecs-green dark:text-ecs-blue-400'),
+    'party': ('ti-confetti', 'Party', 'bg-ecs-blue-500/20 text-ecs-blue-700 dark:text-ecs-blue-400'),
+    'social': ('ti-users-group', 'Social', 'bg-ecs-blue-100 text-ecs-blue-700 dark:bg-ecs-blue-900/40 dark:text-ecs-blue-300'),
     'tournament': ('ti-trophy', 'Tournament', 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'),
     'meeting': ('ti-calendar', 'Meeting', 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'),
     'fundraiser': ('ti-heart', 'Fundraiser', 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300'),
@@ -14,7 +14,7 @@
 <section class="bg-gradient-to-br from-ecs-green to-ecs-green-dark">
     <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
         <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">Calendar</h1>
-        <p class="mt-4 text-lg text-green-50/90 max-w-2xl">
+        <p class="mt-4 text-lg text-white/90 max-w-2xl">
             Upcoming PLOPs, games, and events. New players — come to a PLOP to check us out.
         </p>
     </div>
@@ -33,17 +33,50 @@
 </div>
 
 <section class="py-14 sm:py-16">
-    <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto {{ 'max-w-5xl' if view == 'month' else 'max-w-3xl' }} px-4 sm:px-6 lg:px-8">
+        {# View toggle: Agenda | Month #}
+        <div class="mb-6 inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden text-sm">
+            <a href="{{ url_for('public.calendar') }}" class="px-4 py-2 inline-flex items-center gap-1.5 {{ 'bg-ecs-green text-white' if view != 'month' else 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}"><i class="ti ti-list"></i> Agenda</a>
+            <a href="{{ url_for('public.calendar', view='month') }}" class="px-4 py-2 inline-flex items-center gap-1.5 {{ 'bg-ecs-green text-white' if view == 'month' else 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}"><i class="ti ti-calendar-month"></i> Month</a>
+        </div>
+
+        {% if view == 'month' %}
+        {# ---------------- MONTH GRID ---------------- #}
+        <div class="flex items-center justify-between mb-4">
+            <a href="{{ url_for('public.calendar', view='month', m=grid.prev) }}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"><i class="ti ti-chevron-left"></i> Prev</a>
+            <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ grid.label }}</h2>
+            <a href="{{ url_for('public.calendar', view='month', m=grid.next) }}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Next <i class="ti ti-chevron-right"></i></a>
+        </div>
+        <div class="grid grid-cols-7 gap-px rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-700">
+            {% for wd in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] %}
+            <div class="bg-gray-50 dark:bg-gray-800 px-2 py-1.5 text-center text-xs font-semibold text-gray-500 dark:text-gray-400">{{ wd }}</div>
+            {% endfor %}
+            {% for week in grid.weeks %}
+              {% for day in week %}
+              <div class="min-h-[92px] bg-white dark:bg-gray-900 p-1.5 {{ 'opacity-40' if day.month != grid.month else '' }}">
+                  <div class="text-xs {{ 'font-bold text-ecs-green dark:text-ecs-blue-400' if day == grid.today else 'text-gray-400' }}">{{ day.day }}</div>
+                  {% for e in grid.by_day.get(day, []) %}
+                  {% set meta = type_meta.get(e.event_type, ('ti-calendar-event', '', 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200')) %}
+                  <div class="mt-1 rounded px-1 py-0.5 text-[10px] leading-tight truncate {{ meta[2] }}" title="{{ e.title }} · {{ e.start_datetime.strftime('%-I:%M %p') }}{% if e.location %} · {{ e.location }}{% endif %}">{{ e.start_datetime.strftime('%-I%p')|lower }} {{ e.title }}</div>
+                  {% endfor %}
+              </div>
+              {% endfor %}
+            {% endfor %}
+        </div>
+        {% if total == 0 %}<p class="mt-4 text-center text-sm text-gray-400">No public events this month.</p>{% endif %}
+
+        {% else %}
+        {# ---------------- AGENDA ---------------- #}
         {% if total == 0 %}
         <div class="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-10 text-center text-gray-500 dark:text-gray-400">
             <i class="ti ti-calendar-off text-4xl"></i>
             <p class="mt-3">No upcoming public events are posted right now — check back soon, or
-               <a href="{{ url_for('public.contact') }}" class="text-ecs-green dark:text-blue-400 font-semibold">reach out</a>.</p>
+               <a href="{{ url_for('public.contact') }}" class="text-ecs-green dark:text-ecs-blue-400 font-semibold">reach out</a>.</p>
         </div>
         {% else %}
         {% for month, events in grouped.items() %}
         <div class="{% if not loop.first %}mt-10{% endif %}">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-ecs-green dark:text-blue-400 mb-4">{{ month }}</h2>
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-ecs-green dark:text-ecs-blue-400 mb-4">{{ month }}</h2>
             <ul class="space-y-3">
                 {% for e in events %}
                 {% set meta = type_meta.get(e.event_type, ('ti-calendar-event', e.event_type|capitalize, 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200')) %}
@@ -60,7 +93,7 @@
                         </div>
                         <h3 class="mt-1 font-semibold text-gray-900 dark:text-white">{{ e.title }}</h3>
                         {% if e.location %}<p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400"><i class="ti ti-map-pin"></i> {{ e.location }}</p>{% endif %}
-                        {% if e.description %}<p class="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{{ e.description | striptags }}</p>{% endif %}
+                        {% if e.description %}<p class="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{{ e.description | striptags | replace('\\n', ' ') | trim }}</p>{% endif %}
                         <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text={{ e.title | urlencode }}&dates={{ e.start_datetime.strftime('%Y%m%dT%H%M%S') }}/{{ (e.end_datetime or e.start_datetime).strftime('%Y%m%dT%H%M%S') }}&location={{ (e.location or '') | urlencode }}" target="_blank" rel="noopener" class="mt-1.5 inline-flex items-center gap-1 text-xs text-gray-400 hover:text-ecs-green"><i class="ti ti-calendar-plus"></i> Add to calendar</a>
                     </div>
                 </li>
@@ -68,6 +101,7 @@
             </ul>
         </div>
         {% endfor %}
+        {% endif %}
         {% endif %}
 
         <div class="mt-12 rounded-2xl bg-gray-50 dark:bg-gray-900 p-8 text-center">

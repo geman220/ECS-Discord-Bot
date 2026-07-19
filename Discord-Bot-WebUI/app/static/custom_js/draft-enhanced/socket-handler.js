@@ -294,6 +294,11 @@ function addPlayerBackToAvailable(player) {
     if (player.is_new) {
         nameBadges += `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 shrink-0" title="Brand new — no prior team history"><i class="ti ti-sparkles text-[9px]"></i>NEW</span>`;
     }
+    // Scouting-notes badge — only present for NADs with notes (server-gated). Click the card to read them.
+    if (player.scouting_note_count && player.scouting_note_count > 0) {
+        const _n = player.scouting_note_count;
+        nameBadges += `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 shrink-0" title="${_n} scouting note${_n === 1 ? '' : 's'} — click to view"><i class="ti ti-notes text-[9px]"></i>${_n}</span>`;
+    }
     if (player.is_admin) {
         nameBadges += `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 shrink-0" title="Admin"><i class="ti ti-shield-check text-[9px]"></i>ADMIN</span>`;
     }

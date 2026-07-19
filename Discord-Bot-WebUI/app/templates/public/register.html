@@ -4,7 +4,7 @@
 <section class="bg-gradient-to-br from-ecs-green to-ecs-green-dark">
     <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-16">
         <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">Join the league</h1>
-        <p class="mt-4 text-lg text-green-50/90 max-w-2xl">
+        <p class="mt-4 text-lg text-white/90 max-w-2xl">
             New players are always welcome. Here's exactly how to get on the pitch.
         </p>
     </div>
@@ -15,14 +15,14 @@
     <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <div class="rounded-2xl border p-6 sm:p-8 text-center
                     {% if cta.mode == 'register' %}border-ecs-green/30 bg-ecs-green/5
-                    {% elif cta.mode == 'waitlist' %}border-blue-500/40 bg-blue-500/10
+                    {% elif cta.mode == 'waitlist' %}border-ecs-blue-500/40 bg-ecs-blue-500/10
                     {% else %}border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900{% endif %}">
             {% if cta.mode == 'register' %}
                 <div class="inline-flex items-center gap-1.5 rounded-full bg-ecs-green px-3 py-1 text-xs font-semibold text-white"><i class="ti ti-circle-check"></i> Registration open{% if season_name %} · {{ season_name }}{% endif %}</div>
                 <h2 class="mt-4 text-2xl font-bold text-gray-900 dark:text-white">Ready when you are</h2>
                 <p class="mt-2 text-gray-600 dark:text-gray-300">Approved players can register now. New to the league? Start with a PLOP below.</p>
             {% elif cta.mode == 'waitlist' %}
-                <div class="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white"><i class="ti ti-clock"></i> Season full{% if season_name %} · {{ season_name }}{% endif %}</div>
+                <div class="inline-flex items-center gap-1.5 rounded-full bg-ecs-blue-600 px-3 py-1 text-xs font-semibold text-white"><i class="ti ti-clock"></i> Season full{% if season_name %} · {{ season_name }}{% endif %}</div>
                 <h2 class="mt-4 text-2xl font-bold text-gray-900 dark:text-white">Hop on the waitlist</h2>
                 <p class="mt-2 text-gray-600 dark:text-gray-300">This season is full, but spots open up. Join the waitlist and we'll reach out.</p>
             {% else %}
@@ -36,11 +36,11 @@
                 <a href="{{ classic_cta.url }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-green px-6 py-3 text-base font-semibold text-white hover:bg-ecs-green-dark transition">
                     <i class="ti ti-ball-football text-lg"></i> {{ classic_cta.label }} — Classic
                 </a>
-                <a href="{{ premier_cta.url }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-blue-700 transition">
+                <a href="{{ premier_cta.url }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-blue-600 px-6 py-3 text-base font-semibold text-white hover:bg-ecs-blue-700 transition">
                     <i class="ti ti-trophy text-lg"></i> {{ premier_cta.label }} — Premier
                 </a>
             </div>
-            <p class="mt-4 text-xs text-gray-400">Not sure which division? Either is a great start — we'll help you find the right fit at a PLOP. Already a member? <a href="{{ url_for('auth.login') }}" class="text-ecs-green dark:text-blue-400 font-medium">Log in</a>.</p>
+            <p class="mt-4 text-xs text-gray-400">Not sure which division? Either is a great start — we'll help you find the right fit at a PLOP. Already a member? <a href="{{ url_for('auth.login') }}" class="text-ecs-green dark:text-ecs-blue-400 font-medium">Log in</a>.</p>
         </div>
     </div>
 </section>
@@ -56,7 +56,7 @@
             ] %}
             <div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-ecs-green text-white text-lg font-bold">{{ step[0] }}</div>
-                <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti {{ step[1] }} text-ecs-green dark:text-blue-400"></i> {{ step[2] }}</h3>
+                <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti {{ step[1] }} text-ecs-green dark:text-ecs-blue-400"></i> {{ step[2] }}</h3>
                 <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{{ step[3] }}</p>
             </div>
             {% endfor %}

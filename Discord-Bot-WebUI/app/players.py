@@ -518,6 +518,17 @@ def player_profile(player_id):
             except Exception as e:
                 logger.warning(f"Could not check online status for user {player.user_id}: {e}")
 
+        # Scouting notes (PlayerAdminNote) are only surfaced while the player is a
+        # NAD; once they graduate the thread is hidden everywhere (still in the DB).
+        # Only the admin-notes section reads this, so skip the derivation otherwise.
+        player_is_nad = False
+        if can_view_admin_notes:
+            try:
+                from app.services.nad_board_service import is_player_nad
+                player_is_nad = is_player_nad(session, player.id)
+            except Exception as e:
+                logger.warning(f"NAD check failed for player {player.id}: {e}")
+
         return render_template(
             'player_profile_flowbite.html',
             title='Player Profile',
@@ -541,6 +552,7 @@ def player_profile(player_id):
             can_view_contact_info=can_view_contact_info,
             can_view_admin_notes=can_view_admin_notes,
             can_edit_admin_notes=can_edit_admin_notes,
+            player_is_nad=player_is_nad,
             can_edit_profile=can_edit_profile,
             can_view_draft_history=can_view_draft_history,
             profile_expired=profile_expired,
@@ -1309,14 +1321,52 @@ def verify_profile(player_id):
 def api_player_profile(player_id):
     """
     Return a JSON representation of a player's profile data.
+
+    Note visibility mirrors the profile page so this JSON endpoint can't be used
+    to sidestep it (it is only @login_required, so any logged-in user can request
+    any player_id):
+      - player_notes: the player's own notes to coaches (e.g. "back from injury,
+        want to play slower") — visible to that player and to coaches/admins.
+      - admin_notes: the DEPRECATED single-column note (legacy). Coaches/admins only.
+      - scouting_notes: the real authored PlayerAdminNote thread (what the NAD board
+        and profile "Admin Notes" section write to). Coaches/admins only, AND only
+        while the player is currently a NAD — once they graduate the thread is hidden
+        everywhere (kept in the DB for record-keeping). This surfaces scouting context
+        on NADs during the draft without exposing old notes on established players.
+    Everyone else gets null / an empty list.
     """
     session = g.db_session
     player = session.query(Player).get(player_id)
     if not player:
         abort(404)
-        
+
+    # Same permission model as the profile page (see players.py:360-381).
+    from app.role_impersonation import is_impersonation_active, has_effective_permission
+    from app.services.nad_board_service import is_player_nad
+    if is_impersonation_active():
+        can_view_admin_notes = has_effective_permission('view_player_admin_notes')
+    else:
+        can_view_admin_notes = safe_current_user.has_permission('view_player_admin_notes')
+    is_own_profile = (safe_current_user.id == player.user_id)
+
     def get_friendly_value(value, choices):
         return dict(choices).get(value, value)
+
+    # Real scouting thread (PlayerAdminNote): coach/admin-only AND NAD-only. The
+    # relationship is ordered newest-first; author lazy-loads are fine for one player.
+    scouting_notes = []
+    if can_view_admin_notes and is_player_nad(session, player.id):
+        for note in player.admin_notes:
+            author = note.author
+            author_name = (
+                author.player.name if author and author.player
+                else (author.username if author else 'Unknown')
+            )
+            scouting_notes.append({
+                'content': note.content,
+                'author': author_name,
+                'created_at': note.created_at.isoformat() if note.created_at else None,
+            })
 
     profile_data = {
         'profile_picture_url': player.profile_picture_url,
@@ -1325,8 +1375,9 @@ def api_player_profile(player_id):
         'assists': player.get_career_assists(),
         'yellow_cards': player.get_career_yellow_cards(),
         'red_cards': player.get_career_red_cards(),
-        'player_notes': player.player_notes,
-        'admin_notes': getattr(player, 'notes', None),
+        'player_notes': player.player_notes if (is_own_profile or can_view_admin_notes) else None,
+        'admin_notes': getattr(player, 'notes', None) if can_view_admin_notes else None,
+        'scouting_notes': scouting_notes,
         'favorite_position': get_friendly_value(player.favorite_position, soccer_positions),
         'other_positions': player.other_positions.strip('{}').replace(',', ', ') if player.other_positions else None,
         'goal_frequency': get_friendly_value(player.frequency_play_goal, goal_frequency_choices),

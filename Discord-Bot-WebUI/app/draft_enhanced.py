@@ -643,6 +643,11 @@ class DraftService:
         # new player stays flagged 'new' even after this draft assigns them a current-season row).
         new_player_ids = DraftService._batch_load_new_player_ids(player_ids, current_season_id)
 
+        # Scouting-note counts for the card badge — ONLY for players who are currently
+        # NADs (canonical nad_board_service definition, NOT the looser is_new flag above).
+        # Non-NADs get 0 so graduated players' old scouting notes never surface here.
+        scouting_note_counts = DraftService._batch_load_scouting_note_counts(player_ids, current_season_id)
+
         # Load previous season draft positions if league_id is provided
         draft_position_start = datetime.now()
         prev_draft_positions = {}
@@ -738,6 +743,10 @@ class DraftService:
                 'is_new': player.id in new_player_ids,
                 'is_admin': getattr(player, 'user_id', None) in admin_user_ids,
 
+                # Scouting-note count for the card badge (0 unless the player is a NAD
+                # with notes). Clicking the card opens the modal with the full thread.
+                'scouting_note_count': scouting_note_counts.get(player.id, 0),
+
                 # Previous season draft position (None = not drafted previously)
                 'prev_draft_position': prev_draft_position,
 
@@ -784,6 +793,32 @@ class DraftService:
         except Exception as e:
             logger.warning(f"admin user-id batch load failed: {e}")
             return set()
+
+    @staticmethod
+    def _batch_load_scouting_note_counts(player_ids: List[int], current_season_id: Optional[int] = None) -> Dict[int, int]:
+        """Per-player PlayerAdminNote counts, but ONLY for players who are currently NADs.
+
+        Uses nad_board_service as the single source of truth for "who is a NAD" (the
+        same gate the draft modal, profile page, and mobile use), so a graduated
+        player's old scouting notes never surface on the board even though the rows
+        stay in the DB. Non-NADs are omitted entirely (treated as 0 by the caller).
+        """
+        if not player_ids:
+            return {}
+        try:
+            from app.models.players import PlayerAdminNote
+            from app.services.nad_board_service import nad_player_id_set
+            session = g.db_session
+            nad_ids = nad_player_id_set(session, season_id=current_season_id) & set(player_ids)
+            if not nad_ids:
+                return {}
+            rows = session.query(
+                PlayerAdminNote.player_id, func.count(PlayerAdminNote.id)
+            ).filter(PlayerAdminNote.player_id.in_(nad_ids)).group_by(PlayerAdminNote.player_id).all()
+            return {pid: cnt for (pid, cnt) in rows}
+        except Exception as e:
+            logger.warning(f"scouting-note count batch load failed: {e}")
+            return {}
 
     @staticmethod
     def _batch_load_new_player_ids(player_ids: List[int], current_season_id: Optional[int] = None) -> set:

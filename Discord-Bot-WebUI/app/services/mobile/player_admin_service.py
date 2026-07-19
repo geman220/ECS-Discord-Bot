@@ -59,6 +59,22 @@ class PlayerAdminService(BaseService):
         if not player:
             return ServiceResult.fail("Player not found", "PLAYER_NOT_FOUND")
 
+        # Scouting notes are only surfaced while the player is a NAD. Once they
+        # graduate the thread is hidden everywhere (web + mobile) but kept in the DB
+        # for record-keeping. Return an empty thread (not a 404) so clients render
+        # cleanly. Create/update/delete are intentionally NOT gated (admin backfill).
+        from app.services.nad_board_service import is_player_nad
+        if not is_player_nad(self.session, player_id):
+            return ServiceResult.ok({
+                "player_id": player.id,
+                "player_name": player.name,
+                "notes": [],
+                "total": 0,
+                "limit": limit,
+                "offset": offset,
+                "has_more": False
+            })
+
         # Query notes with author info
         notes_query = self.session.query(PlayerAdminNote).filter(
             PlayerAdminNote.player_id == player_id
@@ -535,13 +551,18 @@ class PlayerAdminService(BaseService):
         if not player:
             return ServiceResult.fail("Player not found", "PLAYER_NOT_FOUND")
 
+        # Scouting notes (PlayerAdminNote) are shown only while the player is a NAD;
+        # after they graduate the thread is hidden everywhere (kept in the DB).
+        from app.services.nad_board_service import is_player_nad
+        show_scouting = is_player_nad(self.session, player_id)
+
         return ServiceResult.ok({
             "player": self._build_player_response(player, include_admin_fields=True),
             "admin_notes": [
                 note.to_dict(include_author=True)
                 for note in player.admin_notes[:10]  # Last 10 notes
-            ],
-            "admin_notes_count": len(player.admin_notes)
+            ] if show_scouting else [],
+            "admin_notes_count": len(player.admin_notes) if show_scouting else 0
         })
 
     # ==================== Internal Helpers ====================

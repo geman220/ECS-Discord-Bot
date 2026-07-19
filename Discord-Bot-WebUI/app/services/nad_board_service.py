@@ -295,3 +295,24 @@ def compute_nad_board(session, *, season_id=None, search='', limit=100, viewer_u
         'team_nad_counts': team_nad_counts,
         'nads': nads,
     }
+
+
+def nad_player_id_set(session, *, season_id=None):
+    """Set of player ids who are CURRENTLY NADs for the target season.
+
+    Deliberately derived from compute_nad_board() (unscoped: viewer_user_id=None,
+    no limit) so "who is a NAD" has ONE definition that can never drift from the
+    board itself. This is the visibility gate for scouting notes — a note may live
+    in the DB forever, but it is only *shown* while its player is in this set.
+    Callers that need it for many players (e.g. the draft board) should call this
+    ONCE and reuse the set rather than per-player.
+    """
+    result = compute_nad_board(session, season_id=season_id, limit=10 ** 9, viewer_user_id=None)
+    return {n['id'] for n in result['nads']}
+
+
+def is_player_nad(session, player_id, *, season_id=None):
+    """Whether a single player is currently a NAD (see nad_player_id_set)."""
+    if not player_id:
+        return False
+    return player_id in nad_player_id_set(session, season_id=season_id)

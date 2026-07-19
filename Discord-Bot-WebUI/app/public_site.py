@@ -127,7 +127,7 @@ def _appearance():
             return AdminConfig.get_setting(k, d)
         except Exception:
             return d
-    primary_hex = get('public_primary_hex', '#1a472a')
+    primary_hex = get('public_primary_hex', '#2e9d44')  # ECS Pub League logo green
     return {
         'title': get('public_site_title', 'ECS Pub League'),
         'tagline': get('public_tagline',
@@ -247,6 +247,8 @@ def home():
     hero = _page_block('home_hero')
     intro = _page_block('home_intro')
     justforfun = _page_block('home_justforfun')
+    division_classic = _page_block('home_division_classic')
+    division_premier = _page_block('home_division_premier')
     try:
         latest_news = (NewsPost.query
                        .filter(NewsPost.status == 'published',
@@ -264,6 +266,8 @@ def home():
     )
     return render_template('public/home.html', active_page='home', seo=seo,
                            hero=hero, intro=intro, justforfun=justforfun,
+                           division_classic=division_classic,
+                           division_premier=division_premier,
                            latest_news=latest_news,
                            edit_url=url_for('admin_panel.public_site_home_edit'))
 
@@ -465,29 +469,62 @@ def news_detail(slug):
 
 @public_bp.route('/calendar')
 def calendar():
-    """Public calendar (marketing shell) — upcoming PUBLIC league events only
-    (PLOPs, parties, key dates). Never sends visitors into the portal."""
+    """Public calendar — Agenda (list) or Month (grid) view. Server-rendered
+    (no JS needed). Shows PUBLIC league events only; never enters the portal."""
     from app.models.calendar import LeagueEvent
     from datetime import timedelta
+    import calendar as _calmod
     now = datetime.utcnow()
-    try:
-        events = (LeagueEvent.query
-                  .filter(LeagueEvent.is_active.is_(True),
-                          LeagueEvent.is_public.is_(True),
-                          LeagueEvent.start_datetime >= (now - timedelta(hours=18)))
-                  .order_by(LeagueEvent.start_datetime.asc()).limit(80).all())
-    except Exception:
-        events = []
-    grouped = {}
-    for e in events:
-        grouped.setdefault(e.start_datetime.strftime('%B %Y'), []).append(e)
+    view = 'month' if request.args.get('view') == 'month' else 'agenda'
+
+    def _q():
+        return LeagueEvent.query.filter(LeagueEvent.is_active.is_(True),
+                                        LeagueEvent.is_public.is_(True))
     seo = _seo(
         title='Calendar — ECS Pub League',
         description='Upcoming ECS Pub League PLOPs, games, and events in Seattle.',
         canonical_endpoint='public.calendar',
         json_ld=[_org_json_ld()],
     )
+
+    if view == 'month':
+        m = request.args.get('m')
+        try:
+            year, month = (int(x) for x in m.split('-'))
+        except Exception:
+            year, month = now.year, now.month
+        first = datetime(year, month, 1)
+        last = datetime(year + 1, 1, 1) if month == 12 else datetime(year, month + 1, 1)
+        try:
+            evs = (_q().filter(LeagueEvent.start_datetime >= first,
+                               LeagueEvent.start_datetime < last)
+                   .order_by(LeagueEvent.start_datetime.asc()).all())
+        except Exception:
+            evs = []
+        by_day = {}
+        for e in evs:
+            by_day.setdefault(e.start_datetime.date(), []).append(e)
+        prev_first = first - timedelta(days=1)
+        grid = {
+            'weeks': _calmod.Calendar(firstweekday=6).monthdatescalendar(year, month),
+            'by_day': by_day, 'month': month, 'label': first.strftime('%B %Y'),
+            'prev': prev_first.strftime('%Y-%m'), 'next': last.strftime('%Y-%m'),
+            'today': now.date(),
+        }
+        return render_template('public/calendar.html', active_page='calendar', seo=seo,
+                               view='month', grid=grid, grouped={}, total=len(evs))
+
+    # ---- Agenda (default) ----
+    try:
+        events = (_q().filter(LeagueEvent.start_datetime >= (now - timedelta(hours=18)))
+                  .order_by(LeagueEvent.start_datetime.asc()).limit(80).all())
+    except Exception:
+        events = []
+    grouped = {}
+    for e in events:
+        grouped.setdefault(e.start_datetime.strftime('%B %Y'), []).append(e)
     return render_template('public/calendar.html', active_page='calendar', seo=seo,
+                           view='agenda',
                            grouped=grouped, total=len(events))
 
 
