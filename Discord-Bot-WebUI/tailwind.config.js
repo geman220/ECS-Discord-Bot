@@ -28,8 +28,8 @@ export default {
         'ecs-green': {
           // Themed to the ECS Pub League LOGO green (#40b050), slightly deepened
           // for readable white text. Overridable via Appearance (--color-primary-rgb).
-          DEFAULT: 'rgb(var(--color-primary-rgb, 46 157 68) / <alpha-value>)',
-          dark: 'rgb(var(--color-primary-dark-rgb, 28 122 52) / <alpha-value>)',
+          DEFAULT: 'rgb(var(--color-primary-rgb, 64 176 80) / <alpha-value>)',
+          dark: 'rgb(var(--color-primary-dark-rgb, 46 157 68) / <alpha-value>)',
           50: '#f0fdf4',
           100: '#dcfce7',
           200: '#bbf7d0',

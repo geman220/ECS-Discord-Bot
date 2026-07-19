@@ -127,7 +127,7 @@ def _appearance():
             return AdminConfig.get_setting(k, d)
         except Exception:
             return d
-    primary_hex = get('public_primary_hex', '#2e9d44')  # ECS Pub League logo green
+    primary_hex = get('public_primary_hex', '#40b050')  # ECS Pub League logo green
     return {
         'title': get('public_site_title', 'ECS Pub League'),
         'tagline': get('public_tagline',

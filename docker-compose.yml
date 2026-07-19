@@ -791,6 +791,17 @@ services:
       - "traefik.http.routers.publicweb-secure.priority=10"
       - "traefik.http.routers.publicweb-secure.service=publicweb"
       - "traefik.http.routers.publicweb-secure.middlewares=public-headers,gzip-compress"
+      # PRE-CUTOVER DEMO: serve portal.ecsfc.com/preview from THIS container, so the
+      # public site is genuinely on publicweb before DNS moves. Higher priority than
+      # webui's portal router (priority 10) so /preview wins; everything else on
+      # portal.ecsfc.com still goes to webui. Uses secure-headers (noindex) since
+      # this is a demo path on the portal host. Bring publicweb down => /preview dies.
+      - "traefik.http.routers.publicweb-preview.rule=Host(`portal.ecsfc.com`) && PathPrefix(`/preview`)"
+      - "traefik.http.routers.publicweb-preview.entrypoints=websecure"
+      - "traefik.http.routers.publicweb-preview.tls=true"
+      - "traefik.http.routers.publicweb-preview.priority=25"
+      - "traefik.http.routers.publicweb-preview.service=publicweb"
+      - "traefik.http.routers.publicweb-preview.middlewares=secure-headers,gzip-compress"
       # Static assets (no rate limit) for the public host
       - "traefik.http.routers.publicweb-static.rule=(Host(`ecspubleague.org`) || Host(`www.ecspubleague.org`)) && PathPrefix(`/static/`)"
       - "traefik.http.routers.publicweb-static.entrypoints=websecure"
