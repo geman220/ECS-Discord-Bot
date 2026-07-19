@@ -368,8 +368,95 @@ def public_site_home_save():
     return redirect(url_for('admin_panel.public_site_home_edit'))
 
 
+_HOME_BODY_SLUG = 'home_body'
+
+
+def _home_body_starter():
+    """The current default Home middle rendered as editable builder HTML, so the
+    visual builder opens on the real design instead of a blank canvas. The hero
+    (registration CTA + season badge) and 'Latest news' stay dynamic in home.html.
+    """
+    img_classic = url_for('static', filename='img/publeague/2026-07__ZUZU-TEAM-1024x683.jpg')
+    img_premier = url_for('static', filename='img/publeague/2026-07__Astral_Shield-1024x576.jpg')
+    img_comm = url_for('static', filename='img/publeague/2023-08__355098481_10227903474124662_4103553356561754271_n.jpg')
+    return f'''
+<section class="py-16 sm:py-20">
+  <div class="max-w-2xl mx-auto text-center px-6">
+    <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">Soccer for all</h2>
+    <p class="mt-4 text-lg text-gray-600">Whether you last played in high school, kicked a ball once, or never at all — you belong here. We built a league where showing up is the only requirement.</p>
+  </div>
+  <div class="max-w-7xl mx-auto px-6 mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"><h3 class="text-lg font-semibold text-gray-900">Radically inclusive</h3><p class="mt-2 text-sm text-gray-600">All skill levels, all backgrounds, all bodies. We mean it.</p></div>
+    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"><h3 class="text-lg font-semibold text-gray-900">Real community</h3><p class="mt-2 text-sm text-gray-600">A Discord full of teammates who become friends off the pitch too.</p></div>
+    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"><h3 class="text-lg font-semibold text-gray-900">Beginner-friendly</h3><p class="mt-2 text-sm text-gray-600">Never played? Perfect. Coaches and teammates have your back.</p></div>
+  </div>
+</section>
+<section class="py-16 sm:py-20 bg-gray-50">
+  <div class="max-w-2xl mx-auto text-center px-6">
+    <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">Two divisions, one community</h2>
+    <p class="mt-4 text-lg text-gray-600">Pick the pace that fits you. You can always move between them season to season.</p>
+  </div>
+  <div class="max-w-7xl mx-auto px-6 mt-12 grid gap-6 lg:grid-cols-2">
+    <div class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <img src="{img_classic}" alt="Classic division" class="aspect-[16/9] w-full object-cover">
+      <div class="p-8"><h3 class="text-2xl font-bold text-gray-900">Classic</h3><p class="mt-4 text-gray-600">Beginner-friendly and focused on fun and skill development over competition. Everyone gets equal playing time, and every team makes the playoffs. New players start here.</p></div>
+    </div>
+    <div class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <img src="{img_premier}" alt="Premier division" class="aspect-[16/9] w-full object-cover">
+      <div class="p-8"><h3 class="text-2xl font-bold text-gray-900">Premier</h3><p class="mt-4 text-gray-600">A slightly higher level of friendly competition — still low/no contact and laid-back, with the same emphasis on development, team play, and fun. Everyone plays.</p></div>
+    </div>
+  </div>
+</section>
+<section class="py-16 sm:py-20">
+  <div class="max-w-6xl mx-auto px-6 grid gap-10 lg:grid-cols-2 lg:items-center">
+    <img src="{img_comm}" alt="ECS Pub League players" class="rounded-2xl object-cover w-full aspect-[4/3] shadow-sm">
+    <div>
+      <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">Just for fun</h2>
+      <p class="mt-4 text-lg text-gray-600">Both divisions play 8v8 on a half-field with unlimited subs. Our level is well below even the lowest divisions of the other Seattle leagues — and that's the point. ECS Pub League is part of ECS FC, the nonprofit soccer club established by Emerald City Supporters.</p>
+    </div>
+  </div>
+</section>
+<section class="py-16 sm:py-20">
+  <div class="max-w-2xl mx-auto text-center px-6">
+    <h2 class="text-3xl sm:text-4xl font-bold text-gray-900">How to join</h2>
+    <p class="mt-4 text-lg text-gray-600">New players are always welcome. Here's the path in.</p>
+  </div>
+  <div class="max-w-7xl mx-auto px-6 mt-12 grid gap-8 sm:grid-cols-3">
+    <div><div class="flex h-12 w-12 items-center justify-center rounded-full bg-ecs-green text-white text-lg font-bold">1</div><h3 class="mt-4 text-lg font-semibold text-gray-900">Come to a PLOP</h3><p class="mt-2 text-sm text-gray-600">Attend at least one Pub League Open Practice to meet the community and get a feel for the game — no commitment.</p></div>
+    <div><div class="flex h-12 w-12 items-center justify-center rounded-full bg-ecs-green text-white text-lg font-bold">2</div><h3 class="mt-4 text-lg font-semibold text-gray-900">Get approved</h3><p class="mt-2 text-sm text-gray-600">New players are approved before registering, so every team stays balanced and welcoming.</p></div>
+    <div><div class="flex h-12 w-12 items-center justify-center rounded-full bg-ecs-green text-white text-lg font-bold">3</div><h3 class="mt-4 text-lg font-semibold text-gray-900">Register or join the waitlist</h3><p class="mt-2 text-sm text-gray-600">When registration is open, sign up. When a season is full, hop on the waitlist and we'll reach out.</p></div>
+  </div>
+</section>
+'''
+
+
+@admin_panel_bp.route('/public-site/home/builder')
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_home_builder():
+    """Visual builder for the Home page's MIDDLE section (hybrid). The hero (live
+    registration CTA + season badge) and 'Latest news' stay dynamic; everything
+    between them becomes drag/drop. Get-or-create the home_body block, pre-seeded
+    with the current sections so you start from the real design, not blank."""
+    page = g.db_session.query(SitePage).filter_by(slug=_HOME_BODY_SLUG).first()
+    if not page:
+        page = SitePage(slug=_HOME_BODY_SLUG, title='Home — middle section',
+                        body_html=_home_body_starter())
+        try:
+            page.created_at = datetime.utcnow()
+        except Exception:
+            pass
+        g.db_session.add(page)
+        g.db_session.flush()
+    return render_template('admin_panel/public_site/page_builder_flowbite.html',
+                           page=page,
+                           view_url=url_for('public.home'),
+                           builder_label='Home · middle section')
+
+
 _BLOCK_SLUGS = ('home_hero', 'home_intro', 'home_justforfun',
-                'home_division_classic', 'home_division_premier')
+                'home_division_classic', 'home_division_premier', 'home_body')
 
 
 _DEFAULT_MENU = [
@@ -591,6 +678,9 @@ def public_site_page_builder_save(page_id):
     except Exception:
         pass
     flash('Page saved.', 'success')
+    # The Home middle-section block reuses this builder; send it back to its own route.
+    if page.slug == _HOME_BODY_SLUG:
+        return redirect(url_for('admin_panel.public_site_home_builder'))
     return redirect(url_for('admin_panel.public_site_page_builder', page_id=page.id))
 
 

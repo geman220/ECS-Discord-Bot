@@ -38,6 +38,13 @@
     </div>
 </section>
 
+{# ===== EDITABLE MIDDLE (hybrid): the visual builder replaces the default ===== #}
+{# sections below when a "home_body" block exists; hero above + news/CTA below   #}
+{# always stay dynamic (live registration CTA, season badge, latest news).       #}
+{% if home_body and home_body.body_html %}
+<div class="ps-builder-page">{{ home_body.body_html | safe }}</div>
+{% else %}
+
 {# ======================== VALUE PROP ======================== #}
 <section class="py-16 sm:py-20">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -160,6 +167,9 @@
         </div>
     </div>
 </section>
+
+{% endif %}
+{# ===== end editable middle ===== #}
 
 {# ========================= LATEST NEWS ========================= #}
 {% if latest_news %}

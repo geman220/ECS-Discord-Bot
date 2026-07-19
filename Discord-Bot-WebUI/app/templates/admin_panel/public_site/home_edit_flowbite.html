@@ -17,10 +17,19 @@
 
 {% block panel_content %}
 {% call page_header("Home Page", subtitle="Public Site") %}
+  <a href="{{ url_for('admin_panel.public_site_home_builder') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-layout-board"></i> Design middle visually</a>
   <a href="{{ url_for('public.home') }}" target="_blank" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-external-link"></i> View</a>
   <a href="{{ url_for('admin_panel.public_site_news') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-news"></i> News</a>
   <a href="{{ url_for('admin_panel.public_site_pages') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-file-text"></i> Pages</a>
 {% endcall %}
+
+<div class="max-w-3xl mb-5 rounded-xl border border-ecs-green/30 bg-ecs-green/5 p-4 text-sm text-gray-700 dark:text-gray-300">
+  <i class="ti ti-info-circle text-ecs-green"></i>
+  The hero (headline, registration button, season badge) and “Latest news” are always live from the backend and edited here.
+  The <strong>middle of the page</strong> (Soccer for all, divisions, Just for fun, How to join) can be designed with drag-and-drop —
+  click <strong>Design middle visually</strong> above. Once you do, the visual design replaces the intro / division / Just-for-fun
+  fields below on the live site.
+</div>
 
 <form method="POST" action="{{ url_for('admin_panel.public_site_home_save') }}" id="home-form" class="max-w-3xl space-y-6">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

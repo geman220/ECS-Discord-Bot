@@ -249,6 +249,7 @@ def home():
     justforfun = _page_block('home_justforfun')
     division_classic = _page_block('home_division_classic')
     division_premier = _page_block('home_division_premier')
+    home_body = _page_block('home_body')  # visually-built middle section (hybrid)
     try:
         latest_news = (NewsPost.query
                        .filter(NewsPost.status == 'published',
@@ -268,6 +269,7 @@ def home():
                            hero=hero, intro=intro, justforfun=justforfun,
                            division_classic=division_classic,
                            division_premier=division_premier,
+                           home_body=home_body,
                            latest_news=latest_news,
                            edit_url=url_for('admin_panel.public_site_home_edit'))
 

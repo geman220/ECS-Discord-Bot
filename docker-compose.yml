@@ -719,11 +719,108 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # ---------------------------------------------------------------------------
+  # publicweb — public marketing site (ecspubleague.org). SAME code/image/DB/Redis
+  # as webui, but a SEPARATE container so the portal (webui) and the public site
+  # restart INDEPENDENTLY: `docker compose restart publicweb` never touches the
+  # portal, and `docker compose restart webui` never drops the public site.
+  # Runs `npm run build` on boot into its OWN private vite-dist volume
+  # (publicweb_vitedist) so its build can never disturb the portal's live assets.
+  # Serves ecspubleague.org (+ www) — receives no traffic until DNS cutover.
+  # ---------------------------------------------------------------------------
+  publicweb:
+    build:
+      context: ./Discord-Bot-WebUI
+      dockerfile: Dockerfile.webui
+    restart: unless-stopped
+    logging: *default-logging
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    command: >
+      sh -c "chmod +x node_modules/.bin/* node_modules/@esbuild/*/bin/* 2>/dev/null;
+      npm run build &&
+      gunicorn
+      --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker
+      --workers 2
+      --bind 0.0.0.0:5000
+      --log-level info
+      --access-logfile -
+      --error-logfile -
+      --timeout 120
+      --graceful-timeout 120
+      --keep-alive 65
+      --max-requests 5000
+      --max-requests-jitter 100
+      --name publicweb
+      wsgi:application"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app
+      - TZ=America/Los_Angeles
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_MAX_CONNECTIONS=30
+    env_file:
+      - .env
+    volumes:
+      - ./Discord-Bot-WebUI:/app
+      - ./Discord-Bot-WebUI/instance/firebase-service-account.json:/app/instance/firebase-service-account.json
+      # publicweb's OWN compiled assets, isolated from webui (see publicweb_vitedist)
+      - publicweb_vitedist:/app/app/static/vite-dist
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - web
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - "traefik.enable=true"
+      # HTTP -> HTTPS
+      - "traefik.http.routers.publicweb.rule=Host(`ecspubleague.org`) || Host(`www.ecspubleague.org`)"
+      - "traefik.http.routers.publicweb.entrypoints=web"
+      - "traefik.http.routers.publicweb.middlewares=redirect-to-https"
+      # HTTPS (public marketing host)
+      - "traefik.http.routers.publicweb-secure.rule=(Host(`ecspubleague.org`) || Host(`www.ecspubleague.org`)) && !PathPrefix(`/socket.io`)"
+      - "traefik.http.routers.publicweb-secure.entrypoints=websecure"
+      - "traefik.http.routers.publicweb-secure.tls=true"
+      - "traefik.http.routers.publicweb-secure.tls.certresolver=myresolver"
+      - "traefik.http.routers.publicweb-secure.priority=10"
+      - "traefik.http.routers.publicweb-secure.service=publicweb"
+      - "traefik.http.routers.publicweb-secure.middlewares=public-headers,gzip-compress"
+      # Static assets (no rate limit) for the public host
+      - "traefik.http.routers.publicweb-static.rule=(Host(`ecspubleague.org`) || Host(`www.ecspubleague.org`)) && PathPrefix(`/static/`)"
+      - "traefik.http.routers.publicweb-static.entrypoints=websecure"
+      - "traefik.http.routers.publicweb-static.tls=true"
+      - "traefik.http.routers.publicweb-static.tls.certresolver=myresolver"
+      - "traefik.http.routers.publicweb-static.priority=30"
+      - "traefik.http.routers.publicweb-static.service=publicweb"
+      - "traefik.http.routers.publicweb-static.middlewares=public-headers,gzip-compress"
+      # Socket.IO (public realtime, if any) — no rate limit
+      - "traefik.http.routers.publicweb-socketio.rule=(Host(`ecspubleague.org`) || Host(`www.ecspubleague.org`)) && PathPrefix(`/socket.io`)"
+      - "traefik.http.routers.publicweb-socketio.entrypoints=websecure"
+      - "traefik.http.routers.publicweb-socketio.tls=true"
+      - "traefik.http.routers.publicweb-socketio.tls.certresolver=myresolver"
+      - "traefik.http.routers.publicweb-socketio.priority=20"
+      - "traefik.http.routers.publicweb-socketio.service=publicweb"
+      # Service port
+      - "traefik.http.services.publicweb.loadbalancer.server.port=5000"
+      - "traefik.http.services.publicweb.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.publicweb.loadbalancer.sticky.cookie.name=publicweb_sticky"
+      # Public headers: like secure-headers but WITHOUT X-Robots-Tag noindex, so
+      # ecspubleague.org gets INDEXED by Google (portal stays noindex).
+      - "traefik.http.middlewares.public-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.public-headers.headers.customresponseheaders.X-Content-Type-Options=nosniff"
+
 networks:
   web:
     external: true
 
 volumes:
+  publicweb_vitedist:  # publicweb's private compiled assets, isolated from webui
   redis_data:
   celery_data:
   celery_live_data:

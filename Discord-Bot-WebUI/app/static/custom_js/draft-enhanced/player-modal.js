@@ -236,7 +236,7 @@ export function displayPlayerProfile(data, playerId) {
                 <h5 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">
                     <i class="ti ti-shield mr-2"></i>Admin Notes
                 </h5>
-                <p class="text-sm text-gray-700 dark:text-gray-300">${data.admin_notes}</p>
+                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">${esc(data.admin_notes)}</p>
             </div>
             ` : ''}
         </div>

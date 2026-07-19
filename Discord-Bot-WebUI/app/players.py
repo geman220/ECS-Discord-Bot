@@ -1352,10 +1352,19 @@ def api_player_profile(player_id):
     def get_friendly_value(value, choices):
         return dict(choices).get(value, value)
 
-    # Real scouting thread (PlayerAdminNote): coach/admin-only AND NAD-only. The
-    # relationship is ordered newest-first; author lazy-loads are fine for one player.
+    # Scouting notes (both the PlayerAdminNote thread AND the deprecated Player.notes
+    # column) are coach/admin-only AND NAD-only — same rule the profile page applies.
+    # Compute the NAD flag once and gate both, so the draft modal can't show a
+    # graduated player's legacy notes. The relationship is ordered newest-first;
+    # author lazy-loads are fine for one player.
+    try:
+        show_scouting = can_view_admin_notes and is_player_nad(session, player.id)
+    except Exception as e:
+        # Fail CLOSED — a NAD-derivation error hides notes rather than leaking them.
+        logger.warning(f"NAD check failed for player {player.id}: {e}")
+        show_scouting = False
     scouting_notes = []
-    if can_view_admin_notes and is_player_nad(session, player.id):
+    if show_scouting:
         for note in player.admin_notes:
             author = note.author
             author_name = (
@@ -1376,7 +1385,7 @@ def api_player_profile(player_id):
         'yellow_cards': player.get_career_yellow_cards(),
         'red_cards': player.get_career_red_cards(),
         'player_notes': player.player_notes if (is_own_profile or can_view_admin_notes) else None,
-        'admin_notes': getattr(player, 'notes', None) if can_view_admin_notes else None,
+        'admin_notes': getattr(player, 'notes', None) if show_scouting else None,
         'scouting_notes': scouting_notes,
         'favorite_position': get_friendly_value(player.favorite_position, soccer_positions),
         'other_positions': player.other_positions.strip('{}').replace(',', ', ') if player.other_positions else None,

@@ -64,7 +64,13 @@ class PlayerAdminService(BaseService):
         # for record-keeping. Return an empty thread (not a 404) so clients render
         # cleanly. Create/update/delete are intentionally NOT gated (admin backfill).
         from app.services.nad_board_service import is_player_nad
-        if not is_player_nad(self.session, player_id):
+        try:
+            _player_is_nad = is_player_nad(self.session, player_id)
+        except Exception as e:
+            # Fail CLOSED — hide notes on a derivation error rather than leaking them.
+            logger.warning(f"NAD check failed for player {player_id}: {e}")
+            _player_is_nad = False
+        if not _player_is_nad:
             return ServiceResult.ok({
                 "player_id": player.id,
                 "player_name": player.name,
@@ -556,7 +562,12 @@ class PlayerAdminService(BaseService):
         # Scouting notes (PlayerAdminNote) are shown only while the player is a NAD;
         # after they graduate the thread is hidden everywhere (kept in the DB).
         from app.services.nad_board_service import is_player_nad
-        show_scouting = is_player_nad(self.session, player_id)
+        try:
+            show_scouting = is_player_nad(self.session, player_id)
+        except Exception as e:
+            # Fail CLOSED — hide notes on a derivation error rather than leaking them.
+            logger.warning(f"NAD check failed for player {player_id}: {e}")
+            show_scouting = False
 
         return ServiceResult.ok({
             "player": self._build_player_response(player, include_admin_fields=True),
