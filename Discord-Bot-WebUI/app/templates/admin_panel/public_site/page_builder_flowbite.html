@@ -24,7 +24,23 @@
 {% call page_header("Visual builder", subtitle=(builder_label if builder_label is defined and builder_label else ("Public Site · " + page.slug))) %}
   <a href="{{ _view_url }}" target="_blank" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-external-link"></i> View</a>
   <a href="{{ url_for('admin_panel.public_site_page_edit', page_id=page.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-forms"></i> Simple editor</a>
-  <button type="button" id="gjs-save" class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-device-floppy"></i> Save</button>
+  <a href="{{ url_for('admin_panel.public_site_page_revisions', page_id=page.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-history"></i> Revisions</a>
+  {% if not page.slug.startswith('home_') %}
+    {% if page.status == 'published' %}
+      <span class="inline-flex items-center gap-1 h-9 px-3 rounded-lg bg-ecs-green/10 text-ecs-green dark:text-ecs-blue-400 text-xs font-semibold"><i class="ti ti-circle-check"></i> Live</span>
+      <form method="POST" action="{{ url_for('admin_panel.public_site_page_publish', page_id=page.id) }}" class="inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-eye-off"></i> Unpublish</button>
+      </form>
+    {% else %}
+      <span class="inline-flex items-center gap-1 h-9 px-3 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-semibold"><i class="ti ti-pencil"></i> Draft</span>
+      <form method="POST" action="{{ url_for('admin_panel.public_site_page_publish', page_id=page.id) }}" class="inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-blue text-white text-sm font-semibold hover:bg-ecs-blue-700"><i class="ti ti-rocket"></i> Publish</button>
+      </form>
+    {% endif %}
+  {% endif %}
+  <button type="button" id="gjs-save" class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-dark"><i class="ti ti-device-floppy"></i> Save</button>
 {% endcall %}
 
 <p class="mb-3 text-sm text-gray-500 dark:text-gray-400">
@@ -151,6 +167,58 @@ document.addEventListener('DOMContentLoaded', function () {
     ['ps-callout', 'Callout', 'ti-info-circle',
      '<div class="max-w-3xl mx-auto my-6 rounded-xl border-l-4 border-ecs-green bg-ecs-green/5 dark:bg-ecs-green/10 p-5 text-gray-700 dark:text-gray-200">' +
        '<strong>Heads up:</strong> put an important note here.</div>'],
+    ['ps-gallery', 'Gallery', 'ti-layout-grid',
+     '<div class="max-w-6xl mx-auto px-6 py-8 grid gap-4 grid-cols-2 md:grid-cols-3">' +
+       new Array(6).fill('<img src="' + PH + '" alt="" class="w-full aspect-square object-cover rounded-xl">').join('') + '</div>'],
+    ['ps-quote', 'Quote', 'ti-quote',
+     '<blockquote class="max-w-3xl mx-auto px-6 my-8 border-l-4 border-ecs-green pl-6 italic text-xl text-gray-700 dark:text-gray-200">' +
+       '“A short testimonial or a memorable line about the league.”' +
+       '<footer class="mt-3 text-sm not-italic font-semibold text-gray-500 dark:text-gray-400">— Someone, their team</footer></blockquote>'],
+    ['ps-accordion', 'Accordion', 'ti-list-details',
+     '<div class="max-w-3xl mx-auto px-6 my-6 space-y-3">' +
+       '<details class="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4"><summary class="cursor-pointer font-semibold text-gray-900 dark:text-white">Question one?</summary><p class="mt-2 text-gray-600 dark:text-gray-300">Answer goes here — click to edit.</p></details>' +
+       '<details class="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4"><summary class="cursor-pointer font-semibold text-gray-900 dark:text-white">Question two?</summary><p class="mt-2 text-gray-600 dark:text-gray-300">Answer goes here — click to edit.</p></details></div>'],
+    ['ps-sponsors', 'Logos row', 'ti-building-store',
+     '<div class="max-w-5xl mx-auto px-6 py-10 flex flex-wrap items-center justify-center gap-8 opacity-80">' +
+       new Array(4).fill('<img src="' + PH + '" alt="" class="h-12 w-auto object-contain">').join('') + '</div>'],
+    ['ps-video', 'Video', 'ti-brand-youtube',
+     '<div class="max-w-4xl mx-auto px-6 my-8"><div class="relative w-full" style="padding-top:56.25%">' +
+       '<iframe class="absolute inset-0 h-full w-full rounded-2xl" src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>'],
+    ['ps-stats', 'Stats', 'ti-chart-bar',
+     '<section class="max-w-5xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">' +
+       ['13/Years running', '200+/Players', '2/Divisions', '100%/Play time'].map(function (s) {
+         var p = s.split('/');
+         return '<div><div class="text-4xl font-extrabold text-ecs-green dark:text-ecs-blue-400">' + p[0] +
+           '</div><div class="mt-1 text-sm text-gray-600 dark:text-gray-400">' + p[1] + '</div></div>';
+       }).join('') + '</section>'],
+    ['ps-features', 'Feature list', 'ti-list-check',
+     '<div class="max-w-4xl mx-auto px-6 py-10 space-y-6">' +
+       [1, 2, 3].map(function () {
+         return '<div class="flex gap-4"><span class="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-ecs-green/10 text-ecs-green dark:text-ecs-blue-400"><i class="ti ti-check text-xl"></i></span>' +
+           '<div><h3 class="font-semibold text-gray-900 dark:text-white">Feature title</h3><p class="text-sm text-gray-600 dark:text-gray-400">Describe the feature — click to edit.</p></div></div>';
+       }).join('') + '</div>'],
+    ['ps-steps', 'Steps', 'ti-list-numbers',
+     '<div class="max-w-5xl mx-auto px-6 py-12 grid gap-8 sm:grid-cols-3">' +
+       [1, 2, 3].map(function (n) {
+         return '<div><div class="flex h-12 w-12 items-center justify-center rounded-full bg-ecs-green text-white text-lg font-bold">' + n +
+           '</div><h3 class="mt-4 font-semibold text-gray-900 dark:text-white">Step ' + n + '</h3><p class="mt-2 text-sm text-gray-600 dark:text-gray-400">What happens in this step.</p></div>';
+       }).join('') + '</div>'],
+    ['ps-social', 'Social icons', 'ti-share',
+     '<div class="max-w-3xl mx-auto px-6 py-8 flex items-center justify-center gap-4">' +
+       ['ti-brand-discord', 'ti-brand-instagram', 'ti-brand-facebook', 'ti-mail'].map(function (i) {
+         return '<a href="#" class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-ecs-green hover:text-white transition"><i class="ti ' + i + ' text-lg"></i></a>';
+       }).join('') + '</div>'],
+    ['ps-map', 'Map', 'ti-map-pin',
+     '<div class="max-w-5xl mx-auto px-6 my-8"><iframe class="w-full rounded-2xl" height="360" style="border:0" loading="lazy" allowfullscreen src="https://www.google.com/maps?q=Seattle,WA&output=embed" title="Map"></iframe></div>'],
+    ['ps-form', 'Form', 'ti-forms',
+     '<form action="/forms/inquiry" method="POST" class="max-w-lg mx-auto px-6 py-8 space-y-4">' +
+       '<input type="hidden" name="form_name" value="inquiry">' +
+       '<input type="text" name="_hp" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">' +
+       '<div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label><input type="text" name="name" required class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white"></div>' +
+       '<div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label><input type="email" name="email" class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white"></div>' +
+       '<div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Message</label><textarea name="message" rows="4" class="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white"></textarea></div>' +
+       '<button type="submit" class="rounded-lg bg-ecs-green px-5 py-2.5 font-semibold text-white hover:bg-ecs-green-dark">Send</button>' +
+       '<p class="text-xs text-gray-400">Change the form name in the code view to sort submissions (e.g. sponsors, tryout).</p></form>'],
     ['ps-heading', 'Heading', 'ti-heading',
      '<h2 class="max-w-4xl mx-auto px-6 text-3xl font-bold text-gray-900 dark:text-white mt-8">Heading text</h2>'],
     ['ps-text', 'Text', 'ti-align-left',

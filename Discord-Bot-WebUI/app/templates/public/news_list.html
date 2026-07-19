@@ -10,6 +10,14 @@
 
 <section class="py-16 sm:py-20">
     <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        {% if categories %}
+        <div class="mb-8 flex flex-wrap gap-2">
+            <a href="{{ url_for('public.news_list') }}" class="rounded-full px-3.5 py-1.5 text-sm font-medium {{ 'bg-ecs-green text-white' if not active_category else 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700' }}">All</a>
+            {% for cat in categories %}
+            <a href="{{ url_for('public.news_list', category=cat) }}" class="rounded-full px-3.5 py-1.5 text-sm font-medium {{ 'bg-ecs-green text-white' if active_category == cat else 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700' }}">{{ cat }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% if not posts %}
         <div class="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-10 text-center text-gray-500 dark:text-gray-400">
             <i class="ti ti-news text-4xl"></i>
@@ -26,7 +34,7 @@
                 <div class="h-48 w-full bg-gradient-to-br from-ecs-green to-ecs-green-dark flex items-center justify-center"><i class="ti ti-news text-4xl text-white/40"></i></div>
                 {% endif %}
                 <div class="flex flex-col flex-1 p-5">
-                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ post.display_date.strftime('%B %-d, %Y') if post.display_date else '' }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ post.display_date.strftime('%B %-d, %Y') if post.display_date else '' }}{% if post.category %} · <span class="text-ecs-green dark:text-ecs-blue-400 font-medium">{{ post.category }}</span>{% endif %}</p>
                     <h2 class="mt-1 font-semibold text-lg text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-blue-400">{{ post.title }}</h2>
                     {% if post.excerpt %}<p class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{{ post.excerpt }}</p>{% endif %}
                     <span class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-ecs-green dark:text-ecs-blue-400">Read more <i class="ti ti-arrow-right"></i></span>

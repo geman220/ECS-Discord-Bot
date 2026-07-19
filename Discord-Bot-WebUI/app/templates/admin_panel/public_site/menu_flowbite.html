@@ -11,7 +11,7 @@
 {% block panel_content %}
 {% call page_header("Menus", subtitle="Public Site · Navigation") %}
   <a href="{{ url_for('admin_panel.public_site_hub') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Website</a>
-  <button type="button" id="menu-save" class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-device-floppy"></i> Save menu</button>
+  <button type="button" id="menu-save" class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-dark"><i class="ti ti-device-floppy"></i> Save menu</button>
 {% endcall %}
 
 <div class="grid gap-6 lg:grid-cols-3">
@@ -87,12 +87,14 @@ document.addEventListener('DOMContentLoaded', function () {
       li.innerHTML =
         '<span class="text-gray-400 cursor-default"><i class="ti ti-grip-vertical"></i></span>' +
         '<input class="mi-label flex-1 bg-transparent text-sm text-gray-900 dark:text-white focus:outline-none" value="' + (labelFor(it) || '').replace(/"/g,'&quot;') + '">' +
+        '<input class="mi-parent w-24 bg-transparent text-xs text-gray-500 dark:text-gray-400 focus:outline-none border-l border-gray-200 dark:border-gray-700 pl-2" placeholder="Under…" title="Type a top-level item\'s name to nest this under it" value="' + (it.parent || '').replace(/"/g,'&quot;') + '">' +
         '<span class="text-[10px] uppercase text-gray-400">' + kindBadge + '</span>' +
         '<button type="button" data-op="up" class="text-gray-400 hover:text-ecs-green" title="Up"><i class="ti ti-chevron-up"></i></button>' +
         '<button type="button" data-op="down" class="text-gray-400 hover:text-ecs-green" title="Down"><i class="ti ti-chevron-down"></i></button>' +
         '<button type="button" data-op="vis" class="text-gray-400 hover:text-ecs-green" title="Show/hide"><i class="ti ' + (it.visible === false ? 'ti-eye-off' : 'ti-eye') + '"></i></button>' +
         '<button type="button" data-op="del" class="text-red-400 hover:text-red-600" title="Remove"><i class="ti ti-trash"></i></button>';
       li.querySelector('.mi-label').addEventListener('input', function (e) { menu[i].label = e.target.value; });
+      li.querySelector('.mi-parent').addEventListener('input', function (e) { menu[i].parent = e.target.value.trim(); });
       li.querySelectorAll('button').forEach(function (b) {
         b.addEventListener('click', function () {
           var op = b.getAttribute('data-op');

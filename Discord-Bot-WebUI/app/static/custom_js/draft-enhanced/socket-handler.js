@@ -102,6 +102,23 @@ export function setupDraftEnhancedSocket() {
  * @param {Object} data
  */
 export function handlePlayerDraftedEvent(data) {
+    // Non-blocking notice when the pick auto-removed a stale Pub League sub role
+    // (e.g. a Classic sub drafted onto a Premier team). Explains what happened so
+    // the change isn't silent; the removal itself is already done server-side.
+    if (data && data.sub_removal_notice) {
+        const msg = data.sub_removal_notice;
+        if (window.draftSystemInstance && typeof window.draftSystemInstance.showToast === 'function') {
+            window.draftSystemInstance.showToast(msg, 'info');
+        } else if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
+                toast: true, position: 'top-end', icon: 'info', title: msg,
+                showConfirmButton: false, timer: 6000, timerProgressBar: true,
+            });
+        } else {
+            console.info('[draft] ' + msg);
+        }
+    }
+
     if (window.draftSystemInstance && typeof window.draftSystemInstance.handlePlayerDrafted === 'function') {
         window.draftSystemInstance.handlePlayerDrafted(data);
     } else {

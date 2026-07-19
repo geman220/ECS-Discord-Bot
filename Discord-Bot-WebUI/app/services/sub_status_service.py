@@ -35,6 +35,62 @@ PUB_LEAGUE_SUB_LEAGUE_TYPES = ('Classic', 'Premier')
 # Flask role names that grant the corresponding Discord sub role.
 PUB_LEAGUE_SUB_ROLE_NAMES = ('Classic Sub', 'Premier Sub')
 
+# Sub Flask role -> the pool it is backed by.
+#   ('pl', <league_type>) -> SubstitutePool row with that league_type
+#   ('ecs_fc', None)      -> the separate EcsFcSubPool row
+SUB_ROLE_TO_POOL = {
+    'Classic Sub': ('pl', 'Classic'),
+    'Premier Sub': ('pl', 'Premier'),
+    'ECS FC Sub': ('ecs_fc', None),
+}
+
+
+def deactivate_sub_pool_for_role(session, player_id, role_name, performed_by_user_id=None):
+    """
+    Deactivate the substitute-pool membership backing a given sub Flask role.
+
+    Handles both the Pub League SubstitutePool (Classic/Premier, keyed by
+    league_type) and the separate EcsFcSubPool. Does NOT touch the Flask role
+    itself and does NOT commit. Returns True if a membership was deactivated.
+    """
+    mapping = SUB_ROLE_TO_POOL.get(role_name)
+    if not mapping:
+        return False
+    kind, league_type = mapping
+
+    if kind == 'pl':
+        from app.models.substitutes import SubstitutePool, log_pool_action
+        pool = session.query(SubstitutePool).filter(
+            SubstitutePool.player_id == player_id,
+            SubstitutePool.is_active == True,  # noqa: E712
+            SubstitutePool.league_type == league_type,
+        ).first()
+        if pool is None:
+            return False
+        pool.is_active = False
+        session.add(pool)
+        try:
+            log_pool_action(
+                player_id=player_id, league_id=pool.league_id, action='REMOVED',
+                notes=f"Auto-removed from {league_type} sub pool "
+                      f"(rostered / division change)",
+                performed_by=performed_by_user_id, pool_id=pool.id, session=session,
+            )
+        except Exception as e:
+            logger.warning(f"Sub pool history log skipped for player {player_id}: {e}")
+        return True
+
+    from app.models.substitutes import EcsFcSubPool
+    pool = session.query(EcsFcSubPool).filter(
+        EcsFcSubPool.player_id == player_id,
+        EcsFcSubPool.is_active == True,  # noqa: E712
+    ).first()
+    if pool is None:
+        return False
+    pool.is_active = False
+    session.add(pool)
+    return True
+
 
 def detect_conflicting_sub_status(session, player):
     """
@@ -83,7 +139,6 @@ def remove_conflicting_sub_status(session, player_id, performed_by_user_id=None)
     role reconcile with removals enabled (see `sub_status_removed`).
     """
     from app.models import Player, Role
-    from app.models.substitutes import SubstitutePool, log_pool_action
 
     summary = {'player_name': None, 'pools_removed': [], 'roles_removed': []}
 
@@ -92,35 +147,16 @@ def remove_conflicting_sub_status(session, player_id, performed_by_user_id=None)
         return summary
     summary['player_name'] = player.name
 
-    # 1) Deactivate any active Classic/Premier pool membership. player_id is
-    #    UNIQUE on substitute_pools, so there is at most one row, but we filter
-    #    on league_type so an ECS FC row is never touched.
-    pool = session.query(SubstitutePool).filter(
-        SubstitutePool.player_id == player_id,
-        SubstitutePool.is_active == True,  # noqa: E712
-        SubstitutePool.league_type.in_(PUB_LEAGUE_SUB_LEAGUE_TYPES),
-    ).first()
-    if pool is not None:
-        pool.is_active = False
-        session.add(pool)
-        summary['pools_removed'].append(pool.league_type)
-        try:
-            log_pool_action(
-                player_id=player_id,
-                league_id=pool.league_id,
-                action='REMOVED',
-                notes=f"Auto-removed from {pool.league_type} sub pool "
-                      f"(rostered on a team)",
-                performed_by=performed_by_user_id,
-                pool_id=pool.id,
-                session=session,
-            )
-        except Exception as e:  # audit is best-effort; never block the roster write
-            logger.warning(f"Sub pool history log skipped for player {player_id}: {e}")
+    held_roles = {r.name for r in player.user.roles} if player.user is not None else set()
 
-    # 2) Remove the pub-league sub Flask roles (the source of the Discord role).
-    if player.user is not None:
-        for role_name in PUB_LEAGUE_SUB_ROLE_NAMES:
+    # For each Pub League sub role: deactivate its pool membership AND remove the
+    # Flask role. Both are handled independently so data drift (role without pool,
+    # or vice versa) is cleaned up either way. ECS FC sub status is never touched.
+    for role_name in PUB_LEAGUE_SUB_ROLE_NAMES:
+        _, league_type = SUB_ROLE_TO_POOL[role_name]
+        if deactivate_sub_pool_for_role(session, player_id, role_name, performed_by_user_id):
+            summary['pools_removed'].append(league_type)
+        if role_name in held_roles:
             role = session.query(Role).filter_by(name=role_name).first()
             if role is not None and role in player.user.roles:
                 player.user.roles.remove(role)

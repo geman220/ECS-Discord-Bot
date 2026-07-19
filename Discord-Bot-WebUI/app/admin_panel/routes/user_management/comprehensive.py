@@ -757,6 +757,18 @@ def edit_user_comprehensive(user_id):
                         if role_to_remove and role_to_remove in user.roles:
                             user.roles.remove(role_to_remove)
                             logger.info(f"Auto-removed sub role {sub_role} from user {user.id}")
+                        # Also deactivate the backing sub-pool membership so the sub
+                        # board never lists a player whose league no longer warrants
+                        # the sub role (source of truth, not just the Flask role).
+                        if user.player:
+                            try:
+                                from app.services.sub_status_service import deactivate_sub_pool_for_role
+                                deactivate_sub_pool_for_role(
+                                    db.session, user.player.id, sub_role,
+                                    performed_by_user_id=current_user.id,
+                                )
+                            except Exception as _pool_err:
+                                logger.warning(f"Sub pool deactivation skipped for user {user.id}: {_pool_err}")
 
                 # Add league roles that should be present
                 for required_role in required_league_roles:

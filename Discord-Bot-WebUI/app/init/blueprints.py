@@ -402,10 +402,30 @@ def _register_additional_blueprints(app, bp, csrf):
     app.register_blueprint(bp['survey_public_bp'])
 
     # Public marketing site (rebuilt ecspubleague.org). Mounted at /preview for
-    # the pre-cutover live demo; flip url_prefix to '' at cutover (links use
-    # url_for). Fully public — anonymous users bypass the access gate, and
-    # '/preview' is allowlisted in access_gating.py for pending logged-in users.
-    app.register_blueprint(bp['public_bp'], url_prefix='/preview')
+    # the pre-cutover live demo. Links use url_for, so the prefix is the only
+    # thing that changes at cutover.
+    #
+    # CUTOVER: this is PER-CONTAINER, not global — webui (portal) and publicweb
+    # run the SAME image, so a hard-coded '' would put the catch-all
+    # `/<slug>` route at the portal's root and swallow portal paths. Instead we
+    # gate on PUBLIC_SITE_ROOT, which is set ONLY on the publicweb container. At
+    # DNS cutover: set PUBLIC_SITE_ROOT=true on publicweb (serves ecspubleague.org
+    # at '/') and repoint the traefik router; the portal keeps '/preview'.
+    _public_prefix = '' if os.environ.get('PUBLIC_SITE_ROOT') else '/preview'
+    app.register_blueprint(bp['public_bp'], url_prefix=_public_prefix)
+
+    # The builder's Form widget is static HTML that can't compute the /preview
+    # prefix, so its submissions must resolve at ROOT (/forms/<name>). Only needed
+    # while the blueprint is prefixed (the demo): post-cutover the blueprint itself
+    # already serves /forms/<name> at root, so registering the alias then would be
+    # a duplicate rule.
+    if _public_prefix:
+        try:
+            from app.public_site import form_submit as _public_form_submit
+            app.add_url_rule('/forms/<name>', endpoint='public_forms_root',
+                             view_func=_public_form_submit, methods=['POST'])
+        except Exception as _e:
+            logger.warning(f"public forms root route not registered: {_e}")
 
     # Seed the public marketing site from migrated WordPress content on first
     # boot (web process only; idempotent + advisory-locked so concurrent workers

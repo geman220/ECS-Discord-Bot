@@ -21,7 +21,9 @@
     ('FAQs', 'ti-help', 'Manage the frequently-asked questions', 'admin_panel.public_site_faqs', counts.get('faqs')),
     ('Menus', 'ti-menu-2', 'Edit the site navigation menu', 'admin_panel.public_site_menu', None),
     ('Media', 'ti-photo', 'Uploaded images library', 'admin_panel.public_site_media', None),
-    ('Appearance', 'ti-palette', 'Logo, site title and colors', 'admin_panel.public_site_appearance', None),
+    ('Appearance', 'ti-palette', 'Logo, favicon, title and colors', 'admin_panel.public_site_appearance', None),
+    ('Redirects', 'ti-arrow-guide', '301s for renamed or old pages', 'admin_panel.public_site_redirects', None),
+    ('Submissions', 'ti-inbox', 'Entries from forms on your pages', 'admin_panel.public_site_submissions', None),
     ('Calendar', 'ti-calendar', 'Events (mark which show publicly)', 'calendar.calendar_view', None),
   ] %}
   {% for title, icon, desc, endpoint, count in cards %}

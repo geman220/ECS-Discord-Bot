@@ -236,6 +236,15 @@ def install_error_handlers(app):
                 'status_code': 404
             }), 404
 
+        # Public marketing site gets its own branded 404 (not the portal one).
+        host = (request.host or '').split(':')[0].lower()
+        if (path == '/preview' or path.startswith('/preview/')
+                or host in ('ecspubleague.org', 'www.ecspubleague.org')):
+            try:
+                return render_template('public/404.html'), 404
+            except Exception:
+                pass
+
         return render_template("404_flowbite.html"), 404
 
     @app.errorhandler(429)

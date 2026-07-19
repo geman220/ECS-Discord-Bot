@@ -23,11 +23,12 @@ from datetime import datetime
 
 from flask import (
     Blueprint, render_template, request, redirect, url_for, abort,
-    Response, current_app
+    Response, current_app, g
 )
 
+from app import csrf
 from app.core import db
-from app.models import NewsPost, Faq, SitePage
+from app.models import NewsPost, Faq, SitePage, FormSubmission
 from app.models.admin_config import AdminConfig
 from app.feedback import create_feedback_entry
 from app.alert_helpers import show_success, show_error
@@ -120,6 +121,17 @@ def _hex_to_rgb_triplet(hex_str):
         return None
 
 
+def _darken_rgb_triplet(triplet, factor=0.8):
+    """'64 176 80' -> '51 140 64' — a darker companion for the gradient/hover
+    'ecs-green-dark' stop, so it re-skins WITH the admin-chosen primary color
+    (otherwise --color-primary-dark-rgb stays the built-in #2e9d44)."""
+    try:
+        r, g, b = (int(x) for x in triplet.split())
+        return f"{int(r * factor)} {int(g * factor)} {int(b * factor)}"
+    except Exception:
+        return None
+
+
 def _appearance():
     """Editable site branding (Appearance screen), with sensible fallbacks."""
     def get(k, d=None):
@@ -133,8 +145,10 @@ def _appearance():
         'tagline': get('public_tagline',
                        'Radically inclusive, beginner-friendly adult soccer in Seattle.'),
         'logo_url': get('public_logo_url', None),
+        'favicon_url': get('public_favicon_url', None),
         'primary_hex': primary_hex,
         'primary_rgb': _hex_to_rgb_triplet(primary_hex),
+        'primary_dark_rgb': _darken_rgb_triplet(_hex_to_rgb_triplet(primary_hex)),
         # Hero banner controls (editable on Website -> Home Page)
         'hero_focal': get('public_hero_focal', '50% 50%'),   # object-position
         'hero_overlay': get('public_hero_overlay', 'medium'),  # light|medium|heavy
@@ -256,7 +270,8 @@ def home():
     try:
         latest_news = (NewsPost.query
                        .filter(NewsPost.status == 'published',
-                               NewsPost.published_at.isnot(None))
+                               NewsPost.published_at.isnot(None),
+                               NewsPost.published_at <= datetime.utcnow())
                        .order_by(NewsPost.published_at.desc()).limit(3).all())
     except Exception:
         latest_news = []
@@ -318,25 +333,47 @@ def _nav_items():
     except Exception:
         raw = None
     items = raw if isinstance(raw, list) and raw else _DEFAULT_NAV
-    out = []
+    resolved = []
     for it in items:
         try:
             if not it.get('visible', True):
                 continue
             kind, val, label = it.get('kind'), it.get('value'), it.get('label')
+            parent = (it.get('parent') or '').strip() or None
+            entry = None
             if kind == 'builtin' and val in _BUILTIN_NAV:
                 dl, ep = _BUILTIN_NAV[val]
-                out.append({'label': label or dl, 'url': url_for(ep), 'key': val})
+                entry = {'label': label or dl, 'url': url_for(ep), 'key': val}
             elif kind == 'page' and val:
-                pg = SitePage.query.filter_by(slug=val).first()
+                pg = SitePage.query.filter(SitePage.slug == val,
+                                           SitePage.deleted_at.is_(None),
+                                           SitePage.status == 'published').first()
                 if pg:
-                    out.append({'label': label or pg.title or val,
-                                'url': url_for('public.dynamic_page', slug=val), 'key': val})
+                    entry = {'label': label or pg.title or val,
+                             'url': url_for('public.dynamic_page', slug=val), 'key': val}
             elif kind == 'url' and val:
-                out.append({'label': label or val, 'url': val, 'key': 'url'})
+                entry = {'label': label or val, 'url': val, 'key': 'url'}
+            if entry:
+                entry['parent'] = parent
+                entry['children'] = []
+                resolved.append(entry)
         except Exception:
             continue
-    return out
+    # Build a one-level tree: items with a `parent` matching another item's label
+    # nest under it as a dropdown. Anything without (or with an unknown) parent
+    # stays top-level — so a flat menu behaves exactly as before.
+    tops, by_label = [], {}
+    for e in resolved:
+        if not e['parent']:
+            tops.append(e)
+            by_label[e['label'].lower()] = e
+    for e in resolved:
+        p = (e['parent'] or '').lower()
+        if p and p in by_label:
+            by_label[p]['children'].append(e)
+        elif e['parent']:
+            tops.append(e)  # parent not found — don't drop it
+    return tops
 
 
 @public_bp.route('/<slug>')
@@ -348,10 +385,14 @@ def dynamic_page(slug):
     page = _page_block(slug)
     if not page:
         abort(404)
+    # Draft pages are hidden from the public but previewable by site admins.
+    if not page.is_public and not _is_site_admin():
+        abort(404)
     seo = _seo(
         title=page.meta_title or f'{page.title or slug.title()} — ECS Pub League',
         description=page.meta_description,
         canonical_endpoint='public.dynamic_page', canonical_values={'slug': slug},
+        og_image=_abs_static(page.og_image_url) if page.og_image_url else None,
         json_ld=[_org_json_ld()],
     )
     return render_template('public/page.html', active_page=slug, seo=seo, page=page,
@@ -362,12 +403,17 @@ def dynamic_page(slug):
 def _render_site_page(slug, title_fallback, active='', desc=None):
     """Render a generic editable SitePage (guide, guests, ...)."""
     page = _page_block(slug)
+    # Honor Draft/Publish on the fixed pages too — a draft is hidden from the
+    # public but still previewable by site admins.
+    if page and not page.is_public and not _is_site_admin():
+        abort(404)
     title = (page.meta_title if page and page.meta_title
              else f'{(page.title if page and page.title else title_fallback)} — ECS Pub League')
     seo = _seo(
         title=title,
         description=(page.meta_description if page and page.meta_description else desc),
         canonical_endpoint=f'public.{slug}',
+        og_image=(_abs_static(page.og_image_url) if page and page.og_image_url else None),
         json_ld=[_org_json_ld()],
     )
     edit_url = (url_for('admin_panel.public_site_page_builder', page_id=page.id)
@@ -425,21 +471,33 @@ def faqs():
 
 @public_bp.route('/news')
 def news_list():
+    category = (request.args.get('category') or '').strip() or None
     try:
-        posts = (NewsPost.query
-                 .filter(NewsPost.status == 'published',
-                         NewsPost.published_at.isnot(None))
-                 .order_by(NewsPost.published_at.desc()).all())
+        q = (NewsPost.query
+             .filter(NewsPost.status == 'published',
+                     NewsPost.published_at.isnot(None),
+                     NewsPost.published_at <= datetime.utcnow()))
+        if category:
+            q = q.filter(NewsPost.category == category)
+        posts = q.order_by(NewsPost.published_at.desc()).all()
     except Exception:
         posts = []
+    try:
+        categories = sorted({c[0] for c in db.session.query(NewsPost.category)
+                             .filter(NewsPost.category.isnot(None),
+                                     NewsPost.status == 'published').distinct().all()
+                             if c[0]})
+    except Exception:
+        categories = []
     seo = _seo(
-        title='News — ECS Pub League',
+        title=(f'{category} — News — ECS Pub League' if category else 'News — ECS Pub League'),
         description='League announcements, team reveals, and season updates.',
         canonical_endpoint='public.news_list',
         json_ld=[_org_json_ld()],
     )
     return render_template('public/news_list.html', active_page='news', seo=seo,
-                           posts=posts, edit_url=url_for('admin_panel.public_site_news'))
+                           posts=posts, categories=categories, active_category=category,
+                           edit_url=url_for('admin_panel.public_site_news'))
 
 
 @public_bp.route('/news/<slug>')
@@ -496,9 +554,12 @@ def calendar():
         m = request.args.get('m')
         try:
             year, month = (int(x) for x in m.split('-'))
+            if not (1 <= month <= 12 and 1900 <= year <= 2200):
+                raise ValueError('out of range')
+            first = datetime(year, month, 1)
         except Exception:
             year, month = now.year, now.month
-        first = datetime(year, month, 1)
+            first = datetime(year, month, 1)
         last = datetime(year + 1, 1, 1) if month == 12 else datetime(year, month + 1, 1)
         try:
             evs = (_q().filter(LeagueEvent.start_datetime >= first,
@@ -638,6 +699,32 @@ def contact():
                            submitted=submitted)
 
 
+@public_bp.route('/forms/<name>', methods=['POST'])
+@csrf.exempt
+@transactional
+def form_submit(name):
+    """Generic submission endpoint for the builder's Form widget. Stores the
+    submitted fields for admin review (Website -> Submissions). Anonymous +
+    honeypot-protected; CSRF-exempt because the form is authored as static
+    builder HTML that can't carry a Jinja token."""
+    import json as _json
+    # Honeypot: bots fill the hidden '_hp'/'website' field. Silently accept.
+    if (request.form.get('website') or request.form.get('_hp') or '').strip():
+        show_success('Thanks — we got your submission.')
+        return redirect(request.referrer or url_for('public.home'))
+    data = {k: v for k, v in request.form.items()
+            if k not in ('csrf_token', 'website', '_hp', 'form_name')}
+    fname = (request.form.get('form_name') or name or 'form').strip()[:120] or 'form'
+    try:
+        g.db_session.add(FormSubmission(
+            form_name=fname, data_json=_json.dumps(data),
+            source_page=(request.referrer or '')[:300]))
+    except Exception as e:
+        logger.error(f"Public form submission failed: {e}", exc_info=True)
+    show_success('Thanks — we got your submission and will be in touch.')
+    return redirect(request.referrer or url_for('public.home'))
+
+
 @public_bp.route('/sitemap.xml')
 def sitemap_xml():
     """XML sitemap of public URLs. Self-adjusts to the request host, so it
@@ -657,10 +744,24 @@ def sitemap_xml():
     try:
         for p in (NewsPost.query
                   .filter(NewsPost.status == 'published',
-                          NewsPost.published_at.isnot(None))
+                          NewsPost.published_at.isnot(None),
+                          NewsPost.published_at <= datetime.utcnow())
                   .order_by(NewsPost.published_at.desc()).all()):
             urls.append((url_for('public.news_detail', slug=p.slug, _external=True),
                          '0.6', 'monthly'))
+    except Exception:
+        pass
+    # Published custom pages (WordPress-style /<slug>), excluding blocks/reserved/drafts.
+    try:
+        for pg in (SitePage.query
+                   .filter(SitePage.deleted_at.is_(None),
+                           SitePage.status == 'published',
+                           ~SitePage.slug.in_(_RESERVED_PAGE_SLUGS))
+                   .all()):
+            if pg.slug.startswith('home_'):
+                continue
+            urls.append((url_for('public.dynamic_page', slug=pg.slug, _external=True),
+                         '0.5', 'monthly'))
     except Exception:
         pass
 

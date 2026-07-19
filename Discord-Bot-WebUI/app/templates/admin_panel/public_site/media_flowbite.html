@@ -11,7 +11,7 @@
 {% block panel_content %}
 {% call page_header("Media Library", subtitle="Public Site") %}
   <a href="{{ url_for('admin_panel.public_site_hub') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Website</a>
-  <label class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800 cursor-pointer">
+  <label class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-dark cursor-pointer">
     <i class="ti ti-upload"></i> Upload
     <input type="file" id="media-upload" accept="image/*" multiple class="hidden">
   </label>
@@ -21,9 +21,14 @@
 {% if not items %}
   {{ empty_state("ti-photo", "No images yet", "Upload images here, or they'll appear as you add them in the editors.") }}
 {% else %}
-<div class="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+<div class="mb-4 max-w-sm relative">
+  <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+  <input type="search" id="media-search" placeholder="Search images by name…" class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+</div>
+<p id="media-empty" class="hidden text-sm text-gray-500 dark:text-gray-400 py-6">No images match that search.</p>
+<div class="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" id="media-grid">
   {% for m in items %}
-  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  <div class="media-item rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden" data-media-name="{{ (m.filename ~ ' ' ~ (m.title or '') ~ ' ' ~ (m.alt_text or ''))|lower }}">
     <div class="aspect-square bg-gray-100 dark:bg-gray-900">
       <img src="{{ m.url }}" alt="{{ m.alt_text or '' }}" class="h-full w-full object-cover" loading="lazy">
     </div>
@@ -68,6 +73,17 @@ document.addEventListener('DOMContentLoaded', function () {
       navigator.clipboard && navigator.clipboard.writeText(b.getAttribute('data-copy'));
       b.classList.add('text-ecs-green'); setTimeout(function () { b.classList.remove('text-ecs-green'); }, 800);
     });
+  });
+  var search = document.getElementById('media-search');
+  if (search) search.addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase(), shown = 0;
+    document.querySelectorAll('.media-item').forEach(function (el) {
+      var match = !q || (el.getAttribute('data-media-name') || '').indexOf(q) !== -1;
+      el.style.display = match ? '' : 'none';
+      if (match) shown++;
+    });
+    var empty = document.getElementById('media-empty');
+    if (empty) empty.classList.toggle('hidden', shown !== 0);
   });
 });
 </script>

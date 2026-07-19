@@ -14,9 +14,11 @@ Faq        - one question/answer pair (replaces the WordPress /faqs page).
 SitePage   - editable copy for the semi-static pages (home hero, about, ...),
              keyed by a stable slug so a template can pull a block by name.
 
-Content bodies are stored as sanitized HTML (authored via the same TinyMCE
-editor used by the email-broadcast system). Public rendering marks them safe;
-authoring is admin-only, so the trust boundary is the admin panel.
+Content bodies are stored as TRUSTED admin-authored HTML (via the same TinyMCE
+editor / GrapesJS builder used elsewhere) and are NOT sanitized on save. Public
+rendering marks them |safe, so the trust boundary is the admin panel: authoring
+is gated to Global Admin / Pub League Admin. If that role ever widens, add
+server-side sanitization (bleach allowlist) on save before relaxing it.
 """
 
 import logging
@@ -59,6 +61,8 @@ class NewsPost(db.Model):
 
     status = db.Column(db.String(20), nullable=False, default='draft', index=True)
     published_at = db.Column(db.DateTime, nullable=True, index=True)
+    # Optional category/tag for the blog (WordPress-style). NULL = uncategorized.
+    category = db.Column(db.String(80), nullable=True, index=True)
 
     # Per-post SEO overrides (fall back to title/excerpt when null).
     meta_title = db.Column(db.String(255), nullable=True)
@@ -76,7 +80,11 @@ class NewsPost(db.Model):
 
     @property
     def is_published(self):
-        return self.status == 'published' and self.published_at is not None
+        # Published AND not scheduled for the future — a future published_at is a
+        # scheduled post that should stay hidden until its time arrives.
+        return (self.status == 'published'
+                and self.published_at is not None
+                and self.published_at <= datetime.utcnow())
 
     @property
     def display_date(self):
@@ -154,10 +162,18 @@ class SitePage(db.Model):
     updated_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     # Soft delete (WordPress-style Trash). NULL = live; set = in Trash.
     deleted_at = db.Column(db.DateTime, nullable=True, index=True)
+    # Draft vs published (WordPress-style). Defaults to 'published' so existing
+    # rows + seeded pages stay live; new custom pages are created as 'draft'.
+    status = db.Column(db.String(20), nullable=False, default='published', index=True)
 
     @property
     def is_trashed(self):
         return self.deleted_at is not None
+
+    @property
+    def is_public(self):
+        """Visible to anonymous visitors: published and not trashed."""
+        return self.status == 'published' and self.deleted_at is None
 
     def to_dict(self):
         return {
@@ -193,3 +209,52 @@ class MediaAsset(db.Model):
 
     def __repr__(self):
         return f"<MediaAsset {self.id} {self.filename!r}>"
+
+
+class SitePageRevision(db.Model):
+    """A saved snapshot of a SitePage's content (WordPress-style revisions).
+    Written on each builder/simple save so an admin can restore an earlier
+    version after a bad edit."""
+    __tablename__ = 'site_page_revision'
+
+    id = db.Column(db.Integer, primary_key=True)
+    page_id = db.Column(db.Integer, db.ForeignKey('site_page.id'), nullable=False, index=True)
+    title = db.Column(db.String(255), nullable=True)
+    body_html = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    def __repr__(self):
+        return f"<SitePageRevision {self.id} page={self.page_id}>"
+
+
+class RedirectRule(db.Model):
+    """An admin-managed 301 redirect (WordPress 'Redirection' plugin parity).
+    Consulted on every public request; source is an exact path match."""
+    __tablename__ = 'redirect_rule'
+
+    id = db.Column(db.Integer, primary_key=True)
+    source_path = db.Column(db.String(500), unique=True, nullable=False, index=True)
+    target_path = db.Column(db.String(500), nullable=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True, index=True)
+    hits = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<RedirectRule {self.source_path!r} -> {self.target_path!r}>"
+
+
+class FormSubmission(db.Model):
+    """A submission from any admin-placed public form (Form widget). Stored so
+    admins can review sponsor inquiries, sign-ups, etc. without a plugin."""
+    __tablename__ = 'form_submission'
+
+    id = db.Column(db.Integer, primary_key=True)
+    form_name = db.Column(db.String(120), nullable=False, index=True, default='contact')
+    data_json = db.Column(db.Text, nullable=True)   # JSON of the submitted fields
+    source_page = db.Column(db.String(300), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    is_read = db.Column(db.Boolean, nullable=False, default=False, index=True)
+
+    def __repr__(self):
+        return f"<FormSubmission {self.id} {self.form_name!r}>"

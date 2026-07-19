@@ -201,7 +201,8 @@ from .surveys import (
 )
 
 from .public_site import (
-    NewsPost, Faq, SitePage, MediaAsset, slugify, NEWS_STATUSES
+    NewsPost, Faq, SitePage, MediaAsset, slugify, NEWS_STATUSES,
+    SitePageRevision, RedirectRule, FormSubmission
 )
 
 from .match_check_in import (
@@ -356,6 +357,7 @@ __all__ = [
 
     # Public marketing site (news / faq / editable pages / media)
     'NewsPost', 'Faq', 'SitePage', 'MediaAsset', 'slugify', 'NEWS_STATUSES',
+    'SitePageRevision', 'RedirectRule', 'FormSubmission',
 
     # Match check-in models
     'MatchCheckInToken', 'MatchAttendance', 'LEAGUE_TYPES', 'CHECK_IN_SOURCES',

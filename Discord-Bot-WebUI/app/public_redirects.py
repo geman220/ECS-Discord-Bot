@@ -102,4 +102,44 @@ def register_public_redirects(app):
 
         return None
 
+    @app.before_request
+    def _admin_managed_redirects():
+        """Admin-editable 301s (RedirectRule table). Source/target are stored as
+        ROOT-relative public paths; we strip/re-add the /preview prefix so a rule
+        works both on the demo and after the ecspubleague.org cutover. Gated to
+        public-site requests so it never touches portal traffic."""
+        if request.method not in ('GET', 'HEAD'):
+            return None
+        path = request.path or '/'
+        # This runs on every request — cheap-exit for asset/api/admin traffic
+        # BEFORE any DB query (matters on the marketing host, where the host
+        # gate below would otherwise let /static/... hit the DB per asset).
+        if (request.endpoint == 'static' or path.startswith('/static')
+                or path.startswith('/api') or path.startswith('/admin-panel')):
+            return None
+        host = (request.host or '').split(':')[0].lower()
+        # Match the prefix precisely so /previewer, /preview-mode, etc. aren't
+        # treated as the demo.
+        on_preview = (path == '/preview' or path.startswith('/preview/'))
+        if host not in hosts and not on_preview:
+            return None
+        pub = path[len('/preview'):] if on_preview else path
+        pub = pub.rstrip('/') or '/'
+        try:
+            from app.models import RedirectRule
+            rule = (RedirectRule.query
+                    .filter_by(source_path=pub, is_active=True).first())
+        except Exception:
+            return None  # table not migrated yet — never break the request
+        if not rule:
+            return None
+        target = rule.target_path
+        # Guard against a redirect loop (source == target, or a rule pointing at
+        # its own path). Never 301 to the path we're already on.
+        if target.rstrip('/') == pub or target.rstrip('/') == path.rstrip('/'):
+            return None
+        if on_preview and target.startswith('/'):
+            target = '/preview' + target
+        return redirect(target, code=301)
+
     logger.info("Legacy WordPress redirects registered (hosts: %s)", ', '.join(sorted(hosts)))

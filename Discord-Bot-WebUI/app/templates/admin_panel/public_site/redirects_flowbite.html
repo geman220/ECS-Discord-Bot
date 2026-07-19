@@ -1,0 +1,59 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+
+{% block admin_title %}Public Site — Redirects{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Public Site · Redirects</span></div></li>
+{% endblock %}
+
+{% block panel_content %}
+{% call page_header("Redirects", subtitle="301s for renamed or old pages") %}
+  <a href="{{ url_for('admin_panel.public_site_hub') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Website</a>
+{% endcall %}
+
+<p class="mb-5 text-sm text-gray-500 dark:text-gray-400 max-w-2xl">
+  Send an old or renamed URL to a new one with a permanent (301) redirect — good for SEO when you
+  rename a page. Use paths starting with <code>/</code> (e.g. <code>/old-sponsors</code> →
+  <code>/sponsors</code>). An external <code>https://…</code> target works too.
+</p>
+
+<form method="POST" action="{{ url_for('admin_panel.public_site_redirects_save') }}" class="mb-6 flex flex-col sm:flex-row gap-2 max-w-3xl">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="text" name="source_path" required placeholder="/old-path" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+  <span class="hidden sm:flex items-center text-gray-400"><i class="ti ti-arrow-right"></i></span>
+  <input type="text" name="target_path" required placeholder="/new-path" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+  <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-ecs-green px-4 py-2 text-sm font-semibold text-white hover:bg-ecs-green-dark"><i class="ti ti-plus"></i> Add</button>
+</form>
+
+{% if not rules %}
+  {{ empty_state("ti-arrow-guide", "No redirects yet", "Add one above when you rename or retire a page.") }}
+{% else %}
+<div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+  <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+    <thead class="bg-gray-50 dark:bg-gray-900/50">
+      <tr>
+        <th class="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400">From</th>
+        <th class="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400">To</th>
+        <th class="px-4 py-3 text-right font-semibold text-gray-500 dark:text-gray-400">Remove</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50">
+      {% for r in rules %}
+      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+        <td class="px-4 py-3"><code class="text-xs text-gray-700 dark:text-gray-200">{{ r.source_path }}</code></td>
+        <td class="px-4 py-3"><code class="text-xs text-ecs-green dark:text-ecs-blue-400">{{ r.target_path }}</code></td>
+        <td class="px-4 py-3 text-right">
+          <form method="POST" action="{{ url_for('admin_panel.public_site_redirects_delete', rule_id=r.id) }}" class="inline" onsubmit="return confirm('Remove this redirect?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-red-200 dark:border-red-900/50 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"><i class="ti ti-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

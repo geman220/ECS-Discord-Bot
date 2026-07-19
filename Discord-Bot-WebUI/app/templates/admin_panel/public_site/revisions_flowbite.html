@@ -1,0 +1,54 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+
+{% block admin_title %}Revisions — {{ page.slug }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <a href="{{ url_for('admin_panel.public_site_pages') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Public Site · Pages</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Revisions · {{ page.slug }}</span></div></li>
+{% endblock %}
+
+{% block panel_content %}
+{% call page_header("Revision history", subtitle=page.title or page.slug) %}
+  <a href="{{ url_for('admin_panel.public_site_page_builder', page_id=page.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Back to editor</a>
+{% endcall %}
+
+<p class="mb-4 text-sm text-gray-500 dark:text-gray-400 max-w-2xl">
+  Every save keeps a snapshot. Restore any earlier version if a change didn't work out —
+  the current version is snapshotted first, so restoring is itself undoable.
+</p>
+
+{% if not revisions %}
+  {{ empty_state("ti-history", "No revisions yet", "Save the page a few times and past versions will appear here.") }}
+{% else %}
+<div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+  <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+    <thead class="bg-gray-50 dark:bg-gray-900/50">
+      <tr>
+        <th class="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400">Saved</th>
+        <th class="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400 hidden sm:table-cell">Title at the time</th>
+        <th class="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400 hidden md:table-cell">Size</th>
+        <th class="px-4 py-3 text-right font-semibold text-gray-500 dark:text-gray-400">Restore</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50">
+      {% for rev in revisions %}
+      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+        <td class="px-4 py-3 text-gray-900 dark:text-white whitespace-nowrap">{{ rev.created_at.strftime('%b %-d, %Y · %-I:%M %p') if rev.created_at else '—' }}</td>
+        <td class="px-4 py-3 text-gray-600 dark:text-gray-300 hidden sm:table-cell">{{ rev.title or '—' }}</td>
+        <td class="px-4 py-3 text-gray-400 hidden md:table-cell">{{ (rev.body_html|length) if rev.body_html else 0 }} chars</td>
+        <td class="px-4 py-3 text-right">
+          <form method="POST" action="{{ url_for('admin_panel.public_site_page_revision_restore', page_id=page.id, rev_id=rev.id) }}" class="inline" onsubmit="return confirm('Restore this version? Your current content is saved first so you can undo.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-back-up"></i> Restore</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

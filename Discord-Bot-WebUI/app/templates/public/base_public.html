@@ -63,6 +63,8 @@
         })();
     </script>
 
+    {% if appearance and appearance.favicon_url %}<link rel="icon" href="{{ appearance.favicon_url }}">{% endif %}
+
     {# ---- Fonts / CSS / Icons (identical to the app shell) ---- #}
     <link rel="preload" href="{{ url_for('static', filename='vendor/fonts/inter/inter-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="{{ static_v('vendor/fonts/inter.css') }}">
@@ -90,7 +92,7 @@
     </style>
     {% if appearance and appearance.primary_rgb %}
     {# Admin-chosen primary color re-skins every ecs-green utility. #}
-    <style>:root { --color-primary-rgb: {{ appearance.primary_rgb }}; }</style>
+    <style>:root { --color-primary-rgb: {{ appearance.primary_rgb }};{% if appearance.primary_dark_rgb %} --color-primary-dark-rgb: {{ appearance.primary_dark_rgb }};{% endif %} }</style>
     {% endif %}
 
     {% block extra_css %}{% endblock %}
@@ -112,12 +114,28 @@
             <div class="hidden md:flex items-center gap-1">
                 {% set nav_active = active_page | default('') %}
                 {% for item in nav_items %}
+                {% if item.children %}
+                <div class="relative group">
+                  <button type="button" class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-300 group-hover:text-ecs-green dark:group-hover:text-white hover:bg-gray-50 dark:hover:bg-gray-900 transition">
+                    {{ item.label }} <i class="ti ti-chevron-down text-xs"></i>
+                  </button>
+                  <div class="absolute left-0 top-full pt-1 hidden group-hover:block min-w-[180px] z-50">
+                    <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-lg py-1">
+                      <a href="{{ item.url }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-ecs-green dark:hover:text-white">{{ item.label }}</a>
+                      {% for child in item.children %}
+                      <a href="{{ child.url }}" class="block px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-ecs-green dark:hover:text-white">{{ child.label }}</a>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+                {% else %}
                 <a href="{{ item.url }}"
                    class="px-3 py-2 text-sm font-medium rounded-lg transition
                           {{ 'text-ecs-green dark:text-ecs-blue-400' if nav_active == item.key
                              else 'text-gray-600 dark:text-gray-300 hover:text-ecs-green dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-900' }}">
                     {{ item.label }}
                 </a>
+                {% endif %}
                 {% endfor %}
                 {% if current_user.is_authenticated %}
                 <a href="{{ url_for('main.index') }}"
@@ -158,6 +176,9 @@
             <div class="space-y-1 px-4 py-3">
                 {% for item in nav_items %}
                 <a href="{{ item.url }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">{{ item.label }}</a>
+                {% for child in item.children %}
+                <a href="{{ child.url }}" class="block rounded-lg px-3 py-2 pl-6 text-base text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900">{{ child.label }}</a>
+                {% endfor %}
                 {% endfor %}
                 {% if current_user.is_authenticated %}
                 <a href="{{ url_for('main.index') }}" class="mt-2 block rounded-lg bg-ecs-green px-3 py-2 text-center text-base font-semibold text-white">Go to Portal</a>
@@ -227,7 +248,7 @@
                 title: '{{ "Error" if category == "error" else "Success" if category == "success" else "Info" }}',
                 text: {{ message | tojson }},
                 icon: '{{ "error" if category == "error" else "success" if category == "success" else "info" }}',
-                confirmButtonColor: '#1a472a'
+                confirmButtonColor: '{{ appearance.primary_hex if appearance and appearance.primary_hex else "#40b050" }}'
             });
             {% endfor %}{% endif %}
             {% endwith %}

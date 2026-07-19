@@ -70,7 +70,7 @@
                class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
         <p class="mt-1 text-xs text-gray-400">Leave blank to use now when you publish. Backdate to preserve a migrated post's original date.</p>
       </div>
-      <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-green text-white px-4 py-2.5 text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-device-floppy"></i> Save post</button>
+      <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-green text-white px-4 py-2.5 text-sm font-semibold hover:bg-ecs-green-dark"><i class="ti ti-device-floppy"></i> Save post</button>
     </div>
 
     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4">
@@ -84,6 +84,10 @@
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Author</label>
         <input type="text" name="author_name" value="{{ post.author_name if post else '' }}" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Category <span class="text-gray-400 font-normal">(optional)</span></label>
+        <input type="text" name="category" value="{{ post.category if post else '' }}" placeholder="e.g. Announcements, Team reveals" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Featured image</label>

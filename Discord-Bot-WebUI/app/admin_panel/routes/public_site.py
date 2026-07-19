@@ -34,7 +34,8 @@ from werkzeug.utils import secure_filename
 
 from app.admin_panel import admin_panel_bp
 from app.decorators import role_required
-from app.models import NewsPost, Faq, SitePage, slugify
+from app.models import (NewsPost, Faq, SitePage, slugify,
+                        SitePageRevision, RedirectRule, FormSubmission)
 from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,39 @@ _MEDIA_URL_PREFIX = 'img/publeague'
 
 def _allowed_image(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in _ALLOWED_IMAGE_EXT
+
+
+_REVISION_KEEP = 30
+
+
+def _snapshot_revision(page):
+    """Save the page's CURRENT content as a revision BEFORE it's overwritten, so
+    an admin can restore a prior version. Prunes to the last _REVISION_KEEP per
+    page. Best-effort: runs in a SAVEPOINT so a failure (e.g. the revision table
+    isn't migrated yet) rolls back ONLY the snapshot and leaves the outer save's
+    transaction usable — it must never break the save it's protecting."""
+    if not page or not page.id or not (page.body_html or page.title):
+        return
+    try:
+        with g.db_session.begin_nested():
+            rev = SitePageRevision(page_id=page.id, title=page.title,
+                                   body_html=page.body_html)
+            try:
+                rev.created_by_id = current_user.id
+            except Exception:
+                pass
+            g.db_session.add(rev)
+            g.db_session.flush()
+            old = (g.db_session.query(SitePageRevision.id)
+                   .filter_by(page_id=page.id)
+                   .order_by(SitePageRevision.created_at.desc())
+                   .offset(_REVISION_KEEP).all())
+            if old:
+                (g.db_session.query(SitePageRevision)
+                 .filter(SitePageRevision.id.in_([r.id for r in old]))
+                 .delete(synchronize_session=False))
+    except Exception as e:
+        logger.warning("revision snapshot skipped: %s", e)
 
 
 @admin_panel_bp.route('/public-site/upload-image', methods=['POST'])
@@ -156,15 +190,14 @@ def public_site_media_delete(asset_id):
     m = g.db_session.query(MediaAsset).get(asset_id)
     if not m:
         abort(404)
-    # Remove the file too (best-effort).
-    try:
-        fpath = os.path.join(current_app.root_path, *_MEDIA_SUBPATH, m.filename)
-        if os.path.exists(fpath):
-            os.remove(fpath)
-    except Exception:
-        pass
+    # Remove the catalog row ONLY — deliberately keep the file on disk. The same
+    # physical files are referenced outside the Media Library (the logo/hero/
+    # community images in _IMG_FILES, the division/community photos baked into
+    # _home_body_starter, and NewsPost.featured_image_url / SitePage.og_image_url
+    # + body_html). Unlinking the file here would silently break those live
+    # images with no undo. An unreferenced file left on disk is harmless.
     g.db_session.delete(m)
-    flash('Image deleted.', 'success')
+    flash('Image removed from the library. (The file is kept in case another page uses it.)', 'success')
     return redirect(url_for('admin_panel.public_site_media'))
 
 
@@ -211,11 +244,15 @@ def public_site_news_save():
         return redirect(request.referrer or url_for('admin_panel.public_site_news'))
 
     post = (g.db_session.query(NewsPost).get(post_id) if post_id else NewsPost())
+    if post_id and post is None:
+        flash('That news post no longer exists.', 'error')
+        return redirect(url_for('admin_panel.public_site_news'))
 
     post.title = title
     post.excerpt = (request.form.get('excerpt') or '').strip() or None
     post.body_html = request.form.get('body_html') or None
     post.author_name = (request.form.get('author_name') or '').strip() or None
+    post.category = (request.form.get('category') or '').strip() or None
     post.featured_image_url = (request.form.get('featured_image_url') or '').strip() or None
     post.meta_title = (request.form.get('meta_title') or '').strip() or None
     post.meta_description = (request.form.get('meta_description') or '').strip() or None
@@ -290,6 +327,9 @@ def public_site_faq_save():
         return redirect(url_for('admin_panel.public_site_faqs'))
 
     faq = (g.db_session.query(Faq).get(faq_id) if faq_id else Faq())
+    if faq_id and faq is None:
+        flash('That FAQ no longer exists.', 'error')
+        return redirect(url_for('admin_panel.public_site_faqs'))
     faq.question = question
     faq.answer_html = answer_html
     faq.category = (request.form.get('category') or 'General').strip() or 'General'
@@ -461,6 +501,11 @@ def public_site_home_builder():
             pass
         g.db_session.add(page)
         g.db_session.flush()
+    elif getattr(page, 'updated_by_id', None) is None:
+        # Never saved by an admin (just opened before) — keep it in sync with the
+        # latest starter so old/light-only snapshots self-heal. Once the admin
+        # saves (sets updated_by_id) we leave their content alone.
+        page.body_html = _home_body_starter()
     return render_template('admin_panel/public_site/page_builder_flowbite.html',
                            page=page,
                            view_url=url_for('public.home'),
@@ -517,6 +562,7 @@ def public_site_menu_save():
                 'value': str(it.get('value', ''))[:200],
                 'label': (str(it.get('label', '')).strip()[:80] or None),
                 'visible': bool(it.get('visible', True)),
+                'parent': (str(it.get('parent', '')).strip()[:80] or None),
             })
     AdminConfig.set_setting('public_nav_menu', clean, data_type='json',
                             category='public_site', user_id=current_user.id, auto_commit=False)
@@ -539,7 +585,8 @@ def public_site_appearance():
         'title': g_('public_site_title', 'ECS Pub League'),
         'tagline': g_('public_tagline', 'Radically inclusive, beginner-friendly adult soccer in Seattle.'),
         'logo_url': g_('public_logo_url', None),
-        'primary_hex': g_('public_primary_hex', '#2e9d44'),
+        'favicon_url': g_('public_favicon_url', None),
+        'primary_hex': g_('public_primary_hex', '#40b050'),
     }
     return render_template('admin_panel/public_site/appearance_flowbite.html', settings=settings)
 
@@ -557,7 +604,8 @@ def public_site_appearance_save():
     set_('public_site_title', (request.form.get('title') or 'ECS Pub League').strip())
     set_('public_tagline', (request.form.get('tagline') or '').strip())
     set_('public_logo_url', (request.form.get('logo_url') or '').strip() or None)
-    set_('public_primary_hex', (request.form.get('primary_hex') or '#2e9d44').strip())
+    set_('public_favicon_url', (request.form.get('favicon_url') or '').strip() or None)
+    set_('public_primary_hex', (request.form.get('primary_hex') or '#40b050').strip())
     flash('Appearance saved.', 'success')
     return redirect(url_for('admin_panel.public_site_appearance'))
 
@@ -651,11 +699,85 @@ def public_site_page_create():
         slug = f'{base}-{n}'
         n += 1
     page = SitePage(slug=slug, title=title,
-                    body_html='<p>New page — use the builder to add content.</p>')
+                    body_html='<p>New page — use the builder to add content.</p>',
+                    status='draft')  # WordPress-style: new pages start as drafts
     g.db_session.add(page)
     g.db_session.flush()
-    flash('Page created.', 'success')
+    flash('Draft page created — build it, then Publish when ready.', 'success')
     return redirect(url_for('admin_panel.public_site_page_builder', page_id=page.id))
+
+
+@admin_panel_bp.route('/public-site/pages/<int:page_id>/publish', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_page_publish(page_id):
+    """One-click Publish / Unpublish (back to Draft) from the Pages list."""
+    page = g.db_session.query(SitePage).get(page_id)
+    if not page:
+        abort(404)
+    page.status = 'draft' if page.status == 'published' else 'published'
+    page.updated_at = datetime.utcnow()
+    try:
+        page.updated_by_id = current_user.id
+    except Exception:
+        pass
+    flash('Page published — it is now live.' if page.status == 'published'
+          else 'Page unpublished — back to Draft (hidden from visitors).', 'success')
+    return redirect(url_for('admin_panel.public_site_pages'))
+
+
+@admin_panel_bp.route('/public-site/pages/<int:page_id>/revisions')
+@login_required
+@role_required(_ROLES)
+def public_site_page_revisions(page_id):
+    """WordPress-style revision history for a page."""
+    page = SitePage.query.get_or_404(page_id)
+    revs = (SitePageRevision.query.filter_by(page_id=page_id)
+            .order_by(SitePageRevision.created_at.desc()).all())
+    return render_template('admin_panel/public_site/revisions_flowbite.html',
+                           page=page, revisions=revs)
+
+
+@admin_panel_bp.route('/public-site/pages/<int:page_id>/revisions/<int:rev_id>/restore', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_page_revision_restore(page_id, rev_id):
+    page = g.db_session.query(SitePage).get(page_id)
+    rev = g.db_session.query(SitePageRevision).get(rev_id)
+    if not page or not rev or rev.page_id != page.id:
+        abort(404)
+    _snapshot_revision(page)  # snapshot current first, so restoring is itself undoable
+    page.title = rev.title
+    page.body_html = rev.body_html
+    page.updated_at = datetime.utcnow()
+    try:
+        page.updated_by_id = current_user.id
+    except Exception:
+        pass
+    flash('Restored an earlier version of this page.', 'success')
+    return redirect(url_for('admin_panel.public_site_page_builder', page_id=page.id))
+
+
+@admin_panel_bp.route('/public-site/pages/<int:page_id>/duplicate', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_page_duplicate(page_id):
+    """Clone a page into a new Draft (WordPress 'Duplicate')."""
+    src = g.db_session.query(SitePage).get(page_id)
+    if not src:
+        abort(404)
+    base = _unique_slug(f'{src.slug}-copy', model=SitePage)
+    copy = SitePage(slug=base, title=(src.title or src.slug) + ' (copy)',
+                    body_html=src.body_html, meta_title=src.meta_title,
+                    meta_description=src.meta_description, og_image_url=src.og_image_url,
+                    status='draft')
+    g.db_session.add(copy)
+    g.db_session.flush()
+    flash('Page duplicated as a new draft.', 'success')
+    return redirect(url_for('admin_panel.public_site_page_builder', page_id=copy.id))
 
 
 @admin_panel_bp.route('/public-site/pages/<int:page_id>/edit')
@@ -683,6 +805,7 @@ def public_site_page_builder_save(page_id):
     page = g.db_session.query(SitePage).get(page_id)
     if not page:
         abort(404)
+    _snapshot_revision(page)  # keep the pre-save version for restore
     page.body_html = request.form.get('body_html') or None
     page.updated_at = datetime.utcnow()
     try:
@@ -706,11 +829,24 @@ def public_site_page_save():
     if not page:
         flash('Page not found.', 'error')
         return redirect(url_for('admin_panel.public_site_pages'))
+    _snapshot_revision(page)  # keep the pre-save version for restore
     page.title = (request.form.get('title') or '').strip() or None
     page.body_html = request.form.get('body_html') or None
     page.meta_title = (request.form.get('meta_title') or '').strip() or None
     page.meta_description = (request.form.get('meta_description') or '').strip() or None
     page.og_image_url = (request.form.get('og_image_url') or '').strip() or None
+    # Optional slug change (WordPress-style permalink edit); block/reserved slugs
+    # can't be renamed, and the new slug is uniqued.
+    new_slug = (request.form.get('slug') or '').strip()
+    _reserved = set(_BLOCK_SLUGS) | {'about', 'guide', 'guests', 'home', 'news',
+                                     'faqs', 'calendar', 'register', 'contact'}
+    if new_slug and page.slug not in _reserved:
+        s = slugify(new_slug)
+        if s and s != page.slug and s not in _reserved:
+            page.slug = _unique_slug(s, exclude_id=page.id, model=SitePage)
+    # Publish state
+    if request.form.get('status') in ('draft', 'published'):
+        page.status = request.form.get('status')
     page.updated_at = datetime.utcnow()
     try:
         page.updated_by_id = current_user.id
@@ -721,17 +857,120 @@ def public_site_page_save():
 
 
 # --------------------------------------------------------------------------- #
+# Redirects (admin-managed 301s)
+# --------------------------------------------------------------------------- #
+
+@admin_panel_bp.route('/public-site/redirects')
+@login_required
+@role_required(_ROLES)
+def public_site_redirects():
+    rules = RedirectRule.query.order_by(RedirectRule.created_at.desc()).all()
+    return render_template('admin_panel/public_site/redirects_flowbite.html', rules=rules)
+
+
+@admin_panel_bp.route('/public-site/redirects/save', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_redirects_save():
+    src = (request.form.get('source_path') or '').strip()
+    tgt = (request.form.get('target_path') or '').strip()
+    if not src or not tgt:
+        flash('Both a source and a target path are required.', 'error')
+        return redirect(url_for('admin_panel.public_site_redirects'))
+    if not src.startswith('/'):
+        src = '/' + src
+    src = src.rstrip('/') or '/'
+    if not (tgt.startswith('/') or tgt.startswith('http')):
+        tgt = '/' + tgt
+    if src == tgt.rstrip('/'):
+        flash('A redirect cannot point to itself.', 'error')
+        return redirect(url_for('admin_panel.public_site_redirects'))
+    # Reject a rule that would close a loop: follow the target through existing
+    # active rules (bounded); if the chain leads back to this source, refuse.
+    cur, seen = tgt.rstrip('/'), {src}
+    for _ in range(10):
+        if not cur.startswith('/'):
+            break  # external target — no internal loop
+        if cur in seen:
+            flash('That would create a redirect loop.', 'error')
+            return redirect(url_for('admin_panel.public_site_redirects'))
+        seen.add(cur)
+        nxt = g.db_session.query(RedirectRule).filter_by(source_path=cur, is_active=True).first()
+        if not nxt:
+            break
+        cur = nxt.target_path.rstrip('/')
+    existing = g.db_session.query(RedirectRule).filter_by(source_path=src).first()
+    if existing:
+        existing.target_path = tgt
+        existing.is_active = True
+    else:
+        g.db_session.add(RedirectRule(source_path=src, target_path=tgt))
+    flash('Redirect saved.', 'success')
+    return redirect(url_for('admin_panel.public_site_redirects'))
+
+
+@admin_panel_bp.route('/public-site/redirects/<int:rule_id>/delete', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_redirects_delete(rule_id):
+    r = g.db_session.query(RedirectRule).get(rule_id)
+    if r:
+        g.db_session.delete(r)
+    flash('Redirect removed.', 'success')
+    return redirect(url_for('admin_panel.public_site_redirects'))
+
+
+# --------------------------------------------------------------------------- #
+# Form submissions (from the public Form widget)
+# --------------------------------------------------------------------------- #
+
+@admin_panel_bp.route('/public-site/submissions')
+@login_required
+@role_required(_ROLES)
+def public_site_submissions():
+    subs = (FormSubmission.query
+            .order_by(FormSubmission.created_at.desc()).limit(500).all())
+    import json as _json
+    rows = []
+    for s in subs:
+        try:
+            data = _json.loads(s.data_json) if s.data_json else {}
+        except Exception:
+            data = {}
+        rows.append({'id': s.id, 'form_name': s.form_name, 'data': data,
+                     'source_page': s.source_page, 'created_at': s.created_at,
+                     'is_read': s.is_read})
+    return render_template('admin_panel/public_site/submissions_flowbite.html', rows=rows)
+
+
+@admin_panel_bp.route('/public-site/submissions/<int:sub_id>/delete', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def public_site_submission_delete(sub_id):
+    s = g.db_session.query(FormSubmission).get(sub_id)
+    if s:
+        g.db_session.delete(s)
+    flash('Submission deleted.', 'success')
+    return redirect(url_for('admin_panel.public_site_submissions'))
+
+
+# --------------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------------- #
 
-def _unique_slug(base, exclude_id=None):
-    """Ensure slug uniqueness by appending -2, -3, ... when needed."""
+def _unique_slug(base, exclude_id=None, model=NewsPost):
+    """Ensure slug uniqueness by appending -2, -3, ... when needed. Pass the
+    right `model` — NewsPost for posts, SitePage for pages — so it checks the
+    correct table (a SitePage slug uniqued against news_post would collide)."""
     slug = base
     n = 2
     while True:
-        q = g.db_session.query(NewsPost).filter_by(slug=slug)
+        q = g.db_session.query(model).filter_by(slug=slug)
         if exclude_id:
-            q = q.filter(NewsPost.id != exclude_id)
+            q = q.filter(model.id != exclude_id)
         if not q.first():
             return slug
         slug = f'{base}-{n}'

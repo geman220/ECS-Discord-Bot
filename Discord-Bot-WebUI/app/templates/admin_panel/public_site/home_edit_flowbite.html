@@ -17,7 +17,7 @@
 
 {% block panel_content %}
 {% call page_header("Home Page", subtitle="Public Site") %}
-  <a href="{{ url_for('admin_panel.public_site_home_builder') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-layout-board"></i> Design middle visually</a>
+  <a href="{{ url_for('admin_panel.public_site_home_builder') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-dark"><i class="ti ti-layout-board"></i> Design middle visually</a>
   <a href="{{ url_for('public.home') }}" target="_blank" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-external-link"></i> View</a>
   <a href="{{ url_for('admin_panel.public_site_news') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-news"></i> News</a>
   <a href="{{ url_for('admin_panel.public_site_pages') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-file-text"></i> Pages</a>
@@ -137,7 +137,7 @@
   </div>
   {% endfor %}
 
-  <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-ecs-green text-white px-5 py-2.5 text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-device-floppy"></i> Save home page</button>
+  <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-ecs-green text-white px-5 py-2.5 text-sm font-semibold hover:bg-ecs-green-dark"><i class="ti ti-device-floppy"></i> Save home page</button>
 </form>
 {% endblock %}
 

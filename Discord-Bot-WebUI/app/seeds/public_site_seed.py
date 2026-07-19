@@ -72,19 +72,39 @@ def _seed():
     # Pages are seeded PER-SLUG (insert any that are missing) so blocks added to
     # the seed later — e.g. home_justforfun — backfill on a restart instead of
     # being skipped because the table already has rows.
-    existing_page_slugs = {row[0] for row in session.query(SitePage.slug).all()}
+    #
+    # SELF-HEAL: the migration content pages (about/guide/guests) also REFRESH
+    # from the seed on every boot IF no admin has edited them (updated_by_id is
+    # NULL). This is what stops a stale/flat row — seeded once from an old
+    # version — from sticking forever. As soon as an admin edits the page in the
+    # CMS (which sets updated_by_id), we never touch it again.
+    _MANAGED_CONTENT = {'about', 'guide', 'guests'}
+    slugs_in_seed = [p['slug'] for p in data.get('pages', [])]
+    existing = {pg.slug: pg for pg in
+                session.query(SitePage).filter(SitePage.slug.in_(slugs_in_seed)).all()}
     _pages_added = 0
+    _pages_healed = 0
     for p in data.get('pages', []):
-        if p['slug'] in existing_page_slugs:
-            continue
-        session.add(SitePage(
-            slug=p['slug'], title=p.get('title'),
-            body_html=p.get('body_html'),
-            meta_description=p.get('meta_description'),
-        ))
-        _pages_added += 1
+        pg = existing.get(p['slug'])
+        if pg is None:
+            session.add(SitePage(
+                slug=p['slug'], title=p.get('title'),
+                body_html=p.get('body_html'),
+                meta_description=p.get('meta_description'),
+            ))
+            _pages_added += 1
+        elif (p['slug'] in _MANAGED_CONTENT
+              and getattr(pg, 'updated_by_id', None) is None
+              and getattr(pg, 'deleted_at', None) is None
+              and (pg.body_html != p.get('body_html') or pg.title != p.get('title'))):
+            pg.title = p.get('title')
+            pg.body_html = p.get('body_html')
+            pg.meta_description = p.get('meta_description')
+            _pages_healed += 1
     if _pages_added:
         seeded.append(f"{_pages_added} pages")
+    if _pages_healed:
+        seeded.append(f"{_pages_healed} pages refreshed")
 
     # ---- FAQs ----
     if Faq.query.count() == 0:

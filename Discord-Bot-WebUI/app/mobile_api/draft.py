@@ -666,12 +666,20 @@ def draft_player(league_name: str):
         draft_clock.queue_on_clock_push(ds)  # ping the NEXT team's coaches
     with managed_session() as s2:
         mark_player_for_discord_update(s2, player_id)
-    assign_roles_to_player_task.delay(player_id=player_id, only_add=True)
+    # only_add=True normally (additive), but flip to a full reconcile when a stale
+    # sub role was just removed so the ECS-FC-PL-*-SUB Discord role is actually stripped.
+    from app.services.sub_status_service import sub_status_removed, sub_removal_notice
+    _reconcile_removals = sub_status_removed(sub_cleanup)
+    _sub_removal_notice = sub_removal_notice(sub_cleanup)
+    if _sub_removal_notice:
+        logger.info(f"📋 {_sub_removal_notice}")
+    assign_roles_to_player_task.delay(player_id=player_id, only_add=not _reconcile_removals)
     DraftCacheService.clear_all_league_caches(db_league_name)
 
     _emit_to_draft_rooms('player_drafted_enhanced', {
         'success': True, 'player': enhanced, 'team_id': team_id, 'team_name': team_name,
         'league_name': url_name, 'position': position, 'draft_position': draft_position,
+        'sub_removal_notice': _sub_removal_notice,
     }, url_name, db_league_name)
     if clock_payload:
         _emit_to_draft_rooms('draft_clock_update', clock_payload, url_name, db_league_name)
@@ -682,7 +690,8 @@ def draft_player(league_name: str):
         "player": {"id": player_id, "name": player_name, "position": player_pos_label},
         "team": {"id": team_id, "name": team_name},
         "draft_position": draft_position,
-        "clock": clock_payload
+        "clock": clock_payload,
+        "sub_removal_notice": _sub_removal_notice,
     }), 200
 
 

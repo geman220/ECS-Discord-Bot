@@ -49,7 +49,7 @@
 {# ===== EDITABLE MIDDLE (hybrid): the visual builder replaces the default ===== #}
 {# sections below when a "home_body" block exists; hero above + news/CTA below   #}
 {# always stay dynamic (live registration CTA, season badge, latest news).       #}
-{% if home_body and home_body.body_html %}
+{% if home_body and home_body.body_html and home_body.updated_by_id %}
 <div class="ps-builder-page">{{ home_body.body_html | safe }}</div>
 {% else %}
 
