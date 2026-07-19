@@ -354,7 +354,7 @@ class DraftHistoryManager {
         if (typeof window.Swal !== 'undefined') {
             const result = await window.Swal.fire({
                 title: 'Clear All Draft Picks?',
-                html: `Are you sure you want to clear <strong>ALL</strong> draft picks for <strong>${seasonName} - ${leagueName}</strong>?<br><br>This action cannot be undone.`,
+                html: `Clear <strong>ALL</strong> draft picks for <strong>${seasonName} - ${leagueName}</strong>?<br><br>This removes only the <strong>pick-order history</strong> — team rosters are <strong>not</strong> affected. This cannot be undone.`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, Clear All',

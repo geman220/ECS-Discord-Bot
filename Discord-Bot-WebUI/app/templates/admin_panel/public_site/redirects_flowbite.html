@@ -9,6 +9,7 @@
 {% endblock %}
 
 {% block panel_content %}
+{% set cms_active = 'redirects' %}{% include 'admin_panel/public_site/_cms_tabs.html' %}
 {% call page_header("Redirects", subtitle="301s for renamed or old pages") %}
   <a href="{{ url_for('admin_panel.public_site_hub') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Website</a>
 {% endcall %}

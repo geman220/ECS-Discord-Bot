@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/_modern_kit.html' import page_header %}
+{% from 'macros/_dirty_guard.html' import dirty_guard %}
 
 {% block admin_title %}Visual Builder — {{ page.slug }}{% endblock %}
 
@@ -13,9 +14,14 @@
 {% block extra_css %}{{ super() }}
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/grapesjs/grapes.min.css') }}">
 <style>
-  /* Give the builder real estate; GrapesJS renders its own panels around #gjs. */
+  /* Give the builder maximum real estate + a true full-width representation of
+     the page. Break out of the admin content padding so the canvas is as wide as
+     the screen (use the device toolbar in the builder to preview tablet/mobile). */
   #gjs-wrap { border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden; }
-  .gjs-editor { min-height: 72vh; }
+  .gjs-editor { min-height: 86vh; }
+  @media (min-width: 1024px) {
+    #gjs-wrap { width: calc(100vw - 3rem); position: relative; left: 50%; transform: translateX(-50%); max-width: 1600px; }
+  }
 </style>
 {% endblock %}
 
@@ -23,7 +29,7 @@
 {% set _view_url = view_url if view_url is defined and view_url else (url_for('public.about') if page.slug == 'about' else url_for('public.guide') if page.slug == 'guide' else url_for('public.guests') if page.slug == 'guests' else url_for('public.dynamic_page', slug=page.slug)) %}
 {% call page_header("Visual builder", subtitle=(builder_label if builder_label is defined and builder_label else ("Public Site · " + page.slug))) %}
   <a href="{{ _view_url }}" target="_blank" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-external-link"></i> View</a>
-  <a href="{{ url_for('admin_panel.public_site_page_edit', page_id=page.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-forms"></i> Simple editor</a>
+  <a href="{{ url_for('admin_panel.public_site_page_edit', page_id=page.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-forms"></i> Text editor</a>
   <a href="{{ url_for('admin_panel.public_site_page_revisions', page_id=page.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-history"></i> Revisions</a>
   {% if not page.slug.startswith('home_') %}
     {% if page.status == 'published' %}
@@ -59,6 +65,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{{ dirty_guard() }}
 <script src="{{ url_for('static', filename='vendor/grapesjs/grapes.min.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/grapesjs/grapesjs-preset-webpage.min.js') }}"></script>
 <script>
@@ -78,15 +85,16 @@ document.addEventListener('DOMContentLoaded', function () {
   var presetWebpage = window['grapesjs-preset-webpage'];
   var editor = grapesjs.init({
     container: '#gjs',
-    height: '72vh',
+    height: '86vh',
     fromElement: false,
     storageManager: false,
     plugins: presetWebpage ? [presetWebpage] : [],
-    // Load the live-site styling into the canvas so blocks look like the real page.
+    // Load ONLY the compiled Tailwind into the canvas so it renders exactly like
+    // the live page. (public-content.css was clamping full-width widgets to 720px
+    // in the canvas, so the editor misrepresented every full-bleed block.)
     canvas: {
       styles: [
-        "{{ url_for('static', filename='vite-dist/css/tailwind.css') }}",
-        "{{ url_for('static', filename='css/public-content.css') }}"
+        "{{ url_for('static', filename='vite-dist/css/tailwind.css') }}"
       ]
     },
     assetManager: {
@@ -127,8 +135,8 @@ document.addEventListener('DOMContentLoaded', function () {
     .catch(function () {});
 
   // ---- ECS brand WIDGETS (drag onto the page) ---------------------------------
-  // Content uses the site's own Tailwind classes (the canvas loads tailwind.css
-  // + public-content.css), so widgets look like the live site while editing.
+  // Content uses the site's own Tailwind classes (the canvas loads the compiled
+  // tailwind.css), so widgets look exactly like the live site while editing.
   var PH = "{{ url_for('static', filename='img/publeague/2023-08__355098481_10227903474124662_4103553356561754271_n.jpg') }}";
   var WIDGETS = [
     ['ps-hero', 'Hero banner', 'ti-photo',
@@ -182,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function () {
      '<div class="max-w-5xl mx-auto px-6 py-10 flex flex-wrap items-center justify-center gap-8 opacity-80">' +
        new Array(4).fill('<img src="' + PH + '" alt="" class="h-12 w-auto object-contain">').join('') + '</div>'],
     ['ps-video', 'Video', 'ti-brand-youtube',
-     '<div class="max-w-4xl mx-auto px-6 my-8"><div class="relative w-full" style="padding-top:56.25%">' +
+     '<div class="max-w-4xl mx-auto px-6 my-8"><div class="relative w-full aspect-video">' +
        '<iframe class="absolute inset-0 h-full w-full rounded-2xl" src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>'],
     ['ps-stats', 'Stats', 'ti-chart-bar',
      '<section class="max-w-5xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">' +
@@ -237,11 +245,18 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   } catch (err) { console.error('widget blocks', err); }
 
+  // Unsaved-changes guard: mark dirty on any canvas edit, clear it on Save.
+  // Gate on a ready flag so the initial load/render doesn't falsely flag dirty.
+  var _builderReady = false;
+  editor.on('load', function () { setTimeout(function () { _builderReady = true; }, 100); });
+  editor.on('update', function () { if (_builderReady && window.__psMarkDirty) window.__psMarkDirty(); });
+
   document.getElementById('gjs-save').addEventListener('click', function () {
     var css = editor.getCss();
     var html = editor.getHtml();
     document.getElementById('body_html_field').value =
       (css ? '<style>' + css + '</style>\n' : '') + html;
+    if (window.__psClearDirty) window.__psClearDirty();
     document.getElementById('builder-form').submit();
   });
 });

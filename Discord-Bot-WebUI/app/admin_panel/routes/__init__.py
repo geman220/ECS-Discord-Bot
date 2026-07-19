@@ -44,6 +44,7 @@ def register_all_routes(admin_panel_bp):
 
     from . import roles  # New role management
     from . import monitoring
+    from . import integrity  # Data-integrity conflict dashboard
 
     # Match operations - now a modular package
     # Old monolithic: from . import match_operations

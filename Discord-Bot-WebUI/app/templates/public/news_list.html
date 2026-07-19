@@ -1,12 +1,8 @@
 {% extends "public/base_public.html" %}
+{% from 'public/_hero.html' import hero %}
 
 {% block content %}
-<section class="bg-gradient-to-br from-ecs-green to-ecs-green-dark">
-    <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-16">
-        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">News</h1>
-        <p class="mt-4 text-lg text-white/90">League announcements, team reveals, and season updates.</p>
-    </div>
-</section>
+{{ hero('News', 'League announcements, team reveals, and season updates.') }}
 
 <section class="py-16 sm:py-20">
     <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">

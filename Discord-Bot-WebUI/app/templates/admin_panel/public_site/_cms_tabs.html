@@ -1,0 +1,28 @@
+{# Shared CMS sub-navigation — included at the top of every Website (CMS) screen
+   so a non-technical admin always has one consistent menu and can always get
+   back or jump to the live site. Set `cms_active` (e.g. 'pages') before include. #}
+<div class="mb-6 -mx-1 flex flex-wrap items-center gap-0.5 border-b border-gray-200 dark:border-gray-700">
+  {% set _cms_tabs = [
+    ('pages', 'Pages', 'ti-file-text', 'admin_panel.public_site_pages'),
+    ('posts', 'Posts', 'ti-news', 'admin_panel.public_site_news'),
+    ('home', 'Home', 'ti-home', 'admin_panel.public_site_home_edit'),
+    ('faqs', 'FAQs', 'ti-help', 'admin_panel.public_site_faqs'),
+    ('menus', 'Menus', 'ti-menu-2', 'admin_panel.public_site_menu'),
+    ('media', 'Media', 'ti-photo', 'admin_panel.public_site_media'),
+    ('appearance', 'Appearance', 'ti-palette', 'admin_panel.public_site_appearance'),
+    ('redirects', 'Redirects', 'ti-arrow-guide', 'admin_panel.public_site_redirects'),
+    ('submissions', 'Submissions', 'ti-inbox', 'admin_panel.public_site_submissions'),
+  ] %}
+  {% for key, label, icon, endpoint in _cms_tabs %}
+  <a href="{{ url_for(endpoint) }}"
+     class="inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 -mb-px transition
+            {{ 'border-ecs-green text-ecs-green dark:text-ecs-blue-400' if (cms_active | default('')) == key
+               else 'border-transparent text-gray-500 dark:text-gray-400 hover:text-ecs-green dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-600' }}">
+    <i class="ti {{ icon }}"></i> <span class="hidden sm:inline">{{ label }}</span>
+  </a>
+  {% endfor %}
+  <a href="{{ url_for('public.home') }}" target="_blank"
+     class="ml-auto inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-ecs-green">
+    <i class="ti ti-external-link"></i> <span class="hidden sm:inline">View site</span>
+  </a>
+</div>

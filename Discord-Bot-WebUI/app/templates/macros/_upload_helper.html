@@ -1,0 +1,30 @@
+{#
+  One canonical image-upload helper. Defines window.publicSiteUpload(file) -> Promise<url>
+  so every image field (logo, favicon, hero, featured, media) shares ONE implementation
+  instead of re-writing the fetch. Idempotent, so it's safe to include alongside the
+  rich editor (which also calls it).
+
+  Usage:  {% from 'macros/_upload_helper.html' import upload_helper %}
+          {{ upload_helper() }}
+          ... window.publicSiteUpload(file).then(url => ...) ...
+#}
+{% macro upload_helper() %}
+<script>
+window.publicSiteUpload = window.publicSiteUpload || (function () {
+  var UPLOAD_URL = "{{ url_for('admin_panel.public_site_upload_image') }}";
+  function csrf() {
+    var m = document.querySelector('meta[name="csrf-token"]');
+    if (m) return m.getAttribute('content');
+    var i = document.querySelector('input[name="csrf_token"]');
+    return i ? i.value : '';
+  }
+  return function (file) {
+    var fd = new FormData(); fd.append('file', file);
+    return fetch(UPLOAD_URL, { method: 'POST', body: fd, credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrf() } })
+      .then(function (r) { return r.json().then(function (j) {
+        if (!r.ok) throw new Error(j.error || 'Upload failed'); return j.url; }); });
+  };
+})();
+</script>
+{% endmacro %}

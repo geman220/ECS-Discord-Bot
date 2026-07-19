@@ -1,0 +1,106 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Data Integrity{% endblock %}
+{% block panel_description %}Detect roster / league / sub / approval conflicts that silently break Discord roles or stats{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Data Integrity</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% set sev_pill = {
+  'high': 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+  'med':  'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+  'low':  'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+} %}
+{% set sev_dot = {'high': 'bg-red-500', 'med': 'bg-amber-500', 'low': 'bg-gray-400'} %}
+
+<div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+  <div class="flex flex-wrap gap-3">
+    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      <span class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_conflicts }}</span>
+      <span class="text-sm text-gray-500 dark:text-gray-400">total conflicts</span>
+    </div>
+    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+      <span class="text-2xl font-bold text-gray-900 dark:text-white">{{ high_conflicts }}</span>
+      <span class="text-sm text-gray-500 dark:text-gray-400">high severity</span>
+    </div>
+    {% if errored_checks %}
+    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+      <i class="ti ti-alert-octagon text-purple-500"></i>
+      <span class="text-2xl font-bold text-gray-900 dark:text-white">{{ errored_checks }}</span>
+      <span class="text-sm text-gray-500 dark:text-gray-400">checks errored</span>
+    </div>
+    {% endif %}
+  </div>
+  <button type="button" onclick="location.reload()" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-sm font-semibold">
+    <i class="ti ti-refresh"></i>Re-scan
+  </button>
+</div>
+
+{% if total_conflicts == 0 %}
+<div class="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-6 text-center">
+  <i class="ti ti-circle-check text-3xl text-green-500"></i>
+  <p class="mt-2 font-semibold text-gray-900 dark:text-white">No integrity conflicts detected.</p>
+  <p class="text-sm text-gray-500 dark:text-gray-400">Rosters, leagues, subs, and approvals are all consistent.</p>
+</div>
+{% endif %}
+
+<div class="space-y-3">
+  {% for row in summary %}
+  {% set items = details.get(row.code, []) %}
+  <div class="rounded-lg border {% if row.errored %}border-purple-200 dark:border-purple-800{% elif row.count and row.severity == 'high' %}border-red-200 dark:border-red-800{% elif row.count %}border-amber-200 dark:border-amber-800{% else %}border-gray-200 dark:border-gray-700{% endif %} bg-white dark:bg-gray-800 overflow-hidden">
+    <button type="button" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 {% if not row.count and not row.errored %}opacity-60{% endif %}"
+            data-collapse-toggle="chk-{{ row.code }}" aria-expanded="false" aria-controls="chk-{{ row.code }}">
+      <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 {{ sev_dot.get(row.severity, 'bg-gray-400') }}"></span>
+      <span class="flex-1 min-w-0">
+        <span class="font-semibold text-gray-900 dark:text-white">{{ row.title }}</span>
+        <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono uppercase {{ sev_pill.get(row.severity, '') }}">{{ row.severity }}</span>
+        <span class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ row.detail }}</span>
+      </span>
+      {% if row.errored %}
+      <span class="inline-flex items-center justify-center h-7 px-2 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" title="This check raised an error and could not run — its result is unknown, not necessarily clean.">err</span>
+      {% else %}
+      <span class="inline-flex items-center justify-center min-w-[2rem] h-7 px-2 rounded-full text-sm font-bold {% if row.count %}{{ sev_pill.get(row.severity, '') }}{% else %}bg-gray-100 text-gray-400 dark:bg-gray-700{% endif %}">{{ row.count }}</span>
+      {% endif %}
+      <i class="ti ti-chevron-down text-gray-400 flex-shrink-0"></i>
+    </button>
+    <div id="chk-{{ row.code }}" class="hidden border-t border-gray-100 dark:border-gray-700">
+      {% if row.errored %}
+      <p class="px-4 py-3 text-sm text-purple-600 dark:text-purple-400">This check errored and could not run — see server logs. Its result is unknown (not confirmed clean).</p>
+      {% elif items %}
+      <ul class="divide-y divide-gray-100 dark:divide-gray-700">
+        {% for f in items %}
+        <li class="px-4 py-2.5 flex items-start gap-3">
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ f.name or ('Player #' ~ f.player_id) }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">{{ f.detail }}</p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            {% if f.player_id %}
+            <a href="{{ url_for('players.player_profile', player_id=f.player_id) }}" class="text-xs text-ecs-green hover:underline whitespace-nowrap"><i class="ti ti-user"></i> Profile</a>
+            {% endif %}
+            <a href="{{ url_for('admin_panel.users_comprehensive', search=f.name) }}" class="text-xs text-ecs-green hover:underline whitespace-nowrap"><i class="ti ti-edit"></i> Manage</a>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="px-4 py-3 text-sm text-gray-400">None — this check is clean.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<p class="mt-6 text-xs text-gray-400">
+  Catalog &amp; rationale: <span class="font-mono">docs/admin-integrity-guards-audit.md</span>.
+  Counts are computed live on each load.
+</p>
+{% endblock %}

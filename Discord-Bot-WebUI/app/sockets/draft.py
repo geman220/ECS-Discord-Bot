@@ -382,6 +382,17 @@ def handle_draft_player_enhanced(data):
                 except Exception as _sub_err:
                     logger.warning(f"Sub-status cleanup skipped for player {player_id}: {_sub_err}")
 
+                # Self-heal any division drift: make the player's league association +
+                # pl-<division> Flask role match the drafted team's division, dropping
+                # the other division's stale role. No-op for clean data; when it heals
+                # drift we force a full Discord reconcile below (like sub removal).
+                division_align = None
+                try:
+                    from app.services.player_division_service import align_player_to_drafted_division
+                    division_align = align_player_to_drafted_division(session, player_id, team)
+                except Exception as _div_err:
+                    logger.warning(f"Division alignment skipped for player {player_id}: {_div_err}")
+
                 # Mark for Discord update (cheap flag write; safe under the lock)
                 mark_player_for_discord_update(session, player_id)
 
@@ -424,6 +435,10 @@ def handle_draft_player_enhanced(data):
             # (only_add=False) for THIS pick so the stale sub role is actually removed.
             from app.services.sub_status_service import sub_status_removed, sub_removal_notice
             from app.tasks.tasks_discord import assign_roles_to_player_task
+            # Force a full reconcile (removals on) ONLY when we stripped a sub role —
+            # that genuinely needs the stale ECS-FC-PL-*-SUB removed. Division
+            # alignment is purely additive (an only_add=True sync grants the added
+            # role), so it must NOT trigger a removal reconcile.
             _reconcile_removals = sub_status_removed(sub_cleanup)
             _sub_removal_notice = sub_removal_notice(sub_cleanup)
             if _sub_removal_notice:

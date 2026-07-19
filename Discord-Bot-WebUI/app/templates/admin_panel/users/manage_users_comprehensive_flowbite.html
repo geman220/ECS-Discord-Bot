@@ -286,6 +286,21 @@
               <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {% if user.is_active %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% else %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% endif %}">
                 <i class="ti {{ 'ti-bolt' if user.is_active else 'ti-ban' }}" aria-hidden="true"></i>{{ 'Active' if user.is_active else 'Inactive' }}
               </span>
+              {% set _sc = sub_conflicts.get(user.id) if sub_conflicts else None %}
+              {% if _sc %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 cursor-help"
+                    title="Rostered on {{ _sc.team_name }} ({{ _sc.division }}) but still on the {{ _sc.divisions|join(' & ') }} sub list. A leftover sub role can block their division role on Discord — use 'Remove from sub list' to fix.">
+                <i class="ti ti-alert-triangle" aria-hidden="true"></i>Sub conflict
+              </span>
+              {% endif %}
+              {% set _if = integrity_flags.get(user.id) if integrity_flags else None %}
+              {% if _if %}
+              <a href="{{ url_for('admin_panel.integrity_dashboard') }}"
+                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {% if _if.severity == 'high' %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% endif %}"
+                 title="{{ _if.count }} data conflict(s): {{ _if.titles|join('; ') }}. Open the Data Integrity dashboard.">
+                <i class="ti ti-shield-x" aria-hidden="true"></i>{{ _if.count }} conflict{{ 's' if _if.count != 1 else '' }}
+              </a>
+              {% endif %}
             </div>
           </td>
           <td class="px-3 py-3 hidden xl:table-cell">
@@ -300,6 +315,14 @@
                 <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="edit-user" data-user-id="{{ user.id }}"><i class="ti ti-edit mr-2" aria-hidden="true"></i>Edit User</a></li>
                 {% if user.player %}
                 <li><a href="{{ url_for('players.player_profile', player_id=user.player.id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"><i class="ti ti-user mr-2" aria-hidden="true"></i>View Profile</a></li>
+                {% endif %}
+                {% set _sc = sub_conflicts.get(user.id) if sub_conflicts else None %}
+                {% if _sc %}
+                <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-amber-600 dark:text-amber-400"
+                       data-action="remove-sub-status" data-user-id="{{ user.id }}"
+                       data-player-name="{{ (user.player.name if user.player else user.username)|e }}"
+                       data-team-name="{{ _sc.team_name|e }}" data-division="{{ _sc.division|e }}"
+                       data-divisions="{{ _sc.divisions|join(' & ')|e }}"><i class="ti ti-user-minus mr-2" aria-hidden="true"></i>Remove from sub list</a></li>
                 {% endif %}
                 {% if not user.is_approved %}
                 <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600 dark:text-green-400" data-action="approve-user" data-user-id="{{ user.id }}"><i class="ti ti-user-check mr-2" aria-hidden="true"></i>Approve</a></li>
@@ -355,6 +378,14 @@
                 <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="edit-user" data-user-id="{{ user.id }}"><i class="ti ti-edit mr-2" aria-hidden="true"></i>Edit User</a></li>
                 {% if user.player %}
                 <li><a href="{{ url_for('players.player_profile', player_id=user.player.id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"><i class="ti ti-user mr-2" aria-hidden="true"></i>View Profile</a></li>
+                {% endif %}
+                {% set _sc = sub_conflicts.get(user.id) if sub_conflicts else None %}
+                {% if _sc %}
+                <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-amber-600 dark:text-amber-400"
+                       data-action="remove-sub-status" data-user-id="{{ user.id }}"
+                       data-player-name="{{ (user.player.name if user.player else user.username)|e }}"
+                       data-team-name="{{ _sc.team_name|e }}" data-division="{{ _sc.division|e }}"
+                       data-divisions="{{ _sc.divisions|join(' & ')|e }}"><i class="ti ti-user-minus mr-2" aria-hidden="true"></i>Remove from sub list</a></li>
                 {% endif %}
                 {% if not user.is_approved %}
                 <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600 dark:text-green-400" data-action="approve-user" data-user-id="{{ user.id }}"><i class="ti ti-user-check mr-2" aria-hidden="true"></i>Approve</a></li>
@@ -1185,6 +1216,7 @@ window.USER_MGMT_CONFIG = {
     deactivateUserUrl: '{{ url_for("admin_panel.deactivate_user_comprehensive", user_id=0) }}',
     activateUserUrl: '{{ url_for("admin_panel.activate_user_comprehensive", user_id=0) }}',
     deleteUserUrl: '{{ url_for("admin_panel.delete_user_comprehensive", user_id=0) }}',
+    removeSubStatusUrl: '{{ url_for("admin_panel.remove_sub_status_comprehensive", user_id=0) }}',
     bulkActionsUrl: '{{ url_for("admin_panel.bulk_user_comprehensive_actions") }}'
 };
 </script>

@@ -16,8 +16,9 @@
 {% set premier = blocks.get('home_division_premier') %}
 
 {% block panel_content %}
+{% set cms_active = 'home' %}{% include 'admin_panel/public_site/_cms_tabs.html' %}
 {% call page_header("Home Page", subtitle="Public Site") %}
-  <a href="{{ url_for('admin_panel.public_site_home_builder') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-dark"><i class="ti ti-layout-board"></i> Design middle visually</a>
+  <a href="{{ url_for('admin_panel.public_site_home_builder') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50" title="Drag-and-drop layout for the middle of the page"><i class="ti ti-layout-board"></i> Design the middle (drag &amp; drop)</a>
   <a href="{{ url_for('public.home') }}" target="_blank" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-external-link"></i> View</a>
   <a href="{{ url_for('admin_panel.public_site_news') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-news"></i> News</a>
   <a href="{{ url_for('admin_panel.public_site_pages') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-file-text"></i> Pages</a>
@@ -27,7 +28,7 @@
   <i class="ti ti-info-circle text-ecs-green"></i>
   The hero (headline, registration button, season badge) and “Latest news” are always live from the backend and edited here.
   The <strong>middle of the page</strong> (Soccer for all, divisions, Just for fun, How to join) can be designed with drag-and-drop —
-  click <strong>Design middle visually</strong> above. Once you do, the visual design replaces the intro / division / Just-for-fun
+  click <strong>Design the middle (drag &amp; drop)</strong> above. Once you do, the visual design replaces the intro / division / Just-for-fun
   fields below on the live site.
 </div>
 
@@ -54,31 +55,26 @@
         <span id="hero-upload-status" class="text-xs text-gray-400"></span>
       </div>
       <input type="text" name="hero_image" id="hero_image" value="{{ hero.og_image_url if hero else '' }}" placeholder="…or paste an image URL" class="mt-2 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-      <img id="hero-preview" src="{{ hero.og_image_url if hero and hero.og_image_url else '' }}" alt="" class="mt-2 rounded-lg max-h-40 w-full object-cover {{ '' if hero and hero.og_image_url else 'hidden' }}">
     </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Image position <span class="text-gray-400 font-normal">(move the photo so faces show)</span></label>
-        <select name="hero_focal" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-          {% set _f = hero_focal or '50% 50%' %}
-          <option value="50% 50%"  {{ 'selected' if _f == '50% 50%' }}>Center</option>
-          <option value="50% 20%"  {{ 'selected' if _f == '50% 20%' }}>Top (show faces)</option>
-          <option value="50% 35%"  {{ 'selected' if _f == '50% 35%' }}>Upper</option>
-          <option value="50% 65%"  {{ 'selected' if _f == '50% 65%' }}>Lower</option>
-          <option value="50% 80%"  {{ 'selected' if _f == '50% 80%' }}>Bottom</option>
-          <option value="25% 50%"  {{ 'selected' if _f == '25% 50%' }}>Left</option>
-          <option value="75% 50%"  {{ 'selected' if _f == '75% 50%' }}>Right</option>
-        </select>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Position the photo
+        <span class="text-gray-400 font-normal">— click the spot to keep centered (e.g. the faces). Drag the marker to fine-tune.</span></label>
+      {% set _f = hero_focal or '50% 50%' %}
+      <div id="hero-focal-box" class="relative mt-2 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 select-none aspect-[21/9] cursor-crosshair {{ '' if hero and hero.og_image_url else 'hidden' }}">
+        <img id="hero-preview" src="{{ hero.og_image_url if hero and hero.og_image_url else '' }}" alt="" class="pointer-events-none h-full w-full object-cover" style="object-position: {{ _f }};" draggable="false">
+        <span id="hero-focal-dot" class="pointer-events-none absolute h-6 w-6 -ml-3 -mt-3 rounded-full border-2 border-white bg-ecs-green/70 shadow"></span>
       </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Overlay darkness <span class="text-gray-400 font-normal">(lighter = photo shows more)</span></label>
-        <select name="hero_overlay" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-          {% set _o = hero_overlay or 'medium' %}
-          <option value="light"  {{ 'selected' if _o == 'light' }}>Light</option>
-          <option value="medium" {{ 'selected' if _o == 'medium' }}>Medium</option>
-          <option value="heavy"  {{ 'selected' if _o == 'heavy' }}>Heavy</option>
-        </select>
-      </div>
+      <input type="hidden" name="hero_focal" id="hero_focal" value="{{ _f }}">
+      <p class="mt-1 text-xs text-gray-400">Works on phones, tablets and desktop — the photo re-centers on that point at every size.</p>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Overlay darkness <span class="text-gray-400 font-normal">(lighter = photo shows more)</span></label>
+      <select name="hero_overlay" class="mt-1 block w-full max-w-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+        {% set _o = hero_overlay or 'medium' %}
+        <option value="light"  {{ 'selected' if _o == 'light' }}>Light</option>
+        <option value="medium" {{ 'selected' if _o == 'medium' }}>Medium</option>
+        <option value="heavy"  {{ 'selected' if _o == 'heavy' }}>Heavy</option>
+      </select>
     </div>
   </div>
 
@@ -146,18 +142,59 @@
 {{ rich_editor('.wp-editor') }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    function showHeroImage(url) {
+        document.getElementById('hero_image').value = url;
+        var img = document.getElementById('hero-preview');
+        if (img) img.src = url;
+        var box = document.getElementById('hero-focal-box');
+        if (box) box.classList.remove('hidden');
+    }
     var heroFile = document.getElementById('hero-file');
     if (heroFile) heroFile.addEventListener('change', function () {
         if (!this.files || !this.files[0] || !window.publicSiteUpload) return;
         var status = document.getElementById('hero-upload-status');
         status.textContent = 'Uploading…';
         window.publicSiteUpload(this.files[0]).then(function (url) {
-            document.getElementById('hero_image').value = url;
-            var prev = document.getElementById('hero-preview');
-            prev.src = url; prev.classList.remove('hidden');
+            showHeroImage(url);
             status.textContent = 'Uploaded ✓';
         }).catch(function (e) { status.textContent = e.message; });
     });
+    // Pasting a URL should also preview it.
+    var heroUrl = document.getElementById('hero_image');
+    if (heroUrl) heroUrl.addEventListener('change', function () {
+        if (this.value.trim()) showHeroImage(this.value.trim());
+    });
+
+    // ---- Visual focal-point picker: click/drag the hero to set object-position ----
+    (function () {
+        var box = document.getElementById('hero-focal-box');
+        var dot = document.getElementById('hero-focal-dot');
+        var img = document.getElementById('hero-preview');
+        var field = document.getElementById('hero_focal');
+        if (!box || !dot || !img || !field) return;
+        function place(xp, yp) {
+            xp = Math.max(0, Math.min(100, xp)); yp = Math.max(0, Math.min(100, yp));
+            var val = Math.round(xp) + '% ' + Math.round(yp) + '%';
+            field.value = val;
+            img.style.objectPosition = val;
+            dot.style.left = xp + '%'; dot.style.top = yp + '%';
+        }
+        function fromEvent(e) {
+            var r = box.getBoundingClientRect();
+            var cx = (e.touches ? e.touches[0].clientX : e.clientX);
+            var cy = (e.touches ? e.touches[0].clientY : e.clientY);
+            place((cx - r.left) / r.width * 100, (cy - r.top) / r.height * 100);
+        }
+        var m = (field.value || '50% 50%').match(/(-?\d+)%\s+(-?\d+)%/);
+        dot.style.left = (m ? m[1] : 50) + '%'; dot.style.top = (m ? m[2] : 50) + '%';
+        var dragging = false;
+        box.addEventListener('mousedown', function (e) { dragging = true; fromEvent(e); e.preventDefault(); });
+        window.addEventListener('mousemove', function (e) { if (dragging) fromEvent(e); });
+        window.addEventListener('mouseup', function () { dragging = false; });
+        box.addEventListener('touchstart', function (e) { dragging = true; fromEvent(e); }, { passive: true });
+        box.addEventListener('touchmove', function (e) { if (dragging) fromEvent(e); }, { passive: true });
+        box.addEventListener('touchend', function () { dragging = false; });
+    })();
 
     // Generic image uploaders (division cards etc.)
     document.querySelectorAll('.ps-upload').forEach(function (input) {

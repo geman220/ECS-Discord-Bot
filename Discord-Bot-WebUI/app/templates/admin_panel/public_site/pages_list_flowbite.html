@@ -9,6 +9,7 @@
 {% endblock %}
 
 {% block panel_content %}
+{% set cms_active = 'pages' %}{% include 'admin_panel/public_site/_cms_tabs.html' %}
 {% call page_header("Pages", subtitle="Public Site") %}
   <a href="{{ url_for('admin_panel.public_site_home_edit') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-home"></i> Home</a>
   <a href="{{ url_for('admin_panel.public_site_news') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-news"></i> News</a>
@@ -28,6 +29,11 @@
   <span class="text-gray-300 dark:text-gray-600">|</span>
   <a href="{{ url_for('admin_panel.public_site_pages', view='trash') }}" class="{{ 'text-ecs-green font-semibold' if view == 'trash' else 'text-gray-500 dark:text-gray-400 hover:text-ecs-green' }}">Trash <span class="text-gray-400">({{ trash_count }})</span></a>
 </div>
+
+{% if view != 'trash' and pages %}
+<p class="mb-4 text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-info-circle"></i>
+  <strong>Edit</strong> changes a page's words &amp; images. <strong>Design</strong> is the drag-and-drop layout builder. Not sure? Use <strong>Edit</strong>.</p>
+{% endif %}
 
 {% if not pages %}
   {{ empty_state("ti-file-text", ("Trash is empty" if view == 'trash' else "No pages yet"), ("" if view == 'trash' else "Add your first page above.")) }}
@@ -69,7 +75,12 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">{% if page.status == 'published' %}<i class="ti ti-eye-off"></i> Unpublish{% else %}<i class="ti ti-rocket"></i> Publish{% endif %}</button>
           </form>
-          <a href="{{ url_for('admin_panel.public_site_page_builder', page_id=page.id) }}" class="inline-flex items-center gap-1 rounded-lg bg-ecs-green px-3 py-1.5 text-xs font-semibold text-white hover:bg-ecs-green-dark"><i class="ti ti-edit"></i> Edit</a>
+          {% set _designed = page.body_html and '<style' in page.body_html %}
+          {% set _btn_secondary = 'inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50' %}
+          {% set _btn_primary = 'inline-flex items-center gap-1 rounded-lg bg-ecs-green px-3 py-1.5 text-xs font-semibold text-white hover:bg-ecs-green-dark' %}
+          <a href="{{ url_for('admin_panel.public_site_page_builder', page_id=page.id) }}" class="{{ _btn_primary if _designed else _btn_secondary }}" title="Drag-and-drop layout builder"><i class="ti ti-layout-board"></i> Design</a>
+          <a href="{{ url_for('admin_panel.public_site_page_edit', page_id=page.id) }}" class="{{ _btn_secondary if _designed else _btn_primary }}" title="Text / content editor"><i class="ti ti-edit"></i> Edit</a>
+          <a href="{{ url_for('admin_panel.public_site_page_revisions', page_id=page.id) }}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50" title="History / undo (revisions)"><i class="ti ti-history"></i></a>
           <form method="POST" action="{{ url_for('admin_panel.public_site_page_duplicate', page_id=page.id) }}" class="inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50" title="Duplicate"><i class="ti ti-copy"></i></button>

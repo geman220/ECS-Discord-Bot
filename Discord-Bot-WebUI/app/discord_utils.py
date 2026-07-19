@@ -1426,6 +1426,23 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
         if t.league and t.league.name:
             leagues_for_user.add(t.league.name.strip().upper())
 
+    # Priority-2 division fallback — PARITY with the task reconcile calculator
+    # (_execute_player_role_update_async in tasks_discord.py, "Priority 2: Database
+    # league associations"). Grant ECS-FC-PL-PREMIER/CLASSIC from the player's DB
+    # LEAGUE ASSOCIATIONS (league_id / primary_league_id / other_leagues) — NOT team
+    # membership — so a player whose league says Premier but who is missing the
+    # pl-premier Flask role still gets the division role, and the two calculators no
+    # longer disagree. Purely additive (approved users only); nobody loses a role.
+    if approval_status == 'approved':
+        assoc_leagues = set()
+        for lg in ([player.league, player.primary_league] + list(player.other_leagues or [])):
+            if lg and lg.name:
+                assoc_leagues.add(lg.name.strip().lower())
+        if 'premier' in assoc_leagues:
+            roles.append(normalize_name("ECS-FC-PL-PREMIER"))
+        if 'classic' in assoc_leagues:
+            roles.append(normalize_name("ECS-FC-PL-CLASSIC"))
+
     # For non-approved users, no league roles are assigned - they only get team-based roles
     if approval_status != 'approved':
         logger.info(f"Player {player.id} is not approved, only team-based roles will be assigned")

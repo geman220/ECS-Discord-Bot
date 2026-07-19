@@ -10,26 +10,14 @@
           {{ rich_editor() }}                  {# defaults to '.wp-editor' #}
   Exposes window.publicSiteUpload(file) so image-field widgets can reuse it.
 #}
+{% from 'macros/_upload_helper.html' import upload_helper %}
+{% from 'macros/_dirty_guard.html' import dirty_guard %}
 {% macro rich_editor(selector='.wp-editor') %}
+{{ upload_helper() }}
+{{ dirty_guard() }}
 <script src="{{ url_for('static', filename='vendor/tinymce/tinymce.min.js') }}"></script>
 <script>
 (function () {
-  var UPLOAD_URL = "{{ url_for('admin_panel.public_site_upload_image') }}";
-  function csrf() {
-    var m = document.querySelector('meta[name="csrf-token"]');
-    if (m) return m.getAttribute('content');
-    var i = document.querySelector('input[name="csrf_token"]');
-    return i ? i.value : '';
-  }
-  function uploadImage(file) {
-    var fd = new FormData(); fd.append('file', file);
-    return fetch(UPLOAD_URL, { method: 'POST', body: fd, credentials: 'same-origin',
-        headers: { 'X-CSRFToken': csrf() } })
-      .then(function (r) { return r.json().then(function (j) {
-        if (!r.ok) throw new Error(j.error || 'Upload failed'); return j.url; }); });
-  }
-  window.publicSiteUpload = uploadImage;  // reused by featured/hero image widgets
-
   document.addEventListener('DOMContentLoaded', function () {
     if (!window.tinymce) return;
     var isDark = document.documentElement.classList.contains('dark');
@@ -48,10 +36,15 @@
       quickbars_image_toolbar: 'alignleft aligncenter alignright | imageoptions',
       image_caption: true,
       image_advtab: true,
+      setup: function (ed) {
+        ed.on('dirty input change ExecCommand', function () {
+          if (window.__psMarkDirty) window.__psMarkDirty();
+        });
+      },
       object_resizing: true,          // drag image corners to resize
       paste_data_images: true,        // paste screenshots -> uploaded
       automatic_uploads: true,
-      images_upload_handler: function (blobInfo) { return uploadImage(blobInfo.blob()); },
+      images_upload_handler: function (blobInfo) { return window.publicSiteUpload(blobInfo.blob()); },
       // Media Library: populate the image dialog's "image list" dropdown from
       // previously-uploaded assets so authors can reuse instead of re-uploading.
       image_list: function (cb) {
@@ -64,7 +57,12 @@
       convert_urls: false,
       branding: false, promotion: false,
       skin: isDark ? 'oxide-dark' : 'oxide',
-      content_css: "{{ url_for('static', filename='css/public-content.css') }}"
+      // True WYSIWYG: load the SAME compiled Tailwind the live site uses and apply
+      // the real `prose` typography (via body_class) instead of a hand-written CSS
+      // clone. What you type looks exactly like the published page.
+      content_css: "{{ url_for('static', filename='vite-dist/css/tailwind.css') }}",
+      body_class: 'prose prose-lg max-w-none',
+      content_style: 'body{max-width:46rem;margin:0 auto;padding:1rem 1.25rem}'
     });
     // Sync all editors back to their textareas before any form submits.
     document.querySelectorAll('form').forEach(function (f) {

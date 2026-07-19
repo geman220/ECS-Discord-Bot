@@ -9,6 +9,7 @@
 {% endblock %}
 
 {% block panel_content %}
+{% set cms_active = 'media' %}{% include 'admin_panel/public_site/_cms_tabs.html' %}
 {% call page_header("Media Library", subtitle="Public Site") %}
   <a href="{{ url_for('admin_panel.public_site_hub') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Website</a>
   <label class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-dark cursor-pointer">
@@ -50,11 +51,12 @@
 {% endif %}
 {% endblock %}
 
+{% from 'macros/_upload_helper.html' import upload_helper %}
 {% block custom_js %}
 {{ super() }}
+{{ upload_helper() }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  function csrf() { var m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : ''; }
   var input = document.getElementById('media-upload');
   var status = document.getElementById('media-upload-status');
   if (input) input.addEventListener('change', function () {
@@ -62,9 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var files = Array.from(this.files), done = 0;
     status.textContent = 'Uploading…';
     Promise.all(files.map(function (file) {
-      var fd = new FormData(); fd.append('file', file);
-      return fetch("{{ url_for('admin_panel.public_site_upload_image') }}", { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-CSRFToken': csrf() } })
-        .then(function (r) { return r.json(); }).then(function () { done++; });
+      return window.publicSiteUpload(file).then(function () { done++; });
     })).then(function () { status.textContent = done + ' uploaded'; location.reload(); })
       .catch(function () { status.textContent = 'Upload failed'; });
   });

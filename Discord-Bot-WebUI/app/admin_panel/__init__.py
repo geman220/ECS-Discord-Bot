@@ -397,6 +397,10 @@ def _build_admin_search_index():
          'url': url_for('admin_panel.audit_logs'), 'icon': 'ti-file-text'},
 
         # --- System: Monitoring ---
+        {'name': 'Data Integrity', 'category': 'System', 'subcategory': 'Monitoring',
+         'description': 'Detect roster, league, sub, coach, and approval conflicts that silently break Discord roles or stats',
+         'keywords': ['integrity', 'conflicts', 'guards', 'roster', 'sub', 'approval', 'drift', 'consistency', 'discord roles'],
+         'url': url_for('admin_panel.integrity_dashboard'), 'icon': 'ti-shield-check'},
         {'name': 'System Health', 'category': 'System', 'subcategory': 'Monitoring',
          'description': 'System health, service status, performance metrics, and diagnostics',
          'keywords': ['health', 'uptime', 'status', 'services', 'cpu', 'memory', 'disk', 'performance', 'monitoring'],

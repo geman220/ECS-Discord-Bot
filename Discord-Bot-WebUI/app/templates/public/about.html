@@ -1,20 +1,11 @@
 {% extends "public/base_public.html" %}
+{% from 'public/_hero.html' import hero %}
 
 {% block content %}
 {# ---- Hero ---- #}
-<section class="relative overflow-hidden">
-    <div class="absolute inset-0">
-        <img src="{{ imgs.community1 }}" alt="ECS Pub League community" class="h-full w-full object-cover object-[center_30%]">
-        <div class="absolute inset-0 bg-gradient-to-r from-ecs-green-dark/95 via-ecs-green/85 to-ecs-green/50"></div>
-    </div>
-    <div class="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-20 sm:py-24">
-        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white drop-shadow-sm">Bring your C game.</h1>
-        <p class="mt-4 text-lg text-white/90 max-w-2xl drop-shadow">
-            Founded in 2012, ECS Pub League is a non-profit, radically inclusive, beginner-friendly
-            recreational soccer league in Seattle. Everybody plays.
-        </p>
-    </div>
-</section>
+{{ hero('Bring your C game.',
+        'Founded in 2012, ECS Pub League is a non-profit, radically inclusive, beginner-friendly recreational soccer league in Seattle. Everybody plays.',
+        size='lg', image=imgs.community1, overlay='heavy') }}
 
 {# ---- Intro ---- #}
 <section class="py-16 sm:py-20">

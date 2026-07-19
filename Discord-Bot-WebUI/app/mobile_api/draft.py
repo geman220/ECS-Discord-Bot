@@ -612,6 +612,14 @@ def draft_player(league_name: str):
         except Exception as _sub_err:
             logger.warning(f"Mobile sub-status cleanup skipped for player {player_id}: {_sub_err}")
 
+        # Self-heal division drift to match the drafted team (mirrors web socket path).
+        division_align = None
+        try:
+            from app.services.player_division_service import align_player_to_drafted_division
+            division_align = align_player_to_drafted_division(session, player_id, team)
+        except Exception as _div_err:
+            logger.warning(f"Mobile division alignment skipped for player {player_id}: {_div_err}")
+
         # Record draft pick. SAVEPOINT (begin_nested) so a history-write DB failure
         # (e.g. an ECS FC player re-drafted to a 2nd team hits the player-uniqueness
         # constraint) confines the rollback to the savepoint and does NOT poison the
@@ -669,6 +677,8 @@ def draft_player(league_name: str):
     # only_add=True normally (additive), but flip to a full reconcile when a stale
     # sub role was just removed so the ECS-FC-PL-*-SUB Discord role is actually stripped.
     from app.services.sub_status_service import sub_status_removed, sub_removal_notice
+    # Only a stripped sub role needs a removal reconcile; division alignment is
+    # purely additive and is fine with the default only_add=True sync.
     _reconcile_removals = sub_status_removed(sub_cleanup)
     _sub_removal_notice = sub_removal_notice(sub_cleanup)
     if _sub_removal_notice:

@@ -408,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             Swal.fire({
                 title: 'Clear All Draft Picks?',
-                text: `This will permanently delete all draft picks for ${leagueName} in ${seasonName}. This cannot be undone!`,
+                html: `This permanently deletes the <strong>draft pick-order history</strong> for ${leagueName} in ${seasonName}.<br><br>Team rosters are <strong>not</strong> affected — only the record of who was picked in what order is removed. This cannot be undone.`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, clear all',

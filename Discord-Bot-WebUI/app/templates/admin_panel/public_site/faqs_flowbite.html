@@ -43,6 +43,7 @@
 {% endmacro %}
 
 {% block panel_content %}
+{% set cms_active = 'faqs' %}{% include 'admin_panel/public_site/_cms_tabs.html' %}
 {% call page_header("FAQs", subtitle="Public Site") %}
   <a href="{{ url_for('admin_panel.public_site_news') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-news"></i> News</a>
   <a href="{{ url_for('admin_panel.public_site_pages') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-file-text"></i> Pages</a>

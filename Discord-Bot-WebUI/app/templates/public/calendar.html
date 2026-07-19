@@ -1,4 +1,5 @@
 {% extends "public/base_public.html" %}
+{% from 'public/_hero.html' import hero %}
 
 {% set type_meta = {
     'plop': ('ti-ball-football', 'PLOP', 'bg-ecs-green/10 text-ecs-green dark:text-ecs-blue-400'),
@@ -11,14 +12,7 @@
 } %}
 
 {% block content %}
-<section class="bg-gradient-to-br from-ecs-green to-ecs-green-dark">
-    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
-        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">Calendar</h1>
-        <p class="mt-4 text-lg text-white/90 max-w-2xl">
-            Upcoming PLOPs, games, and events. New players — come to a PLOP to check us out.
-        </p>
-    </div>
-</section>
+{{ hero('Calendar', 'Upcoming PLOPs, games, and events. New players — come to a PLOP to check us out.') }}
 
 {# Subscribe / sync to your own calendar (like WordPress's export links) #}
 <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">

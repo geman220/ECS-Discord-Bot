@@ -9,6 +9,7 @@
 {% endblock %}
 
 {% block panel_content %}
+{% set cms_active = 'appearance' %}{% include 'admin_panel/public_site/_cms_tabs.html' %}
 {% call page_header("Appearance", subtitle="Public Site · Branding") %}
   <a href="{{ url_for('admin_panel.public_site_hub') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Website</a>
 {% endcall %}
@@ -67,31 +68,28 @@
 </form>
 {% endblock %}
 
+{% from 'macros/_upload_helper.html' import upload_helper %}
 {% block custom_js %}
 {{ super() }}
+{{ upload_helper() }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  function csrf() { var m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : ''; }
-  var lf = document.getElementById('logo-file');
-  if (lf) lf.addEventListener('change', function () {
-    if (!this.files || !this.files[0]) return;
-    var st = document.getElementById('logo-status'); st.textContent = 'Uploading…';
-    var fd = new FormData(); fd.append('file', this.files[0]);
-    fetch("{{ url_for('admin_panel.public_site_upload_image') }}", { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-CSRFToken': csrf() } })
-      .then(function (r) { return r.json(); })
-      .then(function (j) { if (j.url) { document.getElementById('logo_url').value = j.url; document.getElementById('logo-preview').src = j.url; st.textContent = 'Uploaded ✓'; } else { st.textContent = j.error || 'Failed'; } })
-      .catch(function () { st.textContent = 'Failed'; });
-  });
-  var ff = document.getElementById('favicon-file');
-  if (ff) ff.addEventListener('change', function () {
-    if (!this.files || !this.files[0]) return;
-    var st = document.getElementById('favicon-status'); st.textContent = 'Uploading…';
-    var fd = new FormData(); fd.append('file', this.files[0]);
-    fetch("{{ url_for('admin_panel.public_site_upload_image') }}", { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-CSRFToken': csrf() } })
-      .then(function (r) { return r.json(); })
-      .then(function (j) { if (j.url) { document.getElementById('favicon_url').value = j.url; var p = document.getElementById('favicon-preview'); p.src = j.url; p.classList.remove('hidden'); st.textContent = 'Uploaded ✓'; } else { st.textContent = j.error || 'Failed'; } })
-      .catch(function () { st.textContent = 'Failed'; });
-  });
+  function wireUpload(fileId, urlId, previewId, statusId) {
+    var f = document.getElementById(fileId);
+    if (!f) return;
+    f.addEventListener('change', function () {
+      if (!this.files || !this.files[0]) return;
+      var st = document.getElementById(statusId); st.textContent = 'Uploading…';
+      window.publicSiteUpload(this.files[0]).then(function (url) {
+        document.getElementById(urlId).value = url;
+        var p = document.getElementById(previewId);
+        if (p) { p.src = url; p.classList.remove('hidden'); }
+        st.textContent = 'Uploaded ✓';
+      }).catch(function (e) { st.textContent = e.message || 'Failed'; });
+    });
+  }
+  wireUpload('logo-file', 'logo_url', 'logo-preview', 'logo-status');
+  wireUpload('favicon-file', 'favicon_url', 'favicon-preview', 'favicon-status');
 });
 </script>
 {% endblock %}

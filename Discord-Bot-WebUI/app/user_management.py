@@ -875,23 +875,18 @@ def delete_user(user_id):
             # Tables with NO ACTION that must be deleted before player
             no_action_player_tables = [
                 'draft_prediction_summaries',    # NO ACTION
-                'draft_predictions',             # NO ACTION  
+                'draft_predictions',             # NO ACTION
                 'match_events',                  # NO ACTION
-                'matches',                       # NO ACTION (ref_id column)
                 'player_league',                 # NO ACTION
                 'player_shifts',                 # NO ACTION
                 'player_team_history',           # NO ACTION
                 'substitute_pool_history',       # NO ACTION
             ]
-            
+
             logger.info(f"Deleting NO ACTION player references for player {player_id}")
             for table in no_action_player_tables:
                 try:
-                    # Handle matches table differently since it uses ref_id column
-                    if table == 'matches':
-                        result = session.execute(text(f"DELETE FROM {table} WHERE ref_id = :player_id"), {'player_id': player_id})
-                    else:
-                        result = session.execute(text(f"DELETE FROM {table} WHERE player_id = :player_id"), {'player_id': player_id})
+                    result = session.execute(text(f"DELETE FROM {table} WHERE player_id = :player_id"), {'player_id': player_id})
                     deleted = result.rowcount
                     if deleted > 0:
                         logger.info(f"Deleted {deleted} records from {table} for player {player_id}")
@@ -908,8 +903,12 @@ def delete_user(user_id):
             
             # Update NO ACTION references that should be NULLed instead of deleted
             no_action_player_updates = [
-                ('ecs_fc_sub_slots', 'filled_by'),  # NO ACTION - should NULL
-                ('team', 'coach_id'),                # NO ACTION - should NULL  
+                # matches.ref_id: this player reffed these matches. NULL the FK — do
+                # NOT delete the matches (that would destroy scores/events/stats for
+                # games they merely officiated). This was previously a DELETE.
+                ('matches', 'ref_id'),               # NO ACTION - must NULL, never delete
+                ('ecs_fc_sub_slots', 'filled_by'),   # NO ACTION - should NULL
+                ('team', 'coach_id'),                # NO ACTION - should NULL
             ]
             
             for table, column in no_action_player_updates:

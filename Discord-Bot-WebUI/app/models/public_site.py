@@ -165,6 +165,21 @@ class SitePage(db.Model):
     # Draft vs published (WordPress-style). Defaults to 'published' so existing
     # rows + seeded pages stay live; new custom pages are created as 'draft'.
     status = db.Column(db.String(20), nullable=False, default='published', index=True)
+    # Optional per-page hero styling as a small JSON blob:
+    # {"size","bg_color","text_color","image","overlay","align"}. NULL = default.
+    hero_json = db.Column(db.Text, nullable=True)
+
+    @property
+    def hero(self):
+        """Parsed hero settings dict (empty if none/invalid)."""
+        import json as _json
+        if not self.hero_json:
+            return {}
+        try:
+            d = _json.loads(self.hero_json)
+            return d if isinstance(d, dict) else {}
+        except Exception:
+            return {}
 
     @property
     def is_trashed(self):

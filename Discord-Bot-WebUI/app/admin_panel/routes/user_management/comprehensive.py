@@ -94,6 +94,111 @@ def _build_player_socket_data(player):
     }
 
 
+def _compute_sub_conflicts(users):
+    """
+    Build {user_id: {team_name, division, divisions:[...]}} for rostered players
+    (primary_team_id on a Classic/Premier team) who still hold a conflicting sub
+    role or active sub-pool membership. Batched to a couple of queries so it's
+    cheap for a 50-row page. ECS FC sub status is never treated as a conflict.
+    """
+    from app.services.sub_status_service import (
+        PUB_LEAGUE_SUB_LEAGUE_TYPES, PUB_LEAGUE_SUB_ROLE_NAMES, SUB_ROLE_TO_POOL,
+    )
+    from app.models.substitutes import SubstitutePool
+
+    conflicts = {}
+    player_ids = [u.player.id for u in users if u.player]
+    if not player_ids:
+        return conflicts
+
+    # Rostered division per player (primary team in Classic/Premier).
+    rostered = {}
+    for pid, team_name, div in (
+        db.session.query(Player.id, Team.name, League.name)
+        .join(Team, Player.primary_team_id == Team.id)
+        .join(League, Team.league_id == League.id)
+        .filter(Player.id.in_(player_ids),
+                db.func.lower(League.name).in_(['classic', 'premier']))
+        .all()
+    ):
+        rostered[pid] = (team_name, div)
+
+    # Active Classic/Premier sub-pool membership per player.
+    pools_by_player = {}
+    for pid, ltype in (
+        db.session.query(SubstitutePool.player_id, SubstitutePool.league_type)
+        .filter(SubstitutePool.player_id.in_(player_ids),
+                SubstitutePool.is_active == True,  # noqa: E712
+                SubstitutePool.league_type.in_(PUB_LEAGUE_SUB_LEAGUE_TYPES))
+        .all()
+    ):
+        pools_by_player.setdefault(pid, []).append(ltype)
+
+    # Map role name -> division label (e.g. 'Classic Sub' -> 'Classic').
+    role_to_div = {r: SUB_ROLE_TO_POOL[r][1] for r in PUB_LEAGUE_SUB_ROLE_NAMES}
+
+    for u in users:
+        if not u.player or u.player.id not in rostered:
+            continue
+        pid = u.player.id
+        divisions = set(pools_by_player.get(pid, []))
+        for r in u.roles:
+            if r.name in role_to_div:
+                divisions.add(role_to_div[r.name])
+        if divisions:
+            team_name, roster_div = rostered[pid]
+            conflicts[u.id] = {
+                'team_name': team_name,
+                'division': roster_div,
+                'divisions': sorted(divisions),
+            }
+    return conflicts
+
+
+@admin_panel_bp.route('/users/<int:user_id>/remove-sub-status', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def remove_sub_status_comprehensive(user_id):
+    """
+    Remove a rostered player's conflicting Pub League (Classic/Premier) sub status
+    — deactivates the sub-pool membership + the Flask sub role — then reconciles
+    Discord so the stale sub role is stripped. ECS FC sub status is left intact.
+    Backs the "Remove from sub list" action on the users-management page.
+    """
+    user = User.query.options(joinedload(User.player)).get_or_404(user_id)
+    if not user.player:
+        return jsonify({'success': False, 'message': 'User has no player profile'}), 400
+
+    from app.services.sub_status_service import (
+        remove_conflicting_sub_status, sub_status_removed,
+    )
+    summary = remove_conflicting_sub_status(
+        db.session, user.player.id, performed_by_user_id=current_user.id
+    )
+
+    name = summary['player_name'] or user.username
+    if not (summary['pools_removed'] or summary['roles_removed']):
+        return jsonify({'success': True,
+                        'message': f"{name} had no sub status to remove."})
+
+    if sub_status_removed(summary):
+        # Full add+remove reconcile so the stale ECS-FC-PL-*-SUB Discord role goes.
+        defer_discord_sync(user.player.id, only_add=False)
+
+    parts = []
+    if summary['pools_removed']:
+        parts.append(f"off the {', '.join(summary['pools_removed'])} sub list")
+    if summary['roles_removed']:
+        parts.append(f"cleared {', '.join(summary['roles_removed'])}")
+    logger.info(f"Admin {current_user.id} removed sub status for player "
+                f"{user.player.id}: {summary}")
+    # Only mention a Discord update when a Flask role was actually removed (that's
+    # the only case that queued a reconcile above).
+    tail = " Discord role updating." if sub_status_removed(summary) else ""
+    return jsonify({'success': True, 'message': f"{name}: {'; '.join(parts)}.{tail}"})
+
+
 @admin_panel_bp.route('/users/manage')
 @admin_panel_bp.route('/users-management')  # Alias for template compatibility
 @login_required
@@ -191,8 +296,40 @@ def users_comprehensive():
             'total_roles': len(all_roles)
         }
 
+        # Flag rostered players who STILL hold a conflicting Pub League sub role/pool.
+        # A player rostered on a Classic/Premier team should not be on that (or the
+        # other) division's sub list — the leftover sub role produces a stale Discord
+        # role that can block their real division role. Surfaced as a row badge +
+        # one-click "Remove from sub list" (with an explaining popup). ECS FC ignored.
+        sub_conflicts = _compute_sub_conflicts(users)
+
+        # General integrity conflicts (G1–G15) for THIS page's players, so each row
+        # can show a warning badge that links to the full Data Integrity dashboard.
+        integrity_flags = {}
+        try:
+            from app.services.integrity_service import findings_for_players
+            player_ids = [u.player.id for u in users if u.player]
+            per_player = findings_for_players(db.session, player_ids)
+            # Re-key by user.id and reduce to {count, top_severity, titles} for the badge.
+            pid_to_uid = {u.player.id: u.id for u in users if u.player}
+            sev_rank = {'high': 0, 'med': 1, 'low': 2}
+            for pid, flist in per_player.items():
+                uid = pid_to_uid.get(pid)
+                if uid is None or not flist:
+                    continue
+                flist_sorted = sorted(flist, key=lambda f: sev_rank.get(f.severity, 9))
+                integrity_flags[uid] = {
+                    'count': len(flist),
+                    'severity': flist_sorted[0].severity,
+                    'titles': [f.title for f in flist_sorted],
+                }
+        except Exception as e:
+            logger.warning(f"Integrity flags for user list skipped: {e}")
+
         return render_template('admin_panel/users/manage_users_comprehensive_flowbite.html',
                                users=users,
+                               sub_conflicts=sub_conflicts,
+                               integrity_flags=integrity_flags,
                                roles=all_roles,
                                Role=Role,  # Pass Role model for template
                                stats=stats,
@@ -417,6 +554,65 @@ def edit_user_comprehensive(user_id):
             tertiary_league_id = None
             if tertiary_league_type:
                 tertiary_league_id = get_league_id_from_type(tertiary_league_type)
+
+            # ---- G7/G8 save-guard: warn BEFORE mutating if this save would create a
+            # cross-division primary team or two teams in one Classic/Premier division.
+            # Detected on the SUBMITTED values (pre-mutation) so a 409 leaves the row
+            # untouched; the modal shows a confirm popup and re-submits with
+            # confirm_conflicts=true. ECS FC (multi-team) is exempt from the dup check.
+            if user.player and request.form.get('confirm_conflicts') != 'true':
+                tier_team_ids = [t for t in [team_id, secondary_team_id, tertiary_team_id] if t]
+                tier_teams = {}
+                if tier_team_ids:
+                    for _t in Team.query.filter(Team.id.in_([int(x) for x in tier_team_ids])).all():
+                        tier_teams[_t.id] = _t
+                proposed_conflicts = []
+                # G7: primary team's league differs from the chosen primary league.
+                if team_id and league_id:
+                    _pt = tier_teams.get(int(team_id))
+                    if _pt and _pt.league_id and str(_pt.league_id) != str(league_id):
+                        _pl = League.query.get(int(league_id))
+                        proposed_conflicts.append(
+                            f"Primary team “{_pt.name}” is in a different division than the "
+                            f"selected primary league ({_pl.name if _pl else 'n/a'}).")
+                # G8: two Classic/Premier teams selected in the same division.
+                _div_counts = {}
+                for _tid in tier_team_ids:
+                    _t = tier_teams.get(int(_tid))
+                    if _t and _t.league and _t.league.name and \
+                            _t.league.name.strip().lower() in ('classic', 'premier'):
+                        _div_counts.setdefault(_t.league.name, []).append(_t.name)
+                for _div, _names in _div_counts.items():
+                    if len(_names) > 1:
+                        proposed_conflicts.append(
+                            f"{len(_names)} teams selected in the {_div} division "
+                            f"({', '.join(_names)}) — a player should be on one team per division.")
+                # G1: NEWLY assigning a roster spot to a not-approved player. They'll be
+                # on the roster but Discord only grants the unverified role until approved.
+                # Only fire when the primary team is actually CHANGING (compare to the
+                # current primary_team_id) — otherwise every unrelated save (e.g. an email
+                # edit) of an already-rostered not-approved player would trip the popup.
+                _current_primary = user.player.primary_team_id
+                _new_primary = int(team_id) if team_id else None
+                _assigning_team = (
+                    (_new_primary is not None and _new_primary != _current_primary) or
+                    bool(secondary_team_id or tertiary_team_id or
+                         request.form.getlist('primary_ecsfc_teams') or
+                         request.form.getlist('secondary_ecsfc_teams') or
+                         request.form.getlist('tertiary_ecsfc_teams') or
+                         request.form.getlist('ecs_fc_team_ids[]')))
+                if _assigning_team and not is_approved:
+                    proposed_conflicts.append(
+                        "This player is not marked approved — they will sit on the roster but get "
+                        "no team or league Discord role until approved. Tick “Approved” here, or "
+                        "approve them first.")
+                if proposed_conflicts:
+                    return jsonify({
+                        'success': False,
+                        'needs_confirmation': True,
+                        'conflicts': proposed_conflicts,
+                        'message': 'This change creates a roster conflict.',
+                    }), 409
 
             # Store old values for audit log
             old_values = {
@@ -1079,6 +1275,17 @@ def delete_user_comprehensive(user_id):
     # cascade through every backref (which fails if tables/columns are
     # missing or if NOT NULL constraints block nullification).
     db.session.expunge(user)
+
+    # matches.ref_id references player.id (NOT users.id), so the users-scoped FK scan
+    # below never touches it. Deleting this user cascades to their player row; if they
+    # ever reffed a match (ref_id is NO ACTION) that player-delete would fail on the FK.
+    # NULL the referee link first — keep the match + its scores/events, drop only the
+    # ref association (mirrors the legacy delete_user fix).
+    if player_id:
+        db.session.execute(
+            db.text('UPDATE matches SET ref_id = NULL WHERE ref_id = :pid'),
+            {"pid": player_id}
+        )
 
     # Dynamically find and clean up ALL foreign key references to this
     # user. Many FK constraints lack ON DELETE CASCADE, so we must

@@ -537,7 +537,8 @@ def public_site_menu():
     items = AdminConfig.get_setting('public_nav_menu', None)
     if not isinstance(items, list) or not items:
         items = _DEFAULT_MENU
-    pages = (SitePage.query.filter(~SitePage.slug.in_(_BLOCK_SLUGS))
+    pages = (SitePage.query.filter(~SitePage.slug.in_(_BLOCK_SLUGS),
+                                   SitePage.deleted_at.is_(None))
              .order_by(SitePage.title.asc()).all())
     return render_template('admin_panel/public_site/menu_flowbite.html',
                            items=items, pages=pages, builtins=_BUILTIN_MENU_CHOICES)
@@ -703,8 +704,8 @@ def public_site_page_create():
                     status='draft')  # WordPress-style: new pages start as drafts
     g.db_session.add(page)
     g.db_session.flush()
-    flash('Draft page created — build it, then Publish when ready.', 'success')
-    return redirect(url_for('admin_panel.public_site_page_builder', page_id=page.id))
+    flash('Draft page created — add your content, then Publish when ready.', 'success')
+    return redirect(url_for('admin_panel.public_site_page_edit', page_id=page.id))
 
 
 @admin_panel_bp.route('/public-site/pages/<int:page_id>/publish', methods=['POST'])
@@ -835,6 +836,32 @@ def public_site_page_save():
     page.meta_title = (request.form.get('meta_title') or '').strip() or None
     page.meta_description = (request.form.get('meta_description') or '').strip() or None
     page.og_image_url = (request.form.get('og_image_url') or '').strip() or None
+    # Per-page hero styling (image / colors / size) -> JSON blob. Only NON-default
+    # values are stored, so a page left at defaults keeps the standard green
+    # gradient + white heading instead of a flat colour.
+    import json as _hero_json
+    _hero = {}
+    _size = (request.form.get('hero_size') or 'md').strip()
+    if _size and _size != 'md':
+        _hero['size'] = _size
+    _align = (request.form.get('hero_align') or 'left').strip()
+    if _align and _align != 'left':
+        _hero['align'] = _align
+    _overlay = (request.form.get('hero_overlay') or 'medium').strip()
+    if _overlay and _overlay != 'medium':
+        _hero['overlay'] = _overlay
+    import re as _re
+    _hexre = _re.compile(r'^#[0-9a-fA-F]{3,8}$')
+    _bg = (request.form.get('hero_bg_color') or '').strip()
+    if _bg and _bg.lower() != '#40b050' and _hexre.match(_bg):
+        _hero['bg_color'] = _bg
+    _tc = (request.form.get('hero_text_color') or '').strip()
+    if _tc and _tc.lower() not in ('#ffffff', '#fff') and _hexre.match(_tc):
+        _hero['text_color'] = _tc
+    _img = (request.form.get('hero_image') or '').strip()
+    if _img:
+        _hero['image'] = _img
+    page.hero_json = _hero_json.dumps(_hero) if _hero else None
     # Optional slug change (WordPress-style permalink edit); block/reserved slugs
     # can't be renamed, and the new slug is uniqued.
     new_slug = (request.form.get('slug') or '').strip()
@@ -852,7 +879,12 @@ def public_site_page_save():
         page.updated_by_id = current_user.id
     except Exception:
         pass
-    flash('Page updated.', 'success')
+    if page.slug.startswith('home_'):
+        flash('Saved.', 'success')
+    elif page.status == 'published':
+        flash('Page published — it is now live.', 'success')
+    else:
+        flash('Saved as draft — click Publish to make it live.', 'success')
     return redirect(url_for('admin_panel.public_site_page_edit', page_id=page.id))
 
 

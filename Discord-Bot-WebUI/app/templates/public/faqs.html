@@ -1,12 +1,8 @@
 {% extends "public/base_public.html" %}
+{% from 'public/_hero.html' import hero %}
 
 {% block content %}
-<section class="bg-gradient-to-br from-ecs-green to-ecs-green-dark">
-    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-16">
-        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">Frequently asked questions</h1>
-        <p class="mt-4 text-lg text-white/90">Everything you need to know about joining ECS Pub League.</p>
-    </div>
-</section>
+{{ hero('Frequently asked questions', 'Everything you need to know about joining ECS Pub League.') }}
 
 <section class="py-16 sm:py-20">
     <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">

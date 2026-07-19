@@ -538,7 +538,7 @@ const StoreAdmin = {
         if (typeof window.Swal !== 'undefined') {
             window.Swal.fire({
                 title: 'Delete Orders',
-                text: `Are you sure you want to permanently delete ${orderIds.length} orders? This action cannot be undone.`,
+                html: `Permanently delete <strong>${orderIds.length}</strong> order(s)?<br><br>Any that were paid or fulfilled will lose their payment / fulfillment record. This cannot be undone.`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, delete them!',

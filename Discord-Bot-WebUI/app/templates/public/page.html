@@ -1,23 +1,25 @@
 {% extends "public/base_public.html" %}
+{% from 'public/_hero.html' import hero %}
 
 {% block content %}
 {# Pages built in the visual builder carry their own <style> + full layout, so
    render them FULL-WIDTH exactly as built (no prose clamp, no extra hero).
-   Simple rich-text pages get the styled hero + prose column. #}
+   Simple rich-text pages get the (per-page editable) hero + prose column. #}
 {% set is_builder = page and page.body_html and '<style' in page.body_html %}
+{% set _h = (page.hero if page else {}) or {} %}
 
 {% if is_builder %}
 <div class="ps-builder-page">
     {{ page.body_html | safe }}
 </div>
 {% else %}
-<section class="bg-gradient-to-br from-ecs-green to-ecs-green-dark">
-    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
-        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
-            {{ page.title if page and page.title else title_fallback }}
-        </h1>
-    </div>
-</section>
+{{ hero(page.title if page and page.title else title_fallback,
+        size=_h.get('size', 'md'),
+        bg_color=_h.get('bg_color'),
+        text_color=_h.get('text_color'),
+        image=_h.get('image'),
+        overlay=_h.get('overlay', 'medium'),
+        align=_h.get('align', 'left')) }}
 
 <section class="py-14 sm:py-16">
     <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">

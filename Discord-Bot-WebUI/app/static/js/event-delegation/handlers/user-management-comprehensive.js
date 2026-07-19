@@ -20,6 +20,21 @@ let editUserModalEl = null;
 // CONFIGURATION HELPERS
 // ============================================================================
 
+// Escape user-controlled text before it goes into a SweetAlert `html:` block.
+// Player names (and, more loosely, team names) are user/admin-editable and end up
+// in these dialogs — without escaping, a name like `<img src=x onerror=...>` is
+// stored XSS that fires in the admin's session. Attribute-context Jinja `|e` does
+// NOT protect the innerHTML sink SweetAlert uses.
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function getCsrfToken() {
     const metaToken = document.querySelector('meta[name="csrf-token"]');
     if (metaToken) return metaToken.getAttribute('content');
@@ -408,13 +423,16 @@ window.EventDelegation.register('edit-user', function(element, e) {
 // FORM SUBMISSION
 // ============================================================================
 
-function handleEditUserSubmit(e) {
-    e.preventDefault();
+function handleEditUserSubmit(e, confirmConflicts) {
+    if (e && e.preventDefault) e.preventDefault();
 
     const form = document.getElementById('editUserForm');
     if (!form) return;
 
     const formData = new FormData(form);
+    // On the second pass (admin confirmed the roster-conflict popup) tell the
+    // server to skip the guard and apply the change as-is.
+    if (confirmConflicts) formData.append('confirm_conflicts', 'true');
 
     showLoading('Saving...');
 
@@ -436,12 +454,32 @@ function handleEditUserSubmit(e) {
         throw new Error('Unexpected response format from server. Please refresh and try again.');
     })
     .then(data => {
-        if (data.success) {
+        // Roster-conflict guard: explain the change and let the admin override.
+        if (data && data.needs_confirmation) {
+            if (window.Swal && window.Swal.isVisible()) window.Swal.close();
+            // Escape: conflict strings embed team/league names (admin-editable).
+            const items = (data.conflicts || []).map(c => '<li>' + escapeHtml(c) + '</li>').join('');
+            window.Swal.fire({
+                title: 'Confirm roster change?',
+                html: '<div style="text-align:left"><p>Saving will create:</p>' +
+                      '<ul style="text-align:left;margin:.25rem 0 0 1.1rem;list-style:disc">' + items + '</ul>' +
+                      '<p style="margin-top:.5rem;font-size:.85em;opacity:.75">This can misassign Discord roles and standings. Save anyway only if you intend it.</p></div>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Save anyway',
+                cancelButtonText: 'Go back',
+                confirmButtonColor: '#b45309',
+                background: isDarkMode() ? '#1f2937' : '#ffffff',
+                color: isDarkMode() ? '#f3f4f6' : '#111827'
+            }).then(r => { if (r.isConfirmed) handleEditUserSubmit(null, true); });
+            return;
+        }
+        if (data && data.success) {
             closeModal(editUserModalEl);
             showNotification('Success', data.message || 'User updated successfully', 'success');
             setTimeout(() => location.reload(), 1500);
         } else {
-            throw new Error(data.message || 'Failed to update user');
+            throw new Error((data && data.message) || 'Failed to update user');
         }
     })
     .catch(error => {
@@ -560,10 +598,17 @@ window.EventDelegation.register('delete-user', function(element, e) {
 
     window.Swal.fire({
         title: 'Delete User?',
-        text: 'This will permanently delete the user. This action cannot be undone!',
+        html: '<div style="text-align:left">' +
+              '<p>This <strong>permanently</strong> deletes the user account and its player profile. It will also:</p>' +
+              '<ul style="text-align:left;margin:.25rem 0 0 1.1rem;list-style:disc">' +
+              '<li>Remove them from all teams and sub pools</li>' +
+              '<li>Delete their career/season stats and history</li>' +
+              '<li>Strip their Discord roles</li></ul>' +
+              '<p style="margin-top:.5rem;font-size:.85em;opacity:.75">Matches they refereed are kept (the referee link is cleared, not the match). This cannot be undone.</p></div>',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, Delete',
+        cancelButtonText: 'Cancel',
         confirmButtonColor: '#dc2626',
         background: isDarkMode() ? '#1f2937' : '#ffffff',
         color: isDarkMode() ? '#f3f4f6' : '#111827'
@@ -571,6 +616,68 @@ window.EventDelegation.register('delete-user', function(element, e) {
         if (result.isConfirmed) performUserAction(userId, 'delete');
     });
 }, { preventDefault: true });
+
+// Remove a rostered player's conflicting Pub League sub status. The popup spells
+// out exactly what will change so the admin is making an informed override.
+window.EventDelegation.register('remove-sub-status', function(element, e) {
+    e.preventDefault();
+    const userId = element.dataset.userId;
+    if (!userId) return;
+    const name = escapeHtml(element.dataset.playerName || 'This player');
+    const team = escapeHtml(element.dataset.teamName || 'their team');
+    const division = escapeHtml(element.dataset.division || 'their division');
+    const subList = escapeHtml(element.dataset.divisions || 'a sub list');
+
+    window.Swal.fire({
+        title: 'Remove from sub list?',
+        html: '<div style="text-align:left">' +
+              '<p><strong>' + name + '</strong> is rostered on <strong>' + team + '</strong> (' + division +
+              ') but is still on the <strong>' + subList + '</strong> sub list.</p>' +
+              '<p style="margin-top:.5rem">This will:</p>' +
+              '<ul style="text-align:left;margin:.25rem 0 0 1.1rem;list-style:disc">' +
+              '<li>Take them off the ' + subList + ' sub list</li>' +
+              '<li>Remove the matching sub role on Discord</li></ul>' +
+              '<p style="margin-top:.5rem;font-size:.85em;opacity:.75">ECS FC sub status is kept. ' +
+              'You can re-add them to a sub pool later if needed.</p></div>',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, remove sub status',
+        cancelButtonText: 'Keep as is',
+        confirmButtonColor: '#b45309',
+        background: isDarkMode() ? '#1f2937' : '#ffffff',
+        color: isDarkMode() ? '#f3f4f6' : '#111827'
+    }).then(result => {
+        if (result.isConfirmed) removeSubStatus(userId);
+    });
+}, { preventDefault: true });
+
+function removeSubStatus(userId) {
+    const url = getUrl('removeSubStatusUrl', userId);
+    if (!url) {
+        showNotification('Error', 'URL not configured for remove-sub-status', 'error');
+        return;
+    }
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showNotification('Done', data.message, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            throw new Error(data.message || 'Action failed');
+        }
+    })
+    .catch(error => {
+        console.error('Error removing sub status:', error);
+        showNotification('Error', error.message || 'Action failed', 'error');
+    });
+}
 
 function performUserAction(userId, action) {
     const url = getUrl(`${action}UserUrl`, userId);
@@ -627,12 +734,23 @@ window.EventDelegation.register('bulk-action', function(element, e) {
     }
 
     const actionText = action.charAt(0).toUpperCase() + action.slice(1);
+    // Spell out the downstream effect so a bulk action isn't a mystery click.
+    const bulkConsequence = {
+        'delete': 'Permanently deletes these accounts, their player profiles, stats, and Discord roles. Cannot be undone.',
+        'deactivate': 'Blocks these users from accessing the app and strips their Discord roles. Their roster/stats are kept.',
+        'activate': 'Restores app access and re-syncs their Discord roles.',
+        'approve': 'Approves these users and grants their league/Discord roles.'
+    }[action] || '';
 
     window.Swal.fire({
         title: `${actionText} ${selectedUsers.length} users?`,
+        html: bulkConsequence
+            ? '<p style="text-align:left;font-size:.9em">' + bulkConsequence + '</p>'
+            : undefined,
         icon: action === 'delete' ? 'warning' : 'question',
         showCancelButton: true,
         confirmButtonText: 'Yes',
+        cancelButtonText: 'Cancel',
         confirmButtonColor: action === 'delete' ? '#dc2626' : '#1a472a',
         background: isDarkMode() ? '#1f2937' : '#ffffff',
         color: isDarkMode() ? '#f3f4f6' : '#111827'

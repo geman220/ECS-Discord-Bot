@@ -107,11 +107,16 @@ export function handlePlayerDraftedEvent(data) {
     // the change isn't silent; the removal itself is already done server-side.
     if (data && data.sub_removal_notice) {
         const msg = data.sub_removal_notice;
+        // The notice embeds a player name (user-controlled). SweetAlert's `title`
+        // is an innerHTML sink, so escape before rendering there. showToast gets the
+        // raw string (it's the app's own toast helper).
+        const safeMsg = String(msg).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         if (window.draftSystemInstance && typeof window.draftSystemInstance.showToast === 'function') {
             window.draftSystemInstance.showToast(msg, 'info');
         } else if (typeof window.Swal !== 'undefined') {
             window.Swal.fire({
-                toast: true, position: 'top-end', icon: 'info', title: msg,
+                toast: true, position: 'top-end', icon: 'info', title: safeMsg,
                 showConfirmButton: false, timer: 6000, timerProgressBar: true,
             });
         } else {

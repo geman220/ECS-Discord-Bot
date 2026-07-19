@@ -2,6 +2,15 @@ import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import flowbitePlugin from 'flowbite/plugin';
 import formsPlugin from '@tailwindcss/forms';
+import { createRequire } from 'module';
+
+// Official Tailwind Typography plugin — the Tailwind-native way to style
+// CMS/rich-text content (`prose`). Loaded defensively so a build before the
+// package is installed (npm ci) still succeeds; `prose` activates once the
+// image is rebuilt with the new dependency.
+const _require = createRequire(import.meta.url);
+let typographyPlugin = null;
+try { typographyPlugin = _require('@tailwindcss/typography'); } catch (e) { typographyPlugin = null; }
 
 // Get directory path for ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -115,5 +124,6 @@ export default {
   plugins: [
     flowbitePlugin,
     formsPlugin,
+    ...(typographyPlugin ? [typographyPlugin] : []),
   ],
 };

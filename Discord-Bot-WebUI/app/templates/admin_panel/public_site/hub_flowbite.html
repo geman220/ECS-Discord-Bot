@@ -13,10 +13,42 @@
   <a href="{{ url_for('public.home') }}" target="_blank" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-external-link"></i> View site</a>
 {% endcall %}
 
+{# First-run "getting started" panel — oriented to editing the already-built site.
+   Dismissible; remembered in localStorage so it doesn't nag. #}
+<div id="cms-welcome" class="mb-6 rounded-xl border border-ecs-green/30 bg-ecs-green/5 dark:bg-ecs-green/10 p-5">
+  <div class="flex items-start justify-between gap-3">
+    <div>
+      <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-rocket text-ecs-green"></i> Your website is ready — here's how to change it</h3>
+      <ul class="mt-3 grid gap-2 sm:grid-cols-2 text-sm text-gray-600 dark:text-gray-300">
+        <li class="flex gap-2"><i class="ti ti-edit text-ecs-green mt-0.5"></i> <span><strong>Change words &amp; images on a page</strong> — Pages → <em>Edit</em></span></li>
+        <li class="flex gap-2"><i class="ti ti-layout-board text-ecs-green mt-0.5"></i> <span><strong>Rearrange a page's layout</strong> — Pages → <em>Design</em></span></li>
+        <li class="flex gap-2"><i class="ti ti-plus text-ecs-green mt-0.5"></i> <span><strong>Add a new page</strong> — Pages → <em>Add New Page</em></span></li>
+        <li class="flex gap-2"><i class="ti ti-news text-ecs-green mt-0.5"></i> <span><strong>Post news</strong> — Posts → <em>Add New</em></span></li>
+        <li class="flex gap-2"><i class="ti ti-palette text-ecs-green mt-0.5"></i> <span><strong>Logo, colors &amp; menu</strong> — Appearance and Menus</span></li>
+        <li class="flex gap-2"><i class="ti ti-external-link text-ecs-green mt-0.5"></i> <span><strong>See your changes live</strong> — <em>View site</em> (top-right)</span></li>
+      </ul>
+      <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">Nothing goes live until you click <strong>Save</strong> (and <strong>Publish</strong> for a new page). Made a mistake? Every page keeps a <em>Revisions</em> history you can restore from.</p>
+    </div>
+    <button type="button" id="cms-welcome-dismiss" class="flex-none text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" title="Dismiss"><i class="ti ti-x text-lg"></i></button>
+  </div>
+</div>
+<script>
+(function () {
+  try { if (localStorage.getItem('cms_welcome_dismissed') === '1') {
+    var w = document.getElementById('cms-welcome'); if (w) w.style.display = 'none';
+  } } catch (e) {}
+  var b = document.getElementById('cms-welcome-dismiss');
+  if (b) b.addEventListener('click', function () {
+    var w = document.getElementById('cms-welcome'); if (w) w.style.display = 'none';
+    try { localStorage.setItem('cms_welcome_dismissed', '1'); } catch (e) {}
+  });
+})();
+</script>
+
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
   {% set cards = [
-    ('Pages', 'ti-file-text', 'Add, edit and lay out pages (visual builder)', 'admin_panel.public_site_pages', counts.get('pages')),
-    ('Home Page', 'ti-home', 'Edit the homepage hero and sections', 'admin_panel.public_site_home_edit', None),
+    ('Pages', 'ti-file-text', 'Edit the words & images on a page, redesign a layout, or add a new page', 'admin_panel.public_site_pages', counts.get('pages')),
+    ('Home Page', 'ti-home', 'Edit the front page — headline, photo, sections', 'admin_panel.public_site_home_edit', None),
     ('Posts (News)', 'ti-news', 'Write and publish news posts', 'admin_panel.public_site_news', counts.get('posts')),
     ('FAQs', 'ti-help', 'Manage the frequently-asked questions', 'admin_panel.public_site_faqs', counts.get('faqs')),
     ('Menus', 'ti-menu-2', 'Edit the site navigation menu', 'admin_panel.public_site_menu', None),

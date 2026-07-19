@@ -397,7 +397,17 @@ def dynamic_page(slug):
     )
     return render_template('public/page.html', active_page=slug, seo=seo, page=page,
                            title_fallback=page.title or slug.replace('-', ' ').title(),
-                           edit_url=url_for('admin_panel.public_site_page_builder', page_id=page.id))
+                           edit_url=_page_edit_url(page))
+
+
+def _page_edit_url(page):
+    """Smart 'Edit Page' target: a page DESIGNED in the visual builder (carries a
+    <style> block) opens in the builder; a plain rich-text page opens in the
+    reliable text editor (so the builder never mangles prose, and rich text never
+    strips a designed layout)."""
+    if page and page.body_html and '<style' in page.body_html:
+        return url_for('admin_panel.public_site_page_builder', page_id=page.id)
+    return url_for('admin_panel.public_site_page_edit', page_id=page.id)
 
 
 def _render_site_page(slug, title_fallback, active='', desc=None):
@@ -416,8 +426,8 @@ def _render_site_page(slug, title_fallback, active='', desc=None):
         og_image=(_abs_static(page.og_image_url) if page and page.og_image_url else None),
         json_ld=[_org_json_ld()],
     )
-    edit_url = (url_for('admin_panel.public_site_page_builder', page_id=page.id)
-                if page else url_for('admin_panel.public_site_pages'))
+    edit_url = (_page_edit_url(page) if page
+                else url_for('admin_panel.public_site_pages'))
     return render_template('public/page.html', active_page=active, seo=seo,
                            page=page, title_fallback=title_fallback, edit_url=edit_url)
 
@@ -503,8 +513,8 @@ def news_list():
 @public_bp.route('/news/<slug>')
 def news_detail(slug):
     post = NewsPost.query.filter_by(slug=slug).first()
-    # Only published posts are public (admins preview via the admin panel).
-    if not post or not post.is_published:
+    # Published posts are public; drafts/scheduled are previewable by site admins.
+    if not post or (not post.is_published and not _is_site_admin()):
         abort(404)
     article_ld = {
         '@context': 'https://schema.org',
@@ -682,6 +692,17 @@ def contact():
                     user_id=None, username=name,
                 )
                 _notify_admins_contact(name, email, subject, message)
+                # Also record it in the Submissions inbox so admins have ONE place
+                # to review everything (contact + builder forms), not just email.
+                try:
+                    import json as _json
+                    g.db_session.add(FormSubmission(
+                        form_name='contact',
+                        data_json=_json.dumps({'name': name, 'email': email,
+                                               'subject': subject, 'message': message}),
+                        source_page='/contact'))
+                except Exception:
+                    pass
                 show_success("Thanks — we got your message and will be in touch soon.")
                 return redirect(url_for('public.contact'))
             except Exception as e:

@@ -1,0 +1,29 @@
+{#
+  Warns the admin before leaving a page with unsaved edits ("Leave site?" native
+  prompt). Watches all form fields; TinyMCE and the GrapesJS builder mark dirty
+  via window.__psMarkDirty(); submitting/saving clears it via window.__psClearDirty().
+
+  Usage:  {% from 'macros/_dirty_guard.html' import dirty_guard %}
+          {{ dirty_guard() }}
+#}
+{% macro dirty_guard() %}
+<script>
+if (!window.__psGuardInit) { window.__psGuardInit = true; (function () {
+  var dirty = false;
+  window.__psMarkDirty = function () { dirty = true; };
+  window.__psClearDirty = function () { dirty = false; };
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('form input, form textarea, form select').forEach(function (el) {
+      el.addEventListener('input', window.__psMarkDirty);
+      el.addEventListener('change', window.__psMarkDirty);
+    });
+    document.querySelectorAll('form').forEach(function (f) {
+      f.addEventListener('submit', window.__psClearDirty);
+    });
+  });
+  window.addEventListener('beforeunload', function (e) {
+    if (dirty) { e.preventDefault(); e.returnValue = ''; return ''; }
+  });
+})(); }
+</script>
+{% endmacro %}

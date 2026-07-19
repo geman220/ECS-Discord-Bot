@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/_modern_kit.html' import page_header %}
+{% from 'macros/_dirty_guard.html' import dirty_guard %}
 
 {% block admin_title %}Public Site — Menus{% endblock %}
 
@@ -9,6 +10,7 @@
 {% endblock %}
 
 {% block panel_content %}
+{% set cms_active = 'menus' %}{% include 'admin_panel/public_site/_cms_tabs.html' %}
 {% call page_header("Menus", subtitle="Public Site · Navigation") %}
   <a href="{{ url_for('admin_panel.public_site_hub') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Website</a>
   <button type="button" id="menu-save" class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-dark"><i class="ti ti-device-floppy"></i> Save menu</button>
@@ -39,7 +41,7 @@
         <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">Your page</label>
         <div class="mt-1 flex gap-2">
           <select id="add-page" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1.5 text-sm text-gray-900 dark:text-white">
-            {% for p in pages %}<option value="{{ p.slug }}">{{ p.title or p.slug }}</option>{% endfor %}
+            {% for p in pages %}<option value="{{ p.slug }}">{{ p.title or p.slug }}{% if p.status != 'published' %} — draft (publish to show){% endif %}</option>{% endfor %}
           </select>
           <button type="button" data-add="page" class="rounded-lg bg-gray-100 dark:bg-gray-700 px-3 py-1.5 text-sm hover:bg-gray-200 dark:hover:bg-gray-600">Add</button>
         </div>
@@ -64,8 +66,10 @@
 
 {% block custom_js %}
 {{ super() }}
+{{ dirty_guard() }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  function md() { if (window.__psMarkDirty) window.__psMarkDirty(); }
   var BUILTIN = { {% for v,l in builtins %}'{{ v }}':'{{ l }}',{% endfor %} };
   var PAGES = { {% for p in pages %}'{{ p.slug }}':{{ (p.title or p.slug) | tojson }},{% endfor %} };
   var menu = [];
@@ -85,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function () {
       li.className = 'flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2';
       var kindBadge = { builtin: 'Built-in', page: 'Page', url: 'Link' }[it.kind] || it.kind;
       li.innerHTML =
-        '<span class="text-gray-400 cursor-default"><i class="ti ti-grip-vertical"></i></span>' +
+        '<span class="text-gray-400 text-xs w-5 text-center">' + (i + 1) + '</span>' +
         '<input class="mi-label flex-1 bg-transparent text-sm text-gray-900 dark:text-white focus:outline-none" value="' + (labelFor(it) || '').replace(/"/g,'&quot;') + '">' +
         '<input class="mi-parent w-24 bg-transparent text-xs text-gray-500 dark:text-gray-400 focus:outline-none border-l border-gray-200 dark:border-gray-700 pl-2" placeholder="Under…" title="Type a top-level item\'s name to nest this under it" value="' + (it.parent || '').replace(/"/g,'&quot;') + '">' +
         '<span class="text-[10px] uppercase text-gray-400">' + kindBadge + '</span>' +
@@ -93,8 +97,8 @@ document.addEventListener('DOMContentLoaded', function () {
         '<button type="button" data-op="down" class="text-gray-400 hover:text-ecs-green" title="Down"><i class="ti ti-chevron-down"></i></button>' +
         '<button type="button" data-op="vis" class="text-gray-400 hover:text-ecs-green" title="Show/hide"><i class="ti ' + (it.visible === false ? 'ti-eye-off' : 'ti-eye') + '"></i></button>' +
         '<button type="button" data-op="del" class="text-red-400 hover:text-red-600" title="Remove"><i class="ti ti-trash"></i></button>';
-      li.querySelector('.mi-label').addEventListener('input', function (e) { menu[i].label = e.target.value; });
-      li.querySelector('.mi-parent').addEventListener('input', function (e) { menu[i].parent = e.target.value.trim(); });
+      li.querySelector('.mi-label').addEventListener('input', function (e) { menu[i].label = e.target.value; md(); });
+      li.querySelector('.mi-parent').addEventListener('input', function (e) { menu[i].parent = e.target.value.trim(); md(); });
       li.querySelectorAll('button').forEach(function (b) {
         b.addEventListener('click', function () {
           var op = b.getAttribute('data-op');
@@ -102,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function () {
           else if (op === 'down' && i < menu.length-1) { var t2 = menu[i+1]; menu[i+1] = menu[i]; menu[i] = t2; }
           else if (op === 'del') { menu.splice(i, 1); }
           else if (op === 'vis') { menu[i].visible = (menu[i].visible === false); }
-          render();
+          md(); render();
         });
       });
       ul.appendChild(li);
@@ -119,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
         menu.push({ kind: 'url', value: u, label: document.getElementById('add-url-label').value.trim() || u, visible: true });
         document.getElementById('add-url').value = ''; document.getElementById('add-url-label').value = '';
       }
-      render();
+      md(); render();
     });
   });
   document.getElementById('menu-save').addEventListener('click', function () {

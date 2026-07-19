@@ -1,0 +1,41 @@
+{# ONE shared hero band for every public page — consistent size/spacing, with
+   optional per-page background image, background color, heading size and color.
+   Data-driven colors are inline styles (like the theme --color var); everything
+   else is Tailwind. #}
+{% macro hero(title, subtitle=None, size='md', bg_color=None, text_color=None,
+              image=None, overlay='medium', align='left') %}
+{% set _size_h1 = {
+    'sm': 'text-3xl sm:text-4xl',
+    'md': 'text-4xl sm:text-5xl',
+    'lg': 'text-4xl sm:text-5xl lg:text-6xl',
+    'xl': 'text-5xl sm:text-6xl lg:text-7xl'
+  }.get(size, 'text-4xl sm:text-5xl') %}
+{% set _pad = {
+    'sm': 'py-12 sm:py-14',
+    'md': 'py-16 sm:py-20',
+    'lg': 'py-20 sm:py-28',
+    'xl': 'py-24 sm:py-32 lg:py-40'
+  }.get(size, 'py-16 sm:py-20') %}
+{% set _grad = {
+    'light':  'from-ecs-green-dark/70 via-ecs-green/40 to-transparent',
+    'medium': 'from-ecs-green-dark/90 via-ecs-green/60 to-ecs-green/25',
+    'heavy':  'from-ecs-green-dark/95 via-ecs-green/85 to-ecs-green/55'
+  }.get(overlay, 'from-ecs-green-dark/90 via-ecs-green/60 to-ecs-green/25') %}
+<section class="relative overflow-hidden {{ 'bg-gradient-to-br from-ecs-green to-ecs-green-dark' if not image and not bg_color else '' }}"
+         {% if bg_color and not image %}style="background-color: {{ bg_color }};"{% endif %}>
+  {% if image %}
+  <div class="absolute inset-0">
+    <img src="{{ image }}" alt="" class="h-full w-full object-cover">
+    <div class="absolute inset-0 bg-gradient-to-r {{ _grad }}"></div>
+  </div>
+  {% endif %}
+  <div class="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 {{ _pad }} {{ 'text-center' if align == 'center' else '' }}">
+    <h1 class="{{ _size_h1 }} font-extrabold tracking-tight drop-shadow-sm"
+        style="color: {{ text_color or '#ffffff' }};">{{ title }}</h1>
+    {% if subtitle %}
+    <p class="mt-4 text-lg opacity-90 max-w-2xl {{ 'mx-auto' if align == 'center' else '' }}"
+       style="color: {{ text_color or '#ffffff' }};">{{ subtitle }}</p>
+    {% endif %}
+  </div>
+</section>
+{% endmacro %}

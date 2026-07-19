@@ -256,6 +256,27 @@ def delete_team(team_id):
             'message': f'Cannot delete team with {match_count} matches. Delete or reassign matches first.'
         }), 400
 
+    # Block on season history / standings too. player_team_season -> team is ON
+    # DELETE CASCADE, so deleting a team that has history would SILENTLY destroy
+    # the roster snapshots career & attendance stats depend on (the current-player
+    # check above does NOT catch a team that is empty THIS season but has past
+    # seasons). Mirrors publeague.delete_team + LeagueManagementService.delete_team.
+    from app.models import PlayerTeamSeason
+    from app.models.stats import Standings
+    history_count = db.session.query(PlayerTeamSeason).filter_by(team_id=team_id).count()
+    standings_count = db.session.query(Standings).filter_by(team_id=team_id).count()
+    if history_count or standings_count:
+        blocking = []
+        if history_count:
+            blocking.append(f'{history_count} season-history record(s)')
+        if standings_count:
+            blocking.append('standings')
+        return jsonify({
+            'success': False,
+            'message': (f'Cannot delete "{team.name}" — it has {", ".join(blocking)}. '
+                        f'Deleting it would destroy historical stats. Keep the team for the record.')
+        }), 400
+
     team_name = team.name
     # Store Discord IDs before deletion for cleanup
     discord_channel_id = team.discord_channel_id
