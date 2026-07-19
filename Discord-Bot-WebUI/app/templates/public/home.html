@@ -4,11 +4,19 @@
 
 {# ============================ HERO ============================ #}
 <section class="relative overflow-hidden">
-    {# Player photo background (like the WordPress hero) with a warm overlay for legibility #}
+    {# Player photo background (like the WordPress hero) with a warm overlay for legibility.
+       Focal point + overlay strength are editable on Website -> Home Page. #}
+    {% set _focal = appearance.hero_focal if appearance and appearance.hero_focal else '50% 50%' %}
+    {% set _ov = appearance.hero_overlay if appearance and appearance.hero_overlay else 'medium' %}
+    {% set _grad = {
+        'light':  'from-ecs-green-dark/70 via-ecs-green/35 to-transparent',
+        'medium': 'from-ecs-green-dark/90 via-ecs-green/60 to-ecs-green/20',
+        'heavy':  'from-ecs-green-dark/95 via-ecs-green/85 to-ecs-green/55'
+    }.get(_ov, 'from-ecs-green-dark/90 via-ecs-green/60 to-ecs-green/20') %}
     <div class="absolute inset-0">
-        <img src="{{ (hero.og_image_url if hero and hero.og_image_url else imgs.hero) }}" alt="ECS Pub League players on the pitch" class="h-full w-full object-cover object-center">
-        <div class="absolute inset-0 bg-gradient-to-r from-ecs-green-dark/95 via-ecs-green/80 to-ecs-green/40"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-gray-950/60 via-transparent to-transparent"></div>
+        <img src="{{ (hero.og_image_url if hero and hero.og_image_url else imgs.hero) }}" alt="ECS Pub League players on the pitch" class="h-full w-full object-cover" style="object-position: {{ _focal }};">
+        <div class="absolute inset-0 bg-gradient-to-r {{ _grad }}"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-gray-950/50 via-transparent to-transparent"></div>
     </div>
     <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 sm:py-32 lg:py-40">
         <div class="max-w-2xl">

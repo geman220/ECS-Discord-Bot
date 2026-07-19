@@ -326,7 +326,11 @@ def public_site_home_edit():
     slugs = ['home_hero', 'home_intro', 'home_justforfun',
              'home_division_classic', 'home_division_premier']
     blocks = {b.slug: b for b in SitePage.query.filter(SitePage.slug.in_(slugs)).all()}
-    return render_template('admin_panel/public_site/home_edit_flowbite.html', blocks=blocks)
+    from app.models.admin_config import AdminConfig
+    hero_focal = AdminConfig.get_setting('public_hero_focal', '50% 50%')
+    hero_overlay = AdminConfig.get_setting('public_hero_overlay', 'medium')
+    return render_template('admin_panel/public_site/home_edit_flowbite.html',
+                           blocks=blocks, hero_focal=hero_focal, hero_overlay=hero_overlay)
 
 
 @admin_panel_bp.route('/public-site/home/save', methods=['POST'])
@@ -351,6 +355,14 @@ def public_site_home_save():
            title=(request.form.get('hero_title') or '').strip(),
            body_html=request.form.get('hero_body'),
            og_image_url=(request.form.get('hero_image') or '').strip())
+    # Hero banner focal point + overlay strength (AdminConfig, not a block field).
+    from app.models.admin_config import AdminConfig
+    _focal = (request.form.get('hero_focal') or '50% 50%').strip()
+    _overlay = (request.form.get('hero_overlay') or 'medium').strip()
+    AdminConfig.set_setting('public_hero_focal', _focal,
+                            category='public_site', user_id=current_user.id, auto_commit=False)
+    AdminConfig.set_setting('public_hero_overlay', _overlay,
+                            category='public_site', user_id=current_user.id, auto_commit=False)
     upsert('home_intro',
            title=(request.form.get('intro_title') or '').strip(),
            body_html=request.form.get('intro_body'))

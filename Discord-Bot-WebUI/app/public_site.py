@@ -135,6 +135,9 @@ def _appearance():
         'logo_url': get('public_logo_url', None),
         'primary_hex': primary_hex,
         'primary_rgb': _hex_to_rgb_triplet(primary_hex),
+        # Hero banner controls (editable on Website -> Home Page)
+        'hero_focal': get('public_hero_focal', '50% 50%'),   # object-position
+        'hero_overlay': get('public_hero_overlay', 'medium'),  # light|medium|heavy
     }
 
 
