@@ -248,6 +248,122 @@ def _load_guide_chapters():
         return []
 
 
+def build_about_doc(page=None):
+    """The About page as a DESIGNED layout (hero + alternating image/text columns
+    per division + mission/vision + CTA) rather than one flat richtext dump —
+    mirrors the WordPress /about, where copy sits beside photos. Same content as
+    the seeded body_html, just arranged. Falls back gracefully if edited later
+    (this only seeds the initial structure)."""
+    def img(fn):
+        return {'url': f'/static/img/publeague/{fn}'}
+
+    return {'v': 1, 'sections': [
+        _s('hero', [
+            _b('heading', level=1, html='About ECS Pub League'),
+            _b('richtext', html=(
+                '<p>Founded in 2012, ECS Pub League is a non-profit, radically inclusive, '
+                'beginner-friendly recreational soccer league in Seattle. We play 8 '
+                'players a side (including goalkeepers) on a half-size turf field, with '
+                'unlimited substitutions in and out — most shifts last 5 to 10 minutes. '
+                '<strong>Everybody plays.</strong></p>')),
+        ], theme='dark', size='lg', align='left', overlay='medium',
+           image=img('2024-07__449510587_474189858536818_1170912284728314372_n-1024x683.jpg')),
+
+        _s('columns', [
+            _b('image', col=0, image=img('2026-07__ZUZU-TEAM-1024x683.jpg'), size='full', aspect='4:3'),
+            _b('heading', col=1, level=2, html='Classic Division'),
+            _b('richtext', col=1, html=(
+                '<p>The Classic division is meant for players with little to no experience. '
+                'It also has plenty of beginner-friendly players who want a more relaxed '
+                'environment, many getting back into the game after a little (or a lot) of '
+                'time away. Classic plays early Sunday afternoons, right after Premier.</p>')),
+            _b('richtext', col=1, html=(
+                '<p>If you… haven’t played in years, come on out anyway! Think you’re too '
+                'out of shape, come on out anyway! Think you’re not good enough, come on '
+                'out anyway! Have never played soccer at all, come on out anyway!</p>')),
+        ], layout='50-50'),
+
+        _s('columns', [
+            _b('heading', col=0, level=2, html='Premier Division'),
+            _b('richtext', col=0, html=(
+                '<p>The Premier division is a slightly higher level of competition, but it '
+                'is still low/no contact and pretty laid-back compared to most leagues. If '
+                'you’ve played in GSSL, RATS, or Arena, this probably isn’t the league for '
+                'you. There’s a healthy environment of friendly competition, but we still '
+                'focus on development, team play, and fun. Premier plays Sunday mornings, '
+                'right before Classic.</p>')),
+            _b('image', col=1, image=img('2026-07__Astral_Shield-1024x576.jpg'), size='full', aspect='16:9'),
+        ], layout='50-50'),
+
+        _s('content', [
+            _b('heading', level=2, html='Everybody Plays'),
+            _b('richtext', html=(
+                '<p>We hold “tryouts” in both divisions only to make sure we can build '
+                'evenly balanced teams. Everyone gets equal playing time, regardless of '
+                'ability or fitness, and every team makes the playoffs for a shot at the '
+                'Pub League Cup. Unlimited subs and short shifts make it a great place to '
+                'learn the game or get back into it later in life.</p>'
+                '<p>Both divisions play a ten-week season every Spring (usually April '
+                'through June) and Fall (roughly between Labor Day and Thanksgiving). Games '
+                'are scheduled so as not to conflict with Sounders home matches or popular '
+                'away trips.</p>'
+                '<p>We form new teams in both divisions every season to keep it fun and '
+                'competitive for everyone — and to build new friendships. Each season, '
+                'teams decide their theme and name and design their own custom jerseys. '
+                'There’s an end-of-season party for everyone at a sponsor pub where we '
+                'celebrate individual and team successes.</p>')),
+        ], width='normal'),
+
+        _s('columns', [
+            _b('image', col=0, image=img('2025-11__Ball-Lobbers-F25-Cup-1024x768.jpeg'), size='full', aspect='4:3'),
+            _b('image', col=1, image=img('2025-11__Wasteland-Wanders-F25-Cup-1024x768.jpeg'), size='full', aspect='4:3'),
+        ], layout='50-50'),
+
+        _s('content', [
+            _b('richtext', html=(
+                '<p>Week 9 is Fun Week. Players wear costumes, there’s a potluck BBQ, and '
+                'new rules may be instituted at any time — including the ever-popular '
+                '“multiball.”</p>')),
+        ], width='normal'),
+
+        _s('columns', [
+            _b('image', col=0, image=img('2024-03__PLOP-1024x536.png'), size='full', aspect='16:9'),
+            _b('heading', col=1, level=2, html='PLOP (Pub League Offseason Practices)'),
+            _b('richtext', col=1, html=(
+                '<p>Most every Sunday in the summer and winter offseasons we hold open, '
+                'informal PLOPs. PLOP is a great way to check us out, and it gives us a '
+                'chance to find the right place for you to play. All players new to the '
+                'league must attend a PLOP and be approved before registering.</p>')),
+        ], layout='50-50'),
+
+        _s('content', [
+            _b('heading', level=2, html='Our Mission'),
+            _b('richtext', html=(
+                '<p>Fun and friendly soccer for adults. We’re radically inclusive, but '
+                'we’re not for everyone. ECS Pub League is made up of soccer fans of '
+                'beginner/newcomer/low-intermediate levels who get together to play in a '
+                'fun, safe, and organized environment for the love of the game and a '
+                'little friendly competition.</p>')),
+            _b('heading', level=2, html='Our Vision'),
+            _b('richtext', html=(
+                '<p>Originally founded as the ECS FC Academy, the ECSPL is an excellent way '
+                'for our fellow supporters, their friends, and family to play in an '
+                'organized league and have fun in the process. All matches are played '
+                'using modified FIFA outdoor rules (no going to the ground, no challenges '
+                'from behind or blind spots, etc.).</p>'
+                '<p>ECS Pub League is part of ECS FC, the nonprofit soccer club '
+                'established by Emerald City Supporters, a Sounders FC supporters group.</p>')),
+        ], width='normal'),
+
+        _s('band', [
+            _b('heading', level=2, html='Ready to give it a try?'),
+            _b('cta_live', kind='waitlist_or_register', style='primary', align='center'),
+            _b('button', label='Read the FAQ', link={'kind': 'builtin', 'value': 'faqs'},
+               style='outline', align='center'),
+        ], theme='brand', align='center'),
+    ]}
+
+
 def build_guide_doc():
     """The full Pub League Unofficial Guide as a real in-app page: a hero, an
     intro + download link, an anchored table of contents, and one section per
@@ -450,6 +566,8 @@ def build_doc_for_page(session, page):
         return build_faqs_doc()
     if slug == 'guide':
         return build_guide_doc()
+    if slug == 'about':
+        return build_about_doc(page)
     if page.body_html and '<style' in page.body_html:
         return build_builder_page_doc(page)
     return build_richtext_doc(page)
@@ -482,6 +600,8 @@ def convert_all(session):
             continue
         if page.slug == 'guide':
             _finalize(session, page, build_guide_doc(), 'converted')
+        elif page.slug == 'about':
+            _finalize(session, page, build_about_doc(page), 'converted')
         elif page.body_html and '<style' in page.body_html:
             _finalize(session, page, build_builder_page_doc(page), 'converted-needs-review')
             logger.warning('Page %r was GrapesJS-built; converted best-effort — '

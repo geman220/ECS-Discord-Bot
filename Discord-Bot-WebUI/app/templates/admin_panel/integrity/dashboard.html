@@ -77,7 +77,7 @@
       {% elif items %}
       <ul class="divide-y divide-gray-100 dark:divide-gray-700">
         {% for f in items %}
-        <li class="px-4 py-2.5 flex items-start gap-3">
+        <li class="px-4 py-2.5 flex items-start gap-3" data-integrity-row="{{ row.code }}:{{ loop.index0 }}">
           <div class="min-w-0 flex-1">
             <p class="text-sm font-medium text-gray-900 dark:text-white">{{ f.name or ('Player #' ~ f.player_id) }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400">{{ f.detail }}</p>
@@ -86,7 +86,13 @@
             {% if f.player_id %}
             <a href="{{ url_for('players.player_profile', player_id=f.player_id) }}" class="text-xs text-ecs-green hover:underline whitespace-nowrap"><i class="ti ti-user"></i> Profile</a>
             {% endif %}
-            <a href="{{ url_for('admin_panel.users_comprehensive', search=f.name) }}" class="text-xs text-ecs-green hover:underline whitespace-nowrap"><i class="ti ti-edit"></i> Manage</a>
+            <button type="button" data-action="integrity-manage"
+                    data-code="{{ row.code }}" data-index="{{ loop.index0 }}"
+                    {% if f.player_id %}data-profile-url="{{ url_for('players.player_profile', player_id=f.player_id) }}"{% endif %}
+                    data-manage-url="{{ url_for('admin_panel.users_comprehensive', search=f.name) }}"
+                    class="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg text-xs font-semibold bg-ecs-green text-white hover:bg-ecs-green/90 whitespace-nowrap">
+              <i class="ti ti-tool"></i> {% if f.fix_actions %}Resolve{% else %}Manage{% endif %}
+            </button>
           </div>
         </li>
         {% endfor %}
@@ -101,6 +107,12 @@
 
 <p class="mt-6 text-xs text-gray-400">
   Catalog &amp; rationale: <span class="font-mono">docs/admin-integrity-guards-audit.md</span>.
-  Counts are computed live on each load.
+  Counts are computed live on each load. Season-phase-dependent checks (coach without a
+  team, active but not rostered) stay silent between seasons until the draft has happened /
+  a match result is reported.
 </p>
+
+{# Finding payloads (incl. fix_actions) for the Resolve modal — looked up by the
+   integrity-dashboard JS handler via data-code / data-index on the button. #}
+<script id="integrity-findings" type="application/json">{{ details | tojson }}</script>
 {% endblock %}

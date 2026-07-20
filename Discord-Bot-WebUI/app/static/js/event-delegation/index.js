@@ -114,6 +114,9 @@ import './handlers/admin-discord-onboarding.js'; // Onboarding retry contact, re
 // Admin Panel - Role Management
 import './handlers/admin-roles-handlers.js';     // Role CRUD, assignment, permissions
 
+// Admin Panel - Data Integrity
+import './handlers/integrity-dashboard.js';      // Contextual resolve modal for integrity findings
+
 // window.EventDelegation is available globally via window.EventDelegation
 
 console.log('[window.EventDelegation] Modular system fully loaded');

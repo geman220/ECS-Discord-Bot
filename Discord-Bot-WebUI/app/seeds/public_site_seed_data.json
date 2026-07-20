@@ -124,7 +124,7 @@
     },
     {
       "question": "Still have questions?",
-      "answer_html": "<p>Read and download our 48-page Pub League Unofficial Guide. It should tell you more than you ever wanted to know.</p>",
+      "answer_html": "<p>Read our full <a href=\"/guide\">48-page Pub League Unofficial Guide</a> — it tells you more than you ever wanted to know, and you can read it online or download it.</p>",
       "category": "General",
       "sort_order": 12,
       "is_published": true

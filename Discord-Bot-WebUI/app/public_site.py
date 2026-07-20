@@ -460,6 +460,7 @@ _BUILTIN_NAV = {
 _DEFAULT_NAV = [
     {'kind': 'builtin', 'value': 'home'},
     {'kind': 'builtin', 'value': 'about'},
+    {'kind': 'builtin', 'value': 'guide'},
     {'kind': 'builtin', 'value': 'calendar'},
     {'kind': 'builtin', 'value': 'faqs'},
     {'kind': 'builtin', 'value': 'news'},
@@ -564,8 +565,13 @@ def _render_site_page(slug, title_fallback, active='', desc=None):
     )
 
     def _fallback():
-        from app.services.section_converter import build_richtext_doc, build_placeholder_doc
-        return build_richtext_doc(page) if page else build_placeholder_doc(title_fallback)
+        from app.services.section_converter import (build_richtext_doc,
+                                                    build_placeholder_doc, build_about_doc)
+        if not page:
+            return build_placeholder_doc(title_fallback)
+        if slug == 'about':
+            return build_about_doc(page)   # designed layout, not a flat richtext dump
+        return build_richtext_doc(page)
     return _render_page_sections(page, seo, active or slug, fallback_builder=_fallback)
 
 

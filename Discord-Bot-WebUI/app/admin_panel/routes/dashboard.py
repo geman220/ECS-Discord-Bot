@@ -120,7 +120,21 @@ def build_attention_queue(user):
     except Exception as e:
         logger.warning(f"attention/subs: {e}")
 
-    # 5) Live matches in progress
+    # 5) Data-integrity conflicts (admins only — user-level detail behind it is
+    #    sensitive). Served from a 5-min Redis cache: the full detector scan is
+    #    ~20 queries, too heavy for every dashboard load / attention poll. The
+    #    integrity dashboard re-primes the cache on load and resolves invalidate it.
+    if is_full_admin:
+        try:
+            from app.services.integrity_service import cached_counts
+            c = cached_counts(db.session)
+            add('integrity', 'Data integrity conflicts', c.get('total', 0),
+                'danger' if c.get('high') else 'warning',
+                safe_url('admin_panel.integrity_dashboard'))
+        except Exception as e:
+            logger.warning(f"attention/integrity: {e}")
+
+    # 6) Live matches in progress
     live_count = 0
     try:
         from app.models.live_reporting_session import LiveReportingSession

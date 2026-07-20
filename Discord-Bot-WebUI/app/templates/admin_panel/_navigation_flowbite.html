@@ -916,8 +916,8 @@
                     <span class="hidden lg:inline">More</span>
                     <i class="ti ti-chevron-down text-xs hidden lg:inline"></i>
                 </button>
-                <div id="dropdown-more-nav" class="hidden absolute right-0 z-50 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                    <div class="py-2" data-nav-overflow-items>
+                <div id="dropdown-more-nav" class="hidden absolute right-0 z-50 mt-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2 max-h-[70vh] overflow-y-auto" data-nav-overflow-items>
                         {# JS will populate this with overflow items #}
                     </div>
                 </div>
@@ -1076,20 +1076,45 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
 
-                // Build More dropdown items
+                // Build More dropdown items. Items with their own dropdown become
+                // accordion sections containing the full submenu; direct links stay flat.
                 overflowed.forEach(function(li) {
                     var name = li.getAttribute('data-nav-item');
                     var meta = navItemMeta[name] || { label: name, iconClass: 'ti ti-circle' };
+                    var dropdown = li.querySelector('[id^="dropdown-"]');
 
-                    // Find the first link in this item's dropdown (or the direct link)
-                    var firstLink = li.querySelector('.py-2 a') || li.querySelector('a');
-                    var href = firstLink ? firstLink.getAttribute('href') : '#';
+                    if (!dropdown) {
+                        var directLink = li.querySelector('a');
+                        var a = document.createElement('a');
+                        a.href = directLink ? directLink.getAttribute('href') : '#';
+                        a.className = 'flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700';
+                        a.innerHTML = '<i class="' + meta.iconClass + '"></i>' + meta.label;
+                        overflowItems.appendChild(a);
+                        return;
+                    }
 
-                    var a = document.createElement('a');
-                    a.href = href;
-                    a.className = 'flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700';
-                    a.innerHTML = '<i class="' + meta.iconClass + '"></i>' + meta.label;
-                    overflowItems.appendChild(a);
+                    var toggle = document.createElement('button');
+                    toggle.type = 'button';
+                    toggle.className = 'w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700';
+                    toggle.innerHTML = '<span class="flex items-center gap-2"><i class="' + meta.iconClass + '"></i>' + meta.label + '</span><i class="ti ti-chevron-down text-xs transition-transform"></i>';
+
+                    var panel = document.createElement('div');
+                    panel.className = 'hidden ml-4 border-l border-gray-200 dark:border-gray-700';
+
+                    // Preserve submenu order: section headers + links (badges included via cloneNode)
+                    dropdown.querySelectorAll('a, div.uppercase').forEach(function(node) {
+                        panel.appendChild(node.cloneNode(true));
+                    });
+
+                    toggle.addEventListener('click', function() {
+                        var isHidden = panel.classList.contains('hidden');
+                        panel.classList.toggle('hidden', !isHidden);
+                        var chevron = toggle.querySelector('.ti-chevron-down');
+                        if (chevron) chevron.style.transform = isHidden ? 'rotate(180deg)' : '';
+                    });
+
+                    overflowItems.appendChild(toggle);
+                    overflowItems.appendChild(panel);
                 });
             }
         }

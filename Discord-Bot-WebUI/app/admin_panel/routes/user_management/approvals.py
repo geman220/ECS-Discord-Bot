@@ -197,6 +197,117 @@ def user_approvals():
         return redirect(url_for('admin_panel.users_comprehensive'))
 
 
+def apply_approval(user, league_type: str, approver_id: int, notes=None):
+    """Core approval mutation: role mapping, approval fields, current-season league
+    assignment, and deferred Discord sync. Caller owns locking, league_type
+    validation, auditing, and the transaction (uses db.session throughout).
+
+    Shared by the approve_user route and the integrity dashboard's reconcile
+    actions (G1 pending-rostered, G2 approval drift, G3 missing league role) —
+    "re-run approval" means exactly this block, so keeping one copy prevents the
+    two paths from drifting.
+
+    Raises ValueError if the mapped Role row does not exist.
+    """
+    role_mapping = {
+        'classic': 'pl-classic',
+        'premier': 'pl-premier',
+        'ecs-fc': 'pl-ecs-fc',
+        'sub-classic': 'Classic Sub',
+        'sub-premier': 'Premier Sub',
+        'sub-ecs-fc': 'ECS FC Sub'
+    }
+
+    new_role_name = role_mapping[league_type]
+    new_role = db.session.query(Role).filter_by(name=new_role_name).first()
+    if not new_role:
+        raise ValueError(f'Role {new_role_name} not found')
+
+    # Remove the pl-unverified role
+    unverified_role = db.session.query(Role).filter_by(name='pl-unverified').first()
+    if unverified_role and unverified_role in user.roles:
+        user.roles.remove(unverified_role)
+
+    # Remove the pl-waitlist role (if user was on waitlist)
+    waitlist_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
+    if waitlist_role and waitlist_role in user.roles:
+        user.roles.remove(waitlist_role)
+
+    # Remove any existing league roles before adding new one (prevent role accumulation)
+    existing_league_roles = ['pl-premier', 'pl-classic', 'pl-ecs-fc']
+    for league_role_name in existing_league_roles:
+        if league_role_name != new_role_name:  # Don't remove the one we're about to add
+            existing_role = db.session.query(Role).filter_by(name=league_role_name).first()
+            if existing_role and existing_role in user.roles:
+                user.roles.remove(existing_role)
+                logger.info(f"Removed old league role {league_role_name} from user {user.id}")
+
+    # Add the new approved role
+    if new_role not in user.roles:
+        user.roles.append(new_role)
+
+    # Update user approval status
+    user.approval_status = 'approved'
+    user.is_approved = True
+    user.approval_league = league_type
+    user.approved_by = approver_id
+    user.approved_at = datetime.utcnow()
+    if notes is not None:
+        user.approval_notes = notes
+
+    # Clear waitlist timestamp - user now has a spot
+    user.waitlist_joined_at = None
+
+    # Assign player to current season league based on league_type
+    if user.player and league_type:
+        from app.services.season_sync_service import SeasonSyncService
+
+        # Map league_type to league name and type
+        league_type_mapping = {
+            'classic': ('Classic', 'Pub League'),
+            'premier': ('Premier', 'Pub League'),
+            'ecs-fc': ('ECS FC', 'ECS FC'),
+            'sub-classic': ('Classic', 'Pub League'),
+            'sub-premier': ('Premier', 'Pub League'),
+            'sub-ecs-fc': ('ECS FC', 'ECS FC'),
+        }
+
+        mapping = league_type_mapping.get(league_type)
+        if mapping:
+            league_name, season_league_type = mapping
+            current_league = SeasonSyncService.get_current_league_by_name(
+                db.session, league_name, season_league_type
+            )
+            if current_league:
+                user.player.primary_league_id = current_league.id
+                user.player.league_id = current_league.id
+                # Two-axis model: approval grants MEMBERSHIP (is_approved).
+                # For pay-per-season Pub League divisions (Classic/Premier),
+                # "active this season" (is_current_player) is granted by
+                # PAYMENT — linking a pass — NOT by approval, so we do not
+                # flip it here (that would let an approved-but-unpaid user in
+                # for free). ECS FC and subs have no season pass, so approval
+                # activates them directly.
+                if league_type not in ('classic', 'premier'):
+                    user.player.is_current_player = True
+                logger.info(f"Assigned player {user.player.id} to current season league {current_league.id} ({league_name})")
+
+                # Clear draft cache so player appears immediately.
+                # Deferred until after commit so Redis I/O doesn't
+                # extend the user row lock.
+                defer_clear_league_cache(league_name.lower())
+            else:
+                logger.warning(f"Could not find current season league for type '{league_type}'")
+
+    db.session.add(user)
+    db.session.flush()
+
+    # Queue Discord role sync for AFTER transaction commits
+    if user.player and user.player.discord_id:
+        defer_discord_sync(user.player.id, only_add=False)
+        logger.info(f"Queued Discord role sync for approved user {user.id}")
+
+
 @admin_panel_bp.route('/users/approvals/approve/<int:user_id>', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -230,104 +341,10 @@ def approve_user(user_id: int):
             if not league_type or league_type not in valid_league_types:
                 return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
-            # Get the appropriate role
-            role_mapping = {
-                'classic': 'pl-classic',
-                'premier': 'pl-premier',
-                'ecs-fc': 'pl-ecs-fc',
-                'sub-classic': 'Classic Sub',
-                'sub-premier': 'Premier Sub',
-                'sub-ecs-fc': 'ECS FC Sub'
-            }
-
-            new_role_name = role_mapping[league_type]
-            new_role = db.session.query(Role).filter_by(name=new_role_name).first()
-
-            if not new_role:
-                return jsonify({'success': False, 'message': f'Role {new_role_name} not found'}), 404
-
-            # Remove the pl-unverified role
-            unverified_role = db.session.query(Role).filter_by(name='pl-unverified').first()
-            if unverified_role and unverified_role in user.roles:
-                user.roles.remove(unverified_role)
-
-            # Remove the pl-waitlist role (if user was on waitlist)
-            waitlist_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
-            if waitlist_role and waitlist_role in user.roles:
-                user.roles.remove(waitlist_role)
-
-            # Remove any existing league roles before adding new one (prevent role accumulation)
-            existing_league_roles = ['pl-premier', 'pl-classic', 'pl-ecs-fc']
-            for league_role_name in existing_league_roles:
-                if league_role_name != new_role_name:  # Don't remove the one we're about to add
-                    existing_role = db.session.query(Role).filter_by(name=league_role_name).first()
-                    if existing_role and existing_role in user.roles:
-                        user.roles.remove(existing_role)
-                        logger.info(f"Removed old league role {league_role_name} from user {user.id}")
-
-            # Add the new approved role
-            if new_role not in user.roles:
-                user.roles.append(new_role)
-
-            # Update user approval status
-            user.approval_status = 'approved'
-            user.is_approved = True
-            user.approval_league = league_type
-            user.approved_by = current_user_safe.id
-            user.approved_at = datetime.utcnow()
-            user.approval_notes = notes
-
-            # Clear waitlist timestamp - user now has a spot
-            user.waitlist_joined_at = None
-
-            # Assign player to current season league based on league_type
-            if user.player and league_type:
-                from app.services.season_sync_service import SeasonSyncService
-
-                # Map league_type to league name and type
-                league_type_mapping = {
-                    'classic': ('Classic', 'Pub League'),
-                    'premier': ('Premier', 'Pub League'),
-                    'ecs-fc': ('ECS FC', 'ECS FC'),
-                    'sub-classic': ('Classic', 'Pub League'),
-                    'sub-premier': ('Premier', 'Pub League'),
-                    'sub-ecs-fc': ('ECS FC', 'ECS FC'),
-                }
-
-                mapping = league_type_mapping.get(league_type)
-                if mapping:
-                    league_name, season_league_type = mapping
-                    current_league = SeasonSyncService.get_current_league_by_name(
-                        db.session, league_name, season_league_type
-                    )
-                    if current_league:
-                        user.player.primary_league_id = current_league.id
-                        user.player.league_id = current_league.id
-                        # Two-axis model: approval grants MEMBERSHIP (is_approved).
-                        # For pay-per-season Pub League divisions (Classic/Premier),
-                        # "active this season" (is_current_player) is granted by
-                        # PAYMENT — linking a pass — NOT by approval, so we do not
-                        # flip it here (that would let an approved-but-unpaid user in
-                        # for free). ECS FC and subs have no season pass, so approval
-                        # activates them directly.
-                        if league_type not in ('classic', 'premier'):
-                            user.player.is_current_player = True
-                        logger.info(f"Assigned player {user.player.id} to current season league {current_league.id} ({league_name})")
-
-                        # Clear draft cache so player appears immediately.
-                        # Deferred until after commit so Redis I/O doesn't
-                        # extend the user row lock.
-                        defer_clear_league_cache(league_name.lower())
-                    else:
-                        logger.warning(f"Could not find current season league for type '{league_type}'")
-
-            db.session.add(user)
-            db.session.flush()
-
-            # Queue Discord role sync for AFTER transaction commits
-            if user.player and user.player.discord_id:
-                defer_discord_sync(user.player.id, only_add=False)
-                logger.info(f"Queued Discord role sync for approved user {user.id}")
+            try:
+                apply_approval(user, league_type, approver_id=current_user_safe.id, notes=notes)
+            except ValueError as ve:
+                return jsonify({'success': False, 'message': str(ve)}), 404
 
             # Log the action
             AdminAuditLog.log_action(
