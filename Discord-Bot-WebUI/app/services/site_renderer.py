@@ -237,10 +237,11 @@ class RenderContext:
             fx, fy = (focal if focal else
                       [asset.focal_x if asset.focal_x is not None else 0.5,
                        asset.focal_y if asset.focal_y is not None else 0.5])
+            ver = self._ver(asset)
             return {
-                'url': asset.url,
-                'srcset': self._srcset(asset),
-                'webp_srcset': self._srcset(asset, webp=True),
+                'url': asset.url + ver,
+                'srcset': self._srcset(asset, ver=ver),
+                'webp_srcset': self._srcset(asset, webp=True, ver=ver),
                 'alt': ref.get('alt') or asset.alt_text or '',
                 'focal_css': f'{round(fx * 100)}% {round(fy * 100)}%',
                 'width': asset.width, 'height': asset.height,
@@ -254,7 +255,16 @@ class RenderContext:
         return None
 
     @staticmethod
-    def _srcset(asset, webp=False):
+    def _ver(asset):
+        """Content-hash cache-bust suffix. replace_public_image rewrites the file
+        in place under the same name but refreshes content_hash, so stamping the
+        URL with it gives returning visitors/CDN the new bytes; absent hash = no
+        suffix (legacy assets)."""
+        h = getattr(asset, 'content_hash', None)
+        return f'?v={h[:8]}' if h else ''
+
+    @staticmethod
+    def _srcset(asset, webp=False, ver=''):
         """Build a srcset string from the asset's generated variants."""
         v = asset.variants or {}
         widths = v.get('widths') or []
@@ -264,10 +274,10 @@ class RenderContext:
         if webp:
             if not v.get('webp'):
                 return None
-            return ', '.join(f'{base}-w{w}.webp {w}w' for w in widths)
-        parts = [f'{base}-w{w}.{ext} {w}w' for w in widths if not asset.width or w < asset.width]
+            return ', '.join(f'{base}-w{w}.webp{ver} {w}w' for w in widths)
+        parts = [f'{base}-w{w}.{ext}{ver} {w}w' for w in widths if not asset.width or w < asset.width]
         if asset.width:
-            parts.append(f'{asset.url} {asset.width}w')
+            parts.append(f'{asset.url}{ver} {asset.width}w')
         return ', '.join(parts)
 
     def resolve_link(self, link):

@@ -432,6 +432,29 @@ _FIXED_PAGES = (('home', 'Home'), ('register', 'How to join'),
                 ('contact', 'Contact us'), ('faqs', 'FAQs'))
 
 
+def build_doc_for_page(session, page):
+    """The section doc a page WOULD get from conversion — the same content the
+    public renderer falls back to while sections are still NULL. Centralised so
+    the editor's /state can seed THIS (never an empty doc): seeding empty over a
+    page that still renders fallback content means the first structural edit +
+    Publish silently overwrites that live content with nothing. Mirrors the
+    per-slug selection convert_all uses to persist."""
+    slug = page.slug
+    if slug == 'home':
+        return build_home_doc(session)
+    if slug == 'register':
+        return build_register_doc()
+    if slug == 'contact':
+        return build_contact_doc()
+    if slug == 'faqs':
+        return build_faqs_doc()
+    if slug == 'guide':
+        return build_guide_doc()
+    if page.body_html and '<style' in page.body_html:
+        return build_builder_page_doc(page)
+    return build_richtext_doc(page)
+
+
 def convert_all(session):
     """Idempotent total conversion. Returns the number of pages converted."""
     from app.models import SitePage

@@ -1,0 +1,41 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}403 - Access Denied{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <div class="w-full max-w-md text-center">
+        <!-- ECS Logo -->
+        <div class="mb-8">
+            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}"
+                 alt="ECS Logo" class="w-24 h-24 mx-auto">
+        </div>
+
+        <!-- Error Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+            <div class="mb-4">
+                <div class="w-20 h-20 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+                    <i class="ti ti-lock text-4xl text-amber-600 dark:text-amber-400"></i>
+                </div>
+            </div>
+
+            <h1 class="text-6xl font-bold text-amber-600 dark:text-amber-400 mb-2">403</h1>
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Access Denied</h2>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">You don't have permission to view this page. If you think this is a mistake, ask an admin to check your access.</p>
+
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6 text-sm text-gray-600 dark:text-gray-300 italic">
+                <i class="ti ti-quote text-ecs-green mr-2"></i>
+                <span>The referee blew the whistle — this one's offside for you.</span>
+            </div>
+
+            <a href="{{ url_for('main.index') }}"
+               class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                <i class="ti ti-home"></i>
+                Back to Home
+            </a>
+        </div>
+
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-6">Emerald City Supporters</p>
+    </div>
+</div>
+{% endblock %}

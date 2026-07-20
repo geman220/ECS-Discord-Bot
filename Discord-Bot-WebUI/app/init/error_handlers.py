@@ -9,7 +9,7 @@ Provides secure error responses that don't leak sensitive information.
 
 import logging
 
-from flask import request, redirect, url_for, render_template, session as flask_session, jsonify, Response
+from flask import request, redirect, url_for, render_template, session as flask_session, jsonify, Response, g
 from werkzeug.routing import BuildError
 from werkzeug.routing.exceptions import WebsocketMismatch
 from werkzeug.exceptions import HTTPException
@@ -56,6 +56,46 @@ def _is_api_request():
 def _get_safe_error_message(status_code, default='An error occurred'):
     """Get a safe error message that doesn't expose internal details."""
     return SAFE_ERROR_MESSAGES.get(status_code, default)
+
+
+def _is_public_error_request():
+    """True when the error should be branded for the public marketing site.
+
+    Matches the /preview mount (portal-hosted demo) and the live public
+    domain. The public pages are self-contained standalone HTML, so they
+    render even when the portal shell's context processors can't run.
+    """
+    path = request.path or ''
+    host = (request.host or '').split(':')[0].lower()
+    return (
+        path == '/preview'
+        or path.startswith('/preview/')
+        or host in ('ecspubleague.org', 'www.ecspubleague.org')
+    )
+
+
+def _render_error_html(status_code):
+    """Render a branded error page, host-aware, with layered fallbacks.
+
+    Public marketing requests get the standalone ``public/<code>.html``;
+    everything else gets the portal ``<code>_flowbite.html``. Each render is
+    wrapped so a template or session failure (e.g. Redis down) degrades to a
+    plain-text body rather than a second exception inside the error handler.
+    """
+    if _is_public_error_request():
+        for template in (f'public/{status_code}.html', 'public/500.html'):
+            try:
+                return render_template(template), status_code
+            except Exception:
+                continue
+        return _get_safe_error_message(status_code), status_code, {'Content-Type': 'text/plain'}
+
+    for template in (f'{status_code}_flowbite.html', '500_flowbite.html'):
+        try:
+            return render_template(template), status_code
+        except Exception:
+            continue
+    return _get_safe_error_message(status_code), status_code, {'Content-Type': 'text/plain'}
 
 
 def _compute_retry_after(error) -> int:
@@ -162,18 +202,10 @@ def install_error_handlers(app):
                 'status_code': status_code
             }), status_code
 
-        # Return HTML for browser requests
-        # Try to render template, fallback to plain text if session unavailable (Redis down)
-        try:
-            template = f"{status_code}_flowbite.html" if status_code in [403, 404, 500] else "500_flowbite.html"
-            return render_template(template), status_code
-        except Exception:
-            # Fallback to simple error page if specific template fails
-            try:
-                return render_template("500_flowbite.html"), status_code
-            except Exception:
-                # Session unavailable (Redis down) - return minimal response
-                return _get_safe_error_message(status_code), status_code, {'Content-Type': 'text/plain'}
+        # Return HTML for browser requests. _render_error_html is host-aware
+        # (public marketing vs portal) and already layers template → 500 page →
+        # plain-text fallbacks for the session-unavailable (Redis down) case.
+        return _render_error_html(status_code)
 
     @app.errorhandler(401)
     def unauthorized(error):
@@ -185,14 +217,25 @@ def install_error_handlers(app):
 
     @app.errorhandler(403)
     def forbidden(error):
-        """Handle 403 forbidden — used for banned IPs. Minimal response, no logging."""
+        """Handle 403 forbidden.
+
+        Two very different callers land here: (1) the security middleware
+        banning a hostile IP — those get a bare, DB-free response and no
+        logging so a scanner flood can't amplify load or drown the logs; and
+        (2) legitimate role/permission denials via ``abort(403)`` — those get
+        the branded "Access Denied" page so a real user isn't staring at the
+        browser's raw 403. The middleware flags its own case on ``g``.
+        """
         if _is_api_request():
             return jsonify({
                 'success': False,
                 'error': 'Forbidden',
                 'status_code': 403
             }), 403
-        return '', 403
+        # WAF ban: minimal response, no template, no logging.
+        if getattr(g, '_waf_banned', False):
+            return '', 403
+        return _render_error_html(403)
 
     # Paths that 404 so often they drown real 404s: browser auto-requests for
     # favicons/apple-touch-icons and the known stale mobile-client prefix
@@ -236,16 +279,9 @@ def install_error_handlers(app):
                 'status_code': 404
             }), 404
 
-        # Public marketing site gets its own branded 404 (not the portal one).
-        host = (request.host or '').split(':')[0].lower()
-        if (path == '/preview' or path.startswith('/preview/')
-                or host in ('ecspubleague.org', 'www.ecspubleague.org')):
-            try:
-                return render_template('public/404.html'), 404
-            except Exception:
-                pass
-
-        return render_template("404_flowbite.html"), 404
+        # Branded 404 — public marketing site gets its standalone page, the
+        # portal gets its Flowbite page, with plain-text fallback baked in.
+        return _render_error_html(404)
 
     @app.errorhandler(429)
     def handle_too_many_requests(error):
@@ -262,7 +298,8 @@ def install_error_handlers(app):
             })
         else:
             try:
-                response = app.make_response(render_template("500_flowbite.html"))
+                body, _status = _render_error_html(429)[:2]
+                response = app.make_response(body)
             except Exception:
                 response = app.make_response(('Too Many Requests', 429))
 

@@ -56,6 +56,14 @@ def get_session(session, season_id, league_id, for_update=False):
     return q.first()
 
 
+def roster_target(session, season_id, league_id, default=15):
+    """Configured picks-per-team for this (season, league): DraftSession.rounds
+    when a session exists and rounds is set, else `default`. Display/analytics
+    only — nothing enforces this as a cap on picks."""
+    ds = get_session(session, season_id, league_id)
+    return ds.rounds if ds and ds.rounds else default
+
+
 def check_turn(ds, team_id, is_admin, expected_pick=None):
     """Authoritative on-the-clock turn check. MUST be called while holding the
     FOR UPDATE lock on `ds` (get_session(..., for_update=True)) so the claim is

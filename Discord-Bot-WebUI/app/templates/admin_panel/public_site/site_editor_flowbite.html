@@ -70,5 +70,7 @@
     </div>
 </div>
 
-<script type="module" src="{{ vite_asset('js/site-editor/shell.js') }}"></script>
+{# vite_asset() emits the full <script type="module" …> tag (plus modulepreloads),
+   so render it directly — do NOT wrap it in another <script src="…">. #}
+{{ vite_asset('js/site-editor/shell.js') }}
 {% endblock %}

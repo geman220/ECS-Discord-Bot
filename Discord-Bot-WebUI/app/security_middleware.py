@@ -142,6 +142,11 @@ class SecurityMiddleware:
                 ban_expiry = self.rate_limiter.blacklist.get(client_ip)
                 if ban_expiry is not None:
                     if time.time() < ban_expiry:
+                        # Flag this as a WAF ban so the 403 handler returns a
+                        # bare, DB-free response instead of the branded page —
+                        # a banned scanner shouldn't get context-processor DB
+                        # queries rendered for it on every hammered request.
+                        g._waf_banned = True
                         abort(403)
                     else:
                         del self.rate_limiter.blacklist[client_ip]

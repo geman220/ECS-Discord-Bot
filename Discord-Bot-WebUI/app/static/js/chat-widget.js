@@ -195,13 +195,6 @@ function bindEvents() {
   // Window resize
   window.addEventListener('resize', updatePosition);
 
-  // Open inbox button
-  if (elements.openInboxBtn) {
-    elements.openInboxBtn.addEventListener('click', () => {
-      window.location.href = '/messages';
-    });
-  }
-
   // New chat button (focus search)
   if (elements.newChatBtn) {
     elements.newChatBtn.addEventListener('click', () => {
@@ -213,6 +206,45 @@ function bindEvents() {
         elements.searchInput.focus();
       }
     });
+  }
+}
+
+/**
+ * Handle ?open_chat=1[&chat_user=<id>] deep links.
+ * The retired /messages inbox page now redirects here with these params so
+ * old links (mobile nav, player profiles, notifications) open the widget —
+ * optionally straight into a conversation.
+ */
+function handleDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('open_chat')) return;
+
+  const chatUserId = parseInt(params.get('chat_user'), 10);
+
+  // Strip the params so refresh/back doesn't reopen the widget
+  params.delete('open_chat');
+  params.delete('chat_user');
+  const qs = params.toString();
+  window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash);
+
+  openWidget();
+
+  if (chatUserId) {
+    // Fetch the user's display info, then open the conversation
+    // (openConversation loads the message history itself)
+    fetchJSON(CONFIG.api.messages(chatUserId, 0, 1))
+      .then(data => {
+        if (data && data.success && data.user) {
+          const u = data.user;
+          openConversation(u.id, u.name, u.avatar_url, u.is_online, {
+            is_coach: u.is_coach,
+            is_admin: u.is_admin,
+            is_global_admin: u.is_global_admin,
+            is_ref: u.is_ref
+          });
+        }
+      })
+      .catch(err => console.warn('[ChatWidget] Deep link conversation failed to open:', err));
   }
 }
 
@@ -243,6 +275,9 @@ function initChatWidget() {
   if (CONFIG.polling.enabled) {
     setInterval(() => loadUnreadCount(updateBadge), CONFIG.polling.interval);
   }
+
+  // Auto-open from /messages redirect deep links
+  handleDeepLink();
 
   console.log('[ChatWidget] Initialized');
 }

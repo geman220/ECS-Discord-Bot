@@ -176,7 +176,6 @@
 @import './pages/error-pages.css' layer(pages);
 @import './pages/feedback.css' layer(pages);
 @import './pages/matches-list.css' layer(pages);
-@import './pages/messages-inbox.css' layer(pages);
 @import './pages/mobile-wizard.css' layer(pages);
 @import './pages/notifications.css' layer(pages);
 @import './pages/onboarding.css' layer(pages);

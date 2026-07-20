@@ -188,6 +188,10 @@ def get_draft_status(league_name: str):
         # Get teams (excluding Practice)
         teams = [t for t in current_league.teams if t.name != "Practice"]
 
+        # Configured picks-per-team (DraftSession.rounds), falling back to 15.
+        from app import draft_clock
+        roster_size = draft_clock.roster_target(session, current_league.season_id, current_league.id)
+
         # Calculate analytics
         teams_data = []
         total_drafted = 0
@@ -206,7 +210,9 @@ def get_draft_status(league_name: str):
             teams_data.append({
                 "id": team.id,
                 "name": team.name,
-                "player_count": team_count
+                "player_count": team_count,
+                "roster_size": roster_size,
+                "spots_remaining": max(0, roster_size - team_count)
             })
 
         # Get available player count
@@ -253,9 +259,10 @@ def get_draft_status(league_name: str):
             "total_teams": len(teams),
             "total_drafted": total_drafted,
             "available_count": available_count,
+            "roster_size": roster_size,
             "avg_players_per_team": round(total_drafted / max(len(teams), 1), 1),
             "position_distribution": position_counts,
-            "draft_progress": min(100, (total_drafted / (len(teams) * 15)) * 100),
+            "draft_progress": min(100, (total_drafted / max(len(teams) * roster_size, 1)) * 100),
             "latest_pick_position": latest_pick.draft_position if latest_pick else 0
         }), 200
 
@@ -410,6 +417,9 @@ def get_draft_teams(league_name: str):
 
         teams = [t for t in current_league.teams if t.name != "Practice"]
 
+        from app import draft_clock
+        roster_size = draft_clock.roster_target(session, current_league.season_id, current_league.id)
+
         teams_data = []
         for team in teams:
             team_players = [p for p in team.players if p.is_current_player]
@@ -424,10 +434,12 @@ def get_draft_teams(league_name: str):
                 "id": team.id,
                 "name": team.name,
                 "player_count": len(team_players),
+                "roster_size": roster_size,
+                "spots_remaining": max(0, roster_size - len(team_players)),
                 "position_breakdown": position_counts
             })
 
-        return jsonify({"teams": teams_data}), 200
+        return jsonify({"teams": teams_data, "roster_size": roster_size}), 200
 
 
 @mobile_api_v2.route('/draft/<league_name>/team/<int:team_id>/roster', methods=['GET'])
@@ -470,10 +482,15 @@ def get_team_roster(league_name: str, team_id: int):
             current_league.season_id
         )
 
+        from app import draft_clock
+        roster_size = draft_clock.roster_target(session, current_league.season_id, current_league.id)
+
         return jsonify({
             "team_id": team.id,
             "team_name": team.name,
             "player_count": len(players),
+            "roster_size": roster_size,
+            "spots_remaining": max(0, roster_size - len(players)),
             "players": players
         }), 200
 

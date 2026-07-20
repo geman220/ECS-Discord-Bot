@@ -57,8 +57,11 @@ def _build_static_map():
     # Category archives -> news index
     for cat in ('announcements', 'events', 'news'):
         m[f'/category/{cat}'] = ('public.news_list', {})
-    # The Events Calendar archive + tickets -> live calendar
-    m['/events'] = ('calendar.calendar_view', {})
+    # The Events Calendar archive + tickets -> live public calendar.
+    # Target the PUBLIC endpoint (public.calendar), not the portal-only
+    # calendar.calendar_view — the latter isn't registered on publicweb and
+    # would BuildError-500 the marketing host.
+    m['/events'] = ('public.calendar', {})
     m['/tickets-checkout'] = ('public.home', {})
     m['/tickets-order'] = ('public.home', {})
     return m
@@ -84,21 +87,34 @@ def register_public_redirects(app):
         path = request.path or '/'
         norm = path.rstrip('/') or '/'
 
+        # A legacy 301 must never 500 the marketing host: if the target endpoint
+        # isn't registered (e.g. a portal-only endpoint under PUBLIC_ONLY), build
+        # fails -> fall through to a normal 404 instead of a BuildError crash.
+        def _safe_301(endpoint, **kwargs):
+            from flask import url_for
+            try:
+                return redirect(url_for(endpoint, **kwargs), code=301)
+            except Exception:
+                return None
+
         # 1. Exact static map (posts, categories, events archive, tickets).
         target = _STATIC_MAP.get(norm)
         if target:
-            from flask import url_for
-            return redirect(url_for(target[0], **target[1]), code=301)
+            r = _safe_301(target[0], **target[1])
+            if r:
+                return r
 
         # 2. Single TEC event pages: /event/<slug> -> /calendar
-        if norm.startswith('/event/'):
-            from flask import url_for
-            return redirect(url_for('calendar.calendar_view'), code=301)
+        elif norm.startswith('/event/'):
+            r = _safe_301('public.calendar')
+            if r:
+                return r
 
         # 3. TEC venue/organizer taxonomy pages -> /calendar (thin content).
-        if norm.startswith('/venue/') or norm.startswith('/organizer'):
-            from flask import url_for
-            return redirect(url_for('calendar.calendar_view'), code=301)
+        elif norm.startswith('/venue/') or norm.startswith('/organizer'):
+            r = _safe_301('public.calendar')
+            if r:
+                return r
 
         return None
 

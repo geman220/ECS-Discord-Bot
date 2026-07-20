@@ -32,17 +32,19 @@
 #}
 
 {% if current_user.is_authenticated %}
-<div class="c-chat-widget group" data-state="closed" data-view="list">
+<div class="c-chat-widget" data-state="closed" data-view="list">
 
   {# ========================================================================
      FLOATING TRIGGER BUTTON
+     (icon swap driven by data-state in the companion CSS — Tailwind display
+     utilities lose to tabler-icons.css's `.ti { display: inline-block }`)
      ======================================================================== #}
   <button class="c-chat-widget__trigger relative flex h-14 w-14 items-center justify-center rounded-full bg-ecs-green text-white shadow-lg shadow-gray-900/20 transition-all hover:scale-105 hover:bg-ecs-green-dark active:scale-95 focus:outline-none focus:ring-4 focus:ring-ecs-green/30 max-md:h-11 max-md:w-11"
           aria-label="Open messages"
           aria-expanded="false"
           aria-haspopup="dialog">
-    <i class="ti ti-message-circle text-2xl max-md:text-xl group-data-[state=open]:hidden" aria-hidden="true"></i>
-    <i class="ti ti-x hidden text-2xl max-md:text-xl group-data-[state=open]:inline" aria-hidden="true"></i>
+    <i class="c-chat-widget__icon-closed ti ti-message-circle text-2xl max-md:text-xl" aria-hidden="true"></i>
+    <i class="c-chat-widget__icon-open ti ti-x text-2xl max-md:text-xl" aria-hidden="true"></i>
     <span class="c-chat-widget__badge absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white shadow"
           data-count="0"
           style="display: none;">0</span>
@@ -58,7 +60,7 @@
     {# ======================================================================
        LIST VIEW - Conversations
        ====================================================================== #}
-    <div class="c-chat-widget__list-view flex min-h-0 flex-1 flex-col overflow-hidden group-data-[view=chat]:hidden">
+    <div class="c-chat-widget__list-view flex min-h-0 flex-1 flex-col overflow-hidden">
 
       {# Header #}
       <div class="c-chat-widget__header flex shrink-0 items-center justify-between gap-2 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
@@ -72,12 +74,6 @@
                   aria-label="New conversation"
                   title="Start new chat">
             <i class="ti ti-edit" aria-hidden="true"></i>
-          </button>
-          <button class="c-chat-widget__header-btn inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-ecs-green/40 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                  data-action="open-inbox"
-                  aria-label="Open inbox"
-                  title="Open full inbox">
-            <i class="ti ti-external-link" aria-hidden="true"></i>
           </button>
           <button class="c-chat-widget__header-btn inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-ecs-green/40 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
                   data-action="close-widget"
@@ -139,7 +135,8 @@
     {# ======================================================================
        CHAT VIEW - Active Conversation
        ====================================================================== #}
-    <div class="c-chat-widget__chat hidden min-h-0 flex-1 flex-col overflow-hidden group-data-[view=chat]:flex">
+    {# display owned by companion CSS (none by default, flex when data-view="chat") #}
+    <div class="c-chat-widget__chat min-h-0 flex-1 flex-col overflow-hidden">
 
       {# Chat Header #}
       <div class="c-chat-widget__chat-header flex shrink-0 items-center gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">

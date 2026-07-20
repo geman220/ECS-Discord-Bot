@@ -23,7 +23,7 @@ Pages:
 
 import logging
 from datetime import datetime
-from flask import Blueprint, jsonify, request, render_template
+from flask import Blueprint, jsonify, request, redirect, url_for
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
@@ -733,34 +733,14 @@ def search_users():
 @login_required
 def messages_inbox():
     """
-    Full messages inbox page.
+    Legacy inbox URL — messaging lives in the floating chat widget now.
 
-    Query params:
-        user: Optional user_id to open conversation with
+    Redirects home with query params the widget reads on init to auto-open,
+    optionally straight into a conversation (?user=<id> deep links from
+    player profiles, mobile nav, and notifications keep working).
     """
-    # Get initial conversation to open (if specified)
-    initial_user_id = request.args.get('user', type=int)
-    initial_user = None
-
-    if initial_user_id:
-        initial_user = _s().query(User).get(initial_user_id)
-        if initial_user:
-            # Check if we can message this user
-            can_msg, _ = _can_user_message(current_user, initial_user)
-            if not can_msg:
-                initial_user = None
-
-    # Get messaging settings
-    settings = MessagingSettings.get_settings()
-
-    return render_template(
-        'messages/inbox_flowbite.html',
-        title='Messages',
-        initial_user=_user_to_dict(initial_user) if initial_user else None,
-        settings={
-            'enabled': settings.enabled,
-            'max_message_length': settings.max_message_length,
-            'typing_indicators': settings.typing_indicators,
-            'read_receipts': settings.read_receipts
-        }
-    )
+    params = {'open_chat': 1}
+    user_id = request.args.get('user', type=int)
+    if user_id:
+        params['chat_user'] = user_id
+    return redirect(url_for('main.index', **params))

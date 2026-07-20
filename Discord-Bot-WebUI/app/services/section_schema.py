@@ -328,7 +328,9 @@ def _v_stats(b, notes, w):
             label = _text(it.get('label'), 60)
             if value and label:
                 items.append({'value': value, 'label': label})
-    return {'items': items} if items else None
+    # Keep the block even when empty (edit-mode placeholder) — don't drop it, so
+    # a stats block a volunteer just added or temporarily emptied doesn't vanish.
+    return {'items': items}
 
 
 def _v_social_links(b, notes, w):
@@ -340,7 +342,8 @@ def _v_social_links(b, notes, w):
         url = _text(it.get('url'), 300)
         if kind in SOCIAL_KINDS and is_safe_link_url(url):
             items.append({'kind': kind, 'url': url})
-    return {'items': items} if items else None
+    # Keep the block even when empty (edit-mode placeholder) — don't drop it.
+    return {'items': items}
 
 
 def _v_embed_raw(b, notes, w):

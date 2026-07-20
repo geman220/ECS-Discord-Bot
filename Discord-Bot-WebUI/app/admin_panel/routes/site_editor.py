@@ -129,7 +129,20 @@ def site_editor_state(page_id):
                                              ADMIN_BLOCK_TYPES, SECTION_TYPES,
                                              DYNAMIC_BLOCK_TYPES)
     page = _get_page(page_id)
-    doc = page.sections_draft or page.sections_published or {'v': 1, 'sections': []}
+    doc = page.sections_draft or page.sections_published
+    if doc is None:
+        # Page not yet converted (both section docs NULL) but the public view
+        # still renders rich fallback content via the converter. Seed the editor
+        # with that SAME doc — NOT an empty one — otherwise the first structural
+        # edit + Publish writes an empty doc to sections_published and silently
+        # erases the fallback (which only renders while sections_published is NULL).
+        try:
+            from app.services.section_converter import build_doc_for_page
+            from app.services.section_schema import validate_sections
+            doc, _ = validate_sections(build_doc_for_page(g.db_session, page), is_admin=True)
+        except Exception:
+            logger.exception('site_editor /state fallback build failed for %r', page.slug)
+            doc = {'v': 1, 'sections': []}
     return jsonify({
         'success': True,
         'page': {'id': page.id, 'slug': page.slug, 'title': page.title,

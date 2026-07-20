@@ -513,20 +513,28 @@ def public_site_menu():
 def public_site_menu_save():
     import json
     from app.models.admin_config import AdminConfig
+    from app.utils.html_sanitizer import is_safe_link_url
     try:
         raw = json.loads(request.form.get('menu_json') or '[]')
     except Exception:
         raw = []
     clean = []
     for it in raw if isinstance(raw, list) else []:
-        if isinstance(it, dict) and it.get('kind') in ('builtin', 'page', 'url'):
-            clean.append({
-                'kind': it['kind'],
-                'value': str(it.get('value', ''))[:200],
-                'label': (str(it.get('label', '')).strip()[:80] or None),
-                'visible': bool(it.get('visible', True)),
-                'parent': (str(it.get('parent', '')).strip()[:80] or None),
-            })
+        if not (isinstance(it, dict) and it.get('kind') in ('builtin', 'page', 'url')):
+            continue
+        value = str(it.get('value', ''))[:200]
+        # A 'url' item is author-controlled and rendered as <a href> in the public
+        # nav; reject javascript:/data:/metachar values so a Site Editor can't
+        # store XSS. builtin/page values are internal keys/slugs, not links.
+        if it['kind'] == 'url' and not is_safe_link_url(value):
+            continue
+        clean.append({
+            'kind': it['kind'],
+            'value': value,
+            'label': (str(it.get('label', '')).strip()[:80] or None),
+            'visible': bool(it.get('visible', True)),
+            'parent': (str(it.get('parent', '')).strip()[:80] or None),
+        })
     AdminConfig.set_setting('public_nav_menu', clean, data_type='json',
                             category='public_site', user_id=current_user.id, auto_commit=False)
     flash('Menu saved.', 'success')

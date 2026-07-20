@@ -101,6 +101,39 @@
 }
 
 /* --------------------------------------------------------------------------
+   Trigger icon swap + list/chat view switching
+   --------------------------------------------------------------------------
+   Owned here rather than by Tailwind `hidden`/group-data utilities:
+   tabler-icons.css sets `.ti { display: inline-block }` and loads AFTER
+   tailwind.css, so it defeats equal-specificity display utilities (this is
+   exactly how the X icon ended up permanently visible). Attribute-scoped
+   rules in this later-loading file are both order-proof and ancestor-proof. */
+
+.c-chat-widget__trigger .c-chat-widget__icon-open {
+  display: none;
+}
+
+.c-chat-widget[data-state="open"] .c-chat-widget__icon-open {
+  display: inline-block;
+}
+
+.c-chat-widget[data-state="open"] .c-chat-widget__icon-closed {
+  display: none;
+}
+
+.c-chat-widget__chat {
+  display: none;
+}
+
+.c-chat-widget[data-view="chat"] .c-chat-widget__chat {
+  display: flex;
+}
+
+.c-chat-widget[data-view="chat"] .c-chat-widget__list-view {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
    JS-toggled visibility helpers
    -------------------------------------------------------------------------- */
 

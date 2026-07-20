@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Something went wrong — ECS Pub League</title>
+  <meta name="robots" content="noindex">
+  <style>
+    :root { --green:#40b050; --green-deep:#2f8f43; --ink:#141a15; --muted:#5b665c; --bg:#f6f8f6; }
+    @media (prefers-color-scheme: dark){ :root{ --ink:#eaf0ea; --muted:#9aa89c; --bg:#0e130f; --green:#57c569; } }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;line-height:1.5}
+    .card{max-width:460px}
+    .code{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green)}
+    h1{font-size:clamp(26px,6vw,36px);margin:.4em 0 .3em;letter-spacing:-.02em}
+    p{color:var(--muted);margin:0 0 1.6em;font-size:16px}
+    a.btn{display:inline-block;background:var(--green);color:#fff;text-decoration:none;font-weight:600;
+      padding:12px 22px;border-radius:10px}
+    a.btn:hover{background:var(--green-deep)}
+    .links{margin-top:20px;font-size:14px}
+    .links a{color:var(--green);text-decoration:none;margin:0 8px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="code">500 · Something broke</div>
+    <h1>We hit a snag on our end.</h1>
+    <p>This one's on us, not you. Try again in a moment — if it keeps happening, let us know.</p>
+    <a class="btn" href="/">Back to home</a>
+    <div class="links">
+      <a href="/about">About</a>·<a href="/calendar">Calendar</a>·<a href="/faqs">FAQs</a>·<a href="/contact">Contact</a>
+    </div>
+  </div>
+</body>
+</html>

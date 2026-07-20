@@ -83,15 +83,27 @@ function initEditor(rootEl) {
   }
 
   // ---------- save protocol ----------
+  // Saves are serialized on a promise chain: a structural op that awaits save()
+  // always gets a settled result reflecting the latest doc, even if a debounced
+  // text save was mid-flight. The old code early-returned null while a save ran,
+  // so the caller's `if (res && res.section_html) swap` never fired and the
+  // iframe silently desynced from the stored doc during rapid editing.
+  let saveChain = Promise.resolve();
+
   function scheduleSave(opts) {
     dirty = true;
     setStatus('Editing…');
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => save(opts), 700);
+    saveTimer = setTimeout(() => { save(opts); }, 700);
   }
 
-  async function save(opts = {}) {
-    if (saving) { scheduleSave(opts); return null; }
+  function save(opts = {}) {
+    const run = saveChain.then(() => _doSave(opts));
+    saveChain = run.catch(() => {});   // keep the chain alive past a failed save
+    return run;
+  }
+
+  async function _doSave(opts = {}) {
     saving = true;
     setStatus('Saving…');
     const { status, data } = await jfetch(api('/draft'), {
@@ -116,7 +128,8 @@ function initEditor(rootEl) {
 
   async function flushSave() {
     clearTimeout(saveTimer);
-    if (dirty || saving) return save();
+    if (dirty) save();
+    await saveChain;      // let any in-flight/queued save settle before publish
     return null;
   }
 
@@ -283,6 +296,10 @@ function initEditor(rootEl) {
   const THEME_FIELD = { key: '__theme', label: 'Color theme', type: 'select',
     options: ['inherit', 'light', 'dark', 'brand'] };
 
+  // Mirrors SOCIAL_KINDS in app/services/section_schema.py — keep in sync.
+  const SOCIAL_KINDS = ['discord', 'instagram', 'facebook', 'bluesky', 'twitter',
+                        'youtube', 'tiktok', 'email'];
+
   const BLOCK_FIELDS = {
     image: [
       { key: 'image', label: 'Image', type: 'image' },
@@ -323,23 +340,52 @@ function initEditor(rootEl) {
     spacer: [{ key: 'size', label: 'Size', type: 'select', options: ['sm', 'md', 'lg', 'xl'] }],
     heading: [{ key: 'level', label: 'Level', type: 'select', options: [1, 2, 3, 4] },
               { key: 'align', label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] }],
-    gallery: [{ key: 'layout', label: 'Layout', type: 'select', options: ['grid-2', 'grid-3', 'grid-4', 'carousel'] },
-              { key: 'crop', label: 'Crop to squares', type: 'toggle' }],
+    gallery: [
+      { key: 'items', label: 'Photos', type: 'items', addLabel: 'Add photo',
+        item: [{ key: 'image', label: 'Photo', type: 'image' },
+               { key: 'caption', label: 'Caption (optional)', type: 'text' },
+               { key: 'link', label: 'Link (optional)', type: 'link' }] },
+      { key: 'layout', label: 'Layout', type: 'select', options: ['grid-2', 'grid-3', 'grid-4', 'carousel'] },
+      { key: 'crop', label: 'Crop to squares', type: 'toggle' },
+    ],
+    stats: [
+      { key: 'items', label: 'Stats', type: 'items', addLabel: 'Add stat',
+        item: [{ key: 'value', label: 'Value (e.g. 100+)', type: 'text' },
+               { key: 'label', label: 'Label (e.g. Players)', type: 'text' }] },
+    ],
+    social_links: [
+      { key: 'items', label: 'Links', type: 'items', addLabel: 'Add link',
+        item: [{ key: 'kind', label: 'Platform', type: 'select', options: SOCIAL_KINDS },
+               { key: 'url', label: 'URL (https://…)', type: 'text' }] },
+    ],
   };
 
   function renderFields(fields, values, container) {
+    // Each field wires its own controls within its own `wrap` element (not via a
+    // post-loop querySelectorAll on the container) so nested repeater rows — which
+    // reuse the same data-* keys — don't cross-wire or collide.
     fields.forEach((f) => {
       const wrap = document.createElement('div');
       wrap.className = 'mb-4';
       if (f.type === 'toggle') {
         wrap.innerHTML = FIELD.toggle(f, values[f.key]);
       } else if (f.type === 'image') {
-        const ref = values[f.key];
+        const ref = values[f.key] || {};
+        const hasUrl = !!ref.url;
         wrap.innerHTML = `<label class="block text-sm font-medium mb-1.5">${f.label}</label>
           <div class="flex items-center gap-3">
-            <img data-preview="${f.key}" src="${escAttr(ref && ref.url ? ref.url : '')}" class="h-14 w-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700 ${ref ? '' : 'hidden'}">
+            <img data-preview src="${escAttr(hasUrl ? ref.url : '')}" class="h-14 w-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700 ${hasUrl ? '' : 'hidden'}">
             <button type="button" data-pick-image="${f.key}" class="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200">Choose image…</button>
           </div>`;
+        const btn = wrap.querySelector('[data-pick-image]');
+        const preview = wrap.querySelector('[data-preview]');
+        // Preserve an already-chosen asset so re-applying settings WITHOUT
+        // re-picking doesn't silently drop the image (the old code lost it).
+        if (typeof ref.asset_id === 'number') btn.dataset.assetId = ref.asset_id;
+        btn.addEventListener('click', async () => {
+          const picked = await pickImage();
+          if (picked) { btn.dataset.assetId = picked.id; preview.src = picked.url; preview.classList.remove('hidden'); }
+        });
       } else if (f.type === 'link') {
         const link = values[f.key] || {};
         wrap.innerHTML = `<label class="block text-sm font-medium mb-1.5">${f.label}</label>
@@ -355,33 +401,64 @@ function initEditor(rootEl) {
             <input data-linkurl="${f.key}" type="url" placeholder="https://…" value="${escAttr(link.url || '')}"
                    class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm ${link.kind === 'url' ? '' : 'hidden'}">
           </div>`;
+        const sel = wrap.querySelector('[data-linkkind]');
+        sel.addEventListener('change', () => {
+          wrap.querySelector('[data-linkbuiltin]').classList.toggle('hidden', sel.value === 'url');
+          wrap.querySelector('[data-linkurl]').classList.toggle('hidden', sel.value !== 'url');
+        });
+      } else if (f.type === 'items') {
+        // Repeater for gallery photos / stats / social links: a list of rows,
+        // each rendered by a nested renderFields(f.item, …), plus add/remove/reorder.
+        wrap.innerHTML = `<label class="block text-sm font-medium mb-1.5">${f.label}</label>
+          <div data-items="${f.key}"></div>
+          <button type="button" data-items-add class="mt-1 w-full rounded-lg border border-dashed border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:border-ecs-green">+ ${f.addLabel || 'Add item'}</button>`;
+        const listEl = wrap.querySelector(`[data-items="${f.key}"]`);
+        const addRow = (itemValues) => {
+          const row = document.createElement('div');
+          row.dataset.itemRow = '';
+          row.className = 'relative mb-2 rounded-lg border border-gray-200 dark:border-gray-700 p-3 pr-8';
+          const body = document.createElement('div');
+          body.dataset.itemBody = '';
+          renderFields(f.item, itemValues || {}, body);
+          row.appendChild(body);
+          const tools = document.createElement('div');
+          tools.className = 'absolute top-1 right-0.5 flex flex-col text-xs';
+          tools.innerHTML = `<button type="button" data-item-up title="Move up" class="text-gray-400 hover:text-ecs-green leading-none p-0.5"><i class="ti ti-chevron-up"></i></button>
+            <button type="button" data-item-down title="Move down" class="text-gray-400 hover:text-ecs-green leading-none p-0.5"><i class="ti ti-chevron-down"></i></button>
+            <button type="button" data-item-del title="Remove" class="text-gray-400 hover:text-red-500 leading-none p-0.5"><i class="ti ti-x"></i></button>`;
+          tools.querySelector('[data-item-up]').addEventListener('click', () => { const p = row.previousElementSibling; if (p) listEl.insertBefore(row, p); });
+          tools.querySelector('[data-item-down]').addEventListener('click', () => { const n = row.nextElementSibling; if (n) listEl.insertBefore(n, row); });
+          tools.querySelector('[data-item-del]').addEventListener('click', () => row.remove());
+          row.appendChild(tools);
+          listEl.appendChild(row);
+        };
+        (values[f.key] || []).forEach(addRow);
+        wrap.querySelector('[data-items-add]').addEventListener('click', () => addRow({}));
       } else {
         wrap.innerHTML = `<label class="block text-sm font-medium mb-1.5">${f.label}</label>${FIELD[f.type](f, values[f.key])}`;
       }
       container.appendChild(wrap);
     });
-    container.querySelectorAll('[data-linkkind]').forEach((sel) => {
-      sel.addEventListener('change', () => {
-        const k = sel.getAttribute('data-linkkind');
-        container.querySelector(`[data-linkbuiltin="${k}"]`).classList.toggle('hidden', sel.value === 'url');
-        container.querySelector(`[data-linkurl="${k}"]`).classList.toggle('hidden', sel.value !== 'url');
-      });
-    });
-    container.querySelectorAll('[data-pick-image]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const picked = await pickImage();
-        if (picked) {
-          btn.dataset.assetId = picked.id;
-          const img = container.querySelector(`[data-preview="${btn.getAttribute('data-pick-image')}"]`);
-          img.src = picked.url;
-          img.classList.remove('hidden');
-        }
-      });
-    });
   }
 
   function collectFields(fields, container, into) {
     fields.forEach((f) => {
+      if (f.type === 'items') {
+        const listEl = container.querySelector(`[data-items="${f.key}"]`);
+        const arr = [];
+        if (listEl) {
+          listEl.querySelectorAll(':scope > [data-item-row]').forEach((row) => {
+            const body = row.querySelector(':scope > [data-item-body]');
+            const item = {};
+            collectFields(f.item, body, item);
+            arr.push(item);
+          });
+        }
+        // Send every row; the server schema drops items missing required content
+        // (gallery needs an image, stats needs value+label, social needs kind+url).
+        into[f.key] = arr;
+        return;
+      }
       if (f.type === 'image') {
         const btn = container.querySelector(`[data-pick-image="${f.key}"]`);
         if (btn && btn.dataset.assetId) into[f.key] = { asset_id: parseInt(btn.dataset.assetId, 10) };
@@ -656,8 +733,12 @@ function initEditor(rootEl) {
 
   window.addEventListener('beforeunload', (e) => {
     if (dirty || saving) { e.preventDefault(); e.returnValue = ''; }
+    // sendBeacon can't set an X-CSRFToken header, so pass the token as a form
+    // field — Flask-WTF reads csrf_token from request.form. A JSON-body beacon
+    // is rejected (400 CSRF) and the edit lock then lingers on its 60s TTL
+    // instead of releasing the moment the tab closes.
     navigator.sendBeacon && navigator.sendBeacon(api('/unlock'),
-      new Blob([JSON.stringify({})], { type: 'application/json' }));
+      new URLSearchParams({ csrf_token: csrf }));
   });
 
   // top-bar wiring

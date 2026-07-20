@@ -2,7 +2,7 @@
 {% block admin_title %}Page settings: {{ page.title or page.slug }}{% endblock %}
 
 {% block panel_content %}
-{% include 'admin_panel/public_site/_cms_tabs.html' %}
+{% set cms_active = 'pages' %}{% include 'admin_panel/public_site/_cms_tabs.html' %}
 
 <div class="max-w-2xl">
     <div class="mb-5 flex items-center justify-between">

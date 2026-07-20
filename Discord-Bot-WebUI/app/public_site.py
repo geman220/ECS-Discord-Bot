@@ -19,6 +19,7 @@ the real backend — the core "buttons auto-update from the backend" goal.
 """
 
 import logging
+import os
 from datetime import datetime
 
 from flask import (
@@ -33,6 +34,7 @@ from app.models.admin_config import AdminConfig
 from app.feedback import create_feedback_entry
 from app.alert_helpers import show_success, show_error
 from app.utils.db_utils import transactional
+from app.utils.html_sanitizer import is_safe_link_url
 
 logger = logging.getLogger(__name__)
 
@@ -216,6 +218,11 @@ def _inject_public_context():
         'discord_invite_url': discord_invite_url or 'https://discord.gg/weareecs',
         'ga_measurement_id': ga_id,
         'is_prod_marketing_domain': host in _PROD_MARKETING_HOSTS,
+        # Load the Cloudflare Turnstile api.js iff a site key is configured — same
+        # condition under which the form macro renders the .cf-turnstile widget.
+        # Without the script the widget never produces a token and every form
+        # submission fails _verify_turnstile once keys are set.
+        'turnstile_enabled': bool(os.environ.get('TURNSTILE_SITE_KEY')),
         'imgs': _public_images(),
         'is_site_admin': _is_site_admin(),
         'nav_items': _nav_items(),
@@ -484,7 +491,10 @@ def _nav_items():
                 if pg:
                     entry = {'label': label or pg.title or val,
                              'url': url_for('public.dynamic_page', slug=val), 'key': val}
-            elif kind == 'url' and val:
+            elif kind == 'url' and val and is_safe_link_url(val):
+                # 'url' items are author-controlled and emitted as <a href> in the
+                # public nav; drop anything that isn't a safe scheme/relative link
+                # (rejects javascript:/data:) so a stored value can't run script.
                 entry = {'label': label or val, 'url': val, 'key': 'url'}
             if entry:
                 entry['parent'] = parent

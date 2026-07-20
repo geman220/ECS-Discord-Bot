@@ -393,6 +393,7 @@ bg-ecs-blue-600 text-white shadow-lg hover:bg-ecs-blue-700
 
 
 {% macro block_stats(block, ctx, section, edit_mode) %}
+{% if not block['items'] %}{{ _placeholder(edit_mode, block, 'Add stats') }}{% else %}
 {% set ncols = [block['items'] | length, 4] | min %}
 {% set colcls = {1: 'sm:grid-cols-1', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4'} %}
 <dl class="grid grid-cols-2 gap-6 {{ colcls.get(ncols, 'sm:grid-cols-4') }} text-center {{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }}>
@@ -403,10 +404,12 @@ bg-ecs-blue-600 text-white shadow-lg hover:bg-ecs-blue-700
     </div>
     {% endfor %}
 </dl>
+{% endif %}
 {% endmacro %}
 
 
 {% macro block_social_links(block, ctx, section, edit_mode) %}
+{% if not block['items'] %}{{ _placeholder(edit_mode, block, 'Add social links') }}{% else %}
 {% set icons = {'discord': 'ti-brand-discord', 'instagram': 'ti-brand-instagram', 'facebook': 'ti-brand-facebook',
                 'bluesky': 'ti-brand-bluesky', 'twitter': 'ti-brand-x', 'youtube': 'ti-brand-youtube',
                 'tiktok': 'ti-brand-tiktok', 'email': 'ti-mail'} %}
@@ -418,6 +421,7 @@ bg-ecs-blue-600 text-white shadow-lg hover:bg-ecs-blue-700
     </a>
     {% endfor %}
 </div>
+{% endif %}
 {% endmacro %}
 
 

@@ -81,7 +81,6 @@ export function cacheElements() {
 
     // Header buttons
     newChatBtn: document.querySelector('[data-action="new-chat"]'),
-    openInboxBtn: document.querySelector('[data-action="open-inbox"]'),
     closeBtns: document.querySelectorAll('[data-action="close-widget"]')
   };
 }

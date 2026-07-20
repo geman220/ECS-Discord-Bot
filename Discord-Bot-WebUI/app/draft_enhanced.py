@@ -1143,7 +1143,10 @@ class DraftService:
         analytics['total_players_drafted'] = total_drafted
         analytics['avg_players_per_team'] = total_drafted / max(len(teams), 1)
         analytics['position_distribution'] = position_counts
-        analytics['draft_progress'] = min(100, (total_drafted / (len(teams) * 15)) * 100)  # Assuming 15 players per team target
+        from app import draft_clock
+        roster_size = draft_clock.roster_target(session, current_league.season_id, current_league.id)
+        analytics['roster_size'] = roster_size
+        analytics['draft_progress'] = min(100, (total_drafted / max(len(teams) * roster_size, 1)) * 100)
         
         # Cache the analytics before returning
         DraftCacheService.set_draft_analytics_cache(league_name, analytics)
