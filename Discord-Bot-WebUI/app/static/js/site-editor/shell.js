@@ -692,33 +692,73 @@ function initEditor(rootEl) {
     social_links: { items: [{ kind: 'discord', url: 'https://discord.gg/weareecs' }] },
   };
 
+  // Grouped, labelled catalog for the add-block menu so widgets are discoverable
+  // (the raw type names — news_latest, cta_live — read like jargon otherwise).
+  const BLOCK_CATALOG = [
+    { group: 'Basic', items: [
+      { t: 'heading', label: 'Heading', icon: 'ti-heading' },
+      { t: 'richtext', label: 'Text', icon: 'ti-align-left' },
+      { t: 'image', label: 'Image', icon: 'ti-photo' },
+      { t: 'button', label: 'Button', icon: 'ti-square-rounded-plus' },
+      { t: 'cta_live', label: 'Live button (Register/Waitlist)', icon: 'ti-hand-click' },
+      { t: 'quote', label: 'Quote', icon: 'ti-quote' },
+    ] },
+    { group: 'Layout', items: [
+      { t: 'card', label: 'Card', icon: 'ti-cards' },
+      { t: 'divider', label: 'Divider', icon: 'ti-separator-horizontal' },
+      { t: 'spacer', label: 'Spacer', icon: 'ti-arrows-vertical' },
+    ] },
+    { group: 'Widgets', items: [
+      { t: 'news_latest', label: 'Latest news', icon: 'ti-news' },
+      { t: 'calendar_teaser', label: 'Upcoming events', icon: 'ti-calendar' },
+      { t: 'faq_list', label: 'FAQ list', icon: 'ti-help' },
+      { t: 'registration_status', label: 'Registration status', icon: 'ti-user-check' },
+      { t: 'form', label: 'Form', icon: 'ti-forms' },
+      { t: 'stats', label: 'Stats', icon: 'ti-chart-bar' },
+      { t: 'social_links', label: 'Social links', icon: 'ti-brand-instagram' },
+      { t: 'video', label: 'Video (YouTube/Vimeo)', icon: 'ti-brand-youtube' },
+      { t: 'map', label: 'Map', icon: 'ti-map-pin' },
+      { t: 'gallery', label: 'Photo gallery', icon: 'ti-photo-plus' },
+    ] },
+  ];
+
   function openBlockMenu(afterBid) {
     const found = findBlock(afterBid);
     if (!found) return;
-    openPanel('Add a block');
-    Object.keys(BLOCK_DEFAULTS).forEach((t) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'inline-flex m-1 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm hover:border-ecs-green';
-      btn.textContent = t.replace('_', ' ');
-      btn.addEventListener('click', async () => {
-        pushUndo();
-        const fresh = { id: uid('b'), type: t, ...clone(BLOCK_DEFAULTS[t]) };
-        if (found.block.col !== undefined) fresh.col = found.block.col;
-        found.section.blocks.splice(found.index + 1, 0, fresh);
-        // image/gallery/video/map validate to nothing until configured, so a
-        // blind save would drop them. Add to the doc, open their settings, and
-        // let the settings-apply do the first save once there's real content.
-        const needsContentFirst = ['image', 'video', 'map', 'gallery'].includes(t);
-        closePanel();
-        if (needsContentFirst) {
-          openBlockSettings(fresh.id);
-        } else {
-          const res = await save({ renderSection: found.section.id });
-          if (res && res.section_html) sendBridge({ type: 'swap-section', sid: found.section.id, html: res.section_html });
-        }
+    openPanel('Add a block or widget');
+    const addBlock = async (t) => {
+      pushUndo();
+      const fresh = { id: uid('b'), type: t, ...clone(BLOCK_DEFAULTS[t]) };
+      if (found.block.col !== undefined) fresh.col = found.block.col;
+      found.section.blocks.splice(found.index + 1, 0, fresh);
+      // image/gallery/video/map validate to nothing until configured, so a blind
+      // save would drop them — open their settings so the first save has content.
+      const needsContentFirst = ['image', 'video', 'map', 'gallery'].includes(t);
+      closePanel();
+      if (needsContentFirst) {
+        openBlockSettings(fresh.id);
+      } else {
+        const res = await save({ renderSection: found.section.id });
+        if (res && res.section_html) sendBridge({ type: 'swap-section', sid: found.section.id, html: res.section_html });
+      }
+    };
+    BLOCK_CATALOG.forEach((grp) => {
+      const h = document.createElement('div');
+      h.className = 'mt-3 mb-1 px-1 text-xs font-semibold uppercase tracking-wide text-gray-400';
+      h.textContent = grp.group;
+      panelBody.appendChild(h);
+      const wrap = document.createElement('div');
+      wrap.className = 'grid grid-cols-2 gap-1.5';
+      grp.items.forEach((it) => {
+        if (!BLOCK_DEFAULTS[it.t]) return;  // only creatable blocks
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2 text-left text-sm hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50';
+        btn.innerHTML = `<i class="ti ${it.icon} text-gray-400"></i><span>${escAttr(it.label)}</span>`;
+        btn.addEventListener('click', () => addBlock(it.t));
+        wrap.appendChild(btn);
       });
-      panelBody.appendChild(btn);
+      panelBody.appendChild(wrap);
     });
   }
 
