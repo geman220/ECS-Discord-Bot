@@ -192,38 +192,8 @@ class SecurityMiddleware:
 
         Returns list of (label, weight) tuples for each matched pattern, or empty list.
         """
-        # Roles that legitimately author rich text (email broadcasts, announcements,
-        # surveys, help topics) and therefore post HTML containing `<script`,
-        # `onerror=`, `javascript:` — the exact strings the xss_attempt rule matches.
-        _CONTENT_AUTHOR_ROLES = {
-            'Global Admin', 'Pub League Admin',
-            'Pub League Coach', 'ECS FC Coach',
-        }
-
         def _is_content_author():
-            """True only for a logged-in user holding a content-authoring role.
-
-            Deliberately NOT `is_authenticated`: registration is self-serve, so keying
-            on "logged in" would let anyone who signs up post SQLi/XSS payloads past
-            the scanner. Only the roles that actually compose HTML are exempt.
-
-            Fails SAFE — if we cannot determine the roles, we return False and the body
-            IS scanned.
-            """
-            try:
-                roles = getattr(g, '_cached_user_roles', None)
-                if roles:
-                    return any(str(r) in _CONTENT_AUTHOR_ROLES for r in roles)
-
-                from flask_login import current_user
-                if current_user and getattr(current_user, 'is_authenticated', False):
-                    return any(
-                        getattr(r, 'name', str(r)) in _CONTENT_AUTHOR_ROLES
-                        for r in (getattr(current_user, 'roles', None) or [])
-                    )
-            except Exception:
-                return False
-            return False
+            return self._is_trusted_author()
 
         matched = []
         seen_labels = set()
@@ -263,6 +233,37 @@ class SecurityMiddleware:
 
         return matched
     
+    # Roles that legitimately author rich text / edit the site (email broadcasts,
+    # announcements, surveys, the public-site editor) and therefore send HTML
+    # containing `<script`, `onerror=`, `javascript:` — the exact strings the
+    # xss_attempt rule matches. These are NEVER auto-banned.
+    _CONTENT_AUTHOR_ROLES = {
+        'Global Admin', 'Pub League Admin', 'Site Editor',
+        'Pub League Coach', 'ECS FC Coach',
+    }
+
+    def _is_trusted_author(self):
+        """True for a logged-in user holding a content-authoring/admin role.
+
+        Deliberately NOT plain `is_authenticated`: registration is self-serve, so
+        keying on "logged in" would let anyone who signs up post payloads past the
+        scanner. Only the roles that actually compose HTML / edit the site are
+        exempt. Fails SAFE — if roles can't be determined, returns False.
+        """
+        try:
+            roles = getattr(g, '_cached_user_roles', None)
+            if roles:
+                return any(str(r) in self._CONTENT_AUTHOR_ROLES for r in roles)
+            from flask_login import current_user
+            if current_user and getattr(current_user, 'is_authenticated', False):
+                return any(
+                    getattr(r, 'name', str(r)) in self._CONTENT_AUTHOR_ROLES
+                    for r in (getattr(current_user, 'roles', None) or [])
+                )
+        except Exception:
+            return False
+        return False
+
     def _handle_security_violation(self, client_ip, matched_patterns=None):
         """Handle detected security violation with threat-weighted auto-ban logic.
 
@@ -276,6 +277,17 @@ class SecurityMiddleware:
         user_agent = request.headers.get('User-Agent', 'Unknown')
         query_string = request.query_string.decode('utf-8', errors='replace')
         matched_patterns = matched_patterns or []
+
+        # NEVER ban a logged-in content-author/admin. A legitimate rich-text or
+        # site-editor request can contain the exact strings the XSS rule matches,
+        # and locking an admin out of the whole site (403 on every page for an
+        # hour) is far worse than the marginal risk — a compromised admin account
+        # already holds access the WAF can't gate. This is the guardrail that
+        # stops the editor from auto-banning the person using it.
+        if self._is_trusted_author():
+            logger.info("Security pattern on %s from a content-author role — "
+                        "NOT banning %s", path, client_ip)
+            return
 
         # Compute threat score and severity from matched patterns
         pattern_labels = [label for label, _ in matched_patterns]
