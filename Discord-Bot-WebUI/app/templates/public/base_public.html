@@ -23,7 +23,7 @@
     {% if seo and seo.canonical %}<link rel="canonical" href="{{ seo.canonical }}">{% endif %}
 
     {# ---- Open Graph ---- #}
-    <meta property="og:site_name" content="ECS Pub League">
+    <meta property="og:site_name" content="{{ appearance.title if appearance and appearance.title else 'ECS Pub League' }}">
     <meta property="og:type" content="{{ seo.og_type if seo and seo.og_type else 'website' }}">
     <meta property="og:title" content="{{ seo.title if seo and seo.title else 'ECS Pub League' }}">
     {% if seo and seo.description %}<meta property="og:description" content="{{ seo.description }}">{% endif %}
@@ -89,10 +89,14 @@
         main a, header a, footer a { text-decoration: none; }
         main a:hover, footer a:hover { text-decoration: none; }
         .prose a { text-underline-offset: 2px; }
+        /* Theme typography cascades from the admin-chosen font pair. */
+        body { font-family: var(--font-body, 'Inter', system-ui, sans-serif); }
+        h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading, 'Inter', system-ui, sans-serif); }
     </style>
-    {% if appearance and appearance.primary_rgb %}
-    {# Admin-chosen primary color re-skins every ecs-green utility. #}
-    <style>:root { --color-primary-rgb: {{ appearance.primary_rgb }};{% if appearance.primary_dark_rgb %} --color-primary-dark-rgb: {{ appearance.primary_dark_rgb }};{% endif %} }</style>
+    {% if appearance and appearance.theme_css %}
+    {# One admin-chosen palette + font pair re-skins the whole site: primary
+       (green) + accent (blue) utilities and typography, all from CSS vars. #}
+    <style>{{ appearance.theme_css }}</style>
     {% endif %}
 
     {% block extra_css %}{% endblock %}
@@ -107,7 +111,7 @@
         <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
             <a href="{{ url_for('public.home') }}" class="flex items-center gap-2.5 font-bold text-lg text-gray-900 dark:text-white">
                 <img src="{{ appearance.logo_url or imgs.logo }}" alt="{{ appearance.title }}" class="h-10 w-10 object-contain">
-                <span class="hidden sm:inline">ECS Pub League</span>
+                <span class="hidden sm:inline">{{ appearance.title if appearance and appearance.title else 'ECS Pub League' }}</span>
             </a>
 
             {# Desktop links (admin-editable menu via Appearance -> Menus) #}
@@ -138,12 +142,12 @@
                 {% endif %}
                 {% endfor %}
                 {% if current_user.is_authenticated %}
-                <a href="{{ url_for('main.index') }}"
+                <a href="{{ portal_url('main.index') }}"
                    class="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ecs-green-dark transition">
                     <i class="ti ti-layout-dashboard text-base"></i> Go to Portal
                 </a>
                 {% else %}
-                <a href="{{ url_for('auth.login') }}"
+                <a href="{{ portal_url('auth.login') }}"
                    class="px-3 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-300 hover:text-ecs-green dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-900 transition">
                     Log in
                 </a>
@@ -181,9 +185,9 @@
                 {% endfor %}
                 {% endfor %}
                 {% if current_user.is_authenticated %}
-                <a href="{{ url_for('main.index') }}" class="mt-2 block rounded-lg bg-ecs-green px-3 py-2 text-center text-base font-semibold text-white">Go to Portal</a>
+                <a href="{{ portal_url('main.index') }}" class="mt-2 block rounded-lg bg-ecs-green px-3 py-2 text-center text-base font-semibold text-white">Go to Portal</a>
                 {% else %}
-                <a href="{{ url_for('auth.login') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">Log in</a>
+                <a href="{{ portal_url('auth.login') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900">Log in</a>
                 <a href="{{ cta.url }}" class="mt-2 block rounded-lg bg-ecs-green px-3 py-2 text-center text-base font-semibold text-white">{{ cta.label }}</a>
                 {% endif %}
             </div>
@@ -203,7 +207,7 @@
                     <img src="{{ appearance.logo_url or imgs.logo }}" alt="{{ appearance.title }}" class="h-9 w-9 object-contain"> {{ appearance.title }}
                 </div>
                 <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs">
-                    Radically inclusive, beginner-friendly adult soccer in Seattle.
+                    {{ appearance.tagline if appearance and appearance.tagline else 'Radically inclusive, beginner-friendly adult soccer in Seattle.' }}
                 </p>
             </div>
             <div>
@@ -220,7 +224,7 @@
                 <ul class="mt-3 space-y-2 text-sm text-gray-500 dark:text-gray-400">
                     <li><a href="{{ cta.url }}" class="hover:text-ecs-green dark:hover:text-white">{{ cta.label }}</a></li>
                     <li><a href="{{ url_for('public.register') }}" class="hover:text-ecs-green dark:hover:text-white">How to join</a></li>
-                    <li><a href="{{ url_for('auth.login') }}" class="hover:text-ecs-green dark:hover:text-white">Member log in</a></li>
+                    <li><a href="{{ portal_url('auth.login') }}" class="hover:text-ecs-green dark:hover:text-white">Member log in</a></li>
                     <li><a href="{{ url_for('public.contact') }}" class="hover:text-ecs-green dark:hover:text-white">Contact us</a></li>
                 </ul>
             </div>

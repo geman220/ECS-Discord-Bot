@@ -202,14 +202,18 @@ def _add_security_headers(app):
 
     @app.after_request
     def add_security_headers(response):
-        """Add basic security headers to all responses."""
+        """Add basic security headers to all responses. Frame policy comes from
+        the shared frame_headers helper — the single source of truth also used
+        by SecurityMiddleware.security_response, so the two hooks can never
+        disagree again (they used to send SAMEORIGIN vs DENY)."""
         if not request.path.startswith('/static/'):
+            from app.utils.frame_headers import frame_headers_for_path
             response.headers.update({
                 'X-Content-Type-Options': 'nosniff',
-                'X-Frame-Options': 'SAMEORIGIN',
                 'X-XSS-Protection': '1; mode=block',
                 'Referrer-Policy': 'strict-origin-when-cross-origin',
-                'Server': 'ECS Portal'
+                'Server': 'ECS Portal',
+                **frame_headers_for_path(request.path),
             })
 
             # Add HSTS for HTTPS connections

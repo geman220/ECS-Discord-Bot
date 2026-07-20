@@ -133,7 +133,7 @@ def _build_navigation_guide(context_type, user_roles):
         lines.append("")
         lines.append("### ADMINISTRATION section (admins only)")
         lines.append("- [Admin Panel](/admin-panel/) — The main admin hub with ALL management tools (users, roles, leagues, Discord, reports, monitoring, etc.)")
-        lines.append("- Digital Wallets (dropdown): [Setup Wizard](/wallet/config/setup), [Dashboard](/wallet/admin), [Pass Studio](/pass-studio), [Manage Passes](/wallet/admin/passes), [Scanner](/wallet/admin/scanner), [Check-ins](/wallet/admin/checkins)")
+        lines.append("- Digital Wallets (Wallet dropdown in the Admin Panel top nav): [Setup Wizard](/admin-panel/wallet/config/wizard), [Dashboard](/admin-panel/wallet/), [Pass Studio](/admin-panel/wallet/studio/), [Manage Passes](/admin-panel/wallet/passes), [Scanner](/admin-panel/wallet/scanner), [Check-ins](/admin-panel/wallet/checkins)")
         lines.append("")
         lines.append("NOTE: ALL admin features are accessed through the [Admin Panel](/admin-panel/). NEVER direct admins to just '/admin-panel/' — use the specific sub-page URLs from the admin pages list below.")
 

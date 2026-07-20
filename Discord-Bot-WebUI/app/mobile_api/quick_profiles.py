@@ -756,7 +756,9 @@ def validate_claim_code():
         }), 200
 
     with managed_session() as session:
-        profile = QuickProfile.find_by_code(claim_code)
+        # Load on the managed session so is_valid()'s EXPIRED-status write
+        # (if the code has lapsed) persists here instead of on db.session.
+        profile = QuickProfile.find_by_code(claim_code, session=session)
 
         if not profile:
             return jsonify({

@@ -74,7 +74,7 @@ const PassStudio = {
 
     async loadPreviewData() {
         try {
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/preview`);
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/preview`);
             const data = await response.json();
             if (data.success) {
                 this.previewData = data;
@@ -87,7 +87,7 @@ const PassStudio = {
 
     async loadAssets() {
         try {
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/assets`);
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/assets`);
             const data = await response.json();
             if (data.success) {
                 this.assets = data.assets || {};
@@ -773,7 +773,7 @@ const PassStudio = {
             const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') ||
                              document.querySelector('[name=csrf_token]')?.value || '';
 
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/appearance`, {
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/appearance`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -803,7 +803,7 @@ const PassStudio = {
 
         // First, get the pass count for confirmation
         try {
-            const countResponse = await fetch(`/admin/wallet/studio/${this.passTypeCode}/pass-count`);
+            const countResponse = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/pass-count`);
             const countData = await countResponse.json();
 
             if (!countData.success) {
@@ -841,7 +841,7 @@ const PassStudio = {
             const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') ||
                              document.querySelector('[name=csrf_token]')?.value || '';
 
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/publish`, {
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/publish`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

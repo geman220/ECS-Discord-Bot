@@ -2197,9 +2197,11 @@ def _execute_season_creation(session, data):
                         start_time=start_time,
                         match_duration_minutes=auto_config.match_duration_minutes,
                         weeks_count=auto_config.weeks_count,
-                        fields=','.join(auto_config.get_field_list())
+                        fields=','.join(auto_config.get_field_list()),
+                        break_duration_minutes=getattr(auto_config, 'break_duration_minutes', 0) or 0,
+                        enable_time_rotation=getattr(auto_config, 'enable_time_rotation', True)
                     )
-                    
+
                     logger.info(f"Generator configured successfully for {league.name}")
                 
                 else:
@@ -2477,7 +2479,9 @@ def auto_schedule_config(league_id: int):
                 start_time=league_start_time,
                 match_duration_minutes=match_duration,
                 weeks_count=weeks_count,
-                fields=','.join(config.get_field_list())
+                fields=','.join(config.get_field_list()),
+                break_duration_minutes=break_duration,
+                enable_time_rotation=enable_time_rotation
             )
 
             # Reload season config after sync
@@ -2705,6 +2709,8 @@ def generate_season_schedules(season_id: int):
                     match_duration_minutes=auto_config.match_duration_minutes,
                     weeks_count=auto_config.weeks_count,
                     fields=','.join(auto_config.get_field_list()),
+                    break_duration_minutes=getattr(auto_config, 'break_duration_minutes', 0) or 0,
+                    enable_time_rotation=getattr(auto_config, 'enable_time_rotation', True),
                 )
                 templates = generator.generate_schedule_templates(week_configs)
                 generator.save_templates(templates)

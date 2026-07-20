@@ -224,7 +224,7 @@ const SponsorsManager = {
 
     async toggleSponsor(sponsorId, active) {
         try {
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/sponsors/${sponsorId}`, {
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/sponsors/${sponsorId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCsrfToken() },
                 body: JSON.stringify({ is_active: active })
@@ -247,7 +247,7 @@ const SponsorsManager = {
         });
         if (result.isConfirmed) {
             try {
-                const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/sponsors/${sponsorId}`, {
+                const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/sponsors/${sponsorId}`, {
                     method: 'DELETE',
                     headers: { 'X-CSRFToken': this.getCsrfToken() }
                 });
@@ -260,7 +260,7 @@ const SponsorsManager = {
 
     async saveSponsor(sponsorData) {
         try {
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/sponsors`, {
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/sponsors`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCsrfToken() },
                 body: JSON.stringify(sponsorData)
@@ -273,7 +273,7 @@ const SponsorsManager = {
 
     async updateSponsor(sponsorId, sponsorData) {
         try {
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/sponsors/${sponsorId}`, {
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/sponsors/${sponsorId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCsrfToken() },
                 body: JSON.stringify(sponsorData)

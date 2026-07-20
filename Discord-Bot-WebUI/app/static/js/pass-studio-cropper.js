@@ -446,7 +446,7 @@ const AssetCropper = {
             const csrfToken = document.querySelector('[name=csrf_token]')?.value ||
                               document.querySelector('meta[name="csrf-token"]')?.content;
 
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/assets/upload`, {
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/assets/upload`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -527,7 +527,7 @@ const AssetCropper = {
             const csrfToken = document.querySelector('[name=csrf_token]')?.value ||
                               document.querySelector('meta[name="csrf-token"]')?.content;
 
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/assets/${this.currentAssetType}`, {
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/assets/${this.currentAssetType}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',

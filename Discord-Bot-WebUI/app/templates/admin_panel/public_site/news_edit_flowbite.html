@@ -63,10 +63,11 @@
       {% endif %}
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status <span class="text-gray-400 font-normal">(set to Published to make it live)</span></label>
-        <select name="status" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-          <option value="draft" {{ 'selected' if not post or post.status != 'published' else '' }}>Draft</option>
-          <option value="published" {{ 'selected' if post and post.status == 'published' else '' }}>Published</option>
+        <select name="status" id="news-status" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+          <option value="draft" {{ 'selected' if not post or post.status != 'published' else '' }}>Draft (hidden)</option>
+          <option value="published" {{ 'selected' if post and post.status == 'published' else '' }}>Published (live)</option>
         </select>
+        <p id="news-status-hint" class="mt-1 text-xs text-amber-600 dark:text-amber-400 hidden"><i class="ti ti-alert-triangle"></i> Saving as Published makes your changes visible to everyone immediately.</p>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Publish date</label>
@@ -75,8 +76,30 @@
                class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
         <p class="mt-1 text-xs text-gray-400">Leave blank to use now when you publish. Backdate to preserve a migrated post's original date.</p>
       </div>
-      <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-green text-white px-4 py-2.5 text-sm font-semibold hover:bg-ecs-green-dark"><i class="ti ti-device-floppy"></i> Save post</button>
+      <button type="submit" id="news-save-btn" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-green text-white px-4 py-2.5 text-sm font-semibold hover:bg-ecs-green-dark"><i class="ti ti-device-floppy"></i> Save post</button>
+      {% if post and post.id %}
+      <a href="{{ url_for('admin_panel.public_site_news_revisions', post_id=post.id) }}" class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-ecs-green"><i class="ti ti-history"></i> Revision history</a>
+      {% endif %}
     </div>
+    <script>
+    // WordPress-style: the button reflects exactly what will happen so a
+    // non-technical editor is never surprised that a save went live.
+    (function () {
+      var sel = document.getElementById('news-status');
+      var btn = document.getElementById('news-save-btn');
+      var hint = document.getElementById('news-status-hint');
+      var wasPublished = {{ 'true' if post and post.status == 'published' else 'false' }};
+      if (!sel || !btn) return;
+      function sync() {
+        var pub = sel.value === 'published';
+        btn.innerHTML = '<i class="ti ti-' + (pub ? 'world-upload' : 'device-floppy') + '"></i> ' +
+          (pub ? (wasPublished ? 'Update — live now' : 'Publish') : 'Save draft');
+        if (hint) hint.classList.toggle('hidden', !pub);
+      }
+      sel.addEventListener('change', sync);
+      sync();
+    })();
+    </script>
 
     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4">
       <div>

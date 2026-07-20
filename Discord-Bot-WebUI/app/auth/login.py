@@ -63,7 +63,34 @@ def login_entry_flags():
         waitlist_enabled = bool(AdminConfig.get_setting('waitlist_registration_enabled', True))
     except Exception:
         registration_open, waitlist_enabled = True, True
-    return {'registration_open': registration_open, 'waitlist_enabled': waitlist_enabled}
+    return {
+        'registration_open': registration_open,
+        'waitlist_enabled': waitlist_enabled,
+        'password_login_allowed': password_login_allowed(),
+    }
+
+
+def password_login_allowed():
+    """
+    Whether the email/password login form is honored.
+
+    The community signs in with Discord; ``discord_only_login`` (admin-configurable,
+    defaults ON) hides the password form so nobody stumbles onto password auth with
+    a random fail-safe password they were never told. It is NOT a security boundary —
+    it's a UX choice.
+
+    Break-glass: setting the ``ALLOW_PASSWORD_LOGIN`` env var (1/true/yes/on) forces
+    password login back on regardless of the toggle, so a Discord outage can never
+    lock admins out. Fails open (allowed) if the setting can't be read.
+    """
+    import os
+    if str(os.environ.get('ALLOW_PASSWORD_LOGIN', '')).strip().lower() in ('1', 'true', 'yes', 'on'):
+        return True
+    from app.models.admin_config import AdminConfig
+    try:
+        return not bool(AdminConfig.get_setting('discord_only_login', True))
+    except Exception:
+        return True
 
 
 @auth.route('/login', methods=['GET', 'POST'])
@@ -106,6 +133,15 @@ def login():
             return render_template('login_flowbite.html', title='Login', form=form, **entry_flags)
 
         logger.debug("Processing login POST request")
+
+        # Discord-only mode: refuse password auth entirely (the form is hidden in
+        # the UI, but block server-side too so a hand-crafted POST can't slip past).
+        # Break-glass via ALLOW_PASSWORD_LOGIN env var — see password_login_allowed().
+        if not entry_flags.get('password_login_allowed', True):
+            logger.info("Password login attempted while Discord-only login is enabled")
+            show_error('Please sign in with Discord.')
+            return render_template('login_flowbite.html', title='Login', form=form, **entry_flags)
+
         if not form.validate_on_submit():
             logger.debug(f"Form validation failed: {form.errors}")
             show_error('Please check your form inputs.')

@@ -131,15 +131,6 @@
             </a>
             {% endif %}
 
-            <!-- Wallet (if admin) -->
-            {% if safe_current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Admin' in user_roles) %}
-            <a href="{{ url_for('wallet_admin.wallet_management') }}"
-               class="list-group-item list-group-item-action">
-                <i class="ti ti-wallet me-3"></i>
-                Wallet Management
-            </a>
-            {% endif %}
-
             <!-- Feedback -->
             {% if safe_current_user.is_authenticated %}
             <a href="{{ url_for('feedback.submit_feedback') }}"

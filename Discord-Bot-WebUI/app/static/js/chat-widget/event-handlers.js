@@ -225,8 +225,8 @@ function showDeleteConfirmation(messageId, isSent) {
       title: 'Delete message?',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: 'var(--cw-danger, #ef4444)',
-      cancelButtonColor: 'var(--cw-text-secondary, #6b7280)',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
       confirmButtonText: 'Delete for me',
       cancelButtonText: 'Cancel',
       customClass: {
@@ -238,7 +238,7 @@ function showDeleteConfirmation(messageId, isSent) {
     if (isSent) {
       options.showDenyButton = true;
       options.denyButtonText = 'Unsend for everyone';
-      options.denyButtonColor = 'var(--cw-accent, #1a472a)';
+      options.denyButtonColor = '#2e9d44'; /* ecs-green-dark */
     }
 
     window.Swal.fire(options).then((result) => {

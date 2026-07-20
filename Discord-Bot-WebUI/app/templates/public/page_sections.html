@@ -1,0 +1,15 @@
+{% extends "public/base_public.html" %}
+
+{# The ONE public page template: every page (home included) is a sections
+   document rendered server-side by site_renderer. sections_html arrives
+   pre-rendered so routes control mode (draft vs published) and caching. #}
+
+{% block content %}
+{{ sections_html | safe }}
+{% if edit_mode %}
+{# Site-editor bridge: only rendered for authenticated site editors inside the
+   editor iframe (?edit=1). Provides selection overlay, inline text editing,
+   and section-swap plumbing via postMessage to the parent shell. #}
+<script type="module" src="{{ vite_asset('js/site-editor/bridge.js') }}"></script>
+{% endif %}
+{% endblock %}

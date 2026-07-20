@@ -59,16 +59,23 @@ def register():
     form = RegistrationForm()
     if form.validate_on_submit():
         try:
+            # Approval gate is admin-configurable (Registration Settings; default ON).
+            from app.models.admin_config import AdminConfig
+            try:
+                _approval_required = bool(AdminConfig.get_setting('admin_approval_required', True))
+            except Exception:
+                _approval_required = True
             roles = Role.query.filter(Role.name.in_(form.roles.data)).all()
             user = User(
                 username=form.username.data,
                 email=form.email.data,
-                is_approved=False,
-                approval_status='pending',  # explicit: real approval gate
+                is_approved=(not _approval_required),
+                approval_status=('pending' if _approval_required else 'approved'),
                 roles=roles
             )
             user.set_password(form.password.data)
-            show_info('Account created and pending approval.')
+            show_info('Account created and pending approval.' if _approval_required
+                      else 'Account created — you can now log in.')
             return user, redirect(url_for('auth.login'))
         except Exception as e:
             logger.error(f"Registration error: {str(e)}")
@@ -121,8 +128,11 @@ def register_with_discord():
 
             # Check if the user is already in the server
             member_check = discord_client.check_member_in_server(server_id, discord_id)
+            member_in_server = bool(
+                member_check.get('success') and member_check.get('in_server')
+            )
 
-            if member_check.get('success') and not member_check.get('in_server'):
+            if member_check.get('success') and not member_in_server:
                 # User is not in the server, invite them
                 try:
                     invite_result = discord_client.invite_user_to_server(discord_id)
@@ -142,21 +152,28 @@ def register_with_discord():
                     logger.error(f"Error inviting user to Discord server: {str(e)}")
                     # Continue despite invite failure - we'll handle Discord role assignment separately
 
-            # Try to assign the ECS-FC-PL-UNVERIFIED role (previously SUB role)
-            try:
-                unverified_role_id = "1357770021157212430"  # Reuse the same Discord role ID
-                role_result = discord_client.assign_role_to_member(
-                    server_id,
-                    discord_id,
-                    unverified_role_id
-                )
-                if role_result.get('success'):
-                    logger.info(f"Successfully assigned ECS-FC-PL-UNVERIFIED role to Discord user {discord_id}")
-                else:
-                    logger.error(f"Failed to assign ECS-FC-PL-UNVERIFIED role: {role_result.get('message')}")
-            except Exception as e:
-                logger.error(f"Error assigning ECS-FC-PL-UNVERIFIED role to Discord user {discord_id}: {str(e)}")
-                # Continue despite role assignment failure - registration can still proceed
+            # Assign the ECS-FC-PL-UNVERIFIED role — but ONLY if the user is
+            # already in the server. For someone we just invited, Discord can't
+            # add a role to a non-member, so this always 404'd ("Failed to assign
+            # role: 404 - Not Found") and spammed the error log. When they
+            # actually join, the bot's on_member_join assigns the role from
+            # get_expected_roles() (which returns ECS-FC-PL-UNVERIFIED for
+            # pending/pl-unverified users), so nothing is lost by skipping it here.
+            if member_in_server:
+                try:
+                    unverified_role_id = "1357770021157212430"  # Reuse the same Discord role ID
+                    role_result = discord_client.assign_role_to_member(
+                        server_id,
+                        discord_id,
+                        unverified_role_id
+                    )
+                    if role_result.get('success'):
+                        logger.info(f"Successfully assigned ECS-FC-PL-UNVERIFIED role to Discord user {discord_id}")
+                    else:
+                        logger.error(f"Failed to assign ECS-FC-PL-UNVERIFIED role: {role_result.get('message')}")
+                except Exception as e:
+                    logger.error(f"Error assigning ECS-FC-PL-UNVERIFIED role to Discord user {discord_id}: {str(e)}")
+                    # Continue despite role assignment failure - registration can still proceed
 
             return {'success': True}
 
@@ -237,13 +254,29 @@ def register_with_discord():
                 "Welcome back — we found your existing account and signed you in.",
             )
 
-        # Find the pl-unverified role in database
-        unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
+        # Default new-user role + approval gate are admin-configurable (Registration
+        # Settings). Defaults preserve today's behavior: pl-unverified + require approval.
+        from app.models.admin_config import AdminConfig
+        try:
+            _default_role_name = AdminConfig.get_setting('default_user_role', 'pl-unverified') or 'pl-unverified'
+            _approval_required = bool(AdminConfig.get_setting('admin_approval_required', True))
+            # "Auto-approve linked members" (Discord onboarding config): this IS the
+            # Discord signup path, so the member's Discord ID is verified by definition.
+            # When enabled it skips the approval queue even if approval is otherwise
+            # required. Defaults OFF, so behavior is unchanged unless an admin opts in.
+            if bool(AdminConfig.get_setting('onboarding_auto_approve_linked', False)):
+                _approval_required = False
+        except Exception:
+            _default_role_name, _approval_required = 'pl-unverified', True
+
+        unverified_role = db_session.query(Role).filter_by(name=_default_role_name).first()
         if not unverified_role:
-            # Create the role if it doesn't exist
-            unverified_role = Role(name='pl-unverified', description='Unverified player awaiting league approval')
-            db_session.add(unverified_role)
-            db_session.flush()
+            # Configured role missing — fall back to pl-unverified (create if needed).
+            unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
+            if not unverified_role:
+                unverified_role = Role(name='pl-unverified', description='Unverified player awaiting league approval')
+                db_session.add(unverified_role)
+                db_session.flush()
 
         # Create the user
         original_username = discord_username.split('#')[0] if '#' in discord_username else discord_username
@@ -274,14 +307,16 @@ def register_with_discord():
         new_user = User(
             username=username,
             email=discord_email,
-            # Admin approval is now a REAL gate: web Discord signups land
-            # unapproved + pending so they appear in the approvals queue. They
-            # can still log in (only DENIED is blocked) but the league-access
-            # gate confines them to profile / purchase / pending-status until an
-            # admin approves them and they pay for the season.
-            is_approved=False,
-            approval_status='pending',  # Set to pending for approval workflow
-            roles=[unverified_role]   # Assign pl-unverified role
+            # Admin approval is a REAL gate (admin-configurable via Registration
+            # Settings; defaults ON). When required, web Discord signups land
+            # unapproved + pending so they appear in the approvals queue. They can
+            # still log in (only DENIED is blocked) but the league-access gate
+            # confines them to profile / purchase / pending-status until an admin
+            # approves them and they pay for the season. When approval is turned
+            # OFF, they land approved immediately.
+            is_approved=(not _approval_required),
+            approval_status=('pending' if _approval_required else 'approved'),
+            roles=[unverified_role]   # Assign configured default role
         )
         new_user.set_password(temp_password)
         db_session.add(new_user)
@@ -324,7 +359,12 @@ def register_with_discord():
         if claim_code:
             try:
                 from app.models import QuickProfile
-                quick_profile = QuickProfile.find_by_code(claim_code)
+                # Load on db_session (g.db_session) — the SAME session the new
+                # Player lives on — so claim()'s claimed_by_player_id write and
+                # the Player insert share one transaction. Loading via the
+                # default cls.query (db.session) caused FK-violation 500s on
+                # register (see [[reference_two_sessions_lost_writes]]).
+                quick_profile = QuickProfile.find_by_code(claim_code, session=db_session)
                 if quick_profile and quick_profile.is_valid():
                     # Claim the profile - this merges data into the player
                     quick_profile.claim(player)

@@ -72,6 +72,9 @@ class AutoScheduleGenerator:
         self.schedule_templates = []
         self.week_configurations = []
         self.season_config = None
+        # Defaults until set_config() runs (keeps _generate_time_slots crash-safe).
+        self.break_duration_minutes = 0
+        self.enable_time_rotation = True
         
         # Track team assignments for balancing
         self.team_field_count = defaultdict(lambda: defaultdict(int))  # team_id -> field -> count
@@ -135,23 +138,34 @@ class AutoScheduleGenerator:
         # Try to get from database for real teams
         return self.session.query(Team).filter_by(id=team_id).first()
         
-    def set_config(self, start_time: time, match_duration_minutes: int = 70, 
-                   weeks_count: int = 7, fields: str = "North,South") -> None:
+    def set_config(self, start_time: time, match_duration_minutes: int = 70,
+                   weeks_count: int = 7, fields: str = "North,South",
+                   break_duration_minutes: int = 0, enable_time_rotation: bool = True) -> None:
         """
         Set configuration for schedule generation from wizard input.
-        
+
         Args:
             start_time: When the first match of the day starts
             match_duration_minutes: Duration of each match in minutes
             weeks_count: Number of weeks in the regular season
             fields: Comma-separated field names
+            break_duration_minutes: Rest inserted between back-to-back slots when times
+                are computed (general leagues + any slots beyond the fixed Premier/
+                Classic spec times). The historical Premier/Classic fixed times already
+                bake in their cadence, so this never shifts a standard 4/8-team slate.
+            enable_time_rotation: Balance which teams get earlier vs later slots across
+                the season. For 8-team Premier this is structurally guaranteed by the
+                pairing template (constraint C6) and for 4-team by the 3-week rotation;
+                it additionally drives the generic fallback assignment.
         """
         self.start_time = start_time
         self.match_duration_minutes = match_duration_minutes
         self.weeks_count = weeks_count
         self.fields = [field.strip().strip('{}') for field in fields.split(',')]
-        
-        logger.info(f"Schedule configuration set for {self.league.name}: start_time={start_time}, duration={match_duration_minutes}min, weeks={weeks_count}, fields={self.fields}")
+        self.break_duration_minutes = max(0, int(break_duration_minutes or 0))
+        self.enable_time_rotation = bool(enable_time_rotation)
+
+        logger.info(f"Schedule configuration set for {self.league.name}: start_time={start_time}, duration={match_duration_minutes}min, break={self.break_duration_minutes}min, rotation={self.enable_time_rotation}, weeks={weeks_count}, fields={self.fields}")
         
         # Validate configuration for back-to-back scheduling
         if self.num_teams % 2 != 0:
@@ -1519,21 +1533,24 @@ class AutoScheduleGenerator:
         if league_key in spec_times:
             fixed, base = spec_times[league_key]
             time_slots = list(fixed[:needed])
-            # Extend beyond the specified slots using the configured match duration.
+            # Extend beyond the specified slots using match duration + configured break.
+            # (The fixed spec times already bake in their own cadence, so this only
+            # affects extra slots for larger-than-standard leagues.)
             if len(time_slots) < needed:
-                step = self.match_duration_minutes or 70
+                step = (self.match_duration_minutes or 70) + (getattr(self, 'break_duration_minutes', 0) or 0)
                 cursor = datetime.combine(pacific_today(), time_slots[-1] if time_slots else base)
                 while len(time_slots) < needed:
                     cursor += timedelta(minutes=step)
                     time_slots.append(cursor.time())
             logger.info(f"Using {league_key.title()} times ({needed} slots): {[str(t) for t in time_slots]}")
         else:
-            # General case - use configured start time and duration
+            # General case - use configured start time, match duration + break between slots.
             start_time = self.start_time or time(8, 0)
+            step = (self.match_duration_minutes or 70) + (getattr(self, 'break_duration_minutes', 0) or 0)
             current_time = datetime.combine(pacific_today(), start_time)
             for _ in range(needed):
                 time_slots.append(current_time.time())
-                current_time += timedelta(minutes=self.match_duration_minutes or 70)
+                current_time += timedelta(minutes=step)
 
         return time_slots
     

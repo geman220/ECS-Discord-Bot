@@ -760,11 +760,44 @@ services:
       - PYTHONPATH=/app
       - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
-      - REDIS_MAX_CONNECTIONS=30
+      - REDIS_MAX_CONNECTIONS=15
+      # ---- PUBLIC_ONLY surface gate ----------------------------------------
+      # Registers ONLY the public blueprint + healthz + robots. No auth/admin/
+      # api on this container; cross-app links go absolute via PUBLIC_PORTAL_URL.
+      - PUBLIC_ONLY=true
+      - SKIP_SOCKETIO=true
+      - SKIP_CELERY=true
+      - PUBLIC_PORTAL_URL=https://portal.ecsfc.com
+      # Tiny DB pool: publicweb shares webui's 12-slot PgBouncer web pool; the
+      # Redis render cache serves the hot path, so 2+1 per worker is plenty and
+      # publicweb can never starve the portal.
+      - SQLALCHEMY_POOL_SIZE=2
+      - SQLALCHEMY_MAX_OVERFLOW=1
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5000/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
     volumes:
-      - ./Discord-Bot-WebUI:/app
+      # CODE ISOLATION: publicweb runs a RELEASE CHECKOUT, not the live working
+      # tree — a portal-side `git pull` can no longer mutate the public site's
+      # code mid-flight (gunicorn recycles workers every 5000 requests and
+      # would silently import half-deployed code). Create it once with:
+      #   git worktree add ../publicweb-release master
+      #   cd ../publicweb-release/Discord-Bot-WebUI && npm ci   # boot build needs node_modules
+      # and advance it deliberately at each public release:
+      #   cd ../publicweb-release && git checkout <sha>
+      #   cd Discord-Bot-WebUI && npm ci
+      #   docker compose up -d --force-recreate publicweb
+      - ../publicweb-release/Discord-Bot-WebUI:/app
+      # SHARED MEDIA: uploads land in the portal's tree (admins upload via the
+      # portal), so the media dirs are bind-mounted from the LIVE tree into
+      # this container at the same paths/URLs.
+      - ./Discord-Bot-WebUI/app/static/img/publeague:/app/app/static/img/publeague
+      - ./Discord-Bot-WebUI/app/static/img/uploads:/app/app/static/img/uploads
       - ./Discord-Bot-WebUI/instance/firebase-service-account.json:/app/instance/firebase-service-account.json
       # publicweb's OWN compiled assets, isolated from webui (see publicweb_vitedist)
       - publicweb_vitedist:/app/app/static/vite-dist
@@ -796,7 +829,7 @@ services:
       # webui's portal router (priority 10) so /preview wins; everything else on
       # portal.ecsfc.com still goes to webui. Uses secure-headers (noindex) since
       # this is a demo path on the portal host. Bring publicweb down => /preview dies.
-      - "traefik.http.routers.publicweb-preview.rule=Host(`portal.ecsfc.com`) && PathPrefix(`/preview`)"
+      - "traefik.http.routers.publicweb-preview.rule=Host(`portal.ecsfc.com`) && PathPrefix(`/preview`) && !Query(`edit=1`) && !Query(`draft=1`)"
       - "traefik.http.routers.publicweb-preview.entrypoints=websecure"
       - "traefik.http.routers.publicweb-preview.tls=true"
       - "traefik.http.routers.publicweb-preview.priority=25"
@@ -810,13 +843,6 @@ services:
       - "traefik.http.routers.publicweb-static.priority=30"
       - "traefik.http.routers.publicweb-static.service=publicweb"
       - "traefik.http.routers.publicweb-static.middlewares=public-headers,gzip-compress"
-      # Socket.IO (public realtime, if any) — no rate limit
-      - "traefik.http.routers.publicweb-socketio.rule=(Host(`ecspubleague.org`) || Host(`www.ecspubleague.org`)) && PathPrefix(`/socket.io`)"
-      - "traefik.http.routers.publicweb-socketio.entrypoints=websecure"
-      - "traefik.http.routers.publicweb-socketio.tls=true"
-      - "traefik.http.routers.publicweb-socketio.tls.certresolver=myresolver"
-      - "traefik.http.routers.publicweb-socketio.priority=20"
-      - "traefik.http.routers.publicweb-socketio.service=publicweb"
       # Service port
       - "traefik.http.services.publicweb.loadbalancer.server.port=5000"
       - "traefik.http.services.publicweb.loadbalancer.sticky.cookie=true"

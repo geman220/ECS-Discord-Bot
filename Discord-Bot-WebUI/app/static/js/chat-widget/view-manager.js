@@ -22,6 +22,7 @@ export function openWidget() {
 
   state.isOpen = true;
   elements.widget.dataset.state = 'open';
+  if (elements.trigger) elements.trigger.setAttribute('aria-expanded', 'true');
 
   // Lock body scroll on mobile - cross-browser compatible approach
   if (window.innerWidth <= 767) {
@@ -63,6 +64,7 @@ export function closeWidget() {
   resetConversationState();
   elements.widget.dataset.state = 'closed';
   elements.widget.dataset.view = 'list';
+  if (elements.trigger) elements.trigger.setAttribute('aria-expanded', 'false');
 
   // Unlock body scroll on mobile - cross-browser compatible
   document.documentElement.classList.remove('chat-widget-open');

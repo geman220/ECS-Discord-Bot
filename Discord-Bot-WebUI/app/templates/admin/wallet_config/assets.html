@@ -1,281 +1,246 @@
-{% extends 'admin/layout.html' %}
-{% block title %}Wallet Pass Assets{% endblock %}
+{% extends "admin_panel/base_flowbite.html" %}
 
-{% block content %}
-<div class="container-xxl flex-grow-1 container-p-y">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="fw-bold text-primary mb-1">
-                        <i class="ti ti-photo me-2"></i>Pass Assets
-                    </h2>
-                    <p class="text-muted mb-0">Manage icons, logos, and images for wallet passes</p>
-                </div>
-                <div>
-                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary">
-                        <i class="ti ti-arrow-left me-1"></i> Back to Dashboard
-                    </a>
-                </div>
-            </div>
+{% block admin_title %}Wallet Pass Assets{% endblock %}
 
-            {% if pass_types_missing %}
-            <div class="alert alert-warning d-flex align-items-start" data-alert>
-                <i class="ti ti-alert-triangle me-3 fs-3"></i>
-                <div class="flex-grow-1">
-                    <h6 class="alert-heading mb-1">Pass Types Not Initialized</h6>
-                    <p class="mb-2">Before uploading assets, you need to initialize the pass types (ECS Membership and Pub League).</p>
-                    <form action="{{ url_for('wallet_config.init_pass_types') }}" method="post" class="d-inline">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="c-btn c-btn--warning">
-                            <i class="ti ti-database-plus me-1"></i> Initialize Pass Types
-                        </button>
-                    </form>
-                </div>
-            </div>
-            {% else %}
-            <div class="alert alert-info d-flex align-items-start" data-alert>
-                <i class="ti ti-info-circle me-3 fs-3"></i>
-                <div>
-                    <h6 class="alert-heading mb-1">Asset Requirements</h6>
-                    <p class="mb-0">
-                        Required assets: <strong>icon</strong> (29×29px) and <strong>logo</strong> (160×50px).<br>
-                        Optional: icon2x, logo2x, background, strip, thumbnail images.
-                    </p>
-                </div>
-            </div>
-            {% endif %}
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('wallet_admin.wallet_management') }}" class="ml-1 text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Wallet</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Assets &amp; Images</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-photo text-blue-600 dark:text-blue-400"></i>
+                Pass Assets
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Manage icons, logos, and images for wallet passes</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-arrow-left mr-1"></i> Back to Dashboard
+            </a>
         </div>
     </div>
 
+    {% if pass_types_missing %}
+    <div class="flex items-start p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300">
+        <i class="ti ti-alert-triangle text-2xl mr-3 flex-shrink-0"></i>
+        <div class="flex-grow">
+            <h6 class="font-semibold mb-1">Pass Types Not Initialized</h6>
+            <p class="text-sm mb-2">Before uploading assets, you need to initialize the pass types (ECS Membership and Pub League).</p>
+            <form action="{{ url_for('wallet_config.init_pass_types') }}" method="post" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors">
+                    <i class="ti ti-database-plus mr-1"></i> Initialize Pass Types
+                </button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="flex items-start p-4 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300">
+        <i class="ti ti-info-circle text-2xl mr-3 flex-shrink-0"></i>
+        <div>
+            <h6 class="font-semibold mb-1">Asset Requirements</h6>
+            <p class="text-sm">
+                Required assets: <strong>icon</strong> (29&times;29px) and <strong>logo</strong> (160&times;50px).<br>
+                Optional: icon2x, logo2x, background, strip, thumbnail images.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
     {% if not pass_types_missing %}
     <!-- Tabs -->
-    <div class="row">
-        <div class="col-12">
-            <div class="nav-align-top mb-4">
-                <ul class="nav nav-tabs" role="tablist" data-tabs>
-                    <li class="nav-item">
-                        <button
-                            type="button"
-                            class="nav-link active"
-                            role="tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#ecs-tab"
-                            aria-controls="ecs-tab"
-                            aria-selected="true"
-                        >
-                            <i class="ti ti-user-check me-1"></i> ECS Membership
-                        </button>
-                    </li>
-                    <li class="nav-item">
-                        <button
-                            type="button"
-                            class="nav-link"
-                            role="tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#pub-tab"
-                            aria-controls="pub-tab"
-                            aria-selected="false"
-                        >
-                            <i class="ti ti-ball-football me-1"></i> Pub League
-                        </button>
-                    </li>
-                </ul>
-                
-                <div class="tab-content">
-                    <!-- ECS Membership Tab -->
-                    <div class="tab-pane fade show active" id="ecs-tab" role="tabpanel" data-tab-pane>
-                        <div class="c-card border-0">
-                            <div class="c-card__body">
-                                <h5 class="mb-4">ECS Membership Assets</h5>
-                                
-                                <div class="row mb-4">
-                                    <div class="col-md-6">
-                                        <div class="c-card bg-body-tertiary">
-                                            <div class="c-card__body">
-                                                <h6 class="c-card__title">Asset Status</h6>
-                                                {% set has_icon = ecs_assets.icon is defined %}
-                                                {% set has_logo = ecs_assets.logo is defined %}
-                                                {% set complete = has_icon and has_logo %}
-                                                
-                                                <p class="c-card__description">
-                                                    {% if complete %}
-                                                    <span class="badge bg-label-success" data-badge><i class="ti ti-check me-1"></i> Complete</span>
-                                                    {% else %}
-                                                    <span class="badge bg-label-warning" data-badge><i class="ti ti-alert-triangle me-1"></i> Incomplete</span>
-                                                    {% endif %}
-                                                </p>
-                                                <div class="progress mb-3" class="u-progress-h-8">
-                                                    {% set required = 2 %}
-                                                    {% set count = 0 %}
-                                                    {% if has_icon %}{% set count = count + 1 %}{% endif %}
-                                                    {% if has_logo %}{% set count = count + 1 %}{% endif %}
-                                                    {% set percentage = (count / required * 100)|int %}
-                                                    <div class="progress-bar bg-primary" role="progressbar" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
-                                                <p class="mb-0 small">
-                                                    {{ count }} of {{ required }} required assets uploaded.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="c-card">
-                                            <div class="c-card__body">
-                                                <h6 class="c-card__title">Upload Asset</h6>
-                                                <form action="{{ url_for('wallet_config.upload_asset') }}" method="post" enctype="multipart/form-data">
-                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Asset Type</label>
-                                                        <select name="asset_type" class="form-select" data-form-select>
-                                                            {% for asset_type, asset_info in asset_types.items() %}
-                                                            <option value="{{ asset_type }}">{{ asset_info.description }} ({{ asset_info.dimensions }})</option>
-                                                            {% endfor %}
-                                                        </select>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Asset File</label>
-                                                        <input type="file" class="form-control" name="asset_file" required data-form-control>
-                                                    </div>
-                                                    <input type="hidden" name="pass_type_id" value="{{ ecs_type.id }}">
-                                                    <button type="submit" class="c-btn c-btn--primary">Upload Asset</button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <h6 class="mb-3">Uploaded Assets</h6>
-                                <div class="row">
-                                    {% for asset_type, asset_info in asset_types.items() %}
-                                    <div class="col-md-4 mb-4">
-                                        <div class="c-card h-100">
-                                            <div class="c-card__header">
-                                                <h6 class="mb-0">{{ asset_info.description }}</h6>
-                                                <small class="text-muted">{{ asset_info.dimensions }}</small>
-                                            </div>
-                                            <div class="c-card__body text-center">
-                                                {% if ecs_assets[asset_type] is defined %}
-                                                    {% set asset = ecs_assets[asset_type] %}
-                                                    <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" class="img-fluid mb-3 border" alt="{{ asset_type }}">
-                                                    <p class="mb-1 small">Uploaded {{ asset.created_at.strftime('%Y-%m-%d') }}</p>
-                                                    <form action="{{ url_for('wallet_config.delete_asset', asset_id=asset.id) }}" method="post" class="mt-2 delete-asset-form">
-                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                        <input type="hidden" name="asset_name" value="{{ asset_info.description }}">
-                                                        <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger">Delete</button>
-                                                    </form>
-                                                {% else %}
-                                                    <div class="text-muted py-4">
-                                                        <i class="ti ti-photo" class="u-icon-3xl"></i>
-                                                        <p>No asset uploaded</p>
-                                                    </div>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="border-b border-gray-200 dark:border-gray-700 px-4">
+            <nav class="flex flex-wrap -mb-px text-sm font-medium text-center" role="tablist">
+                <button type="button" role="tab" data-tab-target="ecs-tab" aria-controls="ecs-tab" aria-selected="true"
+                        class="inline-flex items-center px-4 py-3 border-b-2 border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400 rounded-t-lg">
+                    <i class="ti ti-user-check mr-1"></i> ECS Membership
+                </button>
+                <button type="button" role="tab" data-tab-target="pub-tab" aria-controls="pub-tab" aria-selected="false"
+                        class="inline-flex items-center px-4 py-3 border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 rounded-t-lg">
+                    <i class="ti ti-ball-football mr-1"></i> Pub League
+                </button>
+            </nav>
+        </div>
 
-                    <!-- Pub League Tab -->
-                    <div class="tab-pane fade" id="pub-tab" role="tabpanel" data-tab-pane>
-                        <div class="c-card border-0">
-                            <div class="c-card__body">
-                                <h5 class="mb-4">Pub League Assets</h5>
-                                
-                                <div class="row mb-4">
-                                    <div class="col-md-6">
-                                        <div class="c-card bg-body-tertiary">
-                                            <div class="c-card__body">
-                                                <h6 class="c-card__title">Asset Status</h6>
-                                                {% set pub_has_icon = pub_assets.icon is defined %}
-                                                {% set pub_has_logo = pub_assets.logo is defined %}
-                                                {% set pub_complete = pub_has_icon and pub_has_logo %}
-                                                
-                                                <p class="c-card__description">
-                                                    {% if pub_complete %}
-                                                    <span class="badge bg-label-success" data-badge><i class="ti ti-check me-1"></i> Complete</span>
-                                                    {% else %}
-                                                    <span class="badge bg-label-warning" data-badge><i class="ti ti-alert-triangle me-1"></i> Incomplete</span>
-                                                    {% endif %}
-                                                </p>
-                                                <div class="progress mb-3" class="u-progress-h-8">
-                                                    {% set required = 2 %}
-                                                    {% set count = 0 %}
-                                                    {% if pub_has_icon %}{% set count = count + 1 %}{% endif %}
-                                                    {% if pub_has_logo %}{% set count = count + 1 %}{% endif %}
-                                                    {% set percentage = (count / required * 100)|int %}
-                                                    <div class="progress-bar bg-primary" role="progressbar" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
-                                                <p class="mb-0 small">
-                                                    {{ count }} of {{ required }} required assets uploaded.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="c-card">
-                                            <div class="c-card__body">
-                                                <h6 class="c-card__title">Upload Asset</h6>
-                                                <form action="{{ url_for('wallet_config.upload_asset') }}" method="post" enctype="multipart/form-data">
-                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Asset Type</label>
-                                                        <select name="asset_type" class="form-select" data-form-select>
-                                                            {% for asset_type, asset_info in asset_types.items() %}
-                                                            <option value="{{ asset_type }}">{{ asset_info.description }} ({{ asset_info.dimensions }})</option>
-                                                            {% endfor %}
-                                                        </select>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Asset File</label>
-                                                        <input type="file" class="form-control" name="asset_file" required data-form-control>
-                                                    </div>
-                                                    <input type="hidden" name="pass_type_id" value="{{ pub_type.id }}">
-                                                    <button type="submit" class="c-btn c-btn--primary">Upload Asset</button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <h6 class="mb-3">Uploaded Assets</h6>
-                                <div class="row">
-                                    {% for asset_type, asset_info in asset_types.items() %}
-                                    <div class="col-md-4 mb-4">
-                                        <div class="c-card h-100">
-                                            <div class="c-card__header">
-                                                <h6 class="mb-0">{{ asset_info.description }}</h6>
-                                                <small class="text-muted">{{ asset_info.dimensions }}</small>
-                                            </div>
-                                            <div class="c-card__body text-center">
-                                                {% if pub_assets[asset_type] is defined %}
-                                                    {% set asset = pub_assets[asset_type] %}
-                                                    <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" class="img-fluid mb-3 border" alt="{{ asset_type }}">
-                                                    <p class="mb-1 small">Uploaded {{ asset.created_at.strftime('%Y-%m-%d') }}</p>
-                                                    <form action="{{ url_for('wallet_config.delete_asset', asset_id=asset.id) }}" method="post" class="mt-2 delete-asset-form">
-                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                        <input type="hidden" name="asset_name" value="{{ asset_info.description }}">
-                                                        <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger">Delete</button>
-                                                    </form>
-                                                {% else %}
-                                                    <div class="text-muted py-4">
-                                                        <i class="ti ti-photo" class="u-icon-3xl"></i>
-                                                        <p>No asset uploaded</p>
-                                                    </div>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
+        <!-- ECS Membership Tab -->
+        <div id="ecs-tab" role="tabpanel" class="p-6">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">ECS Membership Assets</h5>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Asset Status</h6>
+                    {% set has_icon = ecs_assets.icon is defined %}
+                    {% set has_logo = ecs_assets.logo is defined %}
+                    {% set complete = has_icon and has_logo %}
+
+                    <p class="mb-3">
+                        {% if complete %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1"></i> Complete</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"><i class="ti ti-alert-triangle mr-1"></i> Incomplete</span>
+                        {% endif %}
+                    </p>
+                    {% set required = 2 %}
+                    {% set count = 0 %}
+                    {% if has_icon %}{% set count = count + 1 %}{% endif %}
+                    {% if has_logo %}{% set count = count + 1 %}{% endif %}
+                    {% set percentage = (count / required * 100)|int %}
+                    <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-600 mb-3">
+                        <div class="bg-blue-600 h-2 rounded-full" role="progressbar" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ percentage }}%"></div>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        {{ count }} of {{ required }} required assets uploaded.
+                    </p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Upload Asset</h6>
+                    <form action="{{ url_for('wallet_config.upload_asset') }}" method="post" enctype="multipart/form-data" class="space-y-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Asset Type</label>
+                            <select name="asset_type" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                {% for asset_type, asset_info in asset_types.items() %}
+                                <option value="{{ asset_type }}">{{ asset_info.description }} ({{ asset_info.dimensions }})</option>
+                                {% endfor %}
+                            </select>
                         </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Asset File</label>
+                            <input type="file" name="asset_file" required
+                                   class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white dark:text-gray-400 focus:outline-none dark:bg-gray-600 dark:border-gray-500">
+                        </div>
+                        <input type="hidden" name="pass_type_id" value="{{ ecs_type.id }}">
+                        <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Upload Asset</button>
+                    </form>
+                </div>
+            </div>
+
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Uploaded Assets</h6>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {% for asset_type, asset_info in asset_types.items() %}
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg flex flex-col h-full">
+                    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                        <h6 class="font-semibold text-gray-900 dark:text-white">{{ asset_info.description }}</h6>
+                        <small class="text-gray-500 dark:text-gray-400">{{ asset_info.dimensions }}</small>
+                    </div>
+                    <div class="p-4 text-center flex-grow">
+                        {% if ecs_assets[asset_type] is defined %}
+                            {% set asset = ecs_assets[asset_type] %}
+                            <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" class="max-w-full mx-auto mb-3 border border-gray-200 dark:border-gray-600 rounded" alt="{{ asset_type }}">
+                            <p class="mb-1 text-sm text-gray-600 dark:text-gray-400">Uploaded {{ asset.created_at.strftime('%Y-%m-%d') }}</p>
+                            <form action="{{ url_for('wallet_config.delete_asset', asset_id=asset.id) }}" method="post" class="mt-2 delete-asset-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="asset_name" value="{{ asset_info.description }}">
+                                <button type="submit" class="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">Delete</button>
+                            </form>
+                        {% else %}
+                            <div class="text-gray-400 dark:text-gray-500 py-8">
+                                <i class="ti ti-photo text-4xl"></i>
+                                <p class="mt-2">No asset uploaded</p>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Pub League Tab -->
+        <div id="pub-tab" role="tabpanel" class="p-6 hidden">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Pub League Assets</h5>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Asset Status</h6>
+                    {% set pub_has_icon = pub_assets.icon is defined %}
+                    {% set pub_has_logo = pub_assets.logo is defined %}
+                    {% set pub_complete = pub_has_icon and pub_has_logo %}
+
+                    <p class="mb-3">
+                        {% if pub_complete %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1"></i> Complete</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"><i class="ti ti-alert-triangle mr-1"></i> Incomplete</span>
+                        {% endif %}
+                    </p>
+                    {% set required = 2 %}
+                    {% set count = 0 %}
+                    {% if pub_has_icon %}{% set count = count + 1 %}{% endif %}
+                    {% if pub_has_logo %}{% set count = count + 1 %}{% endif %}
+                    {% set percentage = (count / required * 100)|int %}
+                    <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-600 mb-3">
+                        <div class="bg-blue-600 h-2 rounded-full" role="progressbar" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ percentage }}%"></div>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        {{ count }} of {{ required }} required assets uploaded.
+                    </p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Upload Asset</h6>
+                    <form action="{{ url_for('wallet_config.upload_asset') }}" method="post" enctype="multipart/form-data" class="space-y-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Asset Type</label>
+                            <select name="asset_type" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                {% for asset_type, asset_info in asset_types.items() %}
+                                <option value="{{ asset_type }}">{{ asset_info.description }} ({{ asset_info.dimensions }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Asset File</label>
+                            <input type="file" name="asset_file" required
+                                   class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white dark:text-gray-400 focus:outline-none dark:bg-gray-600 dark:border-gray-500">
+                        </div>
+                        <input type="hidden" name="pass_type_id" value="{{ pub_type.id }}">
+                        <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Upload Asset</button>
+                    </form>
+                </div>
+            </div>
+
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Uploaded Assets</h6>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {% for asset_type, asset_info in asset_types.items() %}
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg flex flex-col h-full">
+                    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                        <h6 class="font-semibold text-gray-900 dark:text-white">{{ asset_info.description }}</h6>
+                        <small class="text-gray-500 dark:text-gray-400">{{ asset_info.dimensions }}</small>
+                    </div>
+                    <div class="p-4 text-center flex-grow">
+                        {% if pub_assets[asset_type] is defined %}
+                            {% set asset = pub_assets[asset_type] %}
+                            <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" class="max-w-full mx-auto mb-3 border border-gray-200 dark:border-gray-600 rounded" alt="{{ asset_type }}">
+                            <p class="mb-1 text-sm text-gray-600 dark:text-gray-400">Uploaded {{ asset.created_at.strftime('%Y-%m-%d') }}</p>
+                            <form action="{{ url_for('wallet_config.delete_asset', asset_id=asset.id) }}" method="post" class="mt-2 delete-asset-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="asset_name" value="{{ asset_info.description }}">
+                                <button type="submit" class="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">Delete</button>
+                            </form>
+                        {% else %}
+                            <div class="text-gray-400 dark:text-gray-500 py-8">
+                                <i class="ti ti-photo text-4xl"></i>
+                                <p class="mt-2">No asset uploaded</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
@@ -287,6 +252,27 @@
 {{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Vanilla tab switching (replaces Bootstrap data-bs-toggle="tab")
+    const tabButtons = document.querySelectorAll('[data-tab-target]');
+    const activeClasses = ['border-blue-600', 'text-blue-600', 'dark:text-blue-400', 'dark:border-blue-400'];
+    const inactiveClasses = ['border-transparent', 'text-gray-500', 'dark:text-gray-400', 'hover:text-gray-600', 'hover:border-gray-300', 'dark:hover:text-gray-300'];
+    tabButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            tabButtons.forEach(function(b) {
+                b.classList.remove.apply(b.classList, activeClasses);
+                b.classList.add.apply(b.classList, inactiveClasses);
+                b.setAttribute('aria-selected', 'false');
+                const pane = document.getElementById(b.getAttribute('data-tab-target'));
+                if (pane) pane.classList.add('hidden');
+            });
+            btn.classList.remove.apply(btn.classList, inactiveClasses);
+            btn.classList.add.apply(btn.classList, activeClasses);
+            btn.setAttribute('aria-selected', 'true');
+            const pane = document.getElementById(btn.getAttribute('data-tab-target'));
+            if (pane) pane.classList.remove('hidden');
+        });
+    });
+
     // Handle delete asset forms with SweetAlert2
     document.querySelectorAll('.delete-asset-form').forEach(function(form) {
         form.addEventListener('submit', function(e) {

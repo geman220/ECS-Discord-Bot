@@ -43,6 +43,27 @@ public_bp = Blueprint('public', __name__, template_folder='templates/public')
 # Shared context — injected into every public template.
 # --------------------------------------------------------------------------- #
 
+def portal_url(endpoint, **values):
+    """Cross-app link builder — the coupling killer for the PUBLIC_ONLY
+    container. On the portal (preview mode) it's plain url_for; on publicweb
+    (PUBLIC_ONLY, where auth/main/admin blueprints are never registered) it
+    builds an ABSOLUTE link to the portal domain, so login/register/waitlist
+    flows stay on portal.ecsfc.com with its cookies + OAuth redirect URIs."""
+    import os
+    if os.environ.get('PUBLIC_ONLY'):
+        base = (os.environ.get('PUBLIC_PORTAL_URL') or 'https://portal.ecsfc.com').rstrip('/')
+        paths = {'auth.login': '/auth/login', 'auth.logout': '/auth/logout',
+                 'auth.register': '/auth/register',
+                 'auth.waitlist_register': '/auth/waitlist_register',
+                 'main.index': '/'}
+        path = paths.get(endpoint)
+        if path is None:
+            return base
+        from urllib.parse import urlencode
+        return base + path + (('?' + urlencode(values)) if values else '')
+    return url_for(endpoint, **values)
+
+
 def _cta_state(league=None):
     """
     The primary call-to-action, derived from the live waitlist flag.
@@ -69,10 +90,10 @@ def _cta_state(league=None):
 
     if waitlist_open:
         return {'label': 'Join the Waitlist',
-                'url': url_for('auth.waitlist_register', **args),
+                'url': portal_url('auth.waitlist_register', **args),
                 'mode': 'waitlist', 'league': league}
     return {'label': 'Register',
-            'url': url_for('auth.register', **args),
+            'url': portal_url('auth.register', **args),
             'mode': 'register', 'league': league}
 
 
@@ -133,22 +154,31 @@ def _darken_rgb_triplet(triplet, factor=0.8):
 
 
 def _appearance():
-    """Editable site branding (Appearance screen), with sensible fallbacks."""
+    """Editable site branding (Appearance screen), with sensible fallbacks.
+    Palette + typography are resolved through the ONE theme service so a single
+    admin change re-skins the whole site (green primary + blue accent + fonts)."""
+    from app.services.public_theme import theme_vars, css_var_block, DEFAULT_PRIMARY, DEFAULT_ACCENT
+
     def get(k, d=None):
         try:
             return AdminConfig.get_setting(k, d)
         except Exception:
             return d
-    primary_hex = get('public_primary_hex', '#40b050')  # ECS Pub League logo green
+    primary_hex = get('public_primary_hex', DEFAULT_PRIMARY)
+    accent_hex = get('public_accent_hex', DEFAULT_ACCENT)
+    font_pair = get('public_font_pair', 'modern')
+    theme = theme_vars(primary_hex, accent_hex, font_pair)
     return {
         'title': get('public_site_title', 'ECS Pub League'),
         'tagline': get('public_tagline',
                        'Radically inclusive, beginner-friendly adult soccer in Seattle.'),
         'logo_url': get('public_logo_url', None),
         'favicon_url': get('public_favicon_url', None),
-        'primary_hex': primary_hex,
-        'primary_rgb': _hex_to_rgb_triplet(primary_hex),
-        'primary_dark_rgb': _darken_rgb_triplet(_hex_to_rgb_triplet(primary_hex)),
+        'primary_hex': theme['primary_hex'],
+        'accent_hex': theme['accent_hex'],
+        'font_pair': theme['font_pair'],
+        # Full CSS-var block injected once in <head> to re-skin everything.
+        'theme_css': css_var_block(theme['css']),
         # Hero banner controls (editable on Website -> Home Page)
         'hero_focal': get('public_hero_focal', '50% 50%'),   # object-position
         'hero_overlay': get('public_hero_overlay', 'medium'),  # light|medium|heavy
@@ -180,6 +210,7 @@ def _inject_public_context():
     return {
         'cta': _cta_state(),
         'division_cta': _cta_state,   # callable: division_cta('classic'|'premier')
+        'portal_url': portal_url,     # cross-app links (PUBLIC_ONLY-safe)
         'season_name': _current_season_name(),
         'current_year': datetime.now().year,
         'discord_invite_url': discord_invite_url or 'https://discord.gg/weareecs',
@@ -226,6 +257,104 @@ def _org_json_ld():
     }
 
 
+def _edit_url(endpoint, **values):
+    """PUBLIC_ONLY-safe edit link: None unless the current user is a site
+    editor AND the admin blueprint is actually registered (on the publicweb
+    container it never is — an unguarded url_for('admin_panel.*') was the #1
+    'BuildError on every public page' defect)."""
+    if not _is_site_admin():
+        return None
+    try:
+        return url_for(endpoint, **values)
+    except Exception:
+        return None
+
+
+def _render_page_sections(page, seo, active, fallback_builder=None):
+    """Render a page through the ONE section pipeline.
+
+    Mode: published for the public; a site editor gets the draft with
+    ?draft=1 (plain preview) or ?edit=1 (editor annotations + bridge JS —
+    the iframe edit surface). ``?edit`` is a rendering hint only: without the
+    role it is ignored entirely.
+
+    fallback_builder covers the boot-order window before the builder SQL +
+    converter have run: the doc is built in memory by the SAME converter
+    functions, so there is no second rendering system.
+    """
+    from app.services import site_renderer
+    is_editor = _is_site_admin()
+    edit_mode = is_editor and request.args.get('edit') == '1'
+    mode = 'draft' if (edit_mode or (is_editor and request.args.get('draft') == '1')) \
+        else 'published'
+    doc = site_renderer.get_doc(page, mode) if page else None
+    if doc is None and mode == 'draft':
+        doc = site_renderer.get_doc(page, 'published') if page else None
+    if doc is None and fallback_builder is not None:
+        try:
+            from app.services.section_schema import validate_sections
+            doc, _ = validate_sections(fallback_builder(), is_admin=True)
+        except Exception:
+            logger.exception('fallback section build failed for %r',
+                             getattr(page, 'slug', None))
+            doc = None
+    if doc is None:
+        abort(404)
+
+    # ---- Render cache (publicweb only) -----------------------------------
+    # Full-page HTML cache for anonymous GETs in PUBLIC_ONLY mode. Never for
+    # editors/drafts, never for pages carrying a form block (their HTML embeds
+    # per-session CSRF tokens — caching one visitor's token breaks everyone
+    # else's submit), and never while a flash message is pending (it would be
+    # baked into the shared copy). Versioned keys (see public_cache) mean a
+    # portal-side publish/flag-flip reflects here within seconds; single-
+    # flight + stale-while-revalidate stop cold-key stampedes on the shared
+    # 12-slot PgBouncer pool.
+    import os as _os
+    from flask import session as _session
+    has_form = any(b.get('type') == 'form'
+                   for s in doc.get('sections', []) for b in s.get('blocks', []))
+    cacheable = (mode == 'published' and not edit_mode
+                 and request.method == 'GET'
+                 and _os.environ.get('PUBLIC_ONLY')
+                 and not is_editor and not has_form
+                 and not _session.get('_flashes'))
+    pc = key = None
+    if cacheable:
+        from app.services import public_cache as pc
+        host = (request.host or '').split(':')[0].lower()
+        key = pc.cache_key(host, request.path, 'page',
+                           page.slug if page else request.path)
+        cached = pc.get_cached_html(key)
+        if cached is not None:
+            return Response(cached, mimetype='text/html',
+                            headers={'Cache-Control': 'public, max-age=60'})
+        if not pc.acquire_render_lock(key):
+            stale = pc.get_stale_html(key)
+            if stale is not None:
+                return Response(stale, mimetype='text/html',
+                                headers={'Cache-Control': 'public, max-age=30'})
+
+    html = _render_doc(page, doc, edit_mode)
+    rendered = render_template('public/page_sections.html', active_page=active, seo=seo,
+                               sections_html=html, edit_mode=edit_mode,
+                               page=page,
+                               edit_url=(_edit_url('admin_panel.site_editor', page_id=page.id)
+                                         if page and page.id else None))
+    if cacheable and key:
+        pc.store_html(key, rendered)
+        return Response(rendered, mimetype='text/html',
+                        headers={'Cache-Control': 'public, max-age=60'})
+    return rendered
+
+
+def _render_doc(page, doc, edit_mode):
+    from flask import render_template as _rt
+    from app.services.site_renderer import RenderContext
+    ctx = RenderContext(doc, session=g.db_session if hasattr(g, 'db_session') else None)
+    return _rt('public/sections/_render.html', doc=doc, ctx=ctx, edit_mode=edit_mode)
+
+
 def _page_block(slug):
     """Fetch a live (non-trashed) SitePage by slug (None if missing/trashed)."""
     try:
@@ -242,7 +371,16 @@ def _page_block(slug):
 
 
 def _is_site_admin():
-    """True for Global/Pub League admins — gates the inline 'Edit this page' UI."""
+    """True for site editors — gates draft preview + the inline edit UI. Always
+    False on the publicweb container (admin_panel absent): the portal cookie can
+    reach the portal-hosted /preview demo, but publicweb must never render
+    drafts or emit admin-bar links (which would BuildError), so the editor lives
+    only on the portal."""
+    try:
+        if 'admin_panel' not in current_app.blueprints:
+            return False
+    except Exception:
+        return False
     try:
         from app.role_impersonation import get_effective_roles
         roles = get_effective_roles()
@@ -252,7 +390,8 @@ def _is_site_admin():
             roles = [r.name for r in (getattr(safe_current_user, 'roles', None) or [])]
         except Exception:
             roles = []
-    return any(r in ('Global Admin', 'Pub League Admin') for r in (roles or []))
+    return any(r in ('Global Admin', 'Pub League Admin', 'Site Editor')
+               for r in (roles or []))
 
 
 # --------------------------------------------------------------------------- #
@@ -261,20 +400,7 @@ def _is_site_admin():
 
 @public_bp.route('/')
 def home():
-    hero = _page_block('home_hero')
-    intro = _page_block('home_intro')
-    justforfun = _page_block('home_justforfun')
-    division_classic = _page_block('home_division_classic')
-    division_premier = _page_block('home_division_premier')
-    home_body = _page_block('home_body')  # visually-built middle section (hybrid)
-    try:
-        latest_news = (NewsPost.query
-                       .filter(NewsPost.status == 'published',
-                               NewsPost.published_at.isnot(None),
-                               NewsPost.published_at <= datetime.utcnow())
-                       .order_by(NewsPost.published_at.desc()).limit(3).all())
-    except Exception:
-        latest_news = []
+    page = _page_block('home')
     seo = _seo(
         title='ECS Pub League — Radically Inclusive Adult Soccer in Seattle',
         description=('Beginner-friendly, radically inclusive adult soccer in '
@@ -283,13 +409,11 @@ def home():
         canonical_endpoint='public.home',
         json_ld=[_org_json_ld()],
     )
-    return render_template('public/home.html', active_page='home', seo=seo,
-                           hero=hero, intro=intro, justforfun=justforfun,
-                           division_classic=division_classic,
-                           division_premier=division_premier,
-                           home_body=home_body,
-                           latest_news=latest_news,
-                           edit_url=url_for('admin_panel.public_site_home_edit'))
+
+    def _fallback():
+        from app.services.section_converter import build_home_doc
+        return build_home_doc(g.db_session)
+    return _render_page_sections(page, seo, 'home', fallback_builder=_fallback)
 
 
 @public_bp.route('/about')
@@ -302,8 +426,17 @@ def about():
 
 # Slugs that are NOT standalone public pages: home content blocks, plus pages
 # that already have their own explicit route.
+# Slugs that have their OWN fixed route (or are home content-blocks). The
+# catch-all /<slug> must 404 for these so a converter-created SitePage row
+# (home/register/contact/faqs now exist as real rows) doesn't get served a
+# SECOND time at /<slug> with a self-referential canonical, and the sitemap
+# loop doesn't re-emit their URLs. Fixed pages that DON'T have a dedicated
+# route (none today) would be omitted — every fixed page here has one.
 _RESERVED_PAGE_SLUGS = frozenset({
-    'home_hero', 'home_intro', 'home_justforfun', 'about', 'guide', 'guests',
+    'home_hero', 'home_intro', 'home_justforfun',
+    'home_division_classic', 'home_division_premier', 'home_body',
+    'home', 'about', 'guide', 'guests', 'faqs', 'news',
+    'register', 'contact', 'calendar',
 })
 
 # Built-in nav destinations admins can pick when editing the menu.
@@ -395,23 +528,16 @@ def dynamic_page(slug):
         og_image=_abs_static(page.og_image_url) if page.og_image_url else None,
         json_ld=[_org_json_ld()],
     )
-    return render_template('public/page.html', active_page=slug, seo=seo, page=page,
-                           title_fallback=page.title or slug.replace('-', ' ').title(),
-                           edit_url=_page_edit_url(page))
 
-
-def _page_edit_url(page):
-    """Smart 'Edit Page' target: a page DESIGNED in the visual builder (carries a
-    <style> block) opens in the builder; a plain rich-text page opens in the
-    reliable text editor (so the builder never mangles prose, and rich text never
-    strips a designed layout)."""
-    if page and page.body_html and '<style' in page.body_html:
-        return url_for('admin_panel.public_site_page_builder', page_id=page.id)
-    return url_for('admin_panel.public_site_page_edit', page_id=page.id)
+    def _fallback():
+        from app.services.section_converter import build_richtext_doc
+        return build_richtext_doc(page)
+    return _render_page_sections(page, seo, slug, fallback_builder=_fallback)
 
 
 def _render_site_page(slug, title_fallback, active='', desc=None):
-    """Render a generic editable SitePage (guide, guests, ...)."""
+    """Render a fixed editable SitePage (about, guide, guests) through the ONE
+    section pipeline."""
     page = _page_block(slug)
     # Honor Draft/Publish on the fixed pages too — a draft is hidden from the
     # public but still previewable by site admins.
@@ -426,16 +552,32 @@ def _render_site_page(slug, title_fallback, active='', desc=None):
         og_image=(_abs_static(page.og_image_url) if page and page.og_image_url else None),
         json_ld=[_org_json_ld()],
     )
-    edit_url = (_page_edit_url(page) if page
-                else url_for('admin_panel.public_site_pages'))
-    return render_template('public/page.html', active_page=active, seo=seo,
-                           page=page, title_fallback=title_fallback, edit_url=edit_url)
+
+    def _fallback():
+        from app.services.section_converter import build_richtext_doc, build_placeholder_doc
+        return build_richtext_doc(page) if page else build_placeholder_doc(title_fallback)
+    return _render_page_sections(page, seo, active or slug, fallback_builder=_fallback)
 
 
 @public_bp.route('/guide')
 def guide():
-    return _render_site_page('guide', 'The Pub League Guide',
-                             desc='The ECS Pub League unofficial guide — for players new to the league or to soccer.')
+    page = _page_block('guide')
+    if page and not page.is_public and not _is_site_admin():
+        abort(404)
+    seo = _seo(
+        title=(page.meta_title if page and page.meta_title
+               else 'The Pub League Guide — ECS Pub League'),
+        description=(page.meta_description if page and page.meta_description
+                     else 'The ECS Pub League unofficial guide — skills, positions, '
+                          'rules, and a full lexicon for players new to the league or to soccer.'),
+        canonical_endpoint='public.guide',
+        json_ld=[_org_json_ld()],
+    )
+
+    def _fallback():
+        from app.services.section_converter import build_guide_doc
+        return build_guide_doc()
+    return _render_page_sections(page, seo, 'guide', fallback_builder=_fallback)
 
 
 @public_bp.route('/guests')
@@ -474,9 +616,12 @@ def faqs():
         canonical_endpoint='public.faqs',
         json_ld=[faq_json_ld] if faq_json_ld else [_org_json_ld()],
     )
-    return render_template('public/faqs.html', active_page='faqs', seo=seo,
-                           grouped=grouped, total=len(rows),
-                           edit_url=url_for('admin_panel.public_site_faqs'))
+    page = _page_block('faqs')
+
+    def _fallback():
+        from app.services.section_converter import build_faqs_doc
+        return build_faqs_doc()
+    return _render_page_sections(page, seo, 'faqs', fallback_builder=_fallback)
 
 
 @public_bp.route('/news')
@@ -489,9 +634,14 @@ def news_list():
                      NewsPost.published_at <= datetime.utcnow()))
         if category:
             q = q.filter(NewsPost.category == category)
-        posts = q.order_by(NewsPost.published_at.desc()).all()
+        page_num = max(1, request.args.get('page', 1, type=int))
+        per_page = 12
+        total_posts = q.count()
+        posts = (q.order_by(NewsPost.published_at.desc())
+                 .offset((page_num - 1) * per_page).limit(per_page).all())
+        total_pages = max(1, -(-total_posts // per_page))
     except Exception:
-        posts = []
+        posts, page_num, total_pages = [], 1, 1
     try:
         categories = sorted({c[0] for c in db.session.query(NewsPost.category)
                              .filter(NewsPost.category.isnot(None),
@@ -507,7 +657,8 @@ def news_list():
     )
     return render_template('public/news_list.html', active_page='news', seo=seo,
                            posts=posts, categories=categories, active_category=category,
-                           edit_url=url_for('admin_panel.public_site_news'))
+                           page_num=page_num, total_pages=total_pages,
+                           edit_url=_edit_url('admin_panel.public_site_news'))
 
 
 @public_bp.route('/news/<slug>')
@@ -537,7 +688,7 @@ def news_detail(slug):
     )
     return render_template('public/news_detail.html', active_page='news', seo=seo,
                            post=post,
-                           edit_url=url_for('admin_panel.public_site_news_edit', post_id=post.id))
+                           edit_url=_edit_url('admin_panel.public_site_news_edit', post_id=post.id))
 
 
 @public_bp.route('/calendar')
@@ -656,94 +807,130 @@ def register():
         canonical_endpoint='public.register',
         json_ld=[_org_json_ld()],
     )
-    return render_template('public/register.html', active_page='register', seo=seo)
+    page = _page_block('register')
+
+    def _fallback():
+        from app.services.section_converter import build_register_doc
+        return build_register_doc()
+    return _render_page_sections(page, seo, 'register', fallback_builder=_fallback)
 
 
-@public_bp.route('/contact', methods=['GET', 'POST'])
-@transactional
+@public_bp.route('/contact')
 def contact():
-    submitted = {'name': '', 'email': '', 'subject': '', 'message': ''}
-    if request.method == 'POST':
-        # Honeypot: real users leave the hidden 'website' field empty; bots fill
-        # it. Silently accept (don't tip off the bot) and drop the submission.
-        if (request.form.get('website') or '').strip():
-            show_success("Thanks — we got your message and will be in touch.")
-            return redirect(url_for('public.contact'))
-
-        name = (request.form.get('name') or '').strip()
-        email = (request.form.get('email') or '').strip()
-        message = (request.form.get('message') or '').strip()
-        subject = (request.form.get('subject') or '').strip() or 'Website contact'
-        submitted = {'name': name, 'email': email, 'subject': subject, 'message': message}
-
-        if not name or not message:
-            show_error('Please add your name and a message so we can help.')
-        else:
-            try:
-                # Reuse the feedback backend (anonymous submission, admin-notified).
-                create_feedback_entry(
-                    {
-                        'name': name,
-                        'category': 'Contact',
-                        'title': subject,
-                        'description': (f'From: {name} <{email}>\n\n{message}'
-                                        if email else f'From: {name}\n\n{message}'),
-                    },
-                    user_id=None, username=name,
-                )
-                _notify_admins_contact(name, email, subject, message)
-                # Also record it in the Submissions inbox so admins have ONE place
-                # to review everything (contact + builder forms), not just email.
-                try:
-                    import json as _json
-                    g.db_session.add(FormSubmission(
-                        form_name='contact',
-                        data_json=_json.dumps({'name': name, 'email': email,
-                                               'subject': subject, 'message': message}),
-                        source_page='/contact'))
-                except Exception:
-                    pass
-                show_success("Thanks — we got your message and will be in touch soon.")
-                return redirect(url_for('public.contact'))
-            except Exception as e:
-                logger.error(f"Public contact submission failed: {e}", exc_info=True)
-                show_error('Something went wrong sending your message. '
-                           'Please email us directly at ecspubleague@gmail.com.')
-
+    """Contact page — a sections page with a form block; submissions go through
+    the ONE forms endpoint (public.submit_form) like every other public form."""
     seo = _seo(
         title='Contact — ECS Pub League',
         description='Get in touch with ECS Pub League.',
         canonical_endpoint='public.contact',
         json_ld=[_org_json_ld()],
     )
-    return render_template('public/contact.html', active_page='contact', seo=seo,
-                           submitted=submitted)
+    page = _page_block('contact')
+
+    def _fallback():
+        from app.services.section_converter import build_contact_doc
+        return build_contact_doc()
+    return _render_page_sections(page, seo, 'contact', fallback_builder=_fallback)
 
 
-@public_bp.route('/forms/<name>', methods=['POST'])
-@csrf.exempt
-@transactional
-def form_submit(name):
-    """Generic submission endpoint for the builder's Form widget. Stores the
-    submitted fields for admin review (Website -> Submissions). Anonymous +
-    honeypot-protected; CSRF-exempt because the form is authored as static
-    builder HTML that can't carry a Jinja token."""
+def _verify_turnstile(token):
+    """Server-side Cloudflare Turnstile check. Only enforced when keys are
+    configured — absence degrades to honeypot + rate limit, never to a hard
+    failure that blocks real people because of a missing env var."""
+    import os
+    secret = os.environ.get('TURNSTILE_SECRET_KEY')
+    if not secret:
+        return True
+    if not token:
+        return False
+    try:
+        import requests
+        r = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify',
+                          data={'secret': secret, 'response': token,
+                                'remoteip': request.headers.get('CF-Connecting-IP',
+                                                                request.remote_addr)},
+                          timeout=5)
+        return bool(r.json().get('success'))
+    except Exception:
+        logger.warning('Turnstile verification errored; allowing (fail-open '
+                       'to rate-limit + honeypot only).', exc_info=True)
+        return True
+
+
+def _submit_form_impl(name):
+    """The ONE public form endpoint: CSRF-protected (tokens come from the
+    uncached form page), FormDefinition-validated server-side, honeypot +
+    Turnstile-when-configured, rate-limited at the route. mirror_to_feedback
+    preserves the contact form's feedback-inbox + admin-notify behavior."""
     import json as _json
-    # Honeypot: bots fill the hidden '_hp'/'website' field. Silently accept.
+    from app.models import FormDefinition
+
+    fd = g.db_session.query(FormDefinition).filter_by(name=name, is_active=True).first()
+    if not fd:
+        abort(404)
+
+    back = request.referrer or url_for('public.contact')
+    # Honeypot: silently accept so bots don't learn they were caught.
     if (request.form.get('website') or request.form.get('_hp') or '').strip():
         show_success('Thanks — we got your submission.')
-        return redirect(request.referrer or url_for('public.home'))
-    data = {k: v for k, v in request.form.items()
-            if k not in ('csrf_token', 'website', '_hp', 'form_name')}
-    fname = (request.form.get('form_name') or name or 'form').strip()[:120] or 'form'
-    try:
-        g.db_session.add(FormSubmission(
-            form_name=fname, data_json=_json.dumps(data),
-            source_page=(request.referrer or '')[:300]))
-    except Exception as e:
-        logger.error(f"Public form submission failed: {e}", exc_info=True)
-    show_success('Thanks — we got your submission and will be in touch.')
-    return redirect(request.referrer or url_for('public.home'))
+        return redirect(back)
+    if not _verify_turnstile(request.form.get('cf-turnstile-response')):
+        show_error("We couldn't verify you're human — please try again.")
+        return redirect(back)
+
+    # Server-side validation against the definition (the only trusted schema).
+    data, missing = {}, []
+    for field in (fd.fields or []):
+        fname = field.get('name')
+        if not fname:
+            continue
+        value = (request.form.get(fname) or '').strip()[:5000]
+        if field.get('required') and not value:
+            missing.append(field.get('label') or fname)
+        if value:
+            data[fname] = value
+    if missing:
+        show_error('Please fill in: ' + ', '.join(missing[:5]))
+        return redirect(back)
+
+    g.db_session.add(FormSubmission(
+        form_name=fd.name, data_json=_json.dumps(data),
+        source_page=(request.referrer or '')[:300]))
+
+    if fd.mirror_to_feedback:
+        try:
+            subject = data.get('subject') or f'{fd.title or fd.name} submission'
+            sender = data.get('name') or 'Website visitor'
+            email = data.get('email') or ''
+            message = data.get('message') or _json.dumps(data)
+            create_feedback_entry(
+                {'name': sender, 'category': 'Contact', 'title': subject,
+                 'description': (f'From: {sender} <{email}>\n\n{message}'
+                                 if email else f'From: {sender}\n\n{message}')},
+                user_id=None, username=sender,
+            )
+            _notify_admins_contact(sender, email, subject, message)
+        except Exception:
+            logger.error('Form %r feedback mirror failed', fd.name, exc_info=True)
+
+    show_success(fd.success_message
+                 or 'Thanks — we got your submission and will be in touch.')
+    return redirect(back)
+
+
+try:
+    from app.core.limiter import limiter as _limiter
+
+    @public_bp.route('/forms/<name>', methods=['POST'])
+    @_limiter.limit('5 per minute; 20 per hour')
+    @transactional
+    def submit_form(name):
+        return _submit_form_impl(name)
+except Exception:  # pragma: no cover — limiter unavailable in stripped builds
+    @public_bp.route('/forms/<name>', methods=['POST'])
+    @transactional
+    def submit_form(name):
+        return _submit_form_impl(name)
 
 
 @public_bp.route('/sitemap.xml')

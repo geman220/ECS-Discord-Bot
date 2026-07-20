@@ -7,6 +7,7 @@
 
 import { CONFIG } from './config.js';
 import { getState, getElements, updateSettings, addMessage, updateMessage, removeMessage, prependMessages, addToOfflineQueue, removeFromOfflineQueue } from './state.js';
+import { updateSendButton } from './render.js';
 
 /**
  * Get CSRF token from meta tag or cookie
@@ -180,6 +181,7 @@ export async function sendMessage(userId, content, renderCallback, scrollCallbac
   if (elements.composerInput) {
     elements.composerInput.value = '';
     elements.composerInput.style.height = 'auto';
+    updateSendButton();
   }
 
   // If offline, queue the message

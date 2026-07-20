@@ -1,31 +1,31 @@
-{% extends 'admin/layout.html' %}
-{% block title %}Wallet Pass Visual Editor{% endblock %}
+{% extends "admin_panel/base_flowbite.html" %}
 
-{% block page_head %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/classic.min.css"/>
+{% block admin_title %}Wallet Pass Visual Editor{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ static_v('vendor/pickr/classic.min.css') }}"/>
 <!-- Load Pickr library in head to ensure it's available before scripts run -->
-<script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+<script src="{{ static_v('vendor/pickr/pickr.min.js') }}"></script>
 {% endblock %}
 
-{% block custom_css %}
-{{ super() }}
+{% block custom_css %}{{ super() }}
+{# Pixel-accurate wallet-pass preview mockup — intentionally kept as CSS, not utilities #}
 <style>
-    /* Visual Editor - Theme-aware styling */
     .pass-preview {
         width: 320px;
         margin: 0 auto;
         border-radius: 8px;
         overflow: hidden;
-        box-shadow: var(--bs-box-shadow);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         transition: all 0.3s;
         background-color: {{ pass_type.background_color }};
         color: {{ pass_type.foreground_color }};
     }
     .pass-preview:hover {
-        box-shadow: var(--bs-box-shadow-lg);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
         transform: translateY(-5px);
     }
-    .pass-header {
+    .pass-preview .pass-header {
         padding: 15px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         display: flex;
@@ -72,161 +72,174 @@
         border-radius: 4px;
         text-align: center;
         margin-top: 10px;
+        color: #333;
     }
     .pass-barcode img {
         max-width: 100%;
         height: auto;
     }
-    .color-picker-container {
-        display: flex;
-        align-items: center;
-    }
     .color-preview {
         width: 36px;
         height: 36px;
         border-radius: 4px;
-        margin-right: 10px;
-        border: 1px solid var(--bs-border-color, #ddd);
+        border: 1px solid #d1d5db;
+        flex-shrink: 0;
+    }
+    html.dark .color-preview {
+        border-color: #4b5563;
     }
     .template-editor {
         height: 300px;
         font-family: monospace;
         font-size: 14px;
     }
-    /* Ensure form text is visible in dark mode */
-    .form-text {
-        color: var(--bs-secondary-color) !important;
-    }
-    /* Card body text visibility */
-    .card-body ul li {
-        color: var(--bs-body-color);
+    /* Bootstrap validation class kept for JS compatibility (added/removed by script) */
+    .template-editor.is-invalid {
+        border-color: #ef4444 !important;
+        --tw-ring-color: #ef4444;
     }
 </style>
 {% endblock custom_css %}
 
-{% block content %}
-<div class="container-xxl flex-grow-1 container-p-y">
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('wallet_admin.wallet_management') }}" class="ml-1 text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Wallet</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Visual Editor</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="space-y-6">
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2 class="fw-bold text-primary mb-1">
-                        <i class="ti ti-brush me-2"></i>{{ pass_type.name }} Visual Editor
-                    </h2>
-                    <p class="text-muted mb-0">Customize the appearance and layout of your wallet passes</p>
-                </div>
-                <div>
-                    <a href="{{ url_for('wallet_config.templates') }}" class="c-btn c-btn--outline-secondary">
-                        <i class="ti ti-arrow-left me-1"></i> Back to Templates
-                    </a>
-                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary ms-2">
-                        <i class="ti ti-layout-dashboard me-1"></i> Dashboard
-                    </a>
-                </div>
-            </div>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-brush text-ecs-green"></i>{{ pass_type.name }} Visual Editor
+            </h2>
+            <p class="text-gray-500 dark:text-gray-400 mt-1">Customize the appearance and layout of your wallet passes</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ url_for('wallet_config.templates') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-arrow-left mr-1.5"></i> Back to Templates
+            </a>
+            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-layout-dashboard mr-1.5"></i> Dashboard
+            </a>
         </div>
     </div>
 
     <!-- Editor Layout -->
-    <div class="row">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Left Column: Editor Tools -->
-        <div class="col-md-6 mb-4">
-            <form action="{{ url_for('wallet_config.save_visual_editor') }}" method="post" id="visualEditorForm">
+        <div>
+            <form action="{{ url_for('wallet_config.save_visual_editor') }}" method="post" id="visualEditorForm" class="space-y-6">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="pass_type_id" value="{{ pass_type.id }}">
-                
+
                 <!-- Appearance Card -->
-                <div class="c-card mb-4">
-                    <div class="c-card__header">
-                        <h5 class="mb-0">Appearance Settings</h5>
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Appearance Settings</h5>
                     </div>
-                    <div class="c-card__body">
+                    <div class="p-4 space-y-4">
                         <!-- Background Color -->
-                        <div class="mb-3">
-                            <label class="form-label">Background Color</label>
-                            <div class="input-group" data-input-group>
-                                <div class="color-preview" id="bgColorPreview" class="bg-custom" data-bg-color="{{ pass_type.background_color }};"></div>
-                                <input type="text" class="form-control" id="background_color" name="background_color" value="{{ pass_type.background_color }}" data-form-control>
-                                <button class="c-btn c-btn--outline-secondary" type="button" id="bgColorPicker" aria-label="Pick background color"><i class="ti ti-color-picker"></i></button>
+                        <div>
+                            <label for="background_color" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Background Color</label>
+                            <div class="flex items-center gap-2">
+                                <div class="color-preview" id="bgColorPreview" style="background-color: {{ pass_type.background_color }};"></div>
+                                <input type="text" id="background_color" name="background_color" value="{{ pass_type.background_color }}"
+                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <button class="inline-flex items-center justify-center p-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" type="button" id="bgColorPicker" aria-label="Pick background color"><i class="ti ti-color-picker"></i></button>
                             </div>
-                            <div class="form-text">Main background color of the pass</div>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Main background color of the pass</p>
                         </div>
-                        
+
                         <!-- Foreground Color -->
-                        <div class="mb-3">
-                            <label class="form-label">Foreground Color</label>
-                            <div class="input-group" data-input-group>
-                                <div class="color-preview" id="fgColorPreview" class="bg-custom" data-bg-color="{{ pass_type.foreground_color }};"></div>
-                                <input type="text" class="form-control" id="foreground_color" name="foreground_color" value="{{ pass_type.foreground_color }}" data-form-control>
-                                <button class="c-btn c-btn--outline-secondary" type="button" id="fgColorPicker" aria-label="Pick foreground color"><i class="ti ti-color-picker"></i></button>
+                        <div>
+                            <label for="foreground_color" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Foreground Color</label>
+                            <div class="flex items-center gap-2">
+                                <div class="color-preview" id="fgColorPreview" style="background-color: {{ pass_type.foreground_color }};"></div>
+                                <input type="text" id="foreground_color" name="foreground_color" value="{{ pass_type.foreground_color }}"
+                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <button class="inline-flex items-center justify-center p-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" type="button" id="fgColorPicker" aria-label="Pick foreground color"><i class="ti ti-color-picker"></i></button>
                             </div>
-                            <div class="form-text">Primary text color for the pass</div>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Primary text color for the pass</p>
                         </div>
-                        
+
                         <!-- Label Color -->
-                        <div class="mb-3">
-                            <label class="form-label">Label Color</label>
-                            <div class="input-group" data-input-group>
-                                <div class="color-preview" id="lblColorPreview" class="bg-custom" data-bg-color="{{ pass_type.label_color }};"></div>
-                                <input type="text" class="form-control" id="label_color" name="label_color" value="{{ pass_type.label_color }}" data-form-control>
-                                <button class="c-btn c-btn--outline-secondary" type="button" id="lblColorPicker" aria-label="Pick label color"><i class="ti ti-color-picker"></i></button>
+                        <div>
+                            <label for="label_color" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Label Color</label>
+                            <div class="flex items-center gap-2">
+                                <div class="color-preview" id="lblColorPreview" style="background-color: {{ pass_type.label_color }};"></div>
+                                <input type="text" id="label_color" name="label_color" value="{{ pass_type.label_color }}"
+                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <button class="inline-flex items-center justify-center p-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" type="button" id="lblColorPicker" aria-label="Pick label color"><i class="ti ti-color-picker"></i></button>
                             </div>
-                            <div class="form-text">Color for field labels on the pass</div>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Color for field labels on the pass</p>
                         </div>
-                        
+
                         <!-- Logo Text -->
-                        <div class="mb-3">
-                            <label class="form-label">Logo Text</label>
-                            <input type="text" class="form-control" id="logo_text" name="logo_text" value="{{ pass_type.logo_text }}" data-form-control>
-                            <div class="form-text">Text displayed next to the logo</div>
+                        <div>
+                            <label for="logo_text" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Logo Text</label>
+                            <input type="text" id="logo_text" name="logo_text" value="{{ pass_type.logo_text }}"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Text displayed next to the logo</p>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Template Content Card -->
-                <div class="c-card mb-4">
-                    <div class="c-card__header">
-                        <h5 class="mb-0">Template Content</h5>
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Template Content</h5>
                     </div>
-                    <div class="c-card__body">
-                        <div class="mb-3">
-                            <label class="form-label">Template JSON</label>
-                            <textarea class="form-control template-editor" id="template_content" name="template_content" data-form-control>{% if template_content %}{{ template_content|tojson(indent=2) }}{% endif %}</textarea>
-                            <div class="form-text">Edit the raw template JSON (advanced)</div>
+                    <div class="p-4 space-y-4">
+                        <div>
+                            <label for="template_content" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template JSON</label>
+                            <textarea id="template_content" name="template_content"
+                                      class="template-editor bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">{% if template_content %}{{ template_content|tojson(indent=2) }}{% endif %}</textarea>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Edit the raw template JSON (advanced)</p>
                         </div>
-                        
-                        <div class="alert alert-info" data-alert>
-                            <i class="ti ti-info-circle me-1"></i>
-                            <strong>Template Variables:</strong> Use variables like <code>{% raw %}{{member_name}}{% endraw %}</code>, <code>{% raw %}{{validity}}{% endraw %}</code>, and <code>{% raw %}{{team_name}}{% endraw %}</code> for dynamic content.
+
+                        <div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800" role="alert">
+                            <i class="ti ti-info-circle mr-1"></i>
+                            <strong>Template Variables:</strong> Use variables like <code class="font-mono text-xs bg-blue-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{% raw %}{{member_name}}{% endraw %}</code>, <code class="font-mono text-xs bg-blue-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{% raw %}{{validity}}{% endraw %}</code>, and <code class="font-mono text-xs bg-blue-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{% raw %}{{team_name}}{% endraw %}</code> for dynamic content.
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Submit Button -->
-                <div class="d-flex justify-content-between">
-                    <button type="button" class="c-btn c-btn--outline-secondary" data-action="reset-form">
-                        <i class="ti ti-refresh me-1"></i> Reset Changes
+                <div class="flex items-center justify-between">
+                    <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" data-action="reset-form">
+                        <i class="ti ti-refresh mr-1.5"></i> Reset Changes
                     </button>
-                    <button type="submit" class="c-btn c-btn--primary">
-                        <i class="ti ti-device-floppy me-1"></i> Save Changes
+                    <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg focus:ring-4 focus:ring-ecs-green/50 transition-colors">
+                        <i class="ti ti-device-floppy mr-1.5"></i> Save Changes
                     </button>
                 </div>
             </form>
         </div>
-        
+
         <!-- Right Column: Live Preview -->
-        <div class="col-md-6 mb-4">
-            <div class="c-card h-100">
-                <div class="c-card__header">
-                    <h5 class="mb-0">Live Preview</h5>
+        <div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 h-full flex flex-col">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Live Preview</h5>
                 </div>
-                <div class="c-card__body d-flex flex-column">
-                    <div class="alert alert-info mb-3" data-alert>
-                        <i class="ti ti-eye me-1"></i>
+                <div class="p-4 flex flex-col flex-1">
+                    <div class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800" role="alert">
+                        <i class="ti ti-eye mr-1"></i>
                         This preview shows how your pass will appear in the wallet app. Changes update in real-time.
                     </div>
-                    
+
                     <!-- Pass Preview -->
                     <div class="pass-preview" id="passPreview">
                         <div class="pass-header">
@@ -245,46 +258,49 @@
                                 <div class="pass-field-label">MEMBER</div>
                                 <div class="pass-field-value">Jane Smith</div>
                             </div>
-                            
+
                             <!-- Secondary Field -->
                             <div class="pass-field">
                                 <div class="pass-field-label">VALID FOR</div>
                                 <div class="pass-field-value">2025 Membership</div>
                             </div>
-                            
+
                             <!-- Auxiliary Field -->
                             <div class="pass-field">
                                 <div class="pass-field-label">TEAM</div>
                                 <div class="pass-field-value">Seattle Sounders</div>
                             </div>
-                            
+
                             <!-- Barcode -->
                             <div class="pass-barcode">
                                 <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAMAAABrrFhUAAAABlBMVEX///8AAABVwtN+AAACG0lEQVR4nO3VwXHEMAxEQcv3P3RcrsCFLQCzT+BtUdUaVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVXV+4+9OeZ6O5KJJGNIJpKMIZlIMoZkIskYkokk40jG2NvJRJJxJBNJxpFMJBlHMpFkHMlEkjEkE0nGkEwkGUMykWQMyUSSMSQT7S0dSTKGZCLJGJKJJGNIJpKMIZlIMoZkIsl4JGPsLc1EkvFIxthbmokk45GMsbc0E0nGIxlnb2m2lzEe23v7a03vN5Jl6f1Gsiy930iWpfcbybL0fiNZlt5vJMvS+41kWXq/kSxL7zeSZen9RrIsvd9IlqX3G8my9H4jWZbeb+zlXnq/sZd76f3GXu6l9xt7uZfeb+zlXnq/sZd76f3GXu6l9xt7uZfeb+zlXnq/sZd76f3GXu6l9xt7uZfeb+zlXnq/sZd76f1Gkokk40gmkowjmUgyjmQiyTiSiSTjSCaSjCOZSDKOZCLJOJKJJONIJpKMI5lIMo5kIsk4kokk40gmkowjmUgyjmQiyTiSiSTjSCaSjCOZSDKOZCLJOJKJJONIJpKMI5lIMo5kIsk4kokk4/4B9d4InVtocZ0AAAAASUVORK5CYII=" alt="QR Code">
-                                <div class="u-font-size-12 u-mt-5">ECSFC-ECS-12345678ABCD</div>
+                                <div style="font-size: 12px; margin-top: 5px;">ECSFC-ECS-12345678ABCD</div>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Preview Controls -->
                     <div class="mt-auto">
-                        <div class="c-card mt-3">
-                            <div class="c-card__body">
-                                <h6>Preview Options</h6>
-                                <div class="form-check form-switch mb-2">
-                                    <input class="form-check-input" type="checkbox" id="toggleBackground">
-                                    <label class="form-check-label" for="toggleBackground">Toggle Background Image</label>
-                                </div>
-                                
-                                <div class="form-check form-switch mb-2">
-                                    <input class="form-check-input" type="checkbox" id="toggleBarcode">
-                                    <label class="form-check-label" for="toggleBarcode">Toggle Barcode Display</label>
-                                </div>
-                                
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="toggleFields">
-                                    <label class="form-check-label" for="toggleFields">Toggle Field Layout</label>
-                                </div>
+                        <div class="mt-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                            <div class="p-4">
+                                <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Preview Options</h6>
+                                <label class="inline-flex items-center cursor-pointer mb-3 w-full">
+                                    <input type="checkbox" id="toggleBackground" class="sr-only peer">
+                                    <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                                    <span class="ms-3 text-sm text-gray-700 dark:text-gray-300">Toggle Background Image</span>
+                                </label>
+
+                                <label class="inline-flex items-center cursor-pointer mb-3 w-full">
+                                    <input type="checkbox" id="toggleBarcode" class="sr-only peer">
+                                    <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                                    <span class="ms-3 text-sm text-gray-700 dark:text-gray-300">Toggle Barcode Display</span>
+                                </label>
+
+                                <label class="inline-flex items-center cursor-pointer w-full">
+                                    <input type="checkbox" id="toggleFields" class="sr-only peer">
+                                    <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                                    <span class="ms-3 text-sm text-gray-700 dark:text-gray-300">Toggle Field Layout</span>
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -292,79 +308,75 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Asset Management -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="c-card">
-                <div class="c-card__header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Pass Assets</h5>
-                    <a href="{{ url_for('wallet_config.assets') }}" class="c-btn c-btn--sm c-btn--primary">
-                        <i class="ti ti-photo me-1"></i> Manage Assets
-                    </a>
-                </div>
-                <div class="c-card__body">
-                    <div class="row">
-                        {% if assets %}
-                            {% for asset_type, asset in assets.items() %}
-                                <div class="col-md-2 col-sm-4 col-6 mb-3">
-                                    <div class="c-card h-100">
-                                        <div class="c-card__body text-center p-2">
-                                            <div class="u-h-80 u-flex-center">
-                                                <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" alt="{{ asset_type }}"
-                                                     class="img-fluid" class="u-max-h-100-percent u-max-w-100-percent">
-                                            </div>
-                                            <div class="mt-2">
-                                                <h6 class="mb-0" class="u-font-size-0-9rem">{{ asset_type }}</h6>
-                                                <small class="text-muted">{{ asset.file_name|truncate(15) }}</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="col-12">
-                                <div class="alert alert-warning" data-alert>
-                                    <i class="ti ti-alert-triangle me-2"></i>
-                                    No assets uploaded for this pass type yet. 
-                                    <a href="{{ url_for('wallet_config.assets') }}">Upload assets</a> to enhance your pass appearance.
-                                </div>
-                            </div>
-                        {% endif %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Pass Assets</h5>
+            <a href="{{ url_for('wallet_config.assets') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg transition-colors">
+                <i class="ti ti-photo mr-1"></i> Manage Assets
+            </a>
+        </div>
+        <div class="p-4">
+            {% if assets %}
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                {% for asset_type, asset in assets.items() %}
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 h-full">
+                    <div class="p-2 text-center">
+                        <div class="h-20 flex items-center justify-center">
+                            <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" alt="{{ asset_type }}"
+                                 class="max-h-full max-w-full object-contain">
+                        </div>
+                        <div class="mt-2">
+                            <h6 class="text-sm font-medium text-gray-900 dark:text-white mb-0">{{ asset_type }}</h6>
+                            <small class="text-gray-500 dark:text-gray-400">{{ asset.file_name|truncate(15) }}</small>
+                        </div>
                     </div>
                 </div>
+                {% endfor %}
             </div>
+            {% else %}
+            <div class="flex p-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-gray-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800" role="alert">
+                <i class="ti ti-alert-triangle text-lg mr-2 flex-shrink-0"></i>
+                <div>
+                    No assets uploaded for this pass type yet.
+                    <a href="{{ url_for('wallet_config.assets') }}" class="font-medium underline hover:no-underline">Upload assets</a> to enhance your pass appearance.
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
-    
+
     <!-- Help & Tips -->
-    <div class="c-card">
-        <div class="c-card__header">
-            <h5 class="mb-0"><i class="ti ti-bulb me-2"></i>Design Tips</h5>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-bulb text-ecs-green"></i>Design Tips
+            </h5>
         </div>
-        <div class="c-card__body">
-            <div class="row">
-                <div class="col-md-4">
-                    <h6>Colors</h6>
-                    <ul class="small mb-0">
+        <div class="p-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Colors</h6>
+                    <ul class="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
                         <li>Use brand colors to maintain identity</li>
                         <li>Ensure sufficient contrast between text and background</li>
                         <li>Label color should be visible but subdued</li>
                         <li>Test colors on both light and dark device themes</li>
                     </ul>
                 </div>
-                <div class="col-md-4">
-                    <h6>Content</h6>
-                    <ul class="small mb-0">
+                <div>
+                    <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Content</h6>
+                    <ul class="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
                         <li>Keep most important information at the top</li>
                         <li>Use variable placeholders consistently</li>
                         <li>Include member name, validity, and team when relevant</li>
                         <li>Keep text concise and scannable</li>
                     </ul>
                 </div>
-                <div class="col-md-4">
-                    <h6>Layout</h6>
-                    <ul class="small mb-0">
+                <div>
+                    <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Layout</h6>
+                    <ul class="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
                         <li>Group related information together</li>
                         <li>Use back fields for additional details and terms</li>
                         <li>Ensure barcode is prominently displayed</li>
@@ -377,7 +389,7 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
 <script>
 (function() {
     'use strict';

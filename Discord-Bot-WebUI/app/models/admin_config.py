@@ -171,11 +171,24 @@ class AdminConfig(db.Model):
             has_request_context() and getattr(g, 'db_session', None) is not None
         ) else db.session
 
+        # Serialize by declared type. json values passed as Python objects MUST
+        # go through json.dumps — str(list_of_dicts) writes a Python repr
+        # (single quotes) that parsed_value's json.loads can never read back,
+        # silently discarding the setting on every read. Pre-serialized JSON
+        # strings pass through untouched.
+        if value is None:
+            stored = None
+        elif data_type == 'json' and not isinstance(value, str):
+            import json as _json
+            stored = _json.dumps(value)
+        else:
+            stored = str(value)
+
         try:
             setting = session.query(cls).filter_by(key=key).first()
 
             if setting:
-                setting.value = str(value) if value is not None else None
+                setting.value = stored
                 setting.updated_at = datetime.utcnow()
                 setting.updated_by = user_id
                 if description:
@@ -183,7 +196,7 @@ class AdminConfig(db.Model):
             else:
                 setting = cls(
                     key=key,
-                    value=str(value) if value is not None else None,
+                    value=stored,
                     description=description,
                     category=category,
                     data_type=data_type,

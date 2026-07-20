@@ -182,6 +182,36 @@ def get_onboarding_form(player=None, formdata=None):
         onboarding_form.other_positions.data = []
         onboarding_form.positions_not_to_play.data = []
 
+    # Enforce admin-configured "required fields" (Registration Settings). Every
+    # onboarding field ships as Optional(); when a require_* toggle is ON we swap in
+    # DataRequired so the form actually blocks submission without it. Optional() must
+    # be dropped first — it short-circuits validation and DataRequired would never
+    # fire behind it. (require_location has no matching field, so it is intentionally
+    # not represented here.)
+    try:
+        from wtforms.validators import DataRequired, Optional as _OptionalV
+        from app.models.admin_config import AdminConfig
+
+        # (field, default) — defaults MUST mirror the admin UI (dashboard.py) so the
+        # form enforces exactly what the toggle shows when a setting was never saved.
+        required_field_map = {
+            'require_real_name': (onboarding_form.name, True),
+            'require_email': (onboarding_form.email, True),
+            'require_phone': (onboarding_form.phone, False),
+            'require_jersey_size': (onboarding_form.jersey_size, True),
+            'require_position_preferences': (onboarding_form.favorite_position, True),
+            'require_availability': (onboarding_form.expected_weeks_available, True),
+            'require_referee_willingness': (onboarding_form.willing_to_referee, True),
+        }
+        for setting_key, (field, default) in required_field_map.items():
+            if bool(AdminConfig.get_setting(setting_key, default)):
+                kept = [v for v in field.validators if not isinstance(v, _OptionalV)]
+                field.validators = [DataRequired()] + kept
+                field.flags.required = True
+    except Exception as e:
+        # Never let a settings read break onboarding — fall back to all-optional.
+        logger.warning(f"Could not apply required-field settings to onboarding form: {e}")
+
     return onboarding_form
 
 

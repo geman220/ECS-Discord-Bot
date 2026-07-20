@@ -160,6 +160,36 @@
           </p>
         </div>
 
+        <div>
+          <label for="buildup_post_hours" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Build-Up Post Lead
+          </label>
+          <div class="flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-full max-w-[16rem]">
+            <input type="number" id="buildup_post_hours" name="mls_buildup_post_hours_before"
+                   value="{{ settings.buildup_post_hours_before }}" min="1" max="24"
+                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
+            <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">hours</span>
+          </div>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+            <i class="ti ti-info-circle mt-0.5 shrink-0" aria-hidden="true"></i><span>The pre-match build-up embed posts this many hours before kickoff. Range <span class="font-mono">1–24</span>.</span>
+          </p>
+        </div>
+
+        <div>
+          <label for="lineup_post_minutes" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Lineup Post Lead
+          </label>
+          <div class="flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-full max-w-[16rem]">
+            <input type="number" id="lineup_post_minutes" name="mls_lineup_post_minutes_before"
+                   value="{{ settings.lineup_post_minutes_before }}" min="5" max="180"
+                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
+            <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">mins</span>
+          </div>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+            <i class="ti ti-info-circle mt-0.5 shrink-0" aria-hidden="true"></i><span>The starting-lineups embed posts this many minutes before kickoff. Range <span class="font-mono">5–180</span>.</span>
+          </p>
+        </div>
+
       </div>
     </section>
 
@@ -333,6 +363,38 @@
                 </div>
                 <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     <i class="ti ti-info-circle mr-1"></i>Live reporting will begin this many minutes before the scheduled kickoff
+                </p>
+            </div>
+
+            <div>
+                <label for="buildup_post_hours" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Build-Up Post Lead (hours before match)
+                </label>
+                <div class="flex items-center gap-3">
+                    <input type="number" id="buildup_post_hours" name="mls_buildup_post_hours_before"
+                           value="{{ settings.buildup_post_hours_before }}"
+                           min="1" max="24"
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">hours before kickoff (1-24)</span>
+                </div>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-info-circle mr-1"></i>The pre-match build-up embed posts this many hours before kickoff
+                </p>
+            </div>
+
+            <div>
+                <label for="lineup_post_minutes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Lineup Post Lead (minutes before match)
+                </label>
+                <div class="flex items-center gap-3">
+                    <input type="number" id="lineup_post_minutes" name="mls_lineup_post_minutes_before"
+                           value="{{ settings.lineup_post_minutes_before }}"
+                           min="5" max="180"
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">minutes before kickoff (5-180)</span>
+                </div>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-info-circle mr-1"></i>The starting-lineups embed posts this many minutes before kickoff
                 </p>
             </div>
         </div>

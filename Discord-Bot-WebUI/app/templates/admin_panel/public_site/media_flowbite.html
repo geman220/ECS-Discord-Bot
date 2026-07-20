@@ -40,14 +40,40 @@
         <input type="text" name="alt_text" value="{{ m.alt_text or '' }}" placeholder="Alt text" class="flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1 text-xs text-gray-900 dark:text-white">
         <button type="submit" class="rounded bg-gray-100 dark:bg-gray-700 px-2 text-xs hover:bg-gray-200 dark:hover:bg-gray-600" title="Save alt text"><i class="ti ti-check"></i></button>
       </form>
-      <form method="POST" action="{{ url_for('admin_panel.public_site_media_delete', asset_id=m.id) }}" onsubmit="return confirm('Delete this image?');">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="text-xs text-red-500 hover:text-red-700"><i class="ti ti-trash"></i> Delete</button>
-      </form>
+      <div class="flex items-center justify-between">
+        <label class="text-xs text-ecs-green hover:underline cursor-pointer" title="Replace this image everywhere it's used, keeping the same address">
+          <i class="ti ti-repeat"></i> Replace
+          <input type="file" accept="image/*" class="hidden" data-replace-asset="{{ m.id }}">
+        </label>
+        <form method="POST" action="{{ url_for('admin_panel.public_site_media_delete', asset_id=m.id) }}" onsubmit="return confirm('Delete this image?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="text-xs text-red-500 hover:text-red-700"><i class="ti ti-trash"></i> Delete</button>
+        </form>
+      </div>
     </div>
   </div>
   {% endfor %}
 </div>
+<script>
+// Replace-in-place: swap the bytes behind an asset so every page using it
+// updates at once. Same-origin admin fetch with the page CSRF token.
+document.addEventListener('change', function (e) {
+  var input = e.target.closest('[data-replace-asset]');
+  if (!input || !input.files || !input.files[0]) return;
+  var id = input.getAttribute('data-replace-asset');
+  var fd = new FormData();
+  fd.append('file', input.files[0]);
+  var csrf = (document.querySelector('meta[name=csrf-token]') || {}).content || '';
+  fetch('/admin-panel/public-site/media/' + id + '/replace',
+        { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    .then(function (res) {
+      if (res.ok) { window.location.reload(); }
+      else { (window.Swal ? window.Swal.fire('Replace failed', res.d.error || '', 'error') : alert(res.d.error || 'Replace failed')); }
+    })
+    .catch(function () { alert('Replace failed — the file may be too large or the wrong type.'); });
+});
+</script>
 {% endif %}
 {% endblock %}
 

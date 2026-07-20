@@ -75,11 +75,10 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">{% if page.status == 'published' %}<i class="ti ti-eye-off"></i> Unpublish{% else %}<i class="ti ti-rocket"></i> Publish{% endif %}</button>
           </form>
-          {% set _designed = page.body_html and '<style' in page.body_html %}
           {% set _btn_secondary = 'inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50' %}
           {% set _btn_primary = 'inline-flex items-center gap-1 rounded-lg bg-ecs-green px-3 py-1.5 text-xs font-semibold text-white hover:bg-ecs-green-dark' %}
-          <a href="{{ url_for('admin_panel.public_site_page_builder', page_id=page.id) }}" class="{{ _btn_primary if _designed else _btn_secondary }}" title="Drag-and-drop layout builder"><i class="ti ti-layout-board"></i> Design</a>
-          <a href="{{ url_for('admin_panel.public_site_page_edit', page_id=page.id) }}" class="{{ _btn_secondary if _designed else _btn_primary }}" title="Text / content editor"><i class="ti ti-edit"></i> Edit</a>
+          <a href="{{ url_for('admin_panel.site_editor', page_id=page.id) }}" class="{{ _btn_primary }}" title="Edit the page in place"><i class="ti ti-edit"></i> Edit</a>
+          <a href="{{ url_for('admin_panel.public_site_page_edit', page_id=page.id) }}" class="{{ _btn_secondary }}" title="Title, permalink, status & SEO"><i class="ti ti-settings"></i></a>
           <a href="{{ url_for('admin_panel.public_site_page_revisions', page_id=page.id) }}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50" title="History / undo (revisions)"><i class="ti ti-history"></i></a>
           <form method="POST" action="{{ url_for('admin_panel.public_site_page_duplicate', page_id=page.id) }}" class="inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

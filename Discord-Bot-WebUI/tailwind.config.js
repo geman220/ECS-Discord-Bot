@@ -64,17 +64,22 @@ export default {
           800: '#854d0e',
           900: '#713f12',
         },
-        // ECS Pub League LOGO blue (#203090) — the brand accent (green + blue).
+        // ECS Pub League LOGO blue (#203090) — the brand ACCENT. The shades the
+        // public site actually uses (DEFAULT/400/600/700) are CSS-var-backed so
+        // the public Appearance "accent color" re-skins every blue button/link
+        // site-wide. Own var namespace (--color-blue-*) so it never collides
+        // with ecs-gold's --color-accent-rgb. Portal pages don't set these vars,
+        // so they fall back to the brand blue and are unaffected.
         'ecs-blue': {
-          DEFAULT: '#203090',
+          DEFAULT: 'rgb(var(--color-blue-rgb, 32 48 144) / <alpha-value>)',
           50: '#eef1fb',
           100: '#d8def5',
           200: '#b3bdec',
           300: '#8593de',
-          400: '#5e6fd0',
+          400: 'rgb(var(--color-blue-light-rgb, 94 111 208) / <alpha-value>)',
           500: '#3a49a8',
-          600: '#203090',
-          700: '#1a2775',
+          600: 'rgb(var(--color-blue-rgb, 32 48 144) / <alpha-value>)',
+          700: 'rgb(var(--color-blue-dark-rgb, 26 39 117) / <alpha-value>)',
           800: '#161f5e',
           900: '#121847',
         },

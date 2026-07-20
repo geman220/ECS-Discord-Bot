@@ -230,22 +230,16 @@ def notification_preferences():
                 "dm_notifications": getattr(user, 'dm_notifications', True),
             }
 
-            # Add player-specific preferences if available
-            if player:
-                preferences.update({
-                    "match_reminders": getattr(player, 'notify_match_reminders', True),
-                    "rsvp_reminders": getattr(player, 'notify_rsvp_reminders', True),
-                    "team_updates": getattr(player, 'notify_team_updates', True),
-                    "league_updates": getattr(player, 'notify_league_updates', False),
-                })
-            else:
-                # Default preferences if no player profile
-                preferences.update({
-                    "match_reminders": True,
-                    "rsvp_reminders": True,
-                    "team_updates": True,
-                    "league_updates": False,
-                })
+            # Reminder / update toggles are stored on the USER — that's what the
+            # reminder senders actually read (tasks_rsvp_dm_reminders,
+            # tasks_notification_reminders). They were previously written to
+            # non-existent Player.notify_* attributes and silently lost.
+            preferences.update({
+                "match_reminders": getattr(user, 'match_reminder_notifications', True),
+                "rsvp_reminders": getattr(user, 'rsvp_reminder_notifications', True),
+                "team_updates": getattr(user, 'team_update_notifications', True),
+                "league_updates": getattr(user, 'announcement_notifications', False),
+            })
 
             return jsonify({"preferences": preferences}), 200
 
@@ -264,16 +258,16 @@ def notification_preferences():
             if 'dm_notifications' in data:
                 user.dm_notifications = bool(data['dm_notifications'])
 
-            # Update player-level preferences if available
-            if player:
-                if 'match_reminders' in data:
-                    player.notify_match_reminders = data['match_reminders']
-                if 'rsvp_reminders' in data:
-                    player.notify_rsvp_reminders = data['rsvp_reminders']
-                if 'team_updates' in data:
-                    player.notify_team_updates = data['team_updates']
-                if 'league_updates' in data:
-                    player.notify_league_updates = data['league_updates']
+            # Reminder / update toggles live on the USER (the reminder senders
+            # read user.*_notifications). Writing Player.notify_* persisted nothing.
+            if 'match_reminders' in data:
+                user.match_reminder_notifications = bool(data['match_reminders'])
+            if 'rsvp_reminders' in data:
+                user.rsvp_reminder_notifications = bool(data['rsvp_reminders'])
+            if 'team_updates' in data:
+                user.team_update_notifications = bool(data['team_updates'])
+            if 'league_updates' in data:
+                user.announcement_notifications = bool(data['league_updates'])
 
             session_db.commit()
 
@@ -286,13 +280,12 @@ def notification_preferences():
                 "dm_notifications": getattr(user, 'dm_notifications', True),
             }
 
-            if player:
-                preferences.update({
-                    "match_reminders": getattr(player, 'notify_match_reminders', True),
-                    "rsvp_reminders": getattr(player, 'notify_rsvp_reminders', True),
-                    "team_updates": getattr(player, 'notify_team_updates', True),
-                    "league_updates": getattr(player, 'notify_league_updates', False),
-                })
+            preferences.update({
+                "match_reminders": getattr(user, 'match_reminder_notifications', True),
+                "rsvp_reminders": getattr(user, 'rsvp_reminder_notifications', True),
+                "team_updates": getattr(user, 'team_update_notifications', True),
+                "league_updates": getattr(user, 'announcement_notifications', False),
+            })
 
             return jsonify({
                 "msg": "Preferences updated",

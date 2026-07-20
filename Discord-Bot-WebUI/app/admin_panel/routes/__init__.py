@@ -110,6 +110,14 @@ def register_all_routes(admin_panel_bp):
         logging.getLogger(__name__).error(
             "Failed to register Public Site routes", exc_info=True)
 
+    # Phase 13: The in-place site editor (section model) for the public site.
+    try:
+        from . import site_editor
+    except Exception:
+        import logging
+        logging.getLogger(__name__).error(
+            "Failed to register Site Editor routes", exc_info=True)
+
     # All routes are automatically registered when modules are imported
     # due to the @admin_panel_bp.route decorators
     pass

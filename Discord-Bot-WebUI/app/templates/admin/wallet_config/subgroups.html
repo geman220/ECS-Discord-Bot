@@ -1,117 +1,122 @@
-{% extends 'admin/layout.html' %}
+{% extends "admin_panel/base_flowbite.html" %}
 {% from "macros/flowbite.html" import modal_form %}
-{% block title %}Wallet Pass Subgroups{% endblock %}
 
-{% block content %}
-<div class="container-xxl flex-grow-1 container-p-y">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+{% block admin_title %}Wallet Pass Subgroups{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('wallet_admin.wallet_management') }}" class="ml-1 text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Wallet</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Subgroups</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h2 class="fw-bold text-primary mb-1">
-                <i class="ti ti-users-group me-2"></i>ECS Supporter Subgroups
-            </h2>
-            <p class="text-muted mb-0">Manage supporter subgroups for ECS membership passes</p>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-users-group text-blue-600 dark:text-blue-400"></i>ECS Supporter Subgroups
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Manage supporter subgroups for ECS membership passes</p>
         </div>
-        <div>
-            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary me-2">
-                <i class="ti ti-arrow-left me-1"></i> Back
+        <div class="flex gap-2 flex-wrap">
+            <a href="{{ url_for('wallet_admin.wallet_management') }}"
+               class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-arrow-left mr-1"></i> Back
             </a>
-            <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#addSubgroupModal">
-                <i class="ti ti-plus me-1"></i> Add Subgroup
+            <button type="button" data-open-modal="addSubgroupModal"
+                    class="text-white bg-blue-600 hover:bg-blue-700 rounded-lg px-4 py-2 text-sm font-medium inline-flex items-center">
+                <i class="ti ti-plus mr-1"></i> Add Subgroup
             </button>
         </div>
     </div>
 
     <!-- Info Alert -->
-    <div class="alert alert-info mb-4" data-alert>
-        <div class="d-flex">
-            <i class="ti ti-info-circle me-2 fs-4"></i>
-            <div>
-                <strong>Supporter Subgroups</strong>
-                <p class="mb-0 mt-1">Subgroups like Gorilla FC, North End Faithful, etc. can be displayed on ECS membership passes. Members can select their subgroup affiliation when claiming their pass.</p>
-            </div>
+    <div class="flex items-start p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg">
+        <i class="ti ti-info-circle text-blue-500 text-xl mr-3 mt-0.5 flex-shrink-0"></i>
+        <div class="text-sm text-blue-700 dark:text-blue-300">
+            <strong>Supporter Subgroups</strong>
+            <p class="mt-1">Subgroups like Gorilla FC, North End Faithful, etc. can be displayed on ECS membership passes. Members can select their subgroup affiliation when claiming their pass.</p>
         </div>
     </div>
 
     <!-- Stats -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="c-card">
-                <div class="c-card__body">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar avatar-lg bg-label-primary me-3">
-                            <span class="avatar-initial"><i class="ti ti-users-group"></i></span>
-                        </div>
-                        <div>
-                            <h4 class="mb-0">{{ subgroups|length }}</h4>
-                            <small class="text-muted">Total Subgroups</small>
-                        </div>
-                    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Subgroups</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ subgroups|length }}</h3>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <i class="ti ti-users-group text-xl text-blue-600 dark:text-blue-400"></i>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="c-card">
-                <div class="c-card__body">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar avatar-lg bg-label-success me-3">
-                            <span class="avatar-initial"><i class="ti ti-check"></i></span>
-                        </div>
-                        <div>
-                            <h4 class="mb-0">{{ subgroups|selectattr('is_active')|list|length }}</h4>
-                            <small class="text-muted">Active Subgroups</small>
-                        </div>
-                    </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Active Subgroups</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ subgroups|selectattr('is_active')|list|length }}</h3>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <i class="ti ti-check text-xl text-green-600 dark:text-green-400"></i>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Subgroups List -->
-    <div class="c-card">
-        <div class="c-card__header">
-            <h5 class="mb-0">All Subgroups</h5>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">All Subgroups</h5>
         </div>
-        <div class="c-card__body">
+        <div class="p-6">
             {% if subgroups %}
-                <div class="row">
-                    {% for subgroup in subgroups %}
-                    <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="c-card h-100 {% if not subgroup.is_active %}opacity-50{% endif %}">
-                            <div class="c-card__body">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div>
-                                        <h5 class="mb-1">{{ subgroup.name }}</h5>
-                                        <code class="small">{{ subgroup.code }}</code>
-                                    </div>
-                                    {% if subgroup.is_active %}
-                                        <span class="badge bg-success" data-badge>Active</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary" data-badge>Inactive</span>
-                                    {% endif %}
-                                </div>
-                                {% if subgroup.description %}
-                                    <p class="text-muted small mb-3">{{ subgroup.description }}</p>
-                                {% endif %}
-                                <div class="d-flex justify-content-end">
-                                    <button type="button" class="c-btn c-btn--sm c-btn--outline-danger js-delete-subgroup"
-                                            data-action="delete-subgroup" data-id="{{ subgroup.id }}" data-name="{{ subgroup.name }}">
-                                        <i class="ti ti-trash me-1"></i> Delete
-                                    </button>
-                                </div>
-                            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for subgroup in subgroups %}
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5 flex flex-col {% if not subgroup.is_active %}opacity-60{% endif %}">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h5 class="font-semibold text-gray-900 dark:text-white mb-1">{{ subgroup.name }}</h5>
+                            <code class="text-xs font-mono px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ subgroup.code }}</code>
                         </div>
+                        {% if subgroup.is_active %}
+                        <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Active</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Inactive</span>
+                        {% endif %}
                     </div>
-                    {% endfor %}
+                    {% if subgroup.description %}
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ subgroup.description }}</p>
+                    {% endif %}
+                    <div class="flex justify-end mt-auto">
+                        <button type="button" class="js-delete-subgroup inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg transition-colors"
+                                data-action="delete-subgroup" data-id="{{ subgroup.id }}" data-name="{{ subgroup.name }}">
+                            <i class="ti ti-trash mr-1"></i> Delete
+                        </button>
+                    </div>
                 </div>
+                {% endfor %}
+            </div>
             {% else %}
-                <div class="text-center py-5">
-                    <i class="ti ti-users-group fs-1 text-muted"></i>
-                    <p class="mt-3 text-muted">No subgroups configured yet.</p>
-                    <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#addSubgroupModal">
-                        <i class="ti ti-plus me-1"></i> Add First Subgroup
-                    </button>
-                </div>
+            <div class="text-center py-12">
+                <i class="ti ti-users-group text-5xl text-gray-400 dark:text-gray-600"></i>
+                <p class="mt-4 mb-4 text-gray-500 dark:text-gray-400">No subgroups configured yet.</p>
+                <button type="button" data-open-modal="addSubgroupModal"
+                        class="text-white bg-blue-600 hover:bg-blue-700 rounded-lg px-4 py-2 text-sm font-medium inline-flex items-center">
+                    <i class="ti ti-plus mr-1"></i> Add First Subgroup
+                </button>
+            </div>
             {% endif %}
         </div>
     </div>
@@ -119,30 +124,52 @@
 {% endblock %}
 
 {% block modals %}
-{{ super() }}
 <!-- Add Subgroup Modal -->
 {% call modal_form('addSubgroupModal', 'Add Subgroup', action=url_for('wallet_config.add_subgroup'), submit_text='Add Subgroup', loading_text='Adding...') %}
-    <div class="mb-3">
-        <label class="form-label">Name <span class="text-danger">*</span></label>
-        <input type="text" class="form-control" name="name" required placeholder="e.g., Gorilla FC" data-form-control aria-label="e.g., Gorilla FC">
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Name <span class="text-red-600 dark:text-red-400">*</span></label>
+        <input type="text" name="name" required placeholder="e.g., Gorilla FC" aria-label="e.g., Gorilla FC"
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
     </div>
-    <div class="mb-3">
-        <label class="form-label">Code <span class="text-danger">*</span></label>
-        <input type="text" class="form-control" name="code" required placeholder="e.g., gorilla_fc" data-form-control aria-label="e.g., gorilla_fc">
-        <div class="form-text">Lowercase identifier (spaces become underscores)</div>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Code <span class="text-red-600 dark:text-red-400">*</span></label>
+        <input type="text" name="code" required placeholder="e.g., gorilla_fc" aria-label="e.g., gorilla_fc"
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Lowercase identifier (spaces become underscores)</p>
     </div>
-    <div class="mb-3">
-        <label class="form-label">Description</label>
-        <textarea class="form-control" name="description" rows="2" data-form-control></textarea>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+        <textarea name="description" rows="2"
+                  class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"></textarea>
     </div>
-    <div class="form-check">
-        <input class="form-check-input" type="checkbox" name="is_active" id="addIsActive" checked>
-        <label class="form-check-label" for="addIsActive">Active</label>
+    <div class="flex items-center">
+        <input type="checkbox" name="is_active" id="addIsActive" checked
+               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+        <label for="addIsActive" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Active</label>
     </div>
 {% endcall %}
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
-{# Delete subgroup handler is now in wallet-config-handlers.js using data-action="delete-subgroup" #}
+{# Delete subgroup handler is in wallet-config-handlers.js using data-action="delete-subgroup" #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Vanilla modal open/close helpers (no Bootstrap in this shell)
+    function openModal(id) {
+        var m = document.getElementById(id);
+        if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+    }
+    function closeModal(id) {
+        var m = document.getElementById(id);
+        if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+    }
+    document.querySelectorAll('[data-open-modal]').forEach(function(btn) {
+        btn.addEventListener('click', function() { openModal(this.dataset.openModal); });
+    });
+    document.querySelectorAll('[data-modal-hide]').forEach(function(btn) {
+        btn.addEventListener('click', function() { closeModal(this.dataset.modalHide); });
+    });
+});
+</script>
 {% endblock %}

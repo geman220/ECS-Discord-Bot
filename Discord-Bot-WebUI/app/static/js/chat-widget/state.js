@@ -77,6 +77,7 @@ export function cacheElements() {
     typingIndicator: document.querySelector('.c-chat-widget__typing'),
     composerInput: document.querySelector('.c-chat-widget__composer-input'),
     sendBtn: document.querySelector('.c-chat-widget__send-btn'),
+    charCounter: document.querySelector('.c-chat-widget__char-count'),
 
     // Header buttons
     newChatBtn: document.querySelector('[data-action="new-chat"]'),

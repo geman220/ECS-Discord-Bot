@@ -71,7 +71,7 @@ window.EventDelegation.register('void-pass', (element, event) => {
     }).then((result) => {
         if (result.isConfirmed) {
             const reason = document.getElementById('void-reason')?.value || 'Voided by admin';
-            const url = passId ? `/admin/wallet/api/passes/${passId}/void` : window.location.pathname.replace('/detail', '/api/passes') + '/void';
+            const url = passId ? `/admin-panel/wallet/api/passes/${passId}/void` : window.location.pathname.replace('/detail', '/api/passes') + '/void';
 
             fetch(url, {
                 method: 'POST',
@@ -114,7 +114,7 @@ window.EventDelegation.register('reactivate-pass', (element, event) => {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            const url = passId ? `/admin/wallet/api/passes/${passId}/reactivate` : window.location.pathname.replace('/detail', '/api/passes') + '/reactivate';
+            const url = passId ? `/admin-panel/wallet/api/passes/${passId}/reactivate` : window.location.pathname.replace('/detail', '/api/passes') + '/reactivate';
 
             fetch(url, {
                 method: 'POST',
@@ -242,7 +242,7 @@ window.EventDelegation.register('confirm-bulk-void', (element, event) => {
     const ids = getSelectedIds();
     const reason = document.getElementById('voidReason')?.value || 'Bulk voided by admin';
 
-    fetch('/admin/wallet/api/passes/bulk-void', {
+    fetch('/admin-panel/wallet/api/passes/bulk-void', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pass_ids: ids, reason: reason })
@@ -281,7 +281,7 @@ window.EventDelegation.register('bulk-reactivate-passes', (element, event) => {
 });
 
 function performBulkReactivate(ids) {
-    fetch('/admin/wallet/api/passes/bulk-reactivate', {
+    fetch('/admin-panel/wallet/api/passes/bulk-reactivate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pass_ids: ids })
@@ -329,7 +329,7 @@ window.EventDelegation.register('bulk-generate-passes', (element, event) => {
     btn.disabled = true;
     btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></span>Generating...';
 
-    fetch('/admin/wallet/api/passes/bulk-generate', {
+    fetch('/admin-panel/wallet/api/passes/bulk-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -394,7 +394,7 @@ window.EventDelegation.register('check-player-eligibility', (element, event) => 
 
     // Construct the URL by replacing 0 with the actual player ID
     const baseUrl = window.location.origin;
-    const url = `${baseUrl}/admin/wallet/check-eligibility/${playerId}`;
+    const url = `${baseUrl}/admin-panel/wallet/api/player/${playerId}/eligibility`;
 
     fetch(url)
         .then(response => response.json())
@@ -524,7 +524,7 @@ function performBulkGenerateWalletPasses(element) {
     const csrfMeta = document.querySelector('meta[name="csrf-token"]');
     const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
 
-    fetch('/admin/wallet/generate-bulk-passes', {
+    fetch('/admin-panel/wallet/api/generate-bulk', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

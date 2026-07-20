@@ -1,0 +1,36 @@
+# docker-compose.dev.yml — OPT-IN local dev overrides (formerly
+# docker-compose.override.yml, renamed so plain `docker compose up` no longer
+# auto-merges it and silently replaces the production runtime: it swaps webui to
+# eventlet/1-worker/pool-10 and publishes port 5000, contradicting the
+# gevent/2-worker/pool config in docker-compose.yml that the PgBouncer budget
+# is sized against).
+#
+# Production:  docker compose up -d                       (base file only)
+# Local dev:   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+version: '3.9'
+
+services:
+  webui:
+    image: fixed-webui:latest
+    ports:
+      - "5000:5000"
+    environment:
+      # Increase DB pool for single worker handling all connections
+      - SQLALCHEMY_POOL_SIZE=10
+      - SQLALCHEMY_MAX_OVERFLOW=5
+    command: >
+      sh -c "python build_assets.py &&
+      gunicorn
+      --worker-class eventlet
+      --workers 1
+      --bind 0.0.0.0:5000
+      --log-level info
+      --access-logfile -
+      --error-logfile -
+      --timeout 120
+      --graceful-timeout 120
+      --keep-alive 65
+      --worker-connections 100
+      --name webui
+      wsgi:application"

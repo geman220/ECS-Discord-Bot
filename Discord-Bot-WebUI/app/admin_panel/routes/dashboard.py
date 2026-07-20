@@ -1234,6 +1234,17 @@ def registration_settings():
                         user_agent=request.headers.get('User-Agent')
                     )
             
+            # The public marketing site's CTAs (Register vs Join the
+            # Waitlist) derive from these flags — invalidate the publicweb
+            # render cache so ecspubleague.org reflects the flip immediately.
+            if any(k in updated_settings for k in ('registration_enabled',
+                                                   'waitlist_registration_enabled')):
+                try:
+                    from app.services.public_cache import bump_public_cache
+                    bump_public_cache('global')
+                except Exception:
+                    logger.debug('public cache bump failed', exc_info=True)
+
             return jsonify({
                 'success': True,
                 'message': f'Updated {len(updated_settings)} registration settings',

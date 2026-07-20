@@ -62,6 +62,7 @@
     {% endif %}
     {% endif %}
 
+    {% if password_login_allowed %}
     <!-- Divider -->
     <div class="relative flex items-center justify-center mb-6">
         <div class="absolute inset-0 flex items-center">
@@ -107,6 +108,7 @@
             </button>
         </form>
     </div>
+    {% endif %}
 
     {% if session.get('waitlist_intent') %}
     <!-- Waitlist Alert -->

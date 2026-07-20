@@ -177,6 +177,12 @@ def league_event_to_fullcalendar(event, editable: bool = False) -> Dict[str, Any
         'seasonId': event.season_id,
         'notifyDiscord': event.notify_discord,
         'isActive': event.is_active,
+        # These MUST be emitted so the edit modal loads their real value; without
+        # them the modal falls back to defaults and a re-edit silently re-publishes
+        # a private event (is_public) or resets reminders.
+        'is_public': getattr(event, 'is_public', True),
+        'send_reminder': getattr(event, 'send_reminder', None),
+        'reminder_days_before': getattr(event, 'reminder_days_before', None),
     }
 
     return {

@@ -168,6 +168,12 @@ def db(_database, app):
 
         # Delete in order to avoid FK constraint issues
         tables_to_clean = [
+            # Public-site builder tables (revisions/usage/history reference their
+            # parent + users, so delete them before users).
+            'site_page_revision', 'site_page_slug_history', 'news_post_revision',
+            'media_usage', 'site_settings', 'form_definition', 'form_submission',
+            'redirect_rule', 'media_asset', 'site_page', 'news_post', 'faq',
+            'league_events', 'admin_config',
             'admin_audit_log', 'audit_logs', 'stat_change_logs', 'player_stat_audits',
             'player_season_stats', 'player_career_stats',
             'match_events', 'sub_requests', 'availability', 'match_predictions',

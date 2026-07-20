@@ -55,6 +55,10 @@ export default defineConfig({
       input: {
         // Main application bundle
         main: resolve(__dirname, 'app/static/js/main-entry.js'),
+        // Site editor (public marketing site): parent shell (admin page) and
+        // the in-iframe bridge injected into edit-mode /preview renders.
+        'site-editor-shell': resolve(__dirname, 'app/static/js/site-editor/shell.js'),
+        'site-editor-bridge': resolve(__dirname, 'app/static/js/site-editor/bridge.js'),
         // NOTE: css/main-entry.css (the Bootstrap-era cascade-layers bundle) was
         // built here as a `styles` entry for years but NOTHING ever linked its
         // output — 1.9 MB of dead weight in every build. Removed 2026-07.

@@ -419,15 +419,20 @@ class SecurityMiddleware:
     def security_response(self, response):
         """Add security headers to response."""
         if not request.path.startswith('/static/'):
-            # Add security headers
+            # Add security headers. Frame policy comes from the shared helper so
+            # this hook and init/middleware's stay in agreement regardless of
+            # after_request ordering (they historically fought: DENY vs
+            # SAMEORIGIN). /preview/* must be frameable same-origin — it is the
+            # site editor's iframe edit surface.
+            from app.utils.frame_headers import frame_headers_for_path
             response.headers.update({
                 'X-Content-Type-Options': 'nosniff',
-                'X-Frame-Options': 'DENY',
                 'X-XSS-Protection': '1; mode=block',
                 'Referrer-Policy': 'strict-origin-when-cross-origin',
                 'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+                **frame_headers_for_path(request.path),
             })
-        
+
         return response
 
 

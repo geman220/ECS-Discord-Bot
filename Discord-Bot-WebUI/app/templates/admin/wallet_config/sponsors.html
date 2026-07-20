@@ -1,165 +1,165 @@
-{% extends 'admin/layout.html' %}
+{% extends "admin_panel/base_flowbite.html" %}
 {% from "macros/flowbite.html" import modal_form %}
-{% block title %}Wallet Pass Sponsors{% endblock %}
 
-{% block custom_css %}
-{{ super() }}
-{# Styles moved to external CSS #}
+{% block admin_title %}Wallet Pass Sponsors{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('wallet_admin.wallet_management') }}" class="ml-1 text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Wallet</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Sponsors</span>
+    </div>
+</li>
 {% endblock %}
 
-{% block content %}
-<div class="container-xxl flex-grow-1 container-p-y">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+{% block panel_content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h2 class="fw-bold text-primary mb-1">
-                <i class="ti ti-building-store me-2"></i>Pass Sponsors
-            </h2>
-            <p class="text-muted mb-0">Manage sponsors displayed on wallet passes</p>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-building-store text-blue-600 dark:text-blue-400"></i>Pass Sponsors
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Manage sponsors displayed on wallet passes</p>
         </div>
-        <div>
-            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary me-2">
-                <i class="ti ti-arrow-left me-1"></i> Back
+        <div class="flex gap-2 flex-wrap">
+            <a href="{{ url_for('wallet_admin.wallet_management') }}"
+               class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-arrow-left mr-1"></i> Back
             </a>
-            <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#addSponsorModal">
-                <i class="ti ti-plus me-1"></i> Add Sponsor
+            <button type="button" data-open-modal="addSponsorModal"
+                    class="text-white bg-blue-600 hover:bg-blue-700 rounded-lg px-4 py-2 text-sm font-medium inline-flex items-center">
+                <i class="ti ti-plus mr-1"></i> Add Sponsor
             </button>
         </div>
     </div>
 
     <!-- Info Alert -->
-    <div class="alert alert-info mb-4" data-alert>
-        <div class="d-flex">
-            <i class="ti ti-info-circle me-2 fs-4"></i>
-            <div>
-                <strong>Sponsor Information</strong>
-                <p class="mb-0 mt-1">Sponsors can appear on the back of passes or in auxiliary fields. Configure which pass types each sponsor appears on.</p>
-            </div>
+    <div class="flex items-start p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg">
+        <i class="ti ti-info-circle text-blue-500 text-xl mr-3 mt-0.5 flex-shrink-0"></i>
+        <div class="text-sm text-blue-700 dark:text-blue-300">
+            <strong>Sponsor Information</strong>
+            <p class="mt-1">Sponsors can appear on the back of passes or in auxiliary fields. Configure which pass types each sponsor appears on.</p>
         </div>
     </div>
 
     <!-- Stats -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="c-card">
-                <div class="c-card__body">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar avatar-lg bg-label-primary me-3">
-                            <span class="avatar-initial"><i class="ti ti-building-store"></i></span>
-                        </div>
-                        <div>
-                            <h4 class="mb-0">{{ sponsors|length }}</h4>
-                            <small class="text-muted">Total Sponsors</small>
-                        </div>
-                    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Sponsors</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ sponsors|length }}</h3>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <i class="ti ti-building-store text-xl text-blue-600 dark:text-blue-400"></i>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="c-card">
-                <div class="c-card__body">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar avatar-lg bg-label-success me-3">
-                            <span class="avatar-initial"><i class="ti ti-check"></i></span>
-                        </div>
-                        <div>
-                            <h4 class="mb-0">{{ sponsors|selectattr('is_active')|list|length }}</h4>
-                            <small class="text-muted">Active Sponsors</small>
-                        </div>
-                    </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Active Sponsors</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ sponsors|selectattr('is_active')|list|length }}</h3>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <i class="ti ti-check text-xl text-green-600 dark:text-green-400"></i>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="c-card">
-                <div class="c-card__body">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar avatar-lg bg-label-warning me-3">
-                            <span class="avatar-initial"><i class="ti ti-star"></i></span>
-                        </div>
-                        <div>
-                            <h4 class="mb-0">{{ sponsors|selectattr('sponsor_type', 'equalto', 'presenting')|list|length }}</h4>
-                            <small class="text-muted">Presenting Sponsors</small>
-                        </div>
-                    </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Presenting Sponsors</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ sponsors|selectattr('sponsor_type', 'equalto', 'presenting')|list|length }}</h3>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                    <i class="ti ti-star text-xl text-yellow-600 dark:text-yellow-400"></i>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Sponsors List -->
-    <div class="c-card">
-        <div class="c-card__header">
-            <h5 class="mb-0">All Sponsors</h5>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">All Sponsors</h5>
         </div>
-        <div class="c-card__body">
+        <div class="p-6">
             {% if sponsors %}
-                <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-c-table c-table--hoverable" data-mobile-table data-table-type="sponsors" data-table>
-                        <thead scope="col">
-                            <tr>
-                                <th scope="col">Name</th>
-                                <th scope="col">Display Name</th>
-                                <th scope="col">Type</th>
-                                <th scope="col">Applies To</th>
-                                <th scope="col">Location</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for sponsor in sponsors %}
-                            <tr class="{% if not sponsor.is_active %}sponsor-inactive{% endif %}">
-                                <td data-label="Name"><strong>{{ sponsor.name }}</strong></td>
-                                <td data-label="Display Name">{{ sponsor.display_name }}</td>
-                                <td data-label="Type">
-                                    <span class="badge bg-label-{% if sponsor.sponsor_type == 'presenting' %}warning{% elif sponsor.sponsor_type == 'venue' %}info{% else %}secondary{% endif %}" data-badge>
-                                        {{ sponsor.sponsor_type|title }}
-                                    </span>
-                                </td>
-                                <td data-label="Applies To">
-                                    {% if sponsor.applies_to == 'all' %}
-                                        <span class="badge bg-label-primary" data-badge>All Passes</span>
-                                    {% elif sponsor.applies_to == 'ecs_membership' %}
-                                        <span class="badge bg-label-success" data-badge>ECS Only</span>
-                                    {% else %}
-                                        <span class="badge bg-label-info" data-badge>Pub League</span>
-                                    {% endif %}
-                                </td>
-                                <td data-label="Location">{{ sponsor.display_location|title }}</td>
-                                <td data-label="Status">
-                                    {% if sponsor.is_active %}
-                                        <span class="badge bg-success" data-badge>Active</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary" data-badge>Inactive</span>
-                                    {% endif %}
-                                </td>
-                                <td data-label="Actions">
-                                    <div class="btn-group btn-group-sm">
-                                        <button type="button" class="c-btn c-btn--outline-primary"
-                                                data-bs-toggle="modal" data-bs-target="#editSponsorModal"
-                                                data-sponsor='{{ sponsor.to_dict()|tojson }}' aria-label="Edit"><i class="ti ti-edit"></i></button>
-                                        <form action="{{ url_for('wallet_config.toggle_sponsor', sponsor_id=sponsor.id) }}" method="post" class="d-inline">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="c-btn btn-outline-{% if sponsor.is_active %}warning{% else %}success{% endif %}" aria-label="View"><i class="ti ti-{% if sponsor.is_active %}eye-off{% else %}eye{% endif %}"></i></button>
-                                        </form>
-                                        <button type="button" class="c-btn c-btn--outline-danger js-delete-sponsor"
-                                                data-action="delete-sponsor" data-id="{{ sponsor.id }}" data-name="{{ sponsor.name }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">Name</th>
+                            <th scope="col" class="px-4 py-3 hidden md:table-cell">Display Name</th>
+                            <th scope="col" class="px-4 py-3">Type</th>
+                            <th scope="col" class="px-4 py-3">Applies To</th>
+                            <th scope="col" class="px-4 py-3 hidden md:table-cell">Location</th>
+                            <th scope="col" class="px-4 py-3">Status</th>
+                            <th scope="col" class="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sponsor in sponsors %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 {% if not sponsor.is_active %}opacity-60{% endif %}">
+                            <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ sponsor.name }}</td>
+                            <td class="px-4 py-3 hidden md:table-cell">{{ sponsor.display_name }}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-0.5 text-xs font-medium rounded {% if sponsor.sponsor_type == 'presenting' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% elif sponsor.sponsor_type == 'venue' %}bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                                    {{ sponsor.sponsor_type|title }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if sponsor.applies_to == 'all' %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">All Passes</span>
+                                {% elif sponsor.applies_to == 'ecs_membership' %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">ECS Only</span>
+                                {% else %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded">Pub League</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 hidden md:table-cell">{{ sponsor.display_location|title }}</td>
+                            <td class="px-4 py-3">
+                                {% if sponsor.is_active %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Active</span>
+                                {% else %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <div class="flex justify-end gap-1">
+                                    <button type="button" class="js-edit-sponsor p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                            data-sponsor='{{ sponsor.to_dict()|tojson }}' aria-label="Edit"><i class="ti ti-edit"></i></button>
+                                    <form action="{{ url_for('wallet_config.toggle_sponsor', sponsor_id=sponsor.id) }}" method="post" class="inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" aria-label="View"
+                                                class="p-2 text-gray-500 dark:text-gray-400 hover:{% if sponsor.is_active %}text-yellow-600 dark:hover:text-yellow-400{% else %}text-green-600 dark:hover:text-green-400{% endif %} hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"><i class="ti ti-{% if sponsor.is_active %}eye-off{% else %}eye{% endif %}"></i></button>
+                                    </form>
+                                    <button type="button" class="js-delete-sponsor p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                            data-action="delete-sponsor" data-id="{{ sponsor.id }}" data-name="{{ sponsor.name }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
             {% else %}
-                <div class="text-center py-5">
-                    <i class="ti ti-building-store fs-1 text-muted"></i>
-                    <p class="mt-3 text-muted">No sponsors configured yet.</p>
-                    <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#addSponsorModal">
-                        <i class="ti ti-plus me-1"></i> Add First Sponsor
-                    </button>
-                </div>
+            <div class="text-center py-12">
+                <i class="ti ti-building-store text-5xl text-gray-400 dark:text-gray-600"></i>
+                <p class="mt-4 mb-4 text-gray-500 dark:text-gray-400">No sponsors configured yet.</p>
+                <button type="button" data-open-modal="addSponsorModal"
+                        class="text-white bg-blue-600 hover:bg-blue-700 rounded-lg px-4 py-2 text-sm font-medium inline-flex items-center">
+                    <i class="ti ti-plus mr-1"></i> Add First Sponsor
+                </button>
+            </div>
             {% endif %}
         </div>
     </div>
@@ -167,102 +167,117 @@
 {% endblock %}
 
 {% block modals %}
-{{ super() }}
 <!-- Add Sponsor Modal -->
 {% call modal_form('addSponsorModal', 'Add Sponsor', action=url_for('wallet_config.add_sponsor'), submit_text='Add Sponsor', loading_text='Adding...') %}
-    <div class="mb-3">
-        <label class="form-label">Name <span class="text-danger">*</span></label>
-        <input type="text" class="form-control" name="name" required data-form-control aria-label="Name">
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Name <span class="text-red-600 dark:text-red-400">*</span></label>
+        <input type="text" name="name" required aria-label="Name"
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
     </div>
-    <div class="mb-3">
-        <label class="form-label">Display Name</label>
-        <input type="text" class="form-control" name="display_name" placeholder="Shown on pass" data-form-control aria-label="Shown on pass">
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Display Name</label>
+        <input type="text" name="display_name" placeholder="Shown on pass" aria-label="Shown on pass"
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
     </div>
-    <div class="mb-3">
-        <label class="form-label">Description</label>
-        <textarea class="form-control" name="description" rows="2" data-form-control></textarea>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+        <textarea name="description" rows="2"
+                  class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"></textarea>
     </div>
-    <div class="mb-3">
-        <label class="form-label">Website URL</label>
-        <input type="url" class="form-control" name="website_url" placeholder="https://..." data-form-control>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Website URL</label>
+        <input type="url" name="website_url" placeholder="https://..."
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
     </div>
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Sponsor Type</label>
-            <select class="form-select" name="sponsor_type" data-form-select>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Sponsor Type</label>
+            <select name="sponsor_type"
+                    class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="partner">Partner</option>
                 <option value="presenting">Presenting</option>
                 <option value="venue">Venue</option>
             </select>
         </div>
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Applies To</label>
-            <select class="form-select" name="applies_to" data-form-select>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Applies To</label>
+            <select name="applies_to"
+                    class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="all">All Passes</option>
                 <option value="ecs_membership">ECS Membership Only</option>
                 <option value="pub_league">Pub League Only</option>
             </select>
         </div>
     </div>
-    <div class="mb-3">
-        <label class="form-label">Display Location</label>
-        <select class="form-select" name="display_location" data-form-select>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Display Location</label>
+        <select name="display_location"
+                class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
             <option value="back">Back of Pass</option>
             <option value="auxiliary">Auxiliary Field</option>
         </select>
     </div>
-    <div class="form-check">
-        <input class="form-check-input" type="checkbox" name="is_active" id="addIsActive" checked>
-        <label class="form-check-label" for="addIsActive">Active</label>
+    <div class="flex items-center">
+        <input type="checkbox" name="is_active" id="addIsActive" checked
+               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+        <label for="addIsActive" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Active</label>
     </div>
 {% endcall %}
 
 <!-- Edit Sponsor Modal -->
 {% call modal_form('editSponsorModal', 'Edit Sponsor', form_id='editSponsorForm', submit_text='Save Changes', loading_text='Saving...') %}
-    <div class="mb-3">
-        <label class="form-label">Name <span class="text-danger">*</span></label>
-        <input type="text" class="form-control" name="name" id="editName" required data-form-control>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Name <span class="text-red-600 dark:text-red-400">*</span></label>
+        <input type="text" name="name" id="editName" required
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
     </div>
-    <div class="mb-3">
-        <label class="form-label">Display Name</label>
-        <input type="text" class="form-control" name="display_name" id="editDisplayName" data-form-control>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Display Name</label>
+        <input type="text" name="display_name" id="editDisplayName"
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
     </div>
-    <div class="mb-3">
-        <label class="form-label">Description</label>
-        <textarea class="form-control" name="description" id="editDescription" rows="2" data-form-control></textarea>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+        <textarea name="description" id="editDescription" rows="2"
+                  class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"></textarea>
     </div>
-    <div class="mb-3">
-        <label class="form-label">Website URL</label>
-        <input type="url" class="form-control" name="website_url" id="editWebsite" data-form-control>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Website URL</label>
+        <input type="url" name="website_url" id="editWebsite"
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
     </div>
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Sponsor Type</label>
-            <select class="form-select" name="sponsor_type" id="editType" data-form-select>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Sponsor Type</label>
+            <select name="sponsor_type" id="editType"
+                    class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="partner">Partner</option>
                 <option value="presenting">Presenting</option>
                 <option value="venue">Venue</option>
             </select>
         </div>
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Applies To</label>
-            <select class="form-select" name="applies_to" id="editAppliesTo" data-form-select>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Applies To</label>
+            <select name="applies_to" id="editAppliesTo"
+                    class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="all">All Passes</option>
                 <option value="ecs_membership">ECS Membership Only</option>
                 <option value="pub_league">Pub League Only</option>
             </select>
         </div>
     </div>
-    <div class="mb-3">
-        <label class="form-label">Display Location</label>
-        <select class="form-select" name="display_location" id="editLocation" data-form-select>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Display Location</label>
+        <select name="display_location" id="editLocation"
+                class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
             <option value="back">Back of Pass</option>
             <option value="auxiliary">Auxiliary Field</option>
         </select>
     </div>
-    <div class="form-check">
-        <input class="form-check-input" type="checkbox" name="is_active" id="editIsActive">
-        <label class="form-check-label" for="editIsActive">Active</label>
+    <div class="flex items-center">
+        <input type="checkbox" name="is_active" id="editIsActive"
+               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+        <label for="editIsActive" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Active</label>
     </div>
 {% endcall %}
 {% endblock %}
@@ -273,29 +288,45 @@
 (function() {
     'use strict';
 
-    // Edit modal population - Bootstrap event
-    const editModal = document.getElementById('editSponsorModal');
-    if (editModal) {
-        editModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            if (!button) return;
-
-            const sponsorData = button.getAttribute('data-sponsor');
-            if (!sponsorData) return;
-
-            const sponsor = JSON.parse(sponsorData);
-
-            document.getElementById('editSponsorForm').action = '/admin/wallet/config/sponsors/' + sponsor.id + '/edit';
-            document.getElementById('editName').value = sponsor.name;
-            document.getElementById('editDisplayName').value = sponsor.display_name || '';
-            document.getElementById('editDescription').value = sponsor.description || '';
-            document.getElementById('editWebsite').value = sponsor.website_url || '';
-            document.getElementById('editType').value = sponsor.sponsor_type || 'partner';
-            document.getElementById('editAppliesTo').value = sponsor.applies_to || 'all';
-            document.getElementById('editLocation').value = sponsor.display_location || 'back';
-            document.getElementById('editIsActive').checked = sponsor.is_active;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Vanilla modal open/close helpers (no Bootstrap in this shell)
+        function openModal(id) {
+            var m = document.getElementById(id);
+            if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+        }
+        function closeModal(id) {
+            var m = document.getElementById(id);
+            if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+        }
+        document.querySelectorAll('[data-open-modal]').forEach(function(btn) {
+            btn.addEventListener('click', function() { openModal(this.dataset.openModal); });
         });
-    }
+        document.querySelectorAll('[data-modal-hide]').forEach(function(btn) {
+            btn.addEventListener('click', function() { closeModal(this.dataset.modalHide); });
+        });
+
+        // Edit modal population (replaces the old Bootstrap show.bs.modal hook)
+        document.querySelectorAll('.js-edit-sponsor').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const sponsorData = this.getAttribute('data-sponsor');
+                if (!sponsorData) return;
+
+                const sponsor = JSON.parse(sponsorData);
+
+                document.getElementById('editSponsorForm').action = '/admin-panel/wallet/config/sponsors/' + sponsor.id + '/edit';
+                document.getElementById('editName').value = sponsor.name;
+                document.getElementById('editDisplayName').value = sponsor.display_name || '';
+                document.getElementById('editDescription').value = sponsor.description || '';
+                document.getElementById('editWebsite').value = sponsor.website_url || '';
+                document.getElementById('editType').value = sponsor.sponsor_type || 'partner';
+                document.getElementById('editAppliesTo').value = sponsor.applies_to || 'all';
+                document.getElementById('editLocation').value = sponsor.display_location || 'back';
+                document.getElementById('editIsActive').checked = sponsor.is_active;
+
+                openModal('editSponsorModal');
+            });
+        });
+    });
 })();
 </script>
 {% endblock %}

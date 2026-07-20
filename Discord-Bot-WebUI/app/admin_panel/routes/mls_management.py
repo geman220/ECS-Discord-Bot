@@ -2150,6 +2150,12 @@ def mls_settings():
         ),
         'no_update_timeout_minutes': AdminConfig.get_setting(
             'mls_no_update_timeout_minutes', '30'
+        ),
+        'lineup_post_minutes_before': AdminConfig.get_setting(
+            'mls_lineup_post_minutes_before', '30'
+        ),
+        'buildup_post_hours_before': AdminConfig.get_setting(
+            'mls_buildup_post_hours_before', '3'
         )
     }
 
@@ -2181,7 +2187,9 @@ def mls_settings_update():
             'mls_live_reporting_minutes_before': {'min': 0, 'max': 60, 'type': 'integer'},  # 0 to 60 min
             'mls_live_reporting_timeout_hours': {'min': 1, 'max': 6, 'type': 'integer'},    # 1 to 6 hours
             'mls_max_session_duration_hours': {'min': 2, 'max': 8, 'type': 'integer'},      # 2 to 8 hours
-            'mls_no_update_timeout_minutes': {'min': 10, 'max': 120, 'type': 'integer'}     # 10 to 120 min
+            'mls_no_update_timeout_minutes': {'min': 10, 'max': 120, 'type': 'integer'},    # 10 to 120 min
+            'mls_lineup_post_minutes_before': {'min': 5, 'max': 180, 'type': 'integer'},    # 5 min to 3 hours
+            'mls_buildup_post_hours_before': {'min': 1, 'max': 24, 'type': 'integer'}       # 1 to 24 hours
         }
 
         updated_settings = []

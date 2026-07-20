@@ -1,18 +1,22 @@
-{% extends "base_flowbite.html" %}
+{% extends "admin_panel/base_flowbite.html" %}
 {% from "macros/flowbite.html" import modal_info %}
 
-{% block title %}Digital Wallets Dashboard{% endblock %}
+{% block admin_title %}Digital Wallets Dashboard{% endblock %}
 
-{% block main_content %}
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Wallet</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
 <div class="p-4 space-y-6">
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
-                <span>Admin</span>
-                <span>/</span>
-                <span>Digital Wallets</span>
-            </div>
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                 Digital Wallets
@@ -392,9 +396,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Check player eligibility
+    // Check player eligibility (stopPropagation: EventDelegation registers the
+    // same data-action globally — without it both handlers fire)
     document.querySelectorAll('[data-action="check-player-eligibility"]').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             const playerId = this.dataset.playerId;
             const modal = document.getElementById('eligibilityModal');
             const modalBody = document.getElementById('eligibilityModalBody');
@@ -412,33 +418,36 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.classList.add('flex');
 
             // Fetch eligibility data
-            fetch(`/admin/wallet/api/player/${playerId}/eligibility`)
+            fetch(`/admin-panel/wallet/api/player/${playerId}/eligibility`)
                 .then(res => res.json())
                 .then(data => {
-                    if (data.success) {
-                        const e = data.eligibility;
+                    // /api/player/<id>/eligibility returns a flat object:
+                    // {player_id, player_name, eligible, issues:[], info:{is_current_player, has_user_account, primary_team, all_teams, league, ...}}
+                    if (!data.error) {
+                        const info = data.info || {};
+                        const hasTeam = !!(info.primary_team || info.all_teams);
+                        const row = (label, ok, text) => `
+                                <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
+                                    <span class="text-gray-600 dark:text-gray-400">${label}</span>
+                                    <span class="${ok ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">${text}</span>
+                                </div>`;
+                        const issuesHtml = (data.issues && data.issues.length)
+                            ? `<div class="pt-2 text-sm text-red-600 dark:text-red-400">${data.issues.map(i => '• ' + i).join('<br>')}</div>`
+                            : '';
                         modalBody.innerHTML = `
                             <div class="space-y-3">
                                 <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
                                     <span class="text-gray-600 dark:text-gray-400">Player Name</span>
-                                    <span class="font-medium text-gray-900 dark:text-white">${e.player_name}</span>
+                                    <span class="font-medium text-gray-900 dark:text-white">${data.player_name || ''}</span>
                                 </div>
-                                <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
-                                    <span class="text-gray-600 dark:text-gray-400">Has Team</span>
-                                    <span class="${e.has_team ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">${e.has_team ? 'Yes' : 'No'}</span>
-                                </div>
-                                <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
-                                    <span class="text-gray-600 dark:text-gray-400">Has User Account</span>
-                                    <span class="${e.has_user ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">${e.has_user ? 'Yes' : 'No'}</span>
-                                </div>
-                                <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
-                                    <span class="text-gray-600 dark:text-gray-400">Is Active</span>
-                                    <span class="${e.is_active ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">${e.is_active ? 'Yes' : 'No'}</span>
-                                </div>
+                                ${row('Has Team', hasTeam, hasTeam ? 'Yes' : 'No')}
+                                ${row('Has User Account', !!info.has_user_account, info.has_user_account ? 'Yes' : 'No')}
+                                ${row('Is Active', !!info.is_current_player, info.is_current_player ? 'Yes' : 'No')}
                                 <div class="flex justify-between items-center py-2">
                                     <span class="text-gray-600 dark:text-gray-400">Eligible</span>
-                                    <span class="px-2 py-0.5 text-xs font-medium rounded ${e.eligible ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}">${e.eligible ? 'Yes' : 'No'}</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded ${data.eligible ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}">${data.eligible ? 'Yes' : 'No'}</span>
                                 </div>
+                                ${issuesHtml}
                             </div>
                         `;
                     } else {
@@ -470,9 +479,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Bulk generate passes
+    // Bulk generate passes (stopPropagation: same data-action is registered
+    // globally in admin-wallet.js — without it both handlers fire)
     document.querySelectorAll('[data-action="bulk-generate-wallet-passes"]').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             const playerIds = JSON.parse(this.dataset.playerIds || '[]');
             Swal.fire({
                 title: 'Bulk Generate Passes?',
@@ -494,30 +505,33 @@ document.addEventListener('DOMContentLoaded', function() {
                         color: isDark ? '#f3f4f6' : '#111827'
                     });
 
-                    fetch('/admin/wallet/api/bulk-generate', {
+                    fetch('/admin-panel/wallet/api/generate-bulk', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                         body: JSON.stringify({ player_ids: playerIds })
                     })
                     .then(res => res.json())
                     .then(data => {
-                        if (data.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success',
-                                text: data.message || `Generated ${data.generated || 0} passes.`,
-                                background: isDark ? '#1f2937' : '#ffffff',
-                                color: isDark ? '#f3f4f6' : '#111827'
-                            });
-                        } else {
+                        // /api/generate-bulk returns {success: [...], failed: [...], total: N}
+                        if (data.error) {
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Error',
-                                text: data.error || 'Failed to generate passes',
+                                text: data.error,
                                 background: isDark ? '#1f2937' : '#ffffff',
                                 color: isDark ? '#f3f4f6' : '#111827'
                             });
+                            return;
                         }
+                        const ok = (data.success || []).length;
+                        const failed = (data.failed || []).length;
+                        Swal.fire({
+                            icon: failed === 0 ? 'success' : (ok > 0 ? 'warning' : 'error'),
+                            title: failed === 0 ? 'Success' : 'Completed with errors',
+                            text: `Generated ${ok} of ${data.total || ok + failed} passes.` + (failed ? ` ${failed} failed.` : ''),
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        }).then(() => { if (ok > 0) location.reload(); });
                     });
                 }
             });

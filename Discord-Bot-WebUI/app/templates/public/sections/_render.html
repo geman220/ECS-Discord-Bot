@@ -1,0 +1,5 @@
+{# Renders a validated sections document. Called by site_renderer.render_sections
+   (full page) and render_single_section (editor section swaps) — never directly
+   by a route. ctx is a RenderContext; edit_mode adds data-sid/bid annotations. #}
+{% from 'public/sections/macros.html' import render_section %}
+{% for section in doc.sections %}{{ render_section(section, ctx, edit_mode) }}{% endfor %}

@@ -1,179 +1,90 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/_modern_kit.html' import page_header %}
-{% from 'macros/_rich_editor.html' import rich_editor %}
-
-{% block admin_title %}Edit Page — {{ page.slug }}{% endblock %}
-
-{% block breadcrumb_items %}
-<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-  <a href="{{ url_for('admin_panel.public_site_pages') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Public Site · Pages</a></div></li>
-<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">{{ page.slug }}</span></div></li>
-{% endblock %}
+{% block admin_title %}Page settings: {{ page.title or page.slug }}{% endblock %}
 
 {% block panel_content %}
-{% set cms_active = 'pages' %}{% include 'admin_panel/public_site/_cms_tabs.html' %}
-{% set _view = url_for('public.about') if page.slug == 'about' else url_for('public.guide') if page.slug == 'guide' else url_for('public.guests') if page.slug == 'guests' else url_for('public.dynamic_page', slug=page.slug) %}
-{% call page_header("Edit page", subtitle=page.title or page.slug) %}
-  <a href="{{ url_for('admin_panel.public_site_pages') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Back</a>
-  <a href="{{ url_for('admin_panel.public_site_page_revisions', page_id=page.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50" title="Undo / restore an earlier version"><i class="ti ti-history"></i> History</a>
-  {% if not page.slug.startswith('home_') %}
-  <a href="{{ _view }}" target="_blank" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-external-link"></i> View</a>
-  <a href="{{ url_for('admin_panel.public_site_page_builder', page_id=page.id) }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50" title="Drag-and-drop layout builder"><i class="ti ti-layout-board"></i> Design visually</a>
-  {% endif %}
-{% endcall %}
+{% include 'admin_panel/public_site/_cms_tabs.html' %}
 
-<form method="POST" action="{{ url_for('admin_panel.public_site_page_save') }}" id="page-form" class="max-w-3xl space-y-5">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <input type="hidden" name="id" value="{{ page.id }}">
+<div class="max-w-2xl">
+    <div class="mb-5 flex items-center justify-between">
+        <div>
+            <h1 class="text-xl font-bold text-gray-900 dark:text-white">Page settings</h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Title, permalink, visibility and SEO. To edit the page's
+                <strong>content</strong>, use the page editor.
+            </p>
+        </div>
+        <a href="{{ url_for('admin_panel.site_editor', page_id=page.id) }}"
+           class="inline-flex items-center gap-1.5 rounded-lg bg-ecs-green px-4 py-2 text-sm font-semibold text-white hover:bg-ecs-green-dark">
+            <i class="ti ti-edit"></i> Open in page editor
+        </a>
+    </div>
 
-  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4">
-    <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Title / heading</label>
-      <input type="text" name="title" value="{{ page.title or '' }}" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Content</label>
-      <textarea name="body_html" id="body_html" rows="14" class="wp-editor mt-1 block w-full">{{ page.body_html or '' }}</textarea>
-    </div>
-  </div>
+    <form method="POST" action="{{ url_for('admin_panel.public_site_page_save') }}"
+          class="space-y-5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="id" value="{{ page.id }}">
 
-  {% set _reserved = page.slug in ['about','guide','guests','home','news','faqs','calendar','register','contact'] or page.slug.startswith('home_') %}
-  {% if not page.slug.startswith('home_') %}
-  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
-    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Permalink <span class="text-gray-400 font-normal">(the page's URL)</span></label>
-    <div class="mt-1 flex items-center max-w-md rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 focus-within:border-ecs-green">
-      <span class="text-gray-400 text-sm">/</span>
-      <input type="text" name="slug" value="{{ page.slug }}" {{ 'disabled' if _reserved }} class="flex-1 border-0 bg-transparent py-2 pl-1 text-sm text-gray-900 dark:text-white focus:ring-0">
-    </div>
-    {% if _reserved %}<p class="text-xs text-gray-400 mt-1">Built-in pages can't be renamed.</p>{% endif %}
-  </div>
-  {% endif %}
+        <div>
+            <label for="title" class="block text-sm font-medium text-gray-900 dark:text-white">Title</label>
+            <input type="text" id="title" name="title" value="{{ page.title or '' }}"
+                   class="mt-1.5 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+        </div>
 
-  {% if not page.slug.startswith('home_') %}
-  {% set h = page.hero or {} %}
-  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4">
-    <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-photo text-ecs-green"></i> Hero band <span class="text-gray-400 font-normal">(the coloured banner at the top of the page)</span></h3>
-    <div class="grid sm:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Heading size</label>
-        <select name="hero_size" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-          {% set _s = h.get('size', 'md') %}
-          <option value="sm" {{ 'selected' if _s == 'sm' }}>Small</option>
-          <option value="md" {{ 'selected' if _s == 'md' }}>Medium</option>
-          <option value="lg" {{ 'selected' if _s == 'lg' }}>Large</option>
-          <option value="xl" {{ 'selected' if _s == 'xl' }}>Extra large</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Alignment</label>
-        <select name="hero_align" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-          {% set _a = h.get('align', 'left') %}
-          <option value="left" {{ 'selected' if _a == 'left' }}>Left</option>
-          <option value="center" {{ 'selected' if _a == 'center' }}>Centered</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Background color <span class="text-gray-400 font-normal">(used if no image)</span></label>
-        <input type="color" name="hero_bg_color" value="{{ h.get('bg_color') or '#40b050' }}" class="mt-1 h-10 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Heading text color</label>
-        <input type="color" name="hero_text_color" value="{{ h.get('text_color') or '#ffffff' }}" class="mt-1 h-10 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-      </div>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Background image <span class="text-gray-400 font-normal">(optional — overrides the color)</span></label>
-      <div class="mt-1 flex items-center gap-2">
-        <label class="inline-flex items-center gap-1.5 cursor-pointer rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-          <i class="ti ti-upload"></i> Upload
-          <input type="file" id="hero-file" accept="image/*" class="hidden">
-        </label>
-        <span id="hero-upload-status" class="text-xs text-gray-400"></span>
-        <select name="hero_overlay" class="ml-auto rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-2 text-sm text-gray-900 dark:text-white">
-          {% set _o = h.get('overlay', 'medium') %}
-          <option value="light" {{ 'selected' if _o == 'light' }}>Light overlay</option>
-          <option value="medium" {{ 'selected' if _o == 'medium' }}>Medium overlay</option>
-          <option value="heavy" {{ 'selected' if _o == 'heavy' }}>Heavy overlay</option>
-        </select>
-      </div>
-      <input type="text" name="hero_image" id="hero_image" value="{{ h.get('image') or '' }}" placeholder="…or paste an image URL" class="mt-2 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-      <img id="hero-preview" src="{{ h.get('image') or '' }}" alt="" class="mt-2 rounded-lg max-h-32 w-full object-cover {{ '' if h.get('image') else 'hidden' }}">
-    </div>
-  </div>
-  {% endif %}
+        {% set _reserved = ['about', 'guide', 'guests', 'home', 'news', 'faqs', 'calendar', 'register', 'contact'] %}
+        <div>
+            <label for="slug" class="block text-sm font-medium text-gray-900 dark:text-white">Permalink</label>
+            <div class="mt-1.5 flex items-center gap-1">
+                <span class="text-sm text-gray-500 dark:text-gray-400">/</span>
+                <input type="text" id="slug" name="slug" value="{{ page.slug }}"
+                       {{ 'disabled' if page.slug in _reserved or page.slug.startswith('home_') }}
+                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm disabled:opacity-60">
+            </div>
+            {% if page.slug in _reserved %}
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Built-in page — the address can't change.</p>
+            {% else %}
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Renaming automatically redirects the old address (301).</p>
+            {% endif %}
+        </div>
 
-  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4">
-    <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-seo text-ecs-green"></i> SEO <span class="text-gray-400 font-normal">(optional)</span></h3>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Meta title</label>
-      <input type="text" name="meta_title" value="{{ page.meta_title or '' }}" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Meta description</label>
-      <textarea name="meta_description" rows="2" maxlength="320" class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">{{ page.meta_description or '' }}</textarea>
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Social share image
-        <span class="text-gray-400 font-normal">(only shows when this page is shared on Facebook/X — not on the page itself)</span></label>
-      <div class="mt-1 flex items-center gap-2">
-        <label class="inline-flex items-center gap-1.5 cursor-pointer rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-          <i class="ti ti-upload"></i> Upload
-          <input type="file" id="og-file" accept="image/*" class="hidden">
-        </label>
-        <span id="og-upload-status" class="text-xs text-gray-400"></span>
-      </div>
-      <input type="text" name="og_image_url" id="og_image_url" value="{{ page.og_image_url or '' }}" placeholder="…or paste an image URL / path" class="mt-2 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-      <img id="og-preview" src="{{ page.og_image_url or '' }}" alt="" class="mt-2 rounded-lg max-h-32 object-cover {{ '' if page.og_image_url else 'hidden' }}">
-    </div>
-  </div>
+        <div>
+            <span class="block text-sm font-medium text-gray-900 dark:text-white">Visibility</span>
+            <div class="mt-2 flex gap-4">
+                <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                    <input type="radio" name="status" value="published" {{ 'checked' if page.status == 'published' }} class="text-ecs-green focus:ring-ecs-green"> Published
+                </label>
+                <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                    <input type="radio" name="status" value="draft" {{ 'checked' if page.status != 'published' }} class="text-ecs-green focus:ring-ecs-green"> Draft (hidden)
+                </label>
+            </div>
+        </div>
 
-  <div class="flex flex-wrap items-center gap-3 border-t border-gray-200 dark:border-gray-700 pt-5">
-    {% if page.slug.startswith('home_') %}
-      <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-ecs-green text-white px-5 py-2.5 text-sm font-semibold hover:bg-ecs-green-dark"><i class="ti ti-device-floppy"></i> Save</button>
-    {% elif page.status == 'published' %}
-      <span class="inline-flex items-center gap-1 rounded-full bg-ecs-green/10 px-2.5 py-1 text-xs font-semibold text-ecs-green dark:text-ecs-blue-400"><i class="ti ti-circle-check"></i> Published — live</span>
-      <button type="submit" name="status" value="published" class="inline-flex items-center gap-2 rounded-lg bg-ecs-green text-white px-5 py-2.5 text-sm font-semibold hover:bg-ecs-green-dark"><i class="ti ti-device-floppy"></i> Update</button>
-      <button type="submit" name="status" value="draft" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-eye-off"></i> Switch to draft</button>
-    {% else %}
-      <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400"><i class="ti ti-pencil"></i> Draft — hidden</span>
-      <button type="submit" name="status" value="draft" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-device-floppy"></i> Save draft</button>
-      <button type="submit" name="status" value="published" class="inline-flex items-center gap-2 rounded-lg bg-ecs-blue text-white px-5 py-2.5 text-sm font-semibold hover:bg-ecs-blue-700"><i class="ti ti-rocket"></i> Publish</button>
-    {% endif %}
-  </div>
-</form>
-{% endblock %}
+        <hr class="border-gray-200 dark:border-gray-700">
+        <h2 class="text-sm font-bold text-gray-900 dark:text-white">Search &amp; sharing (SEO)</h2>
 
-{% block custom_js %}
-{{ super() }}
-{{ rich_editor('#body_html') }}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Hero / social image upload widget (reuses window.publicSiteUpload from the editor macro)
-    var ogFile = document.getElementById('og-file');
-    if (ogFile) ogFile.addEventListener('change', function () {
-        if (!this.files || !this.files[0] || !window.publicSiteUpload) return;
-        var status = document.getElementById('og-upload-status');
-        status.textContent = 'Uploading…';
-        window.publicSiteUpload(this.files[0]).then(function (url) {
-            document.getElementById('og_image_url').value = url;
-            var prev = document.getElementById('og-preview');
-            prev.src = url; prev.classList.remove('hidden');
-            status.textContent = 'Uploaded ✓';
-        }).catch(function (e) { status.textContent = e.message; });
-    });
-    var heroFile = document.getElementById('hero-file');
-    if (heroFile) heroFile.addEventListener('change', function () {
-        if (!this.files || !this.files[0] || !window.publicSiteUpload) return;
-        var status = document.getElementById('hero-upload-status');
-        status.textContent = 'Uploading…';
-        window.publicSiteUpload(this.files[0]).then(function (url) {
-            document.getElementById('hero_image').value = url;
-            var prev = document.getElementById('hero-preview');
-            prev.src = url; prev.classList.remove('hidden');
-            status.textContent = 'Uploaded ✓';
-        }).catch(function (e) { status.textContent = e.message; });
-    });
-});
-</script>
+        <div>
+            <label for="meta_title" class="block text-sm font-medium text-gray-900 dark:text-white">Search title <span class="font-normal text-gray-400">(optional)</span></label>
+            <input type="text" id="meta_title" name="meta_title" value="{{ page.meta_title or '' }}" maxlength="255"
+                   class="mt-1.5 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+        </div>
+        <div>
+            <label for="meta_description" class="block text-sm font-medium text-gray-900 dark:text-white">Search description <span class="font-normal text-gray-400">(optional)</span></label>
+            <textarea id="meta_description" name="meta_description" rows="2" maxlength="320"
+                      class="mt-1.5 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">{{ page.meta_description or '' }}</textarea>
+        </div>
+        <div>
+            <label for="og_image_url" class="block text-sm font-medium text-gray-900 dark:text-white">Social share image URL <span class="font-normal text-gray-400">(optional)</span></label>
+            <input type="text" id="og_image_url" name="og_image_url" value="{{ page.og_image_url or '' }}"
+                   class="mt-1.5 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+            <a href="{{ url_for('admin_panel.public_site_page_revisions', page_id=page.id) }}"
+               class="text-sm font-medium text-gray-500 hover:text-ecs-green"><i class="ti ti-history"></i> Revision history</a>
+            <button type="submit"
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-ecs-green px-5 py-2.5 text-sm font-semibold text-white hover:bg-ecs-green-dark">
+                <i class="ti ti-device-floppy"></i> Save settings
+            </button>
+        </div>
+    </form>
+</div>
 {% endblock %}

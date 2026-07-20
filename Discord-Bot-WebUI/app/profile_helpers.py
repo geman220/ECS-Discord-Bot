@@ -590,6 +590,10 @@ def handle_profile_update_mobile(form, player, user):
         player.other_positions = ','.join(form.other_positions.data) if form.other_positions.data else None
         player.positions_not_to_play = ','.join(form.positions_not_to_play.data) if form.positions_not_to_play.data else None
 
+        # "Interested in refereeing?" — rendered on both self-service edit pages but
+        # was silently dropped here (only the wizard path saved it).
+        player.willing_to_referee = form.willing_to_referee.data
+
         # Update player notes
         player.player_notes = form.player_notes.data.strip() if form.player_notes.data else None
 

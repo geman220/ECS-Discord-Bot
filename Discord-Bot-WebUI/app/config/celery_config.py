@@ -55,6 +55,7 @@ class CeleryConfig:
         'app.tasks.discord_cleanup',  # Season rollover Discord cleanup
         'app.tasks.monitoring_tasks',
         'app.tasks.tasks_maintenance',
+        'app.tasks.tasks_public_site',  # Public-site scheduled publish/unpublish + news Discord announce
         'app.tasks.tasks_draft_clock',  # Draft "on the clock" timer enforcement
         'app.tasks.tasks_cache_management',
         'app.tasks.player_sync',
@@ -265,6 +266,21 @@ class CeleryConfig:
         # OF WHICH EXISTS on DatabaseManager — it would raise AttributeError every 5
         # minutes. It is also obsolete: idle-in-transaction was fixed properly by the
         # pgbouncer web/celery pool split and the commit-before-render hook.
+        'process-site-scheduling': {
+            'task': 'app.tasks.tasks_public_site.process_site_scheduling',
+            'schedule': crontab(minute='*/5'),
+            'options': {'queue': 'celery'},
+        },
+        'backfill-media-variants': {
+            'task': 'app.tasks.tasks_public_site.backfill_media_variants',
+            'schedule': crontab(hour=4, minute=30),  # off-hours, batched
+            'options': {'queue': 'celery'},
+        },
+        'report-orphan-media': {
+            'task': 'app.tasks.tasks_public_site.report_orphan_media',
+            'schedule': crontab(hour=5, minute=0, day_of_week=1),  # weekly
+            'options': {'queue': 'celery'},
+        },
         'recalculate-all-attendance-stats': {
             'task': 'app.tasks.tasks_maintenance.recalculate_all_attendance_stats',
             'schedule': crontab(hour=4, minute=0),

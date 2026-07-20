@@ -143,19 +143,27 @@ class QuickProfile(db.Model):
         return profile
 
     @classmethod
-    def find_by_code(cls, code):
+    def find_by_code(cls, code, session=None):
         """
         Find a quick profile by claim code (case-insensitive).
 
         Args:
             code: The claim code to search for
+            session: Optional session to load on. Pass the SAME session the
+                claiming Player lives on (usually ``g.db_session``). Without it
+                ``cls.query`` binds to ``db.session`` — a different session than
+                the Player — and ``claim()`` then writes ``claimed_by_player_id``
+                referencing a Player that only exists in the other session's
+                uncommitted transaction, so an autoflush raises a FK violation
+                (500 on registration). See [[reference_two_sessions_lost_writes]].
 
         Returns:
             QuickProfile or None
         """
         if not code:
             return None
-        return cls.query.filter_by(claim_code=code.upper().strip()).first()
+        query = session.query(cls) if session is not None else cls.query
+        return query.filter_by(claim_code=code.upper().strip()).first()
 
     def is_valid(self):
         """

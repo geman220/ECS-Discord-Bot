@@ -22,9 +22,9 @@
     <a href="{{ edit_url }}" class="text-white hover:text-ecs-gold flex items-center gap-1 font-medium"><i class="ti ti-edit"></i> Edit Page</a>
     {% endif %}
     <div class="ml-auto flex items-center gap-3">
-        <a href="{{ url_for('main.index') }}" class="hover:text-white hidden sm:inline">Dashboard</a>
+        <a href="{{ portal_url('main.index') }}" class="hover:text-white hidden sm:inline">Dashboard</a>
         <span class="text-gray-400 hidden md:inline">Howdy, {{ current_user.username }}</span>
-        <a href="{{ url_for('auth.logout') }}" class="hover:text-white">Log out</a>
+        <a href="{{ portal_url('auth.logout') }}" class="hover:text-white">Log out</a>
     </div>
 </div>
 {% endif %}

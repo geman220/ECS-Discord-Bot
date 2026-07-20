@@ -431,11 +431,18 @@ def report_match_post(match_id: int):
             data.get('own_goals_to_remove', [])
         )
 
-        for event_id in events_to_remove:
-            if event_id:
-                event = session.query(EcsFcPlayerEvent).get(int(event_id))
-                if event and event.ecs_fc_match_id == match_id:
-                    session.delete(event)
+        for _entry in events_to_remove:
+            # The frontend sends removal entries as OBJECTS ({stat_id, player_id, ...}),
+            # not bare ids — int(dict) would raise and roll back the whole submit.
+            stat_id = _entry.get('stat_id') if isinstance(_entry, dict) else _entry
+            if stat_id in (None, ''):
+                continue
+            try:
+                event = session.query(EcsFcPlayerEvent).get(int(stat_id))
+            except (TypeError, ValueError):
+                continue
+            if event and event.ecs_fc_match_id == match_id:
+                session.delete(event)
 
         session.commit()
 

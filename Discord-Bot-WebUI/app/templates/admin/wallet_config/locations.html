@@ -1,306 +1,338 @@
-{% extends 'admin/layout.html' %}
+{% extends "admin_panel/base_flowbite.html" %}
 {% from "macros/flowbite.html" import modal_form %}
-{% block title %}Wallet Pass Locations{% endblock %}
 
-{% block custom_css %}
-{{ super() }}
-{# Styles moved to external CSS #}
+{% block admin_title %}Wallet Pass Locations{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('wallet_admin.wallet_management') }}" class="ml-1 text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Wallet</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Partner Locations</span>
+    </div>
+</li>
 {% endblock %}
 
-{% block content %}
-<div class="container-xxl flex-grow-1 container-p-y">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+{% block panel_content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h2 class="fw-bold text-primary mb-1">
-                <i class="ti ti-map-pin me-2"></i>Partner Locations
-            </h2>
-            <p class="text-muted mb-0">Manage venues that trigger pass notifications when members are nearby</p>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-map-pin text-blue-600 dark:text-blue-400"></i>Partner Locations
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Manage venues that trigger pass notifications when members are nearby</p>
         </div>
-        <div>
-            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary me-2">
-                <i class="ti ti-arrow-left me-1"></i> Back
+        <div class="flex gap-2 flex-wrap">
+            <a href="{{ url_for('wallet_admin.wallet_management') }}"
+               class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-arrow-left mr-1"></i> Back
             </a>
-            <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">
-                <i class="ti ti-plus me-1"></i> Add Location
+            <button type="button" data-open-modal="addLocationModal"
+                    class="text-white bg-blue-600 hover:bg-blue-700 rounded-lg px-4 py-2 text-sm font-medium inline-flex items-center">
+                <i class="ti ti-plus mr-1"></i> Add Location
             </button>
         </div>
     </div>
 
     <!-- Info Alert -->
-    <div class="alert alert-info mb-4" data-alert>
-        <div class="d-flex">
-            <i class="ti ti-info-circle me-2 fs-4"></i>
-            <div>
-                <strong>Location-Based Notifications</strong>
-                <p class="mb-0 mt-1">When a member with your pass approaches one of these locations, their phone can show a notification reminding them they have the pass. Apple Wallet supports up to <strong>10 locations per pass</strong>.</p>
-            </div>
+    <div class="flex items-start p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg">
+        <i class="ti ti-info-circle text-blue-500 text-xl mr-3 mt-0.5 flex-shrink-0"></i>
+        <div class="text-sm text-blue-700 dark:text-blue-300">
+            <strong>Location-Based Notifications</strong>
+            <p class="mt-1">When a member with your pass approaches one of these locations, their phone can show a notification reminding them they have the pass. Apple Wallet supports up to <strong>10 locations per pass</strong>.</p>
         </div>
     </div>
 
     <!-- Location Count -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="c-card">
-                <div class="c-card__body">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar avatar-lg bg-label-primary me-3">
-                            <span class="avatar-initial"><i class="ti ti-map-pin"></i></span>
-                        </div>
-                        <div>
-                            <h4 class="mb-0">{{ locations|selectattr('is_active')|list|length }} / 10</h4>
-                            <small class="text-muted">Active Locations</small>
-                        </div>
-                    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Active Locations</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ locations|selectattr('is_active')|list|length }} / 10</h3>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <i class="ti ti-map-pin text-xl text-blue-600 dark:text-blue-400"></i>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="c-card">
-                <div class="c-card__body">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar avatar-lg bg-label-success me-3">
-                            <span class="avatar-initial"><i class="ti ti-beer"></i></span>
-                        </div>
-                        <div>
-                            <h4 class="mb-0">{{ locations|selectattr('location_type', 'equalto', 'partner_bar')|list|length }}</h4>
-                            <small class="text-muted">Partner Bars</small>
-                        </div>
-                    </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Partner Bars</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ locations|selectattr('location_type', 'equalto', 'partner_bar')|list|length }}</h3>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <i class="ti ti-beer text-xl text-green-600 dark:text-green-400"></i>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="c-card">
-                <div class="c-card__body">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar avatar-lg bg-label-warning me-3">
-                            <span class="avatar-initial"><i class="ti ti-building-stadium"></i></span>
-                        </div>
-                        <div>
-                            <h4 class="mb-0">{{ locations|selectattr('location_type', 'equalto', 'stadium')|list|length }}</h4>
-                            <small class="text-muted">Stadiums</small>
-                        </div>
-                    </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Stadiums</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ locations|selectattr('location_type', 'equalto', 'stadium')|list|length }}</h3>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                    <i class="ti ti-building-stadium text-xl text-yellow-600 dark:text-yellow-400"></i>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Locations Grid -->
-    <div class="row">
-        {% if locations %}
-            {% for location in locations %}
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="c-card location-c-card h-100 {% if not location.is_active %}location-inactive{% endif %}">
-                    <div class="c-card__body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <div>
-                                <h5 class="c-card__title mb-1">{{ location.name }}</h5>
-                                <small class="text-muted">
-                                    {% if location.city %}{{ location.city }}{% if location.state %}, {{ location.state }}{% endif %}{% endif %}
-                                </small>
-                            </div>
-                            <div>
-                                {% if location.is_active %}
-                                <span class="badge bg-success location-badge" data-badge>Active</span>
-                                {% else %}
-                                <span class="badge bg-secondary location-badge" data-badge>Inactive</span>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <p class="c-card__description small mb-2">
-                            <i class="ti ti-message me-1"></i>
-                            <em>"{{ location.relevant_text }}"</em>
-                        </p>
-
-                        <div class="coordinates text-muted mb-3">
-                            <i class="ti ti-gps me-1"></i>
-                            {{ "%.4f"|format(location.latitude) }}, {{ "%.4f"|format(location.longitude) }}
-                        </div>
-
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                {% if location.applies_to == 'all' %}
-                                <span class="badge bg-label-primary" data-badge>All Passes</span>
-                                {% elif location.applies_to == 'ecs_membership' %}
-                                <span class="badge bg-label-success" data-badge>ECS Only</span>
-                                {% elif location.applies_to == 'pub_league' %}
-                                <span class="badge bg-label-info" data-badge>Pub League Only</span>
-                                {% endif %}
-                            </div>
-                            <div class="btn-group btn-group-sm">
-                                <button class="c-btn c-btn--outline-primary" data-bs-toggle="modal"
-                                        data-bs-target="#editLocationModal{{ location.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
-                                <form action="{{ url_for('wallet_config.toggle_location', location_id=location.id) }}"
-                                      method="post" class="d-inline">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="c-btn btn-outline-{% if location.is_active %}warning{% else %}success{% endif %}" aria-label="View"><i class="ti ti-{% if location.is_active %}eye-off{% else %}eye{% endif %}"></i></button>
-                                </form>
-                                <button class="c-btn c-btn--outline-danger delete-location-btn"
-                                        data-location-id="{{ location.id }}"
-                                        data-location-name="{{ location.name }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
-                            </div>
-                        </div>
-                    </div>
+    {% if locations %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for location in locations %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5 flex flex-col {% if not location.is_active %}opacity-60{% endif %}">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <h5 class="font-semibold text-gray-900 dark:text-white mb-1">{{ location.name }}</h5>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">
+                        {% if location.city %}{{ location.city }}{% if location.state %}, {{ location.state }}{% endif %}{% endif %}
+                    </span>
+                </div>
+                <div>
+                    {% if location.is_active %}
+                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Active</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Inactive</span>
+                    {% endif %}
                 </div>
             </div>
-            {% endfor %}
-        {% else %}
-            <div class="col-12">
-                <div class="c-card">
-                    <div class="c-card__body text-center py-5">
-                        <i class="ti ti-map-pin-off text-muted mb-3" class="u-icon-4xl"></i>
-                        <h5>No Locations Configured</h5>
-                        <p class="text-muted mb-3">Add partner bars and venues to enable location-based notifications.</p>
-                        <button class="c-btn c-btn--primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">
-                            <i class="ti ti-plus me-1"></i> Add First Location
-                        </button>
-                    </div>
+
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                <i class="ti ti-message mr-1"></i>
+                <em>"{{ location.relevant_text }}"</em>
+            </p>
+
+            <div class="text-xs text-gray-500 dark:text-gray-400 font-mono mb-3">
+                <i class="ti ti-gps mr-1"></i>
+                {{ "%.4f"|format(location.latitude) }}, {{ "%.4f"|format(location.longitude) }}
+            </div>
+
+            <div class="flex justify-between items-center mt-auto">
+                <div>
+                    {% if location.applies_to == 'all' %}
+                    <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">All Passes</span>
+                    {% elif location.applies_to == 'ecs_membership' %}
+                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">ECS Only</span>
+                    {% elif location.applies_to == 'pub_league' %}
+                    <span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded">Pub League Only</span>
+                    {% endif %}
+                </div>
+                <div class="flex gap-1">
+                    <button type="button" data-open-modal="editLocationModal{{ location.id }}" aria-label="Edit"
+                            class="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"><i class="ti ti-edit"></i></button>
+                    <form action="{{ url_for('wallet_config.toggle_location', location_id=location.id) }}"
+                          method="post" class="inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" aria-label="View"
+                                class="p-2 text-gray-500 dark:text-gray-400 hover:{% if location.is_active %}text-yellow-600 dark:hover:text-yellow-400{% else %}text-green-600 dark:hover:text-green-400{% endif %} hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"><i class="ti ti-{% if location.is_active %}eye-off{% else %}eye{% endif %}"></i></button>
+                    </form>
+                    <button type="button" class="delete-location-btn p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            data-location-id="{{ location.id }}"
+                            data-location-name="{{ location.name }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
                 </div>
             </div>
-        {% endif %}
+        </div>
+        {% endfor %}
     </div>
+    {% else %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="text-center py-12 px-6">
+            <i class="ti ti-map-pin-off text-5xl text-gray-400 dark:text-gray-600"></i>
+            <h5 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">No Locations Configured</h5>
+            <p class="text-gray-500 dark:text-gray-400 mb-4">Add partner bars and venues to enable location-based notifications.</p>
+            <button type="button" data-open-modal="addLocationModal"
+                    class="text-white bg-blue-600 hover:bg-blue-700 rounded-lg px-4 py-2 text-sm font-medium inline-flex items-center">
+                <i class="ti ti-plus mr-1"></i> Add First Location
+            </button>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block modals %}
-{{ super() }}
 <!-- Add Location Modal -->
 {% call modal_form('addLocationModal', 'Add Location', action=url_for('wallet_config.add_location'), submit_text='Add Location', loading_text='Adding...') %}
-    <div class="mb-3">
-        <label class="form-label">Name *</label>
-        <input type="text" class="form-control" name="name" placeholder="e.g., Hellbent Brewing" required data-form-control aria-label="e.g., Hellbent Brewing">
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Name *</label>
+        <input type="text" name="name" placeholder="e.g., Hellbent Brewing" required aria-label="e.g., Hellbent Brewing"
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
     </div>
-    <div class="row mb-3">
-        <div class="col-6">
-            <label class="form-label">Latitude *</label>
-            <input type="number" step="0.0001" class="form-control" name="latitude" placeholder="47.6205" required data-form-control aria-label="47.6205">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Latitude *</label>
+            <input type="number" step="0.0001" name="latitude" placeholder="47.6205" required aria-label="47.6205"
+                   class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
         </div>
-        <div class="col-6">
-            <label class="form-label">Longitude *</label>
-            <input type="number" step="0.0001" class="form-control" name="longitude" placeholder="-122.3493" required data-form-control aria-label="-122.3493">
-        </div>
-    </div>
-    <div class="alert alert-light mb-3" data-alert>
-        <small><i class="ti ti-bulb me-1"></i>Find coordinates on Google Maps: Right-click any location and click the coordinates to copy them.</small>
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Notification Text</label>
-        <input type="text" class="form-control" name="relevant_text"
-               placeholder="Text shown when user is near (defaults to name)" data-form-control aria-label="Text shown when user is near (defaults to name)">
-        <div class="form-text">This is the message users see when their phone detects they're near this location.</div>
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Address</label>
-        <input type="text" class="form-control" name="address" placeholder="123 Main St" data-form-control aria-label="123 Main St">
-    </div>
-    <div class="row mb-3">
-        <div class="col-6">
-            <label class="form-label">City</label>
-            <input type="text" class="form-control" name="city" placeholder="Seattle" data-form-control aria-label="Seattle">
-        </div>
-        <div class="col-6">
-            <label class="form-label">State</label>
-            <input type="text" class="form-control" name="state" placeholder="WA" data-form-control aria-label="WA">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Longitude *</label>
+            <input type="number" step="0.0001" name="longitude" placeholder="-122.3493" required aria-label="-122.3493"
+                   class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
         </div>
     </div>
-    <div class="row mb-3">
-        <div class="col-6">
-            <label class="form-label">Applies To</label>
-            <select class="form-select" name="applies_to" data-form-select>
+    <div class="flex items-start p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <i class="ti ti-bulb text-blue-500 mr-2 mt-0.5 flex-shrink-0"></i>
+        <p class="text-xs text-blue-700 dark:text-blue-300">Find coordinates on Google Maps: Right-click any location and click the coordinates to copy them.</p>
+    </div>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Text</label>
+        <input type="text" name="relevant_text"
+               placeholder="Text shown when user is near (defaults to name)" aria-label="Text shown when user is near (defaults to name)"
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">This is the message users see when their phone detects they're near this location.</p>
+    </div>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Address</label>
+        <input type="text" name="address" placeholder="123 Main St" aria-label="123 Main St"
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">City</label>
+            <input type="text" name="city" placeholder="Seattle" aria-label="Seattle"
+                   class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+        </div>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">State</label>
+            <input type="text" name="state" placeholder="WA" aria-label="WA"
+                   class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+        </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Applies To</label>
+            <select name="applies_to"
+                    class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="all">All Passes</option>
                 <option value="ecs_membership">ECS Membership Only</option>
                 <option value="pub_league">Pub League Only</option>
             </select>
         </div>
-        <div class="col-6">
-            <label class="form-label">Location Type</label>
-            <select class="form-select" name="location_type" data-form-select>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Location Type</label>
+            <select name="location_type"
+                    class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="partner_bar">Partner Bar</option>
                 <option value="stadium">Stadium</option>
                 <option value="other">Other</option>
             </select>
         </div>
     </div>
-    <div class="form-check">
-        <input type="checkbox" class="form-check-input" name="is_active" id="newActive" checked>
-        <label class="form-check-label" for="newActive">Active</label>
+    <div class="flex items-center">
+        <input type="checkbox" name="is_active" id="newActive" checked
+               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+        <label for="newActive" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Active</label>
     </div>
 {% endcall %}
 
 <!-- Edit Modals for all locations -->
 {% for location in locations %}
 {% call modal_form('editLocationModal' ~ location.id, 'Edit Location', action=url_for('wallet_config.edit_location', location_id=location.id), submit_text='Save Changes', loading_text='Saving...') %}
-    <div class="mb-3">
-        <label class="form-label">Name *</label>
-        <input type="text" class="form-control" name="name" value="{{ location.name }}" required data-form-control aria-label="Name">
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Name *</label>
+        <input type="text" name="name" value="{{ location.name }}" required aria-label="Name"
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
     </div>
-    <div class="row mb-3">
-        <div class="col-6">
-            <label class="form-label">Latitude *</label>
-            <input type="number" step="0.0001" class="form-control" name="latitude" value="{{ location.latitude }}" required data-form-control aria-label="Latitude">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Latitude *</label>
+            <input type="number" step="0.0001" name="latitude" value="{{ location.latitude }}" required aria-label="Latitude"
+                   class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
         </div>
-        <div class="col-6">
-            <label class="form-label">Longitude *</label>
-            <input type="number" step="0.0001" class="form-control" name="longitude" value="{{ location.longitude }}" required data-form-control aria-label="Longitude">
-        </div>
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Notification Text</label>
-        <input type="text" class="form-control" name="relevant_text" value="{{ location.relevant_text }}"
-               placeholder="Text shown when user is near this location" data-form-control aria-label="Text shown when user is near this location">
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Address</label>
-        <input type="text" class="form-control" name="address" value="{{ location.address or '' }}" data-form-control aria-label="Address">
-    </div>
-    <div class="row mb-3">
-        <div class="col-6">
-            <label class="form-label">City</label>
-            <input type="text" class="form-control" name="city" value="{{ location.city or '' }}" data-form-control aria-label="City">
-        </div>
-        <div class="col-6">
-            <label class="form-label">State</label>
-            <input type="text" class="form-control" name="state" value="{{ location.state or '' }}" data-form-control aria-label="State">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Longitude *</label>
+            <input type="number" step="0.0001" name="longitude" value="{{ location.longitude }}" required aria-label="Longitude"
+                   class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
         </div>
     </div>
-    <div class="row mb-3">
-        <div class="col-6">
-            <label class="form-label">Applies To</label>
-            <select class="form-select" name="applies_to" data-form-select>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Text</label>
+        <input type="text" name="relevant_text" value="{{ location.relevant_text }}"
+               placeholder="Text shown when user is near this location" aria-label="Text shown when user is near this location"
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+    </div>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Address</label>
+        <input type="text" name="address" value="{{ location.address or '' }}" aria-label="Address"
+               class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">City</label>
+            <input type="text" name="city" value="{{ location.city or '' }}" aria-label="City"
+                   class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+        </div>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">State</label>
+            <input type="text" name="state" value="{{ location.state or '' }}" aria-label="State"
+                   class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+        </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Applies To</label>
+            <select name="applies_to"
+                    class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="all" {% if location.applies_to == 'all' %}selected{% endif %}>All Passes</option>
                 <option value="ecs_membership" {% if location.applies_to == 'ecs_membership' %}selected{% endif %}>ECS Membership Only</option>
                 <option value="pub_league" {% if location.applies_to == 'pub_league' %}selected{% endif %}>Pub League Only</option>
             </select>
         </div>
-        <div class="col-6">
-            <label class="form-label">Location Type</label>
-            <select class="form-select" name="location_type" data-form-select>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Location Type</label>
+            <select name="location_type"
+                    class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="partner_bar" {% if location.location_type == 'partner_bar' %}selected{% endif %}>Partner Bar</option>
                 <option value="stadium" {% if location.location_type == 'stadium' %}selected{% endif %}>Stadium</option>
                 <option value="other" {% if location.location_type == 'other' %}selected{% endif %}>Other</option>
             </select>
         </div>
     </div>
-    <div class="form-check">
-        <input type="checkbox" class="form-check-input" name="is_active" id="editActive{{ location.id }}"
-               {% if location.is_active %}checked{% endif %}>
-        <label class="form-check-label" for="editActive{{ location.id }}">Active</label>
+    <div class="flex items-center">
+        <input type="checkbox" name="is_active" id="editActive{{ location.id }}"
+               {% if location.is_active %}checked{% endif %}
+               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+        <label for="editActive{{ location.id }}" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Active</label>
     </div>
 {% endcall %}
 {% endfor %}
 
 <!-- Delete Form (hidden) -->
-<form id="deleteLocationForm" method="post" class="d-none">
+<form id="deleteLocationForm" method="post" class="hidden">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 </form>
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Vanilla modal open/close helpers (no Bootstrap in this shell)
+    function openModal(id) {
+        var m = document.getElementById(id);
+        if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+    }
+    function closeModal(id) {
+        var m = document.getElementById(id);
+        if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+    }
+    document.querySelectorAll('[data-open-modal]').forEach(function(btn) {
+        btn.addEventListener('click', function() { openModal(this.dataset.openModal); });
+    });
+    document.querySelectorAll('[data-modal-hide]').forEach(function(btn) {
+        btn.addEventListener('click', function() { closeModal(this.dataset.modalHide); });
+    });
+
     // Delete location confirmation
     document.querySelectorAll('.delete-location-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
@@ -318,7 +350,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }).then((result) => {
                 if (result.isConfirmed) {
                     const form = document.getElementById('deleteLocationForm');
-                    form.action = `/admin/wallet/config/locations/${locationId}/delete`;
+                    form.action = `/admin-panel/wallet/config/locations/${locationId}/delete`;
                     form.submit();
                 }
             });

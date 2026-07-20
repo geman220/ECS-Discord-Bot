@@ -898,7 +898,7 @@ const FieldsManager = {
             const csrfToken = document.querySelector('[name=csrf_token]')?.value ||
                              document.querySelector('meta[name="csrf-token"]')?.content;
 
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/fields`, {
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/fields`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -942,7 +942,7 @@ const FieldsManager = {
             const csrfToken = document.querySelector('[name=csrf_token]')?.value ||
                              document.querySelector('meta[name="csrf-token"]')?.content;
 
-            const response = await fetch('/admin/wallet/studio/init-defaults', {
+            const response = await fetch('/admin-panel/wallet/studio/init-defaults', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

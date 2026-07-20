@@ -282,7 +282,7 @@ window.EventDelegation.register('delete-asset', (element, event) => {
                 form.submit();
             } else {
                 // If no form, make a POST request
-                const deleteUrl = element.dataset.deleteUrl || `/admin/wallet/assets/${assetId}/delete`;
+                const deleteUrl = element.dataset.deleteUrl || `/admin-panel/wallet/config/assets/${assetId}/delete`;
                 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
                 fetch(deleteUrl, {
@@ -657,7 +657,7 @@ window.EventDelegation.register('delete-sponsor', (element, event) => {
         if (result.isConfirmed) {
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = '/admin/wallet/config/sponsors/' + id + '/delete';
+            form.action = '/admin-panel/wallet/config/sponsors/' + id + '/delete';
 
             const csrf = document.createElement('input');
             csrf.type = 'hidden';
@@ -695,7 +695,7 @@ window.EventDelegation.register('delete-subgroup', (element, event) => {
         if (result.isConfirmed) {
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = '/admin/wallet/config/subgroups/' + id + '/delete';
+            form.action = '/admin-panel/wallet/config/subgroups/' + id + '/delete';
 
             const csrf = document.createElement('input');
             csrf.type = 'hidden';
@@ -776,7 +776,7 @@ window.EventDelegation.register('save-woocommerce-url', (element, event) => {
     const csrfMeta = document.querySelector('meta[name="csrf-token"]');
     const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
 
-    fetch('/admin/wallet/config/wizard/save-woocommerce-url', {
+    fetch('/admin-panel/wallet/config/wizard/save-woocommerce-url', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -812,7 +812,7 @@ window.EventDelegation.register('save-product-urls', (element, event) => {
     const csrfMeta = document.querySelector('meta[name="csrf-token"]');
     const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
 
-    fetch('/admin/wallet/config/wizard/save-product-urls', {
+    fetch('/admin-panel/wallet/config/wizard/save-product-urls', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

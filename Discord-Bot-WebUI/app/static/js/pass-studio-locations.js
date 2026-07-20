@@ -239,7 +239,7 @@ const LocationsManager = {
      */
     async toggleLocation(locationId, active) {
         try {
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/locations/${locationId}`, {
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/locations/${locationId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -281,7 +281,7 @@ const LocationsManager = {
 
         if (result.isConfirmed) {
             try {
-                const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/locations/${locationId}`, {
+                const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/locations/${locationId}`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRFToken': this.getCsrfToken()
@@ -307,7 +307,7 @@ const LocationsManager = {
      */
     async saveLocation(locationData) {
         try {
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/locations`, {
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/locations`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -334,7 +334,7 @@ const LocationsManager = {
      */
     async updateLocation(locationId, locationData) {
         try {
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/locations/${locationId}`, {
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/locations/${locationId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

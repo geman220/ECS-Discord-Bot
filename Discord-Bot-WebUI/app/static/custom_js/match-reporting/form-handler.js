@@ -142,6 +142,25 @@ export function eventExists(event, eventsArray) {
 }
 
 /**
+ * True if an event is NEW or was edited IN PLACE (same stat_id, but the scorer or
+ * minute changed). Used for the "to add" filter so an in-place edit is re-sent to
+ * the server's update-by-stat_id branch instead of being silently dropped. Removal
+ * still keys on stat_id via eventExists, so an edited event is not also deleted.
+ * @param {Object} event
+ * @param {Array} initialArray
+ * @returns {boolean}
+ */
+export function eventChangedOrNew(event, initialArray) {
+    if (!event.stat_id) {
+        return !eventExists(event, initialArray);
+    }
+    const match = initialArray.find(e => e.stat_id && String(e.stat_id) === String(event.stat_id));
+    if (!match) return true;
+    return String(match.player_id) !== String(event.player_id)
+        || String(match.minute || '') !== String(event.minute || '');
+}
+
+/**
  * Check if an own goal exists in a list
  * @param {Object} ownGoal - Own goal to check
  * @param {Array} ownGoalList - List to search
@@ -191,11 +210,12 @@ export function calculateEventChanges(matchId) {
     const removedRedCardIds = collectRemovedStatIds(matchId, 'red_cards');
     const removedOwnGoalIds = collectRemovedOwnGoalIds(matchId);
 
-    // Events to add: in final but not in initial
-    const goalsToAdd = finalGoals.filter(goal => !eventExists(goal, initialGoals));
-    const assistsToAdd = finalAssists.filter(assist => !eventExists(assist, initialAssists));
-    const yellowCardsToAdd = finalYellowCards.filter(card => !eventExists(card, initialYellowCards));
-    const redCardsToAdd = finalRedCards.filter(card => !eventExists(card, initialRedCards));
+    // Events to add: new OR edited-in-place (so a changed scorer/minute is re-sent
+    // to the server's update-by-stat_id branch instead of being silently dropped).
+    const goalsToAdd = finalGoals.filter(goal => eventChangedOrNew(goal, initialGoals));
+    const assistsToAdd = finalAssists.filter(assist => eventChangedOrNew(assist, initialAssists));
+    const yellowCardsToAdd = finalYellowCards.filter(card => eventChangedOrNew(card, initialYellowCards));
+    const redCardsToAdd = finalRedCards.filter(card => eventChangedOrNew(card, initialRedCards));
     const ownGoalsToAdd = finalOwnGoals.filter(og => !ownGoalExists(og, initialOwnGoals));
 
     // Events to remove

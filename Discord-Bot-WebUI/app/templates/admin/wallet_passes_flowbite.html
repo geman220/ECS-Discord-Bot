@@ -1,9 +1,24 @@
-{% extends "base_flowbite.html" %}
+{% extends "admin_panel/base_flowbite.html" %}
 {% from "macros/flowbite.html" import modal_form %}
 
-{% block title %}Manage Wallet Passes{% endblock %}
+{% block admin_title %}Manage Wallet Passes{% endblock %}
 
-{% block main_content %}
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('wallet_admin.wallet_management') }}" class="ml-1 text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Wallet</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Membership Passes</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
 <div class="p-4 space-y-6">
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -482,8 +497,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Clear selection
+    // NOTE: this page implements all wallet-pass actions with self-contained
+    // inline handlers. The same data-action names are ALSO registered globally
+    // in event-delegation/handlers/admin-wallet.js (loaded on every page), so
+    // each inline handler calls e.stopPropagation() to keep the document-level
+    // delegated handler from firing a second, conflicting copy.
     document.querySelectorAll('[data-action="clear-pass-selection"]').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             passCheckboxes.forEach(cb => cb.checked = false);
             if (selectAll) selectAll.checked = false;
             updateBulkActionsBar();
@@ -492,7 +513,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Void single pass
     document.querySelectorAll('[data-action="void-pass"]').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             const passId = this.dataset.passId;
             Swal.fire({
                 title: 'Void Pass?',
@@ -505,7 +527,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch(`/admin/wallet/api/pass/${passId}/void`, {
+                    fetch(`/admin-panel/wallet/api/passes/${passId}/void`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
                     })
@@ -524,7 +546,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Reactivate single pass
     document.querySelectorAll('[data-action="reactivate-pass"]').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             const passId = this.dataset.passId;
             Swal.fire({
                 title: 'Reactivate Pass?',
@@ -537,7 +560,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch(`/admin/wallet/api/pass/${passId}/reactivate`, {
+                    fetch(`/admin-panel/wallet/api/passes/${passId}/reactivate`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
                     })
@@ -556,7 +579,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Bulk void
     document.querySelectorAll('[data-action="bulk-void-passes"]').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             const checked = document.querySelectorAll('.pass-checkbox:checked');
             const activeIds = Array.from(checked).filter(cb => cb.dataset.status === 'active').map(cb => cb.value);
             if (activeIds.length === 0) {
@@ -570,14 +594,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Confirm bulk void
-    document.querySelectorAll('[data-action="confirm-bulk-void"]').forEach(btn => {
-        btn.addEventListener('click', function() {
+    // Confirm bulk void — the modal_form macro renders a real <form> whose
+    // submit button would otherwise native-POST to this GET-only page (405),
+    // so intercept the form submit and run the AJAX void instead.
+    const bulkVoidForm = document.getElementById('bulkVoidModal-form');
+    if (bulkVoidForm) {
+        bulkVoidForm.addEventListener('submit', function(e) {
+            e.preventDefault();
             const checked = document.querySelectorAll('.pass-checkbox:checked');
             const activeIds = Array.from(checked).filter(cb => cb.dataset.status === 'active').map(cb => cb.value);
             const reason = document.getElementById('voidReason').value;
 
-            fetch('/admin/wallet/api/bulk-void', {
+            fetch('/admin-panel/wallet/api/passes/bulk-void', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify({ pass_ids: activeIds, reason: reason })
@@ -594,11 +622,60 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
-    });
+    }
+
+    // Bulk generate — same story: intercept the modal_form submit and POST JSON.
+    const bulkGenerateForm = document.getElementById('bulkGenerateModal-form');
+    if (bulkGenerateForm) {
+        bulkGenerateForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const passType = document.getElementById('bulkPassType').value;
+            const payload = { pass_type: passType };
+            if (passType === 'pub_league') {
+                payload.season_name = document.getElementById('bulkSeasonName').value.trim();
+            } else {
+                payload.year = parseInt(document.getElementById('bulkYear').value, 10);
+            }
+            const submitBtn = bulkGenerateForm.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            fetch('/admin-panel/wallet/api/passes/bulk-generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (submitBtn) submitBtn.disabled = false;
+                const modal = document.getElementById('bulkGenerateModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                // /api/passes/bulk-generate returns {success:[], skipped:[], failed:[], total_eligible:N}
+                if (data.error) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                    return;
+                }
+                const ok = (data.success || []).length;
+                const skipped = (data.skipped || []).length;
+                const failed = (data.failed || []).length;
+                Swal.fire({
+                    icon: failed === 0 ? 'success' : (ok > 0 ? 'warning' : 'error'),
+                    title: failed === 0 ? 'Success' : 'Completed with errors',
+                    text: `Generated ${ok} pass${ok === 1 ? '' : 'es'}` + (skipped ? `, ${skipped} skipped` : '') + (failed ? `, ${failed} failed` : '') + '.',
+                    background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => { if (ok > 0) location.reload(); });
+            })
+            .catch(() => {
+                if (submitBtn) submitBtn.disabled = false;
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to generate passes.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            });
+        });
+    }
 
     // Bulk reactivate
     document.querySelectorAll('[data-action="bulk-reactivate-passes"]').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             const checked = document.querySelectorAll('.pass-checkbox:checked');
             const inactiveIds = Array.from(checked).filter(cb => cb.dataset.status !== 'active').map(cb => cb.value);
             if (inactiveIds.length === 0) {
@@ -616,7 +693,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch('/admin/wallet/api/bulk-reactivate', {
+                    fetch('/admin-panel/wallet/api/passes/bulk-reactivate', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                         body: JSON.stringify({ pass_ids: inactiveIds })

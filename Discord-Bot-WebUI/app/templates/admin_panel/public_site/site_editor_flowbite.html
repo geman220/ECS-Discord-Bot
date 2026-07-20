@@ -1,0 +1,74 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Edit: {{ page.title or page.slug }} — Site Editor{% endblock %}
+
+{% block panel_content %}
+<div id="site-editor" data-page-id="{{ page.id }}" class="flex flex-col" style="height: calc(100vh - 8.5rem);">
+
+    {# ---- Top bar ---- #}
+    <div class="flex items-center gap-2 rounded-t-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2">
+        <a href="{{ url_for('admin_panel.public_site_pages') }}"
+           class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+           title="Back to Pages"><i class="ti ti-arrow-left text-lg"></i></a>
+
+        <select onchange="if(this.value) window.location.href=this.value"
+                class="w-44 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">
+            {% for p in pages %}
+            <option value="{{ url_for('admin_panel.site_editor', page_id=p.id) }}"
+                    {{ 'selected' if p.id == page.id }}>{{ p.title or p.slug }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="button" id="pse-add-section"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-ecs-green px-3 py-2 text-sm font-semibold text-white hover:bg-ecs-green-dark">
+            <i class="ti ti-plus"></i> Add section
+        </button>
+
+        <div class="mx-1 h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
+        <button type="button" id="pse-undo" title="Undo (Ctrl+Z)"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-arrow-back-up text-lg"></i></button>
+        <button type="button" id="pse-redo" title="Redo (Ctrl+Y)"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-arrow-forward-up text-lg"></i></button>
+
+        <div class="mx-1 h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
+        <button type="button" data-device="desktop" title="Desktop preview"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 bg-gray-200 dark:bg-gray-600"><i class="ti ti-device-desktop text-lg"></i></button>
+        <button type="button" data-device="tablet" title="Tablet preview"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-device-tablet text-lg"></i></button>
+        <button type="button" data-device="mobile" title="Phone preview"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-device-mobile text-lg"></i></button>
+
+        <span id="pse-status" class="ml-auto text-xs font-medium text-gray-500 dark:text-gray-400">Loading…</span>
+
+        <a href="{{ preview_url.replace('?edit=1', '?draft=1') }}" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <i class="ti ti-eye"></i> Preview
+        </a>
+        <button type="button" id="pse-publish"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-ecs-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-ecs-blue-700">
+            <i class="ti ti-world-upload"></i> Publish
+        </button>
+    </div>
+
+    {# ---- Edit surface: the real page, same-origin ---- #}
+    <div class="relative flex-1 overflow-hidden rounded-b-2xl border-x border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900">
+        <div class="h-full w-full overflow-auto flex justify-center">
+            <iframe id="pse-frame" src="{{ preview_url }}" title="Page editor"
+                    class="h-full bg-white shadow-xl transition-all" style="width: 100%; border: 0;"></iframe>
+        </div>
+
+        {# ---- Slide-over settings / picker panel ---- #}
+        <div id="pse-panel"
+             class="absolute inset-y-0 right-0 w-80 translate-x-full transform overflow-y-auto border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-2xl transition-transform duration-200">
+            <div class="mb-3 flex items-center justify-between">
+                <h3 id="pse-panel-title" class="text-sm font-bold text-gray-900 dark:text-white"></h3>
+                <button type="button" id="pse-panel-close"
+                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-x"></i></button>
+            </div>
+            <div id="pse-panel-body" class="text-gray-700 dark:text-gray-200"></div>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="{{ vite_asset('js/site-editor/shell.js') }}"></script>
+{% endblock %}

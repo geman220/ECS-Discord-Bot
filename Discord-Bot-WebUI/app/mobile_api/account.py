@@ -299,6 +299,13 @@ def update_profile():
             if 'other_positions' in data:
                 from app.constants.positions import format_positions
                 player.other_positions = format_positions(data['other_positions'])
+            if 'positions_not_to_play' in data:
+                from app.constants.positions import format_positions
+                player.positions_not_to_play = format_positions(data['positions_not_to_play'])
+            if 'unavailable_dates' in data:
+                player.unavailable_dates = data['unavailable_dates']
+            if 'additional_info' in data:
+                player.additional_info = data['additional_info']
             if 'expected_weeks_available' in data:
                 try:
                     player.expected_weeks_available = int(data['expected_weeks_available'])

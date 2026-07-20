@@ -808,41 +808,78 @@
             </li>
 
             {# Wallet #}
+            {% set _wallet_active = request.endpoint and (request.endpoint.startswith('wallet_admin.') or request.endpoint.startswith('wallet_config.') or request.endpoint.startswith('pass_studio.') or request.endpoint.startswith('pub_league_orders_admin.')) %}
             <li class="relative" data-dropdown-wrapper data-nav-item="wallet">
                 <button type="button" data-admin-dropdown="dropdown-wallet-nav"
-                        class="inline-flex items-center gap-2 px-2 lg:px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                        class="inline-flex items-center gap-2 px-2 lg:px-4 py-3 border-b-2 whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors
+                               {{ 'text-ecs-green border-ecs-green' if _wallet_active else 'border-transparent' }}">
                     <i class="ti ti-wallet"></i>
                     <span class="hidden lg:inline">Wallet</span>
                     <i class="ti ti-chevron-down text-xs hidden lg:inline"></i>
                 </button>
-                <div id="dropdown-wallet-nav" class="hidden absolute right-0 z-50 mt-1 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                    <div class="py-2">
-                        <a href="{{ url_for('wallet_admin.wallet_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-dashboard text-gray-400"></i>Passes Overview
-                        </a>
-                        <a href="{{ url_for('wallet_admin.passes_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-id text-gray-400"></i>Membership Passes
-                        </a>
-                        <a href="{{ url_for('wallet_admin.scanner') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-scan text-gray-400"></i>Pass Scanner
-                        </a>
-                        <a href="{{ url_for('wallet_admin.checkins_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-checkbox text-gray-400"></i>Check-Ins
-                        </a>
-                        <a href="{{ url_for('wallet_admin.wallet_players') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-users text-gray-400"></i>Eligible Players
-                        </a>
-                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                        <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-plus text-gray-400"></i>Create ECS Pass
-                        </a>
-                        <a href="{{ url_for('wallet_admin.create_pub_league_pass') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-plus text-gray-400"></i>Create Pub League Pass
-                        </a>
-                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                        <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-link text-gray-400"></i>Order&rarr;Pass Linking
-                        </a>
+                <div id="dropdown-wallet-nav" class="hidden absolute right-0 z-50 mt-1 w-[28rem] max-w-[95vw] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2 grid grid-cols-1 sm:grid-cols-2">
+                        {# Left Column: Passes #}
+                        <div>
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Passes</div>
+                            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-dashboard text-gray-400"></i>Passes Overview
+                            </a>
+                            <a href="{{ url_for('wallet_admin.passes_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-id text-gray-400"></i>Membership Passes
+                            </a>
+                            <a href="{{ url_for('wallet_admin.scanner') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-scan text-gray-400"></i>Pass Scanner
+                            </a>
+                            <a href="{{ url_for('wallet_admin.checkins_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-checkbox text-gray-400"></i>Check-Ins
+                            </a>
+                            <a href="{{ url_for('wallet_admin.wallet_players') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-users text-gray-400"></i>Eligible Players
+                            </a>
+                            <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                            {% if user_roles and 'Global Admin' in user_roles %}
+                            <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-plus text-gray-400"></i>Create ECS Pass
+                            </a>
+                            {% endif %}
+                            <a href="{{ url_for('wallet_admin.create_pub_league_pass') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-plus text-gray-400"></i>Create Pub League Pass
+                            </a>
+                            <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-link text-gray-400"></i>Order&rarr;Pass Linking
+                            </a>
+                        </div>
+                        {# Right Column: Setup & Config #}
+                        <div>
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Setup &amp; Config</div>
+                            <a href="{{ url_for('pass_studio.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-brush text-gray-400"></i>Pass Studio
+                            </a>
+                            {% if user_roles and 'Global Admin' in user_roles %}
+                            <a href="{{ url_for('wallet_config.setup_wizard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-wand text-gray-400"></i>Setup Wizard
+                            </a>
+                            <a href="{{ url_for('wallet_config.certificates') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-certificate text-gray-400"></i>Certificates
+                            </a>
+                            <a href="{{ url_for('wallet_config.assets') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-photo text-gray-400"></i>Assets &amp; Images
+                            </a>
+                            <a href="{{ url_for('wallet_config.templates') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-template text-gray-400"></i>Pass Templates
+                            </a>
+                            <a href="{{ url_for('wallet_config.locations') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-map-pin text-gray-400"></i>Partner Locations
+                            </a>
+                            <a href="{{ url_for('wallet_config.sponsors') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-heart-handshake text-gray-400"></i>Sponsors
+                            </a>
+                            <a href="{{ url_for('wallet_config.diagnostics') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-stethoscope text-gray-400"></i>Diagnostics
+                            </a>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </li>

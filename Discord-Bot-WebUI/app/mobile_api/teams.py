@@ -617,8 +617,13 @@ def get_my_teams():
         current_user_id = int(get_jwt_identity())
         player = session_db.query(Player).filter_by(user_id=current_user_id).first()
 
+        # "No player" and "no teams" both mean the caller has zero teams. Return an
+        # empty array (200) rather than 404: the success payload is already a bare
+        # JSON list, so [] parses identically client-side, and it stops the mobile
+        # app from treating a normal empty state as a Dio error + retry storm
+        # (new/unapproved users have no teams — see prod log 404 spam 2026-07-19).
         if not player:
-            return jsonify({"msg": "Player not found"}), 404
+            return jsonify([]), 200
 
         # Query all teams for this player using the player_teams association table
         teams_query = session_db.query(Team).options(
@@ -630,7 +635,7 @@ def get_my_teams():
         teams = teams_query.all()
 
         if not teams:
-            return jsonify({"msg": "No teams found for this player"}), 404
+            return jsonify([]), 200
 
         # Preload team stats to avoid N+1 queries. session_db, not the helper's
         # g.db_session default — see the note in get_teams().

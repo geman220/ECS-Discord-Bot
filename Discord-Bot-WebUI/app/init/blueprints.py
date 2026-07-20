@@ -20,6 +20,15 @@ def init_blueprints(app, csrf):
         app: The Flask application instance.
         csrf: The CSRF protection instance.
     """
+    # PUBLIC_ONLY mode (the publicweb container): serve ONLY the public
+    # marketing site. No auth/admin/api surface exists on ecspubleague.org —
+    # cross-app links go absolute to the portal via portal_url(). Extensions
+    # templates rely on (Flask-Login anonymous user, CSRF, sessions) are
+    # already initialized by create_app before blueprints register.
+    if os.environ.get('PUBLIC_ONLY'):
+        _register_public_only(app)
+        return
+
     # Import all blueprints
     blueprints = _import_blueprints()
 
@@ -40,6 +49,46 @@ def init_blueprints(app, csrf):
 
     # Initialize enterprise systems
     _init_enterprise_systems(app)
+
+
+def _register_public_only(app):
+    """The publicweb container's entire route surface: the public blueprint,
+    a host-aware robots.txt, a minimal health endpoint (NOT health_bp — its
+    /queues|/workers|/full leak worker internals), and the boot-time seed +
+    section conversion (idempotent + advisory-locked, so racing the portal
+    container is safe)."""
+    from flask import Response, request as _request
+
+    from app.public_site import public_bp
+    _prefix = '' if os.environ.get('PUBLIC_SITE_ROOT') else '/preview'
+    app.register_blueprint(public_bp, url_prefix=_prefix)
+
+    @app.route('/healthz')
+    def public_healthz():
+        return {'status': 'ok', 'service': 'publicweb'}
+
+    @app.route('/robots.txt')
+    def public_robots():
+        host = (_request.host or '').split(':')[0].lower()
+        if host in ('ecspubleague.org', 'www.ecspubleague.org'):
+            body = ('User-agent: *\n'
+                    'Allow: /\n'
+                    'Sitemap: https://ecspubleague.org/sitemap.xml\n')
+        else:
+            body = 'User-agent: *\nDisallow: /\n'
+        return Response(body, mimetype='text/plain')
+
+    try:
+        if not app.config.get('TESTING'):
+            from app.seeds.public_site_seed import seed_public_site
+            seed_public_site(app)
+            from app.services.section_converter import run_conversion
+            run_conversion(app)
+    except Exception as e:
+        logger.warning(f"publicweb seed/convert hook failed: {e}")
+
+    logger.info("PUBLIC_ONLY: registered public site at %r + healthz + robots "
+                "(portal blueprints intentionally absent)", _prefix or '/')
 
 
 def _import_blueprints():
@@ -89,7 +138,7 @@ def _import_blueprints():
     from app.store import store_bp
     from app.draft_predictions_routes import draft_predictions_bp
     from app.wallet_routes import wallet_bp
-    from app.admin.wallet import wallet_admin_bp, wallet_config_bp, pass_studio_bp
+    from app.admin.wallet import wallet_admin_bp, wallet_config_bp, pass_studio_bp, wallet_legacy_bp
     from app.admin.notification_admin_routes import notification_admin_bp
     from app.wallet_pass.routes import public_wallet_bp, webhook_bp, validation_bp
     from app.wallet_pass.routes.serve import apple_wallet_serve_bp
@@ -151,6 +200,7 @@ def _import_blueprints():
         'wallet_bp': wallet_bp,
         'wallet_admin_bp': wallet_admin_bp,
         'wallet_config_bp': wallet_config_bp,
+        'wallet_legacy_bp': wallet_legacy_bp,
         'pass_studio_bp': pass_studio_bp,
         'notification_admin_bp': notification_admin_bp,
         'public_wallet_bp': public_wallet_bp,
@@ -345,6 +395,10 @@ def _register_wallet_blueprints(app, bp, csrf):
     app.register_blueprint(bp['wallet_admin_bp'])
     app.register_blueprint(bp['wallet_config_bp'])
     app.register_blueprint(bp['pass_studio_bp'])
+    # Old /admin/wallet/* URLs 308-redirect to /admin-panel/wallet/*. CSRF-exempt:
+    # it never mutates state itself — the redirected-to endpoint still validates.
+    app.register_blueprint(bp['wallet_legacy_bp'])
+    csrf.exempt(bp['wallet_legacy_bp'])
     app.register_blueprint(bp['public_wallet_bp'])
 
     # Apple Wallet pass-by-token serving — public, no auth headers required.
@@ -414,18 +468,10 @@ def _register_additional_blueprints(app, bp, csrf):
     _public_prefix = '' if os.environ.get('PUBLIC_SITE_ROOT') else '/preview'
     app.register_blueprint(bp['public_bp'], url_prefix=_public_prefix)
 
-    # The builder's Form widget is static HTML that can't compute the /preview
-    # prefix, so its submissions must resolve at ROOT (/forms/<name>). Only needed
-    # while the blueprint is prefixed (the demo): post-cutover the blueprint itself
-    # already serves /forms/<name> at root, so registering the alias then would be
-    # a duplicate rule.
-    if _public_prefix:
-        try:
-            from app.public_site import form_submit as _public_form_submit
-            app.add_url_rule('/forms/<name>', endpoint='public_forms_root',
-                             view_func=_public_form_submit, methods=['POST'])
-        except Exception as _e:
-            logger.warning(f"public forms root route not registered: {_e}")
+    # NOTE: the old root /forms/<name> alias (for GrapesJS static form HTML that
+    # couldn't compute the /preview prefix) is GONE — form blocks are rendered
+    # server-side with url_for-aware actions, and the CSRF-exempt legacy
+    # endpoint was replaced by the validated public.submit_form.
 
     # Seed the public marketing site from migrated WordPress content on first
     # boot (web process only; idempotent + advisory-locked so concurrent workers
@@ -434,6 +480,10 @@ def _register_additional_blueprints(app, bp, csrf):
         if not app.config.get('TESTING') and not os.environ.get('CELERY_WORKER'):
             from app.seeds.public_site_seed import seed_public_site
             seed_public_site(app)
+            # Total conversion to the section model (idempotent, advisory-
+            # locked, skips harmlessly until the builder SQL has been run).
+            from app.services.section_converter import run_conversion
+            run_conversion(app)
     except Exception as e:
         logger.warning(f"Public-site seed hook failed: {e}")
 

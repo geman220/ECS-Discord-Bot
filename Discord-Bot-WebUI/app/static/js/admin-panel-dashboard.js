@@ -238,7 +238,7 @@ function showRegistrationSettingsModal(settings, roles) {
             ${createToggle('registrationEnabled', 'Allow New Registration', 'Enable/disable new user registration', settings.registration_enabled)}
             ${createToggle('waitlistEnabled', 'Enable Waitlist', 'Allow waitlist registration when full', settings.waitlist_registration_enabled)}
             ${createToggle('adminApproval', 'Admin Approval Required', 'All new users need admin approval', settings.admin_approval_required)}
-            ${createToggle('discordOnly', 'Discord Only Login', 'Only Discord OAuth allowed (FIXED)', true, true)}
+            ${createToggle('discordOnly', 'Discord Only Login', 'Hide the password form — everyone signs in with Discord (recommended). Break-glass: set ALLOW_PASSWORD_LOGIN on the server.', settings.discord_only_login !== false)}
 
             <div class="mb-3">
               <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Default User Role</label>
@@ -253,7 +253,6 @@ function showRegistrationSettingsModal(settings, roles) {
             ${createToggle('requireRealName', 'Require Real Name', '', settings.require_real_name)}
             ${createToggle('requireEmail', 'Require Email', '', settings.require_email)}
             ${createToggle('requirePhone', 'Require Phone Number', '', settings.require_phone)}
-            ${createToggle('requireLocation', 'Require Location', '', settings.require_location)}
             ${createToggle('requireJerseySize', 'Require Jersey Size', '', settings.require_jersey_size)}
             ${createToggle('requirePositions', 'Require Position Preferences', '', settings.require_position_preferences)}
             ${createToggle('requireAvailability', 'Require Availability Info', '', settings.require_availability)}
@@ -292,12 +291,11 @@ function saveRegistrationSettings() {
         registration_enabled: document.getElementById('registrationEnabled').checked,
         waitlist_registration_enabled: document.getElementById('waitlistEnabled').checked,
         admin_approval_required: document.getElementById('adminApproval').checked,
-        discord_only_login: true,
+        discord_only_login: document.getElementById('discordOnly').checked,
         default_user_role: document.getElementById('defaultRole').value,
         require_real_name: document.getElementById('requireRealName').checked,
         require_email: document.getElementById('requireEmail').checked,
         require_phone: document.getElementById('requirePhone').checked,
-        require_location: document.getElementById('requireLocation').checked,
         require_jersey_size: document.getElementById('requireJerseySize').checked,
         require_position_preferences: document.getElementById('requirePositions').checked,
         require_availability: document.getElementById('requireAvailability').checked,

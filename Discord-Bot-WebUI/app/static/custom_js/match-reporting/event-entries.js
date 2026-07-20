@@ -235,8 +235,11 @@ export function addOwnGoalEvent(matchId, containerId, statId = null, teamId = nu
     const teamData = getTeamData(matchId);
     const { homeTeamName, awayTeamName, homeTeamId, awayTeamId } = teamData;
 
+    // MUST carry the own-goal-event-entry class — save (getFinalEvents) and remove
+    // both select on `.own-goal-event-entry`. Tagged as player-event-entry it was
+    // never collected → new own goals lost AND existing ones deleted on re-save.
     const newInputGroup = `
-        <div class="${TAILWIND_CLASSES.inputGroup}" data-unique-id="${uniqueId}">
+        <div class="flex items-center gap-2 mb-2 own-goal-event-entry" data-unique-id="${uniqueId}">
             <input type="hidden" name="own_goals-stat_id[]" value="${statId ? statId : ''}">
             <select class="${TAILWIND_CLASSES.select} select-own-goal-team" name="own_goals-team_id[]">
                 <option value="${homeTeamId}"${teamId == homeTeamId ? ' selected' : ''}>${homeTeamName}</option>

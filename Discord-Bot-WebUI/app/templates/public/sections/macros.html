@@ -1,0 +1,546 @@
+{# app/templates/public/sections/macros.html
+
+   THE section/block macro library — the one rendering vocabulary for every
+   public page. Input is the validated section JSON from section_schema.py
+   (already sanitized: html fields are nh3-clean, colors are strict hex, embed
+   srcs are server-normalized allowlisted https URLs), rendered against the
+   RenderContext built by app/services/site_renderer.py (ctx.image(),
+   ctx.resolve_link(), ctx.dyn() are pure prefetched lookups — macros never
+   query the database).
+
+   Design vocabulary matches the shipped public site exactly (golden-test
+   parity with the old home.html): max-w-7xl px-4 sm:px-6 lg:px-8 containers,
+   py-16 sm:py-20 rhythm, gray-* + dark: pairs, ecs-green / ecs-blue-600
+   accents, rounded-2xl cards, Tabler icons.
+
+   In edit mode, sections/blocks carry data-sid / data-bid / data-btype /
+   data-editable annotations the site editor's overlay targets. Server only
+   emits edit_mode markup for authenticated site editors.
+#}
+
+{# ---------- shared lookups ---------- #}
+
+{% set THEME_SECTION = {
+    'inherit': '',
+    'light':   'bg-gray-50 dark:bg-gray-900',
+    'dark':    'bg-gray-900',
+    'brand':   'bg-ecs-green'
+} %}
+{% set PAD = {
+    'sm': 'py-10 sm:py-12',
+    'md': 'py-16 sm:py-20',
+    'lg': 'py-20 sm:py-28',
+    'xl': 'py-24 sm:py-32'
+} %}
+
+{# A section renders light text on a dark/brand ground when it's a hero, an
+   explicitly dark/brand section, OR a band on its default (brand) ground.
+   A band explicitly set to 'light' keeps dark text on a light ground. #}
+{%- macro _on_color(section) -%}{{ 'true' if section.theme in ('dark', 'brand') or section.type == 'hero' or (section.type == 'band' and section.theme in ('inherit', 'brand', 'dark')) else '' }}{%- endmacro -%}
+
+{# Placeholder shown in the editor for an unconfigured block; nothing public. #}
+{%- macro _placeholder(edit_mode, block, label) -%}
+{%- if edit_mode -%}
+<div class="flex items-center justify-center rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-8 text-sm text-gray-400"{{ _edit_attrs(block, edit_mode) }}><i class="ti ti-photo mr-1.5"></i> {{ label }}</div>
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro _heading_color(section) -%}
+{%- if _on_color(section) -%}text-white{%- else -%}text-gray-900 dark:text-white{%- endif -%}
+{%- endmacro -%}
+
+{%- macro _body_color(section) -%}
+{%- if _on_color(section) -%}text-white/90{%- else -%}text-gray-600 dark:text-gray-300{%- endif -%}
+{%- endmacro -%}
+
+{%- macro _link_color(section) -%}
+{%- if _on_color(section) -%}text-white underline{%- else -%}text-ecs-green dark:text-ecs-blue-400{%- endif -%}
+{%- endmacro -%}
+
+{%- macro _edit_attrs(block, edit_mode) -%}
+{%- if edit_mode %} data-bid="{{ block.id }}" data-btype="{{ block.type }}"{% if block.type in ('heading', 'richtext', 'quote') %} data-editable="html"{% endif %}{% endif -%}
+{%- endmacro -%}
+
+{%- macro _hide_mobile(block) -%}{{ 'hidden sm:block' if block.hide_mobile else '' }}{%- endmacro -%}
+
+
+{# ---------- image helper ---------- #}
+{# ctx.image(ref) -> {url, srcset, sizes, alt, focal_css, width, height} or none #}
+{% macro _img_tag(ref, ctx, class='', sizes='100vw', loading='lazy', alt_override=None) %}
+{%- set info = ctx.image(ref) -%}
+{%- if info -%}
+{%- if info.webp_srcset %}<picture>
+<source type="image/webp" srcset="{{ info.webp_srcset }}" sizes="{{ sizes }}">
+{% endif -%}
+<img src="{{ info.url }}"
+     {% if info.srcset %}srcset="{{ info.srcset }}" sizes="{{ sizes }}"{% endif %}
+     alt="{{ alt_override if alt_override is not none else info.alt }}"
+     class="{{ class }}"
+     style="object-position: {{ info.focal_css }};"
+     {% if info.width and info.height %}width="{{ info.width }}" height="{{ info.height }}"{% endif %}
+     loading="{{ loading }}">
+{%- if info.webp_srcset %}</picture>{% endif -%}
+{%- endif -%}
+{% endmacro %}
+
+
+{# =====================================================================
+   BLOCKS
+   ===================================================================== #}
+
+{% macro block_heading(block, ctx, section, edit_mode) %}
+{% set lvl = block.level or 2 %}
+{% set size = {
+    1: 'text-4xl sm:text-5xl lg:text-6xl font-extrabold',
+    2: 'text-3xl sm:text-4xl font-bold',
+    3: 'text-2xl font-bold',
+    4: 'text-lg font-semibold'
+}.get(lvl, 'text-3xl sm:text-4xl font-bold') %}
+{% set align = {'left': '', 'center': 'text-center', 'right': 'text-right'}.get(block.align, '') %}
+<h{{ lvl }} class="{{ size }} tracking-tight {{ _heading_color(section) }} {{ align }} {{ _hide_mobile(block) }} {{ 'drop-shadow-sm' if section.type == 'hero' }}"{{ _edit_attrs(block, edit_mode) }}>{{ block.html | safe }}</h{{ lvl }}>
+{% endmacro %}
+
+
+{% macro block_richtext(block, ctx, section, edit_mode) %}
+{# Rich prose: paragraphs, lists, and — for long-form content like the Guide —
+   headings, anchor targets (scroll-mt so a jump-link clears the sticky nav),
+   and definition lists (the lexicon). #}
+<div class="text-lg {{ _body_color(section) }}
+            [&_p]:mt-3 first:[&_p]:mt-0
+            [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mt-1
+            [&_h2]:mt-12 [&_h2]:mb-2 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:scroll-mt-24 [&_h3]:mt-8 [&_h3]:mb-1 [&_h3]:text-xl [&_h3]:font-semibold [&_h4]:mt-6 [&_h4]:font-semibold
+            {{ '[&_h2]:text-white [&_h3]:text-white' if _on_color(section) else '[&_h2]:text-gray-900 dark:[&_h2]:text-white [&_h3]:text-gray-900 dark:[&_h3]:text-white' }}
+            [&_dl]:mt-4 [&_dt]:mt-4 [&_dt]:font-semibold {{ '[&_dt]:text-white' if _on_color(section) else '[&_dt]:text-gray-900 dark:[&_dt]:text-white' }} [&_dd]:mt-0.5 [&_dd]:text-base
+            [&_a]:font-medium {{ '[&_a]:text-white [&_a]:underline' if _on_color(section) else '[&_a]:text-ecs-green dark:[&_a]:text-ecs-blue-400' }}
+            {{ 'drop-shadow' if section.type == 'hero' }} {{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }}>{{ block.html | safe }}</div>
+{% endmacro %}
+
+
+{% macro block_image(block, ctx, section, edit_mode) %}
+{% if not ctx.image(block.image) %}{{ _placeholder(edit_mode, block, 'Click to choose an image') }}{% else %}
+{% set widths = {'s': 'max-w-sm', 'm': 'max-w-lg', 'l': 'max-w-3xl', 'full': 'w-full'} %}
+{% set aligns = {'left': 'mr-auto', 'center': 'mx-auto', 'right': 'ml-auto'} %}
+{% set aspects = {'natural': '', '16:9': 'aspect-[16/9]', '4:3': 'aspect-[4/3]', '1:1': 'aspect-square'} %}
+{% set asp = aspects.get(block.aspect, '') %}
+<figure class="{{ widths.get(block.size, 'max-w-3xl') }} {{ aligns.get(block.align, 'mx-auto') }} {{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }}>
+    {% set inner %}{{ _img_tag(block.image, ctx, class='w-full rounded-2xl shadow-sm object-cover ' + asp, sizes='(min-width: 1024px) 768px, 100vw') }}{% endset %}
+    {% set href = ctx.resolve_link(block.link) if block.link else none %}
+    {% if href %}<a href="{{ href }}">{{ inner }}</a>{% else %}{{ inner }}{% endif %}
+    {% if block.caption %}<figcaption class="mt-2 text-center text-sm {{ 'text-white/70' if _on_color(section) else 'text-gray-500 dark:text-gray-400' }}">{{ block.caption }}</figcaption>{% endif %}
+</figure>
+{% endif %}
+{% endmacro %}
+
+
+{%- macro _button_classes(style, on_color) -%}
+{%- if style == 'primary' -%}
+bg-ecs-blue-600 text-white shadow-lg hover:bg-ecs-blue-700
+{%- elif style == 'secondary' -%}
+{%- if on_color %}bg-white/15 text-white ring-1 ring-inset ring-white/30 hover:bg-white/25 backdrop-blur{% else %}bg-ecs-green text-white hover:bg-ecs-green-dark{% endif -%}
+{%- else -%}
+{%- if on_color %}bg-white/10 text-white ring-1 ring-inset ring-white/25 hover:bg-white/20{% else %}ring-1 ring-inset ring-gray-300 dark:ring-gray-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800{% endif -%}
+{%- endif -%}
+{%- endmacro -%}
+
+{% macro block_button(block, ctx, section, edit_mode) %}
+{% set aligns = {'left': '', 'center': 'text-center', 'right': 'text-right'} %}
+<div class="{{ aligns.get(block.align, '') }} {{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }}>
+    <a href="{{ ctx.resolve_link(block.link) or '#' }}"
+       class="inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-base font-semibold transition {{ _button_classes(block.style, _on_color(section)) }}">
+        {{ block.label }}
+    </a>
+</div>
+{% endmacro %}
+
+
+{% macro block_cta_live(block, ctx, section, edit_mode) %}
+{# LIVE portal-state CTA: label + destination derive from registration/waitlist
+   flags at render time — the block that keeps the public site truthful. #}
+{% set d = ctx.dyn(block.id) %}
+{% set aligns = {'left': '', 'center': 'text-center', 'right': 'text-right'} %}
+<div class="{{ aligns.get(block.align, '') }} {{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }} data-dynamic="cta_live">
+    <a href="{{ d.url }}"
+       class="inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-base font-bold transition {{ _button_classes(block.style, _on_color(section)) }}">
+        <i class="ti {{ d.icon or 'ti-user-plus' }} text-lg"></i> {{ d.label }}
+    </a>
+</div>
+{% endmacro %}
+
+
+{% macro block_card(block, ctx, section, edit_mode) %}
+{% set href = ctx.resolve_link(block.link) if block.link else none %}
+<div class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-sm {{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }}>
+    {% if block.image %}
+    <div class="aspect-[16/9] w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
+        {{ _img_tag(block.image, ctx, class='h-full w-full object-cover', sizes='(min-width: 1024px) 640px, 100vw') }}
+    </div>
+    {% endif %}
+    <div class="flex flex-1 flex-col p-6 lg:p-8">
+        {% if block.icon %}
+        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-ecs-green/10 text-ecs-green dark:text-ecs-blue-400">
+            <i class="ti ti-{{ block.icon }} text-2xl"></i>
+        </div>
+        {% endif %}
+        {% if block.title %}<h3 class="{{ 'mt-4' if block.icon }} text-lg lg:text-2xl font-semibold lg:font-bold text-gray-900 dark:text-white">{{ block.title }}</h3>{% endif %}
+        {% if block.html %}<div class="mt-2 flex-1 text-sm lg:text-base text-gray-600 dark:text-gray-300 [&_p]:mt-3 first:[&_p]:mt-0">{{ block.html | safe }}</div>{% endif %}
+        {% if href %}
+        <a href="{{ href }}" class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green dark:text-ecs-blue-400">
+            {{ block.link_label or 'Learn more' }} <i class="ti ti-arrow-right"></i>
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro block_gallery(block, ctx, section, edit_mode) %}
+{% if not block['items'] %}{{ _placeholder(edit_mode, block, 'Empty gallery — add photos') }}{% else %}
+{% set grids = {'grid-2': 'grid gap-4 sm:grid-cols-2', 'grid-3': 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3', 'grid-4': 'grid gap-4 sm:grid-cols-2 lg:grid-cols-4'} %}
+<div class="{{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }}>
+{% if block.layout == 'carousel' %}
+    <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4">
+        {% for item in block['items'] %}
+        <figure class="snap-start shrink-0 w-72 sm:w-80">
+            {{ _img_tag(item.image, ctx, class='w-full rounded-xl object-cover aspect-[4/3]', sizes='320px') }}
+            {% if item.caption %}<figcaption class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">{{ item.caption }}</figcaption>{% endif %}
+        </figure>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="{{ grids.get(block.layout, grids['grid-3']) }}">
+        {% for item in block['items'] %}
+        {% set href = ctx.resolve_link(item.link) if item.link else none %}
+        <figure>
+            {% set img %}{{ _img_tag(item.image, ctx, class='w-full rounded-xl object-cover ' + ('aspect-square' if block.crop else ''), sizes='(min-width: 1024px) 400px, 50vw') }}{% endset %}
+            {% if href %}<a href="{{ href }}">{{ img }}</a>{% else %}{{ img }}{% endif %}
+            {% if item.caption %}<figcaption class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">{{ item.caption }}</figcaption>{% endif %}
+        </figure>
+        {% endfor %}
+    </div>
+{% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
+
+{% macro block_video(block, ctx, section, edit_mode) %}
+{% if not block.embed_src %}{{ _placeholder(edit_mode, block, 'Add a YouTube or Vimeo link') }}{% else %}
+<figure class="{{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }}>
+    <div class="aspect-video w-full overflow-hidden rounded-2xl bg-gray-950 shadow-sm">
+        <iframe src="{{ block.embed_src }}" class="h-full w-full" title="Video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+    </div>
+    {% if block.caption %}<figcaption class="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">{{ block.caption }}</figcaption>{% endif %}
+</figure>
+{% endif %}
+{% endmacro %}
+
+
+{% macro block_map(block, ctx, section, edit_mode) %}
+{% if not block.embed_src %}{{ _placeholder(edit_mode, block, 'Add a Google Maps embed link') }}{% else %}
+<figure class="{{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }}>
+    <div class="aspect-[16/9] w-full overflow-hidden rounded-2xl shadow-sm">
+        <iframe src="{{ block.embed_src }}" class="h-full w-full border-0" title="Map"
+                loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+    {% if block.caption %}<figcaption class="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">{{ block.caption }}</figcaption>{% endif %}
+</figure>
+{% endif %}
+{% endmacro %}
+
+
+{% macro block_news_latest(block, ctx, section, edit_mode) %}
+{% set posts = ctx.dyn(block.id) %}
+<div class="{{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }} data-dynamic="news_latest">
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {% for post in posts %}
+        <a href="{{ post.url }}"
+           class="group rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden shadow-sm hover:shadow-md transition">
+            {% if post.image %}
+            <img src="{{ post.image }}" alt="{{ post.title }}" class="h-44 w-full object-cover" loading="lazy">
+            {% else %}
+            <div class="h-44 w-full bg-gradient-to-br from-ecs-green to-ecs-green-dark flex items-center justify-center"><i class="ti ti-news text-4xl text-white/40"></i></div>
+            {% endif %}
+            <div class="p-5">
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ post.date }}</p>
+                <h3 class="mt-1 font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-blue-400">{{ post.title }}</h3>
+                {% if post.excerpt %}<p class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{{ post.excerpt }}</p>{% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    <div class="mt-6 text-right">
+        <a href="{{ ctx.news_index_url }}" class="text-sm font-semibold {{ _link_color(section) }} hover:underline">All news →</a>
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro block_faq_list(block, ctx, section, edit_mode) %}
+{% set faqs = ctx.dyn(block.id) %}
+<div class="space-y-3 {{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }} data-dynamic="faq_list">
+    {% for f in faqs %}
+    <details class="group rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-5 py-4">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-gray-900 dark:text-white">
+            {{ f.question }}
+            <i class="ti ti-chevron-down transition group-open:rotate-180 text-gray-400"></i>
+        </summary>
+        <div class="mt-3 text-gray-600 dark:text-gray-300 [&_p]:mt-2 first:[&_p]:mt-0 [&_a]:text-ecs-green dark:[&_a]:text-ecs-blue-400">{{ f.answer_html | safe }}</div>
+    </details>
+    {% endfor %}
+</div>
+{% endmacro %}
+
+
+{% macro block_registration_status(block, ctx, section, edit_mode) %}
+{% set d = ctx.dyn(block.id) %}
+<div class="{{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }} data-dynamic="registration_status">
+    <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset {{ 'bg-white/15 text-white ring-white/25 backdrop-blur' if _on_color(section) else 'bg-ecs-green/10 text-ecs-green ring-ecs-green/30 dark:text-ecs-blue-400' }}">
+        <i class="ti ti-calendar-event"></i>
+        {% if d.season_name %}{{ d.season_name }} · {% endif %}{{ d.status_label }}
+    </span>
+</div>
+{% endmacro %}
+
+
+{% macro block_calendar_teaser(block, ctx, section, edit_mode) %}
+{% set events = ctx.dyn(block.id) %}
+<div class="{{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }} data-dynamic="calendar_teaser">
+    <ul class="divide-y divide-gray-200 dark:divide-gray-800 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+        {% for e in events %}
+        <li class="flex items-center gap-4 px-5 py-4">
+            <div class="flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-ecs-green/10 text-ecs-green dark:text-ecs-blue-400">
+                <span class="text-xs font-semibold uppercase">{{ e.month }}</span>
+                <span class="text-lg font-bold leading-none">{{ e.day }}</span>
+            </div>
+            <div class="min-w-0">
+                <p class="font-semibold text-gray-900 dark:text-white truncate">{{ e.title }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ e.when }}{% if e.location %} · {{ e.location }}{% endif %}</p>
+            </div>
+        </li>
+        {% else %}
+        <li class="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">No upcoming events — check back soon.</li>
+        {% endfor %}
+    </ul>
+    <div class="mt-4">
+        <a href="{{ ctx.calendar_url }}" class="text-sm font-semibold {{ _link_color(section) }} hover:underline">Full calendar →</a>
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro block_form(block, ctx, section, edit_mode) %}
+{% set f = ctx.dyn(block.id) %}
+<div class="{{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }} data-dynamic="form">
+{% if f %}
+    <form method="post" action="{{ f.action }}" class="space-y-4 max-w-xl">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {# Honeypot — hidden from humans, filled by naive bots. #}
+        <div class="hidden" aria-hidden="true"><input type="text" name="_hp" tabindex="-1" autocomplete="off"></div>
+        {% for field in f.fields %}
+        <div>
+            <label for="f-{{ f.name }}-{{ field.name }}" class="block text-sm font-medium text-gray-900 dark:text-white">
+                {{ field.label }}{% if field.required %} <span class="text-red-500">*</span>{% endif %}
+            </label>
+            {% if field.type == 'textarea' %}
+            <textarea id="f-{{ f.name }}-{{ field.name }}" name="{{ field.name }}" rows="5" {{ 'required' if field.required }}
+                      class="mt-1.5 block w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green text-sm"></textarea>
+            {% elif field.type == 'select' %}
+            <select id="f-{{ f.name }}-{{ field.name }}" name="{{ field.name }}" {{ 'required' if field.required }}
+                    class="mt-1.5 block w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green text-sm">
+                <option value="">Choose…</option>
+                {% for opt in field.options or [] %}<option>{{ opt }}</option>{% endfor %}
+            </select>
+            {% else %}
+            <input type="{{ 'email' if field.type == 'email' else 'text' }}" id="f-{{ f.name }}-{{ field.name }}" name="{{ field.name }}" {{ 'required' if field.required }}
+                   class="mt-1.5 block w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green text-sm">
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% if f.turnstile_sitekey %}
+        <div class="cf-turnstile" data-sitekey="{{ f.turnstile_sitekey }}"></div>
+        {% endif %}
+        <button type="submit"
+                class="inline-flex items-center gap-2 rounded-lg bg-ecs-green px-6 py-3 text-base font-semibold text-white hover:bg-ecs-green-dark transition">
+            <i class="ti ti-send"></i> {{ f.submit_label or 'Send' }}
+        </button>
+    </form>
+{% else %}
+    <p class="text-sm text-gray-500 dark:text-gray-400">This form isn't available right now.</p>
+{% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro block_quote(block, ctx, section, edit_mode) %}
+<blockquote class="border-l-4 border-ecs-green pl-5 text-xl italic {{ _body_color(section) }} {{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }}>
+    <div>{{ block.html | safe }}</div>
+    {% if block.attribution %}<footer class="mt-2 text-sm not-italic font-semibold {{ _heading_color(section) }}">— {{ block.attribution }}</footer>{% endif %}
+</blockquote>
+{% endmacro %}
+
+
+{% macro block_divider(block, ctx, section, edit_mode) %}
+<hr class="border-gray-200 dark:border-gray-800 {{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }}>
+{% endmacro %}
+
+
+{% macro block_spacer(block, ctx, section, edit_mode) %}
+{% set h = {'sm': 'h-6', 'md': 'h-10', 'lg': 'h-16', 'xl': 'h-24'} %}
+<div class="{{ h.get(block.size, 'h-10') }} {{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }} aria-hidden="true"></div>
+{% endmacro %}
+
+
+{% macro block_stats(block, ctx, section, edit_mode) %}
+{% set ncols = [block['items'] | length, 4] | min %}
+{% set colcls = {1: 'sm:grid-cols-1', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4'} %}
+<dl class="grid grid-cols-2 gap-6 {{ colcls.get(ncols, 'sm:grid-cols-4') }} text-center {{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }}>
+    {% for it in block['items'] %}
+    <div>
+        <dd class="text-4xl font-extrabold {{ 'text-white' if _on_color(section) else 'text-ecs-green dark:text-ecs-blue-400' }}">{{ it.value }}</dd>
+        <dt class="mt-1 text-sm font-medium {{ _body_color(section) }}">{{ it.label }}</dt>
+    </div>
+    {% endfor %}
+</dl>
+{% endmacro %}
+
+
+{% macro block_social_links(block, ctx, section, edit_mode) %}
+{% set icons = {'discord': 'ti-brand-discord', 'instagram': 'ti-brand-instagram', 'facebook': 'ti-brand-facebook',
+                'bluesky': 'ti-brand-bluesky', 'twitter': 'ti-brand-x', 'youtube': 'ti-brand-youtube',
+                'tiktok': 'ti-brand-tiktok', 'email': 'ti-mail'} %}
+<div class="flex items-center gap-3 {{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }}>
+    {% for it in block['items'] %}
+    <a href="{{ it.url }}" target="_blank" rel="noopener noreferrer"
+       class="flex h-10 w-10 items-center justify-center rounded-full transition {{ 'bg-white/15 text-white hover:bg-white/25' if _on_color(section) else 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-ecs-green' }}">
+        <i class="ti {{ icons.get(it.kind, 'ti-link') }} text-xl"></i>
+    </a>
+    {% endfor %}
+</div>
+{% endmacro %}
+
+
+{% macro block_embed_raw(block, ctx, section, edit_mode) %}
+<div class="{{ _hide_mobile(block) }}"{{ _edit_attrs(block, edit_mode) }}>{{ block.html | safe }}</div>
+{% endmacro %}
+
+
+{# ---------- block dispatch ---------- #}
+{% macro render_block(block, ctx, section, edit_mode) %}
+{%- if block.type == 'heading' %}{{ block_heading(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'richtext' %}{{ block_richtext(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'image' %}{{ block_image(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'button' %}{{ block_button(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'cta_live' %}{{ block_cta_live(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'card' %}{{ block_card(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'gallery' %}{{ block_gallery(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'video' %}{{ block_video(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'map' %}{{ block_map(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'news_latest' %}{{ block_news_latest(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'faq_list' %}{{ block_faq_list(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'registration_status' %}{{ block_registration_status(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'calendar_teaser' %}{{ block_calendar_teaser(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'form' %}{{ block_form(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'quote' %}{{ block_quote(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'divider' %}{{ block_divider(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'spacer' %}{{ block_spacer(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'stats' %}{{ block_stats(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'social_links' %}{{ block_social_links(block, ctx, section, edit_mode) }}
+{%- elif block.type == 'embed_raw' %}{{ block_embed_raw(block, ctx, section, edit_mode) }}
+{%- endif %}
+{% endmacro %}
+
+
+{# =====================================================================
+   SECTIONS
+   ===================================================================== #}
+
+{% macro section_hero(section, ctx, edit_mode) %}
+{% set s = section.settings %}
+{% set pads = {'sm': 'py-16 sm:py-20', 'md': 'py-20 sm:py-28', 'lg': 'py-24 sm:py-32 lg:py-40', 'xl': 'py-28 sm:py-40 lg:py-48'} %}
+{% set grads = {'none': '', 'light': 'from-ecs-green-dark/70 via-ecs-green/35 to-transparent',
+                'medium': 'from-ecs-green-dark/90 via-ecs-green/60 to-ecs-green/20',
+                'heavy': 'from-ecs-green-dark/95 via-ecs-green/85 to-ecs-green/55'} %}
+{% set img = ctx.image(s.image) if s.image else none %}
+<section class="relative overflow-hidden {{ 'bg-gradient-to-br from-ecs-green to-ecs-green-dark' if not img and not s.bg_color }}"
+         {% if s.bg_color and not img %}style="background-color: {{ s.bg_color }};"{% endif %}
+         {% if edit_mode %}data-sid="{{ section.id }}" data-stype="hero"{% endif %}>
+    {% if img %}
+    <div class="absolute inset-0">
+        <img src="{{ img.url }}" {% if img.srcset %}srcset="{{ img.srcset }}" sizes="100vw"{% endif %}
+             alt="{{ img.alt }}" class="h-full w-full object-cover" style="object-position: {{ img.focal_css }};">
+        {% if s.overlay != 'none' %}<div class="absolute inset-0 bg-gradient-to-r {{ grads.get(s.overlay, grads['medium']) }}"></div>{% endif %}
+        <div class="absolute inset-0 bg-gradient-to-t from-gray-950/50 via-transparent to-transparent"></div>
+    </div>
+    {% endif %}
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 {{ pads.get(s.size, pads['md']) }}">
+        <div class="max-w-2xl {{ 'mx-auto text-center' if s.align == 'center' else ('ml-auto text-right' if s.align == 'right' else '') }} space-y-6 [&>*:first-child]:mt-0">
+            {% for block in section.blocks %}{{ render_block(block, ctx, section, edit_mode) }}{% endfor %}
+        </div>
+    </div>
+</section>
+{% endmacro %}
+
+
+{% macro section_content(section, ctx, edit_mode) %}
+{% set s = section.settings %}
+{% set widths = {'narrow': 'max-w-3xl', 'normal': 'max-w-5xl', 'wide': 'max-w-7xl'} %}
+<section class="{{ THEME_SECTION.get(section.theme, '') }} {{ PAD.get(s.padding, PAD['md']) }}"
+         {% if edit_mode %}data-sid="{{ section.id }}" data-stype="content"{% endif %}>
+    <div class="mx-auto {{ widths.get(s.width, 'max-w-5xl') }} px-4 sm:px-6 lg:px-8 {{ 'text-center' if s.align == 'center' else ('text-right' if s.align == 'right' else '') }}">
+        <div class="space-y-6 {{ '[&>*]:mx-auto' if s.align == 'center' else '' }}">
+            {% for block in section.blocks %}{{ render_block(block, ctx, section, edit_mode) }}{% endfor %}
+        </div>
+    </div>
+</section>
+{% endmacro %}
+
+
+{% macro section_columns(section, ctx, edit_mode) %}
+{% set s = section.settings %}
+{% set layouts = {'50-50': 'grid gap-6 lg:grid-cols-2',
+                  '33-67': 'grid gap-6 lg:grid-cols-[1fr_2fr]',
+                  '67-33': 'grid gap-6 lg:grid-cols-[2fr_1fr]',
+                  '3col': 'grid gap-8 sm:grid-cols-2 lg:grid-cols-3'} %}
+{% set ncols = 3 if s.layout == '3col' else 2 %}
+<section class="{{ THEME_SECTION.get(section.theme, '') }} {{ PAD.get(s.padding, PAD['md']) }}"
+         {% if edit_mode %}data-sid="{{ section.id }}" data-stype="columns"{% endif %}>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="{{ layouts.get(s.layout, layouts['3col']) }}">
+            {% for col in range(ncols) %}
+            <div class="space-y-6 min-w-0" {% if edit_mode %}data-col="{{ col }}"{% endif %}>
+                {# Fold any block whose col exceeds the layout (e.g. a 3-col card
+                   after switching to a 2-col layout) into the last column, so
+                   it never silently vanishes from the page. #}
+                {% for block in section.blocks if (block.col or 0) == col or (col == ncols - 1 and (block.col or 0) >= ncols) %}{{ render_block(block, ctx, section, edit_mode) }}{% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endmacro %}
+
+
+{% macro section_band(section, ctx, edit_mode) %}
+{% set s = section.settings %}
+{% set theme = section.theme if section.theme != 'inherit' else 'brand' %}
+<section class="{{ THEME_SECTION.get(theme, THEME_SECTION['brand']) }}"
+         {% if edit_mode %}data-sid="{{ section.id }}" data-stype="band"{% endif %}>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 {{ 'text-center' if s.align == 'center' else ('text-right' if s.align == 'right' else '') }}">
+        <div class="space-y-4 {{ 'max-w-xl mx-auto' if s.align == 'center' else '' }}">
+            {% for block in section.blocks %}{{ render_block(block, ctx, section, edit_mode) }}{% endfor %}
+        </div>
+    </div>
+</section>
+{% endmacro %}
+
+
+{# ---------- section dispatch ---------- #}
+{% macro render_section(section, ctx, edit_mode=False) %}
+{%- if section.type == 'hero' %}{{ section_hero(section, ctx, edit_mode) }}
+{%- elif section.type == 'content' %}{{ section_content(section, ctx, edit_mode) }}
+{%- elif section.type == 'columns' %}{{ section_columns(section, ctx, edit_mode) }}
+{%- elif section.type == 'band' %}{{ section_band(section, ctx, edit_mode) }}
+{%- endif %}
+{% endmacro %}

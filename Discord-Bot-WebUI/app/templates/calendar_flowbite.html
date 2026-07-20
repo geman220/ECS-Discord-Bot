@@ -3390,6 +3390,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const publicEl = document.getElementById('eventPublic');
                 if (publicEl) publicEl.checked = (eventData.is_public
                     ?? eventData.extendedProps?.is_public ?? true);
+                // Load notify_discord too — without this, re-editing an event silently
+                // reset it to OFF (form.reset cleared it and save wrote the default).
+                const notifyEl = document.getElementById('eventNotifyDiscord');
+                if (notifyEl) notifyEl.checked = (eventData.notifyDiscord
+                    ?? eventData.extendedProps?.notifyDiscord ?? false);
 
                 if (eventData.start) setElementValue('eventStartDate', formatDateTimeLocal(eventData.start));
                 if (eventData.end) setElementValue('eventEndDate', formatDateTimeLocal(eventData.end));

@@ -1272,7 +1272,12 @@ async def get_app_managed_roles(session: Session) -> List[str]:
         ).filter(
             PlayerTeamSeason.season_id == current_season.id
         ).distinct().all()
-        team_roles = [f"ECS-FC-PL-{normalize_name(team.name)}-Player" for team in current_teams]
+        team_roles = []
+        for team in current_teams:
+            team_roles.append(f"ECS-FC-PL-{normalize_name(team.name)}-Player")
+            # Also manage the per-team -Coach role so it can be REVOKED when someone
+            # stops coaching (matches the batch calculator's app_managed_roles).
+            team_roles.append(f"ECS-FC-PL-{normalize_name(team.name)}-Coach")
     else:
         # Fallback: if no current season, don't include any team roles
         team_roles = []
@@ -1447,9 +1452,22 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
     if approval_status != 'approved':
         logger.info(f"Player {player.id} is not approved, only team-based roles will be assigned")
 
-    # Append team-based roles using normalized role names
+    # Append team-based roles using normalized role names. Include the per-team
+    # -Coach role for teams this player coaches, mirroring the batch calculator
+    # (tasks_discord.py) — without it this path never granted the team-channel
+    # coach role and the verification always reported a correct coach as needing
+    # an update (flapping re-syncs).
+    from app.models.players import player_teams as _player_teams
+    try:
+        _coach_team_ids = {r[0] for r in session.query(_player_teams.c.team_id).filter(
+            _player_teams.c.player_id == player.id,
+            _player_teams.c.is_coach == True).all()}
+    except Exception:
+        _coach_team_ids = set()
     for t in player.teams:
         roles.append(normalize_name(f"ECS-FC-PL-{t.name}-PLAYER"))
+        if t.id in _coach_team_ids:
+            roles.append(normalize_name(f"ECS-FC-PL-{t.name}-Coach"))
 
     if player.is_ref:
         roles.append(normalize_name("Referee"))

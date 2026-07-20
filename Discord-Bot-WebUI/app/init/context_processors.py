@@ -110,17 +110,10 @@ def build_nav_sections(user_roles, admin_settings):
 
         # --- Administration ---
         if is_admin:
-            wallet_children = [
-                item('Setup Wizard', 'ti-point', 'wallet_config.setup_wizard'),
-                item('Dashboard', 'ti-point', 'wallet_admin.wallet_management'),
-                item('Pass Studio', 'ti-point', 'pass_studio.index'),
-                item('Manage Passes', 'ti-point', 'wallet_admin.passes_list'),
-                item('Scanner', 'ti-point', 'wallet_admin.scanner'),
-                item('Check-ins', 'ti-point', 'wallet_admin.checkins_list'),
-            ]
+            # Digital Wallets moved into the admin panel (Wallet topnav dropdown);
+            # the sidebar keeps a single admin entry point.
             sections.append({'title': 'Administration', 'items': [
                 item('Admin Panel', 'ti-layout-dashboard', 'admin_panel.dashboard', badge='NEW', highlight=True),
-                item('Digital Wallets', 'ti-device-mobile', children=wallet_children),
             ]})
         elif has_any('ECS FC Coach'):
             # ECS FC Coaches get a single entry into their slice of the admin

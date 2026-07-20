@@ -735,7 +735,11 @@ def _update_player_profile(db_session, user, discord_id, discord_email, discord_
     if claim_code:
         try:
             from app.models import QuickProfile
-            quick_profile = QuickProfile.find_by_code(claim_code)
+            # Load on the Player's session (db_session) so claim()'s
+            # claimed_by_player_id write and the Player share one transaction.
+            # The default cls.query binds db.session and FK-violates on flush
+            # (see [[reference_two_sessions_lost_writes]]).
+            quick_profile = QuickProfile.find_by_code(claim_code, session=db_session)
             if quick_profile and quick_profile.is_valid():
                 # Claim the profile - this merges data into the player
                 quick_profile.claim(player)

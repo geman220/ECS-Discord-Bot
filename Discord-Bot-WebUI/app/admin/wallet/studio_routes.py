@@ -107,7 +107,7 @@ def get_config_status():
         }
 
 # Create blueprint
-pass_studio_bp = Blueprint('pass_studio', __name__, url_prefix='/admin/wallet/studio')
+pass_studio_bp = Blueprint('pass_studio', __name__, url_prefix='/admin-panel/wallet/studio')
 
 
 # =============================================================================

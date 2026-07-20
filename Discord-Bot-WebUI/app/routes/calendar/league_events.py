@@ -217,7 +217,9 @@ def create_league_event():
             season_id=data.get('season_id'),
             league_id=data.get('league_id'),
             notify_discord=data.get('notify_discord', False),
-            is_public=data.get('is_public', True)
+            is_public=data.get('is_public', True),
+            send_reminder=data.get('send_reminder', True),
+            reminder_days_before=data.get('reminder_days_before', 2)
         )
 
         if not result.success:
@@ -293,7 +295,7 @@ def update_league_event(event_id):
         # Handle simple fields
         simple_fields = ['title', 'description', 'event_type', 'location',
                          'is_all_day', 'season_id', 'league_id', 'notify_discord', 'is_active',
-                         'is_public']
+                         'is_public', 'send_reminder', 'reminder_days_before']
 
         for field in simple_fields:
             if field in data:

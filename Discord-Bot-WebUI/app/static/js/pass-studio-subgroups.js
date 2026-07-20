@@ -110,7 +110,7 @@ const SubgroupsManager = {
         });
         if (result.isConfirmed) {
             try {
-                const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/subgroups/${id}`, {
+                const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/subgroups/${id}`, {
                     method: 'DELETE',
                     headers: { 'X-CSRFToken': this.getCsrfToken() }
                 });
@@ -123,7 +123,7 @@ const SubgroupsManager = {
 
     async saveSubgroup(subgroupData) {
         try {
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/subgroups`, {
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/subgroups`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCsrfToken() },
                 body: JSON.stringify(subgroupData)
@@ -136,7 +136,7 @@ const SubgroupsManager = {
 
     async updateSubgroup(id, subgroupData) {
         try {
-            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/subgroups/${id}`, {
+            const response = await fetch(`/admin-panel/wallet/studio/${this.passTypeCode}/subgroups/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCsrfToken() },
                 body: JSON.stringify(subgroupData)
