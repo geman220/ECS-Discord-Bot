@@ -126,7 +126,7 @@ function onToolbarClick(e) {
 // block selects the block; otherwise the section. Links never navigate in
 // edit mode.
 document.addEventListener('click', (e) => {
-  if (e.target.closest('#pse-toolbar')) return;
+  if (e.target.closest('#pse-toolbar, .pse-addblock, .pse-drag')) return;
   const a = e.target.closest('a');
   if (a) e.preventDefault();
   const editable = e.target.closest('[data-editable="html"]');
@@ -267,6 +267,26 @@ function addDragHandle(sectionEl) {
   sectionEl.appendChild(h);
 }
 
+// A persistent "＋ Add block / widget" bar at the bottom of every section — the
+// discoverable way to add blocks/widgets (otherwise you must find a block's + ).
+function addBlockBar(sectionEl) {
+  if (sectionEl.querySelector(':scope > .pse-addblock')) return;
+  const bar = document.createElement('button');
+  bar.type = 'button';
+  bar.className = 'pse-addblock';
+  bar.textContent = '＋ Add block / widget';
+  bar.style.cssText = 'position:relative;z-index:9996;display:block;width:100%;padding:10px;' +
+    'background:rgba(37,99,235,.10);color:#1d4ed8;border:0;border-top:1px dashed rgba(37,99,235,.5);' +
+    'cursor:pointer;font-size:13px;font-weight:700;letter-spacing:.02em;';
+  bar.addEventListener('mouseenter', () => { bar.style.background = 'rgba(37,99,235,.20)'; });
+  bar.addEventListener('mouseleave', () => { bar.style.background = 'rgba(37,99,235,.10)'; });
+  bar.addEventListener('click', (e) => {
+    e.stopPropagation();
+    post({ type: 'op', kind: 'add-block-in-section', sid: sectionEl.getAttribute('data-sid') });
+  });
+  sectionEl.appendChild(bar);
+}
+
 let sortContainer = null;
 function setupDrag() {
   loadSortable().then(() => {
@@ -274,9 +294,9 @@ function setupDrag() {
     const first = document.querySelector('[data-sid]');
     if (!first || !first.parentElement) return;
     const container = first.parentElement;
-    // (Re)apply a drag handle to every top-level section — new ones arrive via
-    // swap/insert after this ran the first time.
-    container.querySelectorAll(':scope > [data-sid]').forEach(addDragHandle);
+    // (Re)decorate every top-level section with a drag handle + add-block bar —
+    // new ones arrive via swap/insert after this ran the first time.
+    container.querySelectorAll(':scope > [data-sid]').forEach((el) => { addDragHandle(el); addBlockBar(el); });
     if (container === sortContainer) return; // Sortable already wired here
     sortContainer = container;
     new window.Sortable(container, {

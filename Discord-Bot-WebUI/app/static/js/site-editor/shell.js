@@ -140,6 +140,11 @@ function initEditor(rootEl) {
     if (kind === 'edit-block') return openBlockSettings(bid);
     if (kind === 'add-section') return openSectionPicker(sid);
     if (kind === 'add-block') return openBlockMenu(bid);
+    if (kind === 'add-block-in-section') {
+      const si = sIdx(sid);
+      if (si >= 0) openBlockMenuForSection(doc.sections[si]);
+      return;
+    }
 
     if (kind === 'reorder-sections') {
       // Drag-and-drop already reordered the iframe DOM; mirror it in the doc.
@@ -724,13 +729,23 @@ function initEditor(rootEl) {
 
   function openBlockMenu(afterBid) {
     const found = findBlock(afterBid);
-    if (!found) return;
+    if (found) {
+      openBlockMenuAt(found.section, found.index + 1,
+        found.block.col !== undefined ? found.block.col : undefined);
+    }
+  }
+  // Add a block/widget at the END of a section — the "＋ Add block" bar path.
+  function openBlockMenuForSection(section) {
+    openBlockMenuAt(section, (section.blocks || []).length,
+      section.type === 'columns' ? 0 : undefined);
+  }
+  function openBlockMenuAt(section, index, col) {
     openPanel('Add a block or widget');
     const addBlock = async (t) => {
       pushUndo();
       const fresh = { id: uid('b'), type: t, ...clone(BLOCK_DEFAULTS[t]) };
-      if (found.block.col !== undefined) fresh.col = found.block.col;
-      found.section.blocks.splice(found.index + 1, 0, fresh);
+      if (col !== undefined) fresh.col = col;
+      section.blocks.splice(index, 0, fresh);
       // image/gallery/video/map validate to nothing until configured, so a blind
       // save would drop them — open their settings so the first save has content.
       const needsContentFirst = ['image', 'video', 'map', 'gallery'].includes(t);
@@ -738,8 +753,8 @@ function initEditor(rootEl) {
       if (needsContentFirst) {
         openBlockSettings(fresh.id);
       } else {
-        const res = await save({ renderSection: found.section.id });
-        if (res && res.section_html) sendBridge({ type: 'swap-section', sid: found.section.id, html: res.section_html });
+        const res = await save({ renderSection: section.id });
+        if (res && res.section_html) sendBridge({ type: 'swap-section', sid: section.id, html: res.section_html });
       }
     };
     BLOCK_CATALOG.forEach((grp) => {
