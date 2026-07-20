@@ -64,6 +64,12 @@ def _build_static_map():
     m['/events'] = ('public.calendar', {})
     m['/tickets-checkout'] = ('public.home', {})
     m['/tickets-order'] = ('public.home', {})
+    # Leftover WordPress RSS page in the sitemap -> news index (low value, real URL).
+    m['/feed-2'] = ('public.news_list', {})
+    # WordPress served the privacy policy at /privacy-policy/; the canonical route
+    # is /privacy (legal_bp). 301 the old URL so the app-store/legal link survives.
+    # (/terms/ needs no entry — /terms is a real route, handled by trailing-slash.)
+    m['/privacy-policy'] = ('legal.privacy_policy', {})
     return m
 
 
@@ -111,10 +117,26 @@ def register_public_redirects(app):
                 return r
 
         # 3. TEC venue/organizer taxonomy pages -> /calendar (thin content).
-        elif norm.startswith('/venue/') or norm.startswith('/organizer'):
+        #    Match the bare archive (/venue, /organizer) AND per-item pages: the
+        #    sitemap emits a bare /venue/ archive root whose normalized form is
+        #    '/venue', so a plain startswith('/venue/') would miss it and 404.
+        elif norm == '/venue' or norm.startswith('/venue/') \
+                or norm == '/organizer' or norm.startswith('/organizer'):
             r = _safe_301('public.calendar')
             if r:
                 return r
+
+        # 4. Trailing-slash canonicalization (SEO). WordPress served every page
+        #    with a trailing slash (/about/, /guide/, /guests/, /faqs/, /news/…);
+        #    the new routes are canonical no-slash and strict, so those legacy
+        #    URLs would 404. 301 any remaining trailing-slash path to its no-slash
+        #    form so no inbound link/crawler is lost. Runs AFTER the maps above so
+        #    /events/ etc. already went straight to their real target. Root exempt.
+        if len(path) > 1 and path.endswith('/'):
+            canonical = path.rstrip('/')
+            if request.query_string:
+                canonical += '?' + request.query_string.decode('latin-1')
+            return redirect(canonical, code=301)
 
         return None
 

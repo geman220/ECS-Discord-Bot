@@ -1486,6 +1486,42 @@ class TestAccountNotificationPreferencesBehaviors:
             # Should succeed but not set invalid visibility
             assert response.status_code in (200, 400, 404)
 
+    def test_draft_alerts_preference_round_trip(self, client, app, db):
+        """
+        GIVEN a user with no stored draft_alerts value (defaults True)
+        WHEN disabling draft_alerts via PUT
+        THEN GET should return draft_alerts False and the column should persist it
+        """
+        set_factory_session(db.session)
+        user = UserFactory(username='draft_alerts_user')
+        db.session.commit()
+
+        with app.app_context():
+            token = create_access_token(identity=str(user.id))
+            headers = {'Authorization': f'Bearer {token}'}
+
+            response = client.get(
+                '/api/v1/account/notification-preferences',
+                headers=headers
+            )
+            assert response.status_code == 200
+            assert response.get_json()['draft_alerts'] is True
+
+            response = client.put(
+                '/api/v1/account/notification-preferences',
+                json={'draft_alerts': False},
+                headers=headers
+            )
+            assert response.status_code == 200
+            assert response.get_json()['draft_alerts'] is False
+
+            response = client.get(
+                '/api/v1/account/notification-preferences',
+                headers=headers
+            )
+            assert response.status_code == 200
+            assert response.get_json()['draft_alerts'] is False
+
 
 # =============================================================================
 # ACCOUNT PROFILE PICTURE BEHAVIOR TESTS

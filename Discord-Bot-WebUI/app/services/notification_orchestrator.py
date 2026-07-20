@@ -178,6 +178,7 @@ NOTIFICATION_ICONS = {
     NotificationType.FEEDBACK_STATUS_CHANGE: 'ti ti-exchange',
     NotificationType.FEEDBACK_CLOSED: 'ti ti-message-off',
     NotificationType.DRAFT_ON_THE_CLOCK: 'ti ti-clock-play',
+    NotificationType.ISPY_SPOTTED: 'ti ti-camera',
 }
 
 
@@ -583,6 +584,7 @@ class NotificationOrchestrator:
                 'dm_notifications': getattr(user, 'dm_notifications', True),
                 'feedback_updates': getattr(user, 'feedback_update_notifications', True),
                 'feedback_alerts': getattr(user, 'feedback_alert_notifications', True),
+                'draft_alerts': getattr(user, 'draft_alert_notifications', True),
             }
 
         return result
@@ -641,6 +643,9 @@ class NotificationOrchestrator:
             # Owner-side update events
             return preferences.get('feedback_updates', True)
 
+        if notification_type == NotificationType.DRAFT_ON_THE_CLOCK:
+            return preferences.get('draft_alerts', True)
+
         # Default: send
         return True
 
@@ -694,6 +699,9 @@ class NotificationOrchestrator:
                                   NotificationType.FEEDBACK_CLOSED):
             # Owner-side update events
             return preferences.get('feedback_updates', True)
+
+        if notification_type == NotificationType.DRAFT_ON_THE_CLOCK:
+            return preferences.get('draft_alerts', True)
 
         # Default: send
         return True

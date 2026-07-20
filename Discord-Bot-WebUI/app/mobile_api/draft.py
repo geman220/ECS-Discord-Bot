@@ -133,6 +133,7 @@ def get_draft_leagues():
         ).all()
 
         league_data = []
+        from app import draft_clock
         for league in leagues:
             team_count = len([t for t in league.teams if t.name != "Practice"])
 
@@ -149,7 +150,9 @@ def get_draft_leagues():
                 "season_id": league.season_id,
                 "season_name": current_season.name,
                 "team_count": team_count,
-                "total_drafted": total_drafted
+                "total_drafted": total_drafted,
+                # Per-league: each league's own DraftSession.rounds (15 fallback)
+                "roster_size": draft_clock.roster_target(session, league.season_id, league.id)
             })
 
         return jsonify({"leagues": league_data}), 200

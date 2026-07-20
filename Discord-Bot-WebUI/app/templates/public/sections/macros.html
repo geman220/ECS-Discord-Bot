@@ -467,7 +467,12 @@ bg-ecs-blue-600 text-white shadow-lg hover:bg-ecs-blue-700
                 'medium': 'from-ecs-green-dark/90 via-ecs-green/60 to-ecs-green/20',
                 'heavy': 'from-ecs-green-dark/95 via-ecs-green/85 to-ecs-green/55'} %}
 {% set img = ctx.image(s.image) if s.image else none %}
-<section class="relative overflow-hidden {{ 'bg-gradient-to-br from-ecs-green to-ecs-green-dark' if not img and not s.bg_color }}"
+{# On screens wider than 1920 the hero's content-driven height stays ~fixed while
+   the width grows, so object-cover zooms the image up and crops heads. Grow a
+   min-height only ABOVE 1920 (1920 and below are unchanged) so ultrawide keeps a
+   sensible aspect and the subject stays in frame. Per-image framing is the
+   focal-point control (separate editor work). #}
+<section class="relative overflow-hidden {{ 'min-[2000px]:min-h-[620px] min-[2600px]:min-h-[740px] min-[3200px]:min-h-[860px]' if img }} {{ 'bg-gradient-to-br from-ecs-green to-ecs-green-dark' if not img and not s.bg_color }}"
          {% if s.bg_color and not img %}style="background-color: {{ s.bg_color }};"{% endif %}
          {% if edit_mode %}data-sid="{{ section.id }}" data-stype="hero"{% endif %}>
     {% if img %}

@@ -13,6 +13,10 @@
 {% for team in teams %}{% set drafted_total.n = drafted_total.n + (drafted_players_by_team[team.id]|length if drafted_players_by_team[team.id] else 0) %}{% endfor %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
+    <!-- ===== ON THE CLOCK BAR (shared partial; inline admin controls — pitch view has no admin panel) ===== -->
+    {% set clock_inline_admin_controls = true %}
+    {% include 'components/_draft_clock_bar.html' %}
+
     <!-- ===== COMMAND HEADER: eyebrow + title + live mono draft figures + actions ===== -->
     <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
         <div class="flex flex-col lg:flex-row lg:items-center gap-4 p-4 sm:p-5">

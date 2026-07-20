@@ -487,6 +487,60 @@ class TestTypeSpecificPreferences:
 
         assert result is False
 
+    def test_draft_on_the_clock_respects_draft_alerts_preference(self, orchestrator):
+        """
+        GIVEN a draft on-the-clock notification
+        WHEN user has draft_alerts disabled
+        THEN push should not be sent
+        """
+        payload = NotificationPayload(
+            notification_type=NotificationType.DRAFT_ON_THE_CLOCK,
+            title="You're on the clock! ⏱️",
+            message='Team E is up. Make your pick.',
+            user_ids=[1],
+        )
+        preferences = {'push_enabled': True, 'draft_alerts': False}
+
+        result = orchestrator._should_send_push(payload, preferences)
+
+        assert result is False
+
+    def test_draft_on_the_clock_sends_when_draft_alerts_enabled(self, orchestrator):
+        """
+        GIVEN a draft on-the-clock notification
+        WHEN user has push + draft_alerts enabled
+        THEN push should be sent
+        """
+        payload = NotificationPayload(
+            notification_type=NotificationType.DRAFT_ON_THE_CLOCK,
+            title="You're on the clock! ⏱️",
+            message='Team E is up. Make your pick.',
+            user_ids=[1],
+        )
+        preferences = {'push_enabled': True, 'draft_alerts': True}
+
+        result = orchestrator._should_send_push(payload, preferences)
+
+        assert result is True
+
+    def test_draft_on_the_clock_respects_global_push_toggle(self, orchestrator):
+        """
+        GIVEN a draft on-the-clock notification
+        WHEN user has the master push toggle off (draft_alerts still on)
+        THEN push should not be sent
+        """
+        payload = NotificationPayload(
+            notification_type=NotificationType.DRAFT_ON_THE_CLOCK,
+            title="You're on the clock! ⏱️",
+            message='Team E is up. Make your pick.',
+            user_ids=[1],
+        )
+        preferences = {'push_enabled': False, 'draft_alerts': True}
+
+        result = orchestrator._should_send_push(payload, preferences)
+
+        assert result is False
+
 
 # =============================================================================
 # IN-APP NOTIFICATION TESTS

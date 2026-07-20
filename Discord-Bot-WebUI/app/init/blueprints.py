@@ -63,6 +63,13 @@ def _register_public_only(app):
     _prefix = '' if os.environ.get('PUBLIC_SITE_ROOT') else '/preview'
     app.register_blueprint(public_bp, url_prefix=_prefix)
 
+    # Existing legal pages (/privacy, /terms, /terms-of-service, /delete-account)
+    # — pure standalone-HTML renders with zero portal deps, so they're safe on the
+    # public host and satisfy the app-store Privacy/ToS/deletion URL requirements
+    # on the marketing domain itself (not just the portal).
+    from app.legal_routes import legal_bp
+    app.register_blueprint(legal_bp)
+
     @app.route('/healthz')
     def public_healthz():
         return {'status': 'ok', 'service': 'publicweb'}

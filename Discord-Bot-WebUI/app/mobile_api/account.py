@@ -391,6 +391,7 @@ def get_notification_preferences():
             "dm_notifications": getattr(user, 'dm_notifications', True),
             "feedback_updates": getattr(user, 'feedback_update_notifications', True),
             "feedback_alerts": getattr(user, 'feedback_alert_notifications', True),
+            "draft_alerts": getattr(user, 'draft_alert_notifications', True),
         }), 200
 
 
@@ -460,6 +461,10 @@ def update_notification_preferences():
         if 'feedback_alerts' in data:
             user.feedback_alert_notifications = bool(data['feedback_alerts'])
 
+        # Draft notification preferences (on-the-clock pushes for coaches)
+        if 'draft_alerts' in data:
+            user.draft_alert_notifications = bool(data['draft_alerts'])
+
         session.commit()
 
         logger.info(f"Notification preferences updated for user {user.username}")
@@ -478,6 +483,7 @@ def update_notification_preferences():
             "dm_notifications": getattr(user, 'dm_notifications', True),
             "feedback_updates": getattr(user, 'feedback_update_notifications', True),
             "feedback_alerts": getattr(user, 'feedback_alert_notifications', True),
+            "draft_alerts": getattr(user, 'draft_alert_notifications', True),
         }), 200
 
 

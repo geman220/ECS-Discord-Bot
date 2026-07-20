@@ -1534,7 +1534,32 @@ def draft_league_pitch_view(league_name: str):
     
     # Convert teams to JSON-serializable format
     teams_json = [{'id': team.id, 'name': team.name} for team in teams]
-    
+
+    # On-the-clock state + viewer's coached teams — same wiring as the list view so
+    # the shared clock bar partial has parity here (mirrors draft_league below).
+    draft_clock_state = None
+    try:
+        from app import draft_clock
+        _ds = draft_clock.get_session(db.session, current_league.season_id, current_league.id)
+        if _ds:
+            draft_clock_state = draft_clock.build_state(db.session, _ds)
+    except Exception as _clk_err:
+        logger.warning(f"pitch view draft clock state load failed: {_clk_err}")
+
+    viewer_team_ids = []
+    try:
+        from app.models.players import player_teams
+        _pid = getattr(getattr(current_user, 'player', None), 'id', None)
+        if _pid and team_ids:
+            _rows = db.session.query(player_teams.c.team_id).filter(
+                player_teams.c.player_id == _pid,
+                player_teams.c.is_coach == True,  # noqa: E712
+                player_teams.c.team_id.in_(team_ids)
+            ).all()
+            viewer_team_ids = [tid for (tid,) in _rows]
+    except Exception as _vt_err:
+        logger.warning(f"pitch view viewer_team_ids resolve failed: {_vt_err}")
+
     return render_template(
         'draft_pitch_view_flowbite.html',
         title=f'{db_league_name} League Draft',
@@ -1544,7 +1569,10 @@ def draft_league_pitch_view(league_name: str):
         teams_json=teams_json,
         available_players=available_players,
         drafted_players_by_team=drafted_by_team,
-        current_season_id=current_league.season_id
+        current_season_id=current_league.season_id,
+        current_league_id=current_league.id,
+        draft_clock_state=draft_clock_state,
+        viewer_team_ids=viewer_team_ids
     )
 
 

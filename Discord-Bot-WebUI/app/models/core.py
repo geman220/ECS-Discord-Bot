@@ -109,6 +109,7 @@ class User(UserMixin, db.Model):
     dm_notifications = db.Column(db.Boolean, default=True)  # Direct message notifications
     feedback_update_notifications = db.Column(db.Boolean, default=True)  # Owner-side: replies, status, close
     feedback_alert_notifications = db.Column(db.Boolean, default=True)  # Admin-side: new feedback fan-out
+    draft_alert_notifications = db.Column(db.Boolean, default=True)  # Draft: on-the-clock pushes (coaches)
 
     profile_visibility = db.Column(db.String(20), default='everyone')
     notifications = db.relationship('Notification', back_populates='user', lazy='select')

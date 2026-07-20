@@ -472,7 +472,7 @@ def send_on_the_clock_push(self, session, team_id: int, round_no: int = None,
         round_no / overall_pick: for the message copy + deep-link data
         seconds_per_pick: shown in the body when the clock is timed
     """
-    from app.models import Player, Team
+    from app.models import League, Player, Team
     from app.models.players import player_teams
     from app.services.notification_orchestrator import (
         orchestrator, NotificationPayload, NotificationType,
@@ -481,6 +481,11 @@ def send_on_the_clock_push(self, session, team_id: int, round_no: int = None,
     team = session.query(Team).filter(Team.id == team_id).first()
     if not team:
         return {'success': False, 'reason': 'team_not_found', 'team_id': team_id}
+
+    # URL league name ("premier" / "classic" / "ecs_fc") for the mobile deep link —
+    # without it the tap lands on the leagues LIST instead of the draft board.
+    league = session.query(League).filter(League.id == team.league_id).first()
+    league_url_name = league.name.lower().replace(' ', '_') if league else ''
 
     # Coach user_ids for this team (any one coach counts as "in the draft" —
     # we notify them all so whoever has their phone handy sees it).
@@ -497,20 +502,25 @@ def send_on_the_clock_push(self, session, team_id: int, round_no: int = None,
 
     round_bit = f"Round {round_no} · " if round_no else ""
     timed_bit = f" You have {seconds_per_pick}s." if seconds_per_pick else ""
+    title = "You're on the clock! ⏱️"
     try:
+        # force_push deliberately NOT set: push must respect the user's
+        # push_notifications + draft_alerts preferences (muted coaches get nothing).
+        # The other channels stay hard-off — this is a push-only alert.
         orchestrator.send(NotificationPayload(
             notification_type=NotificationType.DRAFT_ON_THE_CLOCK,
-            title="You're on the clock! ⏱️",
+            title=title,
             message=f"{round_bit}{team.name} is up. Make your pick.{timed_bit}",
             user_ids=user_ids,
             data={
                 'type': 'draft_on_the_clock',
+                'league': league_url_name,
                 'team_id': str(team_id),
                 'round': str(round_no or ''),
                 'overall_pick': str(overall_pick or ''),
+                'title': title,  # fallback text on the data-only background path
             },
             priority='high',
-            force_push=True,
             force_email=False,
             force_sms=False,
             force_discord=False,

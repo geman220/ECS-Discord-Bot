@@ -1,18 +1,43 @@
-{% extends "admin_panel/base_flowbite.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Editing: {{ page.title or page.slug }} — Site Editor</title>
+    {# Standalone full-screen editor: the page itself is the canvas, one thin
+       toolbar floats above it. NO admin console sidebar / nav — this is an
+       editor OF the page, not an admin screen with the page embedded in it.
+       shell.js is self-contained (custom-DOM panels; every Swal call has a
+       native fallback) so it needs no app bundle. #}
+    <link rel="stylesheet" href="{{ static_v('vendor/fonts/inter.css') }}">
+    <link rel="stylesheet" href="{{ static_v('vite-dist/css/tailwind.css') }}">
+    <link rel="stylesheet" href="{{ static_v('vendor/fonts/tabler-icons.css') }}">
+    <script>
+      // Match the app's light/dark choice before paint so the toolbar theme is right.
+      try {
+        var t = localStorage.getItem('color-theme') || localStorage.getItem('theme');
+        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches))
+          document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
+    <style>body { font-family: 'Inter', system-ui, sans-serif; }</style>
+</head>
+<body class="h-screen overflow-hidden bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 antialiased">
 
-{% block admin_title %}Edit: {{ page.title or page.slug }} — Site Editor{% endblock %}
+<div id="site-editor" data-page-id="{{ page.id }}" class="flex h-screen flex-col">
 
-{% block panel_content %}
-<div id="site-editor" data-page-id="{{ page.id }}" class="flex flex-col" style="height: calc(100vh - 8.5rem);">
-
-    {# ---- Top bar ---- #}
-    <div class="flex items-center gap-2 rounded-t-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2">
-        <a href="{{ url_for('admin_panel.public_site_pages') }}"
-           class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
-           title="Back to Pages"><i class="ti ti-arrow-left text-lg"></i></a>
+    {# ---- Thin top toolbar ---- #}
+    <div class="flex shrink-0 items-center gap-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2">
+        <a href="{{ preview_url.replace('?edit=1', '') }}"
+           class="inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+           title="Exit editor — back to the page">
+            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS" class="h-6 w-6">
+            <i class="ti ti-arrow-left"></i>
+        </a>
 
         <select onchange="if(this.value) window.location.href=this.value"
-                class="w-44 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">
+                class="h-9 w-44 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">
             {% for p in pages %}
             <option value="{{ url_for('admin_panel.site_editor', page_id=p.id) }}"
                     {{ 'selected' if p.id == page.id }}>{{ p.title or p.slug }}</option>
@@ -20,7 +45,7 @@
         </select>
 
         <button type="button" id="pse-add-section"
-                class="inline-flex items-center gap-1.5 rounded-lg bg-ecs-green px-3 py-2 text-sm font-semibold text-white hover:bg-ecs-green-dark">
+                class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-ecs-green px-3 text-sm font-semibold text-white hover:bg-ecs-green-dark">
             <i class="ti ti-plus"></i> Add section
         </button>
 
@@ -31,30 +56,30 @@
                 class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-arrow-forward-up text-lg"></i></button>
 
         <div class="mx-1 h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
-        <button type="button" data-device="desktop" title="Desktop preview"
-                class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 bg-gray-200 dark:bg-gray-600"><i class="ti ti-device-desktop text-lg"></i></button>
-        <button type="button" data-device="tablet" title="Tablet preview"
+        <button type="button" data-device="desktop" title="Desktop"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-600 dark:hover:bg-gray-700"><i class="ti ti-device-desktop text-lg"></i></button>
+        <button type="button" data-device="tablet" title="Tablet"
                 class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-device-tablet text-lg"></i></button>
-        <button type="button" data-device="mobile" title="Phone preview"
+        <button type="button" data-device="mobile" title="Phone"
                 class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-device-mobile text-lg"></i></button>
 
         <span id="pse-status" class="ml-auto text-xs font-medium text-gray-500 dark:text-gray-400">Loading…</span>
 
         <a href="{{ preview_url.replace('?edit=1', '?draft=1') }}" target="_blank" rel="noopener"
-           class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
+           class="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-gray-700 dark:text-gray-200 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
             <i class="ti ti-eye"></i> Preview
         </a>
         <button type="button" id="pse-publish"
-                class="inline-flex items-center gap-1.5 rounded-lg bg-ecs-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-ecs-blue-700">
+                class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-ecs-blue-600 px-4 text-sm font-bold text-white hover:bg-ecs-blue-700">
             <i class="ti ti-world-upload"></i> Publish
         </button>
     </div>
 
-    {# ---- Edit surface: the real page, same-origin ---- #}
-    <div class="relative flex-1 overflow-hidden rounded-b-2xl border-x border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900">
-        <div class="h-full w-full overflow-auto flex justify-center">
+    {# ---- Canvas: the real page, full-bleed ---- #}
+    <div class="relative flex-1 overflow-hidden bg-gray-100 dark:bg-gray-900">
+        <div class="flex h-full w-full justify-center overflow-auto">
             <iframe id="pse-frame" src="{{ preview_url }}" title="Page editor"
-                    class="h-full bg-white shadow-xl transition-all" style="width: 100%; border: 0;"></iframe>
+                    class="h-full w-full bg-white shadow-sm transition-all" style="border: 0;"></iframe>
         </div>
 
         {# ---- Slide-over settings / picker panel ---- #}
@@ -70,7 +95,7 @@
     </div>
 </div>
 
-{# vite_asset() emits the full <script type="module" …> tag (plus modulepreloads),
-   so render it directly — do NOT wrap it in another <script src="…">. #}
+{# vite_asset() emits the full <script type="module" …> tag — render it directly. #}
 {{ vite_asset('js/site-editor/shell.js') }}
-{% endblock %}
+</body>
+</html>

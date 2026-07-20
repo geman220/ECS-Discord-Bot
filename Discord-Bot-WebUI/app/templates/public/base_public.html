@@ -109,12 +109,16 @@
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     {% endif %}
 </head>
-<body class="bg-white dark:bg-gray-950 text-gray-800 dark:text-gray-200 antialiased min-h-screen flex flex-col {{ 'pt-8' if is_site_admin else '' }}">
+{# Admin bar shows when a site admin is viewing the live page, but NOT while
+   editing inside the site-editor iframe (?edit=1) — the editor's own toolbar
+   replaces it, and a second bar just steals canvas + confuses. #}
+{% set _admin_chrome = is_site_admin and not edit_mode|default(false) %}
+<body class="bg-white dark:bg-gray-950 text-gray-800 dark:text-gray-200 antialiased min-h-screen flex flex-col {{ 'pt-8' if _admin_chrome else '' }}">
 
-    {% include 'public/_admin_bar.html' %}
+    {% if _admin_chrome %}{% include 'public/_admin_bar.html' %}{% endif %}
 
     {# =================== NAV =================== #}
-    <header class="sticky {{ 'top-8' if is_site_admin else 'top-0' }} z-40 w-full border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-950/90 backdrop-blur">
+    <header class="sticky {{ 'top-8' if _admin_chrome else 'top-0' }} z-40 w-full border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-950/90 backdrop-blur">
         <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
             <a href="{{ url_for('public.home') }}" class="flex items-center gap-2.5 font-bold text-lg text-gray-900 dark:text-white">
                 <img src="{{ appearance.logo_url or imgs.logo }}" alt="{{ appearance.title }}" class="h-10 w-10 object-contain">
@@ -246,8 +250,12 @@
             </div>
         </div>
         <div class="border-t border-gray-200 dark:border-gray-800">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 text-center text-xs text-gray-400">
-                &copy; {{ current_year }} Emerald City Supporters Pub League. All rights reserved.
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
+                <span>&copy; {{ current_year }} Emerald City Supporters Pub League. All rights reserved.</span>
+                <span class="flex items-center gap-3">
+                    <a href="{{ url_for('legal.privacy_policy') }}" class="hover:text-ecs-green dark:hover:text-white">Privacy</a>
+                    <a href="{{ url_for('legal.terms_of_service') }}" class="hover:text-ecs-green dark:hover:text-white">Terms</a>
+                </span>
             </div>
         </div>
     </footer>
