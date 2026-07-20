@@ -782,22 +782,15 @@ services:
       retries: 3
       start_period: 180s
     volumes:
-      # CODE ISOLATION: publicweb runs a RELEASE CHECKOUT, not the live working
-      # tree — a portal-side `git pull` can no longer mutate the public site's
-      # code mid-flight (gunicorn recycles workers every 5000 requests and
-      # would silently import half-deployed code). Create it once with:
-      #   git worktree add ../publicweb-release master
-      #   cd ../publicweb-release/Discord-Bot-WebUI && npm ci   # boot build needs node_modules
-      # and advance it deliberately at each public release:
-      #   cd ../publicweb-release && git checkout <sha>
-      #   cd Discord-Bot-WebUI && npm ci
-      #   docker compose up -d --force-recreate publicweb
-      - ../publicweb-release/Discord-Bot-WebUI:/app
-      # SHARED MEDIA: uploads land in the portal's tree (admins upload via the
-      # portal), so the media dirs are bind-mounted from the LIVE tree into
-      # this container at the same paths/URLs.
-      - ./Discord-Bot-WebUI/app/static/img/publeague:/app/app/static/img/publeague
-      - ./Discord-Bot-WebUI/app/static/img/uploads:/app/app/static/img/uploads
+      # Shares the live code tree with webui, so it starts with zero extra setup
+      # (same as every other service). Isolation that matters for the "public
+      # must stay up while I restart the backend" goal comes from this being a
+      # SEPARATE CONTAINER: `docker compose restart webui` (routine backend dev)
+      # never touches publicweb. A full `docker compose up -d` after an image
+      # rebuild does recreate it (brief, deliberate — that's a real deploy).
+      # publicweb also only re-imports code on a worker recycle, so a mid-edit
+      # pull doesn't hit it until you deliberately restart/recreate it.
+      - ./Discord-Bot-WebUI:/app
       - ./Discord-Bot-WebUI/instance/firebase-service-account.json:/app/instance/firebase-service-account.json
       # publicweb's OWN compiled assets, isolated from webui (see publicweb_vitedist)
       - publicweb_vitedist:/app/app/static/vite-dist
