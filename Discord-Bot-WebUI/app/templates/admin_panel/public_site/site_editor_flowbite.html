@@ -25,7 +25,7 @@
 </head>
 <body class="h-screen overflow-hidden bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 antialiased">
 
-<div id="site-editor" data-page-id="{{ page.id }}" class="flex h-screen flex-col">
+<div id="site-editor" data-page-id="{{ page.id }}" data-exit-url="{{ preview_url.replace('?edit=1', '') }}" class="flex h-screen flex-col">
 
     {# ---- Thin top toolbar ---- #}
     <div class="flex shrink-0 items-center gap-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2">
@@ -95,7 +95,11 @@
     </div>
 </div>
 
-{# vite_asset() emits the full <script type="module" …> tag — render it directly. #}
+{# main-entry.js provides window.Swal (SweetAlert2) for publish/takeover/exit
+   confirms — without it the editor falls back to the browser's default confirm.
+   It adds no visible chrome here (the sidebar/nav/chat are template includes we
+   don't pull in). shell.js is loaded after and drives the editor. #}
+{{ vite_asset('js/main-entry.js') }}
 {{ vite_asset('js/site-editor/shell.js') }}
 </body>
 </html>

@@ -141,6 +141,20 @@ function initEditor(rootEl) {
     if (kind === 'add-section') return openSectionPicker(sid);
     if (kind === 'add-block') return openBlockMenu(bid);
 
+    if (kind === 'reorder-sections') {
+      // Drag-and-drop already reordered the iframe DOM; mirror it in the doc.
+      pushUndo();
+      const order = msg.order || [];
+      const bySid = Object.fromEntries(doc.sections.map((s) => [s.id, s]));
+      const seen = new Set();
+      const reordered = [];
+      order.forEach((id) => { if (bySid[id] && !seen.has(id)) { reordered.push(bySid[id]); seen.add(id); } });
+      doc.sections.forEach((s) => { if (!seen.has(s.id)) reordered.push(s); });
+      doc.sections = reordered;
+      scheduleSave({});
+      return;
+    }
+
     pushUndo();
     if (kind === 'move-section-up' || kind === 'move-section-down') {
       const i = sIdx(sid);
@@ -244,8 +258,21 @@ function initEditor(rootEl) {
       return;
     }
     if (data.success) {
-      toast('Published — the change is live.', 'success');
       publishBtn && publishBtn.classList.remove('animate-pulse');
+      // Close the editor after publishing — the natural "I'm done" flow. With
+      // Swal, offer to stay; without it, exit to the live page.
+      const exitUrl = root.getAttribute('data-exit-url');
+      if (window.Swal) {
+        const r = await window.Swal.fire({
+          title: 'Published! 🎉', text: 'Your changes are live.',
+          icon: 'success', showCancelButton: true,
+          confirmButtonText: 'View live page', cancelButtonText: 'Keep editing',
+        });
+        if (r.isConfirmed && exitUrl) { window.location.href = exitUrl; return; }
+      } else {
+        toast('Published — the change is live.', 'success');
+        if (exitUrl) window.location.href = exitUrl;
+      }
     } else {
       toast(data.error === 'empty_draft' ? 'Nothing to publish yet.' : 'Publish failed.', 'error');
     }
@@ -284,6 +311,8 @@ function initEditor(rootEl) {
       { key: 'width', label: 'Width', type: 'select', options: ['narrow', 'normal', 'wide'] },
       { key: 'align', label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] },
       { key: 'padding', label: 'Vertical padding', type: 'select', options: ['sm', 'md', 'lg', 'xl'] },
+      { key: 'bg_color', label: 'Background fill', type: 'coloropt' },
+      { key: 'text_color', label: 'Text color', type: 'coloropt', def: '#141a15' },
     ],
     columns: [
       { key: 'layout', label: 'Layout', type: 'select', options: ['50-50', '33-67', '67-33', '3col'] },
@@ -291,6 +320,8 @@ function initEditor(rootEl) {
     ],
     band: [
       { key: 'align', label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] },
+      { key: 'bg_color', label: 'Background fill', type: 'coloropt' },
+      { key: 'text_color', label: 'Text color', type: 'coloropt' },
     ],
   };
   const THEME_FIELD = { key: '__theme', label: 'Color theme', type: 'select',
@@ -369,22 +400,64 @@ function initEditor(rootEl) {
       wrap.className = 'mb-4';
       if (f.type === 'toggle') {
         wrap.innerHTML = FIELD.toggle(f, values[f.key]);
+      } else if (f.type === 'coloropt') {
+        // Optional color: a checkbox expresses "no custom color" (fall back to
+        // the theme); the picker holds the value. Plain type:'color' can't be
+        // unset, which would force a color onto every section.
+        const cval = values[f.key];
+        const on = !!cval;
+        wrap.innerHTML = `<label class="block text-sm font-medium mb-1.5">${f.label}</label>
+          <div class="flex items-center gap-2">
+            <input data-coloropt-on="${f.key}" type="checkbox" ${on ? 'checked' : ''} class="rounded">
+            <input data-coloropt-val="${f.key}" type="color" value="${escAttr(cval || f.def || '#40b050')}" class="h-9 w-14 rounded border-gray-300 ${on ? '' : 'opacity-40'}">
+            <span class="text-xs text-gray-400">use a custom color</span>
+          </div>`;
+        const cb = wrap.querySelector('[data-coloropt-on]');
+        const cv = wrap.querySelector('[data-coloropt-val]');
+        cb.addEventListener('change', () => cv.classList.toggle('opacity-40', !cb.checked));
+        cv.addEventListener('input', () => { cb.checked = true; cv.classList.remove('opacity-40'); });
       } else if (f.type === 'image') {
         const ref = values[f.key] || {};
-        const hasUrl = !!ref.url;
+        const focal = (Array.isArray(ref.focal) && ref.focal.length === 2) ? ref.focal : [0.5, 0.5];
         wrap.innerHTML = `<label class="block text-sm font-medium mb-1.5">${f.label}</label>
-          <div class="flex items-center gap-3">
-            <img data-preview src="${escAttr(hasUrl ? ref.url : '')}" class="h-14 w-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700 ${hasUrl ? '' : 'hidden'}">
-            <button type="button" data-pick-image="${f.key}" class="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200">Choose image…</button>
-          </div>`;
+          <div data-focal-box class="relative mb-2 hidden cursor-crosshair overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900" style="aspect-ratio:16/9;">
+            <img data-preview src="" class="h-full w-full object-cover" style="object-position:${Math.round(focal[0]*100)}% ${Math.round(focal[1]*100)}%;">
+            <span data-focal-dot class="pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-ecs-green shadow-md" style="left:${focal[0]*100}%;top:${focal[1]*100}%;"></span>
+          </div>
+          <p data-focal-hint class="mb-1.5 hidden text-xs text-gray-400">Click the image to set the focal point — what stays in view when it's cropped.</p>
+          <button type="button" data-pick-image="${f.key}" class="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200">Choose image…</button>`;
         const btn = wrap.querySelector('[data-pick-image]');
+        const box = wrap.querySelector('[data-focal-box]');
         const preview = wrap.querySelector('[data-preview]');
-        // Preserve an already-chosen asset so re-applying settings WITHOUT
-        // re-picking doesn't silently drop the image (the old code lost it).
-        if (typeof ref.asset_id === 'number') btn.dataset.assetId = ref.asset_id;
+        const dot = wrap.querySelector('[data-focal-dot]');
+        const hint = wrap.querySelector('[data-focal-hint]');
+        // Preserve an already-chosen asset + its focal so re-applying settings
+        // WITHOUT re-picking doesn't silently drop the image (the old code did).
+        btn.dataset.focalX = focal[0];
+        btn.dataset.focalY = focal[1];
+        const showImg = (url) => {
+          if (!url) return;
+          preview.src = url;
+          box.classList.remove('hidden');
+          hint.classList.remove('hidden');
+        };
+        const setFocal = (fx, fy) => {
+          fx = Math.min(1, Math.max(0, fx)); fy = Math.min(1, Math.max(0, fy));
+          btn.dataset.focalX = fx; btn.dataset.focalY = fy;
+          preview.style.objectPosition = `${Math.round(fx * 100)}% ${Math.round(fy * 100)}%`;
+          dot.style.left = `${fx * 100}%`; dot.style.top = `${fy * 100}%`;
+        };
+        box.addEventListener('click', (ev) => {
+          const r = box.getBoundingClientRect();
+          setFocal((ev.clientX - r.left) / r.width, (ev.clientY - r.top) / r.height);
+        });
+        if (typeof ref.asset_id === 'number') {
+          btn.dataset.assetId = ref.asset_id;
+          if (ref.url) showImg(ref.url); else mediaUrl(ref.asset_id).then(showImg);
+        }
         btn.addEventListener('click', async () => {
           const picked = await pickImage();
-          if (picked) { btn.dataset.assetId = picked.id; preview.src = picked.url; preview.classList.remove('hidden'); }
+          if (picked) { btn.dataset.assetId = picked.id; showImg(picked.url); }
         });
       } else if (f.type === 'link') {
         const link = values[f.key] || {};
@@ -443,6 +516,12 @@ function initEditor(rootEl) {
 
   function collectFields(fields, container, into) {
     fields.forEach((f) => {
+      if (f.type === 'coloropt') {
+        const on = container.querySelector(`[data-coloropt-on="${f.key}"]`);
+        const val = container.querySelector(`[data-coloropt-val="${f.key}"]`);
+        into[f.key] = (on && on.checked && val) ? val.value : null;  // null clears it
+        return;
+      }
       if (f.type === 'items') {
         const listEl = container.querySelector(`[data-items="${f.key}"]`);
         const arr = [];
@@ -461,7 +540,12 @@ function initEditor(rootEl) {
       }
       if (f.type === 'image') {
         const btn = container.querySelector(`[data-pick-image="${f.key}"]`);
-        if (btn && btn.dataset.assetId) into[f.key] = { asset_id: parseInt(btn.dataset.assetId, 10) };
+        if (btn && btn.dataset.assetId) {
+          const out = { asset_id: parseInt(btn.dataset.assetId, 10) };
+          const fx = parseFloat(btn.dataset.focalX), fy = parseFloat(btn.dataset.focalY);
+          if (!isNaN(fx) && !isNaN(fy)) out.focal = [fx, fy];
+          into[f.key] = out;
+        }
         return;
       }
       if (f.type === 'link') {
@@ -639,6 +723,21 @@ function initEditor(rootEl) {
   }
 
   // ---------- media picker ----------
+  // Stored image refs carry only asset_id; resolve the URL (once, cached) from
+  // the media list so an already-chosen image shows its preview + focal editor.
+  let mediaUrlCache = null;
+  async function mediaUrl(assetId) {
+    if (!mediaUrlCache) {
+      mediaUrlCache = {};
+      try {
+        const r = await fetch('/admin-panel/public-site/media/list');
+        const { assets } = await r.json();
+        (assets || []).forEach((a) => { mediaUrlCache[a.id] = a.url; });
+      } catch (e) { /* leave empty — preview just won't show */ }
+    }
+    return mediaUrlCache[assetId] || null;
+  }
+
   function pickImage() {
     return new Promise((resolve) => {
       openPanel('Choose an image');

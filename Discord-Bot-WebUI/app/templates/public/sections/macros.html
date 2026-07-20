@@ -495,7 +495,10 @@ bg-ecs-blue-600 text-white shadow-lg hover:bg-ecs-blue-700
 {% macro section_content(section, ctx, edit_mode) %}
 {% set s = section.settings %}
 {% set widths = {'narrow': 'max-w-3xl', 'normal': 'max-w-5xl', 'wide': 'max-w-7xl'} %}
+{# Optional per-section fill (hex-validated in the schema). #}
+{%- set _fill %}{% if s.bg_color %}background-color:{{ s.bg_color }};{% endif %}{% if s.text_color %}color:{{ s.text_color }};{% endif %}{% endset -%}
 <section class="{{ THEME_SECTION.get(section.theme, '') }} {{ PAD.get(s.padding, PAD['md']) }}"
+         {% if _fill %}style="{{ _fill }}"{% endif %}
          {% if edit_mode %}data-sid="{{ section.id }}" data-stype="content"{% endif %}>
     <div class="mx-auto {{ widths.get(s.width, 'max-w-5xl') }} px-4 sm:px-6 lg:px-8 {{ 'text-center' if s.align == 'center' else ('text-right' if s.align == 'right' else '') }}">
         <div class="space-y-6 {{ '[&>*]:mx-auto' if s.align == 'center' else '' }}">
@@ -534,7 +537,9 @@ bg-ecs-blue-600 text-white shadow-lg hover:bg-ecs-blue-700
 {% macro section_band(section, ctx, edit_mode) %}
 {% set s = section.settings %}
 {% set theme = section.theme if section.theme != 'inherit' else 'brand' %}
+{%- set _fill %}{% if s.bg_color %}background-color:{{ s.bg_color }};{% endif %}{% if s.text_color %}color:{{ s.text_color }};{% endif %}{% endset -%}
 <section class="{{ THEME_SECTION.get(theme, THEME_SECTION['brand']) }}"
+         {% if _fill %}style="{{ _fill }}"{% endif %}
          {% if edit_mode %}data-sid="{{ section.id }}" data-stype="band"{% endif %}>
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 {{ 'text-center' if s.align == 'center' else ('text-right' if s.align == 'right' else '') }}">
         <div class="space-y-4 {{ 'max-w-xl mx-auto' if s.align == 'center' else '' }}">

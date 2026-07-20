@@ -423,6 +423,16 @@ def _section_settings(stype, raw, notes, where):
         out['align'] = _enum(s.get('align'), ALIGNS, 'center')
     # Common knobs
     out['padding'] = _enum(s.get('padding'), SIZES, 'md')
+    # Optional per-section fill: a solid background + text color, both strictly
+    # hex-validated (validate_hex_color) so an author can't inject arbitrary CSS.
+    # Absent/invalid -> not set, so the section falls back to its theme.
+    if stype in ('content', 'band'):
+        bg = validate_hex_color(s.get('bg_color'))
+        if bg:
+            out['bg_color'] = bg
+        tc = validate_hex_color(s.get('text_color'))
+        if tc:
+            out['text_color'] = tc
     return out
 
 

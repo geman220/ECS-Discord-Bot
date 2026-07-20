@@ -174,6 +174,12 @@
       .catch(function (e) { console.error('draft clock action failed', e); });
   }
 
+  // SweetAlert2 confirm matching the admin panel's style, native confirm() fallback.
+  function ask(opts) {
+    if (window.Swal) return window.Swal.fire(Object.assign({ showCancelButton: true }, opts)).then(function (r) { return r.isConfirmed; });
+    return Promise.resolve(window.confirm(opts.title + (opts.text ? '\n' + opts.text : '')));
+  }
+
   function bind() {
     var b = bar(); if (!b) return;
     countdown();
@@ -196,11 +202,20 @@
       post(b.dataset.status === 'paused' ? '/admin-panel/draft/session/resume' : '/admin-panel/draft/session/pause');
     });
     var skip = document.getElementById('clockSkipBtn');
-    if (skip) skip.addEventListener('click', function () { if (confirm('Skip the current team and move to the next pick?')) post('/admin-panel/draft/session/skip'); });
+    if (skip) skip.addEventListener('click', function () {
+      ask({ icon: 'question', title: 'Skip this turn?', text: 'Moves to the next team without recording a pick.', confirmButtonText: 'Skip' })
+        .then(function (ok) { if (ok) post('/admin-panel/draft/session/skip'); });
+    });
     var back = document.getElementById('clockBackBtn');
-    if (back) back.addEventListener('click', function () { if (confirm('Move the clock back one pick? (This does not un-draft a player — use the roster ✕ to remove a pick.)')) post('/admin-panel/draft/session/back'); });
+    if (back) back.addEventListener('click', function () {
+      ask({ icon: 'question', title: 'Move the clock back one pick?', text: 'This does not un-draft a player — use the roster ✕ to remove a pick.', confirmButtonText: 'Move back' })
+        .then(function (ok) { if (ok) post('/admin-panel/draft/session/back'); });
+    });
     var end = document.getElementById('clockEndBtn');
-    if (end) end.addEventListener('click', function () { if (confirm('End the draft now? The clock stops for everyone. The order and picks are kept.')) post('/admin-panel/draft/session/end'); });
+    if (end) end.addEventListener('click', function () {
+      ask({ icon: 'warning', title: 'End the draft?', text: 'The clock stops for everyone. The order and all picks are kept.', confirmButtonText: 'End draft', confirmButtonColor: '#dc2626' })
+        .then(function (ok) { if (ok) post('/admin-panel/draft/session/end'); });
+    });
     var reset = document.getElementById('clockResetBtn');
     if (reset) reset.addEventListener('click', function () { post('/admin-panel/draft/session/timer', { extend_current: true }); });
     // +30s quick-add: additively extends the current pick's remaining time by 30 seconds.
@@ -209,11 +224,20 @@
     // Timer adjust: set a new per-pick length and apply it to the pick on the clock.
     var timer = document.getElementById('clockTimerBtn');
     if (timer) timer.addEventListener('click', function () {
-      var v = prompt('Seconds per pick (applies to the current pick and onward):');
-      if (v === null) return;
-      var secs = parseInt(v, 10);
-      if (isNaN(secs) || secs < 0) { alert('Enter a whole number of seconds (0 for no limit).'); return; }
-      post('/admin-panel/draft/session/timer', { seconds_per_pick: secs, extend_current: true });
+      function apply(v) { post('/admin-panel/draft/session/timer', { seconds_per_pick: parseInt(v, 10), extend_current: true }); }
+      if (window.Swal) {
+        window.Swal.fire({
+          title: 'Seconds per pick', text: 'Applies to the current pick and onward (0 for no limit).',
+          input: 'number', showCancelButton: true, confirmButtonText: 'Apply',
+          inputValidator: function (v) { var n = parseInt(v, 10); if (isNaN(n) || n < 0) return 'Enter a whole number of seconds (0 for no limit).'; }
+        }).then(function (r) { if (r.isConfirmed) apply(r.value); });
+      } else {
+        var v = prompt('Seconds per pick (applies to the current pick and onward):');
+        if (v === null) return;
+        var secs = parseInt(v, 10);
+        if (isNaN(secs) || secs < 0) { alert('Enter a whole number of seconds (0 for no limit).'); return; }
+        apply(secs);
+      }
     });
 
     // attach the live socket update (retry until the draft socket exists — covers

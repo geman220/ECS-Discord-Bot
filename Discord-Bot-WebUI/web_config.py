@@ -131,8 +131,13 @@ class Config:
     # saw "session timed out". Long-lived access tokens are safe here because
     # logout/revocation goes through the Redis blocklist (checked on every
     # request in app/init/jwt.py), so a token can still be killed before expiry.
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=30)
-    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)  # Match session lifetime
+    # 90d access: an idle member (off-season gap) must outlive the quiet months,
+    # or their session dies with no working refresh path (2026-07-20 incident:
+    # 30d pair minted together co-expired -> unrecoverable 401 loop).
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=90)
+    # Refresh MUST outlive access or refresh-on-401 is dead exactly when needed.
+    # Rotation on /refresh_token means any refresh call restarts this window.
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=180)
     
     # External Service Keys
     TWILIO_SID = os.getenv('TWILIO_SID')

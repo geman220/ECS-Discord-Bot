@@ -621,6 +621,30 @@
                 </div>
             </li>
 
+            {# Public Site (marketing website CMS) — top-level so it's not buried in Comms #}
+            {% if endpoint_exists('admin_panel.public_site_hub') %}
+            <li class="relative" data-dropdown-wrapper data-nav-item="public-site">
+                <button type="button" data-admin-dropdown="dropdown-public-site-nav"
+                        class="inline-flex items-center gap-2 px-2 lg:px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                    <i class="ti ti-world-www"></i>
+                    <span class="hidden lg:inline">Public Site</span>
+                    <i class="ti ti-chevron-down text-xs hidden lg:inline"></i>
+                </button>
+                <div id="dropdown-public-site-nav" class="hidden absolute left-0 z-50 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2">
+                        <a href="{{ url_for('admin_panel.public_site_hub') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-dashboard text-gray-400"></i>Website Hub</a>
+                        {% if endpoint_exists('admin_panel.public_site_pages') %}<a href="{{ url_for('admin_panel.public_site_pages') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-file-text text-gray-400"></i>Pages</a>{% endif %}
+                        {% if endpoint_exists('admin_panel.public_site_news') %}<a href="{{ url_for('admin_panel.public_site_news') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-news text-gray-400"></i>News</a>{% endif %}
+                        {% if endpoint_exists('admin_panel.public_site_faqs') %}<a href="{{ url_for('admin_panel.public_site_faqs') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-help text-gray-400"></i>FAQs</a>{% endif %}
+                        {% if endpoint_exists('admin_panel.site_editor_home') %}<a href="{{ url_for('admin_panel.site_editor_home') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-edit text-gray-400"></i>Edit Home Page</a>{% endif %}
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        {% if endpoint_exists('admin_panel.public_site_submissions') %}<a href="{{ url_for('admin_panel.public_site_submissions') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-inbox text-gray-400"></i>Form Submissions</a>{% endif %}
+                        {% if endpoint_exists('admin_panel.public_site_appearance') %}<a href="{{ url_for('admin_panel.public_site_appearance') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-palette text-gray-400"></i>Appearance</a>{% endif %}
+                    </div>
+                </div>
+            </li>
+            {% endif %}
+
             {# Communications #}
             <li class="relative" data-dropdown-wrapper data-nav-item="comms">
                 <button type="button" data-admin-dropdown="dropdown-comms-nav"

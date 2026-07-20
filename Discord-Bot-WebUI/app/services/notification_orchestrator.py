@@ -179,6 +179,8 @@ NOTIFICATION_ICONS = {
     NotificationType.FEEDBACK_CLOSED: 'ti ti-message-off',
     NotificationType.DRAFT_ON_THE_CLOCK: 'ti ti-clock-play',
     NotificationType.ISPY_SPOTTED: 'ti ti-camera',
+    NotificationType.ACCOUNT_APPROVED: 'ti ti-user-check',
+    NotificationType.ROLE_ASSIGNED: 'ti ti-id-badge',
 }
 
 

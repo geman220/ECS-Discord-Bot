@@ -201,8 +201,11 @@ function activateTextEditing(el) {
       license_key: 'gpl',
       toolbar: 'blocks | bold italic | link | bullist numlist | removeformat',
       block_formats: 'Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4',
+      // img MUST be here or TinyMCE silently strips every inline image from the
+      // richtext the moment you click to edit it (the sanitizer allows img, so
+      // these are valid content). Keep it in sync with html_sanitizer img attrs.
       valid_elements: 'p,br,strong/b,em/i,u,s,a[href|title|target],ul,ol,li,' +
-        'h1,h2,h3,h4,blockquote,span[class],code',
+        'h1,h2,h3,h4,blockquote,span[class],code,img[src|alt|width|height|loading]',
       setup(ed) {
         activeEditor = ed;
         ed.on('input change Undo Redo', () => emitText(el));
@@ -232,6 +235,65 @@ function deactivateTextEditing() {
 }
 
 // ---------------------------------------------------------------------------
+// Drag-and-drop section reordering (SortableJS, loaded on demand)
+// ---------------------------------------------------------------------------
+
+let sortLoading = null;
+function loadSortable() {
+  if (window.Sortable) return Promise.resolve();
+  if (sortLoading) return sortLoading;
+  sortLoading = new Promise((resolve) => {
+    const s = document.createElement('script');
+    s.src = '/static/vendor/libs/sortablejs/sortable.js';
+    s.onload = () => resolve();
+    s.onerror = () => resolve(); // degrade to the up/down buttons
+    document.head.appendChild(s);
+  });
+  return sortLoading;
+}
+
+function addDragHandle(sectionEl) {
+  if (sectionEl.querySelector(':scope > .pse-drag')) return;
+  if (getComputedStyle(sectionEl).position === 'static') sectionEl.style.position = 'relative';
+  const h = document.createElement('div');
+  h.className = 'pse-drag';
+  h.title = 'Drag to reorder section';
+  h.textContent = '⠿';
+  h.style.cssText = 'position:absolute;top:8px;right:8px;z-index:9997;width:28px;height:28px;' +
+    'display:flex;align-items:center;justify-content:center;background:#111827;color:#fff;' +
+    'border-radius:6px;cursor:grab;opacity:0;transition:opacity .15s;font-size:15px;line-height:1;';
+  sectionEl.addEventListener('mouseenter', () => { h.style.opacity = '1'; });
+  sectionEl.addEventListener('mouseleave', () => { h.style.opacity = '0'; });
+  sectionEl.appendChild(h);
+}
+
+let sortContainer = null;
+function setupDrag() {
+  loadSortable().then(() => {
+    if (!window.Sortable) return;
+    const first = document.querySelector('[data-sid]');
+    if (!first || !first.parentElement) return;
+    const container = first.parentElement;
+    // (Re)apply a drag handle to every top-level section — new ones arrive via
+    // swap/insert after this ran the first time.
+    container.querySelectorAll(':scope > [data-sid]').forEach(addDragHandle);
+    if (container === sortContainer) return; // Sortable already wired here
+    sortContainer = container;
+    new window.Sortable(container, {
+      draggable: '[data-sid]',
+      handle: '.pse-drag',
+      animation: 150,
+      onStart() { deselect(); post({ type: 'deselect' }); },
+      onEnd() {
+        const order = Array.from(container.querySelectorAll(':scope > [data-sid]'))
+          .map((el) => el.getAttribute('data-sid'));
+        post({ type: 'op', kind: 'reorder-sections', order });
+      },
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Parent -> bridge commands
 // ---------------------------------------------------------------------------
 
@@ -246,6 +308,7 @@ window.addEventListener('message', (e) => {
       tpl.innerHTML = msg.html.trim();
       const fresh = tpl.content.firstElementChild;
       if (fresh) el.replaceWith(fresh);
+      setupDrag();
     }
   } else if (msg.type === 'insert-section') {
     // html + afterSid (null = prepend)
@@ -257,6 +320,7 @@ window.addEventListener('message', (e) => {
       ? document.querySelector(`[data-sid="${CSS.escape(msg.afterSid)}"]`) : null;
     if (anchor) anchor.after(fresh); else document.querySelector('main, body').prepend(fresh);
     fresh.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setupDrag();
   } else if (msg.type === 'remove-section') {
     const el = document.querySelector(`[data-sid="${CSS.escape(msg.sid)}"]`);
     if (el) { deselect(); el.remove(); }
@@ -280,3 +344,4 @@ window.addEventListener('scroll', () => { if (selected) positionChrome(selected.
 window.addEventListener('resize', () => { if (selected) positionChrome(selected.el); });
 
 post({ type: 'ready' });
+setupDrag();

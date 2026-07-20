@@ -1572,7 +1572,8 @@ def draft_league_pitch_view(league_name: str):
         current_season_id=current_league.season_id,
         current_league_id=current_league.id,
         draft_clock_state=draft_clock_state,
-        viewer_team_ids=viewer_team_ids
+        viewer_team_ids=viewer_team_ids,
+        shell='console'  # match draft_league: live drafting always gets the console board (clock bar lives there)
     )
 
 
