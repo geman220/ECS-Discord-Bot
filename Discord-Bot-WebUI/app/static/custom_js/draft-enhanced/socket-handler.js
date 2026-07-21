@@ -24,10 +24,13 @@ function joinDraftRoom(socket) {
     socket.emit('join_draft_room', { league_name: leagueName });
     console.log(`[DraftEnhanced] Joining draft room: draft_${leagueName}`);
 
-    // Listen for join confirmation
-    socket.on('joined_room', function(data) {
-        console.log(`[DraftEnhanced] Successfully joined room: ${data.room}`);
-    });
+    // Listen for join confirmation (bind once — joinDraftRoom re-runs on every reconnect)
+    if (!socket._draftJoinedRoomBound) {
+        socket._draftJoinedRoomBound = true;
+        socket.on('joined_room', function(data) {
+            console.log(`[DraftEnhanced] Successfully joined room: ${data.room}`);
+        });
+    }
 }
 
 /**
@@ -59,14 +62,18 @@ export function setupDraftEnhancedSocket() {
         const socket = window.SocketManager.getSocket();
         window.draftEnhancedSocket = socket;
 
-        // Join the draft room for real-time updates
-        if (socket && socket.connected) {
-            joinDraftRoom(socket);
-        } else if (socket) {
-            // Wait for connection then join
+        // Join the draft room for real-time updates. ALWAYS register the connect
+        // handler (not only when currently disconnected): server-side room
+        // membership does not survive a reconnect (phone sleep/lock, network
+        // blip), so we must re-join on EVERY 'connect', or the board silently
+        // stops receiving pick/clock events after the first drop.
+        if (socket) {
             socket.on('connect', function() {
                 joinDraftRoom(socket);
             });
+            if (socket.connected) {
+                joinDraftRoom(socket);
+            }
         }
         return;
     }
@@ -87,13 +94,13 @@ export function setupDraftEnhancedSocket() {
     window.socket.on('player_removed_enhanced', handlePlayerRemovedEvent);
     window.socket.on('draft_error', handleDraftError);
 
-    // Join the draft room for real-time updates
+    // Join the draft room for real-time updates; re-join on EVERY reconnect
+    // (room membership is lost server-side when the socket drops).
+    window.socket.on('connect', function() {
+        joinDraftRoom(window.socket);
+    });
     if (window.socket.connected) {
         joinDraftRoom(window.socket);
-    } else {
-        window.socket.on('connect', function() {
-            joinDraftRoom(window.socket);
-        });
     }
 }
 
@@ -174,23 +181,29 @@ function addPlayerToTeamSidebar(player, teamId, teamName) {
     const profilePic = player.profile_picture_url || '/static/img/default_player.png';
     const position = player.favorite_position || 'Any';
 
+    // Player/team names are user-editable and land in innerHTML (element AND
+    // attribute positions) — escape everything interpolated below.
+    const escAttr = (v) => String(v == null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
     const playerRow = document.createElement('div');
     playerRow.className = 'flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg js-draggable-player';
     playerRow.setAttribute('draggable', 'true');
     playerRow.setAttribute('data-player-id', player.id);
 
     playerRow.innerHTML = `
-        <img src="${profilePic}" alt="${player.name}" class="w-8 h-8 rounded-full object-cover">
+        <img src="${escAttr(profilePic)}" alt="${escAttr(player.name)}" class="w-8 h-8 rounded-full object-cover">
         <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium text-gray-900 dark:text-white truncate">${player.name}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">${position}</div>
+            <div class="text-sm font-medium text-gray-900 dark:text-white truncate">${escAttr(player.name)}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">${escAttr(position)}</div>
         </div>
         <button class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
                 data-action="remove-player"
-                data-target-player-id="${player.id}"
-                data-team-id="${teamId}"
-                data-player-name="${player.name}"
-                data-team-name="${teamName || ''}">
+                data-target-player-id="${escAttr(player.id)}"
+                data-team-id="${escAttr(teamId)}"
+                data-player-name="${escAttr(player.name)}"
+                data-team-name="${escAttr(teamName || '')}">
             <i class="ti ti-x"></i>
         </button>
     `;

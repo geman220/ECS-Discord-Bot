@@ -32,8 +32,8 @@
     </div>
     <div class="flex items-center gap-3 p-4 lg:border-r border-gray-200 dark:border-gray-700">
       <div class="text-center">
-        <div id="draftClock" class="font-mono text-3xl font-bold tabular-nums {{ 'text-red-500' if clk.overdue else 'text-amber-500' }} leading-none">{% if clk.pick_deadline %}--:--{% else %}&infin;{% endif %}</div>
-        <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-1" id="clockLabel">{{ 'overdue' if clk.overdue else 'remaining' }}</div>
+        <div id="draftClock" class="font-mono text-3xl font-bold tabular-nums {{ 'text-red-500' if clk.overdue else 'text-amber-500' }} leading-none">{% if clk.status == 'paused' %}&mdash;&mdash;{% elif clk.pick_deadline %}--:--{% else %}&infin;{% endif %}</div>
+        <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-1" id="clockLabel">{{ 'paused' if clk.status == 'paused' else ('overdue' if clk.overdue else 'remaining') }}</div>
       </div>
       {% if nav_is_admin %}
       <div class="flex flex-col gap-1.5">
@@ -69,6 +69,8 @@
   function bar() { return document.getElementById('onTheClockBar'); }
   function csrf() { return document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''; }
   function fmt(sec) { if (sec == null) return '∞'; if (sec < 0) sec = 0; var m = Math.floor(sec/60), s = sec%60; return m + ':' + String(s).padStart(2,'0'); }
+  // Coach/team names are user-editable and land in innerHTML sinks below — always escape.
+  function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
   var tick = null;
   function countdown() {
@@ -76,6 +78,7 @@
     var b = bar(), el = document.getElementById('draftClock'), label = document.getElementById('clockLabel');
     if (!b || !el) return;
     var ds = b.getAttribute('data-deadline');
+    if (b.getAttribute('data-status') === 'paused') { el.textContent = '——'; if (label) label.textContent = 'paused'; return; }
     if (!ds) { el.textContent = '∞'; return; }
     var deadline = new Date(ds).getTime();
     function render() {
@@ -149,14 +152,14 @@
     var name = document.getElementById('clockTeamName'); if (name) name.textContent = (s.current_team && s.current_team.name) || '—';
     var meta = document.getElementById('clockMeta');
     if (meta) {
-      var coaches = ((s.current_team && s.current_team.coaches) || []).map(function (c) { return c.name; }).join(', ');
+      var coaches = ((s.current_team && s.current_team.coaches) || []).map(function (c) { return esc(c.name); }).join(', ');
       meta.innerHTML = (coaches ? ('Coach <span class="text-gray-900 dark:text-white">' + coaches + '</span> · ') : '') +
         'Round <span class="font-mono">' + (s.round != null ? s.round : '') + '</span> · Pick <span class="font-mono">#' + (s.overall_pick != null ? s.overall_pick : '') + '</span> of ' + (s.total_picks != null ? s.total_picks : '');
     }
     var next = document.getElementById('clockUpNext');
     if (next) {
       next.innerHTML = (s.up_next || []).filter(Boolean).map(function (t) {
-        return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs whitespace-nowrap text-gray-700 dark:text-gray-200">' + t.name + '</span>';
+        return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs whitespace-nowrap text-gray-700 dark:text-gray-200">' + esc(t.name) + '</span>';
       }).join('<i class="ti ti-chevron-right text-gray-400 text-xs" aria-hidden="true"></i>');
     }
     var prog = document.getElementById('clockProgress'); if (prog) prog.style.width = (s.progress_pct || 0) + '%';

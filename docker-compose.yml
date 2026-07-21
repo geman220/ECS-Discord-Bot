@@ -588,6 +588,19 @@ services:
       - "traefik.http.routers.webui-static.priority=30"
       - "traefik.http.routers.webui-static.service=webui"
       - "traefik.http.routers.webui-static.middlewares=secure-headers,gzip-compress"
+      # Draft-day router (HTTPS, NO rate limit): the live draft board + its APIs.
+      # ~25 coaches + spectators share ONE venue NAT IP during a draft; the shared
+      # per-IP rate-limit bucket (100/min below) would 429 the whole room at once
+      # before the Flask-level draft exemption ever runs. Same middlewares as
+      # webui-secure minus rate-limit. Flask-side abuse protection still applies
+      # to everything these routes call.
+      - "traefik.http.routers.webui-draft.entrypoints=websecure"
+      - "traefik.http.routers.webui-draft.rule=Host(`portal.ecsfc.com`) && (PathPrefix(`/draft`) || PathPrefix(`/admin-panel/draft`) || PathPrefix(`/api/v1/draft`))"
+      - "traefik.http.routers.webui-draft.tls=true"
+      - "traefik.http.routers.webui-draft.tls.certresolver=myresolver"
+      - "traefik.http.routers.webui-draft.priority=25"
+      - "traefik.http.routers.webui-draft.service=webui"
+      - "traefik.http.routers.webui-draft.middlewares=secure-headers,gzip-compress,webui-errors"
       # HTTPS redirect middleware
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"

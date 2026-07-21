@@ -916,19 +916,25 @@ class TestAdminAccessControlBehaviors:
     def test_when_admin_accesses_user_management_then_returns_success(
         self, global_admin_client, db, global_admin_role
     ):
-        """Admin users should be able to access user management."""
+        """Admin users should reach user management. /admin-panel/users is a hub
+        that redirects to the canonical comprehensive users page — an admin gets
+        forwarded there, not bounced to login/home."""
         response = global_admin_client.get('/admin-panel/users')
 
-        # Should succeed with 200
-        assert response.status_code == 200
+        assert response.status_code == 302
+        assert 'login' not in response.headers['Location']
+        assert '/admin-panel/users' in response.headers['Location']
 
     def test_when_admin_accesses_match_operations_then_returns_success(
         self, global_admin_client, db, global_admin_role
     ):
-        """Admin users should be able to access match operations."""
+        """Admin users should reach match operations. /match-operations/teams was
+        consolidated into league management and now redirects there — an admin
+        gets forwarded, not bounced to login/home."""
         response = global_admin_client.get('/admin-panel/match-operations/teams')
 
-        assert response.status_code == 200
+        assert response.status_code == 302
+        assert 'login' not in response.headers['Location']
 
 
 # =============================================================================

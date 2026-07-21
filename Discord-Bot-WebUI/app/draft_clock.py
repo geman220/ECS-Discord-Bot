@@ -198,8 +198,16 @@ def step_back(session, ds):
         target = (ds.current_overall_pick or 1) - 1
     if target < 1:
         target = 1
+    was_paused = ds.status == 'paused'
     set_clock_to(ds, target, team_ids)
-    ds.status = 'active'  # regaining the clock after a back-step
+    if was_paused:
+        # An admin stepping back DURING A PAUSE must not silently restart the
+        # clock — stay paused; Resume grants the re-instated pick a full clock.
+        ds.status = 'paused'
+        ds.pick_deadline = None
+        ds.pause_remaining_seconds = ds.seconds_per_pick
+    else:
+        ds.status = 'active'  # regaining the clock after a back-step
     return build_state(session, ds, team_ids=team_ids)
 
 
@@ -327,12 +335,16 @@ def queue_on_clock_push(ds):
         if not ds or ds.status != 'active' or not ds.current_team_id:
             return
         from app.tasks.tasks_push_notifications import send_on_the_clock_push
-        send_on_the_clock_push.delay(
+        # expires=120: if the draft queue has no live consumer (worker down/stuck),
+        # these must die in the broker rather than flood out as a burst of stale
+        # "you're on the clock" pushes when the worker comes back. Normal delivery
+        # is sub-second, so a 2-minute expiry never drops a legitimate push.
+        send_on_the_clock_push.apply_async(kwargs=dict(
             team_id=ds.current_team_id,
             round_no=ds.current_round,
             overall_pick=ds.current_overall_pick,
             seconds_per_pick=ds.seconds_per_pick or None,
-        )
+        ), expires=120)
     except Exception as e:  # never let a push enqueue break the draft
         logger.warning(f"queue_on_clock_push failed: {e}")
 

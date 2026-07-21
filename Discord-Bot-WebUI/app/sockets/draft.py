@@ -35,6 +35,30 @@ def handle_join_draft_room(data):
         emit('joined_room', {'room': room, 'league': league_name})
         logger.info(f"User {current_user.username} joined room: {room}")
 
+        # Re-sync the clock for THIS client. A reconnecting phone (sleep/lock,
+        # network blip) re-joins the room but would otherwise show a stale clock
+        # until the next transition. Read-only + best-effort: a failure here must
+        # never break the join.
+        try:
+            from app import draft_clock
+            from app.models import League, Season
+            db_league_name = {
+                'classic': 'Classic',
+                'premier': 'Premier',
+                'ecs_fc': 'ECS FC'
+            }.get(str(league_name).lower(), league_name)
+            with managed_session() as session:
+                league = session.query(League).join(Season).filter(
+                    League.name == db_league_name,
+                    Season.is_current == True  # noqa: E712
+                ).first()
+                if league:
+                    ds = draft_clock.get_session(session, league.season_id, league.id)
+                    if ds:
+                        emit('draft_clock_update', draft_clock.build_state(session, ds))
+        except Exception as e:
+            logger.debug(f"join_draft_room clock re-sync skipped: {e}")
+
 
 @socketio.on('draft_player_enhanced', namespace='/')
 def handle_draft_player_enhanced(data):

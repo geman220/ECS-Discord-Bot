@@ -487,6 +487,28 @@ def send_on_the_clock_push(self, session, team_id: int, round_no: int = None,
     league = session.query(League).filter(League.id == team.league_id).first()
     league_url_name = league.name.lower().replace(' ', '_') if league else ''
 
+    # Staleness guard: an admin Back/undo (or a very fast next pick) can move the
+    # clock off this team between enqueue and execution. Re-check the live session
+    # at SEND time rather than tell the wrong coaches they're up. A mismatch has
+    # two look-alike causes though: (a) the push is genuinely stale, or (b) we
+    # simply BEAT the enqueuing transaction's commit — the web start/skip routes
+    # are @transactional (commit at teardown, AFTER the enqueue) and mobile
+    # start/skip enqueue inside their open managed_session. So retry ONCE after a
+    # short delay: (b) resolves and the push sends; if it still mismatches it's
+    # (a) — drop it, its real transition enqueued a successor push.
+    if league:
+        from celery.exceptions import MaxRetriesExceededError
+        from app.models import DraftSession
+        ds = session.query(DraftSession).filter_by(
+            season_id=league.season_id, league_id=league.id
+        ).first()
+        if ds and (ds.status != 'active' or ds.current_team_id != team_id or
+                   (overall_pick and ds.current_overall_pick != overall_pick)):
+            try:
+                raise self.retry(countdown=3)
+            except MaxRetriesExceededError:
+                return {'success': True, 'team_id': team_id, 'notified': 0, 'reason': 'stale_clock'}
+
     # Coach user_ids for this team (any one coach counts as "in the draft" —
     # we notify them all so whoever has their phone handy sees it).
     user_ids = [uid for (uid,) in session.query(Player.user_id).join(

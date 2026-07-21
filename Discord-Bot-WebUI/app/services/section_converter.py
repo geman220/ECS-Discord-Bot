@@ -386,35 +386,48 @@ def build_guide_doc():
         toc += f'<li><a href="#{c["slug"]}">{c["title"]}</a></li>'
     toc += '</ul></nav>'
 
-    blocks = [
-        _b('richtext', html=(
-            '<p class="lead">This unofficial guide was created by players and '
-            'coaches to help people of all ages and experience levels who are new '
-            'to ECS Pub League — especially those new to soccer, learning the '
-            'game in the Classic division. Always defer to your coach; this is a '
-            'friendly companion, not official rules.</p>'
-            f'<p><a href="{doc_url}" target="_blank" rel="noopener">Read or '
-            'download the original on Google Docs &rarr;</a></p>')),
-        _b('richtext', html=toc),
-    ]
-    for c in chapters:
-        blocks.append(_b('richtext',
-                         html=f'<h2 id="{c["slug"]}">{c["title"]}</h2>\n{c["html"]}'))
+    def img(fn):
+        return {'url': f'/static/img/publeague/{fn}'}
+    # Photos interleaved between chapter groups to break up the long read.
+    breaks = ['2025-01__354555603_261773156445157_1463948238121785202_n-edited-1.jpg',
+              '2024-07__449616069_475069395115531_7943264348607003846_n-1024x576.jpg']
 
-    return {'v': 1, 'sections': [
+    sections = [
         _s('hero', [
             _b('heading', level=1, html='The Pub League Guide'),
-            _b('richtext', html='<p>Everything a new player wants to know — '
-                                'skills, positions, rules, and the on-field lexicon.</p>'),
-        ], size='sm'),
-        _s('content', blocks, width='narrow'),
-        _s('band', [
-            _b('heading', level=2, html='Ready to give it a try?'),
-            _b('cta_live', kind='waitlist_or_register', style='primary', align='center'),
-            _b('button', label='Read the FAQ', link={'kind': 'builtin', 'value': 'faqs'},
-               style='outline', align='center'),
-        ], align='center'),
-    ]}
+            _b('richtext', html='<p>Everything a new player wants to know — skills, '
+                                'positions, rules, and the on-field lexicon.</p>'),
+        ], theme='dark', size='lg', align='left', overlay='medium',
+           image=img('2024-07__449510587_474189858536818_1170912284728314372_n-1024x683.jpg')),
+        _s('content', [
+            _b('richtext', html=(
+                '<p class="lead">This unofficial guide was created by players and coaches '
+                'to help people of all ages and experience levels who are new to ECS Pub '
+                'League — especially those new to soccer, learning the game in the Classic '
+                'division. Always defer to your coach; this is a friendly companion, not '
+                'official rules.</p>'
+                f'<p><a href="{doc_url}" target="_blank" rel="noopener">Read or download '
+                'the original on Google Docs &rarr;</a></p>')),
+        ], width='narrow'),
+        # 'What's inside' contents, set apart in a light card.
+        _s('content', [_b('richtext', html=toc)], theme='light', width='narrow'),
+    ]
+    for i, c in enumerate(chapters):
+        # Each chapter is its OWN section (padding + anchor) — not one endless block.
+        sections.append(_s('content', [
+            _b('richtext', html=f'<h2 id="{c["slug"]}">{c["title"]}</h2>\n{c["html"]}'),
+        ], width='normal'))
+        if (i + 1) % 3 == 0 and i < len(chapters) - 1:
+            sections.append(_s('content', [
+                _b('image', image=img(breaks[(i // 3) % len(breaks)]), size='full', aspect='16:9'),
+            ], width='wide'))
+    sections.append(_s('band', [
+        _b('heading', level=2, html='Ready to give it a try?'),
+        _b('cta_live', kind='waitlist_or_register', style='primary', align='center'),
+        _b('button', label='Read the FAQ', link={'kind': 'builtin', 'value': 'faqs'},
+           style='outline', align='center'),
+    ], theme='brand', align='center'))
+    return {'v': 1, 'sections': sections}
 
 
 def build_placeholder_doc(title):

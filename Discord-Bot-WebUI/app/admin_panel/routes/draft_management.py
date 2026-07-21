@@ -771,6 +771,10 @@ def draft_session_resume():
     ds.pause_remaining_seconds = None
     state = draft_clock.build_state(db.session, ds)
     draft_clock.emit_clock(ds.league.name, state)
+    # Re-ping the on-the-clock team's coaches: the push enqueued at the original
+    # transition may have been dropped while paused (send-time staleness guard /
+    # broker expiry), and nothing else re-notifies them after a resume.
+    draft_clock.queue_on_clock_push(ds)
     return jsonify({'success': True, 'state': state})
 
 

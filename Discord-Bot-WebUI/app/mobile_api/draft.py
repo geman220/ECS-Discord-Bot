@@ -530,6 +530,14 @@ def draft_player(league_name: str):
     if not player_id or not team_id:
         return jsonify({"msg": "Missing player_id or team_id"}), 400
 
+    # Int-cast: string ids from a client would break the == comparisons against DB
+    # ints in check_turn and the clock-advance gate (pick recorded, clock stuck).
+    try:
+        player_id = int(player_id)
+        team_id = int(team_id)
+    except (TypeError, ValueError):
+        return jsonify({"msg": "Invalid player_id or team_id"}), 400
+
     current_user_id = int(get_jwt_identity())
 
     with managed_session() as session:
@@ -675,17 +683,27 @@ def draft_player(league_name: str):
         # Capture everything needed for the response + broadcasts while still attached.
         url_name = league_name.lower()
         player_name = player.name
+        player_fav_pos = player.favorite_position
+        player_pic = player.profile_picture_url
         player_pos_label = label_for(player.favorite_position)
         team_name = team.name
-        try:
-            enhanced = DraftService.get_enhanced_player_data([player], league.season_id)[0]
-        except Exception:
-            enhanced = {
-                'id': player.id, 'name': player.name,
-                'favorite_position': player.favorite_position or 'Any',
-                'profile_picture_url': player.profile_picture_url or '/static/img/default_player.png',
-            }
+        season_id_local = league.season_id
     # ---- lock released (transaction committed) ----
+
+    # Build the rich broadcast payload OUTSIDE the FOR UPDATE window: it fans out
+    # to attendance/image-cache/stat batch loaders (several queries) that must
+    # never run while the draft_session row lock is held — a slow stats read here
+    # would serialize every concurrent pick behind it. g.db_session stays open
+    # after the managed_session block (use_global), so `player` is still attached;
+    # any failure just falls back to the basic card.
+    try:
+        enhanced = DraftService.get_enhanced_player_data([player], season_id_local)[0]
+    except Exception:
+        enhanced = {
+            'id': player_id, 'name': player_name,
+            'favorite_position': player_fav_pos or 'Any',
+            'profile_picture_url': player_pic or '/static/img/default_player.png',
+        }
 
     # Post-commit side effects (NO lock held — never do broker/Discord/cache I/O inside
     # the FOR UPDATE txn): coach push, Discord, cache, live broadcasts. `ds` is detached
@@ -779,6 +797,16 @@ def remove_player_from_team(league_name: str, player_id: int):
         # Clear primary team if it was this team
         if player.primary_team_id == team.id:
             player.primary_team_id = None
+
+        # Delete the CURRENT-season PlayerTeamSeason row for this team (mirrors the
+        # web socket removal). The Discord role calculators are PTS-first, so a
+        # preserved row would make the NEXT role sync (e.g. this player redrafted
+        # to another team) RE-GRANT the removed team's role. Past-season rows are
+        # the historical record and are left untouched.
+        if league.season_id:
+            session.query(PlayerTeamSeason).filter_by(
+                player_id=player_id, team_id=team.id, season_id=league.season_id
+            ).delete(synchronize_session=False)
 
         # Remove from draft history
         try:
@@ -1159,8 +1187,10 @@ def resume_draft_clock(league_name: str):
             ds.pick_deadline = datetime.utcnow() + timedelta(seconds=secs)
         ds.pause_remaining_seconds = None
         return draft_clock.build_state(session, ds)
+    # push_next: re-ping the on-the-clock team — the transition push may have been
+    # dropped while paused (send-time staleness guard / broker expiry).
     return _clock_control(league_name, _mutate, allow_states=('paused',),
-                          err_msg='No paused draft to resume')
+                          err_msg='No paused draft to resume', push_next=True)
 
 
 @mobile_api_v2.route('/draft/<league_name>/end', methods=['POST'])
@@ -1239,6 +1269,13 @@ def undo_last_pick(league_name: str):
             team.players.remove(player)
         if player and player.primary_team_id == undo_team_id:
             player.primary_team_id = None
+        # Delete the current-season PTS row too — the role calculators are
+        # PTS-first, so leaving it makes a later role sync re-grant this team's
+        # Discord role to the undone player (mirrors the web socket removal).
+        if league.season_id:
+            session.query(PlayerTeamSeason).filter_by(
+                player_id=undo_player_id, team_id=undo_team_id, season_id=league.season_id
+            ).delete(synchronize_session=False)
         try:
             DraftService.remove_draft_pick(
                 session=session, player_id=undo_player_id,

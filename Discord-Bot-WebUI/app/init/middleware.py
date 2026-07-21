@@ -185,6 +185,12 @@ def _init_rate_limiting(app):
                 # exempt above); this covers the board + supporting AJAX.
                 '/draft/',
                 '/admin-panel/draft/',
+
+                # Mobile draft API: coaches at the draft venue share one NAT IP,
+                # and the limiter is IP-keyed — without this the whole room shares
+                # a single bucket and phones 429 mid-draft. Draft endpoints only;
+                # the rest of /api/v1 stays limited.
+                '/api/v1/draft',
             ]
             return any(request.path.startswith(path) for path in exempt_paths)
 

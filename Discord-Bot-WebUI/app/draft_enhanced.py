@@ -1699,7 +1699,13 @@ def api_draft_player():
         
         if not all([player_id, team_id, league_name]):
             return jsonify({'error': 'Missing required data'}), 400
-        
+
+        try:
+            player_id = int(player_id)
+            team_id = int(team_id)
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Invalid player or team ID'}), 400
+
         session = g.db_session
         
         # Get the league and validate (from current season)
@@ -1722,7 +1728,32 @@ def api_draft_player():
             return jsonify({'error': 'Player not found'}), 404
         if not team:
             return jsonify({'error': 'Team not found'}), 404
-        
+
+        # Serialize with every other pick path (web socket + mobile REST) and enforce
+        # the on-the-clock turn. FOR UPDATE on the draft_session row means the
+        # already-drafted check below runs under the same lock that protects those
+        # paths — this fallback can no longer race them into a double-roster or
+        # bypass turn enforcement. ds is None in free-form mode (no session row),
+        # in which case check_turn is a no-op, matching the socket path.
+        from app import draft_clock
+        ds = draft_clock.get_session(session, league.season_id, league.id, for_update=True)
+        is_admin = False
+        try:
+            from app.models.core import Role, user_roles
+            is_admin = session.query(user_roles.c.user_id).join(
+                Role, Role.id == user_roles.c.role_id
+            ).filter(
+                user_roles.c.user_id == current_user.id,
+                Role.name.in_(['Pub League Admin', 'Global Admin'])
+            ).first() is not None
+        except Exception:
+            is_admin = False
+        ok, _turn_code = draft_clock.check_turn(ds, team_id, is_admin)
+        if not ok:
+            on_clock = session.query(Team).filter(Team.id == ds.current_team_id).first() if ds else None
+            on_clock_name = on_clock.name if on_clock else 'another team'
+            return jsonify({'error': f"It's {on_clock_name}'s pick — they're on the clock"}), 409
+
         # Check if player is already on a team in this league
         existing_assignment = session.query(player_teams).filter(
             player_teams.c.player_id == player_id,
@@ -1775,9 +1806,28 @@ def api_draft_player():
         except Exception as e:
             logger.error(f"Failed to record draft pick: {str(e)}")
             # Don't fail the entire operation if draft history fails
-        
+
+        # Advance the clock UNDER THE SAME LOCK when the on-the-clock team picked
+        # (an admin's out-of-turn add leaves the clock put) — mirrors the socket
+        # path. with_state=False: the ~5 read queries of build_state run after
+        # commit, outside the lock window.
+        advanced = False
+        if ds and ds.status == 'active' and (not ds.current_team_id or ds.current_team_id == team_id):
+            draft_clock.advance(session, ds, with_state=False)
+            advanced = True
+
         session.commit()
-        
+
+        # Post-commit: clock broadcast + on-the-clock push (never inside the txn).
+        if ds:
+            try:
+                clock_payload = draft_clock.build_state(session, ds)
+                draft_clock.emit_clock(league_name, clock_payload)
+            except Exception as _clk_err:
+                logger.warning(f"draft HTTP-fallback clock emit failed: {_clk_err}")
+            if advanced:
+                draft_clock.queue_on_clock_push(ds)
+
         # Mark player for Discord update
         mark_player_for_discord_update(session, player_id)
         
@@ -1801,7 +1851,12 @@ def api_draft_player():
         
     except Exception as e:
         logger.error(f"Error in API draft player: {str(e)}", exc_info=True)
-        session.rollback()
+        # `session` is unbound if the exception fired before its assignment
+        # (e.g. a malformed request body) — roll back via g directly, guarded.
+        try:
+            g.db_session.rollback()
+        except Exception:
+            pass
         return jsonify({'error': 'Internal server error'}), 500
 
 
