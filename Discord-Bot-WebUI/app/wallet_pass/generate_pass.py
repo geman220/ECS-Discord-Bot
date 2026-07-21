@@ -146,6 +146,20 @@ class ECSFCPassGenerator:
             team_name = player.primary_team.name
         elif hasattr(player, 'teams') and player.teams and len(player.teams) > 0:
             team_name = player.teams[0].name
+
+        # Pre-reveal (make_teams_public off): never bake a hidden Pub League
+        # team into a pass — passes are fetchable by any member (and the
+        # legacy pass route is unauthenticated), and the name also lands in
+        # the plaintext barcode below.
+        try:
+            from app.services.team_visibility import teams_are_public, is_current_pub_league_team
+            if not teams_are_public():
+                shown_team = player.primary_team or (player.teams[0] if getattr(player, 'teams', None) else None)
+                if shown_team is not None and is_current_pub_league_team(shown_team):
+                    team_name = "Unassigned"
+        except Exception as e:
+            logger.warning(f"Wallet pass team-visibility check failed, hiding team: {e}")
+            team_name = "Unassigned"
             
         league_name = player.league.name if player.league else "ECS Pub League"
         

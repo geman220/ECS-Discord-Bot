@@ -1569,11 +1569,18 @@ def _extract_create_team_data(session, team_id: int):
             return None
     
     logger.info(f"Found team {team_id}: {team.name} in league {team.league.name if team.league else 'No League'}")
-    
+
+    # Read the reveal toggle here (phase 1 has the DB session) so the async
+    # phase can create hidden channels while make_teams_public is off.
+    from app.models.admin_config import AdminConfig
+    cfg = session.query(AdminConfig).filter_by(key='make_teams_public', is_enabled=True).first()
+    teams_public = cfg.parsed_value if cfg else True
+
     return {
         'team_id': team_id,
         'team_name': team.name,
-        'league_name': team.league.name if team.league else None
+        'league_name': team.league.name if team.league else None,
+        'teams_public': teams_public
     }
 
 
@@ -1581,11 +1588,12 @@ async def _execute_create_team_discord_async(data):
     """Execute Discord resource creation without database session."""
     # Create Discord channel using async-only approach
     from app.discord_utils import create_discord_channel_async_only
-    
+
     channel_result = await create_discord_channel_async_only(
-        data['team_name'], 
-        data['league_name'], 
-        data['team_id']
+        data['team_name'],
+        data['league_name'],
+        data['team_id'],
+        teams_public=data.get('teams_public', True)
     )
     
     return {
@@ -1638,6 +1646,77 @@ create_team_discord_resources_task._final_db_update = _update_team_after_discord
 
 # Also set the _two_phase attribute as a fallback
 create_team_discord_resources_task._two_phase = True
+
+
+def _extract_team_visibility_data(session, make_public: bool):
+    """Collect current Pub League teams with Discord channel + player role IDs."""
+    from app.models import League
+
+    season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
+    teams = []
+    if season:
+        leagues = session.query(League).filter_by(season_id=season.id).all()
+        for league in leagues:
+            if league.name not in ('Premier', 'Classic'):
+                continue
+            for team in session.query(Team).filter_by(league_id=league.id).all():
+                if team.discord_channel_id and team.discord_player_role_id:
+                    teams.append({
+                        'name': team.name,
+                        'channel_id': team.discord_channel_id,
+                        'player_role_id': team.discord_player_role_id
+                    })
+    else:
+        logger.warning("sync_team_channel_visibility: no current Pub League season found")
+
+    return {'make_public': bool(make_public), 'teams': teams}
+
+
+async def _execute_team_visibility_async(data):
+    """Flip the player-role view overwrite on every team channel."""
+    from app.discord_utils import set_team_channel_player_visibility
+
+    guild_id = int(Config.SERVER_ID)
+    make_public = data['make_public']
+    updated, failed = 0, []
+
+    async with aiohttp.ClientSession() as session_http:
+        for team in data['teams']:
+            ok = await set_team_channel_player_visibility(
+                guild_id, team['channel_id'], team['player_role_id'], make_public, session_http
+            )
+            if ok:
+                updated += 1
+            else:
+                failed.append(team['name'])
+            # Stay under Discord rate limits
+            await asyncio.sleep(0.5)
+
+    result = {
+        'success': len(failed) == 0,
+        'message': f"{'Revealed' if make_public else 'Hid'} {updated}/{len(data['teams'])} team channels",
+        'updated': updated,
+        'failed': failed
+    }
+    if failed:
+        logger.error(f"sync_team_channel_visibility failed for teams: {failed}")
+    else:
+        logger.info(result['message'])
+    return result
+
+
+@celery_task(name='app.tasks.tasks_discord.sync_team_channel_visibility_task', queue='discord')
+async def sync_team_channel_visibility_task(self, session, make_public: bool):
+    """
+    Sync every current Pub League team channel's player-role view permission
+    with the make_teams_public toggle. Dispatched when the toggle changes.
+    """
+    pass
+
+
+sync_team_channel_visibility_task._extract_data = _extract_team_visibility_data
+sync_team_channel_visibility_task._execute_async = _execute_team_visibility_async
+sync_team_channel_visibility_task._two_phase = True
 
 
 async def delete_channel(channel_id: str) -> bool:

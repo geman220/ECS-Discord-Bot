@@ -58,6 +58,16 @@ def send_rsvp_reminders(self, session):
             Match.week_type.in_(['REGULAR', 'PLAYOFF'])
         ).all()
 
+        # Pre-reveal (make_teams_public off): skip hidden Pub League matches —
+        # the reminder names the opponent, revealing the recipient's team.
+        from app.services.team_visibility import teams_are_public, is_current_pub_league_team
+        if not teams_are_public():
+            matches = [
+                m for m in matches
+                if not (is_current_pub_league_team(m.home_team)
+                        or is_current_pub_league_team(m.away_team))
+            ]
+
         logger.info(f"Found {len(matches)} matches for RSVP reminders")
 
         total_reminders = 0
@@ -128,6 +138,16 @@ def send_match_reminders_daily(self, session):
             Match.is_special_week == False,
             Match.week_type.in_(['REGULAR', 'PLAYOFF'])
         ).all()
+
+        # Pre-reveal (make_teams_public off): these DMs name opponents and let
+        # a player infer their own team. Skip hidden Pub League matches.
+        from app.services.team_visibility import teams_are_public, is_current_pub_league_team
+        if not teams_are_public():
+            pub_matches = [
+                m for m in pub_matches
+                if not (is_current_pub_league_team(m.home_team)
+                        or is_current_pub_league_team(m.away_team))
+            ]
 
         ecs_fc_matches = session.query(EcsFcMatch).filter(
             EcsFcMatch.match_date == target_date,
@@ -374,6 +394,14 @@ def send_match_reminder_for_match(self, session, match_id: int, match_type: str 
             match = session.query(Match).get(match_id)
             if not match:
                 return {'success': False, 'error': 'Match not found'}
+
+            # Pre-reveal: reminders name opponents, revealing the team
+            from app.services.team_visibility import teams_are_public, is_current_pub_league_team
+            if not teams_are_public() and (is_current_pub_league_team(match.home_team)
+                                           or is_current_pub_league_team(match.away_team)):
+                return {'success': False,
+                        'error': 'Teams are hidden until they are announced — reminders are disabled for this match.'}
+
             target_date = match.date
             responses = _get_rsvp_responses(match, 'pub')
             roster = []
@@ -437,6 +465,13 @@ def send_rsvp_reminder_for_match(self, session, match_id: int):
         match = session.query(Match).get(match_id)
         if not match:
             return {'success': False, 'error': 'Match not found'}
+
+        # Pre-reveal: reminders name the opponent, revealing the team
+        from app.services.team_visibility import teams_are_public, is_current_pub_league_team
+        if not teams_are_public() and (is_current_pub_league_team(match.home_team)
+                                       or is_current_pub_league_team(match.away_team)):
+            return {'success': False,
+                    'error': 'Teams are hidden until they are announced — reminders are disabled for this match.'}
 
         non_responders = _get_non_responding_players(match)
         if not non_responders:

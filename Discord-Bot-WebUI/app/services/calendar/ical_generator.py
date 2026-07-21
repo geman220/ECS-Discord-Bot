@@ -197,7 +197,17 @@ class ICalGenerator:
         if not player or not player.teams:
             return
 
-        team_ids = [team.id for team in player.teams]
+        # Pre-reveal (make_teams_public off): this feed is the player's own
+        # calendar — emitting their hidden Pub League team's fixtures reveals
+        # the assignment. Skip hidden teams unless coach/admin-exempt.
+        teams = player.teams
+        from app.services.team_visibility import teams_are_public, is_current_pub_league_team, user_is_team_exempt
+        if not teams_are_public() and not user_is_team_exempt(user, session=self.session):
+            teams = [t for t in teams if not is_current_pub_league_team(t)]
+        if not teams:
+            return
+
+        team_ids = [team.id for team in teams]
 
         matches = self.session.query(Match).options(
             joinedload(Match.home_team),

@@ -1000,6 +1000,16 @@ class PitchViewSystem {
     handlePlayerDrafted(data) {
         this.hideLoading();
 
+        // ALWAYS drop the player from the available pool first. With coach
+        // scoping, most teams' pitch containers aren't rendered for this viewer;
+        // addPlayerToPosition returns early for those and would never reach its
+        // own pool-removal — leaving already-drafted players in the pool all
+        // draft (dead picks, stale counts). Removal is idempotent, so the own-
+        // team path calling it again inside addPlayerToPosition is harmless.
+        if (data.player && data.player.id != null) {
+            this.removePlayerFromAvailable(data.player.id);
+        }
+
         // Add player to the specified position (default to bench if no position specified)
         const position = data.position || 'bench';
         this.addPlayerToPosition(data.player, position, data.team_id, false);

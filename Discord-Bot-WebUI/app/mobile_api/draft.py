@@ -69,16 +69,73 @@ def _current_league(session, db_league_name):
     ).first()
 
 
-def _user_is_admin(session, user_id) -> bool:
-    """True if the user holds a Pub League Admin / Global Admin role (session query,
-    so it works outside a request/current_user context)."""
+def _user_has_any_role(session, user_id, role_names) -> bool:
+    """True if the user holds any of the given Flask roles (session query, so it
+    works outside a request/current_user context)."""
     from app.models.core import Role, user_roles
     return session.query(user_roles.c.user_id).join(
         Role, Role.id == user_roles.c.role_id
     ).filter(
         user_roles.c.user_id == user_id,
-        Role.name.in_(DRAFT_ADMIN_ROLES),
+        Role.name.in_(role_names),
     ).first() is not None
+
+
+def _user_is_admin(session, user_id) -> bool:
+    """True if the user holds a Pub League Admin / Global Admin role."""
+    return _user_has_any_role(session, user_id, DRAFT_ADMIN_ROLES)
+
+
+def _is_current_season_team_coach(session, user_id) -> bool:
+    """True when the user coaches ANY team in a current-season league via
+    player_teams.is_coach — the draft's team-level source of coach truth.
+
+    On draft night 2026-07-20, six real coaches carried is_coach=True rows but
+    lacked the Flask coach role, so the role decorator 403'd them (×186) out of
+    the draft list entirely. Team-level coach status must also grant VIEW access;
+    regular players (no is_coach row) are still rejected."""
+    return session.query(player_teams.c.team_id).join(
+        Player, Player.id == player_teams.c.player_id
+    ).join(
+        Team, Team.id == player_teams.c.team_id
+    ).join(
+        League, League.id == Team.league_id
+    ).join(
+        Season, Season.id == League.season_id
+    ).filter(
+        Player.user_id == user_id,
+        player_teams.c.is_coach == True,  # noqa: E712
+        Season.is_current == True,  # noqa: E712
+    ).first() is not None
+
+
+def _draft_access_required(f):
+    """Auth gate for coach-level draft endpoints: any DRAFT_ROLES holder OR a
+    current-season player_teams.is_coach coach.
+
+    Replaces @_draft_access_required on these endpoints — the pure role
+    check 403'd real coaches whose coach-ness lives only on player_teams (draft
+    night 2026-07-20, ×186 across six coaches). The socket gate already honors
+    player_teams.is_coach, so this brings the REST endpoints in line with it.
+    Same contract otherwise: 401 without a valid JWT, 403 for regular players.
+    Admin-only endpoints keep @jwt_role_required(DRAFT_ADMIN_ROLES)."""
+    from functools import wraps
+
+    @wraps(f)
+    @jwt_required()
+    def wrapper(*args, **kwargs):
+        user_id = int(get_jwt_identity())
+        with managed_session() as session:
+            allowed = (
+                _user_has_any_role(session, user_id, DRAFT_ROLES)
+                or _is_current_season_team_coach(session, user_id)
+            )
+        if not allowed:
+            return jsonify({
+                "msg": f"Access denied: Required roles: {', '.join(DRAFT_ROLES)}"
+            }), 403
+        return f(*args, **kwargs)
+    return wrapper
 
 
 def _my_coached_team_ids(session, user_id, league_id):
@@ -106,15 +163,27 @@ def _emit_to_draft_rooms(event, payload, url_name, db_name):
 
 @mobile_api_v2.route('/draft/leagues', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
 def get_draft_leagues():
     """
     Get list of leagues available for drafting.
 
+    Access: DRAFT_ROLES holders, OR anyone with a player_teams.is_coach=True row
+    for a current-season team. The pure @jwt_role_required gate 403'd real
+    coaches whose coach-ness lives only on player_teams (draft night 2026-07-20),
+    so the check is done inline here instead of via the decorator. Regular
+    players still get 403.
+
     Returns:
         JSON with list of leagues and their draft status
     """
+    current_user_id = int(get_jwt_identity())
     with managed_session() as session:
+        if not (_user_has_any_role(session, current_user_id, DRAFT_ROLES)
+                or _is_current_season_team_coach(session, current_user_id)):
+            return jsonify({
+                "msg": f"Access denied: Required roles: {', '.join(DRAFT_ROLES)}"
+            }), 403
+
         # Get current season
         current_season = session.query(Season).filter_by(
             is_current=True,
@@ -127,8 +196,11 @@ def get_draft_leagues():
                 "message": "No current season found"
             }), 200
 
-        # Get leagues for current season
-        leagues = session.query(League).filter_by(
+        # Get leagues for current season. Eager-load teams + players in bulk —
+        # the loop below used to lazy-load them per league / per team (N+1).
+        leagues = session.query(League).options(
+            selectinload(League.teams).selectinload(Team.players)
+        ).filter_by(
             season_id=current_season.id
         ).all()
 
@@ -160,7 +232,7 @@ def get_draft_leagues():
 
 @mobile_api_v2.route('/draft/<league_name>/status', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@_draft_access_required
 def get_draft_status(league_name: str):
     """
     Get draft status and analytics for a league.
@@ -175,6 +247,15 @@ def get_draft_status(league_name: str):
     if not db_league_name:
         return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
 
+    # FAST PATH: the whole response is league-level (no per-user data), so serve
+    # it straight from Redis. Short TTL, and every pick's clear_all_league_caches
+    # drops the key, so post-pick polls see fresh counts immediately. The old
+    # path lazy-loaded league.teams then team.players per team (~15 queries) on
+    # EVERY poll — one of the draft-night pool killers (2026-07-20).
+    cached = DraftCacheService.get_draft_status_cache(db_league_name)
+    if cached is not None:
+        return jsonify(cached), 200
+
     with managed_session() as session:
         # Get current league
         current_league = (
@@ -188,38 +269,58 @@ def get_draft_status(league_name: str):
         if not current_league:
             return jsonify({"msg": f"No current {db_league_name} league found"}), 404
 
-        # Get teams (excluding Practice)
-        teams = [t for t in current_league.teams if t.name != "Practice"]
-
         # Configured picks-per-team (DraftSession.rounds), falling back to 15.
         from app import draft_clock
         roster_size = draft_clock.roster_target(session, current_league.season_id, current_league.id)
 
-        # Calculate analytics
-        teams_data = []
-        total_drafted = 0
+        # Teams (excluding Practice) + roster counts via aggregates — no lazy
+        # collection walks.
+        team_rows = session.query(Team.id, Team.name).filter(
+            Team.league_id == current_league.id,
+            Team.name != "Practice"
+        ).order_by(Team.id.asc()).all()
+        team_ids = [tid for tid, _ in team_rows]
+
+        counts_by_team = {}
         position_counts = {}
+        total_drafted = 0
+        if team_ids:
+            counts_by_team = dict(
+                session.query(player_teams.c.team_id, func.count(Player.id))
+                .join(Player, Player.id == player_teams.c.player_id)
+                .filter(
+                    player_teams.c.team_id.in_(team_ids),
+                    Player.is_current_player == True  # noqa: E712
+                )
+                .group_by(player_teams.c.team_id)
+                .all()
+            )
+            total_drafted = sum(counts_by_team.values())
 
-        for team in teams:
-            team_players = [p for p in team.players if p.is_current_player]
-            team_count = len(team_players)
-            total_drafted += team_count
+            # Position distribution across all drafted players (labels can
+            # collapse, e.g. unknown/None -> 'Unknown', so sum per label).
+            for fav_pos, cnt in (
+                session.query(Player.favorite_position, func.count(Player.id))
+                .join(player_teams, player_teams.c.player_id == Player.id)
+                .filter(
+                    player_teams.c.team_id.in_(team_ids),
+                    Player.is_current_player == True  # noqa: E712
+                )
+                .group_by(Player.favorite_position)
+                .all()
+            ):
+                pos = label_for(fav_pos) or 'Unknown'
+                position_counts[pos] = position_counts.get(pos, 0) + cnt
 
-            # Count positions
-            for player in team_players:
-                pos = label_for(player.favorite_position) or 'Unknown'
-                position_counts[pos] = position_counts.get(pos, 0) + 1
-
-            teams_data.append({
-                "id": team.id,
-                "name": team.name,
-                "player_count": team_count,
-                "roster_size": roster_size,
-                "spots_remaining": max(0, roster_size - team_count)
-            })
+        teams_data = [{
+            "id": tid,
+            "name": tname,
+            "player_count": counts_by_team.get(tid, 0),
+            "roster_size": roster_size,
+            "spots_remaining": max(0, roster_size - counts_by_team.get(tid, 0))
+        } for tid, tname in team_rows]
 
         # Get available player count
-        team_ids = [t.id for t in teams]
         all_leagues = session.query(League).filter(League.name == db_league_name).all()
         league_ids = [l.id for l in all_leagues]
 
@@ -254,25 +355,28 @@ def get_draft_status(league_name: str):
             DraftOrderHistory.season_id == current_league.season_id
         ).order_by(DraftOrderHistory.draft_position.desc()).first()
 
-        return jsonify({
+        payload = {
             "league_id": current_league.id,
             "league_name": db_league_name,
             "season_id": current_league.season_id,
             "teams": teams_data,
-            "total_teams": len(teams),
+            "total_teams": len(team_rows),
             "total_drafted": total_drafted,
             "available_count": available_count,
             "roster_size": roster_size,
-            "avg_players_per_team": round(total_drafted / max(len(teams), 1), 1),
+            "avg_players_per_team": round(total_drafted / max(len(team_rows), 1), 1),
             "position_distribution": position_counts,
-            "draft_progress": min(100, (total_drafted / max(len(teams) * roster_size, 1)) * 100),
+            "draft_progress": min(100, (total_drafted / max(len(team_rows) * roster_size, 1)) * 100),
             "latest_pick_position": latest_pick.draft_position if latest_pick else 0
-        }), 200
+        }
+
+    DraftCacheService.set_draft_status_cache(db_league_name, payload)
+    return jsonify(payload), 200
 
 
 @mobile_api_v2.route('/draft/<league_name>/available', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@_draft_access_required
 def get_available_players(league_name: str):
     """
     Get available (undrafted) players for a league.
@@ -325,6 +429,67 @@ def get_available_players(league_name: str):
         # Check if this is an ECS FC league
         is_ecs_fc = is_ecs_fc_league(current_league.id)
 
+        # FAST PATH (Pub League): serve from the SAME Redis 'available' cache the
+        # web board uses, filtering/paginating the cached dicts in Python. The old
+        # path ran the full enrichment pipeline (~20 queries + heavy CPU) per
+        # request — and the app calls this PER SEARCH KEYSTROKE, which exhausted
+        # the connection pool on draft night (45s responses, QueuePool timeouts).
+        # On a cache miss we build the FULL available list ONCE, cache it, and
+        # serve everyone from Redis until the next pick invalidates it.
+        if not is_ecs_fc:
+            # OWN cache key ('available_mobile', not the web's 'available'): the
+            # web board's pool query differs (no User.is_approved filter,
+            # current-league-only membership). Sharing one key made the pool
+            # load-order-dependent — whoever missed first defined it for both
+            # surfaces, and a web-populated key served unapproved players to the
+            # app. Both keys are invalidated together on every pick.
+            pool = DraftCacheService.get_enhanced_players_cache(db_league_name, 'available_mobile')
+            if pool is None:
+                _not_drafted = ~exists().where(
+                    and_(
+                        player_teams.c.player_id == Player.id,
+                        player_teams.c.team_id.in_(team_ids)
+                    )
+                )
+                _raw = (
+                    session.query(Player)
+                    .join(Player.user)
+                    .filter(belongs_to_league)
+                    .filter(Player.is_current_player == True)
+                    .filter(User.is_approved == True)
+                    .filter(_not_drafted)
+                    .options(
+                        joinedload(Player.career_stats),
+                        joinedload(Player.season_stats),
+                        selectinload(Player.teams),
+                        joinedload(Player.user)
+                    )
+                    .order_by(Player.name.asc())
+                    .all()
+                )
+                pool = DraftService.get_enhanced_player_data(
+                    _raw, current_league.season_id, current_league.id)
+                DraftCacheService.set_enhanced_players_cache(db_league_name, 'available_mobile', pool)
+
+            if search:
+                _s = search.lower()
+                pool = [p for p in pool if _s in str(p.get('name') or '').lower()]
+            if position:
+                _pos = position.lower()
+                pool = [p for p in pool if _pos in str(p.get('favorite_position') or '').lower()]
+
+            total_count = len(pool)
+            _start = (page - 1) * per_page
+            return jsonify({
+                "players": pool[_start:_start + per_page],
+                "total": total_count,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": (total_count + per_page - 1) // per_page,
+                "is_ecs_fc_league": False
+            }), 200
+
+        # ECS FC path (multi-team membership, existing-team info): original query.
         query = (
             session.query(Player)
             .join(Player.user)  # Join to User to check approval status
@@ -397,7 +562,7 @@ def get_available_players(league_name: str):
 
 @mobile_api_v2.route('/draft/<league_name>/teams', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@_draft_access_required
 def get_draft_teams(league_name: str):
     """
     Get teams for a league with roster counts.
@@ -447,7 +612,7 @@ def get_draft_teams(league_name: str):
 
 @mobile_api_v2.route('/draft/<league_name>/team/<int:team_id>/roster', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@_draft_access_required
 def get_team_roster(league_name: str, team_id: int):
     """
     Get detailed roster for a specific team.
@@ -500,7 +665,7 @@ def get_team_roster(league_name: str, team_id: int):
 
 @mobile_api_v2.route('/draft/<league_name>/pick', methods=['POST'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@_draft_access_required
 def draft_player(league_name: str):
     """
     Draft a player to a team.
@@ -671,10 +836,16 @@ def draft_player(league_name: str):
         # Advance the clock UNDER THE SAME LOCK (only when the on-the-clock team picked;
         # an admin's out-of-turn add leaves the clock put). Commit on with-exit releases
         # the lock atomically after the write + advance are both persisted.
+        # PAUSED drafts advance too (mirrors the web socket path): check_turn allows
+        # picks while paused, so without this a paused-state pick stuck the draft on
+        # the same team. On-clock pick during a pause advances AND auto-resumes.
         clock_payload = None
         advanced = False
-        if ds and ds.status == 'active':
+        if ds and ds.status in ('active', 'paused'):
             if not ds.current_team_id or ds.current_team_id == team_id:
+                if ds.status == 'paused':
+                    ds.status = 'active'
+                    ds.pause_remaining_seconds = None
                 clock_payload = draft_clock.advance(session, ds)
                 advanced = True
             else:
@@ -745,7 +916,7 @@ def draft_player(league_name: str):
 
 @mobile_api_v2.route('/draft/<league_name>/pick/<int:player_id>', methods=['DELETE'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@_draft_access_required
 def remove_player_from_team(league_name: str, player_id: int):
     """
     Remove a player from their team (return to available pool).
@@ -847,7 +1018,7 @@ def remove_player_from_team(league_name: str, player_id: int):
 
 @mobile_api_v2.route('/draft/<league_name>/team/<int:team_id>/analysis', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@_draft_access_required
 def get_team_position_analysis(league_name: str, team_id: int):
     """
     Get position analysis for a team showing needs and recommended players.
@@ -931,7 +1102,7 @@ def get_team_position_analysis(league_name: str, team_id: int):
 
 @mobile_api_v2.route('/draft/<league_name>/history', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@_draft_access_required
 def get_draft_history(league_name: str):
     """
     Get draft order history for a league.
@@ -985,8 +1156,17 @@ def get_draft_history(league_name: str):
 
         total_count = query.count()
 
-        query = query.offset((page - 1) * per_page).limit(per_page)
-        picks = query.all()
+        # A draft's history is small and bounded (teams × rounds, ~116-176 rows),
+        # but the app hardcodes per_page=50 and its scroll never requests page 2 —
+        # coaches see exactly 50 picks and nothing more. Serve the WHOLE history
+        # on page 1 (response says total_pages=1 so a well-behaved client stops
+        # and never double-fetches); explicit deeper pages keep real pagination.
+        if page == 1 and 0 < total_count <= 500:
+            per_page = max(per_page, total_count)
+            picks = query.all()
+        else:
+            query = query.offset((page - 1) * per_page).limit(per_page)
+            picks = query.all()
 
         # Batch-load the drafted FIELD position (pitch slot: 'st','bench','gk',...) for
         # the picks on this page. It lives on player_teams.position — NOT on
@@ -1050,7 +1230,7 @@ def get_draft_history(league_name: str):
 
 @mobile_api_v2.route('/draft/<league_name>/clock', methods=['GET'])
 @jwt_required()
-@jwt_role_required(DRAFT_ROLES)
+@_draft_access_required
 def get_draft_clock(league_name: str):
     """Live on-the-clock state for the app to poll.
 
@@ -1061,12 +1241,56 @@ def get_draft_clock(league_name: str):
         beep/vibrate; the push covers them when the app isn't foregrounded)
       - is_admin: whether they may run the clock controls
     `active` is False when no draft has been set up yet (free-form mode).
+
+    League-level state is served from Redis: every clock transition mirrors its
+    build_state payload into the cache (draft_clock.broadcast_draft), so a poll
+    hit runs ZERO league-level queries — only the cheap per-user bits (coached
+    teams + admin flag). The old path ran ~10 queries per poll and exhausted the
+    DB pool on draft night 2026-07-20. On a Redis miss we build from the DB as
+    before and re-prime the key.
     """
     db_league_name = get_db_league_name(league_name)
     if not db_league_name:
         return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
 
     current_user_id = int(get_jwt_identity())
+
+    cached = DraftCacheService.get_clock_state_cache(db_league_name)
+    if cached is not None and cached.get('league_id'):
+        with managed_session() as session:
+            my_ids = _my_coached_team_ids(session, current_user_id, cached['league_id'])
+            is_admin = _user_is_admin(session, current_user_id)
+
+        if cached.get('no_session'):
+            return jsonify({
+                "active": False,
+                "clock": None,
+                "my_team_ids": my_ids,
+                "on_clock_for_me": False,
+                "is_admin": is_admin,
+            }), 200
+
+        state = dict(cached)
+        # 'overdue' was computed at transition time; recompute from the cached
+        # deadline so a stalled clock reads overdue without a DB rebuild.
+        if state.get('status') == 'active' and state.get('pick_deadline'):
+            from datetime import datetime as _dt
+            try:
+                _deadline = _dt.fromisoformat(str(state['pick_deadline']).replace('Z', ''))
+                state['overdue'] = _deadline < _dt.utcnow()
+            except (TypeError, ValueError):
+                pass
+        current_team_id = (state.get('current_team') or {}).get('id')
+        return jsonify({
+            "active": state.get('status') in ('active', 'paused'),
+            "clock": state,
+            "my_team_ids": my_ids,
+            "on_clock_for_me": bool(current_team_id and current_team_id in my_ids),
+            "is_admin": is_admin,
+        }), 200
+
+    # MISS (first poll after deploy / TTL expiry / Redis blip): build from the
+    # DB exactly as before, then prime the cache for the fleet.
     with managed_session() as session:
         from app import draft_clock
         league = _current_league(session, db_league_name)
@@ -1078,6 +1302,10 @@ def get_draft_clock(league_name: str):
 
         ds = draft_clock.get_session(session, league.season_id, league.id)
         if not ds:
+            DraftCacheService.set_clock_state_cache(
+                db_league_name,
+                {'no_session': True, 'league_id': league.id, 'season_id': league.season_id},
+                ttl=DraftCacheService.CLOCK_NO_SESSION_TTL)
             return jsonify({
                 "active": False,
                 "clock": None,
@@ -1087,6 +1315,7 @@ def get_draft_clock(league_name: str):
             }), 200
 
         state = draft_clock.build_state(session, ds)
+        DraftCacheService.set_clock_state_cache(db_league_name, state)
         return jsonify({
             "active": ds.status in ('active', 'paused'),
             "clock": state,
@@ -1428,7 +1657,7 @@ def setup_draft_session(league_name: str):
 
 @mobile_api_v2.route('/draft/<league_name>/pick/<int:player_id>/position', methods=['PATCH'])
 @jwt_required()
-@jwt_role_required(DRAFT_ROLES)
+@_draft_access_required
 def reposition_drafted_player(league_name: str, player_id: int):
     """Update the pitch slot (gk..bench) on an existing player_teams row.
 
@@ -1499,7 +1728,7 @@ def reposition_drafted_player(league_name: str, player_id: int):
 
 @mobile_api_v2.route('/draft/<league_name>/seasons', methods=['GET'])
 @jwt_required()
-@jwt_role_required(DRAFT_ROLES)
+@_draft_access_required
 def get_draft_seasons(league_name: str):
     """Seasons that have at least one recorded pick for a league of this name, newest
     first. Returns a bare array [{id, name, is_current}] per the mobile contract."""

@@ -10,6 +10,7 @@ to prevent ANY timeouts during critical draft periods.
 
 import json
 import logging
+import re
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 from contextlib import contextmanager
@@ -392,11 +393,18 @@ class DraftCacheService:
                     return 0
                 
                 try:
-                    # Only invalidate specific league caches during active draft
+                    # Only invalidate specific league caches during active draft.
+                    # 'available_mobile' is the mobile API's pool (same data,
+                    # stricter query: is_approved filter) — must invalidate in
+                    # lockstep or phones serve a stale pool after each pick.
                     keys_to_delete = [
                         DraftCacheService._get_cache_key('players', league_name, 'available'),
+                        DraftCacheService._get_cache_key('players', league_name, 'available_mobile'),
                         DraftCacheService._get_cache_key('players', league_name, 'drafted'),
-                        DraftCacheService._get_cache_key('analytics', league_name)
+                        DraftCacheService._get_cache_key('analytics', league_name),
+                        # Mobile /status poll cache — must drop on every pick or
+                        # phones serve pre-pick roster counts for its 5s TTL.
+                        DraftCacheService._poll_cache_key('status', league_name),
                     ]
                     
                     deleted_count = 0
@@ -748,6 +756,103 @@ class DraftCacheService:
             except Exception as e:
                 logger.error(f"Error clearing league caches: {e}")
                 return 0
+
+    # --- live clock + status poll caches (draft-night DB offload) -----------
+    #
+    # Mobile clients poll GET /draft/<league>/clock and /status every few
+    # seconds. On draft night 2026-07-20 those polls (~10 and ~15 DB queries
+    # each) exhausted the connection pool. The clock only changes on
+    # start/pick/skip/pause/resume/back/end — and every one of those paths
+    # already broadcasts draft_clock_update — so the state payload is mirrored
+    # into Redis at each transition (hooked in draft_clock.broadcast_draft) and
+    # the poll endpoint serves it with ZERO league-level DB queries. On a miss
+    # the endpoint rebuilds from the DB and re-primes the key.
+    #
+    # The clock key is deliberately NOT put in the per-league key registry:
+    # every pick calls clear_all_league_caches() AFTER the transition already
+    # wrote the FRESH clock state, so registering it would make that clear wipe
+    # exactly the state we just cached. It is refreshed event-wise and bounded
+    # by TTL instead. The /status key IS registered — its data (roster counts)
+    # goes stale on every pick, so the existing pick-path invalidation clearing
+    # it is precisely what we want; its short TTL covers non-pick edits.
+
+    CLOCK_STATE_TTL = 120        # refreshed on every transition (and ~15s overdue alert cycles)
+    CLOCK_NO_SESSION_TTL = 30    # "no draft set up" sentinel — setup can happen any time
+    STATUS_TTL = 5               # /status analytics poll; also cleared by clear_all_league_caches
+
+    @staticmethod
+    def _poll_cache_key(kind: str, league_name: str) -> str:
+        """Key for the poll caches. Normalized so the url slug ('ecs_fc') and the
+        DB name ('ECS FC') share one key — transition broadcasts carry either
+        form depending on the code path (web socket, web HTTP, mobile, task)."""
+        norm = re.sub(r'[\s_]+', '_', (league_name or '').strip().lower())
+        return f"draft:{kind}:{norm}"
+
+    @staticmethod
+    def get_clock_state_cache(league_name: str) -> Optional[Dict]:
+        """Cached clock state payload for a league (build_state dict, or the
+        {'no_session': True, ...} sentinel), or None on miss/Redis trouble."""
+        with DraftCacheService._redis_connection_safe() as redis_conn:
+            if not redis_conn:
+                return None
+            try:
+                cached = redis_conn.get(DraftCacheService._poll_cache_key('clock_state', league_name))
+                return DraftCacheService._deserialize_data(cached) if cached else None
+            except Exception as e:
+                logger.warning(f"Clock state cache read failed for {league_name}: {e}")
+                return None
+
+    @staticmethod
+    def set_clock_state_cache(league_name: str, state: Dict, ttl: int = None) -> bool:
+        """Write the clock state payload for a league. Called from every clock
+        transition (via draft_clock.broadcast_draft) and from poll-miss re-prime."""
+        if not isinstance(state, dict):
+            return False
+        with DraftCacheService._redis_connection_safe() as redis_conn:
+            if not redis_conn:
+                return False
+            try:
+                key = DraftCacheService._poll_cache_key('clock_state', league_name)
+                return bool(redis_conn.setex(
+                    key, ttl or DraftCacheService.CLOCK_STATE_TTL,
+                    DraftCacheService._serialize_data(state)))
+            except Exception as e:
+                logger.warning(f"Clock state cache write failed for {league_name}: {e}")
+                return False
+
+    @staticmethod
+    def get_draft_status_cache(league_name: str) -> Optional[Dict]:
+        """Cached GET /draft/<league>/status response payload, or None."""
+        with DraftCacheService._redis_connection_safe() as redis_conn:
+            if not redis_conn:
+                return None
+            try:
+                cached = redis_conn.get(DraftCacheService._poll_cache_key('status', league_name))
+                return DraftCacheService._deserialize_data(cached) if cached else None
+            except Exception as e:
+                logger.warning(f"Draft status cache read failed for {league_name}: {e}")
+                return None
+
+    @staticmethod
+    def set_draft_status_cache(league_name: str, payload: Dict) -> bool:
+        """Cache the /status response. Short TTL + registered in the per-league
+        key registry so every pick's clear_all_league_caches() drops it."""
+        if not isinstance(payload, dict):
+            return False
+        with DraftCacheService._redis_connection_safe() as redis_conn:
+            if not redis_conn:
+                return False
+            try:
+                key = DraftCacheService._poll_cache_key('status', league_name)
+                success = redis_conn.setex(
+                    key, DraftCacheService.STATUS_TTL,
+                    DraftCacheService._serialize_data(payload))
+                if success:
+                    DraftCacheService._register_key(redis_conn, league_name, key)
+                return bool(success)
+            except Exception as e:
+                logger.warning(f"Draft status cache write failed for {league_name}: {e}")
+                return False
 
     @staticmethod
     def get_cache_stats() -> Dict[str, Any]:

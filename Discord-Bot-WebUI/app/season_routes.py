@@ -602,6 +602,11 @@ def create_pub_league_season(session, season_name: str) -> Optional[Season]:
     session.add(new_season)
     session.flush()
 
+    # New Pub League season starts with team assignments hidden until the
+    # reveal party (make_teams_public toggled back on by an admin).
+    from app.services.team_visibility import reset_teams_reveal
+    reset_teams_reveal(session)
+
     # Create default leagues for the new season.
     premier_league = League(name="Premier", season_id=new_season.id)
     classic_league = League(name="Classic", season_id=new_season.id)
@@ -856,6 +861,13 @@ def set_current_season(season_id):
         # Mark all seasons of this league type as not current.
         session.query(Season).filter_by(league_type=season.league_type).update({'is_current': False})
         season.is_current = True
+
+        # Switching which Pub League season is current re-hides team
+        # assignments until an admin re-runs the reveal.
+        if season.league_type == 'Pub League':
+            from app.services.team_visibility import reset_teams_reveal
+            reset_teams_reveal(session)
+
         show_success(f'Season "{season.name}" is now the current season for {season.league_type}.')
     except Exception as e:
         logger.error(f"Error setting current season: {e}")

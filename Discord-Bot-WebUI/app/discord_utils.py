@@ -306,6 +306,34 @@ async def assign_role_to_member(guild_id: int, user_id: str, role_id: Union[str,
         raise
 
 
+async def set_team_channel_player_visibility(guild_id: int, channel_id: Union[str, int],
+                                             player_role_id: Union[str, int], visible: bool,
+                                             session: aiohttp.ClientSession) -> bool:
+    """
+    Flip a team channel's player-role overwrite between hidden and visible.
+
+    Used by the make_teams_public reveal toggle: hidden denies VIEW_CHANNEL,
+    visible grants the standard TEAM_PLAYER_PERMISSIONS.
+
+    Returns True on success.
+    """
+    try:
+        if visible:
+            payload = {"id": int(player_role_id), "type": 0, "allow": str(TEAM_PLAYER_PERMISSIONS), "deny": "0"}
+        else:
+            payload = {"id": int(player_role_id), "type": 0, "allow": "0", "deny": str(VIEW_CHANNEL)}
+        url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/channels/{channel_id}/permissions/{player_role_id}"
+        result = await make_discord_request('PUT', url, session, json=payload)
+        if result:
+            logger.info(f"Set channel {channel_id} player role {player_role_id} visible={visible}")
+            return True
+        logger.error(f"Failed to set visibility on channel {channel_id} for role {player_role_id}")
+        return False
+    except Exception as e:
+        logger.error(f"Error setting channel {channel_id} visibility for role {player_role_id}: {e}")
+        return False
+
+
 @rate_limiter.limit()
 async def remove_role_from_member(guild_id: int, user_id: str, role_id: Union[str, int],
                                   session: aiohttp.ClientSession) -> None:
@@ -502,7 +530,8 @@ async def create_discord_roles(session: Session, team_name: str, team_id: int) -
         return {'success': False, 'error': str(e)}
 
 
-async def create_discord_channel_async_only(team_name: str, league_name: str, team_id: int) -> Dict[str, Any]:
+async def create_discord_channel_async_only(team_name: str, league_name: str, team_id: int,
+                                            teams_public: bool = True) -> Dict[str, Any]:
     """
     Create a dedicated Discord channel for a team without database session.
 
@@ -510,6 +539,10 @@ async def create_discord_channel_async_only(team_name: str, league_name: str, te
         team_name: The team's name
         league_name: League name (e.g., "Pub League Premier", "Pub League Classic", "ECS FC")
         team_id: The team's ID
+        teams_public: make_teams_public toggle state. When False, Pub League
+            channels are created with the player role denied VIEW so drafted
+            players can't see their team until the reveal
+            (sync_team_channel_visibility_task flips this later).
 
     Returns:
         Dict with success status and channel_id if successful
@@ -570,9 +603,17 @@ async def create_discord_channel_async_only(team_name: str, league_name: str, te
                 leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC PL Leadership", session)
 
             # Set up permission overwrites
+            # Pre-reveal (teams hidden), Pub League player roles are denied VIEW —
+            # players hold their team role but can't see the channel yet.
+            hide_from_players = not teams_public and role_prefix == "ECS-FC-PL"
+            if hide_from_players:
+                player_overwrite = {"id": str(player_role_id), "type": 0, "allow": "0", "deny": str(VIEW_CHANNEL)}
+            else:
+                player_overwrite = {"id": str(player_role_id), "type": 0, "allow": str(TEAM_PLAYER_PERMISSIONS), "deny": "0"}
+
             permission_overwrites = [
                 {"id": str(guild_id), "type": 0, "deny": str(VIEW_CHANNEL), "allow": "0"},
-                {"id": str(player_role_id), "type": 0, "allow": str(TEAM_PLAYER_PERMISSIONS), "deny": "0"},
+                player_overwrite,
             ]
 
             # Coaches get elevated (mod) permissions, but scoped to their own team channel.
@@ -842,9 +883,21 @@ async def create_discord_channel(session: Session, team_name: str, league_name: 
             else:
                 leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC PL Leadership", http_session)
 
+            # Pre-reveal (make_teams_public off), Pub League player roles are denied
+            # VIEW so drafted players can't see their team channel yet.
+            teams_public = True
+            if not is_ecs_fc_league:
+                from app.models.admin_config import AdminConfig
+                cfg = session.query(AdminConfig).filter_by(key='make_teams_public', is_enabled=True).first()
+                teams_public = cfg.parsed_value if cfg else True
+            if teams_public:
+                player_overwrite = {"id": str(team.discord_player_role_id), "type": 0, "allow": str(TEAM_PLAYER_PERMISSIONS), "deny": "0"}
+            else:
+                player_overwrite = {"id": str(team.discord_player_role_id), "type": 0, "allow": "0", "deny": str(VIEW_CHANNEL)}
+
             permission_overwrites = [
                 {"id": str(guild_id), "type": 0, "deny": str(VIEW_CHANNEL), "allow": "0"},
-                {"id": str(team.discord_player_role_id), "type": 0, "allow": str(TEAM_PLAYER_PERMISSIONS), "deny": "0"},
+                player_overwrite,
                 {"id": str(wg_admin_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"},
                 {"id": str(leadership_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"},
             ]

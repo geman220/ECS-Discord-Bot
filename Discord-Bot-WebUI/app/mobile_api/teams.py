@@ -111,6 +111,13 @@ def get_teams():
             # Cache the results for 10 minutes
             set_match_results_cache(teams_data, league_id=f"teams_{cache_hash}", ttl=600)
 
+        # Pre-reveal (make_teams_public off): hide Pub League teams from
+        # non-coach/non-admin users. Applied after the cache — the cache is
+        # shared across users with different visibility.
+        from app.services.team_visibility import mobile_user_can_view_teams
+        if not mobile_user_can_view_teams(session_db, get_jwt_identity()):
+            teams_data = [t for t in teams_data if t.get('league_name') not in ('Premier', 'Classic')]
+
         return make_etag_response(teams_data, 'team_list', CACHE_DURATIONS['team_list'])
 
 
@@ -131,6 +138,11 @@ def get_team_details(team_id: int):
         team = session_db.query(Team).get(team_id)
         if not team:
             return jsonify({"msg": "Team not found"}), 404
+
+        # Pre-reveal: current-season Pub League teams are coach/admin-only
+        from app.services.team_visibility import mobile_user_can_view_teams, is_current_pub_league_team
+        if is_current_pub_league_team(team) and not mobile_user_can_view_teams(session_db, get_jwt_identity()):
+            return jsonify({"msg": "Teams are hidden until they are announced"}), 403
 
         include_players = request.args.get('include_players', 'false').lower() == 'true'
         team_data = team.to_dict(include_players=include_players)
@@ -158,6 +170,11 @@ def get_team_players(team_id: int):
         team = session_db.query(Team).get(team_id)
         if not team:
             return jsonify({"msg": "Team not found"}), 404
+
+        # Pre-reveal: current-season Pub League rosters are coach/admin-only
+        from app.services.team_visibility import mobile_user_can_view_teams, is_current_pub_league_team
+        if is_current_pub_league_team(team) and not mobile_user_can_view_teams(session_db, get_jwt_identity()):
+            return jsonify({"msg": "Teams are hidden until they are announced"}), 403
 
         # Fetch players with coach status in single query (prevents N+1)
         players_with_coach_status = (
@@ -236,6 +253,11 @@ def get_team_matches(team_id: int):
         ).get(team_id)
         if not team:
             return jsonify({"msg": "Team not found"}), 404
+
+        # Pre-reveal: hidden team's matches/rosters are coach/admin-only
+        from app.services.team_visibility import mobile_user_can_view_teams, is_current_pub_league_team
+        if is_current_pub_league_team(team) and not mobile_user_can_view_teams(session_db, current_user_id):
+            return jsonify({"msg": "Teams are hidden until they are announced"}), 403
 
         # Get optional parameters
         upcoming = request.args.get('upcoming', 'false').lower() == 'true'
@@ -447,6 +469,11 @@ def get_team_stats(team_id: int):
         if not team:
             return jsonify({"msg": "Team not found"}), 404
 
+        # Pre-reveal: hidden team's stats name its players — coach/admin-only
+        from app.services.team_visibility import mobile_user_can_view_teams, is_current_pub_league_team
+        if is_current_pub_league_team(team) and not mobile_user_can_view_teams(session_db, get_jwt_identity()):
+            return jsonify({"msg": "Teams are hidden until they are announced"}), 403
+
         # Find current season - use the league's season only if it is marked current
         current_season = None
         if team.league and team.league.season and team.league.season.is_current:
@@ -598,6 +625,11 @@ def get_my_team():
         else:
             return jsonify({"msg": "No team found for player"}), 404
 
+        # Pre-reveal: behave as if the player has no team yet
+        from app.services.team_visibility import mobile_user_can_view_teams, is_current_pub_league_team
+        if is_current_pub_league_team(team) and not mobile_user_can_view_teams(session_db, current_user_id):
+            return jsonify({"msg": "No team found for player"}), 404
+
         team_data = team.to_dict(include_players=True)
         team_data['upcoming_matches'] = get_team_upcoming_matches(team.id, session=session_db)
 
@@ -633,6 +665,11 @@ def get_my_teams():
         )
 
         teams = teams_query.all()
+
+        # Pre-reveal: drop hidden Pub League assignments (as if not yet on a team)
+        from app.services.team_visibility import mobile_user_can_view_teams, is_current_pub_league_team
+        if teams and not mobile_user_can_view_teams(session_db, current_user_id):
+            teams = [t for t in teams if not is_current_pub_league_team(t)]
 
         if not teams:
             return jsonify([]), 200

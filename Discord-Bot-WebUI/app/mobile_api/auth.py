@@ -637,6 +637,12 @@ def get_user_profile():
         }
         response_data["capabilities"] = capabilities
 
+        # Pre-reveal (make_teams_public off): hide Pub League team assignment
+        # from non-coach/non-admin players until teams are announced.
+        from app.services.team_visibility import teams_are_public, is_current_pub_league_team
+        can_see_teams = (teams_are_public() or is_admin or is_coach_role or is_coach_on_team
+                         or bool(player and player.is_coach))
+
         if player:
             profile_picture_url = player.profile_picture_url
             if profile_picture_url:
@@ -670,8 +676,10 @@ def get_user_profile():
                 "additional_info": player.additional_info,
                 "is_current_player": player.is_current_player,
                 "profile_picture_url": full_profile_picture_url,
-                "team_id": player.primary_team_id,
-                "team_name": player.primary_team.name if player.primary_team else None,
+                "team_id": None if (not can_see_teams and is_current_pub_league_team(player.primary_team))
+                           else player.primary_team_id,
+                "team_name": None if (not can_see_teams and is_current_pub_league_team(player.primary_team))
+                             else (player.primary_team.name if player.primary_team else None),
                 "league_name": player.league.name if player.league else None,
             }
             response_data.update(player_data)
@@ -691,9 +699,31 @@ def get_user_profile():
 
             include_team_history = request.args.get('include_team_history', 'false').lower() == 'true'
             if include_team_history:
-                response_data['team_history'] = build_player_team_history_data(
+                team_history = build_player_team_history_data(
                     player.id, session=session_db
                 )
+                if not can_see_teams:
+                    # Strip current-season Pub League entries pre-reveal
+                    hidden_leagues = ('Premier', 'Classic')
+                    team_history['season_history'] = [
+                        e for e in team_history.get('season_history', [])
+                        if not (e.get('is_current_season')
+                                and (e.get('team') or {}).get('league_name') in hidden_leagues)
+                    ]
+                    team_history['current_teams'] = [
+                        t for t in team_history.get('current_teams', [])
+                        if t.get('league_name') not in hidden_leagues
+                    ]
+                    from app.services.team_visibility import hidden_pub_league_team_ids
+                    hidden_ids = hidden_pub_league_team_ids(
+                        session_db,
+                        [h.get('team_id') for h in team_history.get('detailed_history', [])]
+                    )
+                    team_history['detailed_history'] = [
+                        h for h in team_history.get('detailed_history', [])
+                        if not (h.get('is_current') and h.get('team_id') in hidden_ids)
+                    ]
+                response_data['team_history'] = team_history
 
         logger.info(f"[MOBILE_API] get_user_profile successful for user {user.username} - returning {len(response_data)} fields")
 

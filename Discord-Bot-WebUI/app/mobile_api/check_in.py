@@ -58,10 +58,20 @@ def _resolve_player_team_division_season(session_db, player):
     lookup view stays consistent with what the in-app pass shows.
     """
     team_name = "ECS FC"
+    shown_team = None
     if player.primary_team:
-        team_name = player.primary_team.name
+        shown_team = player.primary_team
+        team_name = shown_team.name
     elif getattr(player, 'teams', None) and len(player.teams) > 0:
-        team_name = player.teams[0].name
+        shown_team = player.teams[0]
+        team_name = shown_team.name
+
+    # Pre-reveal (make_teams_public off): hidden Pub League team reads as
+    # Unassigned for non-coach/non-admin viewers.
+    if shown_team is not None:
+        from app.services.team_visibility import is_current_pub_league_team, request_viewer_can_view_teams
+        if is_current_pub_league_team(shown_team) and not request_viewer_can_view_teams(session_db):
+            team_name = "Unassigned"
 
     division = player.league.name if player.league else "Pub League"
 

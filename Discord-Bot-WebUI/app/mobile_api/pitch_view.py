@@ -279,6 +279,12 @@ def get_team_draft_pitch(team_id):
         if not team:
             return jsonify({'msg': 'Team not found'}), 404
 
+        # Coach/admin-only: this is a draft tool exposing the full roster.
+        # Mirrors the PUT/PATCH endpoints below (any authenticated user could
+        # otherwise read any team's roster pre-reveal).
+        if not check_coach_permission(current_user_id, team_id, session_db):
+            return jsonify({'msg': 'You are not authorized to view this team\'s draft pitch'}), 403
+
         # Get team players with their draft positions
         players = team.players
 
@@ -656,10 +662,17 @@ def get_team_roster_with_rsvp(match_id, team_id):
     Get team roster with RSVP status for a specific match.
     Handles both PL and ECS FC matches transparently.
     """
+    current_user_id = int(get_jwt_identity())
+
     with managed_session() as session_db:
         ctx = resolve_match_context(session_db, match_id, team_id)
         if not ctx:
             return jsonify({'msg': 'Match not found'}), 404
+
+        # Coach/admin-only: full roster + RSVP for the team. Mirrors the
+        # lineup GET above.
+        if not check_coach_permission(current_user_id, ctx['team_id'], session_db):
+            return jsonify({'msg': 'You are not authorized to view this team\'s roster'}), 403
 
         roster = build_roster_for_context(ctx, session_db)
 

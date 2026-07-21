@@ -256,13 +256,14 @@ function handleKeyboard(element, event) {
             activeIndex = activeIndex <= 0 ? items.length - 1 : activeIndex - 1;
             updateActiveHighlight(items);
             break;
-        case 'Enter':
+        case 'Enter': {
             event.preventDefault();
-            if (activeIndex >= 0 && activeIndex < items.length) {
-                const url = items[activeIndex].getAttribute('data-url');
-                if (url) window.location.href = url;
-            }
+            // No explicit highlight -> default to the top result
+            const targetIndex = activeIndex >= 0 && activeIndex < items.length ? activeIndex : 0;
+            const url = items[targetIndex].getAttribute('data-url');
+            if (url) window.location.href = url;
             break;
+        }
         case 'Escape':
             event.preventDefault();
             closeResults();

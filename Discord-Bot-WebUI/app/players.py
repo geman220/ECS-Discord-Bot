@@ -195,7 +195,14 @@ def get_player_team_history(player_id):
         ).order_by(
             Season.name.desc()
         ).all()
-        
+
+        # Pre-reveal: strip current-season Pub League rows for non-exempt viewers
+        from app.services.team_visibility import user_can_view_teams
+        if not user_can_view_teams(safe_current_user, session=session):
+            history = [row for row in history
+                       if not (row[2].is_current and row[1].league
+                               and row[1].league.name in ('Premier', 'Classic'))]
+
         return render_template('_team_history_flowbite.html', title='Team History', team_history=history)
     except SQLAlchemyError as e:
         logger.error(f"Database error fetching team history: {str(e)}")
@@ -269,7 +276,15 @@ def player_profile(player_id):
         if not current_season_teams:
             # Filter teams by current seasons' leagues
             current_season_teams = [team for team in player.teams if team.league_id in current_season_league_ids]
-        
+
+    # Pre-reveal (make_teams_public off): hide current-season Pub League
+    # assignments from non-coach/non-admin viewers — including the player's own.
+    from app.services.team_visibility import user_can_view_teams
+    viewer_can_see_teams = user_can_view_teams(safe_current_user, session=session)
+    if not viewer_can_see_teams:
+        current_season_teams = [t for t in current_season_teams
+                                if not (t.league and t.league.name in ('Premier', 'Classic'))]
+
     # Check access permissions
     from app.role_impersonation import is_impersonation_active, get_effective_roles, has_effective_permission
     
@@ -544,7 +559,10 @@ def player_profile(player_id):
             season_stats_form=season_stats_form,
             career_stats_form=career_stats_form,
             audit_logs=audit_logs,
-            team_history=player.season_assignments,
+            team_history=[pts for pts in player.season_assignments
+                          if viewer_can_see_teams
+                          or not (pts.season and pts.season.is_current and pts.team
+                                  and pts.team.league and pts.team.league.name in ('Premier', 'Classic'))],
             current_season_teams=current_season_teams,
             draft_history=draft_history,
             # Permission-based access variables

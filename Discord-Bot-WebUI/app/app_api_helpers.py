@@ -375,6 +375,15 @@ def build_player_season_stats_data(player_id: int, season_id_filter: Optional[in
         reverse=False
     )
 
+    # Pre-reveal (make_teams_public off): null the team label on current-season
+    # Premier/Classic rows for non-coach/non-admin viewers.
+    from app.services.team_visibility import request_viewer_can_view_teams
+    if not request_viewer_can_view_teams(session):
+        for row in season_stats_data:
+            if row['is_current_season'] and row['league_name'] in ('Premier', 'Classic'):
+                row['team_id'] = None
+                row['team_name'] = None
+
     career_stats_data = None
     if career_stats:
         career_stats_data = {
@@ -658,6 +667,14 @@ def get_team_players_availability(match: Match, players: List[Player], session=N
     """
     if session is None:
         session = g.db_session
+
+    # Pre-reveal (make_teams_public off): current Premier/Classic rosters are
+    # hidden from non-coach/non-admin viewers. Pub League matches have Pub
+    # League teams on both sides, so gating on either side is exact.
+    from app.services.team_visibility import is_current_pub_league_team, request_viewer_can_view_teams
+    if (is_current_pub_league_team(match.home_team) or is_current_pub_league_team(match.away_team)):
+        if not request_viewer_can_view_teams(session):
+            return []
 
     player_ids = [p.id for p in players]
     availabilities = {

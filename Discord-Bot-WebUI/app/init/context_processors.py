@@ -631,9 +631,25 @@ def _register_utility_processor(app):
             shell = 'console'
             console_full_sidebar = False
 
+        # Reveal gate for templates (make_teams_public): cached per request.
+        # True when teams are public or the viewer is coach/admin-exempt.
+        if hasattr(g, '_viewer_can_see_teams'):
+            viewer_can_see_teams = g._viewer_can_see_teams
+        else:
+            viewer_can_see_teams = True
+            try:
+                from app.services.team_visibility import user_can_view_teams
+                viewer_can_see_teams = user_can_view_teams(
+                    safe_current_user, session=getattr(g, 'db_session', None)
+                )
+            except Exception as e:
+                logger.error(f"Error computing viewer_can_see_teams: {e}")
+            g._viewer_can_see_teams = viewer_can_see_teams
+
         return {
             'safe_current_user': safe_current_user,
             'user_roles': user_roles,
+            'viewer_can_see_teams': viewer_can_see_teams,
             'has_permission': has_permission,
             'has_role': has_role,
             'is_admin': is_admin,

@@ -48,6 +48,21 @@ def _resolve_member_barcode(session_db, user_id, player, team_name, season_name)
     return f"ECS2025{barcode_hash}"
 
 
+def _pass_team_name(session_db, player, viewer_user_id, default="ECS FC"):
+    """Team name for pass display, honoring the make_teams_public reveal gate:
+    a hidden current Premier/Classic team reads as 'Unassigned' for
+    non-coach/non-admin viewers."""
+    team = player.primary_team
+    if team is None and getattr(player, 'teams', None):
+        team = player.teams[0] if len(player.teams) > 0 else None
+    if team is None:
+        return default
+    from app.services.team_visibility import is_current_pub_league_team, mobile_user_can_view_teams
+    if is_current_pub_league_team(team) and not mobile_user_can_view_teams(session_db, viewer_user_id):
+        return "Unassigned"
+    return team.name
+
+
 @mobile_api_v2.route('/membership/pass', methods=['GET'])
 @jwt_required()
 def get_membership_pass_info():
@@ -78,11 +93,7 @@ def get_membership_pass_info():
                 return jsonify({"msg": "User must be assigned to a team"}), 400
 
             # Get team and league info
-            team_name = "ECS FC"
-            if player.primary_team:
-                team_name = player.primary_team.name
-            elif hasattr(player, 'teams') and player.teams and len(player.teams) > 0:
-                team_name = player.teams[0].name
+            team_name = _pass_team_name(session_db, player, current_user_id)
 
             league_name = player.league.name if player.league else "Pub League"
 
@@ -250,11 +261,7 @@ def generate_membership_pass():
                 return jsonify({"msg": "User must be assigned to a team"}), 400
 
             # Get team and league info
-            team_name = "ECS FC"
-            if player.primary_team:
-                team_name = player.primary_team.name
-            elif hasattr(player, 'teams') and player.teams and len(player.teams) > 0:
-                team_name = player.teams[0].name
+            team_name = _pass_team_name(session_db, player, current_user_id)
 
             league_name = player.league.name if player.league else "Pub League"
 
@@ -668,10 +675,28 @@ def validate_membership_pass():
                 }), 200
 
             # Return valid pass information
+            # Pre-reveal: don't echo a hidden Pub League team back to the scanner
+            from app.services.team_visibility import request_viewer_can_view_teams
+            shown_team_name = wallet_pass.team_name or "N/A"
+            if wallet_pass.team_name and not request_viewer_can_view_teams(session_db):
+                from app.models import Team, League, Season
+                is_hidden_team = (
+                    session_db.query(Team.id)
+                    .join(League, Team.league_id == League.id)
+                    .join(Season, League.season_id == Season.id)
+                    .filter(
+                        Team.name == wallet_pass.team_name,
+                        League.name.in_(('Premier', 'Classic')),
+                        Season.is_current == True  # noqa: E712
+                    ).first()
+                )
+                if is_hidden_team:
+                    shown_team_name = "N/A"
+
             return jsonify({
                 "valid": True,
                 "memberName": wallet_pass.member_name,
-                "teamName": wallet_pass.team_name or "N/A",
+                "teamName": shown_team_name,
                 "passType": wallet_pass.pass_type.name if wallet_pass.pass_type else "Membership",
                 "validUntil": wallet_pass.valid_until.isoformat() if wallet_pass.valid_until else None,
                 "status": wallet_pass.status,
@@ -706,11 +731,7 @@ def refresh_membership_pass():
                 return jsonify({"msg": "No membership pass found"}), 404
 
             # Get team and league info
-            team_name = "ECS FC"
-            if player.primary_team:
-                team_name = player.primary_team.name
-            elif hasattr(player, 'teams') and player.teams and len(player.teams) > 0:
-                team_name = player.teams[0].name
+            team_name = _pass_team_name(session_db, player, current_user_id)
 
             league_name = player.league.name if player.league else "Pub League"
 

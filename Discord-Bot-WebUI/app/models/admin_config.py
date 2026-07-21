@@ -11,6 +11,7 @@ import logging
 from datetime import datetime
 from sqlalchemy import Boolean, String, Text, DateTime, Integer, event
 from sqlalchemy.exc import OperationalError, DBAPIError
+from sqlalchemy.orm import Session as SASession
 from app.core import db
 
 # Set up the module logger
@@ -40,30 +41,81 @@ class AdminConfig(db.Model):
     # Relationship to user who last updated this setting
     updated_by_user = db.relationship('User', backref='admin_config_updates', lazy='select')
 
+    # Cross-request (L2) cache of the raw settings table in Redis. 30s bounds
+    # worst-case staleness for requests that didn't perform the write; writers
+    # bust the key explicitly (see set_setting and the mapper event below).
+    _L2_CACHE_KEY = 'admin_config:all'
+    _L2_CACHE_TTL = 30  # seconds
+
     def __repr__(self):
         return f'<AdminConfig {self.key}={self.value}>'
+
+    @staticmethod
+    def _parse_value(value, data_type):
+        """Parse a raw stored value based on data_type."""
+        if not value:
+            return None
+
+        if data_type == 'boolean':
+            return value.lower() in ('true', '1', 'yes', 'on')
+        elif data_type == 'integer':
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                return None
+        elif data_type == 'json':
+            try:
+                import json
+                return json.loads(value)
+            except (ValueError, TypeError):
+                return None
+        else:
+            return value
 
     @property
     def parsed_value(self):
         """Parse the value based on data_type."""
-        if not self.value:
+        return self._parse_value(self.value, self.data_type)
+
+    @classmethod
+    def _l2_load(cls):
+        """
+        Load the raw settings dict ({key: [value, data_type]}) from Redis.
+
+        Returns None on a cache miss, unparseable payload, or Redis being
+        unavailable — the safe client returns None instead of raising, so a
+        Redis outage degrades to the DB path rather than erroring requests.
+        """
+        import json
+        from app.utils.safe_redis import get_safe_redis
+
+        payload = get_safe_redis().get(cls._L2_CACHE_KEY)
+        if payload is None:
             return None
-            
-        if self.data_type == 'boolean':
-            return self.value.lower() in ('true', '1', 'yes', 'on')
-        elif self.data_type == 'integer':
-            try:
-                return int(self.value)
-            except (ValueError, TypeError):
-                return None
-        elif self.data_type == 'json':
-            try:
-                import json
-                return json.loads(self.value)
-            except (ValueError, TypeError):
-                return None
-        else:
-            return self.value
+        try:
+            raw = json.loads(payload)
+        except (ValueError, TypeError):
+            return None
+        return raw if isinstance(raw, dict) else None
+
+    @classmethod
+    def _l2_store(cls, raw):
+        """Store the raw settings dict in Redis with the L2 TTL (best-effort)."""
+        import json
+        from app.utils.safe_redis import get_safe_redis
+
+        try:
+            get_safe_redis().setex(cls._L2_CACHE_KEY, cls._L2_CACHE_TTL, json.dumps(raw))
+        except (ValueError, TypeError) as e:
+            # A non-JSON-serializable value can't happen for String columns, but
+            # never let cache maintenance break the read path.
+            logger.warning(f"Could not serialize admin_config L2 cache: {e}")
+
+    @classmethod
+    def _l2_invalidate(cls):
+        """Delete the Redis L2 cache key (best-effort; no-op if Redis is down)."""
+        from app.utils.safe_redis import get_safe_redis
+        get_safe_redis().delete(cls._L2_CACHE_KEY)
 
     @classmethod
     def get_setting(cls, key, default=None):
@@ -79,12 +131,19 @@ class AdminConfig(db.Model):
         """
         from flask import g, has_request_context
 
-        # Request-scoped cache: the same setting is often read many times in a
-        # single request (nav toggles, registration flags — see dashboard.py).
-        # Cache the parsed value on `g` so we issue at most one query per key
-        # per request. Only hits are cached, so per-callsite defaults still
-        # apply on a miss. Because the cache lives only for the request, admin
-        # panel changes take effect on the next request — no staleness window.
+        # Two-tier cache:
+        #   L1 — request-scoped, on `g`: the same setting is often read many
+        #   times in a single request (nav toggles, registration flags — see
+        #   dashboard.py). Parsed values are cached so we do at most one lookup
+        #   per request. Only hits are cached, so per-callsite defaults still
+        #   apply on a miss.
+        #   L2 — cross-request, in Redis (30s TTL): the maintenance-mode gate in
+        #   request_handlers.py reads a setting on EVERY request, so priming L1
+        #   from the DB meant one guaranteed query per request — enough to
+        #   amplify a pool-exhaustion incident. On an L2 hit we skip the DB
+        #   entirely. Writers bust the L2 key (set_setting and the mapper event
+        #   below), so the admin who just saved still reads fresh values; other
+        #   requests are at most ~30s stale.
         in_request = has_request_context()
         if in_request:
             cache = g.__dict__.setdefault('_admin_config_cache', {})
@@ -95,6 +154,27 @@ class AdminConfig(db.Model):
             if g.__dict__.get('_admin_config_primed'):
                 return default
 
+            # L2: after a write in THIS request the dirty flag skips Redis both
+            # ways — reads must see the session's uncommitted write (via the DB
+            # path below), and the cache must not be repopulated from data that
+            # hasn't committed yet.
+            if not g.__dict__.get('_admin_config_l2_dirty'):
+                raw = cls._l2_load()
+                if raw is not None:
+                    try:
+                        for k, (value, data_type) in raw.items():
+                            cache[k] = cls._parse_value(value, data_type)
+                    except Exception:
+                        # Malformed cache entry (bad shape, or a value of an
+                        # unexpected type from an external writer) — treat as a
+                        # miss and fall through to the DB, which overwrites L2.
+                        # Broad on purpose: a corrupt cache key must degrade to
+                        # a cache miss, never to an error on the read path.
+                        cache.clear()
+                    else:
+                        g._admin_config_primed = True
+                        return cache.get(key, default)
+
         try:
             # Use Flask request session when available to prevent session conflicts
             if in_request and hasattr(g, 'db_session') and g.db_session:
@@ -104,9 +184,16 @@ class AdminConfig(db.Model):
                 # but not distinct keys — so this was 12+ round trips per page.
                 # The table is tiny (tens of rows), so one SELECT is cheaper than
                 # even two keyed lookups.
+                # L2 caches the RAW values (value + data_type) and re-runs the
+                # same parsing on read, so json/boolean/integer settings
+                # round-trip through Redis exactly as parsed_value returns them.
+                raw = {}
                 for row in g.db_session.query(cls).filter_by(is_enabled=True).all():
+                    raw[row.key] = (row.value, row.data_type)
                     cache[row.key] = row.parsed_value
                 g._admin_config_primed = True
+                if not g.__dict__.get('_admin_config_l2_dirty'):
+                    cls._l2_store(raw)
                 return cache.get(key, default)
             else:
                 # Fallback to managed session for non-request contexts
@@ -216,11 +303,17 @@ class AdminConfig(db.Model):
             # primed flag must go too: with it set, a key missing from the cache
             # is taken to mean "not in the DB" and get_setting would hand back the
             # default instead of re-reading the value we just wrote.
+            # Also bust the Redis L2 so other workers pick up the change within
+            # one request instead of waiting out the TTL. (The mapper event below
+            # does this for ORM flushes too; this call covers the no-op-flush
+            # case and keeps the invalidation explicit.)
+            cls._l2_invalidate()
             if has_request_context():
                 cache = g.__dict__.get('_admin_config_cache')
                 if cache is not None:
                     cache.pop(key, None)
                 g.__dict__.pop('_admin_config_primed', None)
+                g._admin_config_l2_dirty = True
 
             logger.debug(f"Admin setting {key} updated to {value} by user {user_id}")
             return setting
@@ -424,6 +517,14 @@ class AdminConfig(db.Model):
                 'value': 'false',
                 'description': 'Enable maintenance mode (blocks non-admin access)',
                 'category': 'system',
+                'data_type': 'boolean'
+            },
+            # Pub League Season Settings
+            {
+                'key': 'make_teams_public',
+                'value': 'true',
+                'description': 'Reveal team assignments to players (web, mobile app, and Discord team channels). Turn OFF during the draft to keep assignments secret until the reveal party; toggling ON opens each team\'s Discord channel to its players. Coaches and admins always see teams. Resets to OFF on season rollover.',
+                'category': 'pub_league',
                 'data_type': 'boolean'
             },
             # Pub League WooCommerce Settings
@@ -663,8 +764,9 @@ class AdminConfig(db.Model):
 @event.listens_for(AdminConfig, 'after_delete')
 def _drop_admin_config_request_cache(mapper, connection, target):
     """
-    Invalidate the request-scoped settings cache whenever ANY AdminConfig row is
-    written — not only when it went through set_setting().
+    Invalidate the request-scoped settings cache AND the cross-request Redis L2
+    cache whenever ANY AdminConfig row is written — not only when it went
+    through set_setting().
 
     get_setting() primes the whole table into a cache on `g` on first miss, and a
     key MISSING from a primed cache is taken to mean "not set" and answered from
@@ -678,11 +780,40 @@ def _drop_admin_config_request_cache(mapper, connection, target):
 
     (Bulk `query.update()` statements do not emit mapper-level events; no current
     admin_config writer uses one.)
+
+    Note this fires at flush time, BEFORE commit. Deleting the Redis key here
+    (no SQL — Redis only, so it's safe inside the flush) plus the request-local
+    dirty flag means this request re-reads from its own session and never
+    repopulates L2 with uncommitted data. A concurrent request could re-prime
+    L2 from pre-commit data in the flush→commit window — the after_commit
+    listener below deletes the key a second time once the write is durable,
+    so that stale re-prime survives only until the commit, not a full TTL.
     """
     from flask import g, has_request_context
+    from sqlalchemy.orm import object_session
+    AdminConfig._l2_invalidate()
+    session = object_session(target)
+    if session is not None:
+        session.info['_admin_config_l2_stale'] = True
     if has_request_context():
         g.__dict__.pop('_admin_config_cache', None)
         g.__dict__.pop('_admin_config_primed', None)
+        g._admin_config_l2_dirty = True
+
+
+@event.listens_for(SASession, 'after_commit')
+def _drop_admin_config_l2_after_commit(session):
+    """
+    Second L2 invalidation, after the write is actually committed.
+
+    The flush-time deletion above can be raced: a concurrent request that
+    misses L2 re-primes it from still-committed (old) rows before this
+    transaction commits, and the stale snapshot would then live for the full
+    TTL. Deleting again after commit closes that window. Redis-only — an
+    after_commit hook must not emit SQL.
+    """
+    if session.info.pop('_admin_config_l2_stale', None):
+        AdminConfig._l2_invalidate()
 
 
 class AdminAuditLog(db.Model):

@@ -16,8 +16,10 @@ services:
       --maxclients 500
       --tcp-keepalive 60 
       --timeout 900
-      --maxmemory 800mb
+      --maxmemory 1gb
       --maxmemory-policy volatile-lru
+      --appendonly yes
+      --appendfsync everysec
       --save 900 1
       --save 300 10
       --save 60 10000
@@ -36,9 +38,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 2G
         reservations:
-          memory: 512M
+          memory: 1G
 
   pgbouncer:
     image: edoburu/pgbouncer:v1.24.1-p1
@@ -230,9 +232,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 512M
         reservations:
-          memory: 128M
+          memory: 192M
 
   celery-live-reporting-worker:
     build:
@@ -273,7 +275,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 400M  # Increased from 300M - was at 83%
+          memory: 512M  # headroom now the droplet has 8GB
       
   celery-discord-worker:
     build:
@@ -687,9 +689,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 128M  # Flower is lightweight
+          memory: 192M  # Flower is lightweight
         reservations:
-          memory: 64M
+          memory: 96M
 
   discord-bot:
     build:

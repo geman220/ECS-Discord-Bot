@@ -390,6 +390,20 @@ def handle_join_lineup_room(data):
                 if not match:
                     emit('lineup_error', {'message': 'Match not found'})
                     return
+
+                # Pre-reveal (make_teams_public off): lineup payloads/broadcasts
+                # tie players to a team_id — coach/admin-only for hidden teams.
+                from app.services.team_visibility import teams_are_public, is_current_pub_league_team, user_is_team_exempt
+                if not teams_are_public() and (
+                        is_current_pub_league_team(match.home_team)
+                        or is_current_pub_league_team(match.away_team)):
+                    from app.models import User
+                    _user = session.query(User).get(user_id)
+                    if not user_is_team_exempt(_user, session=session):
+                        leave_room(room_key)
+                        emit('lineup_error', {'message': 'Teams are hidden until they are announced'})
+                        return
+
                 # Verify team is in this match (pub league only)
                 if team_id not in [match.home_team_id, match.away_team_id]:
                     emit('lineup_error', {'message': 'Team is not part of this match'})

@@ -420,6 +420,15 @@ def get_season_awards():
         if not league:
             return jsonify({"msg": "League not found"}), 404
 
+        # Pre-reveal: leaderboards pair player names with current-team names.
+        # Strip the team label for non-exempt viewers on current Premier/Classic.
+        from app.services.team_visibility import mobile_user_can_view_teams
+        hide_team_names = (
+            league.name in ('Premier', 'Classic')
+            and league.season and league.season.is_current
+            and not mobile_user_can_view_teams(session, get_jwt_identity())
+        )
+
         def _build_leaderboard(stat_attr):
             stat_column = getattr(PlayerSeasonStats, stat_attr)
             results = (
@@ -451,7 +460,7 @@ def get_season_awards():
                     "player_id": pid,
                     "player_name": name,
                     "profile_picture_url": photo,
-                    "team_name": team_name,
+                    "team_name": None if hide_team_names else team_name,
                     "value": total,
                 })
             return entries

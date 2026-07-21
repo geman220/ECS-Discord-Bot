@@ -23,9 +23,11 @@
                 {% if player.teams %}
                 <div class="flex flex-wrap gap-2 mt-2">
                     {% for team in player.teams %}
+                    {% if viewer_can_see_teams or not (team.league and team.league.name in ('Premier', 'Classic')) %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white">
                         {{ team.name }}
                     </span>
+                    {% endif %}
                     {% endfor %}
                 </div>
                 {% endif %}

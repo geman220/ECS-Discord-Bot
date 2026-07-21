@@ -60,13 +60,22 @@ def get_weekly_schedule():
         # Filter to user's teams if they have a player profile
         if player and player.teams:
             from sqlalchemy import or_
-            team_ids = [t.id for t in player.teams]
-            query = query.filter(
-                or_(
-                    Match.home_team_id.in_(team_ids),
-                    Match.away_team_id.in_(team_ids)
+            # Pre-reveal: a schedule filtered to the caller's hidden Pub League
+            # team would reveal the assignment. Drop hidden teams from the
+            # filter (a player with only hidden teams sees the unfiltered
+            # league schedule, same as a teamless user).
+            from app.services.team_visibility import mobile_user_can_view_teams, is_current_pub_league_team
+            visible_teams = player.teams
+            if not mobile_user_can_view_teams(session_db, current_user_id):
+                visible_teams = [t for t in visible_teams if not is_current_pub_league_team(t)]
+            team_ids = [t.id for t in visible_teams]
+            if team_ids:
+                query = query.filter(
+                    or_(
+                        Match.home_team_id.in_(team_ids),
+                        Match.away_team_id.in_(team_ids)
+                    )
                 )
-            )
 
         matches = query.order_by(Match.date, Match.time).all()
 
@@ -135,13 +144,22 @@ def get_monthly_schedule():
 
         if player and player.teams:
             from sqlalchemy import or_
-            team_ids = [t.id for t in player.teams]
-            query = query.filter(
-                or_(
-                    Match.home_team_id.in_(team_ids),
-                    Match.away_team_id.in_(team_ids)
+            # Pre-reveal: a schedule filtered to the caller's hidden Pub League
+            # team would reveal the assignment. Drop hidden teams from the
+            # filter (a player with only hidden teams sees the unfiltered
+            # league schedule, same as a teamless user).
+            from app.services.team_visibility import mobile_user_can_view_teams, is_current_pub_league_team
+            visible_teams = player.teams
+            if not mobile_user_can_view_teams(session_db, current_user_id):
+                visible_teams = [t for t in visible_teams if not is_current_pub_league_team(t)]
+            team_ids = [t.id for t in visible_teams]
+            if team_ids:
+                query = query.filter(
+                    or_(
+                        Match.home_team_id.in_(team_ids),
+                        Match.away_team_id.in_(team_ids)
+                    )
                 )
-            )
 
         matches = query.order_by(Match.date, Match.time).all()
 
@@ -197,13 +215,22 @@ def get_upcoming_schedule():
 
         if player and player.teams:
             from sqlalchemy import or_
-            team_ids = [t.id for t in player.teams]
-            query = query.filter(
-                or_(
-                    Match.home_team_id.in_(team_ids),
-                    Match.away_team_id.in_(team_ids)
+            # Pre-reveal: a schedule filtered to the caller's hidden Pub League
+            # team would reveal the assignment. Drop hidden teams from the
+            # filter (a player with only hidden teams sees the unfiltered
+            # league schedule, same as a teamless user).
+            from app.services.team_visibility import mobile_user_can_view_teams, is_current_pub_league_team
+            visible_teams = player.teams
+            if not mobile_user_can_view_teams(session_db, current_user_id):
+                visible_teams = [t for t in visible_teams if not is_current_pub_league_team(t)]
+            team_ids = [t.id for t in visible_teams]
+            if team_ids:
+                query = query.filter(
+                    or_(
+                        Match.home_team_id.in_(team_ids),
+                        Match.away_team_id.in_(team_ids)
+                    )
                 )
-            )
 
         matches = query.order_by(Match.date, Match.time).limit(limit).all()
 

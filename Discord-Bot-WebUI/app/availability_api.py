@@ -101,6 +101,38 @@ def limit_remote_addr():
     return "Access Denied", 403
 
 
+def _is_trusted_service_request() -> bool:
+    """
+    True for internal service traffic (Discord bot / mobile app with API key).
+    Public-domain browser traffic reaches this blueprint through the
+    'portal.ecsfc.com' host allowlist entry and is NOT a trusted service —
+    roster-bearing endpoints must apply the team-visibility gate for it.
+    """
+    api_key = request.headers.get('X-API-Key')
+    if api_key and api_key == current_app.config.get('MOBILE_API_KEY', 'ecs-soccer-mobile-key'):
+        return True
+    return request.host != 'portal.ecsfc.com'
+
+
+def _roster_hidden_for_request(session_db, team_ids) -> bool:
+    """
+    Whether roster data for these teams must be withheld from this request:
+    teams hidden pre-reveal, at least one team is a current Premier/Classic
+    team, the caller isn't a trusted service, and the logged-in viewer (if
+    any) isn't coach/admin-exempt.
+    """
+    from app.services.team_visibility import (
+        teams_are_public, hidden_pub_league_team_ids, request_viewer_can_view_teams
+    )
+    if teams_are_public():
+        return False
+    if _is_trusted_service_request():
+        return False
+    if not hidden_pub_league_team_ids(session_db, [t for t in team_ids if t]):
+        return False
+    return not request_viewer_can_view_teams(session_db)
+
+
 @availability_bp.route('/schedule_availability_poll', methods=['POST'], endpoint='schedule_availability_poll')
 def schedule_availability_poll():
     """
@@ -157,6 +189,10 @@ def get_match_availability(match_id):
         if not match:
             logger.warning(f"🟡 [AVAILABILITY_API] Match not found: {match_id}")
             abort(404)
+
+        # Pre-reveal: availability results name players per team
+        if _roster_hidden_for_request(session_db, [match.home_team_id, match.away_team_id]):
+            return jsonify({"error": "Teams are hidden until they are announced"}), 403
 
         logger.debug(f"🔵 [AVAILABILITY_API] Getting availability results for match {match_id}")
         results = get_availability_results(match_id, session=session_db)
@@ -401,6 +437,14 @@ def get_match_rsvps(match_id):
     logger.info(f"🔵 [AVAILABILITY_API] get_match_rsvps called for match {match_id}, team_id={team_id}, include_discord_ids={include_discord_ids}")
 
     with managed_session() as session_db:
+        # Pre-reveal: this endpoint returns player names per team (the roster)
+        _match = session_db.query(Match).get(match_id)
+        _gate_ids = [team_id] if team_id else (
+            [_match.home_team_id, _match.away_team_id] if _match else []
+        )
+        if _gate_ids and _roster_hidden_for_request(session_db, _gate_ids):
+            return jsonify({"error": "Teams are hidden until they are announced"}), 403
+
         logger.debug(f"🔵 [AVAILABILITY_API] Verifying availability data for match {match_id}")
         verify_availability_data(match_id, team_id, session=session_db)
         
@@ -939,6 +983,10 @@ def is_user_on_team():
         return jsonify({'error': 'Missing required fields'}), 400
 
     with managed_session() as session_db:
+        # Pre-reveal: membership confirmation oracle for hidden teams
+        if _roster_hidden_for_request(session_db, [int(team_id)]):
+            return jsonify({"error": "Teams are hidden until they are announced"}), 403
+
         logger.debug(f"🔵 [AVAILABILITY_API] Looking up player with discord_id {discord_id}")
         player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
         

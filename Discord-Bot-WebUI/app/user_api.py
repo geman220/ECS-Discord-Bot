@@ -93,6 +93,19 @@ def limit_remote_addr():
     return "Access Denied", 403
 
 
+def _is_trusted_service_request() -> bool:
+    """
+    True for internal service traffic (Discord bot on an internal host, or a
+    caller with the API key). Public-domain browser traffic passes the host
+    allowlist via 'portal.ecsfc.com' and is NOT trusted — roster-bearing
+    endpoints must apply the team-visibility gate for it.
+    """
+    api_key = request.headers.get('X-API-Key')
+    if api_key and api_key == current_app.config.get('MOBILE_API_KEY', 'ecs-soccer-mobile-key'):
+        return True
+    return request.host != 'portal.ecsfc.com'
+
+
 @user_bp.route('/player_lookup', methods=['GET'])
 def player_lookup():
     """
@@ -385,6 +398,16 @@ def team_lookup():
         if not team:
             logger.info(f"🟡 [USER_API] No team found for name query: '{team_name_query}'")
             return jsonify({"error": "Team not found"}), 404
+
+        # Pre-reveal (make_teams_public off): a full roster for a hidden
+        # current Premier/Classic team is coach/admin-only for browser traffic.
+        from app.services.team_visibility import (
+            teams_are_public, is_current_pub_league_team, request_viewer_can_view_teams
+        )
+        if (not teams_are_public() and is_current_pub_league_team(team)
+                and not _is_trusted_service_request()
+                and not request_viewer_can_view_teams(session_db)):
+            return jsonify({"error": "Teams are hidden until they are announced"}), 403
 
         logger.debug(f"🔵 [USER_API] Found team {team.name} (ID: {team.id}), retrieving current players")
         # Retrieve players associated with the team who are marked as current.
@@ -905,12 +928,21 @@ def player_schedule_image(discord_id):
         if not player:
             return jsonify({"error": "Player not found"}), 404
 
+        # Pre-reveal (make_teams_public off): the /schedule image names the
+        # player's team(s) — drop hidden Pub League teams unless the player is
+        # coach/admin-exempt. With no visible teams left, the existing
+        # "Player has no teams" branch answers the bot.
+        from app.services.team_visibility import teams_are_public, is_current_pub_league_team, user_is_team_exempt
+        visible_teams = list(player.teams)
+        if not teams_are_public() and not user_is_team_exempt(player.user, session=session_db):
+            visible_teams = [t for t in visible_teams if not is_current_pub_league_team(t)]
+
         # Classify teams by league type
         pub_league_team_ids = []
         ecs_fc_team_ids = []
         team_names = []
         team_leagues = {}
-        for team in player.teams:
+        for team in visible_teams:
             team_names.append(team.name)
             if team.league and 'ECS FC' in team.league.name:
                 ecs_fc_team_ids.append(team.id)

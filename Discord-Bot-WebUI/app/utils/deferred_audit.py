@@ -62,11 +62,22 @@ def defer_audit_log(**kwargs):
 
     if not hasattr(g, '_deferred_audit_logs'):
         g._deferred_audit_logs = []
+        # Capture the list itself: the hook can run under a DIFFERENT app
+        # context than the one it registered in (nested app_context), where g
+        # has no attribute — the closure keeps the entries reachable so they
+        # are dispatched rather than silently dropped.
+        entries_ref = g._deferred_audit_logs
 
         @after_this_request
         def _dispatch_deferred_audit_logs(response):
             """Dispatch queued audit log writes to Celery after commit."""
-            entries = g._deferred_audit_logs
+            entries = getattr(g, '_deferred_audit_logs', None)
+            if entries is None:
+                logger.warning(
+                    "deferred audit hook ran under a different app context; "
+                    "dispatching entries captured at registration"
+                )
+                entries = entries_ref
             if entries:
                 _dispatch_to_celery(entries)
             return response

@@ -163,7 +163,7 @@
       <div class="flex-1 min-w-0">
         <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</p>
         <div class="flex items-center gap-2 mt-1">
-          <span class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{{ player.teams[0].name if player.teams else 'No team' }}</span>
+          <span class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{{ player.teams[0].name if (player.teams and viewer_can_see_teams) else ('—' if player.teams else 'No team') }}</span>
           {% if leader_total %}
           <span class="flex-1 h-1 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden max-w-[80px]" aria-hidden="true">
             <span class="block h-full rounded-full {% if loop.index == 1 %}bg-ecs-green{% else %}bg-gray-300 dark:bg-gray-600{% endif %}" style="width: {{ (total / leader_total * 100)|round(1) }}%"></span>
@@ -208,7 +208,7 @@
                         {% if loop.index == 1 %}<i class="ti ti-{{ icon }} {{ color_class }}"></i>{% else %}{{ loop.index }}{% endif %}
                     </td>
                     <td class="px-3 py-2 text-gray-900 dark:text-white font-medium">{{ player.name }}</td>
-                    <td class="px-3 py-2 text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ player.teams[0].name if player.teams else 'N/A' }}</td>
+                    <td class="px-3 py-2 text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ player.teams[0].name if (player.teams and viewer_can_see_teams) else ('—' if player.teams else 'N/A') }}</td>
                     <td class="px-3 py-2 text-center font-bold text-gray-900 dark:text-white">{{ total }}</td>
                 </tr>
                 {% endfor %}

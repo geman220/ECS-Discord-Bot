@@ -2,7 +2,10 @@
 {% from 'macros/_modern_kit.html' import empty_state %}
 {% from "macros/flowbite.html" import modal_form %}
 {% from "macros/_modern_kit.html" import page_header, stat_card, section_card, empty_state %}
-{% set _ROSTER_TARGET = 15 %}
+{# Real configured picks-per-team (DraftSession.rounds via analytics), not a
+   hardcoded 15 — keeps the header capacity/% consistent with the server and
+   with the live JS recount (data-capacity). #}
+{% set _ROSTER_TARGET = analytics.roster_size|default(15) %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -69,12 +72,12 @@
                     <i class="ti ti-progress text-ecs-green text-lg shrink-0" aria-hidden="true"></i>
                 </div>
                 <div class="mt-2 flex items-end gap-1">
-                    <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ _progress }}</span>
+                    <span id="hdrProgressPct" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ _progress }}</span>
                     <span class="font-mono text-lg font-bold text-ecs-green mb-0.5">%</span>
                 </div>
                 <div class="mt-3 h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" role="progressbar"
                      aria-valuenow="{{ _progress }}" aria-valuemin="0" aria-valuemax="100" aria-label="Draft progress">
-                    <span class="block h-full rounded-full bg-ecs-green" data-bar-fill data-pct="{{ _progress }}"></span>
+                    <span id="hdrProgressFill" class="block h-full rounded-full bg-ecs-green" data-bar-fill data-pct="{{ _progress }}" data-capacity="{{ _capacity }}"></span>
                 </div>
             </div>
             <div class="p-4 sm:p-5">
@@ -83,7 +86,7 @@
                     <i class="ti ti-user-check text-green-600 dark:text-green-400 text-lg shrink-0" aria-hidden="true"></i>
                 </div>
                 <div class="mt-2 flex items-end gap-1.5">
-                    <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ _drafted }}</span>
+                    <span id="hdrDraftedCount" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ _drafted }}</span>
                     <span class="font-mono text-xs text-gray-400 dark:text-gray-500 mb-1">/ {{ _capacity }}</span>
                 </div>
                 <div class="mt-3 text-xs text-gray-500 dark:text-gray-400">picks placed</div>
@@ -94,7 +97,7 @@
                     <i class="ti ti-users text-blue-600 dark:text-blue-400 text-lg shrink-0" aria-hidden="true"></i>
                 </div>
                 <div class="mt-2 flex items-end gap-1.5">
-                    <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ available_players|length }}</span>
+                    <span id="hdrAvailableCount" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ available_players|length }}</span>
                 </div>
                 <div class="mt-3 text-xs text-gray-500 dark:text-gray-400">in the pool</div>
             </div>
@@ -264,6 +267,9 @@
                                     {% endif %}
                                     {% if player.is_admin %}
                                     <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 shrink-0" title="Admin"><i class="ti ti-shield-check text-[9px]"></i>ADMIN</span>
+                                    {% endif %}
+                                    {% if player.is_nad %}
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 shrink-0" title="NAD — scouting board player"><i class="ti ti-shield-star text-[9px]"></i>NAD</span>
                                     {% endif %}
                                 </div>
                                 <!-- position form-pills (primary green / alt orange / avoid red) -->
@@ -517,7 +523,10 @@
                                          alt="{{ player.name }}"
                                          class="w-8 h-8 rounded-lg object-cover object-top shrink-0">
                                     <div class="flex-1 min-w-0">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</div>
+                                        {# name in its OWN truncate span: ellipsis doesn't apply to bare
+                                           text nodes in a flex row, and the shield must never be pushed
+                                           past the clip edge by a long name. #}
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1 min-w-0"><span class="truncate min-w-0">{{ player.name }}</span>{% if player.is_nad %}<span class="inline-flex items-center shrink-0 text-amber-500 dark:text-amber-400" title="NAD — scouting board player"><i class="ti ti-shield-star text-xs"></i></span>{% endif %}</div>
                                         <div class="text-[10px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">{{ format_position(player.favorite_position) if player.favorite_position else 'Any' }}</div>
                                     </div>
                                     {% if player.career_goals or player.career_assists %}
@@ -1278,13 +1287,45 @@
   if (search) search.addEventListener('input', function () { shown = PAGE; apply(); });
   if (posFilter) posFilter.addEventListener('change', apply);
   var a2 = 0, iv2 = setInterval(function () {
-    var s = window.socket;
+    // SocketManager first: on the console shell window.socket is often unset,
+    // which left this binder dead — pick/removal events never re-ran apply(),
+    // so paged-out cards and the "Show N more" count went stale until refresh.
+    var s = (window.SocketManager && window.SocketManager.getSocket && window.SocketManager.getSocket()) || window.socket;
     if (s && !s._pageBound) { s._pageBound = true; clearInterval(iv2);
       s.on('player_drafted_enhanced', function () { setTimeout(apply, 400); });
       s.on('player_removed_enhanced', function () { setTimeout(apply, 400); });
     } else if (++a2 > 40) { clearInterval(iv2); }
   }, 500);
   apply();
+})();
+
+/* Live header stats: Progress % / Drafted / Available recompute from the DOM on
+   every pick/removal — the server-rendered figures went stale until refresh. */
+(function () {
+  var pct = document.getElementById('hdrProgressPct'),
+      fill = document.getElementById('hdrProgressFill'),
+      drafted = document.getElementById('hdrDraftedCount'),
+      avail = document.getElementById('hdrAvailableCount');
+  if (!pct && !drafted && !avail) return;
+  var capacity = parseInt((fill && fill.getAttribute('data-capacity')) || '0', 10);
+  function refresh() {
+    var d = document.querySelectorAll('[id^="teamPlayers"] [data-player-id]').length;
+    var a = document.querySelectorAll('#available-players .js-draggable-player').length;
+    if (drafted) drafted.textContent = d;
+    if (avail) avail.textContent = a;
+    if (capacity > 0) {
+      var p = Math.min(100, Math.round(100 * d / capacity));
+      if (pct) pct.textContent = p;
+      if (fill) fill.style.width = p + '%';
+    }
+  }
+  var a3 = 0, iv3 = setInterval(function () {
+    var s = (window.SocketManager && window.SocketManager.getSocket && window.SocketManager.getSocket()) || window.socket;
+    if (s && !s._hdrStatsBound) { s._hdrStatsBound = true; clearInterval(iv3);
+      s.on('player_drafted_enhanced', function () { setTimeout(refresh, 450); });
+      s.on('player_removed_enhanced', function () { setTimeout(refresh, 450); });
+    } else if (++a3 > 40) { clearInterval(iv3); }
+  }, 500);
 })();
 </script>
 {% endblock %}

@@ -159,18 +159,72 @@ class SecurityMiddleware:
 
             # Skip rate limiting entirely for private/Docker IPs (reverse proxy, internal services)
             if not is_private_ip(client_ip):
-                # Check if user is authenticated for higher limits
+                # High-frequency legit paths are exempt from this per-IP limiter
+                # (attack-pattern detection above still runs). A draft venue puts
+                # ~25 coaches behind ONE NAT IP; the anonymous bucket melted the
+                # room down (429 on clock polls, board loads, token refresh).
+                # Mirrors the Flask-Limiter exemption list in app/init/middleware.py.
+                _rate_exempt = (
+                    '/socket.io/', '/static/', '/api/health/',
+                    '/draft/', '/admin-panel/draft/', '/api/v1/draft',
+                    '/api/v1/refresh_token', '/api/v1/app_config',
+                    '/api/v1/logs/mobile', '/api/v1/telemetry/',
+                )
+                if any(request.path.startswith(p) for p in _rate_exempt):
+                    # Persistent DB IP bans still apply on exempted APP paths —
+                    # the only other enforcement point lives inside allow_request,
+                    # which we're skipping. Static/socket.io asset noise is
+                    # excluded from the DB lookup (volume), and those can't do
+                    # anything a banned IP profits from anyway.
+                    if not request.path.startswith(('/static/', '/socket.io/')):
+                        try:
+                            from app.models import IPBan
+                            if IPBan.is_ip_banned(client_ip):
+                                g._waf_banned = True
+                                abort(403)
+                        except HTTPException:
+                            raise
+                        except Exception:
+                            pass
+                    return
+
+                # Key + size the bucket by USER when we can identify one. Mobile
+                # requests authenticate via JWT (flask_login sees them as anonymous),
+                # so before this every phone at the venue shared one anonymous
+                # 300/hr bucket per NAT IP. Per-user keying gives each coach their
+                # own 800/hr while anonymous scanners keep the strict shared limit.
+                rate_key = client_ip
+                limit, window = 300, 3600
                 try:
                     from flask_login import current_user
                     if current_user and getattr(current_user, 'is_authenticated', False):
                         limit, window = 800, 3600
                     else:
-                        limit, window = 300, 3600
+                        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+                        verify_jwt_in_request(optional=True)
+                        _jwt_uid = get_jwt_identity()
+                        if _jwt_uid:
+                            limit, window = 800, 3600
+                            rate_key = f"{client_ip}:u{_jwt_uid}"
                 except Exception:
-                    limit, window = 300, 3600
+                    pass
 
-                if not self.rate_limiter.allow_request(client_ip, limit=limit, window=window):
-                    logger.warning(f"Rate limit exceeded from {client_ip} for {request.path}")
+                # allow_request checks IPBan against its KEY — a composite
+                # 'ip:u<id>' key can never match a ban stored by bare IP, so
+                # check the bare IP explicitly whenever we re-keyed the bucket.
+                if rate_key != client_ip:
+                    try:
+                        from app.models import IPBan
+                        if IPBan.is_ip_banned(client_ip):
+                            g._waf_banned = True
+                            abort(403)
+                    except HTTPException:
+                        raise
+                    except Exception:
+                        pass
+
+                if not self.rate_limiter.allow_request(rate_key, limit=limit, window=window):
+                    logger.warning(f"Rate limit exceeded from {rate_key} for {request.path}")
                     abort(429)
                 
         except HTTPException:

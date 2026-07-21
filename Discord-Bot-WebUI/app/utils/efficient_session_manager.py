@@ -220,7 +220,9 @@ class EfficientQuery:
 
         cache_key = f"user_auth:{user_id}"
         try:
-            redis.execute_command('DELETE', cache_key)
+            # 'DEL', not 'DELETE' — DELETE is not a Redis command, so this
+            # function silently no-op'd (error swallowed at debug level) forever.
+            redis.execute_command('DEL', cache_key)
         except Exception as e:
             logger.debug(f"Failed to invalidate user cache for {user_id}: {e}")
 

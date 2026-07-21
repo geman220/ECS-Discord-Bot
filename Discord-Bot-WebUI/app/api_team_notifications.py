@@ -87,13 +87,22 @@ def send_team_notification():
         
         # Find the team using helper function with normalization
         team = find_team_by_discord_role(team_name)
-        
+
         if not team:
             return jsonify({
                 'success': False,
                 'error': f'Team not found for Discord role: {team_name}'
             }), 404
-        
+
+        # Pre-reveal (make_teams_public off): a team push tells every member
+        # what team they're on. Refuse until teams are revealed.
+        from app.services.team_visibility import teams_are_public, is_current_pub_league_team
+        if not teams_are_public() and is_current_pub_league_team(team):
+            return jsonify({
+                'success': False,
+                'error': 'Team assignments are hidden until they are announced — team messages are disabled until the reveal.'
+            }), 403
+
         # Get all players on this team who have Discord IDs and are linked to users
         team_players = db.session.query(Player, User).join(
             player_teams, Player.id == player_teams.c.player_id
@@ -171,7 +180,15 @@ def get_team_members(team_name):
                 'success': False,
                 'error': f'Team not found for Discord role: {team_name}'
             }), 404
-        
+
+        # Pre-reveal (make_teams_public off): this is a roster dump
+        from app.services.team_visibility import teams_are_public, is_current_pub_league_team
+        if not teams_are_public() and is_current_pub_league_team(team):
+            return jsonify({
+                'success': False,
+                'error': 'Teams are hidden until they are announced'
+            }), 403
+
         # Get all team members first (without tokens to avoid duplicates)
         team_players = db.session.query(Player, User).join(
             player_teams, Player.id == player_teams.c.player_id

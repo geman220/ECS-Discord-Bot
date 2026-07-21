@@ -45,6 +45,17 @@ EVENT_TYPE_COLORS = {k: v['color'] for k, v in EVENT_TYPES.items()}
 EVENT_TYPE_ICONS = {k: v['icon'] for k, v in EVENT_TYPES.items()}
 
 
+def _visible_user_team_ids(session_db, player, current_user_id) -> list:
+    """The caller's team ids, minus hidden Pub League teams pre-reveal —
+    otherwise is_my_team / my_team_only filtering reveals the assignment."""
+    if not (player and player.teams):
+        return []
+    from app.services.team_visibility import mobile_user_can_view_teams, is_current_pub_league_team
+    if mobile_user_can_view_teams(session_db, current_user_id):
+        return [t.id for t in player.teams]
+    return [t.id for t in player.teams if not is_current_pub_league_team(t)]
+
+
 def _match_to_calendar_event(match, user_team_ids: list = None) -> dict:
     """Convert a Match object to a calendar event dict for mobile."""
     # Determine if this is a user's team match
@@ -228,7 +239,7 @@ def get_calendar_events():
     with managed_session() as session_db:
         # Get user's player profile and team IDs
         player = session_db.query(Player).filter_by(user_id=current_user_id).first()
-        user_team_ids = [t.id for t in player.teams] if player and player.teams else []
+        user_team_ids = _visible_user_team_ids(session_db, player, current_user_id)
 
         # Get matches
         if include_matches:
@@ -418,7 +429,7 @@ def get_upcoming_calendar():
     with managed_session() as session_db:
         # Get user's team IDs
         player = session_db.query(Player).filter_by(user_id=current_user_id).first()
-        user_team_ids = [t.id for t in player.teams] if player and player.teams else []
+        user_team_ids = _visible_user_team_ids(session_db, player, current_user_id)
 
         # Get matches (user's teams only for upcoming view)
         match_query = session_db.query(Match).options(

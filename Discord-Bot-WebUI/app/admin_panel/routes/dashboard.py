@@ -335,6 +335,18 @@ def feature_toggles():
         return redirect(url_for('admin_panel.dashboard'))
 
 
+def _on_setting_changed(setting_key: str, new_value: str):
+    """Side effects for settings that must propagate beyond the DB row."""
+    if setting_key == 'make_teams_public':
+        try:
+            from app.tasks.tasks_discord import sync_team_channel_visibility_task
+            make_public = str(new_value).lower() in ('true', '1', 'yes', 'on')
+            sync_team_channel_visibility_task.delay(make_public)
+            logger.info(f"Dispatched team channel visibility sync (make_public={make_public})")
+        except Exception as e:
+            logger.error(f"Failed to dispatch team channel visibility sync: {e}")
+
+
 @admin_panel_bp.route('/toggle-setting', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -376,8 +388,10 @@ def toggle_setting():
             user_agent=request.headers.get('User-Agent')
         )
 
+        _on_setting_changed(setting_key, new_value)
+
         return jsonify({
-            'success': True, 
+            'success': True,
             'new_value': new_value == 'true',
             'message': f'Setting {setting_key} updated successfully'
         })
@@ -392,16 +406,21 @@ def toggle_setting():
 @role_required(['Global Admin', 'Pub League Admin'])
 def update_setting():
     """Update a setting value."""
+    wants_json = 'application/json' in (request.headers.get('Accept') or '')
     try:
         setting_key = request.form.get('key')
         setting_value = request.form.get('value')
-        
+
         if not setting_key:
+            if wants_json:
+                return jsonify({'success': False, 'message': 'Setting key is required'})
             flash('Setting key is required', 'error')
             return redirect(url_for('admin_panel.feature_toggles'))
 
         setting = AdminConfig.query.filter_by(key=setting_key, is_enabled=True).first()
         if not setting:
+            if wants_json:
+                return jsonify({'success': False, 'message': 'Setting not found'})
             flash('Setting not found', 'error')
             return redirect(url_for('admin_panel.feature_toggles'))
 
@@ -425,11 +444,17 @@ def update_setting():
             user_agent=request.headers.get('User-Agent')
         )
 
+        _on_setting_changed(setting_key, setting_value)
+
+        if wants_json:
+            return jsonify({'success': True, 'message': f'Setting {setting_key} updated successfully'})
         flash(f'Setting {setting_key} updated successfully', 'success')
         return redirect(url_for('admin_panel.feature_toggles'))
 
     except Exception as e:
         logger.error(f"Error updating setting: {e}")
+        if wants_json:
+            return jsonify({'success': False, 'message': 'Failed to update setting'})
         flash('Failed to update setting. Verify the setting key and value are valid.', 'error')
         return redirect(url_for('admin_panel.feature_toggles'))
 

@@ -156,6 +156,10 @@ def get_players():
             ).filter(player_teams.c.player_id.in_(page_player_ids)).all():
                 coach_map[(row.player_id, row.team_id)] = row.is_coach
 
+        # Pre-reveal: hide current Pub League assignments from non-exempt users
+        from app.services.team_visibility import mobile_user_can_view_teams, is_current_pub_league_team
+        can_see_teams = (not include_teams) or mobile_user_can_view_teams(session_db, get_jwt_identity())
+
         players_data = []
         for player in players:
             player_data = {
@@ -172,14 +176,21 @@ def get_players():
                 )
             }
             if include_teams:
-                player_data["team_name"] = player.primary_team.name if player.primary_team else None
+                hide_primary = not can_see_teams and is_current_pub_league_team(player.primary_team)
+                player_data["team_name"] = (
+                    None if hide_primary
+                    else (player.primary_team.name if player.primary_team else None)
+                )
                 player_data["league_name"] = (
-                    player.primary_team.league.name
-                    if player.primary_team and player.primary_team.league
-                    else None
+                    None if hide_primary
+                    else (player.primary_team.league.name
+                          if player.primary_team and player.primary_team.league
+                          else None)
                 )
                 player_data["all_teams"] = []
                 for team in player.teams:
+                    if not can_see_teams and is_current_pub_league_team(team):
+                        continue
                     player_data["all_teams"].append({
                         "id": team.id,
                         "name": team.name,
@@ -221,6 +232,12 @@ def get_player(player_id: int):
             return jsonify({"msg": "Player not found"}), 404
 
         response_data = build_player_response(player)
+
+        # Pre-reveal: hide current Pub League assignment from non-exempt users
+        from app.services.team_visibility import mobile_user_can_view_teams, is_current_pub_league_team
+        if (is_current_pub_league_team(player.primary_team)
+                and not mobile_user_can_view_teams(session_db, get_jwt_identity())):
+            response_data['team_name'] = None
 
         if include_preferences:
             response_data.update({
@@ -372,6 +389,28 @@ def get_player_team_history(player_id: int):
         result = build_player_team_history_data(
             player_id, include_roster=include_roster, session=session
         )
+
+        # Pre-reveal: strip current-season Pub League entries for non-exempt users
+        from app.services.team_visibility import mobile_user_can_view_teams
+        if not mobile_user_can_view_teams(session, get_jwt_identity()):
+            hidden_leagues = ('Premier', 'Classic')
+            result['season_history'] = [
+                e for e in result.get('season_history', [])
+                if not (e.get('is_current_season')
+                        and (e.get('team') or {}).get('league_name') in hidden_leagues)
+            ]
+            result['current_teams'] = [
+                t for t in result.get('current_teams', [])
+                if t.get('league_name') not in hidden_leagues
+            ]
+            from app.services.team_visibility import hidden_pub_league_team_ids
+            hidden_ids = hidden_pub_league_team_ids(
+                session, [h.get('team_id') for h in result.get('detailed_history', [])]
+            )
+            result['detailed_history'] = [
+                h for h in result.get('detailed_history', [])
+                if not (h.get('is_current') and h.get('team_id') in hidden_ids)
+            ]
 
         return jsonify({
             "player_id": player_id,

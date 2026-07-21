@@ -719,7 +719,12 @@
                                 <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Primary Team</p>
                                     <p class="font-medium text-gray-900 dark:text-white text-sm">
-                                        {{ safe_current_user.player.primary_team.name if safe_current_user.player.primary_team else 'None' }}
+                                        {% set _pt = safe_current_user.player.primary_team %}
+                                        {% if _pt and not viewer_can_see_teams and _pt.league and _pt.league.name in ('Premier', 'Classic') %}
+                                        Revealed soon
+                                        {% else %}
+                                        {{ _pt.name if _pt else 'None' }}
+                                        {% endif %}
                                     </p>
                                 </div>
                                 <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">

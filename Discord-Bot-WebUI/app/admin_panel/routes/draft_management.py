@@ -695,7 +695,12 @@ def draft_session_timer():
         ds.pick_deadline = (datetime.utcnow() + timedelta(seconds=ds.seconds_per_pick)) if ds.seconds_per_pick else None
         ds.alerts_sent = 0
     state = draft_clock.build_state(db.session, ds)
-    draft_clock.emit_clock(ds.league.name, state)
+    league_name = ds.league.name
+    # Commit BEFORE emitting: emit_clock mirrors state into the 120s poll
+    # cache, so a post-emit rollback would serve phantom clock state to every
+    # poller. @transactional's later commit becomes a no-op.
+    db.session.commit()
+    draft_clock.emit_clock(league_name, state)
     return jsonify({'success': True, 'state': state})
 
 
@@ -721,7 +726,12 @@ def draft_session_start():
     AdminAuditLog.log_action(
         user_id=current_user.id, action='draft_session_start', resource_type='draft_session',
         resource_id=str(ds.id), ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent'))
-    draft_clock.emit_clock(ds.league.name, state)
+    league_name = ds.league.name
+    # Commit BEFORE emitting: emit_clock mirrors state into the 120s poll
+    # cache, so a post-emit rollback would serve phantom clock state to every
+    # poller. @transactional's later commit becomes a no-op.
+    db.session.commit()
+    draft_clock.emit_clock(league_name, state)
     draft_clock.queue_on_clock_push(ds)
     return jsonify({'success': True, 'state': state})
 
@@ -741,7 +751,12 @@ def draft_session_pause():
     ds.status = 'paused'
     ds.pick_deadline = None
     state = draft_clock.build_state(db.session, ds)
-    draft_clock.emit_clock(ds.league.name, state)
+    league_name = ds.league.name
+    # Commit BEFORE emitting: emit_clock mirrors state into the 120s poll
+    # cache, so a post-emit rollback would serve phantom clock state to every
+    # poller. @transactional's later commit becomes a no-op.
+    db.session.commit()
+    draft_clock.emit_clock(league_name, state)
     return jsonify({'success': True, 'state': state})
 
 
@@ -770,7 +785,12 @@ def draft_session_resume():
         ds.pick_deadline = datetime.utcnow() + timedelta(seconds=secs)
     ds.pause_remaining_seconds = None
     state = draft_clock.build_state(db.session, ds)
-    draft_clock.emit_clock(ds.league.name, state)
+    league_name = ds.league.name
+    # Commit BEFORE emitting: emit_clock mirrors state into the 120s poll
+    # cache, so a post-emit rollback would serve phantom clock state to every
+    # poller. @transactional's later commit becomes a no-op.
+    db.session.commit()
+    draft_clock.emit_clock(league_name, state)
     # Re-ping the on-the-clock team's coaches: the push enqueued at the original
     # transition may have been dropped while paused (send-time staleness guard /
     # broker expiry), and nothing else re-notifies them after a resume.
@@ -793,7 +813,12 @@ def draft_session_skip():
         user_id=current_user.id, action='draft_session_skip', resource_type='draft_session',
         resource_id=str(ds.id), new_value=f'skipped to pick {ds.current_overall_pick}',
         ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent'))
-    draft_clock.emit_clock(ds.league.name, state)
+    league_name = ds.league.name
+    # Commit BEFORE emitting: emit_clock mirrors state into the 120s poll
+    # cache, so a post-emit rollback would serve phantom clock state to every
+    # poller. @transactional's later commit becomes a no-op.
+    db.session.commit()
+    draft_clock.emit_clock(league_name, state)
     draft_clock.queue_on_clock_push(ds)
     return jsonify({'success': True, 'state': state})
 
@@ -828,7 +853,12 @@ def draft_session_back():
         user_id=current_user.id, action='draft_session_back', resource_type='draft_session',
         resource_id=str(ds.id), new_value=f'stepped back to pick {ds.current_overall_pick}',
         ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent'))
-    draft_clock.emit_clock(ds.league.name, state)
+    league_name = ds.league.name
+    # Commit BEFORE emitting: emit_clock mirrors state into the 120s poll
+    # cache, so a post-emit rollback would serve phantom clock state to every
+    # poller. @transactional's later commit becomes a no-op.
+    db.session.commit()
+    draft_clock.emit_clock(league_name, state)
     return jsonify({'success': True, 'state': state})
 
 
@@ -847,7 +877,12 @@ def draft_session_end():
         user_id=current_user.id, action='draft_session_end', resource_type='draft_session',
         resource_id=str(ds.id), new_value='draft ended by admin',
         ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent'))
-    draft_clock.emit_clock(ds.league.name, state)
+    league_name = ds.league.name
+    # Commit BEFORE emitting: emit_clock mirrors state into the 120s poll
+    # cache, so a post-emit rollback would serve phantom clock state to every
+    # poller. @transactional's later commit becomes a no-op.
+    db.session.commit()
+    draft_clock.emit_clock(league_name, state)
     return jsonify({'success': True, 'state': state})
 
 
@@ -872,5 +907,10 @@ def draft_session_reset():
         user_id=current_user.id, action='draft_session_reset', resource_type='draft_session',
         resource_id=str(ds.id), ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent'))
     state = draft_clock.build_state(db.session, ds)
-    draft_clock.emit_clock(ds.league.name, state)
+    league_name = ds.league.name
+    # Commit BEFORE emitting: emit_clock mirrors state into the 120s poll
+    # cache, so a post-emit rollback would serve phantom clock state to every
+    # poller. @transactional's later commit becomes a no-op.
+    db.session.commit()
+    draft_clock.emit_clock(league_name, state)
     return jsonify({'success': True, 'state': state})

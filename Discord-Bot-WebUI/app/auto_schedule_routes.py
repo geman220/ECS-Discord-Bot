@@ -1816,7 +1816,14 @@ def _execute_season_creation(session, data):
             # Mark old season as not current
             if old_season:
                 old_season.is_current = False
-        
+
+            # New Pub League season starts with team assignments hidden —
+            # admins flip make_teams_public back on at the reveal party.
+            # (Channels created below honor this and start hidden.)
+            if league_type == 'Pub League':
+                from app.services.team_visibility import reset_teams_reveal
+                reset_teams_reveal(session)
+
         # Create new season
         new_season = Season(
             name=season_name,

@@ -298,8 +298,18 @@ def _collect_pub_league_non_responders(session, today, window_end, snoozed_ids, 
         joinedload(Match.availability)
     ).all()
 
+    # Pre-reveal (make_teams_public off): these DMs literally name the
+    # player's team ("Please RSVP for {team} vs {opponent}"). Skip hidden
+    # Pub League matches entirely until the reveal.
+    from app.services.team_visibility import teams_are_public, is_current_pub_league_team
+    hide_pre_reveal = not teams_are_public()
+
     count = 0
     for match in matches:
+        if hide_pre_reveal and (is_current_pub_league_team(match.home_team)
+                                or is_current_pub_league_team(match.away_team)):
+            continue
+
         responded_ids = {
             a.player_id for a in match.availability
             if a.player_id and a.response in ('yes', 'no', 'maybe')

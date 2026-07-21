@@ -253,6 +253,11 @@ def build_state(session, ds, team_ids=None):
 
     return {
         'session_id': ds.id,
+        # league/season ids ride along so the Redis-cached copy of this payload
+        # (see broadcast_draft) lets the mobile /clock poll resolve the per-user
+        # bits without re-querying the current-season league. Clients ignore them.
+        'league_id': ds.league_id,
+        'season_id': ds.season_id,
         'status': ds.status,
         'format': ds.format,
         'seconds_per_pick': ds.seconds_per_pick,
@@ -373,7 +378,21 @@ def draft_rooms(*league_names):
 def broadcast_draft(event, payload, *league_names):
     """Emit a draft event to every draft room on BOTH the web ('/') and mobile
     ('/draft') namespaces. Best-effort — a socket failure must never break a pick or
-    clock transition, so every emit is guarded."""
+    clock transition, so every emit is guarded.
+
+    Clock updates are ALSO mirrored into the Redis poll cache here: every clock
+    transition (start/pick/skip/pause/resume/back/end + the overdue-alert task)
+    funnels through this broadcaster, so writing the cache at this single choke
+    point keeps the mobile GET /clock poll 0-DB for league state (the 2026-07-20
+    draft-night pool exhaustion). The key normalizes league-name variants, so
+    emitting with the url slug or the DB name updates the same entry."""
+    if event == 'draft_clock_update' and isinstance(payload, dict):
+        try:
+            from app.draft_cache_service import DraftCacheService
+            for name in {n for n in league_names if n}:
+                DraftCacheService.set_clock_state_cache(name, payload)
+        except Exception as e:  # cache mirror must never break a broadcast
+            logger.warning(f"clock state cache mirror failed: {e}")
     rooms = draft_rooms(*league_names)
     for ns in DRAFT_NAMESPACES:
         for room in rooms:

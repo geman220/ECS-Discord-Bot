@@ -28,6 +28,22 @@ def handle_join_draft_room(data):
         emit('error', {'message': 'Authentication required'})
         return
 
+    # Draft rooms broadcast live pick announcements (player -> team). The draft
+    # pages are coach/admin-gated; gate the socket room the same way so a
+    # regular player can't join and watch assignments land pre-reveal.
+    try:
+        with managed_session() as vis_session:
+            from app.services.team_visibility import user_is_team_exempt
+            from app.models import User
+            user = vis_session.query(User).get(current_user.id)
+            if not user_is_team_exempt(user, session=vis_session):
+                emit('error', {'message': 'Not authorized for draft rooms'})
+                return
+    except Exception as e:
+        logger.error(f"join_draft_room authorization check failed: {e}")
+        emit('error', {'message': 'Not authorized for draft rooms'})
+        return
+
     league_name = data.get('league_name')
     if league_name:
         room = f'draft_{league_name}'
@@ -422,11 +438,19 @@ def handle_draft_player_enhanced(data):
 
                 # Advance the clock UNDER THE SAME LOCK (only when the on-the-clock team made
                 # this pick; an admin's out-of-turn add to a different team leaves it put).
+                # PAUSED drafts advance too: check_turn allows picks while paused, so
+                # without this a paused-state pick landed on the roster but the clock
+                # never moved — the draft was stuck on the same team after resume. An
+                # on-clock pick during a pause now advances AND auto-resumes with a
+                # fresh full timer (the pause's purpose is over once the pick is made).
                 # M2: advance mutates the clock columns but SKIPS building the emit payload
                 # (with_state=False) — build_state's ~5 read queries are moved out of the
                 # lock (below) so the FOR UPDATE hold covers writes only.
-                if ds is not None and ds.status == 'active':
+                if ds is not None and ds.status in ('active', 'paused'):
                     if not ds.current_team_id or ds.current_team_id == team_id:
+                        if ds.status == 'paused':
+                            ds.status = 'active'
+                            ds.pause_remaining_seconds = None
                         draft_clock.advance(session, ds, with_state=False)
                         advanced_clock = True
             # Transaction 2 committed automatically - lock + connection released
@@ -479,7 +503,7 @@ def handle_draft_player_enhanced(data):
                 # Roster-composition flags for the live per-team requirement counters.
                 # 'new' = no team history in a PRIOR season (exclude the row we just wrote);
                 # 'admin' = holds a Pub League Admin / Global Admin role.
-                is_new_flag, is_admin_flag = False, False
+                is_new_flag, is_admin_flag, is_nad_flag = False, False, False
                 try:
                     from app.models import PlayerTeamSeason
                     from app.models.core import Role, user_roles
@@ -498,6 +522,19 @@ def handle_draft_player_enhanced(data):
                         is_admin_flag = arole is not None
                 except Exception as _flag_err:
                     logger.warning(f"draft flags compute skipped: {_flag_err}")
+                # NAD flag for the live roster/pool card shield — same source of
+                # truth as the server-rendered badge (nad_board_service). Runs in
+                # this POST-commit read session, memoized on g, never under the lock.
+                try:
+                    from app.services.nad_board_service import nad_player_id_set
+                    _nad_key = f'_draft_nad_ids_{season_id}'
+                    _nad_all = getattr(g, _nad_key, None)
+                    if _nad_all is None:
+                        _nad_all = nad_player_id_set(session, season_id=season_id)
+                        setattr(g, _nad_key, _nad_all)
+                    is_nad_flag = player_id in _nad_all
+                except Exception as _nad_err:
+                    logger.warning(f"draft NAD flag compute skipped: {_nad_err}")
 
                 # Success response with full player data including all position fields
                 response_data = {
@@ -530,7 +567,8 @@ def handle_draft_player_enhanced(data):
                         'prev_draft_position': None,  # New draft, no previous position yet
                         'current_position': position,  # Position on the pitch (from pitch view)
                         'is_new': is_new_flag,
-                        'is_admin': is_admin_flag
+                        'is_admin': is_admin_flag,
+                        'is_nad': is_nad_flag
                     },
                     'team_id': team_id,
                     'team_name': team_name,
@@ -552,12 +590,14 @@ def handle_draft_player_enhanced(data):
             logger.info(f"✅ Successfully drafted {player_name} to {team_name}")
 
             # The on-the-clock advance already happened UNDER THE LOCK in Transaction 2
-            # (atomic with the write — see above). Just broadcast the captured state here.
+            # (atomic with the write — see above). Broadcast the captured state via the
+            # shared broadcaster: same rooms/namespaces as before (exact + lowercased),
+            # PLUS it mirrors the state into the Redis poll cache so the mobile
+            # GET /clock endpoint serves this pick's clock without touching the DB.
             try:
                 if clock_state:
-                    emit('draft_clock_update', clock_state, room=f'draft_{league_name}')
-                    socketio.emit('draft_clock_update', clock_state,
-                                  room=f'draft_{league_name}', namespace='/draft')
+                    draft_clock.broadcast_draft('draft_clock_update', clock_state,
+                                                league_name, db_league_name)
             except Exception as _adv_err:
                 logger.warning(f"Draft clock update emit skipped: {_adv_err}")
 
@@ -847,7 +887,8 @@ def handle_remove_player_enhanced(data):
                             'experience_level': enhanced_player['experience_level'],
                             'expected_weeks_available': enhanced_player['expected_weeks_available'],
                             'is_new': enhanced_player.get('is_new', False),
-                            'is_admin': enhanced_player.get('is_admin', False)
+                            'is_admin': enhanced_player.get('is_admin', False),
+                            'is_nad': enhanced_player.get('is_nad', False)
                         }
                     else:
                         print(f"❌ No enhanced data returned for {player.name}, using fallback")
@@ -877,7 +918,8 @@ def handle_remove_player_enhanced(data):
                         'expected_weeks_available': player.expected_weeks_available or 'All weeks',
                         'prev_draft_position': None,
                         'is_new': False,  # fallback path only; the counter re-seeds on refresh
-                        'is_admin': False
+                        'is_admin': False,
+                        'is_nad': False
                     }
 
                 # Commit the transaction
@@ -1041,6 +1083,39 @@ def handle_join_draft_room_mobile(data):
     if not league_name:
         emit('error', {'message': 'league_name is required'})
         return
+
+    # Draft rooms stream live player->team assignments. Same gate as the web
+    # namespace: only coaches/admins may subscribe, or any player could watch
+    # assignments land pre-reveal. g doesn't persist across socket events, so
+    # re-resolve the user from the handshake token.
+    user_id = getattr(g, 'socket_user_id', None)
+    if not user_id:
+        token = _extract_socket_token()
+        if token:
+            try:
+                from flask_jwt_extended import decode_token
+                decoded = decode_token(token)
+                raw_id = decoded.get('sub') or decoded.get('identity')
+                user_id = int(raw_id) if raw_id is not None else None
+            except Exception as e:
+                logger.debug(f"mobile join_draft_room token decode failed: {e}")
+                user_id = None
+    if not user_id:
+        emit('error', {'message': 'Not authorized for draft rooms'})
+        return
+    try:
+        from app.services.team_visibility import user_is_team_exempt
+        from app.models import User
+        with managed_session() as vis_session:
+            user = vis_session.query(User).get(user_id)
+            if not user_is_team_exempt(user, session=vis_session):
+                emit('error', {'message': 'Not authorized for draft rooms'})
+                return
+    except Exception as e:
+        logger.error(f"mobile join_draft_room authorization check failed: {e}")
+        emit('error', {'message': 'Not authorized for draft rooms'})
+        return
+
     room = f'draft_{league_name}'
     join_room(room)
     emit('joined_room', {'room': room, 'league': league_name})

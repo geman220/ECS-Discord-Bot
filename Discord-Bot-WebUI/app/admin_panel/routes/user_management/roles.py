@@ -275,6 +275,14 @@ def assign_user_roles():
                 except Exception as e:
                     logger.error(f"Failed to sync Pub League Coach status for user {user.id}: {e}")
 
+            # Bust the 60s Redis user-auth cache so role changes take effect on the
+            # user's next request (nothing else invalidates user_auth:<id>).
+            try:
+                from app.utils.efficient_session_manager import EfficientQuery
+                EfficientQuery.invalidate_user_cache(int(user_id))
+            except Exception as _cache_err:
+                logger.debug(f"user_auth cache invalidation skipped: {_cache_err}")
+
             if pub_league_coach_removed:
                 try:
                     sync_pub_league_coach_status(user, is_adding_role=False)
@@ -497,6 +505,15 @@ def assign_user_role():
             if user.player and user.player.discord_id:
                 defer_discord_sync(user.player.id, only_add=False)
                 logger.info(f"Queued Discord role sync for user {user.id} after role {action}")
+
+            # Bust the 60s Redis user-auth cache so the change takes effect on the
+            # user's NEXT request instead of "access denied until the TTL expires"
+            # (nothing else invalidates user_auth:<id> on role changes).
+            try:
+                from app.utils.efficient_session_manager import EfficientQuery
+                EfficientQuery.invalidate_user_cache(int(user_id))
+            except Exception as _cache_err:
+                logger.debug(f"user_auth cache invalidation skipped: {_cache_err}")
 
             # Log the action
             AdminAuditLog.log_action(

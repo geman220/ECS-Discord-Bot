@@ -750,6 +750,18 @@ def index():
                     for team in current_season_teams:
                         if team not in user_teams:
                             user_teams.append(team)
+
+        # Pre-reveal (make_teams_public off): hide Pub League team assignments
+        # from non-coach/non-admin players. ECS FC teams are unaffected.
+        teams_hidden = False
+        if user_teams:
+            from app.services.team_visibility import user_can_view_teams
+            if not user_can_view_teams(safe_current_user, session=g.db_session):
+                visible_teams = [t for t in user_teams
+                                 if not (t.league and t.league.name in ('Premier', 'Classic'))]
+                teams_hidden = len(visible_teams) < len(user_teams)
+                user_teams = visible_teams
+
         today = datetime.now().date()
         two_weeks_later = today + timedelta(weeks=2)
         one_week_ago = today - timedelta(weeks=1)
@@ -960,6 +972,7 @@ def index():
             report_form=report_form,
             onboarding_form=onboarding_form,
             user_team=user_teams,
+            teams_hidden=teams_hidden,
             next_matches=next_matches,
             previous_matches=previous_matches,
             team_matches=team_matches,  # Add the pre-processed matches

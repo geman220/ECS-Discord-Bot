@@ -94,6 +94,26 @@ def cleanup_room_users_for_sid(sid):
     return cleaned_entries
 
 
+def _match_involves_hidden_teams(session, match_id) -> bool:
+    """Whether this match touches a hidden (pre-reveal) current Premier/Classic team."""
+    from app.services.team_visibility import teams_are_public, is_current_pub_league_team
+    if teams_are_public():
+        return False
+    match = session.query(Match).get(match_id)
+    if not match:
+        return False
+    return (is_current_pub_league_team(match.home_team)
+            or is_current_pub_league_team(match.away_team))
+
+
+def _socket_viewer_is_exempt(session, user_id) -> bool:
+    """Coach/admin exemption for the reveal gate, resolved from a user id."""
+    from app.services.team_visibility import user_is_team_exempt
+    from app.models import User
+    user = session.query(User).get(user_id) if user_id else None
+    return user_is_team_exempt(user, session=session)
+
+
 def emit_rsvp_update(match_id, player_id, availability, source='system', player_name=None, team_id=None):
     """
     Emit an RSVP update to all clients in a match room.
@@ -129,7 +149,23 @@ def emit_rsvp_update(match_id, player_id, availability, source='system', player_
         # Support both room formats for compatibility
         room_with_underscore = f'match_{match_id}'  # Current Flask format
         room_without_underscore = f'match{match_id}'  # Flutter expected format
-        
+
+        # Pre-reveal: match rooms can contain regular players, so a broadcast
+        # carrying player identity + team_id would reveal assignments. Strip
+        # identity for hidden matches; exempt viewers can refetch via the
+        # gated REST/socket reads.
+        try:
+            with managed_session() as _vis_session:
+                if _match_involves_hidden_teams(_vis_session, match_id):
+                    player_id = None
+                    player_name = None
+                    team_id = None
+        except Exception as _e:
+            logger.warning(f"rsvp broadcast visibility check failed, stripping identity: {_e}")
+            player_id = None
+            player_name = None
+            team_id = None
+
         event_data = {
             'match_id': match_id,
             'player_id': player_id,
@@ -364,7 +400,12 @@ def handle_join_match_rsvp(data):
                 }
                 team_room = f'team_{ecs_fc_match.team_id}'
             else:
-                current_rsvps = get_match_rsvps_data(match_id, team_id, session)
+                # Pre-reveal: only coach/admin viewers get the roster payload
+                if (_match_involves_hidden_teams(session, match_id)
+                        and not _socket_viewer_is_exempt(session, user_id)):
+                    current_rsvps = {}
+                else:
+                    current_rsvps = get_match_rsvps_data(match_id, team_id, session)
                 match_info = {
                     'home_team_id': match.home_team_id,
                     'home_team_name': match.home_team.name,
@@ -505,6 +546,14 @@ def handle_get_match_rsvps_live(data):
             return
         
         with managed_session() as session:
+            # Pre-reveal: rosters for hidden matches are coach/admin-only
+            if _match_involves_hidden_teams(session, match_id):
+                _uid = auth_result.get('user_id') if auth_result['authenticated'] else (
+                    current_user.id if current_user.is_authenticated else None
+                )
+                if not _socket_viewer_is_exempt(session, _uid):
+                    emit('rsvps_error', {'message': 'Teams are hidden until they are announced'})
+                    return
             rsvps_data = get_match_rsvps_data(match_id, team_id, session, include_details)
 
         # Emit after session release so the connection is returned before fan-out

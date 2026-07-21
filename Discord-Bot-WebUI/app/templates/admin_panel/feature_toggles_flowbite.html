@@ -359,6 +359,7 @@ document.querySelectorAll('.setting-toggle').forEach(toggle => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json',
                 'X-CSRFToken': '{{ csrf_token() }}'
             },
             body: `key=${encodeURIComponent(settingKey)}&value=${enabled}`

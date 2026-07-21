@@ -67,6 +67,12 @@ def create_season():
     db.session.add(season)
     db.session.flush()
 
+    # A Pub League season becoming current re-hides team assignments
+    # until an admin re-runs the reveal (make_teams_public).
+    if is_current and season.league_type == 'Pub League':
+        from app.services.team_visibility import reset_teams_reveal
+        reset_teams_reveal(db.session)
+
     # Log the action
     AdminAuditLog.log_action(
         user_id=current_user.id,
@@ -108,6 +114,11 @@ def update_season(season_id):
     # If setting as current, unset other current seasons
     if is_current and not season.is_current:
         db.session.query(Season).filter(Season.id != season_id).update({'is_current': False})
+        # A Pub League season becoming current re-hides team assignments
+        # until an admin re-runs the reveal (make_teams_public).
+        if season.league_type == 'Pub League':
+            from app.services.team_visibility import reset_teams_reveal
+            reset_teams_reveal(db.session)
 
     # Update season
     season.name = name

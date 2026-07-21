@@ -647,6 +647,10 @@ class DraftService:
         # NADs (canonical nad_board_service definition, NOT the looser is_new flag above).
         # Non-NADs get 0 so graduated players' old scouting notes never surface here.
         scouting_note_counts = DraftService._batch_load_scouting_note_counts(player_ids, current_season_id)
+        # Full NAD id set (memoized on g by the loader above). scouting_note_counts
+        # alone can't flag a NAD with ZERO notes, so expose an explicit is_nad for
+        # the board/roster shield badges (web) and the mobile payload (Flutter).
+        nad_ids_all = getattr(g, f'_draft_nad_ids_{current_season_id}', None) or set()
 
         # Load previous season draft positions if league_id is provided
         draft_position_start = datetime.now()
@@ -746,6 +750,7 @@ class DraftService:
                 # Scouting-note count for the card badge (0 unless the player is a NAD
                 # with notes). Clicking the card opens the modal with the full thread.
                 'scouting_note_count': scouting_note_counts.get(player.id, 0),
+                'is_nad': player.id in nad_ids_all,
 
                 # Previous season draft position (None = not drafted previously)
                 'prev_draft_position': prev_draft_position,
@@ -809,7 +814,17 @@ class DraftService:
             from app.models.players import PlayerAdminNote
             from app.services.nad_board_service import nad_player_id_set
             session = g.db_session
-            nad_ids = nad_player_id_set(session, season_id=current_season_id) & set(player_ids)
+            # Memoize the NAD id set on g: nad_player_id_set runs the FULL NAD
+            # board compute (~8 queries + hydrating every candidate Player+User
+            # for the season), and the draft routes call this loader twice per
+            # page load (available + drafted) — pure CPU that stalls the whole
+            # gevent worker if run repeatedly.
+            _nad_memo_key = f'_draft_nad_ids_{current_season_id}'
+            nad_all = getattr(g, _nad_memo_key, None)
+            if nad_all is None:
+                nad_all = nad_player_id_set(session, season_id=current_season_id)
+                setattr(g, _nad_memo_key, nad_all)
+            nad_ids = nad_all & set(player_ids)
             if not nad_ids:
                 return {}
             rows = session.query(
@@ -1486,20 +1501,45 @@ def draft_league_pitch_view(league_name: str):
         else:
             available_players_raw.append(player)
     
-    # Process enhanced player data
-    available_players = DraftService.get_enhanced_player_data(
-        available_players_raw,
-        current_league.season_id,
-        current_league.id  # Pass league_id for previous draft position lookup
-    )
+    # Process enhanced player data — through the SAME Redis cache the list view
+    # uses. Without this, EVERY pitch load ran the full enrichment pipeline twice
+    # (available + drafted: attendance, images, NAD board, history — ~40 queries
+    # and ~1s of CPU that blocks the whole gevent worker). The pick handlers
+    # invalidate exactly these keys and clients update the DOM in place over
+    # sockets, so the staleness window is a single pick.
+    available_players = DraftCacheService.get_enhanced_players_cache(db_league_name, 'available')
+    drafted_players = DraftCacheService.get_enhanced_players_cache(db_league_name, 'drafted')
+    if available_players is None:
+        available_players = DraftService.get_enhanced_player_data(
+            available_players_raw,
+            current_league.season_id,
+            current_league.id  # Pass league_id for previous draft position lookup
+        )
+        DraftCacheService.set_enhanced_players_cache(db_league_name, 'available', available_players)
+    if drafted_players is None:
+        drafted_players = DraftService.get_enhanced_player_data(
+            drafted_players_raw,
+            current_league.season_id,
+            current_league.id  # Pass league_id for previous draft position lookup
+        )
+        DraftCacheService.set_enhanced_players_cache(db_league_name, 'drafted', drafted_players)
 
-    drafted_players = DraftService.get_enhanced_player_data(
-        drafted_players_raw,
-        current_league.season_id,
-        current_league.id  # Pass league_id for previous draft position lookup
-    )
-    
-    # Organize drafted players by team with positions (with deduplication)
+    # Organize drafted players by team with positions (with deduplication).
+    # Positions come from ONE batched read — the old per-player SELECT was an N+1
+    # that grew to ~116 sequential round trips by the end of a draft.
+    position_by_player_team = {}
+    try:
+        if team_ids:
+            from sqlalchemy import select as _sa_select
+            _pos_rows = g.db_session.execute(
+                _sa_select(player_teams.c.player_id, player_teams.c.team_id,
+                           player_teams.c.position)
+                .where(player_teams.c.team_id.in_(team_ids))
+            ).fetchall()
+            position_by_player_team = {(r[0], r[1]): (r[2] or 'bench') for r in _pos_rows}
+    except Exception as _pos_err:
+        logger.warning(f"pitch view position prefetch failed, defaulting to bench: {_pos_err}")
+
     drafted_by_team = {team.id: [] for team in teams}
     seen_players_by_team = {team.id: set() for team in teams}  # Track seen player IDs per team
 
@@ -1515,19 +1555,9 @@ def draft_league_pitch_view(league_name: str):
                 if player_id in seen_players_by_team[team_id]:
                     break  # Skip duplicate
 
-                # Get the player's position from player_teams table
-                try:
-                    position_result = g.db_session.execute(text("""
-                        SELECT position FROM player_teams
-                        WHERE player_id = :player_id AND team_id = :team_id
-                    """), {'player_id': player['id'], 'team_id': team_id}).fetchone()
-
-                    position = position_result[0] if position_result else 'bench'
-                except:
-                    position = 'bench'  # Default if query fails
-
-                # Add position to player data
-                player['current_position'] = position
+                # Add position to player data (batched lookup, 'bench' default)
+                player['current_position'] = position_by_player_team.get(
+                    (player_id, team_id), 'bench')
                 drafted_by_team[team_id].append(player)
                 seen_players_by_team[team_id].add(player_id)
                 break
@@ -1559,6 +1589,27 @@ def draft_league_pitch_view(league_name: str):
             viewer_team_ids = [tid for (tid,) in _rows]
     except Exception as _vt_err:
         logger.warning(f"pitch view viewer_team_ids resolve failed: {_vt_err}")
+
+    # Coach scoping: non-admin coaches see ONLY their own team's pitch (and can
+    # therefore only tap-draft onto it). Admins keep the full board. Fail-open
+    # when the viewer coaches nothing (empty viewer_team_ids) so a mis-flagged
+    # account still gets a usable page — the FOR UPDATE turn/role checks on the
+    # pick endpoints remain the real enforcement regardless of what is rendered.
+    try:
+        from app.models.core import Role, user_roles as _user_roles
+        _is_admin_viewer = db.session.query(_user_roles.c.user_id).join(
+            Role, Role.id == _user_roles.c.role_id
+        ).filter(
+            _user_roles.c.user_id == current_user.id,
+            Role.name.in_(['Pub League Admin', 'Global Admin'])
+        ).first() is not None
+        if not _is_admin_viewer and viewer_team_ids:
+            _mine = set(viewer_team_ids)
+            teams = [t for t in teams if t.id in _mine]
+            teams_json = [tj for tj in teams_json if tj['id'] in _mine]
+            drafted_by_team = {tid: v for tid, v in drafted_by_team.items() if tid in _mine}
+    except Exception as _scope_err:
+        logger.warning(f"pitch view coach scoping skipped: {_scope_err}")
 
     return render_template(
         'draft_pitch_view_flowbite.html',
@@ -1812,11 +1863,24 @@ def api_draft_player():
         # path. with_state=False: the ~5 read queries of build_state run after
         # commit, outside the lock window.
         advanced = False
-        if ds and ds.status == 'active' and (not ds.current_team_id or ds.current_team_id == team_id):
+        if (ds and ds.status in ('active', 'paused')
+                and (not ds.current_team_id or ds.current_team_id == team_id)):
+            # Paused + on-clock pick: advance AND auto-resume (mirrors socket/mobile).
+            if ds.status == 'paused':
+                ds.status = 'active'
+                ds.pause_remaining_seconds = None
             draft_clock.advance(session, ds, with_state=False)
             advanced = True
 
         session.commit()
+
+        # Post-commit: drop the per-league caches. Without this, the mobile
+        # pool cache (available_mobile, 1h TTL) keeps serving the drafted
+        # player to every phone whenever the web board falls back to HTTP picks.
+        try:
+            DraftCacheService.clear_all_league_caches(league_name)
+        except Exception as _cache_err:
+            logger.warning(f"draft HTTP-fallback cache invalidation failed: {_cache_err}")
 
         # Post-commit: clock broadcast + on-the-clock push (never inside the txn).
         if ds:

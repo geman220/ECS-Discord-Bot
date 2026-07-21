@@ -192,10 +192,15 @@ function addPlayerToTeamSidebar(player, teamId, teamName) {
     playerRow.setAttribute('draggable', 'true');
     playerRow.setAttribute('data-player-id', player.id);
 
+    // NAD shield parity with the server-rendered roster card (payload carries is_nad).
+    const nadShield = player.is_nad
+        ? '<span class="inline-flex items-center shrink-0 text-amber-500 dark:text-amber-400" title="NAD — scouting board player"><i class="ti ti-shield-star text-xs"></i></span>'
+        : '';
+
     playerRow.innerHTML = `
         <img src="${escAttr(profilePic)}" alt="${escAttr(player.name)}" class="w-8 h-8 rounded-full object-cover">
         <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium text-gray-900 dark:text-white truncate">${escAttr(player.name)}</div>
+            <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1 min-w-0"><span class="truncate min-w-0">${escAttr(player.name)}</span>${nadShield}</div>
             <div class="text-xs text-gray-500 dark:text-gray-400">${escAttr(position)}</div>
         </div>
         <button class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"

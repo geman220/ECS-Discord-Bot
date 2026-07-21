@@ -56,6 +56,10 @@
                 <i class="ti ti-shield-half" aria-hidden="true"></i>{{ team.name }}
             </a>
             {% endfor %}
+        {% elif teams_hidden %}
+            <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 text-sm font-semibold">
+                <i class="ti ti-eye-off" aria-hidden="true"></i>Teams revealed soon
+            </span>
         {% endif %}
     {% endcall %}
     {% else %}
@@ -77,7 +81,7 @@
             </div>
             <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 truncate">
                 <i class="ti ti-circle-filled text-ecs-green text-[8px]" aria-hidden="true"></i>
-                {% if user_team and user_team|length > 0 %}{{ user_team[0].name }}{% if user_team|length > 1 %} +{{ user_team|length - 1 }} more{% endif %}{% else %}No team assigned{% endif %}
+                {% if user_team and user_team|length > 0 %}{{ user_team[0].name }}{% if user_team|length > 1 %} +{{ user_team|length - 1 }} more{% endif %}{% elif teams_hidden %}Revealed at the reveal party{% else %}No team assigned{% endif %}
             </div>
         </div>
 

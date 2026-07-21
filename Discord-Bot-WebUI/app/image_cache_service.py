@@ -59,19 +59,24 @@ class ImageCacheService:
                     return ImageCacheService.get_player_image_data(player_ids, session)
             
             
-            # Get cached image data with a single query
-            cached_images_query = session.query(PlayerImageCache).filter(
-                PlayerImageCache.player_id.in_(player_ids),
-                PlayerImageCache.cache_status == 'ready'
-            )
-            
+            # Get cache rows in a single query — ALL statuses, not just 'ready'.
+            # A pending/processing/failed row means the player is ALREADY queued
+            # for optimization; before this, every page load re-queued them
+            # (UPDATE/INSERT + commit — a WRITE transaction on a read-only page,
+            # repeated forever because nothing flips the rows to 'ready').
+            all_cache_rows = session.query(PlayerImageCache).filter(
+                PlayerImageCache.player_id.in_(player_ids)
+            ).all()
+
             # Get players data in the same transaction for missing cache entries
             players_query = session.query(Player).filter(
                 Player.id.in_(player_ids)
             )
-            
+
             # Execute queries and build lookup maps
-            cached_images = {img.player_id: img for img in cached_images_query.all()}
+            cached_images = {img.player_id: img for img in all_cache_rows
+                             if img.cache_status == 'ready'}
+            already_tracked = {img.player_id for img in all_cache_rows}
             all_players = {p.id: p for p in players_query.all()}
             
             result = {}
@@ -102,8 +107,10 @@ class ImageCacheService:
                         'is_optimized': False,
                         'file_size': 0
                     }
-                    # Add to batch optimization queue
-                    optimization_queue.append((player.id, player.profile_picture_url))
+                    # Queue for optimization ONLY if no cache row exists yet —
+                    # an existing pending/processing/failed row is already queued.
+                    if player.id not in already_tracked:
+                        optimization_queue.append((player.id, player.profile_picture_url))
                 else:
                     # Use default image for players without profile pictures
                     default_image = "/static/img/default_player.png"
@@ -116,9 +123,12 @@ class ImageCacheService:
                         'file_size': 0
                     }
             
-            # Batch queue optimization requests
+            # Batch queue optimization requests — dispatched to Celery so a
+            # read request never writes/commits on the shared request session
+            # (managed_session() reuses g.db_session inside a request context,
+            # which is what poisoned draft GETs during pool saturation).
             if optimization_queue:
-                ImageCacheService._batch_queue_for_optimization(optimization_queue)
+                ImageCacheService._queue_optimization_async(optimization_queue)
             
             return result
             
@@ -147,7 +157,9 @@ class ImageCacheService:
                 with managed_session() as session:
                     return ImageCacheService._queue_for_optimization(player_id, image_url, session)
             
-            cache_entry = PlayerImageCache.query.filter_by(player_id=player_id).first()
+            # Use the passed session, NOT Model.query (db.session) — mixing the
+            # two sessions in one function loses writes and poisons transactions.
+            cache_entry = session.query(PlayerImageCache).filter_by(player_id=player_id).first()
             if not cache_entry:
                 cache_entry = PlayerImageCache(
                     player_id=player_id,
@@ -158,11 +170,19 @@ class ImageCacheService:
             else:
                 cache_entry.original_url = image_url
                 cache_entry.cache_status = 'pending'
-            
+
             session.commit()
-            
+
         except Exception as e:
             logger.warning(f"Failed to queue image optimization for player {player_id}: {e}")
+            # Roll back so the session is usable again — leaving the transaction
+            # invalid here cascades "Can't reconnect until invalid transaction
+            # is rolled back" onto every later use of this session.
+            try:
+                if session is not None:
+                    session.rollback()
+            except Exception:
+                pass
     
     @staticmethod
     def _batch_queue_for_optimization(optimization_queue: List[Tuple[int, str]], session=None):
@@ -180,8 +200,8 @@ class ImageCacheService:
             # Get existing cache entries for these players
             player_ids = [item[0] for item in optimization_queue]
             existing_entries = {
-                entry.player_id: entry 
-                for entry in PlayerImageCache.query.filter(
+                entry.player_id: entry
+                for entry in session.query(PlayerImageCache).filter(
                     PlayerImageCache.player_id.in_(player_ids)
                 ).all()
             }
@@ -211,18 +231,91 @@ class ImageCacheService:
             session.commit()
             
             logger.debug(f"Batch queued {len(new_entries)} new + {updated_count} updated images for optimization")
-            
-            # Trigger background optimization if enabled
-            # This could trigger a Celery task for background processing
-            # ImageOptimizationTask.delay(player_ids)
-            
+
+
         except Exception as e:
             logger.warning(f"Failed to batch queue image optimization: {e}")
-            session.rollback()
-            # Fallback to individual queuing
+            try:
+                if session is not None:
+                    session.rollback()
+            except Exception:
+                pass
+            # Fallback to individual queuing — each iteration is isolated so one
+            # failure rolls back and the loop continues instead of re-raising
+            # the same invalid-transaction error for every remaining player.
             for player_id, image_url in optimization_queue:
-                ImageCacheService._queue_for_optimization(player_id, image_url, session)
+                try:
+                    ImageCacheService._queue_for_optimization(player_id, image_url, session)
+                except Exception as fallback_exc:
+                    logger.warning(
+                        f"Fallback queuing failed for player {player_id}: {fallback_exc}"
+                    )
+                    try:
+                        if session is not None:
+                            session.rollback()
+                    except Exception:
+                        pass
     
+    @staticmethod
+    def _queue_optimization_async(optimization_queue: List[Tuple[int, str]]):
+        """
+        Hand image optimization to Celery so read requests never write.
+
+        Preferred path: dispatch bulk_optimize_images_task, which runs in the
+        worker with its own sessions (creates the cache rows AND optimizes).
+        Fallback (broker/import failure only): synchronous 'pending'-row write
+        on a dedicated short-lived session — never g.db_session — so the shared
+        request session can never be committed or poisoned from a GET.
+        """
+        # Debounce per player: the "already queued" DB check only suppresses
+        # re-dispatch once the WORKER has created the cache row, so during the
+        # first bulk task's runtime every poll of /available would enqueue a
+        # full duplicate task onto the concurrency-1 worker. A short NX key per
+        # player closes that window; if Redis is down nothing is dispatched
+        # (the broker is that same Redis, so .delay would fail anyway).
+        try:
+            from app.utils.safe_redis import get_safe_redis
+            redis_client = get_safe_redis()
+            acquired = {
+                player_id for player_id, _ in optimization_queue
+                if redis_client.set(f'img_opt:dispatched:{player_id}', '1', nx=True, ex=600)
+            }
+            optimization_queue = [
+                (player_id, url) for player_id, url in optimization_queue
+                if player_id in acquired
+            ]
+        except Exception:
+            pass
+        if not optimization_queue:
+            return
+
+        player_ids = [player_id for player_id, _ in optimization_queue]
+        try:
+            from app.tasks.tasks_image_optimization import bulk_optimize_images_task
+            bulk_optimize_images_task.delay(player_ids=player_ids)
+            logger.debug(f"Dispatched image optimization task for {len(player_ids)} players")
+            return
+        except Exception as e:
+            logger.warning(
+                f"Could not dispatch image optimization task ({e}); "
+                f"falling back to synchronous queue write on isolated session"
+            )
+
+        isolated_session = None
+        try:
+            from flask import current_app
+            isolated_session = current_app.SessionLocal()
+        except Exception as e:
+            logger.warning(f"Could not create isolated session for image queue: {e}")
+            return
+        try:
+            ImageCacheService._batch_queue_for_optimization(optimization_queue, isolated_session)
+        finally:
+            try:
+                isolated_session.close()
+            except Exception:
+                pass
+
     @staticmethod
     def optimize_player_image(player_id: int, force_refresh: bool = False, session=None) -> bool:
         """
@@ -242,11 +335,14 @@ class ImageCacheService:
             original_url = None
             cache_entry_id = None
             
-            # Get or create cache entry
-            cache_entry = PlayerImageCache.query.filter_by(player_id=player_id).first()
+            # Get or create cache entry. Query through the SAME session we
+            # commit on below — Model.query is db.session, a different session,
+            # and mixing them leaves the 'processing' write in a session that
+            # never commits.
+            cache_entry = session.query(PlayerImageCache).filter_by(player_id=player_id).first()
             if not cache_entry:
                 # Create cache entry from player data
-                player = Player.query.get(player_id)
+                player = session.get(Player, player_id)
                 if not player or not player.profile_picture_url:
                     logger.debug(f"Player {player_id} has no profile picture")
                     return False

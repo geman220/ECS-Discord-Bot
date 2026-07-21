@@ -178,6 +178,15 @@ def team_details(team_id):
         show_error('Team not found.')
         return redirect(url_for('teams.teams_overview'))
 
+    # Pre-reveal (make_teams_public off): current-season Pub League team pages
+    # (rosters) are coach/admin-only. Historical teams stay visible.
+    from app.services.team_visibility import user_can_view_teams
+    if (team.league and team.league.name in ('Premier', 'Classic')
+            and team.league.season and team.league.season.is_current
+            and not user_can_view_teams(safe_current_user, session=session)):
+        show_warning('Team rosters are hidden until teams are announced.')
+        return redirect(url_for('main.index'))
+
     league = session.query(League).get(team.league_id)
     season = league.season if league else None
 
@@ -590,6 +599,15 @@ def teams_overview():
     if not current_pub_season and not current_ecs_season:
         show_warning('No current season found for either Pub League or ECS FC.')
         return redirect(url_for('home.index'))
+
+    # Pre-reveal (make_teams_public off): the Pub League team list is
+    # coach/admin-only; ECS FC teams stay visible.
+    from app.services.team_visibility import user_can_view_teams
+    if current_pub_season and not user_can_view_teams(safe_current_user, session=session):
+        current_pub_season = None
+        if not current_ecs_season:
+            show_warning('Teams are hidden until they are announced.')
+            return redirect(url_for('main.index'))
 
     # Build conditions based on which current seasons exist.
     conditions = []
@@ -1092,12 +1110,17 @@ def view_standings():
         award_data[f'{prefix}_yellow_cards'] = _top_stat(div, 'yellow_cards')
         award_data[f'{prefix}_red_cards'] = _top_stat(div, 'red_cards')
 
+    # Pre-reveal: leaderboards pair player names with their current team.
+    from app.services.team_visibility import user_can_view_teams
+    viewer_can_see_teams = user_can_view_teams(safe_current_user, session=session)
+
     return render_template(
         'view_standings_flowbite.html',
         title='Standings',
         premier_standings=premier_standings,
         classic_standings=classic_standings,
         ecsfc_standings=ecsfc_standings,
+        viewer_can_see_teams=viewer_can_see_teams,
         **award_data
     )
 
