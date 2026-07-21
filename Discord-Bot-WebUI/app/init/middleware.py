@@ -186,10 +186,12 @@ def _init_rate_limiting(app):
                 '/draft/',
                 '/admin-panel/draft/',
 
-                # Mobile draft API: coaches at the draft venue share one NAT IP,
-                # and the limiter is IP-keyed — without this the whole room shares
-                # a single bucket and phones 429 mid-draft. Draft endpoints only;
-                # the rest of /api/v1 stays limited.
+                # Mobile draft API: coaches at the draft venue share one NAT IP.
+                # The default limiter key is now per-user when a JWT is present
+                # (see app/core/limiter.py), but keep this exemption as belt and
+                # suspenders — an expired/absent token falls back to the shared
+                # IP bucket, and phones must not 429 mid-draft. Draft endpoints
+                # only; the rest of /api/v1 stays limited.
                 '/api/v1/draft',
             ]
             return any(request.path.startswith(path) for path in exempt_paths)

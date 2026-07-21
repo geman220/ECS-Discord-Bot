@@ -21,9 +21,11 @@ def init_cli_commands(app):
     from app.cli import (
         build_assets, init_discord_roles, sync_coach_roles,
         fix_duplicate_user_roles, add_user_roles_constraint,
-        regenerate_phone_hashes, sync_profile_pictures
+        regenerate_phone_hashes, sync_profile_pictures,
+        reencode_profile_pictures
     )
     app.cli.add_command(build_assets)
+    app.cli.add_command(reencode_profile_pictures)
     app.cli.add_command(init_discord_roles)
     app.cli.add_command(sync_coach_roles)
     app.cli.add_command(fix_duplicate_user_roles)

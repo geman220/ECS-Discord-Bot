@@ -30,6 +30,7 @@ def serialize_player(player, include_stats=False, include_teams=False, include_d
             'discord_id': player.discord_id,
             'favorite_position': player.favorite_position,
             'profile_picture_url': player.profile_picture_url,
+            'avatar_url': player.avatar_image_url,
             'updated_at': player.updated_at.isoformat() if player.updated_at else None,
             'primary_league': {
                 'id': player.primary_league.id,

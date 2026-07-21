@@ -458,14 +458,6 @@ def player_profile(player_id):
                         session.add(player)
                         session.commit()
 
-                        # Trigger image optimization asynchronously
-                        try:
-                            from app.image_cache_service import handle_player_image_update
-                            handle_player_image_update(player_id)
-                            logger.info(f"Queued image optimization for player {player_id}")
-                        except Exception as e:
-                            logger.warning(f"Failed to queue image optimization: {e}")
-
                         show_success('Profile picture updated successfully.')
                     except Exception as e:
                         logger.error(f"Failed to save profile picture for player {player_id}: {e}")
@@ -1159,14 +1151,6 @@ def wizard_profile_update(player_id):
                 image_url = save_cropped_profile_picture(cropped_image_data, player_id)
                 player.profile_picture_url = image_url
                 player.updated_at = datetime.utcnow()
-
-                # Trigger image optimization asynchronously
-                try:
-                    from app.image_cache_service import handle_player_image_update
-                    handle_player_image_update(player_id)
-                    logger.info(f"Queued image optimization for player {player_id}")
-                except Exception as e:
-                    logger.warning(f"Failed to queue image optimization: {e}")
             except Exception as e:
                 logger.error(f"Failed to save profile picture for player {player_id}: {e}")
                 # Don't fail the entire update if image save fails
@@ -1570,15 +1554,6 @@ def upload_profile_picture(player_id):
         player.updated_at = datetime.utcnow()  # Update the timestamp to force a cache refresh
         session.add(player)
         session.commit()
-        
-        # Trigger image optimization asynchronously
-        try:
-            from app.image_cache_service import handle_player_image_update
-            handle_player_image_update(player_id)
-            logger.info(f"Queued image optimization for player {player_id}")
-        except Exception as e:
-            logger.warning(f"Failed to queue image optimization: {e}")
-            # Don't fail the upload if optimization queue fails
         
         show_success('Profile picture updated successfully!')
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':

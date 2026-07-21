@@ -270,13 +270,6 @@ def create_player_profile(onboarding_form):
                 image_url = save_cropped_profile_picture(cropped_image_data, player.id)
                 player.profile_picture_url = image_url
                 player.updated_at = datetime.utcnow()
-
-                # Trigger image optimization
-                try:
-                    from app.image_cache_service import handle_player_image_update
-                    handle_player_image_update(player.id)
-                except Exception as e:
-                    logger.warning(f"Failed to queue image optimization: {e}")
             except Exception as e:
                 logger.error(f"Failed to save cropped profile picture: {e}")
                 # Continue without profile picture rather than failing onboarding
@@ -371,14 +364,6 @@ def handle_profile_update(player, onboarding_form):
                 image_url = save_cropped_profile_picture(cropped_image_data, player.id)
                 player.profile_picture_url = image_url
                 player.updated_at = datetime.utcnow()
-
-                # Trigger image optimization
-                try:
-                    from app.image_cache_service import handle_player_image_update
-                    handle_player_image_update(player.id)
-                    logger.info(f"Queued image optimization for player {player.id} during onboarding")
-                except Exception as e:
-                    logger.warning(f"Failed to queue image optimization during onboarding: {e}")
             except Exception as e:
                 logger.error(f"Failed to save cropped profile picture: {e}")
                 # Continue without updating profile picture rather than failing

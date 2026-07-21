@@ -26,16 +26,26 @@ def search_players():
 
     Returns:
         A JSON response containing a list of players that match the search term.
-        Each player object includes the player's id, name, and profile picture URL.
+        Each player object includes the player's id, name, and avatar URL
+        (served under the profile_picture_url key the autocomplete expects).
     """
     term = request.args.get('term', '').strip()
+    if len(term) < 2:
+        return jsonify([])
+
     session = g.db_session
-    players = session.query(Player).filter(Player.name.ilike(f'%{term}%')).all()
-    
+    players = (
+        session.query(Player)
+        .filter(Player.name.ilike(f'%{term}%'))
+        .order_by(Player.is_current_player.desc().nullslast(), Player.name)
+        .limit(10)
+        .all()
+    )
+
     results = [{
         'id': player.id,
         'name': player.name,
-        'profile_picture_url': player.profile_picture_url or url_for('static', filename='img/default_player.png')
+        'profile_picture_url': player.avatar_image_url or url_for('static', filename='img/default_player.png')
     } for player in players]
-    
+
     return jsonify(results)

@@ -433,11 +433,48 @@ function initAdminSearch() {
     });
 }
 
+// ---------------------------------------------------------------------------
+// Deep-link highlight — search results can anchor to a section/row on the
+// target page (e.g. /admin-panel/features#setting-x). The browser handles the
+// scroll natively; this flashes the target so the eye lands on it.
+// ---------------------------------------------------------------------------
+
+function flashAnchorTarget() {
+    const hash = window.location.hash;
+    if (!hash || hash.length < 2) return;
+    let target;
+    try {
+        target = document.getElementById(decodeURIComponent(hash.slice(1)));
+    } catch (e) {
+        return;
+    }
+    if (!target) return;
+    target.scrollIntoView({ block: 'center' });
+    target.classList.add('ring-2', 'ring-ecs-green', 'ring-inset');
+    setTimeout(() => {
+        target.classList.remove('ring-2', 'ring-ecs-green', 'ring-inset');
+    }, 2500);
+}
+
+function initAnchorHighlight() {
+    // This module ships in main-entry (app-wide); only admin panel pages have
+    // the search index blob. Gate on it so ordinary app pages keep native
+    // anchor behavior untouched.
+    if (!document.getElementById('admin-search-index')) return;
+    flashAnchorTarget();
+    window.addEventListener('hashchange', flashAnchorTarget);
+}
+
 // Register with InitSystem
 if (window.InitSystem) {
     window.InitSystem.register('admin-search', initAdminSearch, {
         priority: 65,
         reinitializable: true,
         description: 'Universal admin panel search'
+    });
+    window.InitSystem.register('admin-search-anchor-highlight', initAnchorHighlight, {
+        priority: 90,
+        reinitializable: false,
+        description: 'Flash-highlight deep-linked search targets'
     });
 }

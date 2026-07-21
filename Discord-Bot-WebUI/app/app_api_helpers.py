@@ -253,15 +253,21 @@ def build_player_response(player: Player) -> Dict[str, Any]:
         Dict[str, Any]: A dictionary containing player response data.
     """
     base_url = request.host_url.rstrip('/')
-    profile_picture = (
-        f"{base_url}{player.profile_picture_url}"
-        if player.profile_picture_url
-        else f"{base_url}/static/img/default_player.png"
-    )
+    default_image = f"{base_url}/static/img/default_player.png"
+
+    def _abs(url):
+        # External URLs (e.g. Discord CDN) are already absolute.
+        if not url:
+            return default_image
+        return url if url.startswith('http') else f"{base_url}{url}"
+
+    profile_picture = _abs(player.profile_picture_url)
+    avatar = _abs(player.avatar_image_url)
     return {
         'id': player.id,
         'name': player.name,
         'profile_picture_url': profile_picture,
+        'avatar_url': avatar,
         'team_name': player.primary_team.name if player.primary_team else None,
         'league_name': player.league.name if player.league else None,
         # iSpy opt-out is exposed so mobile can disable the "tag this player"
@@ -466,13 +472,17 @@ def build_player_team_history_data(player_id: int, include_roster: bool = False,
                     ppic = p.profile_picture_url
                     if ppic:
                         full_ppic = ppic if ppic.startswith('http') else f"{base_url}{ppic}"
+                        avatar = p.avatar_image_url
+                        full_avatar = avatar if avatar.startswith('http') else f"{base_url}{avatar}"
                     else:
                         full_ppic = default_image
+                        full_avatar = default_image
                     roster_data.append({
                         "id": p.id,
                         "name": p.name,
                         "jersey_number": p.jersey_number,
                         "profile_picture_url": full_ppic,
+                        "avatar_url": full_avatar,
                     })
 
             team_data["roster"] = roster_data

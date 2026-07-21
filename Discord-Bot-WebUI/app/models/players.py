@@ -291,10 +291,29 @@ class Player(db.Model):
             .filter(player_teams.c.player_id == self.id)
         ]
 
+    @property
+    def avatar_image_url(self):
+        """
+        128px avatar variant for lists/search. save_image_variants() writes a
+        _128.webp sibling next to every _512.webp profile picture; legacy or
+        external URLs fall through to the full profile picture.
+        """
+        url = self.profile_picture_url
+        if url and url.endswith('_512.webp'):
+            return f"{url[:-len('_512.webp')]}_128.webp"
+        return url
+
     def to_dict(self, public=False):
         base_url = request.host_url.rstrip('/')
         default_image = f"{base_url}/static/img/default_player.png"
-        
+
+        def _abs(url):
+            # External URLs (e.g. Discord CDN) are already absolute — prefixing
+            # base_url would produce "https://portal...https://cdn..." garbage.
+            if not url:
+                return default_image
+            return url if url.startswith('http') else f"{base_url}{url}"
+
         data = {
             'id': self.id,
             'name': self.name,
@@ -306,7 +325,8 @@ class Player(db.Model):
             # API clients (incl. the Flutter app) keep receiving human-readable
             # values. See app/constants/positions.py.
             'favorite_position': _pos_label(self.favorite_position),
-            'profile_picture_url': f"{base_url}{self.profile_picture_url}" if self.profile_picture_url else default_image,
+            'profile_picture_url': _abs(self.profile_picture_url),
+            'avatar_url': _abs(self.avatar_image_url),
         }
         if not public:
             data.update({

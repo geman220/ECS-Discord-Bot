@@ -237,6 +237,10 @@ def role_required(roles):
             return f(*args, **kwargs)
 
         decorated_function.role_decorated = True
+        # Exposed for introspection (e.g. admin search index role filtering).
+        # @wraps copies __dict__, so this survives outer decorators like
+        # @login_required and is readable off current_app.view_functions.
+        decorated_function.required_roles = list(roles)
         return decorated_function
 
     return role_required_decorator

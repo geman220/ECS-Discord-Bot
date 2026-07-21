@@ -417,6 +417,13 @@ def sync_profile_pictures(dry_run):
             not_found_count += 1
             continue
 
+        # Never point a player back at a legacy PNG once they're on the
+        # hashed WebP variants (reencode-profile-pictures) — the PNG on disk
+        # is a leftover original, not the source of truth.
+        if player.profile_picture_url and player.profile_picture_url.endswith('_512.webp'):
+            already_set_count += 1
+            continue
+
         # Check if already set correctly
         if player.profile_picture_url == relative_url:
             already_set_count += 1
@@ -447,5 +454,157 @@ def sync_profile_pictures(dry_run):
     click.echo(f"Player not found: {not_found_count}")
     click.echo(f"Skipped (bad format): {skipped_count}")
 
+    if dry_run:
+        click.echo("\n(Dry run - no changes made. Remove --dry-run to apply.)")
+
+
+@click.command()
+@click.option('--dry-run', is_flag=True, help='Preview changes without writing files or updating the database')
+@click.option('--delete-originals', is_flag=True, help='Delete the original image files after re-encoding')
+@with_appcontext
+def reencode_profile_pictures(dry_run, delete_originals):
+    """
+    One-time re-encode of existing profile pictures to sized WebP variants.
+
+    Converts every locally-stored profile picture to the 512px + 128px WebP
+    format that save_cropped_profile_picture now produces, and repoints
+    profile_picture_url at the new hashed filename. External (http) URLs and
+    already-converted pictures are skipped. Originals are kept unless
+    --delete-originals is passed.
+    """
+    import os
+    import re
+    from PIL import Image
+    from werkzeug.utils import secure_filename
+    from app.core import db
+    from app.models import Player
+    from app.players_helpers import save_image_variants
+    from app.image_cache_service import invalidate_player_image_cache
+
+    players = db.session.query(Player).filter(
+        Player.profile_picture_url.isnot(None),
+        Player.profile_picture_url != ''
+    ).order_by(Player.id).all()
+    click.echo(f"Found {len(players)} players with a profile picture URL")
+
+    converted = 0
+    skipped_done = 0
+    skipped_external = 0
+    missing = 0
+    failed = 0
+    legacy_cleaned = 0
+    bytes_before = 0
+    bytes_after = 0
+    originals_to_delete = set()
+
+    for player in players:
+        # Re-read the row right before processing so a web upload that lands
+        # mid-run isn't clobbered by the URL loaded when the command started.
+        if not dry_run:
+            try:
+                db.session.refresh(player)
+            except Exception:
+                # Row deleted mid-run — skip, don't abort the whole command
+                db.session.rollback()
+                continue
+        url = (player.profile_picture_url or '').split('?', 1)[0]
+        if not url:
+            continue
+        if url.endswith('_512.webp'):
+            skipped_done += 1
+            # Second pass with --delete-originals: remove the legacy PNG a
+            # previous run without the flag left behind. Also defuses
+            # sync-profile-pictures repointing players back at stale PNGs.
+            if delete_originals:
+                safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', player.name)
+                legacy = os.path.join(
+                    current_app.root_path, 'static/img/uploads/profile_pictures',
+                    secure_filename(f"{safe_name}_{player.id}.png")
+                )
+                if os.path.isfile(legacy):
+                    if dry_run:
+                        click.echo(f"  Would delete legacy PNG for {player.name} (ID {player.id})")
+                        legacy_cleaned += 1
+                    else:
+                        try:
+                            os.remove(legacy)
+                            legacy_cleaned += 1
+                        except OSError as e:
+                            click.echo(f"    Could not delete legacy {legacy}: {e}")
+            continue
+        if not url.startswith('/static/'):
+            skipped_external += 1
+            continue
+
+        orig_path = os.path.join(current_app.root_path, url.lstrip('/'))
+        if not os.path.isfile(orig_path):
+            click.echo(f"  MISSING file for {player.name} (ID {player.id}): {url}")
+            missing += 1
+            continue
+
+        orig_size = os.path.getsize(orig_path)
+        if dry_run:
+            click.echo(f"  Would convert {player.name} (ID {player.id}): {url} ({orig_size // 1024}KB)")
+            converted += 1
+            bytes_before += orig_size
+            continue
+
+        try:
+            image = Image.open(orig_path).convert('RGBA')
+            safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', player.name)
+            base_slug = secure_filename(f"{safe_name}_{player.id}") or f"player_{player.id}"
+            upload_folder = os.path.dirname(orig_path)
+            url_prefix = os.path.dirname(url)
+
+            # cleanup=False: originals are only removed in the deletion pass below
+            new_url = save_image_variants(image, upload_folder, url_prefix, base_slug, cleanup=False)
+            player.profile_picture_url = new_url
+
+            # Old PlayerImageCache rows reference the pre-conversion file; drop
+            # them so the draft board re-optimizes from the new WebP instead of
+            # serving a stale thumbnail or failing on a dead original_url.
+            invalidate_player_image_cache(player.id, db.session)
+
+            # Commit per player: an interrupt can never leave a player half done,
+            # and no original is deleted before its replacement URL is durable.
+            db.session.commit()
+
+            new_path = os.path.join(current_app.root_path, new_url.lstrip('/'))
+            new_size = os.path.getsize(new_path)
+            bytes_before += orig_size
+            bytes_after += new_size
+            converted += 1
+            click.echo(f"  Converted {player.name} (ID {player.id}): {orig_size // 1024}KB -> {new_size // 1024}KB")
+
+            if os.path.abspath(orig_path) != os.path.abspath(new_path):
+                originals_to_delete.add(os.path.abspath(orig_path))
+        except Exception as e:
+            failed += 1
+            db.session.rollback()
+            click.echo(f"  FAILED {player.name} (ID {player.id}): {e}")
+
+    # Deletion pass runs only after every conversion is committed, so a file
+    # shared by several player rows (forked accounts) is still readable while
+    # the later rows convert, and an interrupt never strands a committed URL.
+    deleted = 0
+    if delete_originals and not dry_run:
+        for path in sorted(originals_to_delete):
+            try:
+                os.remove(path)
+                deleted += 1
+            except OSError as e:
+                click.echo(f"    Could not delete original {path}: {e}")
+
+    click.echo("\n--- Summary ---")
+    click.echo(f"{'Would convert' if dry_run else 'Converted'}: {converted}")
+    click.echo(f"Already converted: {skipped_done}")
+    click.echo(f"External URL (skipped): {skipped_external}")
+    click.echo(f"File missing: {missing}")
+    click.echo(f"Failed: {failed}")
+    if delete_originals:
+        click.echo(f"Originals deleted: {deleted}, legacy PNGs cleaned: {legacy_cleaned}")
+    if not dry_run and converted > 0:
+        click.echo(f"Size: {bytes_before // 1024}KB -> {bytes_after // 1024}KB "
+                   f"({100 - (bytes_after * 100 // max(bytes_before, 1))}% smaller, 512px variants only)")
     if dry_run:
         click.echo("\n(Dry run - no changes made. Remove --dry-run to apply.)")

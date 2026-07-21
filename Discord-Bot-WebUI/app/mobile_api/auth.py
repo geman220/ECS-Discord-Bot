@@ -466,11 +466,12 @@ def refresh_token():
 
         if not user:
             logger.warning(f"Token refresh attempted for non-existent user: {current_user_id}")
-            # Machine-readable `code` so the mobile client can treat this as a
-            # terminal session-end (route to login) vs. an infrastructure 404
-            # (misroute/deploy blip) which it should retry. See auth alignment
-            # doc 2026-06-02: the bare HTTP status alone is ambiguous.
-            return jsonify({"msg": "User not found", "code": "USER_NOT_FOUND"}), 404
+            # 401, not 404: a valid refresh token whose user row is gone is a
+            # terminal session-end, and 401 is the status mobile clients already
+            # route to login on. A 404 here was ambiguous with an infrastructure
+            # miss (misroute/deploy blip) that clients retry. `code` kept for
+            # clients that key on it.
+            return jsonify({"msg": "User not found", "code": "USER_NOT_FOUND"}), 401
 
         # Update session last_activity
         if session_id:

@@ -12,7 +12,7 @@ backend and request filters are bound later via ``limiter.init_app(app)`` from
 import logging
 import os
 
-from flask import request, current_app
+from flask import request, current_app, g
 from flask_limiter import Limiter
 
 logger = logging.getLogger(__name__)
@@ -92,24 +92,40 @@ def jwt_or_ip_key() -> str:
 
     Uses ``verify_jwt_in_request(optional=True)`` so it's safe to call in key
     funcs that run before ``@jwt_required()`` has executed. Any parse failure
-    falls back to IP.
+    (expired/invalid/revoked token, Redis blocklist error) falls back to IP.
+
+    Cached on ``g`` for the request: as the app-wide default key_func this runs
+    once per default limit (3×/request), and each verify is a JWT decode plus
+    blocklist Redis EXISTS calls — pay that once, not three times.
     """
+    cached = getattr(g, '_rl_bucket_key', None)
+    if cached is not None:
+        return cached
+    key = None
     try:
         from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
         verify_jwt_in_request(optional=True)
         uid = get_jwt_identity()
         if uid is not None:
-            return f"user:{uid}"
+            key = f"user:{uid}"
     except Exception:
         pass
-    return f"ip:{get_client_ip()}"
+    if key is None:
+        key = f"ip:{get_client_ip()}"
+    g._rl_bucket_key = key
+    return key
 
 
 # Module-level singleton. ``storage_uri`` is a safe in-memory fallback that
 # gets overridden by ``limiter.init_app(app)`` reading ``RATELIMIT_STORAGE_URL``
 # from ``app.config`` inside ``_init_rate_limiting``.
+#
+# Default key is per-USER when a valid JWT is present, per-IP otherwise: many
+# phones behind one venue NAT must not share a single bucket (2026-07-20 draft
+# night). Unauthenticated abuse surfaces (login/oauth/2fa/registration) pin
+# their own IP-keyed ``key_func=`` overrides, so they are unaffected.
 limiter = Limiter(
-    key_func=get_client_ip,
+    key_func=jwt_or_ip_key,
     default_limits=["5000 per day", "2000 per hour", "200 per minute"],
     headers_enabled=True,
     strategy="fixed-window",

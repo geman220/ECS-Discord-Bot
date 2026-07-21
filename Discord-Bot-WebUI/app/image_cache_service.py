@@ -580,6 +580,35 @@ class ImageCacheService:
             logger.error(f"Error cleaning up expired cache: {e}")
 
 
+def invalidate_player_image_cache(player_id: int, session) -> None:
+    """
+    Remove a player's PlayerImageCache row (and its derived files) after their
+    profile picture changed. The old row's original_url points at a file the
+    upload path just deleted — left in place it either serves a STALE
+    thumbnail (status 'ready') or wedges the row in 'failed' when the
+    optimizer can't fetch the deleted source. With the row gone, consumers
+    fall back to the fresh profile_picture_url (now a small WebP) and the
+    draft view's bulk queue recreates thumbnails from the new URL.
+
+    Uses the caller's session; never commits — the caller owns the txn.
+    """
+    try:
+        entries = session.query(PlayerImageCache).filter_by(player_id=player_id).all()
+        for entry in entries:
+            for url in (entry.thumbnail_url, entry.cached_url, entry.webp_url):
+                if url and url.startswith('/static/'):
+                    try:
+                        file_path = Path("app") / url.lstrip('/')
+                        validate_path_within_directory(str(file_path), "app/static")
+                        if file_path.exists():
+                            file_path.unlink()
+                    except (PathTraversalError, OSError):
+                        pass
+            session.delete(entry)
+    except Exception as e:
+        logger.warning(f"Failed to invalidate image cache for player {player_id}: {e}")
+
+
 def handle_player_image_update(player_id: int, force_refresh: bool = True) -> bool:
     """
     Event handler to be called when a player's profile picture changes.

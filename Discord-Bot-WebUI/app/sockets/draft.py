@@ -132,6 +132,12 @@ def handle_draft_player_enhanced(data):
             'player_name': player_name_from_request,
             'team_name': None  # Will be filled after team is fetched
         }, room=f'draft_{league_name}')
+        # Mirror to the mobile namespace so phones see web-board coaches mid-pick
+        # too, not just other phones.
+        socketio.emit('user_drafting', {
+            'username': username,
+            'player_name': player_name_from_request,
+        }, room=f'draft_{league_name}', namespace='/draft')
 
         # Database operations - Split into 3 optimized transactions
         from app.models import Player, Team, League, player_teams, Season, PlayerTeamSeason
@@ -1147,3 +1153,9 @@ def handle_user_drafting(data):
         'username': data.get('username'),
         'player_name': data.get('player_name'),
     }, room=room, include_self=False)
+    # Mirror to the web namespace so the web board sees phone coaches mid-pick.
+    socketio.emit('user_drafting', {
+        'username': data.get('username'),
+        'player_name': data.get('player_name'),
+        'team_name': None,
+    }, room=room, namespace='/')

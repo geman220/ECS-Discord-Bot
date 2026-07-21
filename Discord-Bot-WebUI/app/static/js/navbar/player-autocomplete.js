@@ -35,7 +35,7 @@ export function initPlayerSearch(inputSelector, resultsSelector, searchUrl, prof
     clearTimeout(debounceTimer);
     const term = e.target.value.trim();
 
-    if (term.length < 1) {
+    if (term.length < 2) {
       hideResults();
       return;
     }
@@ -116,7 +116,7 @@ export function initPlayerSearch(inputSelector, resultsSelector, searchUrl, prof
                data-index="${i}"
                role="option"
                aria-selected="${isSelected}">
-            <img src="${profilePicUrl}" alt=""
+            <img src="${profilePicUrl}" alt="" decoding="async"
                  class="w-8 h-8 rounded-full object-cover flex-shrink-0"
                  onerror="this.src='/static/img/default_player.png'">
             <span class="text-gray-900 dark:text-white truncate">${playerName}</span>

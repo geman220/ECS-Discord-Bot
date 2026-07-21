@@ -11,8 +11,10 @@ data extraction, email notifications, and progress updates.
 # Standard library imports
 import os
 import re
+import time
 import uuid
 import base64
+import hashlib
 import secrets
 import string
 import logging
@@ -92,6 +94,79 @@ def _validate_and_process_image(cropped_image_data, max_dimension=2048, target_s
     return image
 
 
+# Profile pictures are stored as two WebP variants: a 512px version for
+# profile/detail views and a 128px avatar for lists, search results and
+# dropdowns. Filenames carry a content hash so they can be cached forever
+# and a re-upload is a new URL (no stale-avatar window).
+PROFILE_IMAGE_SIZE = 512
+AVATAR_IMAGE_SIZE = 128
+PROFILE_WEBP_QUALITY = 85
+
+
+def save_image_variants(image, upload_folder, url_prefix, base_slug, cleanup=True):
+    """
+    Save 512px + 128px WebP variants of a processed image and (unless
+    cleanup=False) remove older variants for the same slug. Re-encoding
+    strips all original metadata, same as the previous save-as-PNG approach.
+
+    Returns the URL path of the 512px variant.
+    """
+    os.makedirs(upload_folder, mode=0o755, exist_ok=True)
+
+    profile = image.copy()
+    profile.thumbnail((PROFILE_IMAGE_SIZE, PROFILE_IMAGE_SIZE), Image.Resampling.LANCZOS)
+    avatar = image.copy()
+    avatar.thumbnail((AVATAR_IMAGE_SIZE, AVATAR_IMAGE_SIZE), Image.Resampling.LANCZOS)
+
+    buffer = BytesIO()
+    profile.save(buffer, format='WEBP', quality=PROFILE_WEBP_QUALITY, method=6)
+    profile_bytes = buffer.getvalue()
+    content_hash = hashlib.md5(profile_bytes).hexdigest()[:8]
+
+    profile_name = f"{base_slug}_{content_hash}_512.webp"
+    avatar_name = f"{base_slug}_{content_hash}_128.webp"
+
+    # Atomic writes (tmp + replace) so a crash never leaves a truncated file
+    # under a valid content-hash name.
+    profile_file = os.path.join(upload_folder, profile_name)
+    tmp = profile_file + '.tmp'
+    with open(tmp, 'wb') as f:
+        f.write(profile_bytes)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, profile_file)
+
+    avatar_file = os.path.join(upload_folder, avatar_name)
+    tmp = avatar_file + '.tmp'
+    avatar.save(tmp, format='WEBP', quality=PROFILE_WEBP_QUALITY, method=6)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, avatar_file)
+
+    # Drop superseded files for this slug: older hashed variants plus the
+    # legacy single PNG. The match is anchored to the exact variant shape
+    # (slug + 8-hex hash + size suffix) — a bare prefix match could hit
+    # ANOTHER player whose slug extends this one ("Team_77_5..." vs slug
+    # "Team_77"), since the remainder of a foreign file always contains an
+    # id/underscore and can never parse as 8 hex chars. Files younger than
+    # 60s are kept so a concurrent upload for the same player can't have
+    # its just-written variants deleted before its URL commits.
+    # Best-effort — a leftover file is only wasted disk.
+    if cleanup:
+        variant_re = re.compile(rf"{re.escape(base_slug)}_[0-9a-f]{{8}}_(512|128)\.webp$")
+        now = time.time()
+        for stale in os.listdir(upload_folder):
+            if stale in (profile_name, avatar_name):
+                continue
+            if variant_re.fullmatch(stale) or stale == f"{base_slug}.png":
+                try:
+                    stale_path = os.path.join(upload_folder, stale)
+                    if now - os.path.getmtime(stale_path) > 60:
+                        os.remove(stale_path)
+                except OSError:
+                    pass
+
+    return f"{url_prefix}/{profile_name}"
+
+
 def save_cropped_profile_picture(cropped_image_data, player_id):
     """
     Save the cropped profile picture for a player with enhanced security.
@@ -105,20 +180,22 @@ def save_cropped_profile_picture(cropped_image_data, player_id):
             logger.error(f"Player {player_id} not found")
             return None
 
-        # Generate secure filename
         player_name = re.sub(r'[^a-zA-Z0-9_-]', '_', player.name)
-        filename = secure_filename(f"{player_name}_{player_id}.png")
+        base_slug = secure_filename(f"{player_name}_{player_id}") or f"player_{player_id}"
         upload_folder = os.path.join(current_app.root_path, 'static/img/uploads/profile_pictures')
-        os.makedirs(upload_folder, mode=0o755, exist_ok=True)
-        file_path = os.path.join(upload_folder, filename)
 
-        # Always save as PNG to strip potentially malicious metadata
-        image.save(file_path, format='PNG', optimize=True)
-        os.chmod(file_path, 0o644)
-        
-        profile_path = f"/static/img/uploads/profile_pictures/{filename}"
+        profile_path = save_image_variants(
+            image, upload_folder, '/static/img/uploads/profile_pictures', base_slug
+        )
         player.profile_picture_url = profile_path
-        logger.info(f"Profile picture saved for player {player_id}: {filename}")
+
+        # The old PlayerImageCache row points at files this upload just
+        # replaced/deleted — drop it so the draft board can't serve a stale
+        # thumbnail (it falls back to the new WebP and re-queues itself).
+        from app.image_cache_service import invalidate_player_image_cache
+        invalidate_player_image_cache(player_id, session)
+
+        logger.info(f"Profile picture saved for player {player_id}: {profile_path}")
         return profile_path
 
     except ValueError as e:
@@ -134,21 +211,16 @@ def save_quick_profile_picture(cropped_image_data, quick_profile_id, player_name
     Save the profile picture for a quick profile (tryout player) with enhanced security.
     """
     try:
-        image = _validate_and_process_image(cropped_image_data, target_size=800)
+        image = _validate_and_process_image(cropped_image_data)
 
-        # Generate secure filename
         safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', player_name)
-        filename = secure_filename(f"quick_profile_{quick_profile_id}_{safe_name}.png")
+        base_slug = secure_filename(f"quick_profile_{quick_profile_id}_{safe_name}") or f"quick_profile_{quick_profile_id}"
         upload_folder = os.path.join(current_app.root_path, 'static/img/uploads/quick_profiles')
-        os.makedirs(upload_folder, mode=0o755, exist_ok=True)
-        file_path = os.path.join(upload_folder, filename)
 
-        # Always save as PNG to strip potentially malicious metadata
-        image.save(file_path, format='PNG', optimize=True)
-        os.chmod(file_path, 0o644)
-
-        profile_path = f"/static/img/uploads/quick_profiles/{filename}"
-        logger.info(f"Quick profile picture saved: {filename}")
+        profile_path = save_image_variants(
+            image, upload_folder, '/static/img/uploads/quick_profiles', base_slug
+        )
+        logger.info(f"Quick profile picture saved: {profile_path}")
         return profile_path
 
     except ValueError as e:

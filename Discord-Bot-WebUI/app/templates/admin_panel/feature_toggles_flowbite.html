@@ -132,7 +132,7 @@
         </div>
         <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
           {% for setting in settings %}
-          <li class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-setting-key="{{ setting.key }}">
+          <li id="setting-{{ setting.key }}" class="scroll-mt-24 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-setting-key="{{ setting.key }}">
             <div class="flex items-start min-w-0">
               {# Icon wrapper — JS targets `.flex-shrink-0 span` here; keep classes verbatim #}
               <div class="flex-shrink-0 mr-3 mt-0.5">
@@ -246,7 +246,7 @@
         </div>
         <div class="divide-y divide-gray-200 dark:divide-gray-700">
             {% for setting in settings %}
-            <div class="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4" data-setting-key="{{ setting.key }}">
+            <div id="setting-{{ setting.key }}" class="scroll-mt-24 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4" data-setting-key="{{ setting.key }}">
                 <div class="flex items-start">
                     <div class="flex-shrink-0 mr-3 mt-1">
                         {% if setting.data_type == 'boolean' %}
