@@ -91,7 +91,7 @@
             {% endif %}
 
             <!-- Draft Leagues (if user has access) -->
-            {% if safe_current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles or 'Coach' in user_roles or 'Pub League Admin' in user_roles or 'Pub League Coach' in user_roles) %}
+            {% if safe_current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles or 'Coach' in user_roles or 'Pub League Admin' in user_roles or 'Pub League Coach' in user_roles or 'Premier Coach' in user_roles or 'Classic Coach' in user_roles) %}
             <div class="list-group-item mobile-menu-section-header">
                 <small class="text-muted fw-bold">DRAFT</small>
             </div>
@@ -108,7 +108,7 @@
             {% endif %}
 
             <!-- Coach Dashboard (if coach) -->
-            {% if safe_current_user.is_authenticated and ('Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Admin' in user_roles or 'Global Admin' in user_roles) %}
+            {% if safe_current_user.is_authenticated and ('Pub League Coach' in user_roles or 'Premier Coach' in user_roles or 'Classic Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Admin' in user_roles or 'Global Admin' in user_roles) %}
             <a href="{{ url_for('teams.coach_dashboard') }}"
                class="list-group-item list-group-item-action">
                 <i class="ti ti-clipboard me-3"></i>

@@ -49,7 +49,7 @@ def get_db_league_name(league_name: str) -> str:
 
 
 # Roles allowed to VIEW/pick on the draft (coaches + admins)
-DRAFT_ROLES = ['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin']
+DRAFT_ROLES = ['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin']
 # Roles allowed to RUN the clock (start/skip/undo/pause/resume/end) — admins only
 DRAFT_ADMIN_ROLES = ['Pub League Admin', 'Global Admin']
 
@@ -106,7 +106,7 @@ def _emit_to_draft_rooms(event, payload, url_name, db_name):
 
 @mobile_api_v2.route('/draft/leagues', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
 def get_draft_leagues():
     """
     Get list of leagues available for drafting.
@@ -160,7 +160,7 @@ def get_draft_leagues():
 
 @mobile_api_v2.route('/draft/<league_name>/status', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
 def get_draft_status(league_name: str):
     """
     Get draft status and analytics for a league.
@@ -272,7 +272,7 @@ def get_draft_status(league_name: str):
 
 @mobile_api_v2.route('/draft/<league_name>/available', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
 def get_available_players(league_name: str):
     """
     Get available (undrafted) players for a league.
@@ -397,7 +397,7 @@ def get_available_players(league_name: str):
 
 @mobile_api_v2.route('/draft/<league_name>/teams', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
 def get_draft_teams(league_name: str):
     """
     Get teams for a league with roster counts.
@@ -447,7 +447,7 @@ def get_draft_teams(league_name: str):
 
 @mobile_api_v2.route('/draft/<league_name>/team/<int:team_id>/roster', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
 def get_team_roster(league_name: str, team_id: int):
     """
     Get detailed roster for a specific team.
@@ -500,7 +500,7 @@ def get_team_roster(league_name: str, team_id: int):
 
 @mobile_api_v2.route('/draft/<league_name>/pick', methods=['POST'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
 def draft_player(league_name: str):
     """
     Draft a player to a team.
@@ -745,7 +745,7 @@ def draft_player(league_name: str):
 
 @mobile_api_v2.route('/draft/<league_name>/pick/<int:player_id>', methods=['DELETE'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
 def remove_player_from_team(league_name: str, player_id: int):
     """
     Remove a player from their team (return to available pool).
@@ -847,7 +847,7 @@ def remove_player_from_team(league_name: str, player_id: int):
 
 @mobile_api_v2.route('/draft/<league_name>/team/<int:team_id>/analysis', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
 def get_team_position_analysis(league_name: str, team_id: int):
     """
     Get position analysis for a team showing needs and recommended players.
@@ -931,7 +931,7 @@ def get_team_position_analysis(league_name: str, team_id: int):
 
 @mobile_api_v2.route('/draft/<league_name>/history', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+@jwt_role_required(['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
 def get_draft_history(league_name: str):
     """
     Get draft order history for a league.

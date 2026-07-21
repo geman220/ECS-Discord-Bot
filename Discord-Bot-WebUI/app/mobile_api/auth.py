@@ -603,7 +603,12 @@ def get_user_profile():
         # Determine user capabilities for client-side enforcement
         user_roles = [role.name for role in user.roles]
         is_admin = any(r in ['Global Admin', 'Pub League Admin'] for r in user_roles)
-        is_coach_role = 'Pub League Coach' in user_roles
+        # Division coaches get 'Premier Coach'/'Classic Coach' from the seasons/
+        # coaches page — before the draft they have NO player_teams.is_coach row
+        # yet, so can_draft must recognize the division roles or the app hides
+        # the draft from the very coaches who need it draft night.
+        is_coach_role = any(r in ('Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach')
+                            for r in user_roles)
         is_ref_role = 'Pub League Ref' in user_roles
 
         # Get team IDs where user is a coach (from player_teams table)

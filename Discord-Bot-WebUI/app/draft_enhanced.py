@@ -1156,7 +1156,7 @@ class DraftService:
 
 @draft_enhanced.route('/<league_name>')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach', 'Premier Coach', 'Classic Coach'])
 def draft_league(league_name: str):
     """Enhanced draft page for any league."""
     print(f"🔴 DRAFT_ENHANCED ROUTE HIT: {league_name}")
@@ -1413,7 +1413,7 @@ def draft_league(league_name: str):
 
 @draft_enhanced.route('/<league_name>/pitch')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach', 'Premier Coach', 'Classic Coach'])
 def draft_league_pitch_view(league_name: str):
     """Soccer pitch view for visual team drafting."""
     logger.info(f"🏟️ Pitch view route accessed: {league_name}")
@@ -1590,7 +1590,7 @@ def draft_status():
 
 @draft_enhanced.route('/api/<league_name>/players')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach', 'Premier Coach', 'Classic Coach'])
 def get_players_api(league_name: str):
     """API endpoint for getting player data with filtering and sorting."""
     # Validate league name
@@ -1688,7 +1688,7 @@ def get_players_api(league_name: str):
 
 @draft_enhanced.route('/api/draft-player', methods=['POST'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach', 'Premier Coach', 'Classic Coach'])
 def api_draft_player():
     """HTTP API endpoint for drafting players (fallback when sockets fail)."""
     try:
@@ -1862,7 +1862,7 @@ def api_draft_player():
 
 @draft_enhanced.route('/api/<league_name>/position-analysis/<int:team_id>')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach', 'Premier Coach', 'Classic Coach'])
 def api_position_analysis(league_name: str, team_id: int):
     """
     Get real-time position analysis for a specific team.

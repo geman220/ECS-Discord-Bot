@@ -40,7 +40,12 @@ def build_nav_sections(user_roles, admin_settings):
         authenticated = bool(safe_current_user and safe_current_user.is_authenticated)
 
         # Role capability flags — kept verbatim from the legacy sidebar gating.
-        can_view_draft = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach', 'ECS FC Coach')
+        # 'Premier Coach'/'Classic Coach' are the DIVISION coach roles granted by
+        # the seasons/coaches page; before the draft those coaches have no
+        # player_teams.is_coach row and often no 'Pub League Coach' role, so the
+        # division roles must open the draft links or draft-night coaches see nothing.
+        can_view_draft = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach',
+                                 'Premier Coach', 'Classic Coach', 'ECS FC Coach')
         can_view_draft_predictions = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach')
         can_view_teams = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach', 'ECS FC Coach', 'pl-classic', 'pl-ecs-fc', 'pl-premier')
         can_view_standings = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach', 'ECS FC Coach')
@@ -72,12 +77,14 @@ def build_nav_sections(user_roles, admin_settings):
         if authenticated:
             main_items.append(item('Dashboard', 'ti-home', 'main.index'))
             main_items.append(item('Submit Feedback', 'ti-message-report', 'feedback.submit_feedback'))
-        if has_any('Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'):
+        if has_any('Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach',
+                   'Pub League Admin', 'Global Admin'):
             main_items.append(item('Coach Dashboard', 'ti-clipboard', 'teams.coach_dashboard'))
         # NAD Board — scouting board for newly acquired Pub League players. Coaches
         # (who rotate often and are NOT admins) get it here in the normal shell; it
         # is deliberately NOT in the admin panel and carries no "admin" wording.
-        if has_any('Pub League Coach', 'Pub League Admin', 'Global Admin'):
+        if has_any('Pub League Coach', 'Premier Coach', 'Classic Coach',
+                   'Pub League Admin', 'Global Admin'):
             main_items.append(item('NAD Board', 'ti-user-plus', 'nad_board.index'))
         if authenticated:
             main_items.append(item('Help Topics', 'ti-help-circle', 'help.index'))
