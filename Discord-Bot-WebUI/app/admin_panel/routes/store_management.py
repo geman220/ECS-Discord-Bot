@@ -467,6 +467,8 @@ def update_order_status(order_id):
     new_status = request.form.get('status')
 
     if new_status not in ['PENDING', 'PROCESSING', 'ORDERED', 'DELIVERED', 'CANCELLED']:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Invalid status.'}), 400
         flash('Invalid status.', 'error')
         return redirect(url_for('admin_panel.store_orders'))
 
@@ -493,6 +495,10 @@ def update_order_status(order_id):
         ip_address=request.remote_addr,
         user_agent=request.headers.get('User-Agent')
     )
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True,
+                        'message': f'Order status updated from {old_status} to {new_status}.'})
 
     flash(f'Order status updated from {old_status} to {new_status}.', 'success')
 

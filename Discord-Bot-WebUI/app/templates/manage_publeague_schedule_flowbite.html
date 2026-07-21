@@ -730,7 +730,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const isEdit = !!matchId;
 
         try {
-            const response = await fetch(isEdit ? `/publeague/schedule/match/${matchId}/edit` : '/publeague/schedule/match/add', {
+            const response = await fetch(isEdit ? `{{ url_for('publeague.schedule.edit_match', match_id=0) }}`.replace(/0$/, matchId) : '{{ url_for('publeague.schedule.add_match') }}', {
                 method: 'POST',
                 body: formData
             });
@@ -777,7 +777,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
-                        const response = await fetch(`/publeague/schedule/match/${matchId}/delete`, {
+                        const response = await fetch(`{{ url_for('publeague.schedule.delete_match', match_id=0) }}`.replace(/0$/, matchId), {
                             method: 'POST',
                             headers: {
                                 'X-CSRFToken': '{{ csrf_token() }}'

@@ -92,9 +92,6 @@
         <i class="ti ti-category text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
       </div>
       <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ stats.total_categories or 0 }}</div>
-      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs">
-        <a href="#" data-action="export-templates" class="font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">Export library &rarr;</a>
-      </div>
     </div>
   </div>
 
@@ -389,9 +386,6 @@
             <button type="button" class="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800" data-action="bulk-activate">
                 <i class="ti ti-checks mr-1"></i>Bulk Activate
             </button>
-            <button type="button" class="px-4 py-2 text-sm font-medium text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800" data-action="export-templates">
-                <i class="ti ti-download mr-1"></i>Export All
-            </button>
         </div>
     </div>
 </div>
@@ -561,10 +555,6 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'bulk-activate':
                 e.preventDefault();
                 bulkActivate();
-                break;
-            case 'export-templates':
-                e.preventDefault();
-                exportTemplates();
                 break;
             case 'view-template':
                 e.preventDefault();
@@ -757,7 +747,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function editTemplate(templateId) {
-        window.location.href = `/admin-panel/communication/messages/template/${templateId}/edit`;
+        window.location.href = `/admin/messages/template/${templateId}/edit`;
     }
 
     function toggleTemplate(templateId) {
@@ -895,27 +885,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function exportTemplates() {
-        Swal.fire({
-            title: 'Export Templates',
-            html: `
-                <div class="space-y-3">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Choose export format:</p>
-                    <a href="/admin-panel/communication/messages/templates/export?format=json" class="block w-full px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
-                        <i class="ti ti-file-code mr-2"></i>Export as JSON
-                    </a>
-                    <a href="/admin-panel/communication/messages/templates/export?format=csv" class="block w-full px-4 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
-                        <i class="ti ti-file-spreadsheet mr-2"></i>Export as CSV
-                    </a>
-                </div>
-            `,
-            showConfirmButton: false,
-            showCancelButton: true,
-            cancelButtonText: 'Close',
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827'
-        });
-    }
 });
 </script>
 {% endblock %}

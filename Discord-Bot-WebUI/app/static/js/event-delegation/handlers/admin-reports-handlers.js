@@ -55,9 +55,10 @@ function performCloseFeedback(element, feedbackId) {
 
     const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
 
-    fetch(`/admin-panel/reports/feedback/${feedbackId}/close`, {
+    fetch(`/admin-panel/feedback/${feedbackId}/close`, {
         method: 'POST',
         headers: {
+            'X-Requested-With': 'XMLHttpRequest',
             'X-CSRFToken': csrfToken
         }
     })
@@ -124,9 +125,10 @@ function performDeleteFeedback(element, feedbackId) {
 
     const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
 
-    fetch(`/admin-panel/reports/feedback/${feedbackId}/delete`, {
+    fetch(`/admin-panel/feedback/${feedbackId}/delete`, {
         method: 'POST',
         headers: {
+            'X-Requested-With': 'XMLHttpRequest',
             'X-CSRFToken': csrfToken
         }
     })

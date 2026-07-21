@@ -64,7 +64,7 @@
         </div>
         <div class="flex items-center gap-2">
             <label class="text-sm text-gray-500 dark:text-gray-400">Show:</label>
-            <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" data-action="change-per-page">
+            <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" data-on-change="change-per-page">
                 <option value="10" {{ 'selected' if per_page == 10 }}>10</option>
                 <option value="20" {{ 'selected' if per_page == 20 }}>20</option>
                 <option value="50" {{ 'selected' if per_page == 50 }}>50</option>
@@ -129,7 +129,7 @@
                     </a>
                     {% endif %}
                     {% if player.discord_id %}
-                    <button class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 rounded-lg transition-colors" data-action="send-discord-dm" data-discord-id="{{ player.discord_id }}" data-player-name="{{ player.name }}">
+                    <button class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 rounded-lg transition-colors" data-action="send-discord-dm" data-player-id="{{ player.id }}" data-discord-id="{{ player.discord_id }}" data-player-name="{{ player.name }}">
                         <i class="ti ti-brand-discord mr-1"></i>DM
                     </button>
                     {% endif %}
@@ -203,6 +203,7 @@
 <!-- Discord DM Modal -->
 {% call modal_form('discordDMModal', 'Send Discord Direct Message', form_id='dmForm', submit_text='Send Message', loading_text='Sending...') %}
     <input type="hidden" id="dmDiscordId" name="discord_id">
+    <input type="hidden" id="dmPlayerId" name="player_id">
     <div class="mb-4">
         <label for="dmMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
         <textarea id="dmMessage" name="message" rows="5" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Hi! We noticed you haven't joined our Discord server yet..."></textarea>

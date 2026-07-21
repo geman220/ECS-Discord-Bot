@@ -202,7 +202,7 @@ function startAutoRefresh() {
 function updateMetrics() {
     if (!autoRefresh) return;
 
-    fetch('/admin_panel/performance/api/metrics')
+    fetch('/admin-panel/performance/api/metrics')
         .then(response => response.json())
         .then(data => {
             if (data.success) {

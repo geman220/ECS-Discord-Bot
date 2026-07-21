@@ -273,6 +273,7 @@
                 <button type="button"
                         class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
                         data-action="send-discord-dm"
+                        data-player-id="{{ player.id }}"
                         data-discord-id="{{ player.discord_id }}"
                         data-player-name="{{ player.name }}"
                         title="Send Discord DM" aria-label="Send Discord DM to {{ player.name }}">
@@ -337,6 +338,7 @@
               <button type="button"
                       class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
                       data-action="send-discord-dm"
+                      data-player-id="{{ player.id }}"
                       data-discord-id="{{ player.discord_id }}"
                       data-player-name="{{ player.name }}"
                       title="Send Discord DM" aria-label="Send Discord DM to {{ player.name }}">

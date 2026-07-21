@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
             color: isDark ? '#f3f4f6' : '#111827'
         }).then((result) => {
             if (result.isConfirmed) {
-                fetch('/admin/redis/draft-cache-stats/invalidate-all', {
+                fetch('{{ url_for('redis_admin.clear_draft_cache') }}', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
                 })
@@ -267,10 +267,9 @@ document.addEventListener('DOMContentLoaded', function() {
             this.disabled = true;
             this.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-1"></i>Warming...';
 
-            fetch('/admin/redis/draft-cache-stats/warm-cache', {
+            fetch(`/admin/redis/warm-draft-cache/${encodeURIComponent(league)}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ league: league })
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
             })
             .then(res => res.json())
             .then(data => {

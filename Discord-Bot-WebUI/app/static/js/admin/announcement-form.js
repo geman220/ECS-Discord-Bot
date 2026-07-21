@@ -188,7 +188,7 @@ const AnnouncementForm = {
                 if (result.isConfirmed) {
                     const form = document.createElement('form');
                     form.method = 'POST';
-                    form.action = btn.getAttribute('data-url') || `/admin-panel/communication/announcements/${announcementId}/delete`;
+                    form.action = btn.getAttribute('data-url') || `/admin-panel/communication/announcements/delete/${announcementId}`;
 
                     const csrfToken = document.createElement('input');
                     csrfToken.type = 'hidden';

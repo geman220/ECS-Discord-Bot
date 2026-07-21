@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (result.isConfirmed) {
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = '/admin/ecs-fc/polls/' + pollId + '/close';
+                form.action = '/admin/polls/' + pollId + '/close';
 
                 const csrfInput = document.createElement('input');
                 csrfInput.type = 'hidden';
@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (result.isConfirmed) {
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = '/admin/ecs-fc/polls/' + pollId + '/delete';
+                form.action = '/admin/polls/' + pollId + '/delete';
 
                 const csrfInput = document.createElement('input');
                 csrfInput.type = 'hidden';

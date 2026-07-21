@@ -25,6 +25,7 @@
 'use strict';
 
 import { EventDelegation } from '../event-delegation/core.js';
+import { escapeHtml } from '../utils/sanitize.js';
 
 /* ========================================================================
    CONFIGURATION
@@ -32,7 +33,9 @@ import { EventDelegation } from '../event-delegation/core.js';
 
 const CampaignsConfig = {
     baseUrl: window.CAMPAIGNS_BASE_URL || '/admin-panel',
-    csrfToken: window.CAMPAIGNS_CSRF_TOKEN || ''
+    csrfToken: window.CAMPAIGNS_CSRF_TOKEN
+        || document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+        || ''
 };
 
 /* ========================================================================
@@ -41,39 +44,34 @@ const CampaignsConfig = {
 
 async function viewCampaign(campaignId) {
     try {
-        const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}`);
+        // JSON details come from the API route (/admin-panel/api/campaigns/<id>);
+        // /admin-panel/communication/campaigns/<id> renders HTML only.
+        const response = await fetch(`${CampaignsConfig.baseUrl}/api/campaigns/${campaignId}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
         const data = await response.json();
 
         if (data.success) {
             // Show campaign details in modal
             window.Swal.fire({
-                title: data.campaign.name,
+                title: escapeHtml(data.campaign.name || ''),
                 html: `
                     <div class="text-start">
-                        <p><strong>Title:</strong> ${data.campaign.title}</p>
-                        <p><strong>Body:</strong> ${data.campaign.body}</p>
-                        <p><strong>Target:</strong> ${data.campaign.target_type}</p>
-                        <p><strong>Status:</strong> ${data.campaign.status}</p>
+                        <p><strong>Title:</strong> ${escapeHtml(data.campaign.title || '')}</p>
+                        <p><strong>Body:</strong> ${escapeHtml(data.campaign.body || '')}</p>
+                        <p><strong>Target:</strong> ${escapeHtml(data.campaign.target_type || '')}</p>
+                        <p><strong>Status:</strong> ${escapeHtml(data.campaign.status || '')}</p>
                     </div>
                 `,
                 width: 600
             });
+        } else {
+            window.Swal.fire('Error', data.error || 'Failed to load campaign details', 'error');
         }
     } catch (error) {
         window.Swal.fire('Error', 'Failed to load campaign details', 'error');
-    }
-}
-
-async function editCampaign(campaignId) {
-    try {
-        const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}`);
-        const data = await response.json();
-
-        if (data.success) {
-            window.location.href = `${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/edit`;
-        }
-    } catch (error) {
-        window.Swal.fire('Error', 'Failed to load campaign for editing', 'error');
     }
 }
 
@@ -101,7 +99,7 @@ async function sendCampaign(campaignId, campaignName) {
             if (data.success) {
                 window.Swal.fire('Sent!', data.message, 'success').then(() => location.reload());
             } else {
-                window.Swal.fire('Error', data.message, 'error');
+                window.Swal.fire('Error', data.error || data.message || 'Operation failed', 'error');
             }
         } catch (error) {
             window.Swal.fire('Error', 'Failed to send campaign', 'error');
@@ -138,14 +136,14 @@ async function scheduleCampaign(campaignId, campaignName) {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': CampaignsConfig.csrfToken
                 },
-                body: JSON.stringify({ scheduled_send_time: result.value.scheduleTime })
+                body: JSON.stringify({ send_time: result.value.scheduleTime })
             });
 
             const data = await response.json();
             if (data.success) {
                 window.Swal.fire('Scheduled!', data.message, 'success').then(() => location.reload());
             } else {
-                window.Swal.fire('Error', data.message, 'error');
+                window.Swal.fire('Error', data.error || data.message || 'Operation failed', 'error');
             }
         } catch (error) {
             window.Swal.fire('Error', 'Failed to schedule campaign', 'error');
@@ -177,7 +175,7 @@ async function deleteCampaign(campaignId, campaignName) {
             if (data.success) {
                 window.Swal.fire('Deleted!', data.message, 'success').then(() => location.reload());
             } else {
-                window.Swal.fire('Error', data.message, 'error');
+                window.Swal.fire('Error', data.error || data.message || 'Operation failed', 'error');
             }
         } catch (error) {
             window.Swal.fire('Error', 'Failed to delete campaign', 'error');
@@ -208,7 +206,7 @@ async function cancelCampaign(campaignId, campaignName) {
             if (data.success) {
                 window.Swal.fire('Cancelled!', data.message, 'success').then(() => location.reload());
             } else {
-                window.Swal.fire('Error', data.message, 'error');
+                window.Swal.fire('Error', data.error || data.message || 'Operation failed', 'error');
             }
         } catch (error) {
             window.Swal.fire('Error', 'Failed to cancel campaign', 'error');
@@ -239,7 +237,7 @@ async function duplicateCampaign(campaignId, campaignName) {
             if (data.success) {
                 window.Swal.fire('Duplicated!', data.message, 'success').then(() => location.reload());
             } else {
-                window.Swal.fire('Error', data.message, 'error');
+                window.Swal.fire('Error', data.error || data.message || 'Operation failed', 'error');
             }
         } catch (error) {
             window.Swal.fire('Error', 'Failed to duplicate campaign', 'error');
@@ -304,80 +302,73 @@ function toggleCampaignSchedule() {
 
 /**
  * Handle go back action
- * @param {Event} e - The event object
+ * window.EventDelegation calls handlers as handler(element, event) — the first
+ * argument is the [data-action] element, NOT the event.
  */
-function handleGoBack(e) {
+function handleGoBack(element, e) {
     window.history.back();
 }
 
 /**
  * Handle view campaign action
- * @param {Event} e - The event object
+ * @param {Element} element - The [data-action] element
  */
-function handleViewCampaign(e) {
-    viewCampaign(e.target.dataset.campaignId);
-}
-
-/**
- * Handle edit campaign action
- * @param {Event} e - The event object
- */
-function handleEditCampaign(e) {
-    editCampaign(e.target.dataset.campaignId);
+function handleViewCampaign(element, e) {
+    viewCampaign(element.dataset.campaignId);
 }
 
 /**
  * Handle send campaign action
- * @param {Event} e - The event object
+ * @param {Element} element - The [data-action] element
  */
-function handleSendCampaign(e) {
+function handleSendCampaign(element, e) {
     sendCampaign(
-        e.target.dataset.campaignId,
-        e.target.dataset.campaignName
+        element.dataset.campaignId,
+        element.dataset.campaignName
     );
 }
 
 /**
  * Handle schedule campaign action
- * @param {Event} e - The event object
+ * @param {Element} element - The [data-action] element
  */
-function handleScheduleCampaign(e) {
+function handleScheduleCampaign(element, e) {
     scheduleCampaign(
-        e.target.dataset.campaignId,
-        e.target.dataset.campaignName
+        element.dataset.campaignId,
+        element.dataset.campaignName
     );
 }
 
 /**
  * Handle delete campaign action
- * @param {Event} e - The event object
+ * @param {Element} element - The [data-action] element
  */
-function handleDeleteCampaign(e) {
+function handleDeleteCampaign(element, e) {
     deleteCampaign(
-        e.target.dataset.campaignId,
-        e.target.dataset.campaignName
+        element.dataset.campaignId,
+        element.dataset.campaignName
     );
 }
 
 /**
  * Handle cancel campaign action
- * @param {Event} e - The event object
+ * @param {Element} element - The [data-action] element
  */
-function handleCancelCampaign(e) {
+function handleCancelCampaign(element, e) {
     cancelCampaign(
-        e.target.dataset.campaignId,
-        e.target.dataset.campaignName
+        element.dataset.campaignId,
+        element.dataset.campaignName
     );
 }
 
 /**
  * Handle duplicate campaign action
- * @param {Event} e - The event object
+ * @param {Element} element - The [data-action] element
  */
-function handleDuplicateCampaign(e) {
+function handleDuplicateCampaign(element, e) {
     duplicateCampaign(
-        e.target.dataset.campaignId,
-        e.target.dataset.campaignName
+        element.dataset.campaignId,
+        element.dataset.campaignName
     );
 }
 
@@ -424,7 +415,8 @@ function initPushCampaigns() {
 
 window.EventDelegation.register('go-back-campaigns', handleGoBack, { preventDefault: true });
 window.EventDelegation.register('view-campaign', handleViewCampaign, { preventDefault: true });
-window.EventDelegation.register('edit-campaign', handleEditCampaign, { preventDefault: true });
+// NOTE: 'edit-campaign' was removed 2026-07-21 — no campaign edit UI exists
+// (no /campaigns/<id>/edit route and no edit modal in the template).
 window.EventDelegation.register('send-campaign', handleSendCampaign, { preventDefault: true });
 window.EventDelegation.register('schedule-campaign', handleScheduleCampaign, { preventDefault: true });
 window.EventDelegation.register('delete-campaign', handleDeleteCampaign, { preventDefault: true });
@@ -453,7 +445,6 @@ window.InitSystem.register('push-campaigns', initPushCampaigns, {
 const PushCampaigns = {
     version: '1.0.0',
     viewCampaign,
-    editCampaign,
     sendCampaign,
     scheduleCampaign,
     deleteCampaign,
@@ -469,7 +460,6 @@ window.PushCampaigns = PushCampaigns;
 window.CampaignsConfig = CampaignsConfig;
 // Note: NOT exporting handleGoBack to window - message-template-detail.js already exports it.
 window.handleViewCampaign = handleViewCampaign;
-window.handleEditCampaign = handleEditCampaign;
 window.handleSendCampaign = handleSendCampaign;
 window.handleScheduleCampaign = handleScheduleCampaign;
 window.handleDeleteCampaign = handleDeleteCampaign;
@@ -480,7 +470,6 @@ export {
     PushCampaigns,
     CampaignsConfig,
     viewCampaign,
-    editCampaign,
     sendCampaign,
     scheduleCampaign,
     deleteCampaign,
@@ -490,7 +479,6 @@ export {
     toggleCampaignSchedule,
     handleGoBack,
     handleViewCampaign,
-    handleEditCampaign,
     handleSendCampaign,
     handleScheduleCampaign,
     handleDeleteCampaign,

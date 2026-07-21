@@ -120,7 +120,7 @@ async function performClearCache(cacheType) {
         const formData = new FormData();
         formData.append('cache_type', cacheType);
 
-        const url = clearCacheUrl || window.cacheManagementConfig?.clearCacheUrl || '/admin-panel/cache/clear';
+        const url = clearCacheUrl || window.cacheManagementConfig?.clearCacheUrl || '/admin-panel/cache-management/clear';
 
         const response = await fetch(url, {
             method: 'POST',

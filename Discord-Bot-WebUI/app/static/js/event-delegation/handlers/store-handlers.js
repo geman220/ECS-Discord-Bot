@@ -1,5 +1,6 @@
 import { EventDelegation } from '../core.js';
 import { ModalManager } from '../../modal-manager.js';
+import { escapeHtml } from '../../utils/sanitize.js';
 
 /**
  * Store Management Action Handlers
@@ -9,59 +10,6 @@ import { ModalManager } from '../../modal-manager.js';
 // ============================================================================
 // STORE ITEM MANAGEMENT
 // ============================================================================
-
-/**
- * Toggle Item Availability
- * Toggles whether a store item is available for purchase
- */
-window.EventDelegation.register('toggle-item-availability', function(element, e) {
-    e.preventDefault();
-
-    const itemId = element.dataset.itemId;
-    const currentState = element.dataset.available === 'true';
-
-    if (!itemId) {
-        console.error('[toggle-item-availability] Missing item ID');
-        return;
-    }
-
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader spin"></i>';
-    element.disabled = true;
-
-    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
-
-    fetch(`/admin-panel/store/items/${itemId}/toggle`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({ available: !currentState })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Update button state
-            element.dataset.available = (!currentState).toString();
-            if (typeof window.AdminPanel !== 'undefined') {
-                window.AdminPanel.showMobileToast('Item updated', 'success');
-            }
-            location.reload();
-        } else {
-            throw new Error(data.error || 'Failed to update item');
-        }
-    })
-    .catch(error => {
-        if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire('Error', error.message, 'error');
-        }
-    })
-    .finally(() => {
-        element.innerHTML = originalText;
-        element.disabled = false;
-    });
-});
 
 /**
  * Edit Store Item
@@ -152,62 +100,6 @@ function performDeleteStoreItem(itemId, element) {
     });
 }
 
-/**
- * Duplicate Store Item
- * Creates a copy of an existing store item
- */
-window.EventDelegation.register('duplicate-store-item', function(element, e) {
-    e.preventDefault();
-
-    const itemId = element.dataset.itemId;
-
-    if (!itemId) {
-        console.error('[duplicate-store-item] Missing item ID');
-        return;
-    }
-
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader spin"></i>';
-    element.disabled = true;
-
-    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
-
-    fetch(`/admin-panel/store/items/${itemId}/duplicate`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            if (typeof window.Swal !== 'undefined') {
-                window.Swal.fire({
-                    icon: 'success',
-                    title: 'Item Duplicated',
-                    text: 'A copy of the item has been created',
-                    timer: 2000,
-                    showConfirmButton: false
-                }).then(() => location.reload());
-            } else {
-                location.reload();
-            }
-        } else {
-            throw new Error(data.error || 'Failed to duplicate item');
-        }
-    })
-    .catch(error => {
-        if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire('Error', error.message, 'error');
-        }
-    })
-    .finally(() => {
-        element.innerHTML = originalText;
-        element.disabled = false;
-    });
-});
-
 // ============================================================================
 // ORDER MANAGEMENT
 // ============================================================================
@@ -228,10 +120,51 @@ window.EventDelegation.register('view-order-details', function(element, e) {
 
     if (typeof window.viewOrderDetails === 'function') {
         window.viewOrderDetails(orderId);
-    } else {
-        // Fallback: open in new window
-        window.open(`/admin-panel/store/orders/${orderId}`, '_blank');
+        return;
     }
+
+    fetch(`/admin-panel/store/orders/${orderId}/details`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to load order details');
+        }
+        const o = data.order;
+        const row = (label, value) => value
+            ? `<div class="flex justify-between gap-3 py-1 text-left">
+                 <span class="text-gray-500 dark:text-gray-400">${label}</span>
+                 <span class="font-semibold text-right">${escapeHtml(String(value))}</span>
+               </div>`
+            : '';
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
+                title: `Order #${escapeHtml(String(o.id))}`,
+                html: [
+                    row('Item', o.item_name),
+                    row('Ordered by', o.orderer_name),
+                    row('Quantity', o.quantity),
+                    row('Color', o.selected_color),
+                    row('Size', o.selected_size),
+                    row('Status', o.status),
+                    row('Ordered', o.order_date),
+                    row('Processed', o.processed_date),
+                    row('Delivered', o.delivered_date),
+                    row('Processed by', o.processor_name),
+                    row('Season', o.season_name),
+                    row('Notes', o.notes)
+                ].join(''),
+                confirmButtonText: 'Close'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('[view-order-details] ', error);
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', error.message || 'Failed to load order details', 'error');
+        }
+    });
 });
 
 /**
@@ -255,23 +188,24 @@ window.EventDelegation.register('update-order-status', function(element, e) {
 
     const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
 
-    fetch(`/admin-panel/store/orders/${orderId}/status`, {
+    fetch(`/admin-panel/store/orders/${orderId}/update-status`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
             'X-CSRFToken': csrfToken
         },
-        body: JSON.stringify({ status: newStatus })
+        body: new URLSearchParams({ status: newStatus })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             if (typeof window.AdminPanel !== 'undefined') {
-                window.AdminPanel.showMobileToast('Order updated', 'success');
+                window.AdminPanel.showMobileToast(data.message || 'Order updated', 'success');
             }
             location.reload();
         } else {
-            throw new Error(data.error || 'Failed to update order');
+            throw new Error(data.message || 'Failed to update order');
         }
     })
     .catch(error => {
@@ -286,193 +220,50 @@ window.EventDelegation.register('update-order-status', function(element, e) {
 });
 
 /**
- * Mark Order Fulfilled
- * Marks an order as fulfilled
+ * Store Order Status (legacy /store/admin page)
+ * Change handler for the status <select> rows; posts to the store blueprint's
+ * own update route (always returns JSON). Bind with data-on-change.
  */
-window.EventDelegation.register('fulfill-order', function(element, e) {
-    e.preventDefault();
-
+window.EventDelegation.register('store-order-status', function(element) {
     const orderId = element.dataset.orderId;
+    const newStatus = element.value;
+    const previousStatus = element.dataset.currentStatus;
 
-    if (!orderId) {
-        console.error('[fulfill-order] Missing order ID');
+    if (!orderId || !newStatus) {
         return;
     }
 
-    if (typeof window.Swal !== 'undefined') {
-        window.Swal.fire({
-            title: 'Fulfill Order',
-            text: 'Mark this order as fulfilled?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Fulfill',
-            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#28a745'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                performFulfillOrder(orderId, element);
-            }
-        });
-    }
-});
-
-function performFulfillOrder(orderId, element) {
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader spin"></i>';
     element.disabled = true;
-
     const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
 
-    fetch(`/admin-panel/store/orders/${orderId}/fulfill`, {
+    fetch(`/store/admin/order/${orderId}/update`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
             'X-CSRFToken': csrfToken
-        }
+        },
+        body: new URLSearchParams({ status: newStatus })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            if (typeof window.Swal !== 'undefined') {
-                window.Swal.fire({
-                    icon: 'success',
-                    title: 'Order Fulfilled',
-                    timer: 1500,
-                    showConfirmButton: false
-                }).then(() => location.reload());
-            } else {
-                location.reload();
-            }
-        } else {
-            throw new Error(data.error || 'Failed to fulfill order');
-        }
-    })
-    .catch(error => {
-        if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire('Error', error.message, 'error');
-        }
-    })
-    .finally(() => {
-        element.innerHTML = originalText;
-        element.disabled = false;
-    });
-}
-
-/**
- * Cancel Order
- * Cancels an order with confirmation
- */
-window.EventDelegation.register('cancel-order', function(element, e) {
-    e.preventDefault();
-
-    const orderId = element.dataset.orderId;
-
-    if (!orderId) {
-        console.error('[cancel-order] Missing order ID');
-        return;
-    }
-
-    if (typeof window.Swal !== 'undefined') {
-        window.Swal.fire({
-            title: 'Cancel Order',
-            text: 'Are you sure you want to cancel this order?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Cancel Order',
-            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                performCancelOrder(orderId, element);
-            }
-        });
-    }
-});
-
-function performCancelOrder(orderId, element) {
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader spin"></i>';
-    element.disabled = true;
-
-    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
-
-    fetch(`/admin-panel/store/orders/${orderId}/cancel`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
+            element.dataset.currentStatus = newStatus;
             if (typeof window.AdminPanel !== 'undefined') {
-                window.AdminPanel.showMobileToast('Order cancelled', 'success');
+                window.AdminPanel.showMobileToast(data.message || 'Order updated', 'success');
             }
             location.reload();
         } else {
-            throw new Error(data.error || 'Failed to cancel order');
+            throw new Error(data.message || 'Failed to update order');
         }
     })
     .catch(error => {
+        if (previousStatus) element.value = previousStatus;
         if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire('Error', error.message, 'error');
+            window.Swal.fire('Error', error.message || 'Failed to update order', 'error');
         }
     })
     .finally(() => {
-        element.innerHTML = originalText;
-        element.disabled = false;
-    });
-}
-
-/**
- * Resend Order Confirmation
- * Resends order confirmation email
- */
-window.EventDelegation.register('resend-order-confirmation', function(element, e) {
-    e.preventDefault();
-
-    const orderId = element.dataset.orderId;
-
-    if (!orderId) {
-        console.error('[resend-order-confirmation] Missing order ID');
-        return;
-    }
-
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader spin"></i>';
-    element.disabled = true;
-
-    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
-
-    fetch(`/admin-panel/store/orders/${orderId}/resend-confirmation`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            if (typeof window.Swal !== 'undefined') {
-                window.Swal.fire({
-                    icon: 'success',
-                    title: 'Email Sent',
-                    text: 'Order confirmation has been resent',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            }
-        } else {
-            throw new Error(data.error || 'Failed to send confirmation');
-        }
-    })
-    .catch(error => {
-        if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire('Error', error.message, 'error');
-        }
-    })
-    .finally(() => {
-        element.innerHTML = originalText;
         element.disabled = false;
     });
 });
@@ -480,19 +271,6 @@ window.EventDelegation.register('resend-order-confirmation', function(element, e
 // ============================================================================
 // STORE ANALYTICS
 // ============================================================================
-
-/**
- * Export Analytics
- * Exports store analytics data
- */
-window.EventDelegation.register('export-store-analytics', function(element, e) {
-    e.preventDefault();
-
-    const format = element.dataset.format || 'csv';
-    const dateRange = element.dataset.dateRange || 'all';
-
-    window.location.href = `/admin-panel/store/analytics/export?format=${format}&range=${dateRange}`;
-});
 
 /**
  * Refresh Analytics

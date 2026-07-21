@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 # These are stored as generic AdminConfig key/value rows (category
 # 'onboarding') so no schema change is required. The reminder-window choices
 # are constrained to a fixed allow-list; anything else is rejected on save.
-ONBOARDING_REMINDER_WINDOWS = ['24h', '48h', '72h', 'never']
+ONBOARDING_REMINDER_WINDOWS = ['24h', '48h', '72h', '1w', '2w', 'never']
 
 ONBOARDING_CONFIG_KEYS = {
     'onboarding_auto_approve_linked': {
@@ -51,7 +51,7 @@ ONBOARDING_CONFIG_KEYS = {
         'default': '',
     },
     'onboarding_reminder_window': {
-        'description': 'How long to wait before auto-reminding pending users (24h/48h/72h/never).',
+        'description': 'How long a signup can sit pending before the weekly reminder mentions them (24h/48h/72h/1w/2w/never).',
         'data_type': 'string',
         'default': 'never',
     },

@@ -1019,11 +1019,25 @@ def manage_rate_limits():
             
             if not all([limit_per_minute, limit_per_hour, limit_per_day]):
                 return jsonify({'success': False, 'message': 'All rate limits are required'}), 400
+
+            if min(limit_per_minute, limit_per_hour, limit_per_day) < 1:
+                return jsonify({'success': False, 'message': 'Rate limits must be positive integers'}), 400
             
-            # Save rate limits to AdminConfig
-            AdminConfig.set_setting('api_rate_limit_minute', str(limit_per_minute), current_user.id)
-            AdminConfig.set_setting('api_rate_limit_hour', str(limit_per_hour), current_user.id)
-            AdminConfig.set_setting('api_rate_limit_day', str(limit_per_day), current_user.id)
+            # Save rate limits to AdminConfig. Flask-Limiter's default_limits
+            # read these keys per request (app/core/limiter.py), so changes
+            # take effect without a restart. NOTE: set_setting's 3rd positional
+            # is description — passing current_user.id there (the old bug) put
+            # the user id in the description and left category='general'.
+            for key, value, period in (
+                ('api_rate_limit_minute', limit_per_minute, 'minute'),
+                ('api_rate_limit_hour', limit_per_hour, 'hour'),
+                ('api_rate_limit_day', limit_per_day, 'day'),
+            ):
+                AdminConfig.set_setting(
+                    key, str(value),
+                    description=f'Default API rate limit per {period} (enforced by Flask-Limiter for routes without an explicit limit)',
+                    category='api', data_type='integer', user_id=current_user.id
+                )
             
             # Log the change
             AdminAuditLog.log_action(
@@ -1050,10 +1064,13 @@ def manage_rate_limits():
         # AdminConfig.get_setting_value() DOES NOT EXIST — only get_setting() does. The
         # AttributeError landed in the except below, so this GET returned a 500 every
         # single time and the rate-limit panel has never rendered its current values.
+        from app.core.limiter import (
+            DEFAULT_LIMIT_PER_MINUTE, DEFAULT_LIMIT_PER_HOUR, DEFAULT_LIMIT_PER_DAY
+        )
         current_limits = {
-            'per_minute': int(AdminConfig.get_setting('api_rate_limit_minute', 60)),
-            'per_hour': int(AdminConfig.get_setting('api_rate_limit_hour', 1000)),
-            'per_day': int(AdminConfig.get_setting('api_rate_limit_day', 10000))
+            'per_minute': int(AdminConfig.get_setting('api_rate_limit_minute', DEFAULT_LIMIT_PER_MINUTE)),
+            'per_hour': int(AdminConfig.get_setting('api_rate_limit_hour', DEFAULT_LIMIT_PER_HOUR)),
+            'per_day': int(AdminConfig.get_setting('api_rate_limit_day', DEFAULT_LIMIT_PER_DAY))
         }
         return jsonify(current_limits)
     except Exception as e:
@@ -1061,307 +1078,13 @@ def manage_rate_limits():
         return jsonify({'error': 'Internal Server Error'}), 500
 
 
-@admin_panel_bp.route('/api-management/api-keys', methods=['GET', 'POST'])
-@login_required
-@role_required(['Global Admin'])
-@transactional
-def manage_api_keys():
-    """Manage API keys and authentication."""
-    if request.method == 'POST':
-        try:
-            data = request.get_json()
-            action = data.get('action')  # 'generate', 'revoke', 'update'
-            key_name = data.get('key_name', '')
-
-            if action == 'generate':
-                import secrets
-
-                # Generate a new API key
-                api_key = f"ecs_{secrets.token_urlsafe(32)}"
-
-                # Store the key (in production, would use proper API key model)
-                key_setting = f"api_key_{key_name.replace(' ', '_').lower()}"
-                AdminConfig.set_setting(key_setting, api_key, current_user.id)
-
-                # Log the generation
-                AdminAuditLog.log_action(
-                    user_id=current_user.id,
-                    action='generate_api_key',
-                    resource_type='api_management',
-                    resource_id=key_name,
-                    new_value=f'Generated API key for {key_name}',
-                    ip_address=request.remote_addr,
-                    user_agent=request.headers.get('User-Agent')
-                )
-
-                return jsonify({
-                    'success': True,
-                    'message': f'API key generated for {key_name}',
-                    'api_key': api_key
-                })
-
-            elif action == 'revoke':
-                key_setting = f"api_key_{key_name.replace(' ', '_').lower()}"
-
-                # Remove the key
-                key_config = AdminConfig.query.filter_by(key=key_setting).first()
-                if key_config:
-                    db.session.delete(key_config)
-
-                # Log the revocation
-                AdminAuditLog.log_action(
-                    user_id=current_user.id,
-                    action='revoke_api_key',
-                    resource_type='api_management',
-                    resource_id=key_name,
-                    new_value=f'Revoked API key for {key_name}',
-                    ip_address=request.remote_addr,
-                    user_agent=request.headers.get('User-Agent')
-                )
-
-                return jsonify({
-                    'success': True,
-                    'message': f'API key revoked for {key_name}'
-                })
-
-        except Exception as e:
-            logger.error(f"API key management error: {e}")
-            return jsonify({'success': False, 'message': 'Operation failed'}), 500
-
-    # GET request - return current API keys (masked for security)
-    try:
-        api_keys = []
-        api_configs = AdminConfig.query.filter(AdminConfig.key.like('api_key_%')).all()
-
-        for config in api_configs:
-            key_name = config.key.replace('api_key_', '').replace('_', ' ').title()
-            masked_key = f"{config.value[:8]}...{config.value[-4:]}" if config.value else "None"
-
-            api_keys.append({
-                'name': key_name,
-                'key': masked_key,
-                'created_at': config.created_at.isoformat() if config.created_at else None,
-                'last_used': 'Never'  # Would track usage in production
-            })
-
-        return jsonify({'api_keys': api_keys})
-
-    except Exception as e:
-        logger.error(f"Error getting API keys: {e}")
-        return jsonify({'error': 'Internal Server Error'}), 500
-
-
-# -----------------------------------------------------------
-# API Key Management
-# -----------------------------------------------------------
-
-@admin_panel_bp.route('/api/keys/generate', methods=['POST'])
-@login_required
-@role_required(['Global Admin'])
-@transactional
-def generate_api_key():
-    """Generate a new API key."""
-    import secrets
-
-    try:
-        data = request.get_json()
-        name = data.get('name', '').strip()
-        description = data.get('description', '')
-
-        if not name:
-            return jsonify({'success': False, 'error': 'API key name is required'}), 400
-
-        # Generate a secure random key
-        api_key = f"ecs_{secrets.token_urlsafe(32)}"
-        config_key = f"api_key_{name.lower().replace(' ', '_')}"
-
-        # Check for duplicate name
-        existing = AdminConfig.query.filter_by(key=config_key).first()
-        if existing:
-            return jsonify({'success': False, 'error': f'An API key with the name "{name}" already exists'}), 400
-
-        new_config = AdminConfig(
-            key=config_key,
-            value=api_key,
-            category='api_keys',
-            data_type='string',
-            description=description or f'API key: {name}',
-            is_enabled=True,
-            updated_by=current_user.id
-        )
-        db.session.add(new_config)
-
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='generate_api_key',
-            resource_type='api_key',
-            resource_id=config_key,
-            new_value=f"Generated API key: {name}",
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        return jsonify({
-            'success': True,
-            'api_key': api_key,
-            'message': f'API key "{name}" generated successfully'
-        })
-
-    except Exception as e:
-        logger.error(f"Error generating API key: {e}")
-        return jsonify({'success': False, 'error': 'Failed to generate API key'}), 500
-
-
-@admin_panel_bp.route('/api/keys/<key_id>/revoke', methods=['POST'])
-@login_required
-@role_required(['Global Admin'])
-@transactional
-def revoke_api_key(key_id):
-    """Revoke an API key."""
-    try:
-        config = AdminConfig.query.get(key_id)
-        if not config or config.category != 'api_keys':
-            return jsonify({'success': False, 'error': 'API key not found'}), 404
-
-        key_name = config.key
-        db.session.delete(config)
-
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='revoke_api_key',
-            resource_type='api_key',
-            resource_id=key_name,
-            new_value=f"Revoked API key: {key_name}",
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        return jsonify({'success': True, 'message': 'API key revoked successfully'})
-
-    except Exception as e:
-        logger.error(f"Error revoking API key: {e}")
-        return jsonify({'success': False, 'error': 'Failed to revoke API key'}), 500
-
-
-@admin_panel_bp.route('/api/keys/<key_id>/toggle', methods=['POST'])
-@login_required
-@role_required(['Global Admin'])
-@transactional
-def toggle_api_key(key_id):
-    """Enable or disable an API key."""
-    try:
-        data = request.get_json()
-        enabled = data.get('enabled', True)
-
-        config = AdminConfig.query.get(key_id)
-        if not config or config.category != 'api_keys':
-            return jsonify({'success': False, 'error': 'API key not found'}), 404
-
-        config.is_enabled = enabled
-        config.updated_by = current_user.id
-
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='toggle_api_key',
-            resource_type='api_key',
-            resource_id=config.key,
-            new_value=f"{'Enabled' if enabled else 'Disabled'} API key: {config.key}",
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        return jsonify({'success': True, 'message': f'API key {"enabled" if enabled else "disabled"}'})
-
-    except Exception as e:
-        logger.error(f"Error toggling API key: {e}")
-        return jsonify({'success': False, 'error': 'Failed to update API key'}), 500
-
-
-# -----------------------------------------------------------
-# API Configuration
-# -----------------------------------------------------------
-
-@admin_panel_bp.route('/api/config/save', methods=['POST'])
-@login_required
-@role_required(['Global Admin'])
-@transactional
-def save_api_config():
-    """Save API configuration settings."""
-    try:
-        form_data = request.form
-        changes = []
-
-        for key in form_data:
-            if key == 'csrf_token':
-                continue
-
-            value = form_data[key]
-            config_key = f'api_config_{key}'
-
-            existing = AdminConfig.query.filter_by(key=config_key).first()
-            if existing:
-                if existing.value != value:
-                    changes.append(f"{key}: {existing.value} -> {value}")
-                    existing.value = value
-                    existing.updated_by = current_user.id
-            else:
-                new_config = AdminConfig(
-                    key=config_key,
-                    value=value,
-                    category='api_config',
-                    data_type='string',
-                    description=f'API configuration: {key}',
-                    updated_by=current_user.id
-                )
-                db.session.add(new_config)
-                changes.append(f"{key}: (new) -> {value}")
-
-        if changes:
-            AdminAuditLog.log_action(
-                user_id=current_user.id,
-                action='save_api_config',
-                resource_type='api_config',
-                resource_id='settings',
-                new_value='; '.join(changes[:5]),
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-
-        return jsonify({'success': True, 'message': 'Configuration saved successfully'})
-
-    except Exception as e:
-        logger.error(f"Error saving API config: {e}")
-        return jsonify({'success': False, 'error': 'Failed to save configuration'}), 500
-
-
-@admin_panel_bp.route('/api/config/reset', methods=['POST'])
-@login_required
-@role_required(['Global Admin'])
-@transactional
-def reset_api_config():
-    """Reset API configuration to defaults."""
-    try:
-        configs = AdminConfig.query.filter(AdminConfig.key.like('api_config_%')).all()
-        count = len(configs)
-
-        for config in configs:
-            db.session.delete(config)
-
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='reset_api_config',
-            resource_type='api_config',
-            resource_id='settings',
-            new_value=f"Reset {count} API configuration settings to defaults",
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        return jsonify({'success': True, 'message': f'Configuration reset ({count} settings cleared)'})
-
-    except Exception as e:
-        logger.error(f"Error resetting API config: {e}")
-        return jsonify({'success': False, 'error': 'Failed to reset configuration'}), 500
+# ---------------------------------------------------------------------------
+# REMOVED 2026-07: manage_api_keys / generate_api_key / revoke_api_key /
+# toggle_api_key / save_api_config / reset_api_config.
+# The generated api_key_* rows were never validated by anything (real API
+# auth is the env-configured MOBILE_API_KEY via validate_mobile_api_key), and
+# the api_config_* form dump had no readers. UI panels removed with them.
+# ---------------------------------------------------------------------------
 
 
 @admin_panel_bp.route('/api/logs/clear', methods=['POST'])

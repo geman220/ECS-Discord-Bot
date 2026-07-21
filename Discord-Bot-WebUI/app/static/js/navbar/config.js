@@ -11,7 +11,7 @@ export const CONFIG = {
   scrollThreshold: 50,
   notificationRefreshInterval: 60000,   // 60 seconds
   presenceRefreshInterval: 120000,       // 2 minutes
-  searchDebounce: 300
+  searchDebounce: 150
 };
 
 /**

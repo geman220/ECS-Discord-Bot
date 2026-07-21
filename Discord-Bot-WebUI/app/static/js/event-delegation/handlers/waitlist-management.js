@@ -1,4 +1,5 @@
 import { EventDelegation } from '../core.js';
+import { escapeHtml } from '../../utils/sanitize.js';
 
 /**
  * Waitlist Management Action Handlers
@@ -22,7 +23,7 @@ function getUserDetailsUrl(userId) {
     if (typeof window.WAITLIST_CONFIG !== 'undefined' && window.WAITLIST_CONFIG.userDetailsUrl) {
         return `${window.WAITLIST_CONFIG.userDetailsUrl}?user_id=${userId}`;
     }
-    return `/admin-panel/api/user-details?user_id=${userId}`;
+    return `/admin-panel/users/waitlist/user/${userId}`;
 }
 
 /**
@@ -32,7 +33,7 @@ function getProcessWaitlistUrl() {
     if (typeof window.WAITLIST_CONFIG !== 'undefined' && window.WAITLIST_CONFIG.processWaitlistUrl) {
         return window.WAITLIST_CONFIG.processWaitlistUrl;
     }
-    return '/admin-panel/user-management/waitlist/process';
+    return '/admin-panel/users/waitlist/process';
 }
 
 /**
@@ -103,13 +104,13 @@ window.EventDelegation.register('view-user', function(element, e) {
     // Show the modal
     window.ModalManager.show('waitlistUserModal');
 
-    // Load user details via AJAX
+    // Load user details via AJAX (route returns { success, user } JSON)
     fetch(getUserDetailsUrl(userId))
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 if (contentElement) {
-                    contentElement.innerHTML = data.html;
+                    contentElement.innerHTML = renderUserDetails(data.user || {});
                 }
             } else {
                 if (contentElement) {
@@ -286,71 +287,142 @@ window.EventDelegation.register('process-from-modal', function(element, e) {
 // ============================================================================
 
 /**
- * Submit waitlist action via form POST
+ * Render user details HTML from the JSON returned by
+ * /admin-panel/users/waitlist/user/<id> ({ success, user }).
+ */
+function renderUserDetails(user) {
+    const player = user.player || {};
+    const rows = [
+        ['Username', user.username],
+        ['Email', user.email],
+        ['Registered', user.created_at],
+        ['Status', user.approval_status],
+        ['Roles', (user.roles || []).join(', ')],
+        ['Player Name', player.name],
+        ['Phone', player.phone],
+        ['Preferred Position', player.favorite_position],
+        ['Jersey Size', player.jersey_size]
+    ];
+
+    const rowsHtml = rows
+        .filter(([, value]) => value !== null && value !== undefined && value !== '')
+        .map(([label, value]) => `
+            <div class="flex gap-2">
+                <span class="font-semibold text-gray-900 dark:text-white">${escapeHtml(label)}:</span>
+                <span class="text-gray-700 dark:text-gray-300">${escapeHtml(String(value))}</span>
+            </div>`)
+        .join('');
+
+    return `<div class="text-start space-y-1">${rowsHtml}</div>`;
+}
+
+/**
+ * Show an error dialog (falls back to alert if Swal unavailable)
+ */
+function showWaitlistError(message) {
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire('Error', message, 'error');
+    } else {
+        alert(message);
+    }
+}
+
+/**
+ * Submit a single-user waitlist action.
+ * - 'remove'  -> POST /admin-panel/users/waitlist/remove/<id> (JSON)
+ * - 'process' -> POST /admin-panel/users/bulk-operations/waitlist-process (JSON, one id)
  * @param {string} userId - User ID to process
  * @param {string} action - Action to perform (process, remove)
  */
 function submitWaitlistAction(userId, action) {
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = getProcessWaitlistUrl();
+    let url;
+    let body;
 
-    const csrfToken = document.createElement('input');
-    csrfToken.type = 'hidden';
-    csrfToken.name = 'csrf_token';
-    csrfToken.value = getCsrfToken();
+    if (action === 'remove') {
+        url = `/admin-panel/users/waitlist/remove/${userId}`;
+        body = JSON.stringify({ reason: 'Removed via waitlist management' });
+    } else {
+        url = '/admin-panel/users/bulk-operations/waitlist-process';
+        body = JSON.stringify({ user_ids: [parseInt(userId, 10)], action: 'move_to_pending' });
+    }
 
-    const userIdInput = document.createElement('input');
-    userIdInput.type = 'hidden';
-    userIdInput.name = 'user_id';
-    userIdInput.value = userId;
-
-    const actionInput = document.createElement('input');
-    actionInput.type = 'hidden';
-    actionInput.name = 'action';
-    actionInput.value = action;
-
-    form.appendChild(csrfToken);
-    form.appendChild(userIdInput);
-    form.appendChild(actionInput);
-    document.body.appendChild(form);
-    form.submit();
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: body
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                showWaitlistError(data.message || 'Failed to update waitlist user');
+            }
+        })
+        .catch(error => {
+            console.error('[waitlist-management] Action failed:', error);
+            showWaitlistError('Failed to update waitlist user');
+        });
 }
 
 /**
- * Submit bulk waitlist action via form POST
+ * Submit bulk waitlist action.
+ * - 'process_all'      -> form POST /admin-panel/users/waitlist/process (processes everyone, redirects)
+ * - 'process_selected' -> POST /admin-panel/users/bulk-operations/waitlist-process (JSON)
  * @param {string} action - Action to perform (process_all, process_selected)
  * @param {Array} selectedIds - Array of selected user IDs
  */
 function submitBulkWaitlistAction(action, selectedIds) {
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = getProcessWaitlistUrl();
+    if (action === 'process_all') {
+        // Legacy bulk route: processes the whole waitlist and redirects with a flash
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = getProcessWaitlistUrl();
 
-    const csrfToken = document.createElement('input');
-    csrfToken.type = 'hidden';
-    csrfToken.name = 'csrf_token';
-    csrfToken.value = getCsrfToken();
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = 'csrf_token';
+        csrfToken.value = getCsrfToken();
 
-    const actionInput = document.createElement('input');
-    actionInput.type = 'hidden';
-    actionInput.name = 'action';
-    actionInput.value = action;
+        // Backend requires action=process_all or it silently no-ops
+        const actionField = document.createElement('input');
+        actionField.type = 'hidden';
+        actionField.name = 'action';
+        actionField.value = 'process_all';
 
-    form.appendChild(csrfToken);
-    form.appendChild(actionInput);
+        form.appendChild(csrfToken);
+        form.appendChild(actionField);
+        document.body.appendChild(form);
+        form.submit();
+        return;
+    }
 
-    // Add selected user IDs
-    selectedIds.forEach(id => {
-        const userIdInput = document.createElement('input');
-        userIdInput.type = 'hidden';
-        userIdInput.name = 'selected_users';
-        userIdInput.value = id;
-        form.appendChild(userIdInput);
-    });
-
-    document.body.appendChild(form);
-    form.submit();
+    fetch('/admin-panel/users/bulk-operations/waitlist-process', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+            user_ids: selectedIds.map(id => parseInt(id, 10)),
+            action: 'move_to_pending'
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                showWaitlistError(data.message || 'Failed to process selected users');
+            }
+        })
+        .catch(error => {
+            console.error('[waitlist-management] Bulk action failed:', error);
+            showWaitlistError('Failed to process selected users');
+        });
 }
 
 // Handlers loaded

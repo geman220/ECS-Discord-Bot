@@ -572,7 +572,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.innerHTML = '<i class="ti ti-loader animate-spin mr-1"></i> Starting...';
 
             try {
-                const response = await fetch(`/bot-admin/mls-matches/${matchId}/start`, {
+                const response = await fetch(`/bot/admin/start_live_reporting/${matchId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -627,7 +627,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.innerHTML = '<i class="ti ti-loader animate-spin mr-1"></i> Stopping...';
 
             try {
-                const response = await fetch(`/bot-admin/mls-matches/${matchId}/stop`, {
+                const response = await fetch(`/bot/admin/stop_live_reporting/${matchId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -684,7 +684,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!confirmed) return;
 
             try {
-                const response = await fetch(`/bot-admin/mls-matches/${matchId}/remove`, {
+                const response = await fetch(`/bot/admin/matches/remove/${matchId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -723,7 +723,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!confirmed) return;
 
         try {
-            const response = await fetch('/bot-admin/mls-matches/clear', {
+            const response = await fetch('{{ url_for('bot_admin.clear_all_mls_matches') }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

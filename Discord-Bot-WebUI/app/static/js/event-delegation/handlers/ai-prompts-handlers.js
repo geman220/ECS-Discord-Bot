@@ -117,65 +117,9 @@ window.EventDelegation.register('confirm-delete-prompt', function(element, e) {
     }
 });
 
-/**
- * Test Prompt
- * Tests an AI prompt with sample data
- */
-window.EventDelegation.register('test-prompt', function(element, e) {
-    e.preventDefault();
-
-    const promptId = element.dataset.promptId;
-
-    if (!promptId) {
-        console.error('[test-prompt] Missing prompt ID');
-        return;
-    }
-
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader spin me-1"></i> Testing...';
-    element.disabled = true;
-
-    // Sample test data
-    const testData = {
-        match_context: "Seattle Sounders vs Portland Timbers - MLS Regular Season - 35th minute",
-        events: "Yellow card shown to Portland player for rough tackle",
-        score: "1-0 Seattle"
-    };
-
-    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
-
-    fetch(`/ai-prompts/api/test/${promptId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify(testData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const testResult = document.getElementById('test-result');
-            const testOutput = document.getElementById('test-output');
-
-            if (testResult) testResult.textContent = data.response;
-            if (testOutput) testOutput.classList.remove('hidden');
-        } else {
-            if (typeof window.toastr !== 'undefined') {
-                window.toastr.error(data.error || 'Test failed');
-            }
-        }
-    })
-    .catch(error => {
-        if (typeof window.toastr !== 'undefined') {
-            window.toastr.error('Network error occurred');
-        }
-    })
-    .finally(() => {
-        element.innerHTML = originalText;
-        element.disabled = false;
-    });
-});
+/* test-prompt is handled by the page-owned inline script in
+   ai_prompts/view_prompt_flowbite.html (the only page using it); a global
+   registration here would double-fire the AI test call. */
 
 /**
  * Load AI Prompt Template

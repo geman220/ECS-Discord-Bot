@@ -262,27 +262,9 @@
     {% endcall %}
   </div>
 
-  {# ---------- Command toolbar: maintenance actions ---------- #}
-  {% call section_card('Maintenance', icon='ti-tools') %}
-    <div class="flex flex-wrap gap-2 p-4 sm:p-5">
-      <button type="button" data-action="refresh-connections"
-              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors">
-        <i class="ti ti-refresh" aria-hidden="true"></i>Refresh Connections
-      </button>
-      <button type="button" data-action="flush-query-cache"
-              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors">
-        <i class="ti ti-trash" aria-hidden="true"></i>Flush Query Cache
-      </button>
-      <button type="button" data-action="analyze-performance"
-              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors">
-        <i class="ti ti-chart-line" aria-hidden="true"></i>Analyze Performance
-      </button>
-      <button type="button" data-action="optimize-database"
-              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
-        <i class="ti ti-tool" aria-hidden="true"></i>Optimize Database
-      </button>
-    </div>
-  {% endcall %}
+  {# Maintenance toolbar removed: refresh-connections / flush-query-cache /
+     analyze-performance / optimize-database have no backend routes; the one
+     real maintenance action (run-health-check) lives in the page header. #}
 </div>
 
 {% else %}
@@ -580,29 +562,6 @@
     </div>
 </div>
 
-<!-- Database Actions -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
-        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
-            <i class="ti ti-tools mr-2"></i>Database Actions
-        </h5>
-    </div>
-    <div class="p-5">
-        <div class="flex flex-wrap gap-2">
-            <button type="button" class="px-4 py-2 text-sm font-medium text-cyan-600 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800" data-action="refresh-connections">
-                <i class="ti ti-refresh mr-1"></i>Refresh Connections
-            </button>
-            <button type="button" class="px-4 py-2 text-sm font-medium text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800" data-action="flush-query-cache">
-                <i class="ti ti-trash mr-1"></i>Flush Query Cache
-            </button>
-            <button type="button" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="analyze-performance">
-                <i class="ti ti-chart-line mr-1"></i>Analyze Performance
-            </button>
-            <button type="button" class="px-4 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800" data-action="optimize-database">
-                <i class="ti ti-tool mr-1"></i>Optimize Database
-            </button>
-        </div>
-    </div>
-</div>
+{# Database Actions card removed: its four actions have no backend routes. #}
 {% endif %}
 {% endblock %}

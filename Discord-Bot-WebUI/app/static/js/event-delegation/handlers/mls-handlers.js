@@ -808,42 +808,9 @@ window.EventDelegation.register('manual-refresh', function(element, e) {
     location.reload();
 });
 
-/**
- * View MLS Task Logs
- * Shows logs for a specific MLS task
- * Note: Renamed from 'view-task-logs' to avoid conflict with monitoring-handlers.js
- */
-window.EventDelegation.register('mls-view-task-logs', function(element, e) {
-    e.preventDefault();
-
-    const taskId = element.dataset.taskId;
-
-    if (!taskId) {
-        console.error('[mls-view-task-logs] Missing task ID');
-        return;
-    }
-
-    fetch(`/admin-panel/mls/task-logs/${taskId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (typeof window.Swal !== 'undefined') {
-                    window.Swal.fire({
-                        title: 'Task Logs',
-                        html: `<pre class="text-start scroll-container-md">${data.logs || 'No logs available'}</pre>`,
-                        width: '800px'
-                    });
-                }
-            } else {
-                throw new Error(data.error || 'Failed to load logs');
-            }
-        })
-        .catch(error => {
-            if (typeof window.Swal !== 'undefined') {
-                window.Swal.fire('Error', error.message, 'error');
-            }
-        });
-});
+// NOTE: mls-view-task-logs was removed — no template renders the trigger and
+// there is no /admin-panel/mls/task-logs/<id> route (task info lives at
+// /admin-panel/mls/task-details/<task_id>).
 
 // ============================================================================
 // MATCH CREATE/EDIT FORM HANDLERS

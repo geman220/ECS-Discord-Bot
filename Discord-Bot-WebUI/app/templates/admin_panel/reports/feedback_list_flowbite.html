@@ -48,13 +48,6 @@
     </p>
   </div>
   <div class="flex flex-wrap items-center gap-2 shrink-0">
-    <a href="{{ url_for('admin_panel.draft_overview') }}"
-       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-3.5 rounded-lg text-sm font-semibold
-              bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200
-              hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-      <i class="ti ti-list-numbers" aria-hidden="true"></i>Draft Management
-    </a>
     <a href="{{ url_for('admin_panel.feedback_list', status='Open') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg text-sm font-semibold text-white
               bg-ecs-green hover:bg-ecs-green-700 transition-colors
@@ -390,18 +383,18 @@
       <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ pagination.total }}</span>
     </h2>
     <div class="flex flex-wrap items-center gap-2">
-      <select id="category-filter" class="input-ecs text-sm h-9 min-h-[44px] sm:min-h-0" aria-label="Filter by category">
+      <select id="category-filter" class="input-ecs w-auto flex-1 sm:flex-none text-sm h-9 min-h-[44px] sm:min-h-0" aria-label="Filter by category">
         <option value="">All Categories</option>
         <option value="Bug" {{ 'selected' if category_filter == 'Bug' }}>Bug</option>
         <option value="Feature" {{ 'selected' if category_filter == 'Feature' }}>Feature Request</option>
         <option value="Other" {{ 'selected' if category_filter == 'Other' }}>Other</option>
       </select>
-      <select id="source-filter" class="input-ecs text-sm h-9 min-h-[44px] sm:min-h-0" aria-label="Filter by source">
+      <select id="source-filter" class="input-ecs w-auto flex-1 sm:flex-none text-sm h-9 min-h-[44px] sm:min-h-0" aria-label="Filter by source">
         <option value="">All Sources</option>
         <option value="web" {{ 'selected' if source_filter == 'web' }}>Web</option>
         <option value="app" {{ 'selected' if source_filter == 'app' }}>App</option>
       </select>
-      <select id="priority-filter" class="input-ecs text-sm h-9 min-h-[44px] sm:min-h-0" aria-label="Filter by priority">
+      <select id="priority-filter" class="input-ecs w-auto flex-1 sm:flex-none text-sm h-9 min-h-[44px] sm:min-h-0" aria-label="Filter by priority">
         <option value="">All Priorities</option>
         <option value="High" {{ 'selected' if priority_filter == 'High' }}>High</option>
         <option value="Medium" {{ 'selected' if priority_filter == 'Medium' }}>Medium</option>
@@ -708,15 +701,12 @@
         </h5>
     </div>
     <div class="p-5">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <a href="{{ url_for('admin_panel.feedback_list', status='Open') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600">
                 <i class="ti ti-alert-circle mr-2"></i>View Open Feedback
             </a>
             <a href="{{ url_for('admin_panel.feedback_list', status='In Progress') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
                 <i class="ti ti-loader mr-2"></i>View In Progress
-            </a>
-            <a href="{{ url_for('admin_panel.draft_overview') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">
-                <i class="ti ti-list-numbers mr-2"></i>Draft Management
             </a>
         </div>
     </div>

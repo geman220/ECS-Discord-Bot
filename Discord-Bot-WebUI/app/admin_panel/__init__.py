@@ -556,7 +556,13 @@ def _build_admin_search_index():
     # by the context processor, so this query runs at most once per TTL.
     try:
         from app.models.admin_config import AdminConfig
-        for setting in AdminConfig.query.filter_by(is_enabled=True).all():
+        from app.admin_panel.routes.dashboard import FEATURE_TOGGLE_CATEGORIES
+        # Same category allowlist as the features page itself — rows outside it
+        # (generated api_key_* secrets, stray 'general' rows, dedicated-page
+        # settings) neither render there nor belong in search results.
+        for setting in AdminConfig.query.filter(
+                AdminConfig.is_enabled.is_(True),
+                AdminConfig.category.in_(FEATURE_TOGGLE_CATEGORIES)).all():
             pretty_name = setting.key.replace('_', ' ').title()
             items.append({
                 'name': pretty_name, 'category': 'System', 'subcategory': 'Feature Toggles',

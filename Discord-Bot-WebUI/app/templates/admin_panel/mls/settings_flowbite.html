@@ -48,7 +48,7 @@
     <i class="ti ti-gauge text-ecs-green" aria-hidden="true"></i>
     <h2 id="cfg-snapshot" class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Active Configuration</h2>
   </div>
-  <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+  <div class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
 
     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
       <div class="flex items-center justify-between">
@@ -74,51 +74,15 @@
       <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400">before kickoff</p>
     </div>
 
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-      <div class="flex items-center justify-between">
-        <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Match Timeout</span>
-        <i class="ti ti-clock-stop text-base text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
-      </div>
-      <div class="mt-3 flex items-end gap-1.5 flex-wrap">
-        <span class="font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ settings.live_reporting_timeout_hours }}</span>
-        <span class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">hrs</span>
-      </div>
-      <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400">ESPN fallback</p>
-    </div>
-
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-      <div class="flex items-center justify-between">
-        <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Max Session</span>
-        <i class="ti ti-hourglass-high text-base text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
-      </div>
-      <div class="mt-3 flex items-end gap-1.5 flex-wrap">
-        <span class="font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ settings.max_session_duration_hours }}</span>
-        <span class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">hrs</span>
-      </div>
-      <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400">hard cap</p>
-    </div>
-
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 col-span-2 sm:col-span-1">
-      <div class="flex items-center justify-between">
-        <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">No-Update</span>
-        <i class="ti ti-zzz text-base text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
-      </div>
-      <div class="mt-3 flex items-end gap-1.5 flex-wrap">
-        <span class="font-mono text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ settings.no_update_timeout_minutes }}</span>
-        <span class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">min</span>
-      </div>
-      <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400">stale threshold</p>
-    </div>
-
   </div>
 </section>
 
 <form id="mls-settings-form" class="space-y-5 sm:space-y-6">
 
-  <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6">
-
-    {# ===== Scheduling — feature card ===== #}
-    <section class="xl:col-span-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+  {# ===== Scheduling — feature card. (The old "Live Reporting Timeouts" card
+     was removed: those three settings were never consumed — session lifetimes
+     are hardcoded in realtime_reporting_service.py.) ===== #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
       <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
         <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-ecs-green/10 text-ecs-green shrink-0">
           <i class="ti ti-calendar-event" aria-hidden="true"></i>
@@ -128,7 +92,7 @@
           <p class="text-[11px] text-gray-500 dark:text-gray-400">When threads &amp; reporting fire</p>
         </div>
       </div>
-      <div class="p-4 sm:p-5 space-y-5">
+      <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
 
         <div>
           <label for="thread_creation_hours" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -192,65 +156,6 @@
 
       </div>
     </section>
-
-    {# ===== Live Reporting timeouts — feature card ===== #}
-    <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
-      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">
-          <i class="ti ti-broadcast" aria-hidden="true"></i>
-        </span>
-        <div class="min-w-0">
-          <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white leading-tight">Live Reporting Timeouts</h3>
-          <p class="text-[11px] text-gray-500 dark:text-gray-400">Safety limits for the reporting session</p>
-        </div>
-      </div>
-      <div class="divide-y divide-gray-200 dark:divide-gray-700">
-
-        <div class="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
-          <div class="flex-1 min-w-0">
-            <label for="reporting_timeout" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Match Timeout</label>
-            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Fallback if ESPN never reports the match as final (matches usually last ~2h).</p>
-          </div>
-          <div class="shrink-0 flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-40">
-            <input type="number" id="reporting_timeout" name="mls_live_reporting_timeout_hours"
-                   value="{{ settings.live_reporting_timeout_hours }}" min="1" max="6"
-                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
-            <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">hrs</span>
-          </div>
-          <span class="shrink-0 hidden sm:inline-flex items-center text-[11px] font-mono text-gray-400 dark:text-gray-500">1–6</span>
-        </div>
-
-        <div class="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
-          <div class="flex-1 min-w-0">
-            <label for="max_session_duration" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Maximum Session Duration</label>
-            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Hard cap before a live reporting session is marked stale.</p>
-          </div>
-          <div class="shrink-0 flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-40">
-            <input type="number" id="max_session_duration" name="mls_max_session_duration_hours"
-                   value="{{ settings.max_session_duration_hours }}" min="2" max="8"
-                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
-            <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">hrs</span>
-          </div>
-          <span class="shrink-0 hidden sm:inline-flex items-center text-[11px] font-mono text-gray-400 dark:text-gray-500">2–8</span>
-        </div>
-
-        <div class="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
-          <div class="flex-1 min-w-0">
-            <label for="no_update_timeout" class="block text-sm font-medium text-gray-700 dark:text-gray-300">No-Update Timeout</label>
-            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Session is marked stale if no updates arrive within this window.</p>
-          </div>
-          <div class="shrink-0 flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-40">
-            <input type="number" id="no_update_timeout" name="mls_no_update_timeout_minutes"
-                   value="{{ settings.no_update_timeout_minutes }}" min="10" max="120"
-                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
-            <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">mins</span>
-          </div>
-          <span class="shrink-0 hidden sm:inline-flex items-center text-[11px] font-mono text-gray-400 dark:text-gray-500">10–120</span>
-        </div>
-
-      </div>
-    </section>
-  </div>
 
   {# ===== Supported Competitions — reference table (read-only) ===== #}
   <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
@@ -395,65 +300,6 @@
                 </div>
                 <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     <i class="ti ti-info-circle mr-1"></i>The starting-lineups embed posts this many minutes before kickoff
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Live Reporting Settings -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
-        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
-            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
-                <i class="ti ti-broadcast mr-2"></i>Live Reporting Settings
-            </h5>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Configure live reporting behavior and timeouts</p>
-        </div>
-        <div class="p-5 space-y-6">
-            <div>
-                <label for="reporting_timeout" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Match Timeout (hours)
-                </label>
-                <div class="flex items-center gap-3">
-                    <input type="number" id="reporting_timeout" name="mls_live_reporting_timeout_hours"
-                           value="{{ settings.live_reporting_timeout_hours }}"
-                           min="1" max="6"
-                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                    <span class="text-sm text-gray-500 dark:text-gray-400">hours (1-6)</span>
-                </div>
-                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    <i class="ti ti-info-circle mr-1"></i>Fallback timeout if ESPN doesn't report match as final (matches typically last 2 hours)
-                </p>
-            </div>
-
-            <div>
-                <label for="max_session_duration" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Maximum Session Duration (hours)
-                </label>
-                <div class="flex items-center gap-3">
-                    <input type="number" id="max_session_duration" name="mls_max_session_duration_hours"
-                           value="{{ settings.max_session_duration_hours }}"
-                           min="2" max="8"
-                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                    <span class="text-sm text-gray-500 dark:text-gray-400">hours (2-8)</span>
-                </div>
-                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    <i class="ti ti-info-circle mr-1"></i>Maximum time a live reporting session can run before being marked as stale
-                </p>
-            </div>
-
-            <div>
-                <label for="no_update_timeout" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    No Update Timeout (minutes)
-                </label>
-                <div class="flex items-center gap-3">
-                    <input type="number" id="no_update_timeout" name="mls_no_update_timeout_minutes"
-                           value="{{ settings.no_update_timeout_minutes }}"
-                           min="10" max="120"
-                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
-                    <span class="text-sm text-gray-500 dark:text-gray-400">minutes (10-120)</span>
-                </div>
-                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    <i class="ti ti-info-circle mr-1"></i>Session will be marked stale if no updates received within this time
                 </p>
             </div>
         </div>

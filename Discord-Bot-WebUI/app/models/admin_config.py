@@ -196,15 +196,29 @@ class AdminConfig(db.Model):
                     cls._l2_store(raw)
                 return cache.get(key, default)
             else:
-                # Fallback to managed session for non-request contexts
+                # Fallback for non-request contexts (Celery) AND for requests
+                # where g.db_session was never created (pool-exhaustion path:
+                # request_handlers proceeds without a session). Load the whole
+                # table in ONE managed session and prime the caches — the old
+                # per-key query here opened a fresh session for EVERY get_setting
+                # call in the request, which turned "pool has nothing to give"
+                # into N more blocking checkouts (limiter callables + kill
+                # switch + maintenance gate = 5 per request).
                 from app.core.session_manager import managed_session
+                raw = {}
+                parsed = {}
                 with managed_session() as session:
-                    setting = session.query(cls).filter_by(key=key, is_enabled=True).first()
-                    if setting:
-                        # Access parsed_value while session is still active
-                        return setting.parsed_value
-
-            return default
+                    for row in session.query(cls).filter_by(is_enabled=True).all():
+                        raw[row.key] = (row.value, row.data_type)
+                        parsed[row.key] = row.parsed_value
+                # Same dirty-flag guard as the request-session branch: after a
+                # same-request write, never repopulate L2 from pre-commit data.
+                if not (in_request and g.__dict__.get('_admin_config_l2_dirty')):
+                    cls._l2_store(raw)
+                if in_request:
+                    cache.update(parsed)
+                    g._admin_config_primed = True
+                return parsed.get(key, default)
         except (OperationalError, DBAPIError) as e:
             # DB unreachable (restart, network blip). Log once per callsite at WARNING
             # without a traceback — the connection-pool pre_ping recovers on next call.
@@ -364,13 +378,6 @@ class AdminConfig(db.Model):
                 'data_type': 'boolean'
             },
             {
-                'key': 'matches_navigation_enabled',
-                'value': 'true',
-                'description': 'Enable/disable Matches navigation',
-                'category': 'navigation',
-                'data_type': 'boolean'
-            },
-            {
                 'key': 'leagues_navigation_enabled',
                 'value': 'true',
                 'description': 'Enable/disable Leagues navigation',
@@ -381,27 +388,6 @@ class AdminConfig(db.Model):
                 'key': 'drafts_navigation_enabled',
                 'value': 'true',
                 'description': 'Enable/disable Drafts navigation',
-                'category': 'navigation',
-                'data_type': 'boolean'
-            },
-            {
-                'key': 'players_navigation_enabled',
-                'value': 'true',
-                'description': 'Enable/disable Players navigation',
-                'category': 'navigation',
-                'data_type': 'boolean'
-            },
-            {
-                'key': 'messaging_navigation_enabled',
-                'value': 'true',
-                'description': 'Enable/disable Messaging navigation',
-                'category': 'navigation',
-                'data_type': 'boolean'
-            },
-            {
-                'key': 'mobile_features_navigation_enabled',
-                'value': 'true',
-                'description': 'Enable/disable Mobile Features navigation',
                 'category': 'navigation',
                 'data_type': 'boolean'
             },
@@ -463,13 +449,6 @@ class AdminConfig(db.Model):
                 'data_type': 'boolean'
             },
             {
-                'key': 'require_location',
-                'value': 'false',
-                'description': 'Require location/address during registration',
-                'category': 'registration',
-                'data_type': 'boolean'
-            },
-            {
                 'key': 'require_jersey_size',
                 'value': 'true',
                 'description': 'Require jersey size selection during registration',
@@ -498,20 +477,6 @@ class AdminConfig(db.Model):
                 'data_type': 'boolean'
             },
             # System Settings
-            {
-                'key': 'apple_wallet_enabled',
-                'value': 'true',
-                'description': 'Enable/disable Apple Wallet pass functionality',
-                'category': 'features',
-                'data_type': 'boolean'
-            },
-            {
-                'key': 'push_notifications_enabled',
-                'value': 'true',
-                'description': 'Enable/disable push notification functionality',
-                'category': 'features',
-                'data_type': 'boolean'
-            },
             {
                 'key': 'maintenance_mode',
                 'value': 'false',
@@ -561,27 +526,6 @@ class AdminConfig(db.Model):
                 'key': 'mls_live_reporting_minutes_before',
                 'value': '5',
                 'description': 'Minutes before match kickoff to start live reporting (default: 5)',
-                'category': 'mls',
-                'data_type': 'integer'
-            },
-            {
-                'key': 'mls_live_reporting_timeout_hours',
-                'value': '3',
-                'description': 'Maximum hours a live reporting session can run before auto-stop (default: 3)',
-                'category': 'mls',
-                'data_type': 'integer'
-            },
-            {
-                'key': 'mls_max_session_duration_hours',
-                'value': '4',
-                'description': 'Maximum hours before a stale session is deactivated (default: 4)',
-                'category': 'mls',
-                'data_type': 'integer'
-            },
-            {
-                'key': 'mls_no_update_timeout_minutes',
-                'value': '30',
-                'description': 'Minutes without updates before deactivating session (default: 30)',
                 'category': 'mls',
                 'data_type': 'integer'
             },
@@ -653,16 +597,9 @@ class AdminConfig(db.Model):
             {
                 'key': 'mobile_app_enabled',
                 'value': 'true',
-                'description': 'Master switch for mobile app functionality',
+                'description': 'Master kill switch: when off, the mobile API returns 503 maintenance to the app (app config endpoint stays up so the app can show the outage screen)',
                 'category': 'mobile_app',
                 'data_type': 'boolean'
-            },
-            {
-                'key': 'mobile_app_version',
-                'value': 'v1.0.0',
-                'description': 'Current mobile app version',
-                'category': 'mobile_app',
-                'data_type': 'string'
             },
             # Mobile Feature Toggles
             {
@@ -680,23 +617,9 @@ class AdminConfig(db.Model):
                 'data_type': 'boolean'
             },
             {
-                'key': 'mobile_offline_sync',
-                'value': 'false',
-                'description': 'Allow offline data synchronization',
-                'category': 'mobile_features',
-                'data_type': 'boolean'
-            },
-            {
                 'key': 'mobile_biometric_auth',
                 'value': 'true',
                 'description': 'Allow biometric login (Face ID / Fingerprint) as a user option',
-                'category': 'mobile_features',
-                'data_type': 'boolean'
-            },
-            {
-                'key': 'mobile_location_services',
-                'value': 'false',
-                'description': 'Enable location-based features and notifications',
                 'category': 'mobile_features',
                 'data_type': 'boolean'
             },
@@ -708,37 +631,9 @@ class AdminConfig(db.Model):
                 'data_type': 'boolean'
             },
             {
-                'key': 'mobile_contact_sync',
-                'value': 'false',
-                'description': 'Enable contact sync for team invitations',
-                'category': 'mobile_features',
-                'data_type': 'boolean'
-            },
-            {
                 'key': 'mobile_analytics_tracking',
                 'value': 'true',
                 'description': 'Enable usage analytics and crash reporting',
-                'category': 'mobile_features',
-                'data_type': 'boolean'
-            },
-            {
-                'key': 'mobile_ar_match_views',
-                'value': 'false',
-                'description': 'Augmented reality match experience (experimental)',
-                'category': 'mobile_features',
-                'data_type': 'boolean'
-            },
-            {
-                'key': 'mobile_voice_commands',
-                'value': 'false',
-                'description': 'Voice-controlled navigation (experimental)',
-                'category': 'mobile_features',
-                'data_type': 'boolean'
-            },
-            {
-                'key': 'mobile_smart_predictions',
-                'value': 'false',
-                'description': 'AI-powered match predictions (experimental)',
                 'category': 'mobile_features',
                 'data_type': 'boolean'
             },

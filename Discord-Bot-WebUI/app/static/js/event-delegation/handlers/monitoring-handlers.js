@@ -60,7 +60,7 @@ window.EventDelegation.register('refresh-status', (element, event) => {
 window.EventDelegation.register('view-logs', (element, event) => {
     event.preventDefault();
     // Navigate to system logs page
-    const logsUrl = element.dataset.logsUrl || '/admin/monitoring/logs';
+    const logsUrl = element.dataset.logsUrl || '/admin-panel/monitoring/logs';
     window.location.href = logsUrl;
 });
 
@@ -99,7 +99,7 @@ window.EventDelegation.register('emergency-mode', (element, event) => {
         showCancelButton: true
     }).then((result) => {
         if (result.isConfirmed) {
-            window.location.href = '/admin/system_monitoring';
+            window.location.href = '/admin-panel/system-monitoring';
         }
     });
 });
@@ -272,7 +272,7 @@ window.EventDelegation.register('run-health-check', (element, event) => {
     button.innerHTML = '<i class="ti ti-loader me-1"></i>Running...';
     button.disabled = true;
 
-    const healthCheckUrl = button.dataset.healthCheckUrl || '/admin/monitoring/database/health-check';
+    const healthCheckUrl = button.dataset.healthCheckUrl || '/admin-panel/monitoring/database/health-check';
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     fetch(healthCheckUrl, {
@@ -317,7 +317,7 @@ window.EventDelegation.register('run-health-check', (element, event) => {
 window.EventDelegation.register('view-task', (element, event) => {
     event.preventDefault();
     const taskId = element.dataset.taskId;
-    const taskDetailsUrl = element.dataset.taskDetailsUrl || `/admin/monitoring/tasks/${taskId}/details`;
+    const taskDetailsUrl = element.dataset.taskDetailsUrl || '/admin-panel/monitoring/tasks/details';
 
     fetch(`${taskDetailsUrl}?task_id=${taskId}`)
         .then(response => response.json())
@@ -384,7 +384,7 @@ window.EventDelegation.register('view-task-details', (element, event) => {
         window.ModalManager.show('taskDetailsModal');
     }
 
-    const taskDetailsUrl = element.dataset.taskDetailsUrl || '/admin/monitoring/tasks/details';
+    const taskDetailsUrl = element.dataset.taskDetailsUrl || '/admin-panel/monitoring/tasks/details';
 
     fetch(`${taskDetailsUrl}?task_id=${taskId}`)
         .then(response => response.json())
@@ -421,7 +421,7 @@ window.EventDelegation.register('view-task-logs', (element, event) => {
         window.ModalManager.show('taskLogsModal');
     }
 
-    const taskLogsUrl = element.dataset.taskLogsUrl || '/admin/monitoring/tasks/logs';
+    const taskLogsUrl = element.dataset.taskLogsUrl || '/admin-panel/monitoring/tasks/logs';
 
     fetch(`${taskLogsUrl}?task_id=${taskId}`)
         .then(response => response.json())
@@ -456,7 +456,7 @@ window.EventDelegation.register('cancel-task', (element, event) => {
         confirmButtonText: 'Yes, cancel it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            const cancelUrl = element.dataset.cancelUrl || '/admin/monitoring/tasks/cancel';
+            const cancelUrl = element.dataset.cancelUrl || '/admin-panel/monitoring/tasks/cancel';
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
             // Create form and submit

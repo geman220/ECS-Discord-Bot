@@ -8,7 +8,7 @@ viewing container logs, and checking container status.
 """
 
 import logging
-from flask import Blueprint, jsonify, redirect, url_for
+from flask import Blueprint, jsonify, redirect, request, url_for
 from flask_login import login_required
 
 from app.decorators import role_required
@@ -37,6 +37,10 @@ def manage_container(container_id, action):
     Manage Docker container actions (e.g., start, stop, restart).
     """
     success = manage_docker_container(container_id, action)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        if success:
+            return jsonify({'success': True, 'message': f'Container {action} succeeded.'})
+        return jsonify({'success': False, 'message': 'Failed to manage container.'}), 500
     if not success:
         show_error("Failed to manage container.")
     return redirect(url_for('admin.admin_dashboard'))

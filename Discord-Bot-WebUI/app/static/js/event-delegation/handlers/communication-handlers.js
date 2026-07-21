@@ -119,23 +119,9 @@ window.EventDelegation.register('create-campaign', function(element, e) {
     }
 });
 
-/**
- * Edit Communication Campaign
- * Opens campaign for editing
- * Note: Renamed from 'edit-campaign' to avoid conflict with admin/push-campaigns.js
- */
-window.EventDelegation.register('edit-comm-campaign', function(element, e) {
-    e.preventDefault();
-
-    const campaignId = element.dataset.campaignId;
-
-    if (!campaignId) {
-        console.error('[edit-comm-campaign] Missing campaign ID');
-        return;
-    }
-
-    window.location.href = `/admin-panel/communication/campaigns/${campaignId}/edit`;
-});
+// NOTE: 'edit-comm-campaign' handler removed 2026-07-21 — it navigated to
+// /admin-panel/communication/campaigns/<id>/edit, which has no route, and no
+// template renders that data-action.
 
 /**
  * Delete Communication Campaign
@@ -176,8 +162,9 @@ function performDeleteCampaign(campaignId, element) {
 
     const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
 
-    fetch(`/admin-panel/communication/campaigns/${campaignId}/delete`, {
-        method: 'POST',
+    // REST-style route: DELETE /admin-panel/communication/campaigns/<id>
+    fetch(`/admin-panel/communication/campaigns/${campaignId}`, {
+        method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
@@ -205,77 +192,17 @@ function performDeleteCampaign(campaignId, element) {
     });
 }
 
-/**
- * Toggle Campaign Status
- * Activates or pauses a campaign
- */
-window.EventDelegation.register('toggle-campaign', function(element, e) {
-    e.preventDefault();
-
-    const campaignId = element.dataset.campaignId;
-    const currentStatus = element.dataset.status;
-
-    if (!campaignId) {
-        console.error('[toggle-campaign] Missing campaign ID');
-        return;
-    }
-
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader spin"></i>';
-    element.disabled = true;
-
-    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
-
-    fetch(`/admin-panel/communication/campaigns/${campaignId}/toggle`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            throw new Error(data.error || 'Failed to toggle campaign');
-        }
-    })
-    .catch(error => {
-        if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire('Error', error.message, 'error');
-        }
-    })
-    .finally(() => {
-        element.innerHTML = originalText;
-        element.disabled = false;
-    });
-});
+// NOTE: 'toggle-campaign' handler removed 2026-07-21 — no
+// /admin-panel/communication/campaigns/<id>/toggle route exists, and no
+// template renders that data-action.
 
 // ============================================================================
 // MESSAGE MANAGEMENT
 // ============================================================================
 
-/**
- * View Message Details
- * Shows full message details
- */
-window.EventDelegation.register('view-message', function(element, e) {
-    e.preventDefault();
-
-    const messageId = element.dataset.messageId;
-
-    if (!messageId) {
-        console.error('[view-message] Missing message ID');
-        return;
-    }
-
-    if (typeof window.viewMessage === 'function') {
-        window.viewMessage(messageId);
-    } else {
-        window.location.href = `/admin-panel/communication/messages/${messageId}`;
-    }
-});
+// NOTE: 'view-message' handler removed 2026-07-21 — no
+// /admin-panel/communication/messages/<id> route exists, and no template
+// renders that data-action.
 
 /**
  * Delete Message
@@ -314,25 +241,22 @@ function performDeleteMessage(messageId, element) {
 
     const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
 
-    fetch(`/admin-panel/communication/messages/${messageId}/delete`, {
+    // Backend contract (templates.py delete_message_template): POST with
+    // form-encoded `template_id`; responds with a redirect + flash, not JSON.
+    fetch('/admin-panel/communication/messages/template/delete', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
             'X-CSRFToken': csrfToken
-        }
+        },
+        body: new URLSearchParams({ template_id: messageId })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Remove row from table if present
-            const row = element.closest('tr');
-            if (row) {
-                row.remove();
-            } else {
-                location.reload();
-            }
+    .then(response => {
+        if (response.ok) {
+            // Route redirects with a flash message; reload to reflect the delete
+            location.reload();
         } else {
-            throw new Error(data.error || 'Failed to delete message');
+            throw new Error('Failed to delete message template');
         }
     })
     .catch(error => {
@@ -346,78 +270,9 @@ function performDeleteMessage(messageId, element) {
     });
 }
 
-/**
- * Resend Message
- * Resends a previously sent message
- */
-window.EventDelegation.register('resend-message', function(element, e) {
-    e.preventDefault();
-
-    const messageId = element.dataset.messageId;
-
-    if (!messageId) {
-        console.error('[resend-message] Missing message ID');
-        return;
-    }
-
-    if (typeof window.Swal === 'undefined') {
-        performResendMessage(messageId, element);
-        return;
-    }
-
-    window.Swal.fire({
-        title: 'Resend Message',
-        text: 'Are you sure you want to resend this message?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Resend',
-        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performResendMessage(messageId, element);
-        }
-    });
-});
-
-function performResendMessage(messageId, element) {
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader spin"></i>';
-    element.disabled = true;
-
-    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
-
-    fetch(`/admin-panel/communication/messages/${messageId}/resend`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            if (typeof window.Swal !== 'undefined') {
-                window.Swal.fire({
-                    icon: 'success',
-                    title: 'Message Resent',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            }
-        } else {
-            throw new Error(data.error || 'Failed to resend message');
-        }
-    })
-    .catch(error => {
-        if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire('Error', error.message, 'error');
-        }
-    })
-    .finally(() => {
-        element.innerHTML = originalText;
-        element.disabled = false;
-    });
-}
+// NOTE: 'resend-message' handler removed 2026-07-21 — no
+// /admin-panel/communication/messages/<id>/resend route exists, and no
+// template renders that data-action.
 
 // ============================================================================
 // CATEGORY MANAGEMENT
@@ -510,19 +365,22 @@ function performDeleteCategory(categoryId, element) {
 
     const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
 
-    fetch(`/admin-panel/communication/categories/${categoryId}/delete`, {
+    // Backend contract (categories.py delete_message_category): POST with
+    // form-encoded `category_id`; responds with a redirect + flash, not JSON.
+    fetch('/admin-panel/communication/messages/category/delete', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
             'X-CSRFToken': csrfToken
-        }
+        },
+        body: new URLSearchParams({ category_id: categoryId })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
+    .then(response => {
+        if (response.ok) {
+            // Route redirects with a flash message; reload to reflect the delete
             location.reload();
         } else {
-            throw new Error(data.error || 'Failed to delete category');
+            throw new Error('Failed to delete category');
         }
     })
     .catch(error => {
@@ -539,54 +397,8 @@ function performDeleteCategory(categoryId, element) {
 // ============================================================================
 // MESSAGING SETTINGS
 // ============================================================================
-
-/**
- * Save Messaging Settings
- * Saves messaging configuration
- */
-window.EventDelegation.register('save-messaging-settings', function(element, e) {
-    e.preventDefault();
-
-    const form = document.getElementById('messaging-settings-form');
-    if (!form) {
-        console.error('[save-messaging-settings] Form not found');
-        return;
-    }
-
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader spin me-1"></i>Saving...';
-    element.disabled = true;
-
-    const formData = new FormData(form);
-    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
-
-    fetch('/admin-panel/communication/settings/save', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': csrfToken
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            if (typeof window.toastr !== 'undefined') {
-                window.toastr.success('Settings saved successfully');
-            }
-        } else {
-            throw new Error(data.error || 'Failed to save settings');
-        }
-    })
-    .catch(error => {
-        if (typeof window.toastr !== 'undefined') {
-            window.toastr.error(error.message);
-        }
-    })
-    .finally(() => {
-        element.innerHTML = originalText;
-        element.disabled = false;
-    });
-});
+// (save-messaging-settings handler removed 2026-07: no template rendered its
+// form, and the endpoint it posted to dumped communication_* rows nothing read.)
 
 /**
  * Test Webhook

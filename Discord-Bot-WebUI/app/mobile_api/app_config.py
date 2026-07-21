@@ -51,19 +51,16 @@ def get_app_config():
     # Feature toggles — read by the app to gate features.
     # Defaults must match MOBILE_FEATURE_TOGGLES in mobile_features.py so the
     # API and the admin panel agree when a key has never been explicitly saved.
+    # (The old offline_sync/location_services/contact_sync/ar_match_views/
+    # voice_commands/smart_predictions placeholders were removed — they
+    # described features that were never built.)
     feature_toggle_defaults = {
         'mobile_push_notifications': 'true',
         'mobile_wallet_passes': 'true',
-        'mobile_offline_sync': 'false',
         'mobile_biometric_auth': 'true',
-        'mobile_location_services': 'false',
         'mobile_camera_upload': 'true',
-        'mobile_contact_sync': 'false',
         'mobile_analytics_tracking': 'true',
         'mobile_crash_reporting': 'true',
-        'mobile_ar_match_views': 'false',
-        'mobile_voice_commands': 'false',
-        'mobile_smart_predictions': 'false',
         'admin_points_events_enabled': 'false',
         'admin_feedback_inbox_enabled': 'true',
     }
@@ -79,6 +76,10 @@ def get_app_config():
         'force_update': bool(force_update),
         'ios_update_url': ios_url or '',
         'android_update_url': android_url or '',
+        # Master kill switch — when false the rest of the mobile API returns
+        # 503 (see the before_request gate in app/mobile_api/__init__.py);
+        # this endpoint stays reachable so the app can render an outage screen.
+        'app_enabled': bool(AdminConfig.get_setting('mobile_app_enabled', True)),
         'feature_toggles': feature_toggles,
     }), 200
 

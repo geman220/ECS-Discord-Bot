@@ -212,25 +212,27 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
 
-            fetch(`/admin/waitlist/api/player/${userId}`)
+            fetch(`/admin/user-waitlist/user/${userId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        const p = data.player;
+                        const u = data.user;
+                        const p = u.player || {};
+                        const name = p.name || u.username;
                         content.innerHTML = `
                             <div class="space-y-4">
                                 <div class="flex items-center gap-4">
                                     <div class="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                                        <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">${p.name ? p.name[0].toUpperCase() : '?'}</span>
+                                        <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">${name ? name[0].toUpperCase() : '?'}</span>
                                     </div>
                                     <div>
-                                        <h4 class="text-xl font-bold text-gray-900 dark:text-white">${p.name || 'N/A'}</h4>
-                                        <p class="text-gray-500 dark:text-gray-400">${p.email || 'No email'}</p>
+                                        <h4 class="text-xl font-bold text-gray-900 dark:text-white">${name || 'N/A'}</h4>
+                                        <p class="text-gray-500 dark:text-gray-400">${u.email || 'No email'}</p>
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4 text-sm">
                                     <div><span class="text-gray-500 dark:text-gray-400">Phone:</span> <span class="text-gray-900 dark:text-white">${p.phone || 'N/A'}</span></div>
-                                    <div><span class="text-gray-500 dark:text-gray-400">Preferred League:</span> <span class="text-gray-900 dark:text-white">${p.preferred_league || 'N/A'}</span></div>
+                                    <div><span class="text-gray-500 dark:text-gray-400">Preferred League:</span> <span class="text-gray-900 dark:text-white">${u.preferred_league || 'N/A'}</span></div>
                                 </div>
                             </div>
                         `;
@@ -270,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            fetch(`/admin/waitlist/api/remove/${selectedUserId}`, {
+            fetch(`/admin/user-waitlist/remove/${selectedUserId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify({ reason: reason })
@@ -284,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     Swal.fire({ icon: 'success', title: 'Removed', text: 'User removed from waitlist.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
                 } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.message || data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
                 }
             });
         });

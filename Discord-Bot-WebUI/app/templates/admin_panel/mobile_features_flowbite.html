@@ -78,7 +78,7 @@
       </div>
       <div class="p-4 sm:p-5">
         <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">App Version</dt>
-        <dd class="mt-2 font-mono text-2xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ stats.mobile_app_version or 'v1.0.0' }}</dd>
+        <dd class="mt-2 font-mono text-2xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ stats.mobile_app_version or 'unknown' }}</dd>
         <p class="mt-1 text-[11px] text-gray-400 dark:text-gray-500">configured build</p>
       </div>
       <div class="p-4 sm:p-5">
@@ -799,7 +799,7 @@
                     <div class="text-sm text-gray-500 dark:text-gray-400">Push Service</div>
                 </div>
                 <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
-                    <div class="text-lg font-bold text-cyan-600 dark:text-cyan-400">{{ stats.mobile_app_version or 'v1.0.0' }}</div>
+                    <div class="text-lg font-bold text-cyan-600 dark:text-cyan-400">{{ stats.mobile_app_version or 'unknown' }}</div>
                     <div class="text-sm text-gray-500 dark:text-gray-400">App Version</div>
                 </div>
                 <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700">

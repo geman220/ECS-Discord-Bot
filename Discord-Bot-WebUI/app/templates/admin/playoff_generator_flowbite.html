@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
         previewBtn.disabled = true;
         previewBtn.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-2"></i>Generating...';
 
-        fetch(`/admin/playoffs/generate-preview/${leagueId}`, {
+        fetch(`/admin/playoffs/league/${leagueId}/preview-schedule`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
         })
@@ -239,8 +239,13 @@ document.addEventListener('DOMContentLoaded', function() {
             previewBtn.innerHTML = '<i class="ti ti-wand mr-2"></i>Generate Preview';
 
             if (data.success) {
-                currentScheduleData = data;
-                renderPreview(data);
+                // Backend returns {preview: {group_a: [{id,name}], group_b, matches}}
+                currentScheduleData = {
+                    groupA: data.preview.group_a.map(t => t.name),
+                    groupB: data.preview.group_b.map(t => t.name),
+                    matches: data.preview.matches
+                };
+                renderPreview(currentScheduleData);
                 previewSection.classList.remove('hidden');
             } else {
                 Swal.fire({
@@ -298,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         Swal.fire({
             title: 'Confirm Schedule?',
-            text: 'This will save the playoff schedule. RSVPs will use these team assignments.',
+            text: 'This will generate and save a fresh playoff schedule. Groups and matchups are re-randomized on save, so the result may differ from the preview shown.',
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Yes, save it',
@@ -307,10 +312,9 @@ document.addEventListener('DOMContentLoaded', function() {
             color: isDark ? '#f3f4f6' : '#111827'
         }).then((result) => {
             if (result.isConfirmed) {
-                fetch(`/admin/playoffs/confirm/${leagueId}`, {
+                fetch(`/admin/playoffs/league/${leagueId}/generate-schedule`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                    body: JSON.stringify(currentScheduleData)
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
                 })
                 .then(res => res.json())
                 .then(data => {
@@ -318,10 +322,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         Swal.fire({
                             icon: 'success',
                             title: 'Schedule Saved',
-                            text: 'Playoff schedule has been confirmed.',
+                            text: data.message || 'Playoff schedule has been confirmed.',
                             background: isDark ? '#1f2937' : '#ffffff',
                             color: isDark ? '#f3f4f6' : '#111827'
-                        }).then(() => window.location.href = '/admin/schedule-manager');
+                        }).then(() => window.location.href = '{{ url_for('auto_schedule.schedule_manager') }}');
                     } else {
                         Swal.fire({
                             icon: 'error',

@@ -294,7 +294,7 @@ export function setCurrentSeason(seasonId) {
 export function submitSetCurrentSeason(seasonId) {
     // Get the set current URL from Flask
     const setCurrentUrl = document.querySelector('[data-set-current-season-url]')?.dataset.setCurrentSeasonUrl ||
-        window.location.origin + '/admin-panel/match-operations/seasons/set-current';
+        window.location.origin + '/admin-panel/match-operations/season/set-current';
 
     fetch(setCurrentUrl, {
         method: 'POST',

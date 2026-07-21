@@ -213,15 +213,6 @@
                       aria-label="View template details">
                 <i class="ti ti-eye" aria-hidden="true"></i>
               </button>
-              <button type="button"
-                      class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg
-                             text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400
-                             border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700
-                             focus:outline-none focus:ring-2 focus:ring-red-500"
-                      data-action="delete-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}"
-                      aria-label="Delete template">
-                <i class="ti ti-trash" aria-hidden="true"></i>
-              </button>
             </div>
 
             <!-- Apply-to-active row -->
@@ -357,10 +348,6 @@
                     <button type="button" class="inline-flex items-center justify-center p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                             data-action="view-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-template-desc="{{ template.description }}" data-template-data="{{ template.template_data }}">
                         <i class="ti ti-eye"></i>
-                    </button>
-                    <button type="button" class="inline-flex items-center justify-center p-2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-                            data-action="delete-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}">
-                        <i class="ti ti-trash"></i>
                     </button>
                 </div>
                 <!-- Apply to Prompt Type -->
@@ -648,42 +635,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
             }
 
-            case 'delete-template':
-                Swal.fire({
-                    title: 'Delete Template?',
-                    text: `Are you sure you want to delete "${target.dataset.templateName}"?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc2626',
-                    cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Yes, delete it!',
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Submit delete request
-                        fetch(`/ai-prompts/templates/${templateId}/delete`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content
-                            }
-                        }).then(response => {
-                            if (response.ok) {
-                                location.reload();
-                            } else {
-                                Swal.fire({
-                                    title: 'Error',
-                                    text: 'Failed to delete template',
-                                    icon: 'error',
-                                    background: isDark ? '#1f2937' : '#ffffff',
-                                    color: isDark ? '#f3f4f6' : '#111827'
-                                });
-                            }
-                        });
-                    }
-                });
-                break;
         }
     });
 

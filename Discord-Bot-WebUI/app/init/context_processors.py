@@ -474,33 +474,27 @@ def _register_utility_processor(app):
         if (has_request_context() and
             hasattr(g, '_session_creation_failed') and g._session_creation_failed):
             # Return defaults when database is unavailable
+            # Only settings something downstream actually consumes: the four
+            # nav toggles feed build_nav_sections, waitlist drives the
+            # returning-member banner, maintenance_mode drives display copy.
+            # (The old matches/players/messaging/mobile_features nav keys,
+            # apple_wallet_enabled and push_notifications_enabled were ghost
+            # flags nothing read — removed 2026-07.)
             admin_settings = {
                 'teams_navigation_enabled': True,
                 'store_navigation_enabled': True,
-                'matches_navigation_enabled': True,
                 'leagues_navigation_enabled': True,
                 'drafts_navigation_enabled': True,
-                'players_navigation_enabled': True,
-                'messaging_navigation_enabled': True,
-                'mobile_features_navigation_enabled': True,
                 'waitlist_registration_enabled': True,
-                'apple_wallet_enabled': True,
-                'push_notifications_enabled': True,
                 'maintenance_mode': False
             }
         else:
             admin_settings = {
                 'teams_navigation_enabled': AdminConfig.get_setting('teams_navigation_enabled', True),
                 'store_navigation_enabled': AdminConfig.get_setting('store_navigation_enabled', True),
-                'matches_navigation_enabled': AdminConfig.get_setting('matches_navigation_enabled', True),
                 'leagues_navigation_enabled': AdminConfig.get_setting('leagues_navigation_enabled', True),
                 'drafts_navigation_enabled': AdminConfig.get_setting('drafts_navigation_enabled', True),
-                'players_navigation_enabled': AdminConfig.get_setting('players_navigation_enabled', True),
-                'messaging_navigation_enabled': AdminConfig.get_setting('messaging_navigation_enabled', True),
-                'mobile_features_navigation_enabled': AdminConfig.get_setting('mobile_features_navigation_enabled', True),
                 'waitlist_registration_enabled': AdminConfig.get_setting('waitlist_registration_enabled', True),
-                'apple_wallet_enabled': AdminConfig.get_setting('apple_wallet_enabled', True),
-                'push_notifications_enabled': AdminConfig.get_setting('push_notifications_enabled', True),
                 'maintenance_mode': AdminConfig.get_setting('maintenance_mode', False)
             }
 

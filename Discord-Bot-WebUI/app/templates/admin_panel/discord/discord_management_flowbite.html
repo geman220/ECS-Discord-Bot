@@ -112,7 +112,7 @@
       </h2>
       <div class="flex items-center gap-2">
         <label for="perPageSelect" class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Per page</label>
-        <select id="perPageSelect" data-action="change-per-page" class="input-ecs h-9 text-sm w-auto pr-8">
+        <select id="perPageSelect" data-on-change="change-per-page" class="input-ecs h-9 text-sm w-auto pr-8">
           <option value="10" {{ 'selected' if per_page == 10 }}>10</option>
           <option value="20" {{ 'selected' if per_page == 20 }}>20</option>
           <option value="50" {{ 'selected' if per_page == 50 }}>50</option>
@@ -202,7 +202,7 @@
                 </a>
                 {% endif %}
                 {% if player.discord_id %}
-                <button type="button" data-action="send-discord-dm" data-discord-id="{{ player.discord_id }}" data-player-name="{{ player.name }}" title="Send Discord DM" aria-label="Send Discord DM to {{ player.name }}"
+                <button type="button" data-action="send-discord-dm" data-player-id="{{ player.id }}" data-discord-id="{{ player.discord_id }}" data-player-name="{{ player.name }}" title="Send Discord DM" aria-label="Send Discord DM to {{ player.name }}"
                         class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500">
                   <i class="ti ti-brand-discord" aria-hidden="true"></i>
                 </button>
@@ -266,7 +266,7 @@
                 </a>
                 {% endif %}
                 {% if player.discord_id %}
-                <button type="button" data-action="send-discord-dm" data-discord-id="{{ player.discord_id }}" data-player-name="{{ player.name }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button type="button" data-action="send-discord-dm" data-player-id="{{ player.id }}" data-discord-id="{{ player.discord_id }}" data-player-name="{{ player.name }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500">
                   <i class="ti ti-brand-discord" aria-hidden="true"></i>DM
                 </button>
                 {% endif %}
@@ -320,6 +320,7 @@
   {% call modal('discordDMModal', 'Send Discord DM', icon='ti-brand-discord') %}
     <form id="dmForm" class="p-5 space-y-4">
       <input type="hidden" id="dmDiscordId" name="discord_id">
+      <input type="hidden" id="dmPlayerId" name="player_id">
       <div>
         <label for="dmMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
         <textarea id="dmMessage" name="message" rows="5"
@@ -407,7 +408,7 @@
         </div>
         <div class="flex items-center gap-2">
             <label class="text-sm text-gray-600 dark:text-gray-400">Show:</label>
-            <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" data-action="change-per-page">
+            <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" data-on-change="change-per-page">
                 <option value="10" {{ 'selected' if per_page == 10 }}>10</option>
                 <option value="20" {{ 'selected' if per_page == 20 }}>20</option>
                 <option value="50" {{ 'selected' if per_page == 50 }}>50</option>
@@ -481,7 +482,7 @@
                 </a>
                 {% endif %}
                 {% if player.discord_id %}
-                <button type="button" class="px-3 py-1.5 text-sm font-medium text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400" data-action="send-discord-dm" data-discord-id="{{ player.discord_id }}" data-player-name="{{ player.name }}">
+                <button type="button" class="px-3 py-1.5 text-sm font-medium text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400" data-action="send-discord-dm" data-player-id="{{ player.id }}" data-discord-id="{{ player.discord_id }}" data-player-name="{{ player.name }}">
                     <i class="ti ti-brand-discord mr-1"></i>DM
                 </button>
                 {% endif %}
@@ -543,6 +544,7 @@
 <!-- Discord DM Modal -->
 {% call modal_form('discordDMModal', 'Send Discord DM', form_id='dmForm', submit_text='Send Message', submit_color='primary', loading_text='Sending...') %}
     <input type="hidden" id="dmDiscordId" name="discord_id">
+    <input type="hidden" id="dmPlayerId" name="player_id">
     <div class="mb-4">
         <label for="dmMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
         <textarea id="dmMessage" name="message" rows="5" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Hi! We noticed you haven't joined our Discord server yet..."></textarea>
@@ -552,57 +554,9 @@
 {% endif %}
 {% endblock %}
 
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const isDark = document.documentElement.classList.contains('dark');
-    const dmModal = document.getElementById('discordDMModal');
-
-    // Modal setup
-    if (dmModal) {
-        document.querySelectorAll('[data-modal-hide="discordDMModal"]').forEach(btn => {
-            btn.addEventListener('click', () => dmModal.classList.add('hidden'));
-        });
-        const backdrop = dmModal.querySelector('[data-modal-backdrop]');
-        if (backdrop) backdrop.addEventListener('click', () => dmModal.classList.add('hidden'));
-    }
-
-    // Per page change
-    document.querySelector('[data-action="change-per-page"]')?.addEventListener('change', function() {
-        const url = new URL(window.location);
-        url.searchParams.set('per_page', this.value);
-        url.searchParams.set('page', '1');
-        window.location = url;
-    });
-
-    // Action handlers
-    document.addEventListener('click', function(e) {
-        const target = e.target.closest('[data-action]');
-        if (!target) return;
-
-        const action = target.dataset.action;
-
-        switch(action) {
-            case 'refresh-all-discord-status':
-            case 'refresh-unknown-discord-status':
-                Swal.fire({title: 'Refreshing...', text: 'Checking Discord status for players.', icon: 'info', timer: 2000, showConfirmButton: false, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
-                break;
-            case 'send-discord-dm':
-                document.getElementById('dmDiscordId').value = target.dataset.discordId;
-                dmModal.classList.remove('hidden');
-                break;
-            case 'refresh-player-status':
-                Swal.fire({title: 'Refreshing...', text: 'Checking player Discord status.', icon: 'info', timer: 1500, showConfirmButton: false, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
-                break;
-        }
-    });
-
-    // DM Form submit
-    document.getElementById('dmForm')?.addEventListener('submit', function(e) {
-        e.preventDefault();
-        Swal.fire({title: 'Message Sent', text: 'Discord DM has been sent.', icon: 'success', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
-        dmModal.classList.add('hidden');
-    });
-});
-</script>
-{% endblock %}
+{# NOTE (2026-07-21): the previous inline script here duplicated the global
+   EventDelegation handlers (discord-management.js) with mock implementations —
+   including a fake "Message Sent" dialog that made no network request and
+   info-toasts that clobbered the real refresh confirmation dialogs. This page
+   is now driven entirely by the global send-discord-dm / submit-discord-dm /
+   refresh-* / change-per-page handlers, like players_flowbite.html. #}

@@ -346,13 +346,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch('/admin/substitute-pools/approve', {
+                    // add-player creates/reactivates the pool entry and assigns the
+                    // sub role; approve-player only stamps approved_at on an
+                    // EXISTING row, which these pending players don't have yet.
+                    fetch(`/admin-panel/substitute-pools/${encodeURIComponent(league)}/add-player`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRFToken': csrfToken
                         },
-                        body: JSON.stringify({ player_id: playerId, league_type: league })
+                        body: JSON.stringify({ player_id: playerId })
                     })
                     .then(res => res.json())
                     .then(data => {
@@ -364,7 +367,18 @@ document.addEventListener('DOMContentLoaded', function() {
                                 background: isDark ? '#1f2937' : '#ffffff',
                                 color: isDark ? '#f3f4f6' : '#111827'
                             }).then(() => location.reload());
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message || 'Failed to approve player.',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
                         }
+                    })
+                    .catch(() => {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to approve player.' });
                     });
                 }
             });
@@ -388,7 +402,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch('/admin/substitute-pools/remove', {
+                    fetch(`/admin-panel/substitute-pools/${encodeURIComponent(league)}/remove-player`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

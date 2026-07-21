@@ -30,12 +30,6 @@
 <div class="space-y-6">
 
   {% call page_header('Service Health', subtitle='API integrations · security · configuration') %}
-    <button type="button" data-action="manage-api-keys"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg
-                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-      <i class="ti ti-key" aria-hidden="true"></i>Manage API Keys
-    </button>
     {# Drill-downs (these used to be separate top-nav links; reachable here now) #}
     <a href="{{ url_for('admin_panel.api_analytics') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
@@ -198,17 +192,10 @@
   <div>
     {% call section_card('API Keys & Security', icon='ti-key') %}
       <div class="p-4 sm:p-5">
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Manage API keys, tokens, and security settings</p>
+        {# The old "API Keys" manager was removed 2026-07: it generated keys
+           nothing validated (real API auth is the env-configured MOBILE_API_KEY). #}
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Security and access auditing</p>
         <div class="space-y-2">
-          <button type="button" data-action="manage-api-keys"
-                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
-                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-key text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-gray-900 dark:text-white font-medium">API Keys</span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-          </button>
           <button type="button" data-action="access-logs"
                   class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
                          hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
@@ -223,54 +210,10 @@
     {% endcall %}
   </div>
 
-  <!-- Global API Configuration -->
-  {% call section_card('Global API Configuration', icon='ti-settings') %}
-    <div class="p-4 sm:p-5">
-      <form id="api-config-form">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
-          {{ select('apiVersion', label='API Version',
-              options=[('v1', 'Version 1.0'), ('v1.1', 'Version 1.1'), ('v2', 'Version 2.0 (Beta)')],
-              selected='v1.1') }}
-          {{ input('rateLimit', label='Default Rate Limit (per minute)', type='number', value='1000') }}
-          {{ input('apiTimeout', label='Timeout (seconds)', type='number', value='30') }}
-          {{ input('maxPayload', label='Max Payload Size (MB)', type='number', value='10') }}
-        </div>
-
-        <div class="space-y-3 mb-6">
-          <label class="flex items-center gap-2 min-h-[44px] sm:min-h-0 cursor-pointer">
-            <input type="checkbox" id="enableCors" checked
-                   class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-            <span class="text-sm text-gray-900 dark:text-gray-300">Enable CORS</span>
-          </label>
-          <label class="flex items-center gap-2 min-h-[44px] sm:min-h-0 cursor-pointer">
-            <input type="checkbox" id="enableLogging" checked
-                   class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-            <span class="text-sm text-gray-900 dark:text-gray-300">Enable Request Logging</span>
-          </label>
-          <label class="flex items-center gap-2 min-h-[44px] sm:min-h-0 cursor-pointer">
-            <input type="checkbox" id="enableCompression" checked
-                   class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-            <span class="text-sm text-gray-900 dark:text-gray-300">Enable Response Compression</span>
-          </label>
-        </div>
-
-        <div class="flex flex-wrap gap-3">
-          <button type="button" data-action="save-api-config"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
-                         bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Configuration
-          </button>
-          <button type="button" data-action="reset-api-config"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600
-                         bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-semibold transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <i class="ti ti-refresh" aria-hidden="true"></i>Reset Defaults
-          </button>
-        </div>
-      </form>
-    </div>
-  {% endcall %}
+  {# The old "Global API Configuration" form was removed 2026-07: its fields
+     (API version, CORS, compression…) were theater — the save endpoint dumped
+     api_config_* rows no code ever read. Real rate limits live under the
+     Rate Limiting panel (api_rate_limit_* → Flask-Limiter). #}
 
   <!-- Status Alert -->
   {% if stats.rate_limit_status == 'healthy' %}
@@ -385,13 +328,6 @@
         <div class="p-5">
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Manage API keys, tokens, and security settings</p>
             <div class="space-y-2">
-                <button class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700" data-action="manage-api-keys">
-                    <div class="flex items-center">
-                        <i class="ti ti-key text-xl text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-gray-900 dark:text-white">API Keys</span>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </button>
                 <button class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700" data-action="rate-limiting">
                     <div class="flex items-center">
                         <i class="ti ti-shield text-xl text-gray-500 dark:text-gray-400 mr-3"></i>
@@ -457,68 +393,6 @@
                 </button>
             </div>
         </div>
-    </div>
-</div>
-
-<!-- Global API Configuration -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
-    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
-        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-            <i class="ti ti-settings mr-2"></i>Global API Configuration
-        </h5>
-    </div>
-    <div class="p-5">
-        <form id="apiConfigForm">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                    <label for="apiVersion" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">API Version</label>
-                    <select id="apiVersion" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        <option value="v1">Version 1.0</option>
-                        <option value="v1.1" selected>Version 1.1</option>
-                        <option value="v2">Version 2.0 (Beta)</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="rateLimit" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Default Rate Limit (per minute)</label>
-                    <input type="number" id="rateLimit" value="1000" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                </div>
-                <div>
-                    <label for="apiTimeout" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Timeout (seconds)</label>
-                    <input type="number" id="apiTimeout" value="30" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                </div>
-                <div>
-                    <label for="maxPayload" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Payload Size (MB)</label>
-                    <input type="number" id="maxPayload" value="10" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                </div>
-            </div>
-
-            <div class="space-y-3 mb-6">
-                <label class="flex items-center">
-                    <input type="checkbox" id="enableCors" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                    <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Enable CORS</span>
-                </label>
-                <label class="flex items-center">
-                    <input type="checkbox" id="enableLogging" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                    <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Enable Request Logging</span>
-                </label>
-                <label class="flex items-center">
-                    <input type="checkbox" id="enableCompression" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                    <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Enable Response Compression</span>
-                </label>
-            </div>
-
-            <div class="flex flex-wrap gap-3">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" data-action="save-api-config">
-                    <i class="ti ti-device-floppy mr-1"></i>Save Configuration
-                </button>
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600" data-action="reset-api-config">
-                    <i class="ti ti-refresh mr-1"></i>Reset Defaults
-                </button>
-                <button type="button" class="px-4 py-2 text-sm font-medium text-cyan-600 bg-cyan-50 rounded-lg hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400" data-action="test-api-config">
-                    <i class="ti ti-test-pipe mr-1"></i>Test Configuration
-                </button>
-            </div>
-        </form>
     </div>
 </div>
 
@@ -594,108 +468,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchInput) searchInput.addEventListener('input', applyIntegrationFilters);
     if (statusFilter) statusFilter.addEventListener('change', applyIntegrationFilters);
 
-    // --- API key manager: real data from /admin-panel/api-management/api-keys ---
-    const apiKeysUrl = '{{ url_for("admin_panel.manage_api_keys") }}';
-    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
-    function escHtml(v) {
-        if (v === null || v === undefined) return '';
-        return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-    function renderKeysTable(keys) {
-        if (!keys || !keys.length) {
-            return '<p class="text-sm text-gray-500 dark:text-gray-400 py-4">No API keys have been generated yet.</p>';
-        }
-        let rows = keys.map(function (k) {
-            const created = k.created_at ? escHtml(k.created_at.slice(0, 10)) : '';
-            return '<tr class="border-b border-gray-100 dark:border-gray-700">'
-                + '<td class="px-2 py-2 text-left font-medium text-gray-900 dark:text-white">' + escHtml(k.name) + '</td>'
-                + '<td class="px-2 py-2 text-left font-mono text-xs text-gray-500 dark:text-gray-400">' + escHtml(k.key) + '</td>'
-                + '<td class="px-2 py-2 text-left text-xs text-gray-500 dark:text-gray-400">' + created + '</td>'
-                + '<td class="px-2 py-2 text-right"><button type="button" class="text-xs font-semibold text-red-600 hover:underline" data-revoke-key="' + escHtml(k.name) + '">Revoke</button></td>'
-                + '</tr>';
-        }).join('');
-        return '<table class="w-full text-sm"><thead><tr class="text-left text-xs uppercase text-gray-400">'
-            + '<th class="px-2 py-1">Name</th><th class="px-2 py-1">Key</th><th class="px-2 py-1">Created</th><th class="px-2 py-1"></th>'
-            + '</tr></thead><tbody>' + rows + '</tbody></table>';
-    }
-    function apiKeysRequest(payload) {
-        return fetch(apiKeysUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-            body: JSON.stringify(payload)
-        }).then(r => r.json());
-    }
-    function openApiKeyManager() {
-        if (typeof Swal === 'undefined') return;
-        fetch(apiKeysUrl, { headers: { 'Accept': 'application/json' } })
-            .then(r => r.json())
-            .then(data => {
-                const keys = (data && data.api_keys) || [];
-                Swal.fire({
-                    title: 'API Keys',
-                    width: 640,
-                    html: '<div class="text-left">'
-                        + '<div id="apiKeysTableWrap">' + renderKeysTable(keys) + '</div>'
-                        + '<div class="mt-4 flex gap-2">'
-                        + '<input id="newApiKeyName" type="text" placeholder="New key name" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">'
-                        + '<button type="button" id="genApiKeyBtn" class="px-3 py-2 rounded-lg bg-ecs-green text-white text-sm font-semibold">Generate</button>'
-                        + '</div></div>',
-                    showConfirmButton: false,
-                    showCloseButton: true,
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827',
-                    didOpen: function (popup) {
-                        const wrap = popup.querySelector('#apiKeysTableWrap');
-                        const refresh = function () {
-                            fetch(apiKeysUrl, { headers: { 'Accept': 'application/json' } })
-                                .then(r => r.json())
-                                .then(d => { wrap.innerHTML = renderKeysTable((d && d.api_keys) || []); });
-                        };
-                        popup.querySelector('#genApiKeyBtn').addEventListener('click', function () {
-                            const nameInput = popup.querySelector('#newApiKeyName');
-                            const name = (nameInput.value || '').trim();
-                            if (!name) { nameInput.focus(); return; }
-                            apiKeysRequest({ action: 'generate', key_name: name }).then(res => {
-                                if (res.success) {
-                                    nameInput.value = '';
-                                    refresh();
-                                    Swal.fire({ icon: 'success', title: 'Key generated', text: res.api_key || res.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(refresh);
-                                } else {
-                                    Swal.showValidationMessage(res.message || 'Failed to generate key');
-                                }
-                            });
-                        });
-                        wrap.addEventListener('click', function (ev) {
-                            const btn = ev.target.closest('[data-revoke-key]');
-                            if (!btn) return;
-                            const name = btn.dataset.revokeKey;
-                            apiKeysRequest({ action: 'revoke', key_name: name }).then(res => {
-                                if (res.success) { refresh(); }
-                            });
-                        });
-                    }
-                });
-            })
-            .catch(() => {
-                Swal.fire({ icon: 'error', title: 'Unable to load API keys', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
-            });
-    }
-
+    // (The API-key manager modal was removed 2026-07 — generated keys were
+    // never validated by anything; real API auth is the env MOBILE_API_KEY.)
     document.addEventListener('click', function(e) {
         const btn = e.target.closest('[data-action]');
         if (!btn) return;
 
-        const action = btn.dataset.action;
-
-        // NOTE: save-api-config is intentionally NOT handled here. The real fetch
-        // (POST /admin-panel/api/config/save) lives in api-handlers.js, which reports
-        // genuine success/failure. A duplicate inline handler here previously showed an
-        // unconditional fake success toast and has been removed.
-        if (action === 'manage-api-keys') {
-            e.preventDefault();
-            openApiKeyManager();
-        } else if (action === 'access-logs') {
+        if (btn.dataset.action === 'access-logs') {
             e.preventDefault();
             // Real audit-log viewer, filtered to API-related actions.
             window.location.href = '{{ url_for("admin_panel.audit_logs", resource_type="api_management") }}';

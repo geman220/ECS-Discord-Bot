@@ -130,7 +130,7 @@ window.EventDelegation.register('initialize-settings', function(element, e) {
 
     window.Swal.fire({
         title: 'Initialize Admin Settings?',
-        text: 'This will reset all admin settings to their default values. This action cannot be undone.',
+        text: 'This resets the core admin settings — maintenance mode (off) and registration (on). Other settings are not touched.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#f39c12',
@@ -155,7 +155,7 @@ window.EventDelegation.register('initialize-settings', function(element, e) {
                         if (data.success) {
                             window.Swal.fire({
                                 title: 'Settings Initialized!',
-                                html: `<p>${data.message}</p><p class="text-muted small mt-2">${data.settings_count} settings reset to defaults</p>`,
+                                html: `<p>${data.message}</p><p class="text-muted small mt-2">${data.settings_reset} settings reset to defaults</p>`,
                                 icon: 'success'
                             });
                         } else {

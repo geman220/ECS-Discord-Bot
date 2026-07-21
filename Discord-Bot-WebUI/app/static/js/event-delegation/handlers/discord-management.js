@@ -235,6 +235,7 @@ window.EventDelegation.register('send-discord-dm', function(element, e) {
     e.preventDefault();
 
     const discordId = element.dataset.discordId;
+    const playerId = element.dataset.playerId;
     const playerName = element.dataset.playerName;
 
     if (!discordId) {
@@ -243,11 +244,16 @@ window.EventDelegation.register('send-discord-dm', function(element, e) {
     }
 
     const dmDiscordIdInput = document.getElementById('dmDiscordId');
+    const dmPlayerIdInput = document.getElementById('dmPlayerId');
     // Update modal title (new pattern: {modalId}-title, fallback: old .modal-title selector)
     const modalTitle = document.getElementById('discordDMModal-title') || document.querySelector('#discordDMModal .modal-title');
     const dmMessageTextarea = document.getElementById('dmMessage');
 
     if (dmDiscordIdInput) dmDiscordIdInput.value = discordId;
+    if (dmPlayerIdInput) dmPlayerIdInput.value = playerId || '';
+    // Stash the player id on the modal so submit works even without a hidden input
+    const dmModal = document.getElementById('discordDMModal');
+    if (dmModal) dmModal.dataset.playerId = playerId || '';
     if (modalTitle) modalTitle.textContent = `Send Discord DM to ${playerName}`;
 
     // Set default message
@@ -275,13 +281,16 @@ See you there!
 });
 
 /**
- * Submit Discord DM Action
- * Sends the Discord direct message
+ * Submit the Discord DM to the backend.
+ * Backend contract (app/admin/communication_routes.py send_discord_dm):
+ * POST form-encoded `player_id` + `message`; the X-Requested-With header
+ * selects the JSON response branch instead of an HTML redirect.
+ *
+ * @param {Element|null} triggerEl - Button to show a loading state on (optional)
  */
-window.EventDelegation.register('submit-discord-dm', function(element, e) {
-    e.preventDefault();
-
-    const discordId = document.getElementById('dmDiscordId')?.value;
+function submitDiscordDmMessage(triggerEl) {
+    const modalElement = document.getElementById('discordDMModal');
+    const playerId = document.getElementById('dmPlayerId')?.value || modalElement?.dataset.playerId || '';
     const message = document.getElementById('dmMessage')?.value;
 
     if (!message || !message.trim()) {
@@ -296,9 +305,26 @@ window.EventDelegation.register('submit-discord-dm', function(element, e) {
         return;
     }
 
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i>Sending...';
-    element.disabled = true;
+    if (!playerId) {
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Unable to determine which player to message. Please close the dialog and try again.',
+                confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
+            });
+        } else {
+            console.error('[submit-discord-dm] Missing player ID');
+        }
+        return;
+    }
+
+    let originalText = null;
+    if (triggerEl) {
+        originalText = triggerEl.innerHTML;
+        triggerEl.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i>Sending...';
+        triggerEl.disabled = true;
+    }
 
     // Get CSRF token
     const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
@@ -306,20 +332,21 @@ window.EventDelegation.register('submit-discord-dm', function(element, e) {
     fetch('/admin/send_discord_dm', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
         },
-        body: JSON.stringify({
-            discord_id: discordId,
+        body: new URLSearchParams({
+            player_id: playerId,
             message: message
         })
     }).then(response => response.json())
     .then(data => {
         if (data.success) {
-            const modalElement = document.getElementById('discordDMModal');
-            if (modalElement) {
-                const modalInstance = modalElement._flowbiteModal;
-                if (modalInstance) modalInstance.hide();
+            if (typeof window.ModalManager !== 'undefined') {
+                window.ModalManager.hide('discordDMModal');
+            } else if (modalElement && modalElement._flowbiteModal) {
+                modalElement._flowbiteModal.hide();
             }
 
             if (typeof window.Swal !== 'undefined') {
@@ -346,9 +373,35 @@ window.EventDelegation.register('submit-discord-dm', function(element, e) {
             console.error('[submit-discord-dm] Error:', error);
         }
     }).finally(() => {
-        element.innerHTML = originalText;
-        element.disabled = false;
+        if (triggerEl && originalText !== null) {
+            triggerEl.innerHTML = originalText;
+            triggerEl.disabled = false;
+        }
     });
+}
+
+/**
+ * Submit Discord DM Action
+ * Sends the Discord direct message (button variant of the DM modal)
+ */
+window.EventDelegation.register('submit-discord-dm', function(element, e) {
+    e.preventDefault();
+    submitDiscordDmMessage(element);
+});
+
+/**
+ * Intercept native submits of the DM modal form (modal_form macro renders a
+ * real <form id="dmForm"> whose default action would POST to the current page
+ * URL, which has no POST route). Routes the submit through the real endpoint.
+ */
+document.addEventListener('submit', function(e) {
+    const form = e.target;
+    if (!form || form.id !== 'dmForm') return;
+    const modalElement = document.getElementById('discordDMModal');
+    if (!modalElement || !modalElement.contains(form)) return;
+
+    e.preventDefault();
+    submitDiscordDmMessage(form.querySelector('button[type="submit"]'));
 });
 
 // PLAYERS PAGE ACTIONS

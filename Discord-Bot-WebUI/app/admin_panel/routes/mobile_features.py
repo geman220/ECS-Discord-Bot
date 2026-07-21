@@ -61,9 +61,11 @@ def mobile_features():
         except Exception:
             mobile_config_valid = False
 
-        # Check push notification configuration
+        # Check push notification configuration — mobile_push_notifications is
+        # the key the app actually reads via /app_config (the old
+        # push_notifications_enabled flag gated nothing and was removed).
         try:
-            push_enabled = str(AdminConfig.get_setting('push_notifications_enabled', 'true')).lower() in ('true', '1', 'yes', 'on')
+            push_enabled = str(AdminConfig.get_setting('mobile_push_notifications', 'true')).lower() in ('true', '1', 'yes', 'on')
             push_service_status = 'active' if push_enabled else 'inactive'
         except Exception:
             push_service_status = 'unknown'
@@ -71,11 +73,14 @@ def mobile_features():
         # Mobile app downloads/installs (estimated from device tokens)
         total_app_installs = UserFCMToken.query.count()
 
-        # Get mobile app version from AdminConfig
+        # Current app version = the latest published build (set by CI via
+        # PUT /api/v1/app_config/build). The old free-text mobile_app_version
+        # string was display-only and never matched reality.
         try:
-            mobile_app_version = str(AdminConfig.get_setting('mobile_app_version', 'v1.0.0'))
+            latest_build = AdminConfig.get_setting('app_latest_build_number', None)
+            mobile_app_version = f'build {latest_build}' if latest_build else 'unknown'
         except Exception:
-            mobile_app_version = 'v1.0.0'
+            mobile_app_version = 'unknown'
 
         # Version / Update control — real AdminConfig values owned by
         # APP_CONFIG_FIELDS (edited on the App Config page). Surfaced read-only
@@ -271,31 +276,23 @@ def mobile_app_config():
     )
 
 
+# Only toggles the app can actually act on. The old placeholders for features
+# that were never built (offline sync, location services, contact sync, AR
+# views, voice commands, smart predictions) were removed from here, from the
+# /app_config API payload, and from the AdminConfig seed.
 MOBILE_FEATURE_TOGGLES = [
     {'key': 'mobile_push_notifications', 'label': 'Push Notifications',
      'description': 'Enable push notifications for users', 'default': 'true', 'category': 'core'},
     {'key': 'mobile_wallet_passes', 'label': 'Wallet Passes',
-     'description': 'Apple Wallet / Google Pay integration', 'default': 'true', 'category': 'core'},
-    {'key': 'mobile_offline_sync', 'label': 'Offline Sync',
-     'description': 'Allow offline data synchronization', 'default': 'false', 'category': 'core'},
+     'description': 'Apple Wallet / Google Pay integration (also enforced server-side on pass generation)', 'default': 'true', 'category': 'core'},
     {'key': 'mobile_biometric_auth', 'label': 'Biometric Authentication',
      'description': 'Allow biometric login (Face ID / Fingerprint) as a user option', 'default': 'true', 'category': 'core'},
-    {'key': 'mobile_location_services', 'label': 'Location Services',
-     'description': 'Location-based features and notifications', 'default': 'false', 'category': 'privacy'},
     {'key': 'mobile_camera_upload', 'label': 'Camera Upload',
      'description': 'Photo upload from camera roll', 'default': 'true', 'category': 'privacy'},
-    {'key': 'mobile_contact_sync', 'label': 'Contact Sync',
-     'description': 'Sync contacts for team invitations', 'default': 'false', 'category': 'privacy'},
     {'key': 'mobile_analytics_tracking', 'label': 'Analytics Tracking',
      'description': 'Usage analytics collection from mobile app', 'default': 'true', 'category': 'privacy'},
     {'key': 'mobile_crash_reporting', 'label': 'Crash Reporting',
      'description': 'Enable crash report collection from mobile app', 'default': 'true', 'category': 'privacy'},
-    {'key': 'mobile_ar_match_views', 'label': 'AR Match Views',
-     'description': 'Augmented reality match experience', 'default': 'false', 'category': 'experimental'},
-    {'key': 'mobile_voice_commands', 'label': 'Voice Commands',
-     'description': 'Voice-controlled navigation', 'default': 'false', 'category': 'experimental'},
-    {'key': 'mobile_smart_predictions', 'label': 'Smart Predictions',
-     'description': 'AI-powered match predictions', 'default': 'false', 'category': 'experimental'},
     {'key': 'admin_points_events_enabled', 'label': 'Admin Points Events',
      'description': 'Enables the More→Admin "Points Events" entry in the mobile app for awarding participation points at non-match league events.',
      'default': 'false', 'category': 'experimental'},

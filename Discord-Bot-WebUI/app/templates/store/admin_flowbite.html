@@ -151,7 +151,7 @@
                         {% endif %}
                     </td>
                     <td class="px-3 py-3" data-label="Status">
-                        <select class="px-3 py-1.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" data-action="update-order-status" data-order-id="{{ order.id }}" data-current-status="{{ order.status }}" data-form-select>
+                        <select class="px-3 py-1.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" data-on-change="store-order-status" data-order-id="{{ order.id }}" data-current-status="{{ order.status }}" data-form-select>
                             <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Pending</option>
                             <option value="PROCESSING" {% if order.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
                             <option value="ORDERED" {% if order.status == 'ORDERED' %}selected{% endif %}>Ordered</option>
@@ -204,7 +204,7 @@
                             {% if order.selected_size %}<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300" data-badge>{{ order.selected_size }}</span>{% endif %}
                         </div>
                         <div class="flex items-center gap-2 mt-2">
-                            <select class="flex-1 px-3 py-1.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" data-action="update-order-status" data-order-id="{{ order.id }}" data-current-status="{{ order.status }}" data-form-select aria-label="Order {{ order.id }} status">
+                            <select class="flex-1 px-3 py-1.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" data-on-change="store-order-status" data-order-id="{{ order.id }}" data-current-status="{{ order.status }}" data-form-select aria-label="Order {{ order.id }} status">
                                 <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Pending</option>
                                 <option value="PROCESSING" {% if order.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
                                 <option value="ORDERED" {% if order.status == 'ORDERED' %}selected{% endif %}>Ordered</option>
@@ -574,7 +574,7 @@
                             {% endif %}
                         </td>
                         <td class="px-6 py-4" data-label="Status">
-                            <select class="px-3 py-1.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" data-action="update-order-status" data-order-id="{{ order.id }}" data-current-status="{{ order.status }}" data-form-select>
+                            <select class="px-3 py-1.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" data-on-change="store-order-status" data-order-id="{{ order.id }}" data-current-status="{{ order.status }}" data-form-select>
                                 <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Pending</option>
                                 <option value="PROCESSING" {% if order.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
                                 <option value="ORDERED" {% if order.status == 'ORDERED' %}selected{% endif %}>Ordered</option>

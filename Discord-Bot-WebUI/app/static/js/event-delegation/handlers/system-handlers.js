@@ -414,8 +414,8 @@ window.EventDelegation.register('view-container-logs', function(element, e) {
     if (typeof window.viewContainerLogs === 'function') {
         window.viewContainerLogs(containerId, containerName);
     } else {
-        // Fallback: redirect to logs page
-        window.location.href = `/admin-panel/system/docker/logs/${containerId}`;
+        // Fallback: open the container logs endpoint (returns { logs } JSON)
+        window.location.href = `/admin-panel/system/docker/container/${containerId}/logs`;
     }
 });
 

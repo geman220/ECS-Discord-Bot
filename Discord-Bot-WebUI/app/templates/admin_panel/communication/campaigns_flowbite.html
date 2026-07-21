@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form, modal %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form %}
 
 {% block admin_title %}Push Campaigns{% endblock %}
 {% block panel_description %}Manage push notification campaigns{% endblock %}
@@ -208,9 +208,6 @@
                   <i class="ti ti-eye" aria-hidden="true"></i>
                 </button>
                 {% if campaign.status == 'draft' %}
-                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Edit" aria-label="Edit campaign" data-action="edit-campaign" data-campaign-id="{{ campaign.id }}">
-                  <i class="ti ti-edit" aria-hidden="true"></i>
-                </button>
                 <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send campaign now" data-action="send-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
                   <i class="ti ti-send" aria-hidden="true"></i>
                 </button>
@@ -225,7 +222,7 @@
                   <i class="ti ti-x" aria-hidden="true"></i>
                 </button>
                 {% endif %}
-                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Duplicate" aria-label="Duplicate campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}">
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Duplicate" aria-label="Duplicate campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
                   <i class="ti ti-copy" aria-hidden="true"></i>
                 </button>
               </div>
@@ -280,9 +277,6 @@
               <i class="ti ti-eye" aria-hidden="true"></i>
             </button>
             {% if campaign.status == 'draft' %}
-            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Edit" aria-label="Edit campaign" data-action="edit-campaign" data-campaign-id="{{ campaign.id }}">
-              <i class="ti ti-edit" aria-hidden="true"></i>
-            </button>
             <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send campaign now" data-action="send-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
               <i class="ti ti-send" aria-hidden="true"></i>
             </button>
@@ -297,7 +291,7 @@
               <i class="ti ti-x" aria-hidden="true"></i>
             </button>
             {% endif %}
-            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Duplicate" aria-label="Duplicate campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}">
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Duplicate" aria-label="Duplicate campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
               <i class="ti ti-copy" aria-hidden="true"></i>
             </button>
           </div>
@@ -463,9 +457,6 @@
                                 <i class="ti ti-eye"></i>
                             </button>
                             {% if campaign.status == 'draft' %}
-                            <button class="p-2 text-yellow-600 hover:bg-yellow-50 rounded dark:hover:bg-yellow-900/30" title="Edit" data-action="edit-campaign" data-campaign-id="{{ campaign.id }}">
-                                <i class="ti ti-edit"></i>
-                            </button>
                             <button class="p-2 text-green-600 hover:bg-green-50 rounded dark:hover:bg-green-900/30" title="Send Now" data-action="send-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
                                 <i class="ti ti-send"></i>
                             </button>
@@ -480,7 +471,7 @@
                                 <i class="ti ti-x"></i>
                             </button>
                             {% endif %}
-                            <button class="p-2 text-gray-600 hover:bg-gray-50 rounded dark:hover:bg-gray-700" title="Duplicate" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}">
+                            <button class="p-2 text-gray-600 hover:bg-gray-50 rounded dark:hover:bg-gray-700" title="Duplicate" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
                                 <i class="ti ti-copy"></i>
                             </button>
                         </div>
@@ -616,215 +607,27 @@
 </div>
 {% endcall %}
 
-<!-- Schedule Campaign Modal -->
-{% call modal('scheduleCampaignModal', 'Schedule Campaign', size='md') %}
-<input type="hidden" id="schedule_campaign_id">
-<p class="text-gray-600 dark:text-gray-400 mb-4">Schedule <strong id="schedule_campaign_name"></strong> for delivery:</p>
-<div>
-    <label for="schedule_send_time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send Date & Time</label>
-    <input type="datetime-local" id="schedule_send_time" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-</div>
-<div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-600 mt-4">
-    <button type="button" data-modal-hide="scheduleCampaignModal" class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700">Cancel</button>
-    <button type="button" id="confirmScheduleBtn" class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300">
-        <i class="ti ti-clock mr-1"></i>Schedule
-    </button>
-</div>
-{% endcall %}
+{# Schedule Campaign modal removed 2026-07-21: scheduling is handled by the
+   schedule-campaign EventDelegation handler in admin/push-campaigns.js (Swal
+   date prompt → POST /admin-panel/communication/campaigns/<id>/schedule). #}
 {% endblock %}
 
 {% block extra_js %}
+{# NOTE (2026-07-21): the send / delete / schedule inline handlers that lived
+   here used the stale /admin/communication/... URL prefix (404 since the routes
+   moved to /admin-panel/...) AND duplicated the EventDelegation handlers in
+   admin/push-campaigns.js, so one click fired two requests. push-campaigns.js
+   is now the single owner of all campaign actions. Only the create-modal
+   schedule-field toggle remains, because push-campaigns.js only wires it when
+   a [data-action*="campaign"] element exists (not the case on an empty list). #}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const isDark = document.documentElement.classList.contains('dark');
-
-    // Toggle schedule container visibility
+    // Toggle schedule container visibility in the create-campaign modal
     document.querySelectorAll('input[name="send_type"]').forEach(radio => {
         radio.addEventListener('change', function() {
             const container = document.getElementById('campaignScheduleContainer');
-            container.classList.toggle('hidden', this.value !== 'scheduled');
+            if (container) container.classList.toggle('hidden', this.value !== 'scheduled');
         });
-    });
-
-    // Campaign actions
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('[data-action]');
-        if (!btn) return;
-
-        const action = btn.dataset.action;
-        const campaignId = btn.dataset.campaignId;
-        const campaignName = btn.dataset.campaignName;
-
-        if (action === 'send-campaign') {
-            Swal.fire({
-                title: 'Send Campaign Now?',
-                text: `Send "${campaignName}" immediately to all recipients?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, Send Now',
-                confirmButtonColor: '#1a472a',
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    try {
-                        const response = await fetch(`/admin/communication/campaigns/${campaignId}/send`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        });
-                        const data = await response.json();
-
-                        if (data.success) {
-                            Swal.fire({
-                                title: 'Campaign Sent!',
-                                text: `Sent to ${data.sent_count || 0} devices`,
-                                icon: 'success',
-                                confirmButtonColor: '#1a472a',
-                                background: isDark ? '#1f2937' : '#ffffff',
-                                color: isDark ? '#f3f4f6' : '#111827'
-                            }).then(() => window.location.reload());
-                        } else {
-                            Swal.fire({
-                                title: 'Error',
-                                text: data.error || 'Failed to send campaign',
-                                icon: 'error',
-                                background: isDark ? '#1f2937' : '#ffffff',
-                                color: isDark ? '#f3f4f6' : '#111827'
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Send error:', error);
-                        Swal.fire({
-                            title: 'Error',
-                            text: 'Failed to send campaign',
-                            icon: 'error',
-                            background: isDark ? '#1f2937' : '#ffffff',
-                            color: isDark ? '#f3f4f6' : '#111827'
-                        });
-                    }
-                }
-            });
-        } else if (action === 'delete-campaign') {
-            Swal.fire({
-                title: 'Delete Campaign?',
-                text: `Delete "${campaignName}"? This cannot be undone.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, Delete',
-                confirmButtonColor: '#dc2626',
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    try {
-                        const response = await fetch(`/admin/communication/campaigns/${campaignId}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        });
-                        const data = await response.json();
-
-                        if (data.success) {
-                            Swal.fire({
-                                title: 'Deleted!',
-                                text: data.message || 'Campaign deleted successfully',
-                                icon: 'success',
-                                confirmButtonColor: '#1a472a',
-                                background: isDark ? '#1f2937' : '#ffffff',
-                                color: isDark ? '#f3f4f6' : '#111827'
-                            }).then(() => window.location.reload());
-                        } else {
-                            Swal.fire({
-                                title: 'Error',
-                                text: data.error || 'Failed to delete campaign',
-                                icon: 'error',
-                                background: isDark ? '#1f2937' : '#ffffff',
-                                color: isDark ? '#f3f4f6' : '#111827'
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Delete error:', error);
-                        Swal.fire({
-                            title: 'Error',
-                            text: 'Failed to delete campaign',
-                            icon: 'error',
-                            background: isDark ? '#1f2937' : '#ffffff',
-                            color: isDark ? '#f3f4f6' : '#111827'
-                        });
-                    }
-                }
-            });
-        } else if (action === 'schedule-campaign') {
-            document.getElementById('schedule_campaign_id').value = campaignId;
-            document.getElementById('schedule_campaign_name').textContent = campaignName;
-            // Clear and set minimum date/time
-            const sendTimeInput = document.getElementById('schedule_send_time');
-            const now = new Date();
-            now.setMinutes(now.getMinutes() + 5); // Minimum 5 minutes from now
-            sendTimeInput.min = now.toISOString().slice(0, 16);
-            sendTimeInput.value = '';
-            // Show modal using Flowbite pattern
-            const modal = document.getElementById('scheduleCampaignModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-    });
-
-    // Schedule confirmation button handler
-    document.getElementById('confirmScheduleBtn')?.addEventListener('click', async function() {
-        const campaignId = document.getElementById('schedule_campaign_id').value;
-        const sendTime = document.getElementById('schedule_send_time').value;
-
-        if (!campaignId || !sendTime) {
-            if (window.showToast) {
-                window.showToast('Please select a date and time', 'error');
-            }
-            return;
-        }
-
-        try {
-            const response = await fetch(`/admin/communication/campaigns/${campaignId}/schedule`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ send_time: sendTime })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                // Hide modal
-                const modal = document.getElementById('scheduleCampaignModal');
-                if (modal && typeof Modal !== 'undefined') {
-                    const flowbiteModal = Modal.getInstance(modal);
-                    if (flowbiteModal) flowbiteModal.hide();
-                }
-
-                Swal.fire({
-                    title: 'Scheduled!',
-                    text: 'Campaign has been scheduled for delivery',
-                    icon: 'success',
-                    confirmButtonColor: '#1a472a',
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827'
-                }).then(() => window.location.reload());
-            } else {
-                if (window.showToast) {
-                    window.showToast(data.error || 'Failed to schedule campaign', 'error');
-                }
-            }
-        } catch (error) {
-            console.error('Schedule error:', error);
-            if (window.showToast) {
-                window.showToast('Failed to schedule campaign', 'error');
-            }
-        }
     });
 });
 </script>

@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Schedule All Matches
     document.getElementById('scheduleAllBtn')?.addEventListener('click', async function() {
         try {
-            const response = await fetch('/bot/admin/match/schedule-all', {
+            const response = await fetch('{{ url_for('admin.schedule_all_matches') }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
             });

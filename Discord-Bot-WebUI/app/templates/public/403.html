@@ -28,9 +28,9 @@
     <div class="code">403 · Access denied</div>
     <h1>You don't have access to that.</h1>
     <p>This page is off-limits. If you think that's a mistake, get in touch and we'll sort it out.</p>
-    <a class="btn" href="/">Back to home</a>
+    <a class="btn" href="{{ url_for('public.home') }}">Back to home</a>
     <div class="links">
-      <a href="/about">About</a>·<a href="/calendar">Calendar</a>·<a href="/faqs">FAQs</a>·<a href="/contact">Contact</a>
+      <a href="{{ url_for('public.about') }}">About</a>·<a href="{{ url_for('public.calendar') }}">Calendar</a>·<a href="{{ url_for('public.faqs') }}">FAQs</a>·<a href="{{ url_for('public.contact') }}">Contact</a>
     </div>
   </div>
 </body>

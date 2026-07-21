@@ -55,8 +55,8 @@ const CONFIG = {
     },
     endpoints: {
         dockerStatus: '/admin/docker-status',
-        dockerLogs: '/admin/docker-logs/',
-        dockerAction: '/admin/docker-',
+        dockerLogs: '/admin/view_logs/',
+        dockerAction: '/admin/container/',
         taskManagement: '/admin/task-management',
         taskDetails: '/admin/task-details/',
         revokeTask: '/admin/revoke-task/',
@@ -363,7 +363,8 @@ const AdminDashboard = {
             const response = await fetch(`${CONFIG.endpoints.dockerLogs}${containerName}`);
             const data = await response.json();
 
-            if (data.success) {
+            // Route returns { logs } on success or { error } on failure
+            if (data.logs !== undefined) {
                 if (content) content.textContent = data.logs || 'No logs available';
             } else {
                 if (content) content.textContent = `Error: ${data.error || 'Failed to load logs'}`;
@@ -381,17 +382,20 @@ const AdminDashboard = {
         btn.disabled = true;
 
         try {
-            const response = await fetch(`${CONFIG.endpoints.dockerAction}${action}/${containerName}`, {
+            const response = await fetch(`${CONFIG.endpoints.dockerAction}${containerName}/${action}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
 
-            if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
                 this.showComponentToast('success', 'Success', `Container ${action}ed successfully`);
                 setTimeout(() => this.fetchDockerStatus(), 1000);
             } else {
-                const errorData = await response.json();
-                this.showComponentToast('error', 'Error', errorData.error || `Failed to ${action} container`);
+                this.showComponentToast('error', 'Error', data.message || `Failed to ${action} container`);
                 btn.classList.remove('is-loading');
                 btn.disabled = false;
             }

@@ -141,7 +141,7 @@ def _user_to_dict(user, include_online=True):
         'player_id': player.id if player else None,
         'username': user.username,
         'name': player.name if player else user.username,
-        'avatar_url': player.profile_picture_url if player else None,
+        'avatar_url': player.avatar_image_url if player else None,
         'profile_url': f'/players/profile/{player.id}' if player else None,
         'is_online': PresenceManager.is_user_online(user.id) if include_online else None,
         'is_coach': is_coach,
@@ -694,6 +694,7 @@ def search_users():
 
         # Search users by name or username
         from app.models import Player
+        from sqlalchemy.orm import selectinload
 
         users = _s().query(User).outerjoin(Player).filter(
             User.id != current_user.id,
@@ -701,14 +702,41 @@ def search_users():
                 Player.name.ilike(f'%{query}%'),
                 User.username.ilike(f'%{query}%')
             )
+        ).options(
+            selectinload(User.roles),
+            joinedload(User.player)
         ).limit(limit).all()
 
-        # Filter to users we can message
+        # Permission data is fetched ONCE per request, not per candidate —
+        # this endpoint runs on every keystroke, and _can_user_message costs
+        # ~4 queries per call (settings singleton + permission probes), all on
+        # db.session (the second-connection problem). Same semantics inline:
+        settings = _s().query(MessagingSettings).first()
+        # Missing singleton row = model defaults, i.e. messaging enabled
+        if settings is not None and not settings.enabled:
+            return jsonify({'success': True, 'users': []})
+
+        sender_role_ids = _get_role_ids(current_user)
+        if not sender_role_ids:
+            return jsonify({'success': True, 'users': []})
+
+        perms = _s().query(MessagingPermission).all()
+        allowed_pairs = {
+            (p.sender_role_id, p.recipient_role_id) for p in perms if p.is_allowed
+        }
+
         results = []
         for user in users:
-            can_msg, _ = _can_user_message(current_user, user)
-            if can_msg:
-                results.append(_user_to_dict(user))
+            recipient_role_ids = _get_role_ids(user)
+            if not recipient_role_ids:
+                continue
+            # No permission rows at all = default allow (matches can_message)
+            if perms and not any(
+                (s, r) in allowed_pairs
+                for s in sender_role_ids for r in recipient_role_ids
+            ):
+                continue
+            results.append(_user_to_dict(user))
 
         return jsonify({
             'success': True,

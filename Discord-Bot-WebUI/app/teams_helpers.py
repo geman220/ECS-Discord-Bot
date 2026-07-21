@@ -10,6 +10,7 @@ retrieve the current season ID.
 """
 
 import logging
+import re
 from flask import g
 from sqlalchemy import func, or_
 from app.models import (
@@ -39,7 +40,6 @@ def populate_team_stats(team, season):
         top_scorer_name, top_scorer_goals = "No goals scored", 0
     else:
         # Parse "Player Name (X goals)" format
-        import re
         match = re.match(r'(.+?) \((\d+) goals?\)', top_scorer_text)
         if match:
             top_scorer_name, top_scorer_goals = match.groups()

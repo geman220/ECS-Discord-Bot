@@ -245,7 +245,7 @@
              class="w-full h-9 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900
                     text-sm text-gray-900 dark:text-white px-3 focus:outline-none focus:ring-2 focus:ring-ecs-green">
       <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Channel name notified when a member is awaiting approval</p>
-      <p class="text-[11px] text-amber-700 dark:text-amber-400 mt-1 flex items-start gap-1"><i class="ti ti-alert-triangle mt-0.5 shrink-0"></i><span>Saved, but channel posting isn't wired up yet — approvals still appear only in the admin queue.</span></p>
+      <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 flex items-start gap-1"><i class="ti ti-info-circle mt-0.5 shrink-0"></i><span>The bot posts here when a new signup lands in the approval queue. Use the channel name (without #); leave empty to turn posting off.</span></p>
     </div>
 
     {# Auto-reminder window (constrained select) #}
@@ -254,13 +254,13 @@
       <select id="onboardingReminderWindow" data-config-key="reminder_window"
               class="w-full h-9 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900
                      text-sm text-gray-900 dark:text-white px-3 focus:outline-none focus:ring-2 focus:ring-ecs-green">
-        {% set _labels = {'24h': 'After 24 hours', '48h': 'After 48 hours', '72h': 'After 72 hours', 'never': 'Never'} %}
-        {% for win in (reminder_windows or ['24h', '48h', '72h', 'never']) %}
+        {% set _labels = {'24h': 'After 24 hours', '48h': 'After 48 hours', '72h': 'After 72 hours', '1w': 'After 1 week', '2w': 'After 2 weeks', 'never': 'Never'} %}
+        {% for win in (reminder_windows or ['24h', '48h', '72h', '1w', '2w', 'never']) %}
         <option value="{{ win }}" {% if onboarding_config and onboarding_config.reminder_window == win %}selected{% endif %}>{{ _labels.get(win, win) }}</option>
         {% endfor %}
       </select>
       <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Use the <span class="font-semibold">Save Flow</span> button above to persist changes</p>
-      <p class="text-[11px] text-amber-700 dark:text-amber-400 mt-1 flex items-start gap-1"><i class="ti ti-alert-triangle mt-0.5 shrink-0"></i><span>Saved, but automatic reminders aren't scheduled yet — no reminder is sent regardless of this window.</span></p>
+      <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 flex items-start gap-1"><i class="ti ti-info-circle mt-0.5 shrink-0"></i><span>A weekly post (Mondays, 9am Pacific) to the channel above lists signups pending longer than this window. Needs the notification channel set.</span></p>
     </div>
   </div>
   {% endcall %}

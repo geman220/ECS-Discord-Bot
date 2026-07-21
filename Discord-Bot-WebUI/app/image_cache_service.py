@@ -323,9 +323,12 @@ class ImageCacheService:
         Returns True if successful.
         """
         try:
+            # Imported here (not module level) to match this file's lazy-import idiom;
+            # must be OUTSIDE the branch below or the failure paths that open a fresh
+            # session hit UnboundLocalError when a session was passed in.
+            from app.core.session_manager import managed_session
             # Use provided session or fall back to managed session
             if session is None:
-                from app.core.session_manager import managed_session
                 with managed_session() as session:
                     return ImageCacheService.optimize_player_image(player_id, force_refresh, session)
             

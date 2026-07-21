@@ -183,7 +183,9 @@ def push_notifications():
             notification_groups = []
 
         from app.models.admin_config import AdminConfig
-        push_notifications_enabled = AdminConfig.get_setting('push_notifications_enabled', True)
+        # mobile_push_notifications is the key the app actually reads via
+        # /app_config; the old push_notifications_enabled flag gated nothing.
+        push_notifications_enabled = AdminConfig.get_setting('mobile_push_notifications', True)
 
         stats = {
             'total_subscribers': total_subscribers,
@@ -424,24 +426,32 @@ def push_search_users():
     if len(q) < 2:
         return jsonify([])
 
+    from flask import g
+    from sqlalchemy.orm import joinedload
     from app.models import Player
+
+    # Search username OR player name. The old email clause compiled against
+    # the encrypted column (User.email is a hybrid with no expression) so it
+    # scanned base64 ciphertext and could never match — dropped; admins type
+    # real names anyway, which the old version didn't support at all.
     search = f'%{q}%'
-    users = User.query.join(UserFCMToken).filter(
+    users = g.db_session.query(User).outerjoin(
+        Player, Player.user_id == User.id
+    ).join(UserFCMToken).options(
+        joinedload(User.player)
+    ).filter(
         UserFCMToken.is_active == True,
         db.or_(
             User.username.ilike(search),
-            User.email.ilike(search),
+            Player.name.ilike(search),
         )
     ).distinct().limit(15).all()
 
-    results = []
-    for u in users:
-        player = Player.query.filter_by(user_id=u.id).first()
-        results.append({
-            'id': u.id,
-            'username': u.username,
-            'name': player.name if player else u.username,
-        })
+    results = [{
+        'id': u.id,
+        'username': u.username,
+        'name': u.player.name if u.player else u.username,
+    } for u in users]
     return jsonify(results)
 
 
@@ -454,42 +464,46 @@ def push_notifications_settings():
 
     if request.method == 'GET':
         settings = {
-            'push_notifications_enabled': AdminConfig.get_setting('push_notifications_enabled', True),
-            'auto_notifications_enabled': AdminConfig.get_setting('auto_notifications_enabled', True),
+            # The master toggle is mobile_push_notifications — the key served
+            # to the app via /app_config. (push_notifications_enabled and
+            # auto_notifications_enabled were ghost flags nothing read;
+            # removed 2026-07.)
+            'push_notifications_enabled': AdminConfig.get_setting('mobile_push_notifications', True),
             'quiet_hours_enabled': AdminConfig.get_setting('quiet_hours_enabled', False),
             'quiet_hours_start': AdminConfig.get_setting('quiet_hours_start', '22:00'),
             'quiet_hours_end': AdminConfig.get_setting('quiet_hours_end', '08:00'),
-            'max_notifications_per_day': AdminConfig.get_setting('max_notifications_per_day', 10),
-            'notification_rate_limit': AdminConfig.get_setting('notification_rate_limit', 5)
         }
         return render_template('admin_panel/communication/push_notifications_settings_flowbite.html',
                              **settings)
 
     try:
         updates = []
-        for key in ['push_notifications_enabled', 'auto_notifications_enabled', 'quiet_hours_enabled']:
-            value = request.form.get(key) == 'on'
-            old_value = AdminConfig.get_setting(key, False)
-            AdminConfig.set_setting(key, value, description=f'Push notification setting: {key}',
-                                  category='push_notifications', data_type='boolean', user_id=current_user.id)
-            if old_value != value:
-                updates.append(f'{key}: {old_value} -> {value}')
+        # Form field names must match the template's actual inputs — the old
+        # loop read request.form.get('push_notifications_enabled') while the
+        # template posts name="push_enabled", so the master toggle saved False
+        # on every submit.
+        push_on = request.form.get('push_enabled') == 'on'
+        old_push = AdminConfig.get_setting('mobile_push_notifications', True)
+        AdminConfig.set_setting('mobile_push_notifications', push_on,
+                              description='Enable push notifications for users (served to the app via /app_config)',
+                              category='mobile_features', data_type='boolean', user_id=current_user.id)
+        if old_push != push_on:
+            updates.append(f'mobile_push_notifications: {old_push} -> {push_on}')
 
-        for key in ['quiet_hours_start', 'quiet_hours_end']:
-            value = request.form.get(key)
+        quiet_on = request.form.get('quiet_hours_enabled') == 'on'
+        old_quiet = AdminConfig.get_setting('quiet_hours_enabled', False)
+        AdminConfig.set_setting('quiet_hours_enabled', quiet_on,
+                              description='Push notification setting: quiet_hours_enabled',
+                              category='push_notifications', data_type='boolean', user_id=current_user.id)
+        if old_quiet != quiet_on:
+            updates.append(f'quiet_hours_enabled: {old_quiet} -> {quiet_on}')
+
+        for form_name, key in (('quiet_start', 'quiet_hours_start'), ('quiet_end', 'quiet_hours_end')):
+            value = request.form.get(form_name)
             if value:
                 old_value = AdminConfig.get_setting(key, '')
                 AdminConfig.set_setting(key, value, description=f'Quiet hours setting: {key}',
                                       category='push_notifications', data_type='string', user_id=current_user.id)
-                if old_value != value:
-                    updates.append(f'{key}: {old_value} -> {value}')
-
-        for key in ['max_notifications_per_day', 'notification_rate_limit']:
-            value = request.form.get(key, type=int)
-            if value is not None:
-                old_value = AdminConfig.get_setting(key, 0)
-                AdminConfig.set_setting(key, value, description=f'Notification limit: {key}',
-                                      category='push_notifications', data_type='integer', user_id=current_user.id)
                 if old_value != value:
                     updates.append(f'{key}: {old_value} -> {value}')
 

@@ -375,7 +375,7 @@ def clear_all_mls_matches():
     """
     session_db = g.db_session
     try:
-        session_db.query(Match).delete()
+        session_db.query(MLSMatch).delete()
         return jsonify({'success': True})
     except Exception as e:
         logger.error(f"Error clearing all MLS matches: {str(e)}")

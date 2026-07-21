@@ -76,6 +76,7 @@ class CeleryConfig:
         'app.tasks.tasks_waitlist',  # Waitlist confirmation email
         'app.tasks.ai_assistant_cleanup',  # AI assistant log retention
         'app.tasks.tasks_rsvp_dm_reminders',  # Thursday RSVP DM reminders
+        'app.tasks.tasks_onboarding_notifications',  # Approval-queue Discord channel notify + stale reminder
         'app.tasks.tasks_live_reporting_timers',  # V2 live-match timer reminders + autostop
         'app.tasks.check_in_tasks',  # Match check-in: nightly venue token backfill
         'app.tasks.wallet_refresh_tasks',  # Wallet pass auto-refresh + daily relevantDate sweep
@@ -269,6 +270,14 @@ class CeleryConfig:
         'process-site-scheduling': {
             'task': 'app.tasks.tasks_public_site.process_site_scheduling',
             'schedule': crontab(minute='*/5'),
+            'options': {'queue': 'celery'},
+        },
+        # Weekly nudge about signups pending approval longer than the admin-set
+        # onboarding_reminder_window ('never' or no channel => task no-ops).
+        # Mondays 16:00 UTC = 9am Pacific, when admins are around to act.
+        'remind-pending-approvals': {
+            'task': 'app.tasks.tasks_onboarding_notifications.remind_pending_approvals',
+            'schedule': crontab(hour=16, minute=0, day_of_week=1),
             'options': {'queue': 'celery'},
         },
         'backfill-media-variants': {

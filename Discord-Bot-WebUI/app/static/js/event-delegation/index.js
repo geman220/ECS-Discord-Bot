@@ -43,7 +43,6 @@ import './handlers/user-management-comprehensive.js'; // Comprehensive user mana
 
 // Pool & Assignment Management
 import './handlers/substitute-pool.js';      // Substitute pool management
-import './handlers/referee-management.js';   // Referee assignments
 
 // Admin & Configuration
 import './handlers/season-wizard.js';        // Season creation, auto-scheduling (legacy)

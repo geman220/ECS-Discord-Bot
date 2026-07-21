@@ -116,6 +116,43 @@ def jwt_or_ip_key() -> str:
     return key
 
 
+# Fallbacks when the AdminConfig rows are absent or the DB is unreachable.
+# The admin panel (/admin-panel/api-management rate-limits) edits the
+# api_rate_limit_* keys these callables read.
+DEFAULT_LIMIT_PER_DAY = 5000
+DEFAULT_LIMIT_PER_HOUR = 2000
+DEFAULT_LIMIT_PER_MINUTE = 200
+
+
+def _admin_limit(key, default, period):
+    """Build a default-limit callable backed by an AdminConfig row.
+
+    Evaluated per request by Flask-Limiter, but AdminConfig.get_setting is
+    request-cached (L1 on ``g``) and Redis-cached (L2), so this adds no DB
+    round trip of its own. Only routes without an explicit ``@limiter.limit``
+    are governed by these defaults.
+
+    Two hard safety rails, because a raised/invalid limit fails CLOSED (no
+    swallow_errors configured => every request 500s):
+      - during pool exhaustion (g._session_creation_failed) skip the DB
+        entirely and serve the static default — the rate limiter must stay
+        cheap precisely when the pool has nothing to give;
+      - clamp the admin-supplied value to >= 1 so a stored 0/negative can
+        never produce a limit string the parser rejects.
+    """
+    def _limit():
+        from flask import g, has_request_context
+        if has_request_context() and g.__dict__.get('_session_creation_failed'):
+            return f"{default} per {period}"
+        from app.models.admin_config import AdminConfig
+        try:
+            value = int(AdminConfig.get_setting(key, default))
+        except (TypeError, ValueError):
+            value = default
+        return f"{max(1, value)} per {period}"
+    return _limit
+
+
 # Module-level singleton. ``storage_uri`` is a safe in-memory fallback that
 # gets overridden by ``limiter.init_app(app)`` reading ``RATELIMIT_STORAGE_URL``
 # from ``app.config`` inside ``_init_rate_limiting``.
@@ -126,7 +163,11 @@ def jwt_or_ip_key() -> str:
 # their own IP-keyed ``key_func=`` overrides, so they are unaffected.
 limiter = Limiter(
     key_func=jwt_or_ip_key,
-    default_limits=["5000 per day", "2000 per hour", "200 per minute"],
+    default_limits=[
+        _admin_limit('api_rate_limit_day', DEFAULT_LIMIT_PER_DAY, 'day'),
+        _admin_limit('api_rate_limit_hour', DEFAULT_LIMIT_PER_HOUR, 'hour'),
+        _admin_limit('api_rate_limit_minute', DEFAULT_LIMIT_PER_MINUTE, 'minute'),
+    ],
     headers_enabled=True,
     strategy="fixed-window",
     storage_uri="memory://",

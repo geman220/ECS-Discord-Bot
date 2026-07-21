@@ -21,6 +21,13 @@ logger = logging.getLogger(__name__)
 wallet_bp = Blueprint('wallet', __name__, url_prefix='/wallet')
 
 
+def wallet_passes_enabled():
+    """The mobile_wallet_passes admin toggle gates pass generation server-side
+    (the same key is served to the app via /app_config to hide the feature)."""
+    from app.models.admin_config import AdminConfig
+    return bool(AdminConfig.get_setting('mobile_wallet_passes', True))
+
+
 @wallet_bp.route('/pass/<int:user_id>')
 @login_required
 def get_wallet_pass(user_id):
@@ -34,6 +41,10 @@ def get_wallet_pass(user_id):
         .pkpass file download or error page
     """
     try:
+        if not wallet_passes_enabled():
+            flash('Membership passes are currently disabled.', 'error')
+            return redirect(url_for('account.profile'))
+
         # Security check - users can only download their own pass unless admin
         if not safe_current_user.has_role('Global Admin') and safe_current_user.id != user_id:
             logger.warning(f"User {safe_current_user.id} attempted to access pass for user {user_id}")
@@ -87,12 +98,16 @@ def get_wallet_pass_by_player(player_id):
         .pkpass file download or error page
     """
     try:
+        if not wallet_passes_enabled():
+            flash('Membership passes are currently disabled (mobile_wallet_passes toggle).', 'error')
+            return redirect(url_for('wallet_admin.wallet_management'))
+
         player = Player.query.get_or_404(player_id)
-        
+
         # Check if player is eligible
         if not player.is_current_player:
             flash(f'Player {player.name} is not currently active.', 'error')
-            return redirect(url_for('admin.wallet_management'))
+            return redirect(url_for('wallet_admin.wallet_management'))
         
         logger.info(f"Admin {safe_current_user.email} generating wallet pass for player {player.name}")
         
@@ -109,7 +124,7 @@ def get_wallet_pass_by_player(player_id):
     except Exception as e:
         logger.error(f"Error generating wallet pass for player {player_id}: {str(e)}")
         flash('Error generating membership pass. Please try again later.', 'error')
-        return redirect(url_for('admin.wallet_management'))
+        return redirect(url_for('wallet_admin.wallet_management'))
 
 
 @wallet_bp.route('/api/pass/validate/<int:player_id>')

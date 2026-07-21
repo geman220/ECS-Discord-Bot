@@ -472,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.success) {
                         Swal.fire({ icon: 'success', title: 'Success', text: data.message || 'Operation completed.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
                     } else {
-                        Swal.fire({ icon: 'error', title: 'Error', text: data.error || 'Operation failed.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                        Swal.fire({ icon: 'error', title: 'Error', text: data.message || data.error || 'Operation failed.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
                     }
                 });
             }
@@ -483,7 +483,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[data-action="schedule-match"]').forEach(btn => {
         btn.addEventListener('click', function() {
             const matchId = this.dataset.matchId;
-            handleAction('schedule', matchId, `/admin/matches/api/schedule/${matchId}`, 'POST', 'Schedule Thread?', 'This will schedule the Discord thread for this match.');
+            handleAction('schedule', matchId, `/bot/admin/match/schedule/${matchId}`, 'POST', 'Schedule Thread?', 'This will schedule the Discord thread for this match.');
         });
     });
 
@@ -491,7 +491,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[data-action="create-thread-now"]').forEach(btn => {
         btn.addEventListener('click', function() {
             const matchId = this.dataset.matchId;
-            handleAction('create', matchId, `/admin/matches/api/create-thread/${matchId}`, 'POST', 'Create Thread Now?', 'This will immediately create the Discord thread.');
+            handleAction('create', matchId, `/bot/admin/match/${matchId}/create-thread`, 'POST', 'Create Thread Now?', 'This will immediately create the Discord thread.');
         });
     });
 
@@ -499,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[data-action="start-live-reporting"]').forEach(btn => {
         btn.addEventListener('click', function() {
             const matchId = this.dataset.matchId;
-            handleAction('start', matchId, `/admin/live-reporting/api/start/${matchId}`, 'POST', 'Start Live Reporting?', 'This will start live reporting for this match.');
+            handleAction('start', matchId, `/bot/admin/start_live_reporting/${matchId}`, 'POST', 'Start Live Reporting?', 'This will start live reporting for this match.');
         });
     });
 
@@ -507,7 +507,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[data-action="stop-live-reporting"]').forEach(btn => {
         btn.addEventListener('click', function() {
             const matchId = this.dataset.matchId;
-            handleAction('stop', matchId, `/admin/live-reporting/api/stop/${matchId}`, 'POST', 'Stop Live Reporting?', 'This will stop live reporting for this match.');
+            handleAction('stop', matchId, `/bot/admin/stop_live_reporting/${matchId}`, 'POST', 'Stop Live Reporting?', 'This will stop live reporting for this match.');
         });
     });
 

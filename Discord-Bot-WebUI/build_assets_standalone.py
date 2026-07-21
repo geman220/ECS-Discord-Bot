@@ -393,7 +393,6 @@ def create_production_js_bundle():
         'js/event-delegation/handlers/discord-management.js',
         'js/event-delegation/handlers/user-approval.js',
         'js/event-delegation/handlers/substitute-pool.js',
-        'js/event-delegation/handlers/referee-management.js',
         'js/event-delegation/handlers/season-wizard.js',
         'js/event-delegation/handlers/pass-studio.js',
         'js/event-delegation/handlers/security-actions.js',
@@ -406,7 +405,6 @@ def create_production_js_bundle():
         'js/admin-panel-base.js',
         'js/admin-panel-dashboard.js',
         'js/admin-panel-discord-bot.js',
-        'js/admin-panel-feature-toggles.js',
         'js/admin-panel-performance.js',
 
         # Admin Feature JS
@@ -431,7 +429,6 @@ def create_production_js_bundle():
         'js/pass-studio-cropper.js',
         'js/pitch-view.js',
         'js/profile-wizard.js',
-        'js/security-dashboard.js',
 
         # Match Operations JS
         'js/match-operations/match-reports.js',

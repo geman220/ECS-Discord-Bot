@@ -23,8 +23,8 @@
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {# RBAC: route-guarded by @role_required(['Global Admin','Pub League Admin']) — no per-element guards in Classic to mirror. #}
-{# REAL DATA from route kwargs: push_notifications_enabled, auto_notifications_enabled, quiet_hours_enabled,
-   quiet_hours_start, quiet_hours_end, max_notifications_per_day, notification_rate_limit (all AdminConfig values).
+{# REAL DATA from route kwargs: push_notifications_enabled (backed by the mobile_push_notifications key the app reads), quiet_hours_enabled,
+   quiet_hours_start, quiet_hours_end (all AdminConfig values).
    Firebase status + device/token counts have NO backend source here — they are populated client-side by the
    shared inline script via #firebase-status / #stat-* hooks, so they render as honest placeholders ("-"). #}
 {% from 'macros/_modern_kit.html' import page_header, section_card, alert %}
@@ -260,35 +260,8 @@
     {# === Right rail: real delivery limits + default posture + token ops === #}
     <div class="space-y-6">
 
-      {# Real persisted throttling limits — surfaced as a small KPI band (not editable here; reference) #}
-      {% call section_card('Delivery Limits', icon='ti-adjustments') %}
-      <div class="px-4 sm:px-5 pt-4">
-        <div class="flex items-start gap-2 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-800 dark:text-amber-300">
-          <i class="ti ti-alert-triangle mt-0.5 shrink-0" aria-hidden="true"></i>
-          <span>Reference values — saved but not yet enforced on delivery.</span>
-        </div>
-      </div>
-      <div class="px-4 sm:px-5 py-4 grid grid-cols-2 gap-4">
-        <div>
-          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide block">Max / Day</span>
-          <span class="mt-2 block font-mono text-2xl sm:text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ max_notifications_per_day }}</span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">per recipient</span>
-        </div>
-        <div>
-          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide block">Rate Limit</span>
-          <span class="mt-2 block font-mono text-2xl sm:text-3xl font-bold leading-none text-gray-900 dark:text-white">{{ notification_rate_limit }}</span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">per window</span>
-        </div>
-        <div class="col-span-2 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <span class="text-sm text-gray-600 dark:text-gray-400">Auto Notifications</span>
-          {% if auto_notifications_enabled %}
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1" aria-hidden="true"></i>Enabled</span>
-          {% else %}
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-x mr-1" aria-hidden="true"></i>Disabled</span>
-          {% endif %}
-        </div>
-      </div>
-      {% endcall %}
+      {# (The old "Delivery Limits" card was removed 2026-07 — max/day and
+         rate-limit values were stored but never enforced by any send path.) #}
 
       {# Static client-default posture (reference, matches Classic "Default Settings") #}
       {% call section_card('Client Defaults', icon='ti-bell-cog') %}
@@ -432,7 +405,7 @@
                         <p class="text-xs text-gray-500 dark:text-gray-400">Master switch for all push notifications</p>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" name="push_enabled" class="sr-only peer" checked>
+                        <input type="checkbox" name="push_enabled" class="sr-only peer"{% if push_notifications_enabled %} checked{% endif %}>
                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
                     </label>
                 </div>
@@ -554,18 +527,18 @@
                     <p class="text-xs text-gray-500 dark:text-gray-400">No notifications during specified hours</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="quiet_hours_enabled" name="quiet_hours_enabled" class="sr-only peer">
+                    <input type="checkbox" id="quiet_hours_enabled" name="quiet_hours_enabled" class="sr-only peer"{% if quiet_hours_enabled %} checked{% endif %}>
                     <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
                 </label>
             </div>
             <div id="quiet-hours-config" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
                 <div>
                     <label for="quiet_start" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Start Time</label>
-                    <input type="time" id="quiet_start" name="quiet_start" value="22:00" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <input type="time" id="quiet_start" name="quiet_start" value="{{ quiet_hours_start }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 </div>
                 <div>
                     <label for="quiet_end" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">End Time</label>
-                    <input type="time" id="quiet_end" name="quiet_end" value="08:00" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <input type="time" id="quiet_end" name="quiet_end" value="{{ quiet_hours_end }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 </div>
             </div>
         </div>

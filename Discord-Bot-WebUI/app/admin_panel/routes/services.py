@@ -379,27 +379,24 @@ def api_initialize_settings():
     try:
         current_user_safe = safe_current_user
 
-        # Define default settings
+        # Reset only settings something actually reads. This used to also seed
+        # site_name / email_notifications / discord_notifications / team-size /
+        # reminder keys — rows nothing consumed, typed as strings in the
+        # 'general' category, which then leaked onto the feature-toggles page.
         default_settings = {
-            'site_name': 'ECS Soccer League',
-            'maintenance_mode': False,
-            'registration_enabled': True,
-            'email_notifications': True,
-            'discord_notifications': True,
-            'max_team_size': 15,
-            'min_team_size': 7,
-            'match_reminder_hours': 24,
-            'rsvp_deadline_hours': 48,
+            'maintenance_mode': ('false', 'system'),
+            'registration_enabled': ('true', 'registration'),
         }
 
         settings_reset = 0
-        for key, default_value in default_settings.items():
+        for key, (default_value, category) in default_settings.items():
             config = AdminConfig.query.filter_by(key=key).first()
             if config:
-                config.value = str(default_value)
+                config.value = default_value
                 settings_reset += 1
             else:
-                new_config = AdminConfig(key=key, value=str(default_value))
+                new_config = AdminConfig(key=key, value=default_value,
+                                         category=category, data_type='boolean')
                 db.session.add(new_config)
                 settings_reset += 1
 
@@ -783,7 +780,8 @@ def api_toggle_maintenance_mode():
             config.value = str(new_state).lower()
         else:
             new_state = enable if enable is not None else True
-            config = AdminConfig(key='maintenance_mode', value=str(new_state).lower())
+            config = AdminConfig(key='maintenance_mode', value=str(new_state).lower(),
+                                 category='system', data_type='boolean')
             db.session.add(config)
 
         AdminAuditLog.log_action(

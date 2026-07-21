@@ -23,7 +23,7 @@ function getRoleDetailsUrl(roleId) {
     if (typeof window.ROLES_CONFIG !== 'undefined' && window.ROLES_CONFIG.roleDetailsUrl) {
         return `${window.ROLES_CONFIG.roleDetailsUrl}?role_id=${roleId}`;
     }
-    return `/admin-panel/api/role-details?role_id=${roleId}`;
+    return `/admin-panel/users/roles/details?role_id=${roleId}`;
 }
 
 /**
@@ -33,7 +33,7 @@ function getFeatureTogglesUrl() {
     if (typeof window.ROLES_CONFIG !== 'undefined' && window.ROLES_CONFIG.featureTogglesUrl) {
         return window.ROLES_CONFIG.featureTogglesUrl;
     }
-    return '/admin-panel/settings/feature-toggles';
+    return '/admin-panel/feature-toggles';
 }
 
 /**

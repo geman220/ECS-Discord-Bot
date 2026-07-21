@@ -5,36 +5,6 @@ import { EventDelegation } from '../core.js';
  * Handles seasons, teams, and league management in admin panel
  */
 
-// LEAGUE MANAGEMENT DASHBOARD
-// ============================================================================
-
-/**
- * Refresh Dashboard Stats Action
- * Auto-refresh stats on desktop
- */
-let dashboardRefreshInterval = null;
-
-window.EventDelegation.register('refresh-dashboard-stats', function(element, e) {
-    e.preventDefault();
-
-    if (typeof refreshDashboardStats === 'function') {
-        refreshDashboardStats();
-    } else {
-        // Fallback implementation
-        const url = window.LEAGUE_MANAGEMENT_CONFIG?.dashboardStatsUrl || '/admin-panel/league-management/api/dashboard-stats';
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('[Dashboard] Stats refreshed');
-                }
-            })
-            .catch(error => {
-                console.error('[Dashboard] Error refreshing stats:', error);
-            });
-    }
-});
-
 // SEASON MANAGEMENT
 // ============================================================================
 

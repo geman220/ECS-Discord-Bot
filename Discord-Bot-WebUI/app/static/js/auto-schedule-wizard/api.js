@@ -167,7 +167,7 @@ export async function createSeason() {
     console.log('Sending season data:', formData);
 
     try {
-        const response = await fetch(window.autoScheduleUrls?.createSeasonWizard || '/auto-schedule/create-season', {
+        const response = await fetch(window.autoScheduleUrls?.createSeasonWizard || '/auto-schedule/create-season-wizard', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

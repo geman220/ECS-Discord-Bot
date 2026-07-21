@@ -71,7 +71,10 @@ window.EventDelegation.register('void-pass', (element, event) => {
     }).then((result) => {
         if (result.isConfirmed) {
             const reason = document.getElementById('void-reason')?.value || 'Voided by admin';
-            const url = passId ? `/admin-panel/wallet/api/passes/${passId}/void` : window.location.pathname.replace('/detail', '/api/passes') + '/void';
+            // Fallback derives the pass id from the detail page path (/admin-panel/wallet/passes/<id>)
+            const url = passId
+                ? `/admin-panel/wallet/api/passes/${passId}/void`
+                : window.location.pathname.replace(/\/passes\/(\d+)\/?$/, '/api/passes/$1') + '/void';
 
             fetch(url, {
                 method: 'POST',
@@ -114,7 +117,10 @@ window.EventDelegation.register('reactivate-pass', (element, event) => {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            const url = passId ? `/admin-panel/wallet/api/passes/${passId}/reactivate` : window.location.pathname.replace('/detail', '/api/passes') + '/reactivate';
+            // Fallback derives the pass id from the detail page path (/admin-panel/wallet/passes/<id>)
+            const url = passId
+                ? `/admin-panel/wallet/api/passes/${passId}/reactivate`
+                : window.location.pathname.replace(/\/passes\/(\d+)\/?$/, '/api/passes/$1') + '/reactivate';
 
             fetch(url, {
                 method: 'POST',

@@ -27,6 +27,19 @@ from app.models.wallet import WalletPass
 logger = logging.getLogger(__name__)
 
 
+def _wallet_passes_disabled_response():
+    """
+    Server-side enforcement of the mobile_wallet_passes admin toggle — the
+    same key the app receives via /app_config to hide the wallet feature.
+    Returns a 403 response when disabled, else None.
+    """
+    from app.models.admin_config import AdminConfig
+    if not AdminConfig.get_setting('mobile_wallet_passes', True):
+        return jsonify({"error": "Membership passes are currently disabled",
+                        "code": "wallet_disabled"}), 403
+    return None
+
+
 def _resolve_member_barcode(session_db, user_id, player, team_name, season_name):
     """Return the stable barcode value for a member.
 
@@ -238,6 +251,9 @@ def generate_membership_pass():
     Returns:
         JSON with new membership pass data in Flutter format
     """
+    disabled = _wallet_passes_disabled_response()
+    if disabled:
+        return disabled
     try:
         with managed_session() as session_db:
             current_user_id = int(get_jwt_identity())
@@ -334,6 +350,9 @@ def download_membership_pass():
     Returns:
         Binary .pkpass file for download
     """
+    disabled = _wallet_passes_disabled_response()
+    if disabled:
+        return disabled
     try:
         with managed_session() as session_db:
             current_user_id = int(get_jwt_identity())
@@ -482,6 +501,9 @@ def download_wallet_pass_file():
     Returns:
         Binary .pkpass file
     """
+    disabled = _wallet_passes_disabled_response()
+    if disabled:
+        return disabled
     try:
         with managed_session() as session_db:
             current_user_id = int(get_jwt_identity())

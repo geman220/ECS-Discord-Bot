@@ -777,33 +777,12 @@ document.addEventListener('DOMContentLoaded', function() {
             color: isDark ? '#f3f4f6' : '#111827'
         });
 
+        // Submit the real form so the server's redirect + flash reports the
+        // actual outcome (the route refuses deletion in some states, and a
+        // fetch cannot tell refusal from success — both are redirects).
         const form = document.getElementById('deleteSeasonForm');
-        form.action = `/publeague/season/delete/${currentSeasonId}`;
-        const formData = new FormData(form);
-
-        fetch(form.action, { method: 'POST', body: formData })
-            .then(response => {
-                if (response.ok) return response.text();
-                throw new Error('Failed to delete');
-            })
-            .then(() => {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Season Deleted',
-                    text: `The ${currentSeasonType} season "${currentSeasonName}" has been deleted.`,
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827'
-                }).then(() => window.location.reload());
-            })
-            .catch(() => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: `Failed to delete the season. Please try again.`,
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827'
-                });
-            });
+        form.action = `{{ url_for('publeague.season.delete_season', season_id=0) }}`.replace(/0$/, currentSeasonId);
+        form.submit();
     });
 });
 </script>

@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch('/admin/playoffs/auto-assign/{{ league.id }}', {
+                    fetch('{{ url_for('playoff.auto_assign_playoffs', league_id=league.id) }}', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
                     })

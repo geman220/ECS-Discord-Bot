@@ -2063,8 +2063,12 @@ def search_players():
         
         session = g.db_session
         
-        # Search players by name (email is encrypted)
-        players = session.query(Player).join(User).filter(
+        # Search players by name (email is encrypted); eager-load the
+        # relationships the serializer reads so a keystroke costs 1 query
+        players = session.query(Player).join(User).options(
+            joinedload(Player.user),
+            joinedload(Player.league)
+        ).filter(
             Player.name.ilike(f'%{query}%')
         ).limit(10).all()
         
@@ -2129,10 +2133,15 @@ def search_players_post():
         
         session = g.db_session
         
-        # Search in players by name only (email and phone are encrypted)
-        name_results = session.query(Player).join(User).filter(
+        # Search in players by name only (email and phone are encrypted).
+        # LIMIT in SQL — this used to materialize every match (plus two lazy
+        # loads per row) and then slice to 20 in Python.
+        name_results = session.query(Player).join(User).options(
+            joinedload(Player.user),
+            joinedload(Player.league)
+        ).filter(
             Player.name.ilike(f'%{search_term}%')
-        ).all()
+        ).limit(20).all()
 
         # Combine and deduplicate results
         all_results = {}

@@ -94,6 +94,31 @@ def register_api_middleware(blueprint: Blueprint):
         logger.warning(f"API access denied for host: {request.host}")
         return jsonify({'error': 'Access Denied'}), 403
 
+    @blueprint.before_request
+    def mobile_app_kill_switch():
+        """
+        Honor the mobile_app_enabled AdminConfig master switch.
+
+        Registered AFTER validate_api_access on purpose: disallowed callers
+        still get their 403 first, so the maintenance state isn't leaked to
+        unauthenticated probers. When an admin turns the switch off, every
+        mobile endpoint returns 503 so the app shows its outage state.
+        /app_config (and its /build CI sub-path) stays reachable — it's what
+        the app reads pre-login to learn the API is down. Exact-path match so
+        a future /api/v1/app_config* sibling route isn't silently exempted.
+        Fails open: get_setting returns the True default if the DB is
+        unreachable.
+        """
+        if request.path == '/api/v1/app_config' or request.path.startswith('/api/v1/app_config/'):
+            return None
+        from app.models.admin_config import AdminConfig
+        if not AdminConfig.get_setting('mobile_app_enabled', True):
+            return jsonify({
+                'error': 'The mobile app is temporarily unavailable for maintenance',
+                'code': 'app_disabled'
+            }), 503
+        return None
+
     @blueprint.after_request
     def log_api_request(response):
         """Log mobile API requests with user, endpoint, status, and timing."""

@@ -1392,7 +1392,6 @@ def draft_league(league_name: str):
     # is on the clock (vs the shared, everyone-sees-it clock bar).
     viewer_team_ids = []
     try:
-        from app.models.players import player_teams
         _pid = getattr(getattr(current_user, 'player', None), 'id', None)
         _team_ids_here = [t.id for t in teams]
         if _pid and _team_ids_here:
@@ -1578,7 +1577,6 @@ def draft_league_pitch_view(league_name: str):
 
     viewer_team_ids = []
     try:
-        from app.models.players import player_teams
         _pid = getattr(getattr(current_user, 'player', None), 'id', None)
         if _pid and team_ids:
             _rows = db.session.query(player_teams.c.team_id).filter(

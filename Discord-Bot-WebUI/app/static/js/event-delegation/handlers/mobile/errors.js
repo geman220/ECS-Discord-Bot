@@ -44,7 +44,7 @@ export function initErrorHandlers(ED) {
             if (result.isConfirmed) {
                 const days = document.getElementById('exportDays')?.value || '7';
                 const format = document.getElementById('exportFormat')?.value || 'csv';
-                const exportUrl = element.dataset.exportUrl || '/admin/mobile/errors';
+                const exportUrl = element.dataset.exportUrl || '/admin-panel/mobile-features/error-analytics/errors';
                 window.location.href = `${exportUrl}?export=true&days=${days}&format=${format}`;
                 window.Swal.fire('Exporting...', 'Your download will start shortly.', 'info');
             }
@@ -88,7 +88,7 @@ export function initErrorHandlers(ED) {
 
             try {
                 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-                const cleanupUrl = element.dataset.cleanupUrl || '/admin/mobile/errors/cleanup';
+                const cleanupUrl = element.dataset.cleanupUrl || '/admin-panel/mobile-features/error-analytics/cleanup';
 
                 const response = await fetch(cleanupUrl, {
                     method: 'POST',

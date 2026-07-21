@@ -79,7 +79,7 @@
                                 <div class="flex flex-wrap items-center gap-1">
                                     <span class="text-xs text-gray-500 dark:text-gray-400">Variables:</span>
                                     {% for var in template.variables %}
-                                    <code class="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">{{{ var }}}</code>
+                                    <code class="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">{{ '{' ~ var ~ '}' }}</code>
                                     {% endfor %}
                                 </div>
                                 {% endif %}
@@ -140,18 +140,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const previewContent = document.getElementById('previewContent');
         previewContent.innerHTML = '<div class="flex justify-center"><i class="ti ti-loader-2 animate-spin text-2xl text-blue-600"></i></div>';
 
-        fetch('/admin/message-config/api/preview/' + templateId)
+        fetch('/admin/messages/api/preview/' + templateId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({})
+        })
             .then(res => res.json())
             .then(data => {
-                if (data.success) {
+                if (data.preview) {
                     previewContent.innerHTML = `
                         <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
-                            <h6 class="font-semibold text-gray-900 dark:text-white mb-2">${data.name}</h6>
                             <div class="whitespace-pre-wrap text-gray-700 dark:text-gray-300 text-sm">${data.preview}</div>
                         </div>
                     `;
                 } else {
-                    previewContent.innerHTML = `<p class="text-red-600 dark:text-red-400">${data.error}</p>`;
+                    previewContent.innerHTML = `<p class="text-red-600 dark:text-red-400">${data.error || 'Failed to load preview'}</p>`;
                 }
             })
             .catch(err => {
@@ -160,11 +163,11 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     window.copyTemplate = function(templateId) {
-        fetch('/admin/message-config/api/content/' + templateId)
+        fetch('/admin/messages/api/template/' + templateId)
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    navigator.clipboard.writeText(data.content).then(() => {
+                    navigator.clipboard.writeText(data.message_content).then(() => {
                         Swal.fire({
                             icon: 'success',
                             title: 'Copied!',

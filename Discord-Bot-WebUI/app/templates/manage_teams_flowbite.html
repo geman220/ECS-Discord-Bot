@@ -433,7 +433,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = `/publeague/team/${teamId}/delete`;
+                    // Backend expects POST /publeague/delete_team with form field team_id
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '{{ url_for('publeague.delete_team') }}';
+
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrf_token';
+                    csrfInput.value = '{{ csrf_token() }}';
+                    form.appendChild(csrfInput);
+
+                    const teamInput = document.createElement('input');
+                    teamInput.type = 'hidden';
+                    teamInput.name = 'team_id';
+                    teamInput.value = teamId;
+                    form.appendChild(teamInput);
+
+                    document.body.appendChild(form);
+                    form.submit();
                 }
             });
         });

@@ -713,7 +713,20 @@ def search_players():
             )
         
         players = base_query.limit(20).all()
-        
+
+        # One batched pool lookup instead of one query per result row —
+        # this endpoint fires per keystroke.
+        player_ids = [p.id for p in players]
+        pools_by_player = {}
+        if player_ids:
+            for pool in session.query(SubstitutePool).options(
+                joinedload(SubstitutePool.league)
+            ).filter(
+                SubstitutePool.player_id.in_(player_ids),
+                SubstitutePool.is_active == True
+            ).all():
+                pools_by_player.setdefault(pool.player_id, []).append(pool)
+
         # Format results
         results = []
         for player in players:
@@ -722,15 +735,8 @@ def search_players():
             for lt, config in LEAGUE_TYPES.items():
                 if any(role.name == config['role'] for role in player.user.roles):
                     eligible_leagues.append(lt)
-            
-            # Check current pool status
-            current_pools = session.query(SubstitutePool).options(
-                joinedload(SubstitutePool.league)
-            ).filter_by(
-                player_id=player.id,
-                is_active=True
-            ).all()
-            
+
+            current_pools = pools_by_player.get(player.id, [])
             current_pool_types = [pool.league.name for pool in current_pools]
             
             results.append({

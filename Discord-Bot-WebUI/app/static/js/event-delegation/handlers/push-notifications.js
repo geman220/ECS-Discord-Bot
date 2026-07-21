@@ -341,7 +341,7 @@ function sendMatchReminder() {
             cancelButtonText: 'Close'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.location.href = '/admin-panel/discord-bot-management';
+                window.location.href = '/admin-panel/discord-bot';
             }
         });
     }
@@ -391,7 +391,7 @@ function viewNotificationLogs() {
             showCancelButton: true
         }).then((result) => {
             if (result.isConfirmed) {
-                window.location.href = '/admin/system_monitoring';
+                window.location.href = '/admin-panel/system-monitoring';
             }
         });
     }

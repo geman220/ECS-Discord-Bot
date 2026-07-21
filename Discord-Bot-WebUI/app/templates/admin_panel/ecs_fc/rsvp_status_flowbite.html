@@ -729,11 +729,14 @@ function sendReminder(matchId) {
         color: isDark ? '#f3f4f6' : '#111827'
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch(`/admin-panel/ecs-fc/match/${matchId}/send-reminder`, {
+            fetch(`/api/ecs-fc/matches/${matchId}/remind`, {
                 method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-                }
+                },
+                // Backend calls request.get_json(); a bodyless POST raises 415
+                body: '{}'
             })
             .then(response => response.json())
             .then(data => {
@@ -748,7 +751,7 @@ function sendReminder(matchId) {
                 } else {
                     Swal.fire({
                         title: 'Error',
-                        text: data.error || 'Failed to send reminder.',
+                        text: data.message || data.error || 'Failed to send reminder.',
                         icon: 'error',
                         background: isDark ? '#1f2937' : '#ffffff',
                         color: isDark ? '#f3f4f6' : '#111827'

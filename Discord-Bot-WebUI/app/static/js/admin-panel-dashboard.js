@@ -129,14 +129,10 @@ function showNavigationSettingsModal(settings) {
           <div>
             ${createToggle('teamsNav', 'Teams Navigation', 'Team rosters and management for pl-premier, pl-classic roles', settings.teams_navigation_enabled)}
             ${createToggle('storeNav', 'Store Navigation', 'League store for coaches and admins', settings.store_navigation_enabled)}
-            ${createToggle('matchesNav', 'Matches Navigation', 'Match schedules and results', settings.matches_navigation_enabled)}
-            ${createToggle('leaguesNav', 'Leagues Navigation', 'League standings and information', settings.leagues_navigation_enabled)}
           </div>
           <div>
+            ${createToggle('leaguesNav', 'Standings Navigation', 'League standings and information', settings.leagues_navigation_enabled)}
             ${createToggle('draftsNav', 'Drafts Navigation', 'Draft system for coaches', settings.drafts_navigation_enabled)}
-            ${createToggle('playersNav', 'Players Navigation', 'Player profiles and statistics', settings.players_navigation_enabled)}
-            ${createToggle('messagingNav', 'Messaging Navigation', 'Communication tools', settings.messaging_navigation_enabled)}
-            ${createToggle('mobileFeaturesNav', 'Mobile Features Navigation', 'Mobile app integration', settings.mobile_features_navigation_enabled)}
           </div>
         </div>
       </div>
@@ -166,15 +162,13 @@ function showNavigationSettingsModal(settings) {
 }
 
 function saveNavigationSettings() {
+    // Only the four toggles that map to a real sidebar item — the server
+    // ignores anything else (see navigation_settings in dashboard.py).
     const formData = {
         teams_navigation_enabled: document.getElementById('teamsNav').checked,
         store_navigation_enabled: document.getElementById('storeNav').checked,
-        matches_navigation_enabled: document.getElementById('matchesNav').checked,
         leagues_navigation_enabled: document.getElementById('leaguesNav').checked,
-        drafts_navigation_enabled: document.getElementById('draftsNav').checked,
-        players_navigation_enabled: document.getElementById('playersNav').checked,
-        messaging_navigation_enabled: document.getElementById('messagingNav').checked,
-        mobile_features_navigation_enabled: document.getElementById('mobileFeaturesNav').checked
+        drafts_navigation_enabled: document.getElementById('draftsNav').checked
     };
 
     return fetch('/admin-panel/navigation-settings', {
@@ -491,18 +485,18 @@ function openMatchReports() {
                 <ul class="mt-2 text-gray-700 dark:text-gray-300 list-disc list-inside">
                   <li>Match results are available on the Matches page</li>
                   <li>Team statistics are on individual Team pages</li>
-                  <li>Season standings on the Leagues page</li>
+                  <li>Season standings on the Standings page</li>
                 </ul>
               </div>
               <div class="flex gap-2 flex-wrap">
-                <a href="/matches" class="px-3 py-2 text-sm font-medium text-ecs-green border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors">
+                <a href="/admin-panel/match-operations" class="px-3 py-2 text-sm font-medium text-ecs-green border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors">
                   <i class="ti ti-calendar me-1"></i>Matches
                 </a>
                 <a href="/teams" class="px-3 py-2 text-sm font-medium text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors dark:text-blue-400 dark:border-blue-400">
                   <i class="ti ti-users me-1"></i>Teams
                 </a>
-                <a href="/leagues" class="px-3 py-2 text-sm font-medium text-green-600 border border-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-colors dark:text-green-400 dark:border-green-400">
-                  <i class="ti ti-trophy me-1"></i>Leagues
+                <a href="/teams/standings" class="px-3 py-2 text-sm font-medium text-green-600 border border-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-colors dark:text-green-400 dark:border-green-400">
+                  <i class="ti ti-trophy me-1"></i>Standings
                 </a>
               </div>
             </div>
@@ -514,8 +508,8 @@ function openMatchReports() {
 }
 
 function generateReport() {
-    // Navigate to matches page for match-related reports
-    window.location.href = '/matches';
+    // Navigate to the admin match operations page for match-related reports
+    window.location.href = '/admin-panel/match-operations';
 }
 
 // ============================================================================

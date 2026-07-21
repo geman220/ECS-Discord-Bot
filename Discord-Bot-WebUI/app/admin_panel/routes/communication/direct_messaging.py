@@ -308,14 +308,20 @@ def sms_status():
 def player_search():
     """Search for players by name for direct messaging."""
     try:
+        from flask import g
+        from sqlalchemy.orm import joinedload
         from app.models import Player
 
         query = request.args.get('q', '').strip()
         if len(query) < 2:
             return jsonify({'players': []})
 
-        # Search players by name
-        players = Player.query.filter(
+        # Search players by name — request session (not Model.query/db.session,
+        # which pins a second pooled connection), user eager-loaded since the
+        # serializer reads notification flags off it for every row.
+        players = g.db_session.query(Player).options(
+            joinedload(Player.user)
+        ).filter(
             Player.name.ilike(f'%{query}%')
         ).limit(20).all()
 

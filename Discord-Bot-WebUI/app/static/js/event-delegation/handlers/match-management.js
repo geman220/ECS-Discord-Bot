@@ -132,8 +132,8 @@ window.EventDelegation.register('verify-match', function(element, e) {
     if (typeof verifyMatch === 'function') {
         verifyMatch(matchId);
     } else {
-        // Fallback: navigate to verification page
-        const verifyUrl = element.dataset.verifyUrl || `/admin/match_verification/${matchId}`;
+        // Fallback: navigate to verification dashboard (route takes no match id)
+        const verifyUrl = element.dataset.verifyUrl || '/admin/match_verification';
         window.location.href = verifyUrl;
     }
 });

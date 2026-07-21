@@ -29,6 +29,7 @@ export function initPlayerSearch(inputSelector, resultsSelector, searchUrl, prof
   let debounceTimer = null;
   let selectedIndex = -1;
   let currentResults = [];
+  let abortController = null;
 
   // Debounced search on input
   input.addEventListener('input', (e) => {
@@ -75,13 +76,23 @@ export function initPlayerSearch(inputSelector, resultsSelector, searchUrl, prof
    * @param {string} term - Search term
    */
   async function fetchResults(term) {
+    // Cancel any in-flight request so a slow earlier response can't
+    // arrive late and overwrite results for what the user typed since.
+    if (abortController) abortController.abort();
+    abortController = new AbortController();
     try {
-      const response = await fetch(`${searchUrl}?term=${encodeURIComponent(term)}`);
+      const response = await fetch(`${searchUrl}?term=${encodeURIComponent(term)}`, {
+        signal: abortController.signal
+      });
       if (!response.ok) throw new Error('Search request failed');
 
       currentResults = await response.json();
+      selectedIndex = -1;
       renderResults();
     } catch (err) {
+      if (err.name === 'AbortError') return;
+      currentResults = [];
+      selectedIndex = -1;
       console.error('[PlayerAutocomplete] Search failed:', err);
       results.innerHTML = `
         <div class="px-4 py-3 text-sm text-red-500 dark:text-red-400">
@@ -106,13 +117,17 @@ export function initPlayerSearch(inputSelector, resultsSelector, searchUrl, prof
       results.innerHTML = currentResults.map((player, i) => {
         const isSelected = i === selectedIndex;
         const selectedClass = isSelected ? 'bg-gray-100 dark:bg-gray-600' : '';
-        const profilePicUrl = player.profile_picture_url || '/static/img/default_player.png';
+        // Attribute-safe: escapeHtml (textContent) doesn't escape quotes,
+        // so quote-strip URL and coerce id to a number before interpolating.
+        const profilePicUrl = (player.profile_picture_url || '/static/img/default_player.png')
+          .replace(/"/g, '%22');
+        const playerId = Number(player.id);
         const playerName = escapeHtml(player.name || 'Unknown Player');
 
         return `
           <div class="flex items-center gap-3 px-4 py-3 cursor-pointer
                       hover:bg-gray-100 dark:hover:bg-gray-600 ${selectedClass}"
-               data-player-id="${player.id}"
+               data-player-id="${playerId}"
                data-index="${i}"
                role="option"
                aria-selected="${isSelected}">
@@ -189,6 +204,10 @@ export function initPlayerSearch(inputSelector, resultsSelector, searchUrl, prof
    * Hide the results dropdown
    */
   function hideResults() {
+    // Abort any in-flight request: without this, a slow response arriving
+    // after dismissal (backspace below min-length, outside click, Escape)
+    // would re-open the dropdown with stale results.
+    if (abortController) abortController.abort();
     results.classList.add('hidden');
     input.setAttribute('aria-expanded', 'false');
     selectedIndex = -1;

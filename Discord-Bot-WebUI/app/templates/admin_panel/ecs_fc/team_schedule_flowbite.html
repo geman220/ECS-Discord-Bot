@@ -526,11 +526,14 @@ function deleteMatch(matchId) {
             fetch(`/admin-panel/ecs-fc/match/${matchId}/delete`, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
-            }).then(response => {
-                if (response.ok) {
+            }).then(response => response.json()).then(data => {
+                if (data.success) {
                     window.location.reload();
+                } else {
+                    Swal.fire({ title: 'Error', text: data.message || 'Failed to delete match.', icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
                 }
             });
         }

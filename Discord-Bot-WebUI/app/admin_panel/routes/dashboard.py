@@ -308,6 +308,18 @@ def dashboard():
         return redirect(url_for('main.index'))
 
 
+# Categories the generic feature-toggles page may display and edit. Everything
+# else is deliberately excluded: 'api_keys'/'api_config'/'api' hold generated
+# secrets or rate limits with their own panel, 'general' collects stray rows
+# written with set_setting's default category, 'communication' is a dead form
+# dump, and 'push_notifications', 'public_site', 'onboarding' and 'wallet' have
+# dedicated editors (with context/notices a bare toggle row here would lose).
+FEATURE_TOGGLE_CATEGORIES = (
+    'navigation', 'registration', 'features', 'system', 'pub_league', 'mls',
+    'ai_assistant', 'mobile_app', 'mobile_features', 'mobile',
+)
+
+
 @admin_panel_bp.route('/features')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -316,7 +328,10 @@ def feature_toggles():
     try:
         # Group settings by category
         categories = {}
-        all_settings = AdminConfig.query.filter_by(is_enabled=True).order_by(
+        all_settings = AdminConfig.query.filter(
+            AdminConfig.is_enabled.is_(True),
+            AdminConfig.category.in_(FEATURE_TOGGLE_CATEGORIES)
+        ).order_by(
             AdminConfig.category, AdminConfig.key
         ).all()
 
@@ -362,6 +377,9 @@ def toggle_setting():
         setting = AdminConfig.query.filter_by(key=setting_key, is_enabled=True).first()
         if not setting:
             return jsonify({'success': False, 'message': 'Setting not found'})
+
+        if setting.category not in FEATURE_TOGGLE_CATEGORIES:
+            return jsonify({'success': False, 'message': 'Setting is not editable from this page'})
 
         if setting.data_type != 'boolean':
             return jsonify({'success': False, 'message': 'Setting is not a boolean type'})
@@ -422,6 +440,12 @@ def update_setting():
             if wants_json:
                 return jsonify({'success': False, 'message': 'Setting not found'})
             flash('Setting not found', 'error')
+            return redirect(url_for('admin_panel.feature_toggles'))
+
+        if setting.category not in FEATURE_TOGGLE_CATEGORIES:
+            if wants_json:
+                return jsonify({'success': False, 'message': 'Setting is not editable from this page'})
+            flash('Setting is not editable from this page', 'error')
             return redirect(url_for('admin_panel.feature_toggles'))
 
         old_value = setting.value
@@ -637,7 +661,7 @@ def system_info():
 @role_required(['Global Admin', 'Pub League Admin'])
 def feature_toggles_redirect():
     """Redirect to main features page."""
-    return redirect(url_for('admin_panel.features'))
+    return redirect(url_for('admin_panel.feature_toggles'))
 
 
 @admin_panel_bp.route('/communication-hub')
@@ -1189,7 +1213,6 @@ def registration_settings():
                 'require_real_name': AdminConfig.get_setting('require_real_name', True),
                 'require_email': AdminConfig.get_setting('require_email', True),
                 'require_phone': AdminConfig.get_setting('require_phone', False),
-                'require_location': AdminConfig.get_setting('require_location', False),
                 'require_jersey_size': AdminConfig.get_setting('require_jersey_size', True),
                 'require_position_preferences': AdminConfig.get_setting('require_position_preferences', True),
                 'require_availability': AdminConfig.get_setting('require_availability', True),
@@ -1217,7 +1240,6 @@ def registration_settings():
                 'require_real_name',
                 'require_email',
                 'require_phone',
-                'require_location',
                 'require_jersey_size',
                 'require_position_preferences',
                 'require_availability',
@@ -1242,7 +1264,6 @@ def registration_settings():
                         'require_real_name': 'Require users to provide their real name during registration',
                         'require_email': 'Require email address during registration',
                         'require_phone': 'Require phone number during registration',
-                        'require_location': 'Require location/address during registration',
                         'require_jersey_size': 'Require jersey size selection during registration',
                         'require_position_preferences': 'Require soccer position preferences during registration',
                         'require_availability': 'Require availability information during registration',

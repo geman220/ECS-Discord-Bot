@@ -135,6 +135,45 @@ def onboarding_submit():
 
         player = session.query(Player).filter_by(user_id=current_user_id).first()
 
+        # Enforce the admin-configured required fields (Registration Settings).
+        # Mirrors get_onboarding_form() in app/main.py, which swaps Optional()
+        # → DataRequired() on the web form for these same toggles — without
+        # this, onboarding via mobile silently bypassed them. A field counts as
+        # satisfied if this payload provides it OR the player record already
+        # has it (mobile submits can be partial). require_email is satisfied
+        # by the account email — mobile onboarding never collects email.
+        # Defaults MUST mirror the admin UI (dashboard.py registration_settings).
+        try:
+            from app.models.admin_config import AdminConfig
+            required_toggles = (
+                ('require_real_name', 'name', True),
+                ('require_phone', 'phone', False),
+                ('require_jersey_size', 'jersey_size', True),
+                ('require_position_preferences', 'favorite_position', True),
+                ('require_availability', 'expected_weeks_available', True),
+                ('require_referee_willingness', 'willing_to_referee', True),
+            )
+            missing = []
+            for setting_key, field, default in required_toggles:
+                if not bool(AdminConfig.get_setting(setting_key, default)):
+                    continue
+                value = data.get(field)
+                if value in (None, ''):
+                    value = getattr(player, field, None) if player else None
+                if value in (None, ''):
+                    missing.append(field)
+            if bool(AdminConfig.get_setting('require_email', True)) and not (user.email or '').strip():
+                missing.append('email')
+            if missing:
+                return jsonify({
+                    "msg": "Missing required fields",
+                    "missing_fields": missing,
+                }), 400
+        except Exception as e:
+            # Never let a settings read break onboarding — mirror the web
+            # form's fail-open behavior (all-optional).
+            logger.warning(f"Could not apply required-field settings to mobile onboarding: {e}")
+
         # Player should usually already exist (created by process_discord_user
         # at sign-up), but we recreate defensively for accounts that pre-date
         # that change.

@@ -194,19 +194,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const resultsDiv = document.getElementById('test-results');
         resultsDiv.innerHTML = '<div class="flex items-center gap-2"><i class="ti ti-loader-2 animate-spin text-blue-600"></i> Testing connection...</div>';
 
-        fetch('/admin/redis/api/test', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
-        })
+        fetch('{{ url_for('redis_admin.test_redis_connection') }}')
         .then(res => res.json())
         .then(data => {
-            if (data.success) {
+            const allPassed = !data.error && data.tests && Object.values(data.tests).every(t => t.status === 'success');
+            if (allPassed) {
                 resultsDiv.innerHTML = `
                     <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                         <div class="flex items-center gap-2 text-green-600 dark:text-green-400 font-medium mb-2">
                             <i class="ti ti-check"></i> Connection Test Passed
                         </div>
-                        <pre class="text-sm text-gray-700 dark:text-gray-300">${JSON.stringify(data.details, null, 2)}</pre>
+                        <pre class="text-sm text-gray-700 dark:text-gray-300">${JSON.stringify(data.tests, null, 2)}</pre>
                     </div>
                 `;
             } else {
@@ -215,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="flex items-center gap-2 text-red-600 dark:text-red-400 font-medium mb-2">
                             <i class="ti ti-x"></i> Connection Test Failed
                         </div>
-                        <p class="text-sm text-gray-700 dark:text-gray-300">${data.error}</p>
+                        <pre class="text-sm text-gray-700 dark:text-gray-300">${data.error || JSON.stringify(data.tests, null, 2)}</pre>
                     </div>
                 `;
             }
@@ -244,10 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
             color: isDark ? '#f3f4f6' : '#111827'
         }).then((result) => {
             if (result.isConfirmed) {
-                fetch('/admin/redis/api/cleanup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
-                })
+                fetch('{{ url_for('redis_admin.cleanup_connections') }}')
                 .then(res => res.json())
                 .then(data => {
                     Swal.fire({

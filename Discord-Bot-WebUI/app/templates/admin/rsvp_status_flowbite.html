@@ -671,13 +671,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const matchId = this.dataset.matchId;
             const response = this.dataset.response;
 
-            fetch('/api/rsvp/update', {
+            fetch('{{ url_for('admin.update_rsvp') }}', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify({
+                body: new URLSearchParams({
                     player_id: playerId,
                     match_id: matchId,
                     response: response

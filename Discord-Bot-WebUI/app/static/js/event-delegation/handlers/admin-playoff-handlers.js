@@ -83,9 +83,9 @@ async function promptForLeagueAndNavigate(page, title) {
 
     if (leagueId) {
         const urls = {
-            'manage': `/playoffs/league/${leagueId}/manage`,
-            'generator': `/playoffs/league/${leagueId}/generator`,
-            'bracket': `/playoffs/league/${leagueId}/bracket`
+            'manage': `/admin/playoffs/league/${leagueId}/manage`,
+            'generator': `/admin/playoffs/league/${leagueId}/generator`,
+            'bracket': `/admin/playoffs/league/${leagueId}/bracket`
         };
         window.location.href = urls[page] || urls['manage'];
     }
@@ -177,7 +177,7 @@ window.EventDelegation.register('manage-tournament', function(element, e) {
     const leagueId = element.dataset.leagueId;
 
     if (leagueId) {
-        window.location.href = `/playoffs/league/${leagueId}/manage`;
+        window.location.href = `/admin/playoffs/league/${leagueId}/manage`;
     } else {
         promptForLeagueAndNavigate('manage', 'Manage Tournament');
     }
@@ -194,7 +194,7 @@ window.EventDelegation.register('view-bracket', function(element, e) {
     const leagueId = element.dataset.leagueId;
 
     if (leagueId) {
-        window.location.href = `/playoffs/league/${leagueId}/bracket`;
+        window.location.href = `/admin/playoffs/league/${leagueId}/bracket`;
     } else {
         promptForLeagueAndNavigate('bracket', 'View Bracket');
     }

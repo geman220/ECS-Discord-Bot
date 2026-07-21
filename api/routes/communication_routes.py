@@ -424,6 +424,66 @@ async def get_channel_by_name(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/api/channels/message")
+async def post_channel_message(
+    payload: dict = Body(...),
+    bot: commands.Bot = Depends(get_bot)
+):
+    """
+    Post a plain message (or simple embed) to a channel by name or ID.
+
+    Body:
+        channel_name (str, optional) — resolved case-insensitively
+        channel_id   (int, optional) — takes precedence over channel_name
+        content      (str, optional) — plain message text
+        embed        (dict, optional) — {title, description, color(int), footer}
+
+    At least one of content/embed is required. Used by the WebUI for admin
+    housekeeping posts (e.g. approval-queue notifications).
+    """
+    content = (payload.get('content') or '').strip() or None
+    embed_data = payload.get('embed') or None
+    if not content and not embed_data:
+        raise HTTPException(status_code=400, detail="content or embed is required")
+
+    channel_id = payload.get('channel_id')
+    try:
+        channel_id = int(channel_id) if channel_id else None
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="channel_id must be an integer")
+
+    try:
+        channel = await resolve_channel(bot, channel_id, payload.get('channel_name'))
+
+        embed = None
+        if embed_data:
+            embed = discord.Embed(
+                title=str(embed_data.get('title') or '')[:256] or None,
+                description=str(embed_data.get('description') or '')[:4000] or None,
+                color=int(embed_data.get('color') or 0x5865F2),
+            )
+            if embed_data.get('footer'):
+                embed.set_footer(text=str(embed_data['footer'])[:2048])
+
+        message = await channel.send(content=content, embed=embed)
+        logger.info(f"Posted channel message to #{channel.name} ({channel.id})")
+        return {
+            "status": "success",
+            "message_id": message.id,
+            "channel_id": channel.id,
+            "channel_name": channel.name,
+        }
+    except HTTPException:
+        raise
+    except discord.Forbidden:
+        raise HTTPException(status_code=403, detail="Bot lacks permission to post in that channel")
+    except discord.HTTPException as e:
+        raise HTTPException(status_code=e.status, detail=f"Discord API error: {e.text}")
+    except Exception as e:
+        logger.error(f"Error posting channel message: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/api/schedule-image/announce")
 async def post_schedule_image_announcement(
     image: UploadFile = File(...),

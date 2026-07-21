@@ -569,6 +569,15 @@ def public_site_appearance():
         'accent_contrast': contrast_ratio(accent),
         'discord_invite_url': g_('discord_invite_url', None),
         'ga4_measurement_id': g_('ga4_measurement_id', None),
+        # Hero + integration keys that used to be DB-only. Defaults here MUST
+        # mirror the consumers (public_site.py / section_converter.py /
+        # tasks_public_site.py / pub_league/membership.py) so the form shows
+        # exactly what the site is doing when a key was never saved.
+        'hero_overlay': g_('public_hero_overlay', 'medium'),
+        'hero_focal': g_('public_hero_focal', '50% 50%'),
+        'news_discord_channel_id': g_('public_news_discord_channel_id', None),
+        'ecs_member_login_url': g_('ecs_member_login_url',
+                                   '{shop}/wp-login.php?redirect_to={redirect}'),
     }
     return render_template('admin_panel/public_site/appearance_flowbite.html',
                            settings=settings, font_pairs=FONT_PAIRS)
@@ -600,6 +609,47 @@ def public_site_appearance_save():
     set_('public_font_pair', font_pair if font_pair in FONT_PAIRS else 'modern')
     set_('discord_invite_url', (request.form.get('discord_invite_url') or '').strip() or None)
     set_('ga4_measurement_id', (request.form.get('ga4_measurement_id') or '').strip() or None)
+
+    # Hero overlay/focal + integration keys. These are validated hard and
+    # never stored empty/None where a consumer would choke on it:
+    #  - overlay outside the allow-list falls back to 'medium'
+    #  - focal is normalized to a clamped 'X% Y%' pair (section_converter's
+    #    _focal_pair silently recenters garbage, but the stored value also
+    #    feeds CSS object-position directly, so normalize on write)
+    #  - ecs_member_login_url must keep the {redirect} placeholder — a blank
+    #    or placeholder-less value would break the WooCommerce member-price
+    #    login redirect (membership.py does .replace on it)
+    overlay = (request.form.get('hero_overlay') or '').strip().lower()
+    set_('public_hero_overlay', overlay if overlay in ('none', 'light', 'medium', 'heavy') else 'medium')
+
+    import re as _re
+    focal_raw = (request.form.get('hero_focal') or '').strip()
+    m = _re.fullmatch(r'(\d{1,3})%?\s+(\d{1,3})%?', focal_raw)
+    if m:
+        fx = min(100, max(0, int(m.group(1))))
+        fy = min(100, max(0, int(m.group(2))))
+        set_('public_hero_focal', f'{fx}% {fy}%')
+    else:
+        set_('public_hero_focal', '50% 50%')
+        if focal_raw:
+            flash('Hero focal point must look like "50% 30%" — reset to centered.', 'warning')
+
+    news_channel = (request.form.get('news_discord_channel_id') or '').strip()
+    if news_channel and not news_channel.isdigit():
+        flash('News Discord channel must be a numeric channel ID — left unchanged off.', 'warning')
+        news_channel = ''
+    # Empty = feature off (the announce task skips when unset).
+    set_('public_news_discord_channel_id', news_channel or None)
+
+    _MEMBER_LOGIN_DEFAULT = '{shop}/wp-login.php?redirect_to={redirect}'
+    member_login = (request.form.get('ecs_member_login_url') or '').strip()[:300]
+    if not member_login:
+        member_login = _MEMBER_LOGIN_DEFAULT
+    elif '{redirect}' not in member_login:
+        flash('Member login URL must contain {redirect} — reset to the default.', 'warning')
+        member_login = _MEMBER_LOGIN_DEFAULT
+    set_('ecs_member_login_url', member_login)
+
     flash('Appearance saved — your colors and fonts are live across the site.', 'success')
     _bump_public()
     return redirect(url_for('admin_panel.public_site_appearance'))

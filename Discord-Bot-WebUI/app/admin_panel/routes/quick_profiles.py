@@ -409,7 +409,11 @@ def search_players_for_quick_profile():
     if len(search) < 2:
         return jsonify({'success': True, 'players': []})
 
-    players = Player.query.filter(
+    from sqlalchemy.orm import selectinload
+
+    players = g.db_session.query(Player).options(
+        selectinload(Player.teams)
+    ).filter(
         Player.name.ilike(f'%{search}%'),
         Player.is_current_player == True
     ).order_by(Player.name).limit(20).all()
@@ -419,7 +423,7 @@ def search_players_for_quick_profile():
         'players': [{
             'id': p.id,
             'name': p.name,
-            'profile_picture_url': p.profile_picture_url,
+            'profile_picture_url': p.avatar_image_url,
             'teams': [t.name for t in p.teams[:2]]
         } for p in players]
     })

@@ -377,7 +377,9 @@ def _check_push_service_status():
             # as disabled 100% of the time regardless of the real setting. get_setting()
             # returns the *parsed* value (a real bool when data_type='boolean'), but fall
             # back to string coercion in case the row was stored as a plain string.
-            raw = AdminConfig.get_setting('push_notifications_enabled', False)
+            # mobile_push_notifications is the key the app reads via /app_config
+            # (the old push_notifications_enabled ghost flag was removed 2026-07).
+            raw = AdminConfig.get_setting('mobile_push_notifications', True)
             push_enabled = raw if isinstance(raw, bool) else str(raw).strip().lower() in ('true', '1', 'yes', 'on')
         except Exception:
             push_enabled = False

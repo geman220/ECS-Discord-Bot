@@ -28,9 +28,9 @@
     <div class="code">429 · Too many requests</div>
     <h1>Give it a sec.</h1>
     <p>You're going faster than we can keep up. Wait a moment, then try again.</p>
-    <a class="btn" href="/">Back to home</a>
+    <a class="btn" href="{{ url_for('public.home') }}">Back to home</a>
     <div class="links">
-      <a href="/about">About</a>·<a href="/calendar">Calendar</a>·<a href="/faqs">FAQs</a>·<a href="/contact">Contact</a>
+      <a href="{{ url_for('public.about') }}">About</a>·<a href="{{ url_for('public.calendar') }}">Calendar</a>·<a href="{{ url_for('public.faqs') }}">FAQs</a>·<a href="{{ url_for('public.contact') }}">Contact</a>
     </div>
   </div>
 </body>

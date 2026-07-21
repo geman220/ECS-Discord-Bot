@@ -397,7 +397,6 @@ def handle_join_lineup_room(data):
                 if not teams_are_public() and (
                         is_current_pub_league_team(match.home_team)
                         or is_current_pub_league_team(match.away_team)):
-                    from app.models import User
                     _user = session.query(User).get(user_id)
                     if not user_is_team_exempt(_user, session=session):
                         leave_room(room_key)

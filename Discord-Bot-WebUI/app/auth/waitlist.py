@@ -657,7 +657,18 @@ def _update_player_profile(db_session, user, discord_id, discord_email, discord_
 
     # Update user preferences
     user.preferred_league = preferred_league
+    was_already_pending = (user.approval_status == 'pending' and not is_new_user)
     user.approval_status = 'pending'
+    # Surface the waitlist signup in the admin approval channel — this helper
+    # is the single spot both waitlist paths go through. Only on the FIRST
+    # transition into the queue: a returning user re-submitting the waitlist
+    # form was already pending and must not re-post on every profile edit.
+    if not was_already_pending:
+        try:
+            from app.auth.registration import _notify_approval_queue
+            _notify_approval_queue(user.id)
+        except Exception:
+            logger.warning(f"Could not dispatch approval-queue notification for user {user.id}")
     user.has_completed_onboarding = True
     user.has_skipped_profile_creation = False
     user.has_completed_tour = False

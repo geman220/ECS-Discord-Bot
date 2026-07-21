@@ -13,7 +13,7 @@ Routes for substitute pool management:
 import logging
 from datetime import datetime
 
-from flask import render_template, request, jsonify, flash, redirect, url_for
+from flask import render_template, request, jsonify, flash, redirect, url_for, g
 from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
 
@@ -698,7 +698,9 @@ def substitute_pool_player_search():
             return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
         # Build base query (email is encrypted, search by Player.name and User.username only)
-        base_query = Player.query.options(
+        # g.db_session, not Player.query — Model.query is db.session, a second
+        # pooled connection this JSON endpoint would hold for its whole life.
+        base_query = g.db_session.query(Player).options(
             joinedload(Player.user).joinedload(User.roles)
         ).join(User).filter(
             or_(
@@ -709,6 +711,17 @@ def substitute_pool_player_search():
 
         players = base_query.limit(20).all()
 
+        # One batched pool lookup instead of one query per result row —
+        # this endpoint fires per keystroke.
+        player_ids = [p.id for p in players]
+        pools_by_player = {}
+        if player_ids:
+            for pool in g.db_session.query(SubstitutePool).filter(
+                SubstitutePool.player_id.in_(player_ids),
+                SubstitutePool.is_active == True
+            ).all():
+                pools_by_player.setdefault(pool.player_id, []).append(pool)
+
         # Format results
         results = []
         for player in players:
@@ -718,12 +731,7 @@ def substitute_pool_player_search():
                 if player.user and any(role.name == config['role'] for role in player.user.roles):
                     eligible_leagues.append(lt)
 
-            # Check current pool status
-            current_pools = SubstitutePool.query.filter_by(
-                player_id=player.id,
-                is_active=True
-            ).all()
-
+            current_pools = pools_by_player.get(player.id, [])
             current_pool_types = [pool.league_type for pool in current_pools]
 
             results.append({

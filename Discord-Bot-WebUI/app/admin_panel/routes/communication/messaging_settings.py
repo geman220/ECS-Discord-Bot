@@ -328,60 +328,9 @@ def messaging_stats_api():
 # -----------------------------------------------------------
 # General Communication Settings
 # -----------------------------------------------------------
-
-@admin_panel_bp.route('/communication/settings/save', methods=['POST'])
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-@transactional
-def save_communication_settings():
-    """Save general communication settings from form data."""
-    try:
-        from app.models.admin_config import AdminConfig
-
-        form_data = request.form
-        changes = []
-
-        for key in form_data:
-            if key == 'csrf_token':
-                continue
-
-            value = form_data[key]
-            config_key = f'communication_{key}'
-
-            existing = AdminConfig.query.filter_by(key=config_key).first()
-            if existing:
-                if existing.value != value:
-                    changes.append(f"{key}: {existing.value} -> {value}")
-                    existing.value = value
-                    existing.updated_by = current_user.id
-            else:
-                new_config = AdminConfig(
-                    key=config_key,
-                    value=value,
-                    category='communication',
-                    data_type='string',
-                    description=f'Communication setting: {key}',
-                    updated_by=current_user.id
-                )
-                db.session.add(new_config)
-                changes.append(f"{key}: (new) -> {value}")
-
-        if changes:
-            AdminAuditLog.log_action(
-                user_id=current_user.id,
-                action='update_communication_settings',
-                resource_type='communication_settings',
-                resource_id='general',
-                new_value='; '.join(changes[:5]),
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-
-        return jsonify({'success': True, 'message': 'Settings saved successfully'})
-
-    except Exception as e:
-        logger.error(f"Error saving communication settings: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+# REMOVED 2026-07: save_communication_settings (/communication/settings/save).
+# It dumped every posted form field into communication_* AdminConfig rows that
+# no code ever read, and no template rendered a form posting to it.
 
 
 @admin_panel_bp.route('/communication/settings/test-webhook', methods=['POST'])

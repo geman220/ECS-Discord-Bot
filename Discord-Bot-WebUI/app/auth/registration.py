@@ -29,6 +29,19 @@ from app.utils.log_sanitizer import mask_code
 logger = logging.getLogger(__name__)
 
 
+def _notify_approval_queue(user_id):
+    """Best-effort Discord channel notification for a new pending signup.
+
+    The countdown lets the registration transaction commit before the Celery
+    task re-reads the user row. Never allowed to break registration.
+    """
+    try:
+        from app.tasks.tasks_onboarding_notifications import notify_pending_approval
+        notify_pending_approval.apply_async(args=[user_id], countdown=10)
+    except Exception as e:
+        logger.warning(f"Could not dispatch approval-queue notification for user {user_id}: {e}")
+
+
 @auth.route('/register', methods=['GET', 'POST'])
 @limiter.limit(
     # POST only — set_password() runs scrypt, which under gevent blocks every greenlet
@@ -65,7 +78,14 @@ def register():
                 _approval_required = bool(AdminConfig.get_setting('admin_approval_required', True))
             except Exception:
                 _approval_required = True
-            roles = Role.query.filter(Role.name.in_(form.roles.data)).all()
+            # Everything on g.db_session, the session @transactional commits.
+            # Roles MUST come from the same session the user is added to —
+            # loading them via Role.query (db.session) and adding the user to
+            # g.db_session cross-attaches the Role rows and raises
+            # InvalidRequestError. (The old code also returned the raw user
+            # object in the response tuple and never added it to a session, so
+            # password registration silently created no row at all.)
+            roles = g.db_session.query(Role).filter(Role.name.in_(form.roles.data)).all()
             user = User(
                 username=form.username.data,
                 email=form.email.data,
@@ -74,9 +94,13 @@ def register():
                 roles=roles
             )
             user.set_password(form.password.data)
+            g.db_session.add(user)
+            g.db_session.flush()
+            if _approval_required:
+                _notify_approval_queue(user.id)
             show_info('Account created and pending approval.' if _approval_required
                       else 'Account created — you can now log in.')
-            return user, redirect(url_for('auth.login'))
+            return redirect(url_for('auth.login'))
         except Exception as e:
             logger.error(f"Registration error: {str(e)}")
             show_error('Registration failed. Please try again.')
@@ -321,6 +345,8 @@ def register_with_discord():
         new_user.set_password(temp_password)
         db_session.add(new_user)
         db_session.flush()
+        if _approval_required:
+            _notify_approval_queue(new_user.id)
 
         # If a Player with this discord_id already exists as an orphan
         # (legacy roster entry, no user_id) adopt it instead of creating a
