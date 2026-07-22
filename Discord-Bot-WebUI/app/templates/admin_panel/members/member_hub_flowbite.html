@@ -42,13 +42,22 @@
           {% if not m.user.is_active %}
           <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300">Disabled</span>
           {% endif %}
+          {% if m.player %}
+            {% if m.is_returning %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300"><i class="ti ti-repeat text-[12px]"></i>Returning</span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300"><i class="ti ti-sparkles text-[12px]"></i>New</span>
+            {% endif %}
+          {% endif %}
         </div>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">
           @{{ m.user.username }}{% if m.user.email %} · {{ m.user.email }}{% endif %}
         </p>
         {% if m.player and m.player.discord_id %}
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
-          <i class="ti ti-brand-discord text-[14px] text-indigo-500"></i>{{ m.player.discord_id }}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1 flex-wrap">
+          <i class="ti ti-brand-discord text-[14px] text-indigo-500"></i>
+          <span class="font-medium text-gray-700 dark:text-gray-300">{{ m.player.discord_username or m.player.discord_id }}</span>
+          {% if m.player.discord_username %}<span class="font-mono text-gray-400">· {{ m.player.discord_id }}</span>{% endif %}
           {% if m.player.discord_in_server %}<span class="text-green-600 dark:text-green-400">· in server</span>
           {% elif m.player.discord_in_server is not none %}<span class="text-amber-600 dark:text-amber-400">· not in server</span>{% endif %}
         </p>
@@ -56,12 +65,13 @@
       </div>
       <div class="flex items-center gap-2">
         {% if approval != 'approved' %}
-        <a href="{{ url_for('admin_panel.user_approvals') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">
+        <!-- In-page jump to the inline approve/deny controls below — self-contained, no old page. -->
+        <a href="#member-approval" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">
           <i class="ti ti-user-check text-[16px]"></i>Review approval
         </a>
         {% endif %}
-        <a href="{{ url_for('admin_panel.users_comprehensive') }}?q={{ m.user.username | urlencode }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
-          <i class="ti ti-edit text-[16px]"></i>Manage
+        <a href="{{ url_for('admin_panel.members_worklist') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+          <i class="ti ti-arrow-left text-[16px]"></i>All members
         </a>
       </div>
     </div>
@@ -126,7 +136,6 @@
       <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
         <i class="ti ti-shield-cog text-ecs-green"></i>
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Roles &amp; team</h2>
-        <a href="{{ url_for('admin_panel.users_comprehensive') }}?q={{ m.user.username | urlencode }}" class="ms-auto text-xs text-gray-400 hover:text-ecs-green">Full editor &rarr;</a>
       </div>
       <div class="p-4 sm:p-5 space-y-4">
         {% if m.player %}
@@ -191,7 +200,7 @@
     </section>
 
     <!-- ===== Approval & account ===== -->
-    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+    <section id="member-approval" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 scroll-mt-20">
       <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
         <i class="ti ti-shield-check text-ecs-green"></i>
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Approval &amp; account</h2>
@@ -254,36 +263,51 @@
                 {% if s.status == 'active' %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300
                 {% elif s.status == 'resting' %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300
                 {% else %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300{% endif %}">{{ s.status }}</span>
+              {# All sub controls use the self-contained, BOTH-pool-aware Member endpoints
+                 (member_sub_set_active / member_sub_assign / member_sub_remove), so ECS FC
+                 subs — which live in EcsFcSubPool, not SubstitutePool — work here too. #}
               {% if s.status == 'active' %}
-              <button data-action-sub data-active="false" data-player="{{ m.player.id }}"
-                      data-url="{{ url_for('admin_panel.set_pool_member_active', league_type=s.lane_label) }}"
+              <button data-action-subctl data-lane="{{ s.lane_label }}" data-active="false"
+                      data-url="{{ url_for('admin_panel.member_sub_set_active', user_id=m.user.id) }}"
                       class="text-[11px] px-2 py-0.5 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Rest</button>
               {% elif s.status == 'resting' %}
-              <button data-action-sub data-active="true" data-player="{{ m.player.id }}"
-                      data-url="{{ url_for('admin_panel.set_pool_member_active', league_type=s.lane_label) }}"
+              <button data-action-subctl data-lane="{{ s.lane_label }}" data-active="true"
+                      data-url="{{ url_for('admin_panel.member_sub_set_active', user_id=m.user.id) }}"
                       class="text-[11px] px-2 py-0.5 rounded border border-ecs-green/40 text-ecs-green hover:bg-ecs-green/10">Wake</button>
               {% endif %}
               {% if s.status == 'pending' %}
-              <button data-action-subpool data-subpool-action="approve" data-player="{{ m.player.id }}"
-                      data-url="{{ url_for('admin_panel.approve_pool_member', league_type=s.lane_label) }}"
+              <button data-action-subctl data-lane="{{ s.lane_label }}" data-active="true"
+                      data-url="{{ url_for('admin_panel.member_sub_assign', user_id=m.user.id) }}"
                       class="text-[11px] px-2 py-0.5 rounded border border-ecs-green/40 text-ecs-green hover:bg-ecs-green/10">Approve</button>
               <button data-action-subreject data-lane="{{ s.lane_label }}"
                       data-url="{{ url_for('admin_panel.member_sub_reject', user_id=m.user.id) }}"
                       class="text-[11px] px-2 py-0.5 rounded border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Reject</button>
               {% endif %}
-              {% if s.status == 'active' %}
-              {# remove_player_from_pool only handles ACTIVE members (deactivates + strips the sub role) #}
-              <button data-action-subpool data-subpool-action="remove" data-player="{{ m.player.id }}"
-                      data-url="{{ url_for('admin_panel.remove_player_from_pool', league_type=s.lane_label) }}"
+              {% if s.status in ('active', 'resting') %}
+              <button data-action-subctl data-lane="{{ s.lane_label }}" data-confirm="Remove this player from the {{ s.lane_label }} sub pool?"
+                      data-url="{{ url_for('admin_panel.member_sub_remove', user_id=m.user.id) }}"
                       class="text-[11px] px-2 py-0.5 rounded border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Remove</button>
               {% endif %}
             </div>
           </div>
           {% endfor %}
         </div>
-        <a href="{{ url_for('admin_panel.substitute_pools', context='pub-league') }}" class="inline-flex items-center gap-1 text-xs text-ecs-green hover:underline mt-3"><i class="ti ti-external-link text-[13px]"></i>Manage in Sub Ops</a>
         {% else %}
         <p class="text-gray-500 dark:text-gray-400">Not in any substitute pool this season.</p>
+        {% endif %}
+        {% if m.player %}
+        <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+          <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Assign to a sub pool</p>
+          <div class="flex items-center gap-2 flex-wrap">
+            <select data-subassign-lane aria-label="Sub pool league" class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1.5 pe-8">
+              <option value="Classic">Classic</option><option value="Premier">Premier</option><option value="ECS FC">ECS FC</option>
+            </select>
+            <label class="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300"><input type="checkbox" data-subassign-active checked class="rounded border-gray-300 dark:border-gray-600"> active now</label>
+            <button data-action-subassign data-url="{{ url_for('admin_panel.member_sub_assign', user_id=m.user.id) }}"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-plus"></i>Add to subs</button>
+          </div>
+          <p class="text-[10px] text-gray-400 mt-1.5">Subs play free — this grants the sub role + Discord role, no payment involved.</p>
+        </div>
         {% endif %}
       </div>
     </section>
@@ -344,6 +368,222 @@
                   class="text-[11px] px-2 py-1 rounded border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Remove from waitlist</button>
         </div>
         {% endif %}
+      </div>
+    </section>
+
+    <!-- ===== Stats ===== -->
+    {% if m.player %}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-chart-bar text-ecs-green"></i>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Career stats</h2>
+      </div>
+      <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-4 gap-2 text-center">
+          <div><div class="font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ m.stats.career_goals if m.stats else 0 }}</div><div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Goals</div></div>
+          <div><div class="font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ m.stats.career_assists if m.stats else 0 }}</div><div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Assists</div></div>
+          <div><div class="font-mono text-2xl font-bold text-amber-500">{{ m.stats.career_yellow if m.stats else 0 }}</div><div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Yellow</div></div>
+          <div><div class="font-mono text-2xl font-bold text-red-500">{{ m.stats.career_red if m.stats else 0 }}</div><div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Red</div></div>
+        </div>
+        {% if extras.season_stats %}
+        <details class="mt-4">
+          <summary class="text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer hover:text-ecs-green">Per season ({{ extras.season_stats | length }})</summary>
+          <div class="mt-2 overflow-x-auto"><table class="w-full text-xs">
+            <thead><tr class="text-left text-[10px] uppercase text-gray-400"><th class="py-1 pe-3">Season</th><th class="py-1 pe-3">G</th><th class="py-1 pe-3">A</th><th class="py-1 pe-3">Y</th><th class="py-1">R</th></tr></thead>
+            <tbody>{% for s in extras.season_stats %}<tr class="border-t border-gray-100 dark:border-gray-700/60"><td class="py-1 pe-3 text-gray-700 dark:text-gray-300">{{ s.season_name }}</td><td class="py-1 pe-3 font-mono">{{ s.goals }}</td><td class="py-1 pe-3 font-mono">{{ s.assists }}</td><td class="py-1 pe-3 font-mono text-amber-500">{{ s.yellow }}</td><td class="py-1 font-mono text-red-500">{{ s.red }}</td></tr>{% endfor %}</tbody>
+          </table></div>
+        </details>
+        {% elif not (m.stats and m.stats.has_data) %}
+        <p class="text-xs text-gray-400 mt-3">No match stats recorded yet.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- ===== Orders / passes ===== -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-shopping-cart text-ecs-green"></i>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Orders &amp; passes</h2>
+      </div>
+      <div class="p-4 sm:p-5 text-sm">
+        {% if extras.orders %}
+        <div class="overflow-x-auto"><table class="w-full text-xs">
+          <thead><tr class="text-left text-[10px] uppercase text-gray-400"><th class="py-1 pe-3">Season</th><th class="py-1 pe-3">Status</th><th class="py-1 pe-3">Passes</th><th class="py-1 pe-3 hidden sm:table-cell">Date</th><th class="py-1">Order</th></tr></thead>
+          <tbody>
+          {% for o in extras.orders %}
+          <tr class="border-t border-gray-100 dark:border-gray-700/60">
+            <td class="py-1.5 pe-3 text-gray-700 dark:text-gray-300">{{ o.season_name }}</td>
+            <td class="py-1.5 pe-3"><span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold {% if o.status in ['completed','paid','linked'] %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300{% elif o.status == 'pending' %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ o.status }}</span></td>
+            <td class="py-1.5 pe-3 font-mono">{{ o.linked_passes }}/{{ o.total_passes }}</td>
+            <td class="py-1.5 pe-3 font-mono text-gray-500 hidden sm:table-cell">{{ o.created_at }}</td>
+            <td class="py-1.5 font-mono text-gray-500">#{{ o.woo_order_id }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+        {% else %}
+        <p class="text-gray-500 dark:text-gray-400">No season-pass orders on record for this account.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- ===== Season & team history ===== -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-history text-ecs-green"></i>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Season &amp; team history</h2>
+      </div>
+      <div class="p-4 sm:p-5 text-sm">
+        {% if extras.team_history %}
+        <div class="space-y-1.5">
+          {% for h in extras.team_history %}
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-gray-900 dark:text-white">{{ h.team_name }}{% if h.is_coach %} <span class="text-[10px] font-semibold px-1 rounded bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300">COACH</span>{% endif %}</span>
+            <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ h.season_name }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 dark:text-gray-400">No prior team assignments on record.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    {% endif %}
+
+    <!-- ===== Audit trail (user-level — shown even for a pending account with no player) ===== -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-file-description text-ecs-green"></i>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Audit trail</h2>
+      </div>
+      <div class="p-4 sm:p-5 text-sm">
+        {% if extras.approver or m.user.approved_at %}
+        <div class="mb-2 text-xs text-gray-600 dark:text-gray-300"><i class="ti ti-user-check text-green-500"></i> Approved{% if extras.approver %} by <strong>{{ extras.approver }}</strong>{% endif %}{% if m.user.approved_at %} on {{ m.user.approved_at[:10] }}{% endif %}.</div>
+        {% endif %}
+        {% if extras.audit %}
+        <ul class="space-y-1.5">
+          {% for a in extras.audit %}
+          <li class="flex items-start gap-2 text-xs">
+            <i class="ti ti-point text-gray-300 mt-0.5"></i>
+            <div><span class="font-medium text-gray-800 dark:text-gray-200">{{ a.action }}</span> <span class="text-gray-400">· {{ a.actor }} · {{ a.when }}</span>{% if a.detail %}<div class="text-gray-500 dark:text-gray-400 truncate">{{ a.detail }}</div>{% endif %}</div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-gray-500 dark:text-gray-400 text-xs">No recorded admin actions for this account yet.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- ===== Metrics & engagement ===== -->
+    {% if m.player and extras.metrics %}
+    {% set mx = extras.metrics %}
+    <section class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-chart-histogram text-ecs-green"></i>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Metrics &amp; engagement</h2>
+      </div>
+      <div class="p-4 sm:p-5 space-y-5">
+
+        {% macro ratebar(label, pct, tone) %}
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+          <div class="flex items-center justify-between"><span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ label }}</span><span class="font-mono text-lg font-bold {{ tone }}">{{ pct }}%</span></div>
+          <div class="mt-1.5 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden"><div class="h-full {{ 'bg-green-500' if tone.startswith('text-green') else ('bg-blue-500' if tone.startswith('text-blue') else 'bg-amber-500') }}" style="width:{{ [pct, 100] | min }}%"></div></div>
+        </div>
+        {% endmacro %}
+
+        {% if mx.attendance %}
+        <div>
+          <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">RSVP &amp; attendance</p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {{ ratebar('Response rate', mx.attendance.response_rate, 'text-blue-600 dark:text-blue-400') }}
+            {{ ratebar('Attendance (yes)', mx.attendance.attendance_rate, 'text-green-600 dark:text-green-400') }}
+            {{ ratebar('Adjusted', mx.attendance.adjusted_rate, 'text-green-600 dark:text-green-400') }}
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+              <div class="flex items-center justify-between"><span class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Reliability</span><span class="font-mono text-lg font-bold text-ecs-green">{{ mx.attendance.reliability }}</span></div>
+              <p class="text-[10px] text-gray-400 mt-1">composite score</p>
+            </div>
+          </div>
+          <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-2">Invited {{ mx.attendance.invited }} · responded {{ mx.attendance.responses }} · said yes {{ mx.attendance.yes }} · ghosted the RSVP {{ mx.attendance.no_response }}{% if mx.attendance.season_rate %} · this season {{ mx.attendance.season_rate }}% yes{% endif %}{% if mx.attendance.last_match %} · last match {{ mx.attendance.last_match }}{% endif %}</p>
+        </div>
+        {% endif %}
+
+        {% if mx.sub %}
+        <div>
+          <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Sub responsiveness</p>
+          <div class="flex items-center gap-4 flex-wrap text-sm">
+            <div><span class="font-mono text-lg font-bold text-blue-600 dark:text-blue-400">{{ mx.sub.accept_rate }}%</span> <span class="text-gray-500 dark:text-gray-400">accept rate</span></div>
+            <div class="text-gray-500 dark:text-gray-400">requested <span class="font-mono text-gray-800 dark:text-gray-200">{{ mx.sub.received }}</span> · accepted <span class="font-mono text-gray-800 dark:text-gray-200">{{ mx.sub.accepted }}</span> · played <span class="font-mono text-gray-800 dark:text-gray-200">{{ mx.sub.played }}</span></div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div>
+          <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Retention &amp; league path</p>
+          <p class="text-sm text-gray-700 dark:text-gray-300 mb-2"><span class="font-mono font-bold">{{ mx.seasons_played }}</span> season{{ 's' if mx.seasons_played != 1 else '' }} played.</p>
+          {% if mx.league_path %}
+          <div class="flex items-center gap-1.5 flex-wrap text-xs">
+            {% for s in mx.league_path %}
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg {% if s.league and 'premier' in s.league|lower %}bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300{% elif s.league and 'classic' in s.league|lower %}bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ s.league or '—' }} <span class="font-mono opacity-70">{{ s.season }}</span></span>
+            {% if not loop.last %}<i class="ti ti-arrow-right text-gray-300"></i>{% endif %}
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        {% if mx.ratings_by_season %}
+        <div>
+          <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Classic coach ratings · season to season <span class="text-gray-400 normal-case">(0–10)</span></p>
+          <div class="overflow-x-auto"><table class="w-full text-sm">
+            <thead><tr class="text-left text-[10px] uppercase text-gray-400"><th class="py-1 pe-3">Season</th><th class="py-1 pe-3">Intensity</th><th class="py-1 pe-3">On the ball</th><th class="py-1 pe-3">Spirit</th><th class="py-1 pe-3">Knowledge / movement</th><th class="py-1">Raters</th></tr></thead>
+            <tbody>
+            {% for r in mx.ratings_by_season %}
+            <tr class="border-t border-gray-100 dark:border-gray-700/60">
+              <td class="py-1.5 pe-3 text-gray-700 dark:text-gray-300">{{ r.season_name }}</td>
+              <td class="py-1.5 pe-3 font-mono">{{ '%.2f'|format(r.intensity) if r.intensity is not none else '—' }}</td>
+              <td class="py-1.5 pe-3 font-mono">{{ '%.2f'|format(r.on_ball) if r.on_ball is not none else '—' }}</td>
+              <td class="py-1.5 pe-3 font-mono">{{ '%.2f'|format(r.spirit) if r.spirit is not none else '—' }}</td>
+              <td class="py-1.5 pe-3 font-mono">{{ '%.2f'|format(r.knowledge) if r.knowledge is not none else '—' }}</td>
+              <td class="py-1.5 font-mono text-gray-400">{{ r.raters }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table></div>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- ===== Notes (admin / coach / NAD) ===== -->
+    <section class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-notes text-ecs-green"></i>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Notes</h2>
+        <span class="text-[11px] text-gray-400">admin / coach / NAD — not visible to the member</span>
+      </div>
+      <div class="p-4 sm:p-5">
+        {% if m.player_notes %}
+        <div class="mb-3 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/40 text-sm text-gray-700 dark:text-gray-300"><span class="text-[10px] uppercase tracking-wide text-gray-400">Profile note</span><br>{{ m.player_notes }}</div>
+        {% endif %}
+        {% if m.player %}
+        <div class="flex items-start gap-2 mb-4">
+          <textarea id="memberNoteInput" rows="2" placeholder="Add a note about this person…" class="flex-1 text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:ring-ecs-green focus:border-ecs-green"></textarea>
+          <button data-action-note-add data-url="{{ url_for('admin_panel.member_add_note', user_id=m.user.id) }}" class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 shrink-0"><i class="ti ti-plus"></i>Add</button>
+        </div>
+        {% endif %}
+        <ul id="memberNotesList" class="space-y-2">
+          {% for n in m.notes %}
+          <li class="flex items-start justify-between gap-3 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700/60" data-note-id="{{ n.id }}">
+            <div class="min-w-0"><p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">{{ n.content }}</p>
+              <p class="text-[11px] text-gray-400 mt-0.5">{{ n.author }} · {{ n.created_at }}</p></div>
+            <button data-action-note-delete data-url="{{ url_for('admin_panel.member_delete_note', user_id=m.user.id, note_id=n.id) }}" class="p-1 text-gray-300 hover:text-red-500 shrink-0" title="Delete note"><i class="ti ti-trash text-[14px]"></i></button>
+          </li>
+          {% else %}
+          <li class="text-sm text-gray-400" id="memberNotesEmpty">No notes yet.</li>
+          {% endfor %}
+        </ul>
       </div>
     </section>
 
@@ -464,6 +704,82 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
         .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
     });
+  });
+
+  // Per-row sub controls: Rest/Wake (member_sub_set_active), Approve (member_sub_assign),
+  // Remove (member_sub_remove) — all self-contained + both-pool-aware (Pub + ECS FC).
+  document.querySelectorAll('[data-action-subctl]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var conf = btn.getAttribute('data-confirm');
+      if (conf && !window.confirm(conf)) return;
+      var payload = { league_type: btn.getAttribute('data-lane'), active: btn.getAttribute('data-active') === 'true' };
+      btn.disabled = true;
+      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
+        .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
+        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+    });
+  });
+
+  // Assign to a sub pool (self-contained: creates/reactivates pool + role + spine + Discord)
+  document.querySelectorAll('[data-action-subassign]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var laneSel = document.querySelector('[data-subassign-lane]');
+      var activeCb = document.querySelector('[data-subassign-active]');
+      var payload = { league_type: laneSel ? laneSel.value : '', active: activeCb ? activeCb.checked : true };
+      btn.disabled = true;
+      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
+        .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
+        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+    });
+  });
+
+  // Add an admin/coach/NAD note (JSON) — inserts into the list without a full reload
+  var noteAddBtn = document.querySelector('[data-action-note-add]');
+  if (noteAddBtn) noteAddBtn.addEventListener('click', function () {
+    var ta = document.getElementById('memberNoteInput');
+    var content = ta ? ta.value.trim() : '';
+    if (!content) { toast(false, 'Write a note first'); return; }
+    noteAddBtn.disabled = true;
+    fetch(noteAddBtn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: JSON.stringify({ content: content }) })
+      .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
+      .then(function (d) {
+        noteAddBtn.disabled = false;
+        if (!d || !d.success) { toast(false, (d && d.message) || 'Failed'); return; }
+        var empty = document.getElementById('memberNotesEmpty'); if (empty) empty.remove();
+        var list = document.getElementById('memberNotesList');
+        var li = document.createElement('li');
+        li.className = 'flex items-start justify-between gap-3 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700/60';
+        li.setAttribute('data-note-id', d.note.id);
+        var wrap = document.createElement('div'); wrap.className = 'min-w-0';
+        var p = document.createElement('p'); p.className = 'text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words'; p.textContent = d.note.content;
+        var meta2 = document.createElement('p'); meta2.className = 'text-[11px] text-gray-400 mt-0.5'; meta2.textContent = d.note.author + ' · ' + d.note.created_at;
+        wrap.appendChild(p); wrap.appendChild(meta2);
+        var del = document.createElement('button'); del.className = 'p-1 text-gray-300 hover:text-red-500 shrink-0'; del.title = 'Delete note';
+        del.setAttribute('data-action-note-delete', ''); del.setAttribute('data-url', noteAddBtn.getAttribute('data-url') + '/' + d.note.id + '/delete');
+        del.innerHTML = '<i class="ti ti-trash text-[14px]"></i>';
+        li.appendChild(wrap); li.appendChild(del);
+        list.insertBefore(li, list.firstChild);
+        ta.value = '';
+        toast(true, 'Note added');
+      })
+      .catch(function () { noteAddBtn.disabled = false; toast(false, 'Network error'); });
+  });
+
+  // Delete a note (delegated — handles both server-rendered and just-added rows)
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-action-note-delete]'); if (!btn) return;
+    if (!window.confirm('Delete this note?')) return;
+    btn.disabled = true;
+    fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: '{}' })
+      .then(function (r) { return r.json().catch(function () { return { success: false }; }); })
+      .then(function (d) {
+        btn.disabled = false;
+        if (d && d.success) { var li = btn.closest('[data-note-id]'); if (li) li.remove(); toast(true, 'Note deleted'); }
+        else { toast(false, (d && d.message) || 'Failed'); }
+      })
+      .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
   });
 
   // Waitlist actions (set priority / remove from waitlist)

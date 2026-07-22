@@ -78,6 +78,10 @@ def get_member_360(user_id, session=None):
         'past_memberships': [],
         'waitlist': None,
         'quick_profile': None,
+        'is_returning': False,
+        'stats': None,
+        'notes': [],
+        'player_notes': None,
     }
 
     if player is not None:
@@ -86,10 +90,14 @@ def get_member_360(user_id, session=None):
             'name': player.name,
             'profile_picture_url': player.profile_picture_url,
             'discord_id': player.discord_id,
+            'discord_username': getattr(player, 'discord_username', None),
             'discord_in_server': getattr(player, 'discord_in_server', None),
             'is_current_player': player.is_current_player,
             'is_sub': player.is_sub,
             'is_coach': player.is_coach,
+            'pronouns': getattr(player, 'pronouns', None),
+            'favorite_position': getattr(player, 'favorite_position', None),
+            'jersey_size': getattr(player, 'jersey_size', None),
         }
 
         # Which seasons are current (for the current-vs-past split)
@@ -131,6 +139,34 @@ def get_member_360(user_id, session=None):
         past.sort(key=lambda c: c['season_id'], reverse=True)
         out['current_memberships'] = current
         out['past_memberships'] = past
+
+        # Returning vs new: played a prior season, or has any career stats on record.
+        has_career = bool(getattr(player, 'career_stats', None))
+        out['is_returning'] = bool(past) or has_career
+
+        # Career stats (guarded — never let a stats hiccup blank the whole hub).
+        try:
+            out['stats'] = {
+                'career_goals': player.get_career_goals(),
+                'career_assists': player.get_career_assists(),
+                'career_yellow': player.get_career_yellow_cards(),
+                'career_red': player.get_career_red_cards(),
+                'has_data': has_career,
+            }
+        except Exception:
+            logger.exception("member hub: career stats failed for player %s", player.id)
+            out['stats'] = {'career_goals': 0, 'career_assists': 0, 'career_yellow': 0,
+                            'career_red': 0, 'has_data': False}
+
+        # Admin/coach/NAD notes thread (newest first via the relationship order_by) + the
+        # free-text player_notes field.
+        out['player_notes'] = getattr(player, 'player_notes', None)
+        out['notes'] = [{
+            'id': n.id,
+            'content': n.content,
+            'author': (n.author.username if getattr(n, 'author', None) else 'system'),
+            'created_at': n.created_at.strftime('%Y-%m-%d %H:%M') if n.created_at else '',
+        } for n in (getattr(player, 'admin_notes', None) or [])]
 
         # waitlist view derived from a current waitlist membership (user-column fallback runs below,
         # outside this block, so a player-less waitlisted user is still shown as waitlisted)

@@ -1,7 +1,8 @@
 {% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state %}
 
 {% block admin_title %}Members{% endblock %}
-{% block panel_description %}Intake worklist — approvals, waitlist, and quick profiles in one place{% endblock %}
+{% block panel_description %}The unified member command center — every member, plus approvals, waitlist, subs and quick profiles in one place.{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
@@ -19,103 +20,480 @@
 {% endblock %}
 
 {% block panel_content %}
+{#- ============================ macros ============================ -#}
 {% macro tablink(key, label, count, icon) %}
 <a href="{{ url_for('admin_panel.members_worklist', tab=key) }}"
-   class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px
+   class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap
    {% if tab == key %}border-ecs-green text-ecs-green{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300{% endif %}">
   <i class="ti {{ icon }}"></i>{{ label }}
-  {% if count %}<span class="inline-flex items-center justify-center px-1.5 min-w-[1.25rem] h-5 text-[11px] font-semibold rounded-full {% if tab == key %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ count }}</span>{% endif %}
+  <span class="inline-flex items-center justify-center px-1.5 min-w-[1.25rem] h-5 text-[11px] font-semibold font-mono rounded-full {% if tab == key %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ count }}</span>
 </a>
 {% endmacro %}
 
-<div class="space-y-4">
+{% macro avatar(player, name, size='w-10 h-10') %}
+{% if player and player.profile_picture_url %}
+<img src="{{ player.profile_picture_url }}" alt="{{ name }}" class="{{ size }} rounded-full object-cover border border-gray-200 dark:border-gray-600 shrink-0">
+{% else %}
+<div class="{{ size }} rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-bold shrink-0">{{ (name or '?')[0] | upper }}</div>
+{% endif %}
+{% endmacro %}
 
-  <!-- Legacy fallback bar -->
-  <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-3 py-2 flex items-center gap-2 flex-wrap text-xs">
-    <span class="text-gray-500 dark:text-gray-400 font-medium"><i class="ti ti-history me-1"></i>Classic pages (fallback):</span>
-    <a class="text-ecs-green hover:underline" href="{{ url_for('admin_panel.user_approvals') }}">Approvals</a>
-    <span class="text-gray-300 dark:text-gray-600">·</span>
-    <a class="text-ecs-green hover:underline" href="{{ url_for('admin_panel.user_waitlist') }}">Waitlist</a>
-    <span class="text-gray-300 dark:text-gray-600">·</span>
-    <a class="text-ecs-green hover:underline" href="{{ url_for('admin_panel.quick_profiles_management') }}">Quick Profiles</a>
-    <span class="text-gray-300 dark:text-gray-600">·</span>
-    <a class="text-ecs-green hover:underline" href="{{ url_for('admin_panel.duplicate_registrations') }}">Duplicates</a>
-    <span class="text-gray-300 dark:text-gray-600">·</span>
-    <a class="text-ecs-green hover:underline" href="{{ url_for('admin_panel.users_comprehensive') }}">All Users</a>
+{% macro lane_label(val) %}{% set v = (val or '') | lower %}{% if 'classic' in v %}Classic{% elif 'premier' in v %}Premier{% elif 'ecs' in v %}ECS FC{% else %}Undecided{% endif %}{% endmacro %}
+
+{% macro role_chip(name) %}
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium {% if 'admin' in name|lower %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% elif 'coach' in name|lower %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% elif 'waitlist' in name|lower %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% elif 'sub' in name|lower %}bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ name }}</span>
+{% endmacro %}
+
+{% macro status_pills(u) %}
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium {% if u.is_approved %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% elif u.approval_status == 'denied' %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% endif %}">
+  <i class="ti {{ 'ti-circle-check' if u.is_approved else ('ti-ban' if u.approval_status == 'denied' else 'ti-clock') }}"></i>{{ 'Approved' if u.is_approved else ('Denied' if u.approval_status == 'denied' else 'Pending') }}
+</span>
+{% if not u.is_active %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"><i class="ti ti-ban"></i>Disabled</span>{% endif %}
+{% endmacro %}
+
+{% macro hub_btn(uid) %}
+<a href="{{ url_for('admin_panel.member_hub', user_id=uid) }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-id-badge-2"></i>Hub</a>
+{% endmacro %}
+
+<div class="space-y-5 sm:space-y-6">
+
+  {% call page_header('Members', subtitle='Member Command Center') %}
+    <a href="#member-guide" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold"><i class="ti ti-help-circle"></i>Guide</a>
+  {% endcall %}
+
+  <!-- ===== metric band ===== -->
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+    {{ stat_card('ti-users', 'Total Members', stats.total_members, tone='primary') }}
+    {{ stat_card('ti-ball-football', 'Active Players', stats.active_players, tone='success') }}
+    {{ stat_card('ti-user-question', 'Pending', stats.pending, tone='warning') }}
+    {{ stat_card('ti-clock', 'Waitlist', stats.waitlist, tone='info') }}
+    {{ stat_card('ti-arrows-shuffle', 'Subs', stats.subs, tone='gold') }}
+    {{ stat_card('ti-id', 'Quick Profiles', stats.quick, tone='neutral') }}
   </div>
 
-  <!-- Tabs -->
+  <!-- ===== tabs ===== -->
   <div class="border-b border-gray-200 dark:border-gray-700 flex items-center gap-1 overflow-x-auto">
+    {{ tablink('all', 'All Members', counts.all, 'ti-users') }}
     {{ tablink('pending', 'Pending Approval', counts.pending, 'ti-user-question') }}
     {{ tablink('waitlist', 'Waitlist', counts.waitlist, 'ti-clock') }}
+    {{ tablink('subs', 'Subs', counts.subs, 'ti-arrows-shuffle') }}
     {{ tablink('quick', 'Quick Profiles', counts.quick, 'ti-id') }}
   </div>
 
-  <!-- Search -->
-  {% if tab in ('pending', 'waitlist') %}
-  <form method="get" class="flex items-center gap-2">
-    <input type="hidden" name="tab" value="{{ tab }}">
-    <input type="search" name="search" value="{{ search }}" placeholder="Search username…"
-           class="w-full max-w-xs text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200">
-    <button type="submit" class="px-3 py-2 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">Search</button>
-    {% if search %}<a href="{{ url_for('admin_panel.members_worklist', tab=tab) }}" class="text-sm text-gray-500 hover:text-ecs-green">Clear</a>{% endif %}
-  </form>
-  {% endif %}
+  <!-- ===== search + filters ===== -->
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+    <form method="get" action="{{ url_for('admin_panel.members_worklist') }}" class="flex flex-wrap items-end gap-3">
+      <input type="hidden" name="tab" value="{{ tab }}">
+      <div class="flex-1 min-w-[200px]">
+        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Search</label>
+        <div class="relative">
+          <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+          <input type="search" name="search" value="{{ search }}" placeholder="Name, username{% if tab == 'all' %}, or email{% endif %}…"
+                 class="w-full h-10 pl-9 pr-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
+        </div>
+      </div>
+      {% if tab == 'all' %}
+      <div class="w-full sm:w-auto">
+        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Role</label>
+        <select name="role" class="h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm focus:ring-ecs-green focus:border-ecs-green">
+          <option value="">All roles</option>
+          {% for r in roles %}<option value="{{ r.name }}" {% if role_filter == r.name %}selected{% endif %}>{{ r.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="w-full sm:w-auto">
+        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Approval</label>
+        <select name="approved" class="h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm focus:ring-ecs-green focus:border-ecs-green">
+          <option value="">All</option>
+          <option value="true" {% if approved_filter == 'true' %}selected{% endif %}>Approved</option>
+          <option value="false" {% if approved_filter == 'false' %}selected{% endif %}>Not approved</option>
+        </select>
+      </div>
+      <div class="w-full sm:w-auto">
+        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Account</label>
+        <select name="active" class="h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm focus:ring-ecs-green focus:border-ecs-green">
+          <option value="">All</option>
+          <option value="true" {% if active_filter == 'true' %}selected{% endif %}>Active</option>
+          <option value="false" {% if active_filter == 'false' %}selected{% endif %}>Disabled</option>
+        </select>
+      </div>
+      <div class="w-full sm:w-auto">
+        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">League</label>
+        <select name="league" class="h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm focus:ring-ecs-green focus:border-ecs-green">
+          <option value="">All leagues</option>
+          {% for lg in leagues %}<option value="{{ lg.id }}" {% if league_filter == lg.id|string %}selected{% endif %}>{{ lg.name }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <button type="submit" class="h-10 inline-flex items-center justify-center gap-1.5 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white text-sm font-semibold"><i class="ti ti-filter"></i>Apply</button>
+      {% if search or role_filter or approved_filter or active_filter or league_filter %}
+      <a href="{{ url_for('admin_panel.members_worklist', tab=tab) }}" class="h-10 inline-flex items-center gap-1 px-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-medium"><i class="ti ti-x"></i>Clear</a>
+      {% endif %}
+    </form>
+  </div>
 
-  <!-- List -->
+  <!-- ===== list ===== -->
   <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+
+    {#- ---------------- QUICK PROFILES ---------------- -#}
     {% if tab == 'quick' %}
       {% if profiles %}
-      <div class="overflow-x-auto"><table class="w-full text-sm min-w-[34rem]">
-        <thead><tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
-          <th class="px-4 py-2">Name</th><th class="px-4 py-2 hidden sm:table-cell">Claim code</th><th class="px-4 py-2 hidden md:table-cell">Created</th><th class="px-4 py-2 text-end">Manage</th></tr></thead>
-        <tbody>
+      <div class="hidden md:block overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
+            <tr>
+              <th class="px-4 py-2.5">Profile</th>
+              <th class="px-4 py-2.5 hidden lg:table-cell">Claim code</th>
+              <th class="px-4 py-2.5 hidden lg:table-cell">Created</th>
+              <th class="px-4 py-2.5 hidden lg:table-cell">Expires</th>
+              <th class="px-4 py-2.5 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for p in profiles %}
+            <tr class="border-t border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+              <td class="px-4 py-2.5">
+                <div class="flex items-center gap-3">
+                  {{ avatar(p, p.player_name, 'w-9 h-9') }}
+                  <div class="min-w-0"><div class="font-medium text-gray-900 dark:text-white truncate">{{ p.player_name }}</div>
+                    <div class="text-[11px] text-gray-500 dark:text-gray-400">{% if p.email %}{{ p.email }}{% elif p.phone_number %}{{ p.phone_number }}{% else %}no contact{% endif %}</div></div>
+                </div>
+              </td>
+              <td class="px-4 py-2.5 hidden lg:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">{{ p.claim_code }}</td>
+              <td class="px-4 py-2.5 hidden lg:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '—' }}</td>
+              <td class="px-4 py-2.5 hidden lg:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">{{ p.expires_at.strftime('%Y-%m-%d') if p.expires_at else '—' }}</td>
+              <td class="px-4 py-2.5 text-right">
+                <div class="inline-flex items-center gap-1">
+                  <button type="button" data-action="qp-details" data-url="{{ url_for('admin_panel.get_quick_profile_details', profile_id=p.id) }}" data-name="{{ p.player_name }}" class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700" title="Details"><i class="ti ti-eye"></i></button>
+                  <div class="relative inline-block">
+                    <button type="button" data-dropdown-toggle="qpMenu{{ p.id }}" class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700" title="More"><i class="ti ti-dots-vertical"></i></button>
+                    <div id="qpMenu{{ p.id }}" class="z-20 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-48 dark:bg-gray-700 dark:divide-gray-600 text-left">
+                      <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600 dark:text-green-400" data-action="qp-create-account" data-url="{{ url_for('admin_panel.create_account_for_quick_profile', profile_id=p.id) }}" data-name="{{ p.player_name }}"><i class="ti ti-user-plus mr-2"></i>Create account</a></li>
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="qp-link" data-pid="{{ p.id }}" data-url="{{ url_for('admin_panel.link_quick_profile', profile_id=p.id) }}" data-name="{{ p.player_name }}"><i class="ti ti-link mr-2"></i>Link to player…</a></li>
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="qp-email" data-url="{{ url_for('admin_panel.send_quick_profile_email', profile_id=p.id) }}"><i class="ti ti-mail mr-2"></i>Send email</a></li>
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="qp-sms" data-url="{{ url_for('admin_panel.send_quick_profile_sms', profile_id=p.id) }}"><i class="ti ti-message mr-2"></i>Send SMS</a></li>
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="qp-extend" data-url="{{ url_for('admin_panel.extend_quick_profile', profile_id=p.id) }}"><i class="ti ti-clock-plus mr-2"></i>Extend 30 days</a></li>
+                        <li class="border-t border-gray-200 dark:border-gray-600"><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-red-600 dark:text-red-400" data-action="qp-delete" data-url="{{ url_for('admin_panel.delete_quick_profile', profile_id=p.id) }}" data-name="{{ p.player_name }}"><i class="ti ti-trash mr-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <!-- mobile -->
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
         {% for p in profiles %}
-          <tr class="border-b border-gray-50 dark:border-gray-700/50">
-            <td class="px-4 py-2.5 font-medium text-gray-900 dark:text-white">{{ p.player_name }}</td>
-            <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ p.claim_code }}</td>
-            <td class="px-4 py-2.5 text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '—' }}</td>
-            <td class="px-4 py-2.5 text-end"><a href="{{ url_for('admin_panel.quick_profiles_management') }}" class="text-ecs-green hover:underline text-xs"><i class="ti ti-external-link"></i> Open</a></td>
-          </tr>
+        <div class="px-4 py-3.5 flex items-center gap-3">
+          {{ avatar(p, p.player_name, 'w-10 h-10') }}
+          <div class="min-w-0 flex-1"><div class="font-medium text-gray-900 dark:text-white truncate">{{ p.player_name }}</div>
+            <div class="text-[11px] font-mono text-gray-500 dark:text-gray-400">{{ p.claim_code }}</div></div>
+          <button type="button" data-action="qp-details" data-url="{{ url_for('admin_panel.get_quick_profile_details', profile_id=p.id) }}" data-name="{{ p.player_name }}" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200">Manage</button>
+        </div>
         {% endfor %}
-        </tbody></table></div>
-      {% else %}<div class="p-8 text-center text-sm text-gray-500 dark:text-gray-400">No pending quick profiles.</div>{% endif %}
+      </div>
+      {% else %}
+      {{ empty_state('ti-id-off', 'No pending quick profiles', 'Field-created walk-in profiles waiting to be claimed or converted will appear here.') }}
+      {% endif %}
 
+    {#- ---------------- SUBS ---------------- -#}
+    {% elif tab == 'subs' %}
+      {% if users %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
+            <tr><th class="px-4 py-2.5">Player</th><th class="px-4 py-2.5">Sub lanes</th><th class="px-4 py-2.5 hidden md:table-cell">Account</th><th class="px-4 py-2.5 text-right">Manage</th></tr>
+          </thead>
+          <tbody>
+          {% for u in users %}
+            {% set summary = sub_summary.get(u.player.id, []) if u.player else [] %}
+            <tr class="border-t border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+              <td class="px-4 py-2.5"><div class="flex items-center gap-3">{{ avatar(u.player, u.player.name if u.player else u.username, 'w-9 h-9') }}
+                <div class="min-w-0"><div class="font-medium text-gray-900 dark:text-white truncate">{{ u.player.name if u.player else u.username }}</div>
+                  <div class="text-[11px] text-gray-500 dark:text-gray-400">@{{ u.username }}</div></div></div></td>
+              <td class="px-4 py-2.5">
+                <div class="flex flex-wrap gap-1">
+                  {% for s in summary %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium {% if s.status == 'active' %}bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ s.lane }} · {{ s.status }}</span>{% else %}<span class="text-gray-400 text-xs">—</span>{% endfor %}
+                </div>
+              </td>
+              <td class="px-4 py-2.5 hidden md:table-cell">{{ status_pills(u) }}</td>
+              <td class="px-4 py-2.5 text-right">{{ hub_btn(u.id) }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      {{ empty_state('ti-arrows-shuffle', 'No subs right now', 'Approved substitutes (Pub League or ECS FC) show here. Manage a person’s sub status from their Member Hub.') }}
+      {% endif %}
+
+    {#- ---------------- ALL / PENDING / WAITLIST ---------------- -#}
     {% else %}
       {% if users %}
-      <div class="overflow-x-auto"><table class="w-full text-sm min-w-[34rem]">
-        <thead><tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
-          <th class="px-4 py-2">Person</th><th class="px-4 py-2 hidden sm:table-cell">Status</th>
-          <th class="px-4 py-2 hidden md:table-cell">{{ 'Joined waitlist' if tab == 'waitlist' else 'Registered' }}</th>
-          <th class="px-4 py-2 text-end">Member Hub</th></tr></thead>
-        <tbody>
+      <!-- desktop -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
+            <tr>
+              <th class="px-4 py-2.5">Person</th>
+              <th class="px-4 py-2.5 hidden lg:table-cell">{{ 'League' if tab == 'waitlist' else 'Roles' }}</th>
+              <th class="px-4 py-2.5">Status</th>
+              <th class="px-4 py-2.5 hidden lg:table-cell">{{ 'Joined waitlist' if tab == 'waitlist' else 'Registered' }}</th>
+              <th class="px-4 py-2.5 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for u in users %}
+            <tr class="border-t border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+              <td class="px-4 py-2.5">
+                <div class="flex items-center gap-3">
+                  {{ avatar(u.player, u.player.name if u.player else u.username) }}
+                  <div class="min-w-0">
+                    <div class="font-medium text-gray-900 dark:text-white truncate">{{ u.player.name if u.player else u.username }}</div>
+                    <div class="text-[11px] text-gray-500 dark:text-gray-400 truncate">@{{ u.username }}{% if u.player and u.player.discord_id %} · <i class="ti ti-brand-discord text-indigo-500"></i>{% endif %}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-2.5 hidden lg:table-cell">
+                {% if tab == 'waitlist' %}
+                  <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">{{ lane_label(u.waitlist_league) }}</span>
+                {% else %}
+                  <div class="flex flex-wrap gap-1">{% for r in u.roles[:3] %}{{ role_chip(r.name) }}{% endfor %}{% if u.roles|length > 3 %}<span class="text-[11px] text-gray-400">+{{ u.roles|length - 3 }}</span>{% endif %}</div>
+                {% endif %}
+              </td>
+              <td class="px-4 py-2.5"><div class="flex flex-wrap gap-1">{{ status_pills(u) }}</div></td>
+              <td class="px-4 py-2.5 hidden lg:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">
+                {% set d = u.waitlist_joined_at if tab == 'waitlist' else u.created_at %}{{ d.strftime('%Y-%m-%d') if d else '—' }}
+              </td>
+              <td class="px-4 py-2.5 text-right">
+                <div class="inline-flex items-center gap-1.5">
+                  {% if not u.is_approved and u.approval_status != 'denied' %}
+                  <div class="relative inline-block">
+                    <button type="button" data-dropdown-toggle="apprMenu{{ u.id }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700"><i class="ti ti-check"></i>Approve<i class="ti ti-chevron-down text-[11px]"></i></button>
+                    <div id="apprMenu{{ u.id }}" class="z-20 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600 text-left">
+                      <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
+                        <li class="px-3 py-1 text-[10px] uppercase tracking-wide text-gray-400">Approve into</li>
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="classic" data-name="{{ u.username }}">Classic</a></li>
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="premier" data-name="{{ u.username }}">Premier</a></li>
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="ecs-fc" data-name="{{ u.username }}">ECS FC</a></li>
+                        <li class="border-t border-gray-200 dark:border-gray-600"><a href="{{ url_for('admin_panel.member_hub', user_id=u.id) }}#member-approval" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-ecs-green">More options…</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                  <button type="button" data-action="member-deny" data-url="{{ url_for('admin_panel.deny_user', user_id=u.id) }}" data-name="{{ u.username }}" class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10"><i class="ti ti-x"></i></button>
+                  {% endif %}
+                  {{ hub_btn(u.id) }}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <!-- mobile -->
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
         {% for u in users %}
-          <tr class="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
-            <td class="px-4 py-2.5">
-              <div class="font-medium text-gray-900 dark:text-white">{{ u.player.name if u.player else u.username }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">@{{ u.username }}</div>
-            </td>
-            <td class="px-4 py-2.5 hidden sm:table-cell">
-              {% if tab == 'waitlist' %}
-                <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">{{ u.waitlist_league or 'no lane' }}</span>
-              {% else %}
-                <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ u.approval_status }}</span>
-              {% endif %}
-            </td>
-            <td class="px-4 py-2.5 text-gray-500 dark:text-gray-400 hidden md:table-cell">
-              {% set d = u.waitlist_joined_at if tab == 'waitlist' else u.created_at %}
-              {{ d.strftime('%Y-%m-%d') if d else '—' }}
-            </td>
-            <td class="px-4 py-2.5 text-end">
-              <a href="{{ url_for('admin_panel.member_hub', user_id=u.id) }}" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">
-                <i class="ti ti-id-badge-2"></i> Open
-              </a>
-            </td>
-          </tr>
+        <div class="px-4 py-3.5">
+          <div class="flex items-center gap-3">
+            {{ avatar(u.player, u.player.name if u.player else u.username) }}
+            <div class="min-w-0 flex-1">
+              <div class="font-medium text-gray-900 dark:text-white truncate">{{ u.player.name if u.player else u.username }}</div>
+              <div class="text-[11px] text-gray-500 dark:text-gray-400 truncate">@{{ u.username }}</div>
+            </div>
+            {{ hub_btn(u.id) }}
+          </div>
+          <div class="mt-2 flex flex-wrap gap-1">
+            {% if tab == 'waitlist' %}<span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">{{ lane_label(u.waitlist_league) }}</span>{% endif %}
+            {{ status_pills(u) }}
+          </div>
+        </div>
         {% endfor %}
-        </tbody></table></div>
-      {% else %}<div class="p-8 text-center text-sm text-gray-500 dark:text-gray-400">Nothing here right now.</div>{% endif %}
+      </div>
+      {% else %}
+        {% if tab == 'pending' %}{{ empty_state('ti-circle-check', 'Inbox zero', 'No one is awaiting a decision. New sign-ups and quick-profile conversions land here.') }}
+        {% elif tab == 'waitlist' %}{{ empty_state('ti-clock', 'Waitlist is empty', 'When a season sells out, people who still want in show here. The waitlist clears at each season boundary.') }}
+        {% else %}{{ empty_state('ti-users-off', 'No members found', 'No members match the current search or filters. Try clearing them.') }}{% endif %}
+      {% endif %}
     {% endif %}
   </div>
+
+  <!-- ===== pagination (all tab) ===== -->
+  {% if pagination and pagination.pages > 1 %}
+  <nav class="flex items-center justify-between" aria-label="Pagination">
+    <span class="text-sm text-gray-500 dark:text-gray-400">Page <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ pagination.page }}</span> of <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ pagination.pages }}</span> · {{ pagination.total }} members</span>
+    <ul class="inline-flex items-center -space-x-px">
+      {% if pagination.has_prev %}<li><a href="{{ url_for('admin_panel.members_worklist', tab=tab, page=pagination.prev_num, search=search, role=role_filter, approved=approved_filter, active=active_filter, league=league_filter) }}" class="flex items-center justify-center h-9 px-3 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700"><i class="ti ti-chevron-left"></i></a></li>{% endif %}
+      {% for p in range(1, pagination.pages + 1) %}
+        {% if p >= pagination.page - 2 and p <= pagination.page + 2 %}
+        <li><a href="{{ url_for('admin_panel.members_worklist', tab=tab, page=p, search=search, role=role_filter, approved=approved_filter, active=active_filter, league=league_filter) }}" class="flex items-center justify-center h-9 px-3 leading-tight border font-mono {% if p == pagination.page %}text-white bg-ecs-green border-ecs-green{% else %}text-gray-500 bg-white border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700{% endif %}">{{ p }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% if pagination.has_next %}<li><a href="{{ url_for('admin_panel.members_worklist', tab=tab, page=pagination.next_num, search=search, role=role_filter, approved=approved_filter, active=active_filter, league=league_filter) }}" class="flex items-center justify-center h-9 px-3 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700"><i class="ti ti-chevron-right"></i></a></li>{% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+
+  <!-- ===== guide ===== -->
+  <section id="member-guide" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 scroll-mt-20">
+    <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-help-circle text-ecs-green"></i>
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">How Members works</h2>
+    </div>
+    <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm text-gray-600 dark:text-gray-300">
+      <div><span class="font-semibold text-gray-900 dark:text-white">One person, one Hub.</span> Every row opens that person’s <em>Member Hub</em> — the single place to approve/deny, set roles, place on a team, manage sub status, and handle the waitlist. Everything is inline; nothing sends you to a different page.</div>
+      <div><span class="font-semibold text-gray-900 dark:text-white">All Members.</span> Search or filter to reach <em>anyone</em> — approved or not, in a queue or not — including people you just want to approve or edit directly.</div>
+      <div><span class="font-semibold text-gray-900 dark:text-white">Approval ≠ Waitlist.</span> They’re independent. Someone can be approved <em>and</em> waitlisted, or unapproved and waitlisted. The waitlist is a point-in-time, per-season list that clears at each season boundary.</div>
+      <div><span class="font-semibold text-gray-900 dark:text-white">Subs play free.</span> A sub never pays and isn’t a season “active” member — they help where/when needed and can also sit on the waitlist for a permanent spot.</div>
+      <div><span class="font-semibold text-gray-900 dark:text-white">Quick Profiles.</span> Field-created walk-ins. Convert them to a real account, link them to an existing player, message them, or delete — all from the Quick Profiles tab.</div>
+      <div><span class="font-semibold text-gray-900 dark:text-white">Legacy pages.</span> The old approvals / waitlist / all-users / quick-profile pages still exist in the sidebar as a fallback during burn-in — this surface stands on its own and doesn’t depend on them.</div>
+    </div>
+  </section>
 </div>
+
+<!-- ===== quick-profile details modal ===== -->
+<div id="qpDetailsModal" tabindex="-1" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 p-4">
+  <div class="w-full max-w-lg rounded-xl bg-white dark:bg-gray-800 shadow-xl max-h-[85vh] overflow-y-auto">
+    <div class="px-5 h-12 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+      <h3 class="text-sm font-bold text-gray-900 dark:text-white" id="qpDetailsTitle">Quick profile</h3>
+      <button type="button" data-action="qp-modal-close" class="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="p-5 text-sm" id="qpDetailsBody"><div class="text-center text-gray-400 py-8"><i class="ti ti-loader animate-spin"></i> Loading…</div></div>
+  </div>
+</div>
+
+<!-- ===== link-to-player modal ===== -->
+<div id="qpLinkModal" tabindex="-1" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 p-4">
+  <div class="w-full max-w-lg rounded-xl bg-white dark:bg-gray-800 shadow-xl max-h-[85vh] overflow-y-auto">
+    <div class="px-5 h-12 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+      <h3 class="text-sm font-bold text-gray-900 dark:text-white">Link to an existing player</h3>
+      <button type="button" data-action="qp-modal-close" class="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="p-5">
+      <input type="hidden" id="qpLinkUrl">
+      <div class="relative mb-3">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+        <input type="text" id="qpLinkSearch" placeholder="Search players by name…" class="w-full h-10 pl-9 pr-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
+      </div>
+      <div id="qpLinkResults" class="space-y-1 max-h-64 overflow-y-auto text-sm text-gray-500 dark:text-gray-400">Type a name to search…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  function onReady(fn) { if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+  onReady(function () {
+    var csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+    var isDark = function () { return document.documentElement.classList.contains('dark'); };
+    function swalBase(extra) { return Object.assign({ confirmButtonColor: '#1a472a', background: isDark() ? '#1f2937' : '#ffffff', color: isDark() ? '#f3f4f6' : '#111827' }, extra || {}); }
+    function toast(icon, title, text) { if (window.Swal) window.Swal.fire(swalBase({ icon: icon, title: title, text: text || '' })); else alert((title || '') + ' ' + (text || '')); }
+    function esc(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : s); return d.innerHTML; }
+
+    function postForm(url, obj) {
+      return fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(obj) })
+        .then(function (r) { return r.json().catch(function () { return { success: false, error: 'Unexpected response' }; }); });
+    }
+    function postJson(url, obj) {
+      return fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: JSON.stringify(obj || {}) })
+        .then(function (r) { return r.json().catch(function () { return { success: false, error: 'Unexpected response' }; }); });
+    }
+    function done(r) {
+      if (r && r.success) { if (window.Swal) window.Swal.fire(swalBase({ icon: 'success', title: r.message || 'Done', timer: 1100, showConfirmButton: false })).then(function () { location.reload(); }); else location.reload(); }
+      else { toast('error', 'Could not complete', (r && (r.error || r.message)) || 'Please try again.'); }
+    }
+    function openModal(id) { var m = document.getElementById(id); if (m) { m.classList.remove('hidden'); m.classList.add('flex'); } }
+    function closeModal(id) { var m = document.getElementById(id); if (m) { m.classList.add('hidden'); m.classList.remove('flex'); } }
+
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest('[data-action]'); if (!t) return;
+      var action = t.dataset.action;
+
+      if (action === 'member-approve') {
+        e.preventDefault();
+        postForm(t.dataset.url, { league_type: t.dataset.league, notes: '' }).then(done);
+
+      } else if (action === 'member-deny') {
+        e.preventDefault();
+        var go = function (notes) { postForm(t.dataset.url, { notes: notes || '' }).then(done); };
+        if (window.Swal) {
+          window.Swal.fire(swalBase({ icon: 'warning', title: 'Deny ' + (t.dataset.name || 'this applicant') + '?', input: 'text', inputPlaceholder: 'Reason (optional)', showCancelButton: true, confirmButtonText: 'Deny' }))
+            .then(function (res) { if (res.isConfirmed) go(res.value); });
+        } else if (confirm('Deny this applicant?')) { go(''); }
+
+      } else if (action === 'qp-create-account') {
+        e.preventDefault(); postJson(t.dataset.url, {}).then(done);
+
+      } else if (action === 'qp-extend') {
+        e.preventDefault(); postJson(t.dataset.url, { days: 30 }).then(done);
+
+      } else if (action === 'qp-email') {
+        e.preventDefault(); postJson(t.dataset.url, {}).then(done);
+
+      } else if (action === 'qp-sms') {
+        e.preventDefault(); postJson(t.dataset.url, {}).then(done);
+
+      } else if (action === 'qp-delete') {
+        e.preventDefault();
+        var del = function () { postJson(t.dataset.url, {}).then(done); };
+        if (window.Swal) { window.Swal.fire(swalBase({ icon: 'warning', title: 'Delete this quick profile?', text: t.dataset.name || '', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#dc2626' })).then(function (r) { if (r.isConfirmed) del(); }); }
+        else if (confirm('Delete this quick profile?')) { del(); }
+
+      } else if (action === 'qp-details') {
+        e.preventDefault();
+        document.getElementById('qpDetailsTitle').textContent = t.dataset.name || 'Quick profile';
+        document.getElementById('qpDetailsBody').innerHTML = '<div class="text-center text-gray-400 py-8"><i class="ti ti-loader animate-spin"></i> Loading…</div>';
+        openModal('qpDetailsModal');
+        fetch(t.dataset.url).then(function (r) { return r.json(); }).then(function (r) {
+          if (!r || !r.success) { document.getElementById('qpDetailsBody').innerHTML = '<p class="text-red-500">Could not load details.</p>'; return; }
+          var p = r.profile || {}; var rows = [['Name', p.player_name], ['Claim code', p.claim_code], ['Status', p.status], ['Email', p.email], ['Phone', p.phone_number], ['Jersey', p.jersey_size], ['Pronouns', p.pronouns], ['Notes', p.notes]];
+          var html = '<dl class="space-y-1.5">';
+          rows.forEach(function (kv) { if (kv[1]) html += '<div class="flex justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">' + esc(kv[0]) + '</dt><dd class="text-gray-900 dark:text-white text-right">' + esc(kv[1]) + '</dd></div>'; });
+          html += '</dl>';
+          document.getElementById('qpDetailsBody').innerHTML = html;
+        }).catch(function () { document.getElementById('qpDetailsBody').innerHTML = '<p class="text-red-500">Could not load details.</p>'; });
+
+      } else if (action === 'qp-link') {
+        e.preventDefault();
+        document.getElementById('qpLinkUrl').value = t.dataset.url;
+        document.getElementById('qpLinkSearch').value = '';
+        document.getElementById('qpLinkResults').innerHTML = 'Type a name to search…';
+        openModal('qpLinkModal');
+
+      } else if (action === 'qp-link-confirm') {
+        e.preventDefault();
+        postJson(document.getElementById('qpLinkUrl').value, { player_id: t.dataset.playerId }).then(done);
+
+      } else if (action === 'qp-modal-close') {
+        e.preventDefault(); closeModal('qpDetailsModal'); closeModal('qpLinkModal');
+      }
+    });
+
+    // link-modal live player search (debounced)
+    var linkTimer = null, linkInput = document.getElementById('qpLinkSearch');
+    if (linkInput) {
+      linkInput.addEventListener('input', function () {
+        clearTimeout(linkTimer);
+        var q = this.value.trim();
+        var box = document.getElementById('qpLinkResults');
+        if (q.length < 2) { box.innerHTML = 'Type a name to search…'; return; }
+        linkTimer = setTimeout(function () {
+          fetch('{{ url_for("admin_panel.search_players_for_quick_profile") }}?q=' + encodeURIComponent(q))
+            .then(function (r) { return r.json(); }).then(function (r) {
+              var players = (r && r.players) || [];
+              if (!players.length) { box.innerHTML = '<p class="text-gray-400 py-2">No players found.</p>'; return; }
+              box.innerHTML = players.map(function (p) {
+                return '<div class="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">' +
+                  '<span class="text-gray-900 dark:text-white">' + esc(p.name) + '</span>' +
+                  '<button type="button" data-action="qp-link-confirm" data-player-id="' + esc(p.id) + '" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">Link</button></div>';
+              }).join('');
+            }).catch(function () { box.innerHTML = '<p class="text-red-500 py-2">Search failed.</p>'; });
+        }, 300);
+      });
+    }
+  });
+})();
+</script>
 {% endblock %}
