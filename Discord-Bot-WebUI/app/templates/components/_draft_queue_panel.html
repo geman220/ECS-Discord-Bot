@@ -1,0 +1,260 @@
+{# ===== MY DRAFT QUEUE (shared: list view + pitch view) =====
+   A coach's PRIVATE bookmark list of players they're considering. Backed by
+   /draft/api/<league>/queue (same storage as the mobile app). Expects
+   `league_name` in the including route's context. Set queue_can_draft=true
+   before including (list view) to render a per-row Draft shortcut that clicks
+   the pool row's existing data-action="draft-player" button.
+   Also injects a bookmark toggle onto every pool player row (works on both
+   views via a MutationObserver, so socket re-added rows get one too). #}
+<section id="draftQueuePanel" data-league="{{ league_name }}" data-can-draft="{{ '1' if queue_can_draft | default(false) else '0' }}"
+         class="rounded-xl border border-amber-300/70 dark:border-amber-500/30 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2 bg-amber-50/60 dark:bg-amber-500/5">
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-bookmark-filled text-amber-500" aria-hidden="true"></i>
+            My Draft Queue
+        </h3>
+        <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+            <span id="draftQueueCount">0</span>
+        </span>
+    </div>
+    <div id="draftQueueList" class="divide-y divide-gray-100 dark:divide-gray-700/60 max-h-[320px] overflow-y-auto"></div>
+    <div id="draftQueueEmpty" class="px-4 py-5 text-center text-sm text-gray-400 dark:text-gray-500">
+        <i class="ti ti-bookmark text-xl mb-1 block" aria-hidden="true"></i>
+        Tap the <i class="ti ti-bookmark" aria-hidden="true"></i> on any player to build your shortlist.
+        Players drop off automatically when someone drafts them.
+    </div>
+</section>
+<script>
+/* My Draft Queue — private per-coach bookmarks (page-scoped, no-op if panel absent). */
+(function () {
+  var panel = document.getElementById('draftQueuePanel');
+  if (!panel) return;
+  var league = panel.getAttribute('data-league');
+  var canDraft = panel.getAttribute('data-can-draft') === '1';
+  var base = '/draft/api/' + encodeURIComponent(league) + '/queue';
+  var queue = [];           // [{player_id, name, favorite_position, profile_picture_url}]
+  var queued = {};          // player_id -> true
+  var reorderTimer = null;
+  var orderSeq = 0;         // bumped on every local move
+  var orderDirty = false;   // a reorder is pending/in flight — protect local ordering
+
+  function csrf() { return document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''; }
+  function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+  function posLabel(p) { return p ? String(p).replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }) : 'Any'; }
+
+  function api(method, path, body) {
+    return fetch(path, {
+      method: method,
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (r) {
+      if (!r.ok && r.status !== 400) throw new Error('queue api ' + r.status);
+      return r.json();
+    });
+  }
+  function apiFail(e) { console.warn('draft queue request failed', e); }
+
+  function setQueue(list, fromReorder) {
+    list = list || [];
+    if (orderDirty && !fromReorder) {
+      // A reorder is mid-flight: adopt the server's MEMBERSHIP (players added/
+      // drafted elsewhere) but keep the user's local ORDER so their move
+      // doesn't visibly revert; the pending PUT will persist it.
+      var incoming = {};
+      list.forEach(function (q) { incoming[q.player_id] = q; });
+      var merged = [];
+      queue.forEach(function (q) { if (incoming[q.player_id]) { merged.push(incoming[q.player_id]); delete incoming[q.player_id]; } });
+      list.forEach(function (q) { if (incoming[q.player_id]) merged.push(q); });
+      queue = merged;
+    } else {
+      queue = list;
+    }
+    queued = {};
+    queue.forEach(function (q) { queued[q.player_id] = true; });
+    render();
+    refreshStars();
+  }
+
+  function render() {
+    var listEl = document.getElementById('draftQueueList');
+    var emptyEl = document.getElementById('draftQueueEmpty');
+    var countEl = document.getElementById('draftQueueCount');
+    if (!listEl) return;
+    if (countEl) countEl.textContent = queue.length;
+    if (emptyEl) emptyEl.style.display = queue.length ? 'none' : '';
+    listEl.innerHTML = queue.map(function (q, i) {
+      return '<div class="flex items-center gap-2.5 px-3 sm:px-4 py-2" data-queue-row="' + q.player_id + '">' +
+        '<span class="font-mono text-xs font-bold text-amber-500 w-5 text-center shrink-0">' + (i + 1) + '</span>' +
+        '<img src="' + esc(q.profile_picture_url || '/static/img/default_player.png') + '" onerror="this.onerror=null;this.src=\'/static/img/default_player.png\'" alt="" class="w-8 h-8 rounded-lg object-cover object-top shrink-0">' +
+        '<div class="flex-1 min-w-0">' +
+          '<div class="text-sm font-semibold text-gray-900 dark:text-white truncate">' + esc(q.name) + '</div>' +
+          '<div class="text-[10px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">' + esc(posLabel(q.favorite_position)) + '</div>' +
+        '</div>' +
+        '<div class="flex items-center shrink-0">' +
+          '<button type="button" data-queue-act="up" data-qid="' + q.player_id + '" ' + (i === 0 ? 'disabled ' : '') + 'class="w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" aria-label="Move up"><i class="ti ti-chevron-up" aria-hidden="true"></i></button>' +
+          '<button type="button" data-queue-act="down" data-qid="' + q.player_id + '" ' + (i === queue.length - 1 ? 'disabled ' : '') + 'class="w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" aria-label="Move down"><i class="ti ti-chevron-down" aria-hidden="true"></i></button>' +
+          '<button type="button" data-queue-act="locate" data-qid="' + q.player_id + '" class="w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Find in pool" title="Find in pool"><i class="ti ti-crosshair" aria-hidden="true"></i></button>' +
+          (canDraft ? '<button type="button" data-queue-act="draft" data-qid="' + q.player_id + '" class="ml-1 h-8 px-2.5 inline-flex items-center gap-1 rounded-lg bg-ecs-green text-white text-xs font-semibold hover:bg-ecs-green-700" aria-label="Draft ' + esc(q.name) + '"><i class="ti ti-user-plus" aria-hidden="true"></i>Draft</button>' : '') +
+          '<button type="button" data-queue-act="remove" data-qid="' + q.player_id + '" class="ml-1 w-8 h-8 inline-flex items-center justify-center rounded text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30" aria-label="Remove from queue"><i class="ti ti-x" aria-hidden="true"></i></button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // ---- bookmark stars injected onto pool rows (both views, incl. socket re-adds) ----
+  function poolContainers() {
+    return [document.getElementById('available-players'), document.getElementById('availablePlayersList')].filter(Boolean);
+  }
+  function starHtml(pid) {
+    var on = !!queued[pid];
+    return '<i class="ti ' + (on ? 'ti-bookmark-filled' : 'ti-bookmark') + '" aria-hidden="true"></i>';
+  }
+  function starClass(pid) {
+    return 'js-queue-star shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[36px] sm:min-h-0 sm:h-8 sm:w-8 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 ' +
+      (queued[pid] ? 'text-amber-500 hover:text-amber-600' : 'text-gray-300 dark:text-gray-600 hover:text-amber-500');
+  }
+  function injectStars() {
+    poolContainers().forEach(function (box) {
+      box.querySelectorAll('[data-player-id]').forEach(function (row) {
+        if (!(row.classList.contains('js-draggable-player') || row.classList.contains('player-item'))) return;
+        var pid = parseInt(row.getAttribute('data-player-id'), 10);
+        if (!pid) return;
+        var star = row.querySelector('.js-queue-star');
+        if (!star) {
+          star = document.createElement('button');
+          star.type = 'button';
+          star.setAttribute('data-qstar', pid);
+          star.setAttribute('aria-label', 'Toggle draft queue bookmark');
+          star.title = 'Add to my draft queue';
+          row.appendChild(star);
+        }
+        star.className = starClass(pid);
+        star.innerHTML = starHtml(pid);
+      });
+    });
+  }
+  function refreshStars() { injectStars(); }
+
+  var mo = new MutationObserver(function () {
+    if (mo._raf) return;
+    mo._raf = requestAnimationFrame(function () { mo._raf = null; injectStars(); });
+  });
+  // NOTE: observers are attached in boot() — this script can run before the pool
+  // container exists in the DOM (pitch view renders the pool after this panel).
+
+  // ---- actions ----
+  function toggle(pid) {
+    if (queued[pid]) {
+      api('DELETE', base + '/' + pid).then(function (d) { if (d && d.success) setQueue(d.queue); }).catch(apiFail);
+    } else {
+      api('POST', base, { player_id: pid }).then(function (d) {
+        if (d && d.success) setQueue(d.queue);
+        else if (d && d.error && window.Swal) window.Swal.fire({ icon: 'info', title: d.error, timer: 2500, showConfirmButton: false });
+      }).catch(apiFail);
+    }
+  }
+  function pushOrder() {
+    if (reorderTimer) clearTimeout(reorderTimer);
+    reorderTimer = setTimeout(function () {
+      var seq = orderSeq;
+      api('PUT', base + '/order', { player_ids: queue.map(function (q) { return q.player_id; }) })
+        .then(function (d) {
+          if (!d || !d.success) return;
+          if (seq === orderSeq) { orderDirty = false; setQueue(d.queue, true); }
+          else setQueue(d.queue); // user moved again since — keep local order, trailing PUT will sync
+        })
+        .catch(apiFail);
+    }, 400);
+  }
+  function move(pid, dir) {
+    var i = queue.findIndex(function (q) { return q.player_id === pid; });
+    var j = i + dir;
+    if (i < 0 || j < 0 || j >= queue.length) return;
+    var tmp = queue[i]; queue[i] = queue[j]; queue[j] = tmp;
+    orderSeq++; orderDirty = true;
+    render();
+    pushOrder();
+  }
+  function findPoolRow(pid) {
+    var row = null;
+    poolContainers().some(function (box) { return (row = box.querySelector('[data-player-id="' + pid + '"]')); });
+    return row;
+  }
+  function flashRow(row) {
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.classList.add('ring-2', 'ring-amber-400');
+    setTimeout(function () { row.classList.remove('ring-2', 'ring-amber-400'); }, 1800);
+  }
+  function locate(pid) {
+    var row = findPoolRow(pid);
+    if (row && row.offsetParent !== null) { flashRow(row); return; }
+    // Row hidden by paging/filters (or list re-rendered) — search for the player
+    // by name so the pool's own filter reveals them, then flash.
+    var entry = queue.filter(function (q) { return q.player_id === pid; })[0];
+    var input = document.getElementById('playerSearch') || document.getElementById('playerSearchPitch');
+    if (entry && input) {
+      input.value = entry.name;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    setTimeout(function () {
+      var r = findPoolRow(pid);
+      if (r && r.offsetParent !== null) flashRow(r);
+    }, 250);
+  }
+  function draftShortcut(pid) {
+    var btn = document.querySelector('[data-action="draft-player"][data-target-player-id="' + pid + '"]');
+    if (btn) btn.click(); else locate(pid);
+  }
+
+  // Capture-phase so the star wins over the pool rows' own tap/drag handlers.
+  document.addEventListener('click', function (e) {
+    var star = e.target.closest ? e.target.closest('.js-queue-star') : null;
+    if (star) {
+      e.preventDefault(); e.stopPropagation();
+      toggle(parseInt(star.getAttribute('data-qstar'), 10));
+      return;
+    }
+    var act = e.target.closest ? e.target.closest('[data-queue-act]') : null;
+    if (act && panel.contains(act)) {
+      e.preventDefault(); e.stopPropagation();
+      var pid = parseInt(act.getAttribute('data-qid'), 10);
+      var kind = act.getAttribute('data-queue-act');
+      if (kind === 'remove') toggle(pid);
+      else if (kind === 'up') move(pid, -1);
+      else if (kind === 'down') move(pid, 1);
+      else if (kind === 'locate') locate(pid);
+      else if (kind === 'draft') draftShortcut(pid);
+    }
+  }, true);
+
+  // ---- live updates: drafted players leave every queue; removals restore them ----
+  var attempts = 0;
+  var iv = setInterval(function () {
+    var sock = (window.SocketManager && window.SocketManager.getSocket && window.SocketManager.getSocket()) || window.socket;
+    if (sock && !sock._queueBound) {
+      sock._queueBound = true;
+      sock.on('player_drafted_enhanced', function (data) {
+        var pid = data && data.player && data.player.id;
+        if (pid && queued[pid]) setQueue(queue.filter(function (q) { return q.player_id !== pid; }));
+      });
+      sock.on('player_removed_enhanced', function () {
+        // an un-draft may put the player back into this coach's stored queue
+        api('GET', base).then(function (d) { if (d && d.success) setQueue(d.queue); }).catch(apiFail);
+      });
+      clearInterval(iv);
+    } else if (++attempts > 40) { clearInterval(iv); }
+  }, 500);
+
+  function boot() {
+    poolContainers().forEach(function (box) { mo.observe(box, { childList: true }); });
+    injectStars();
+    api('GET', base).then(function (d) { if (d && d.success) setQueue(d.queue); }).catch(function (e) {
+      apiFail(e);
+      var emptyEl = document.getElementById('draftQueueEmpty');
+      if (emptyEl) emptyEl.innerHTML = '<i class="ti ti-plug-x text-xl mb-1 block" aria-hidden="true"></i>Queue unavailable right now — reload to retry.';
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>

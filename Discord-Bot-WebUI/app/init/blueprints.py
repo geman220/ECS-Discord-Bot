@@ -123,8 +123,6 @@ def _import_blueprints():
     from app.calendar import calendar_bp
     from app.sms_rsvp import sms_rsvp_bp
     from app.match_api import match_api
-    # DEPRECATED 2026-03-31: Legacy monitoring replaced by admin_panel monitoring routes.
-    from app.monitoring import monitoring_bp
     from app.user_api import user_bp
     from app.help import help_bp
     from app.ai_assistant import ai_assistant_bp
@@ -146,7 +144,6 @@ def _import_blueprints():
     from app.draft_predictions_routes import draft_predictions_bp
     from app.wallet_routes import wallet_bp
     from app.admin.wallet import wallet_admin_bp, wallet_config_bp, pass_studio_bp, wallet_legacy_bp
-    from app.admin.notification_admin_routes import notification_admin_bp
     from app.wallet_pass.routes import public_wallet_bp, webhook_bp, validation_bp
     from app.wallet_pass.routes.serve import apple_wallet_serve_bp
     from app.wallet_pass.routes.passkit_web_service import passkit_web_service_bp
@@ -166,6 +163,8 @@ def _import_blueprints():
     from app.routes.survey_public import survey_public_bp
     from app.public_site import public_bp
     from app.nad_board import nad_board_bp
+    from app.classic_board import classic_board_bp
+    from app.classic_draft import classic_draft_bp
 
     return {
         'auth_bp': auth_bp,
@@ -185,7 +184,6 @@ def _import_blueprints():
         'calendar_bp': calendar_bp,
         'sms_rsvp_bp': sms_rsvp_bp,
         'match_api': match_api,
-        'monitoring_bp': monitoring_bp,
         'user_bp': user_bp,
         'help_bp': help_bp,
         'ai_assistant_bp': ai_assistant_bp,
@@ -209,7 +207,6 @@ def _import_blueprints():
         'wallet_config_bp': wallet_config_bp,
         'wallet_legacy_bp': wallet_legacy_bp,
         'pass_studio_bp': pass_studio_bp,
-        'notification_admin_bp': notification_admin_bp,
         'public_wallet_bp': public_wallet_bp,
         'apple_wallet_serve_bp': apple_wallet_serve_bp,
         'passkit_web_service_bp': passkit_web_service_bp,
@@ -232,6 +229,8 @@ def _import_blueprints():
         'survey_public_bp': survey_public_bp,
         'public_bp': public_bp,
         'nad_board_bp': nad_board_bp,
+        'classic_board_bp': classic_board_bp,
+        'classic_draft_bp': classic_draft_bp,
     }
 
 
@@ -250,12 +249,14 @@ def _register_core_blueprints(app, bp):
     app.register_blueprint(bp['bot_admin_bp'])
     app.register_blueprint(bp['main_bp'])
     app.register_blueprint(bp['nad_board_bp'], url_prefix='/nad-board')
+    app.register_blueprint(bp['classic_board_bp'], url_prefix='/classic-board')
+    app.register_blueprint(bp['classic_draft_bp'], url_prefix='/classic-draft')
     # DEPRECATED 2026-03-31: Legacy admin — most routes migrated to admin_panel.
     # Still registered because admin_panel templates reference admin.* routes for:
-    #   - Polls (create_poll, poll_results, close_poll, delete_poll)
-    #   - Communication (schedule_next_week, process_scheduled_messages, rsvp_status, message_config.*)
+    #   - Communication (schedule_next_week, process_scheduled_messages, rsvp_status)
     #   - ECS FC subs (ecs_fc_subs.create_sub_request)
     #   - Match pages (rsvp_status, match_management)
+    #   (League polls + message_config were removed 2026-07-21.)
     # Once those template refs are migrated to admin_panel routes, unregister this and delete.
     app.register_blueprint(bp['admin_bp'])
     app.register_blueprint(bp['feedback_bp'])
@@ -283,11 +284,6 @@ def _register_api_blueprints(app, bp, csrf):
 
     app.register_blueprint(bp['user_bp'], url_prefix='/api')
     app.register_blueprint(bp['predictions_api'], url_prefix='/api')
-
-    # DEPRECATED 2026-03-31: Legacy monitoring — migrated to admin_panel. Delete after confirming no breakage.
-    # from app.monitoring import register_monitoring_routes
-    # register_monitoring_routes()
-    # app.register_blueprint(bp['monitoring_bp'])
 
     app.register_blueprint(bp['help_bp'], url_prefix='/help')
     app.register_blueprint(bp['ai_assistant_bp'])
@@ -327,7 +323,6 @@ def _register_api_blueprints(app, bp, csrf):
 
 def _register_admin_blueprints(app, bp, csrf):
     """Register admin-related blueprints."""
-    app.register_blueprint(bp['notification_admin_bp'])
     app.register_blueprint(bp['admin_panel_bp'])
 
     # Playoff management
@@ -379,13 +374,6 @@ def _register_admin_blueprints(app, bp, csrf):
     from app.routes.ai_enhancement_routes import ai_enhancement_bp
     app.register_blueprint(ai_enhancement_bp)
     csrf.exempt(ai_enhancement_bp)
-
-    # DEPRECATED 2026-03-31: Legacy security status — migrated to admin_panel. Delete after confirming no breakage.
-    # try:
-    #     from app.routes.security_status import security_status_bp
-    #     app.register_blueprint(security_status_bp, url_prefix='')
-    # except Exception as e:
-    #     app.logger.error(f"Failed to register Security Status Blueprint: {e}")
 
 
 def _register_wallet_blueprints(app, bp, csrf):

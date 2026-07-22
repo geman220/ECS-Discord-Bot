@@ -66,9 +66,10 @@
       <div>
         <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">Type</label>
         <select id="sv-survey_type" class="{{ IFIELD }}">
-          <option value="survey">Survey (multi-question)</option>
-          <option value="poll">Poll (quick)</option>
+          <option value="survey">Survey — multiple questions, answered on the web</option>
+          <option value="poll">Poll — one quick question, can run natively in Discord</option>
         </select>
+        <p id="sv-type-hint" class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">A <strong>survey</strong> is a multi-question form members fill out on the website (you can share it by link, email, push, or a Discord button). A <strong>poll</strong> is a single choice question — build it with exactly one choice question (2–10 options) and you can post it as a real Discord poll members vote on without leaving Discord.</p>
         <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 mt-2"><input type="checkbox" id="sv-is_template" class="{{ ITOGGLE }}"> Save as reusable template</label>
       </div>
       <div class="grid grid-cols-2 gap-2">

@@ -77,7 +77,21 @@
   <!-- Discord embed -->
   <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
     <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-brand-discord text-ecs-green"></i> Discord embed</h3>
-    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Posts an embed with a "Take Survey" button.</p>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Posts a message with a <strong>"Take Survey" button</strong> — members click it and answer <strong>on the website</strong>, not inside Discord.</p>
+    {# What the Discord user actually sees #}
+    <div class="mt-3 rounded-lg bg-[#313338] p-3 text-left">
+      <div class="flex items-start gap-2.5">
+        <div class="w-8 h-8 rounded-full bg-ecs-green flex items-center justify-center text-white text-xs font-bold shrink-0">ECS</div>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs"><span class="font-semibold text-white">ECS Bot</span> <span class="ml-1 px-1 rounded bg-indigo-500 text-white text-[9px] uppercase">App</span></p>
+          <div class="mt-1 border-l-4 border-ecs-green rounded bg-[#2b2d31] p-2.5">
+            <p class="text-sm font-semibold text-white truncate">{{ survey.title }}</p>
+            <p class="text-xs text-gray-300 mt-0.5 line-clamp-2">{{ survey.description or 'Tap below to take the survey.' }}</p>
+          </div>
+          <span class="mt-1.5 inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#4e5058] text-xs text-white"><i class="ti ti-external-link text-[11px]"></i> Take Survey</span>
+        </div>
+      </div>
+    </div>
     <label class="block text-xs text-gray-500 dark:text-gray-400 mt-3">Channel</label>
     <select id="embed-channel" data-custom="embed-channel-custom" data-channel-picker class="{{ IFIELD }}">
       <option value="">Loading channels…</option>
@@ -87,14 +101,48 @@
   </div>
 
   <!-- Native Discord poll -->
+  {% set choice_qs = survey.questions | selectattr('question_type', 'in', ['single_choice', 'multi_choice']) | list %}
   <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
     <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-chart-bar text-ecs-green"></i> Native Discord poll</h3>
-    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">For surveys with exactly one choice question.</p>
-    <label class="block text-xs text-gray-500 dark:text-gray-400 mt-3">Channel</label>
-    <select id="poll-channel" data-custom="poll-channel-custom" data-channel-picker class="{{ IFIELD }}">
-      <option value="">Loading channels…</option>
-    </select>
-    <input type="text" id="poll-channel-custom" class="{{ IFIELD }} hidden" placeholder="Enter Discord channel ID">
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">A real Discord poll — members <strong>vote right inside Discord</strong>, no link to click. Needs exactly one choice question with 2–10 options; votes sync back to the results automatically.</p>
+    {% if choice_qs | length == 1 %}
+    {% set q = choice_qs[0] %}
+    {# What the Discord user actually sees #}
+    <div class="mt-3 rounded-lg bg-[#313338] p-3 text-left">
+      <div class="flex items-start gap-2.5">
+        <div class="w-8 h-8 rounded-full bg-ecs-green flex items-center justify-center text-white text-xs font-bold shrink-0">ECS</div>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs"><span class="font-semibold text-white">ECS Bot</span> <span class="ml-1 px-1 rounded bg-indigo-500 text-white text-[9px] uppercase">App</span></p>
+          <div class="mt-1 rounded bg-[#2b2d31] p-2.5">
+            <p class="text-sm font-semibold text-white">{{ q.prompt }}</p>
+            <div class="mt-2 space-y-1.5">
+              {% for o in q.options[:4] %}
+              <div class="rounded border border-[#4e5058] px-2.5 py-1.5 text-xs text-gray-200 hover:bg-[#383a40]">{{ o.label }}</div>
+              {% endfor %}
+              {% if q.options | length > 4 %}<p class="text-[10px] text-gray-400">… {{ q.options | length - 4 }} more option{{ '' if q.options|length - 4 == 1 else 's' }}</p>{% endif %}
+            </div>
+            <p class="mt-2 text-[10px] text-gray-400"><i class="ti ti-clock text-[10px]"></i> Poll · members tap to vote</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="mt-3 flex items-start gap-2 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-800 dark:text-amber-300">
+      <i class="ti ti-alert-triangle mt-0.5 shrink-0"></i>
+      <span>This survey has {{ choice_qs | length }} choice questions — a native poll needs <strong>exactly one</strong>. Use the Discord embed or web link instead, or edit the survey.</span>
+    </div>
+    {% endif %}
+    <label class="mt-3 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+      <input type="checkbox" id="poll-all-teams" class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+      Post to <strong>every current-season team's channel</strong> at once
+    </label>
+    <div id="poll-single-channel">
+      <label class="block text-xs text-gray-500 dark:text-gray-400 mt-2">Channel</label>
+      <select id="poll-channel" data-custom="poll-channel-custom" data-channel-picker class="{{ IFIELD }}">
+        <option value="">Loading channels…</option>
+      </select>
+      <input type="text" id="poll-channel-custom" class="{{ IFIELD }} hidden" placeholder="Enter Discord channel ID">
+    </div>
     <label class="block text-xs text-gray-500 dark:text-gray-400 mt-2">Duration (hours)</label>
     <input type="number" id="poll-duration" class="{{ IFIELD }}" value="48" min="1" max="168">
     <button type="button" data-send="native-poll" class="mt-3 inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800"><i class="ti ti-send"></i> Post poll</button>

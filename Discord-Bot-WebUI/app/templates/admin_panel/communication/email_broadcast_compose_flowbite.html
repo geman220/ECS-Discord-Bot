@@ -2,8 +2,8 @@
 
 {% set is_edit = campaign is defined and campaign is not none %}
 
-{% block admin_title %}{{ 'Edit' if is_edit else 'Compose' }} Email Broadcast{% endblock %}
-{% block panel_description %}{{ 'Edit draft campaign' if is_edit else 'Create and send a bulk email campaign' }}{% endblock %}
+{% block admin_title %}{{ 'Edit' if is_edit else 'Compose' }} Email Blast{% endblock %}
+{% block panel_description %}{{ 'Edit draft email blast' if is_edit else 'Write a one-time email and send it to a group of members' }}{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
@@ -51,13 +51,13 @@
       <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
         Communication
         <i class="ti ti-chevron-right text-[10px] mx-0.5 align-middle" aria-hidden="true"></i>
-        Email Broadcasts
+        Email Blasts
       </p>
       <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2.5">
         <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-ecs-green/10 text-ecs-green shrink-0">
           <i class="ti ti-send" aria-hidden="true"></i>
         </span>
-        {{ 'Edit Broadcast' if is_edit else 'Compose Broadcast' }}
+        {{ 'Edit Email Blast' if is_edit else 'Compose Email Blast' }}
       </h1>
     </div>
     {% if is_edit %}
@@ -94,13 +94,13 @@
       <div class="flex items-center gap-2.5 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
         <span class="inline-flex h-6 w-6 items-center justify-center rounded font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">1</span>
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-1.5">
-          <i class="ti ti-mail text-ecs-green" aria-hidden="true"></i> Campaign Details
+          <i class="ti ti-mail text-ecs-green" aria-hidden="true"></i> Blast Details
         </h2>
       </div>
       <div class="p-4 sm:p-5">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label for="campaignName" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Campaign Name <span class="text-red-500">*</span></label>
+            <label for="campaignName" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Blast Name <span class="text-xs normal-case font-normal text-gray-400">(internal — recipients never see this)</span> <span class="text-red-500">*</span></label>
             <input type="text" id="campaignName" name="name"
                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
                    placeholder="e.g. Spring Season Kickoff"
@@ -395,9 +395,15 @@
           <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">{{ 'Send Changes' if is_edit else 'Launch' }}</h2>
         </div>
         <div class="p-4 sm:p-5 space-y-3">
+          <div>
+            <label for="emailScheduleTime" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Schedule for later <span class="normal-case font-normal text-gray-400">(optional, PST)</span></label>
+            <input type="datetime-local" id="emailScheduleTime"
+                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave blank to send immediately.</p>
+          </div>
           <button type="button" data-action="email-send-campaign"{% if is_edit %} data-campaign-id="{{ campaign.id }}"{% endif %}
                   class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-send" aria-hidden="true"></i> {{ 'Save & Send Now' if is_edit else 'Create &amp; Send Now' }}
+            <i class="ti ti-send" aria-hidden="true"></i> {{ 'Save & Send' if is_edit else 'Create &amp; Send' }}
           </button>
           <button type="button" data-action="email-save-draft"
                   class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
@@ -442,11 +448,11 @@
     <!-- Section 1: Campaign Info -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            <i class="ti ti-mail text-ecs-green mr-2"></i>Campaign Details
+            <i class="ti ti-mail text-ecs-green mr-2"></i>Blast Details
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label for="campaignName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Campaign Name</label>
+                <label for="campaignName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Blast Name (internal)</label>
                 <input type="text" id="campaignName" name="name"
                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                        placeholder="e.g. Spring Season Kickoff"

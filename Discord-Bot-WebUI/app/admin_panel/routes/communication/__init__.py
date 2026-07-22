@@ -4,20 +4,19 @@
 Communication Routes Package
 
 This package contains routes for communication management:
-- Communication hub with statistics
-- Message template management (CRUD)
-- Message category management (CRUD)
-- Scheduled messages management
-- Push notifications management (consolidated: views, send, admin, targeting APIs)
-- Announcements management
+- Communication hub (task-oriented landing page)
+- Multi-channel composer (write once, send via orchestrator)
+- Match RSVP posts (scheduled Discord availability embeds)
+- Push notifications (views, send, admin, targeting APIs)
+- Homepage announcements
 - Direct messaging (SMS & Discord DM)
-- Notification groups
-- Campaigns (push notification campaigns)
-- Email broadcasts (email campaigns)
-- Email templates
-- Messaging settings (DM permissions)
-- League settings (Discord bot league config)
-- SMS analytics
+- Audiences (notification groups for push targeting)
+- Push scheduling & history (campaigns)
+- Email blasts (email campaigns)
+- Email layouts (email templates)
+- In-app messaging settings (DM permissions)
+- Discord welcome messages (per-league bot onboarding copy)
+- SMS delivery & costs
 """
 
 
@@ -31,8 +30,7 @@ def register_communication_routes():
     """
     from app.admin_panel.routes.communication import (
         hub,
-        templates,
-        categories,
+        composer,
         announcements,
         scheduled,
         push,

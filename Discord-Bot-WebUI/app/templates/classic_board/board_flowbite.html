@@ -1,0 +1,186 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Classic Board{% endblock %}
+{% block page_title %}Classic Board{% endblock %}
+
+{% block main_content %}
+<div id="classic-board-root" class="max-w-[1500px] w-full mx-auto px-3 sm:px-4 py-4 space-y-4 sm:space-y-5">
+
+    <!-- Header -->
+    <div class="min-w-0">
+        {% if season_name %}<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 truncate">Season: {{ season_name }}</p>{% endif %}
+        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-clipboard-data text-ecs-green shrink-0"></i><span>Classic Board</span>
+        </h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Every current-season Classic player — attendance, career stats, positions{% if show_scores %}, and compiled ratings{% endif %}.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-ecs-green/10 text-ecs-green flex items-center justify-center"><i class="ti ti-users text-lg"></i></div>
+            <div><div class="text-2xl font-extrabold text-gray-900 dark:text-white leading-none">{{ stats.total }}</div><div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Players</div></div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-user-plus text-lg"></i></div>
+            <div><div class="text-2xl font-extrabold text-gray-900 dark:text-white leading-none">{{ stats.new }}</div><div class="text-xs text-gray-500 dark:text-gray-400 mt-1">New</div></div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 flex items-center justify-center"><i class="ti ti-refresh text-lg"></i></div>
+            <div><div class="text-2xl font-extrabold text-gray-900 dark:text-white leading-none">{{ stats.returning }}</div><div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Returning</div></div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center"><i class="ti ti-calendar-check text-lg"></i></div>
+            <div><div class="text-2xl font-extrabold text-gray-900 dark:text-white leading-none">{{ stats.avg_attendance ~ '%' if stats.avg_attendance is not none else '—' }}</div><div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Avg attendance</div></div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex flex-wrap items-center gap-2">
+        <div class="relative flex-1 min-w-[180px]">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="ti ti-search text-sm"></i></span>
+            <input type="text" id="cb-search" data-on-input="classic-board-filter" placeholder="Search by name…" autocomplete="off"
+                   class="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+        </div>
+        <select id="cb-status" data-on-change="classic-board-filter" class="py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+            <option value="">Everyone</option>
+            <option value="new">New players</option>
+            <option value="returning">Returning</option>
+            <option value="assigned">On a team</option>
+            <option value="unassigned">Unassigned</option>
+            <option value="gk">Willing to GK</option>
+        </select>
+        <select id="cb-position" data-on-change="classic-board-filter" class="py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+            <option value="">All positions</option>
+        </select>
+        <select id="cb-sort" data-on-change="classic-board-filter" class="py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+            <option value="name-asc">Name (A–Z)</option>
+            <option value="name-desc">Name (Z–A)</option>
+            <option value="attendance">Attendance</option>
+            <option value="goals">Career goals</option>
+            <option value="assists">Career assists</option>
+            {% if show_scores %}<option value="composite">Composite score</option>{% endif %}
+        </select>
+        <span id="cb-count" class="text-xs text-gray-500 dark:text-gray-400 ml-auto shrink-0"></span>
+    </div>
+
+    {% if not players %}
+    <div class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+        <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4"><i class="ti ti-clipboard-data text-2xl text-gray-400 dark:text-gray-500"></i></div>
+        <h3 class="text-base font-semibold text-gray-900 dark:text-white">No Classic players yet</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">Players appear here as they become active for the current Classic season.</p>
+    </div>
+    {% else %}
+    <div id="cb-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+        {% for p in players %}
+        {% set all_positions = ([p.favorite_position] if p.favorite_position else []) + p.other_positions %}
+        <div class="cb-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3"
+             data-name="{{ p.name|lower }}"
+             data-new="{{ '1' if p.is_new else '0' }}"
+             data-coach="{{ '1' if p.is_coach else '0' }}"
+             data-assigned="{{ '1' if p.team_id else '0' }}"
+             data-gk="{{ '1' if p.wants_gk else '0' }}"
+             data-attendance="{{ p.attendance_rate if p.attendance_rate is not none else -1 }}"
+             data-goals="{{ p.career_goals }}"
+             data-assists="{{ p.career_assists }}"
+             data-composite="{{ p.ratings.composite if show_scores and p.ratings and p.ratings.composite is not none else -1 }}"
+             data-positions="{{ all_positions|join('|')|lower }}">
+            <div class="flex items-start gap-3">
+                <div class="relative shrink-0">
+                    <img class="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 {{ '' if p.avatar_url else 'hidden' }}"
+                         {% if p.avatar_url %}src="{{ p.avatar_url }}"{% endif %} alt="{{ p.name }}" loading="lazy"
+                         onerror="this.classList.add('hidden'); this.parentElement.querySelector('.cb-initials').classList.remove('hidden');">
+                    <div class="cb-initials w-14 h-14 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center text-lg font-semibold {{ 'hidden' if p.avatar_url else '' }}">{{ p.name[:1]|upper }}</div>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ p.name }}</h3>
+                        {% if p.pronouns %}<span class="text-xs text-gray-400">{{ p.pronouns }}</span>{% endif %}
+                    </div>
+                    <div class="mt-1 flex flex-wrap items-center gap-1">
+                        {% if p.is_coach %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"><i class="ti ti-whistle text-xs"></i>Coach</span>
+                        {% elif p.is_new %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">NEW</span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Returning</span>
+                        {% endif %}
+                        {% if p.team_name %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"><i class="ti ti-shield text-xs"></i>{{ p.team_name }}</span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="ti ti-user-question text-xs"></i>Unassigned</span>
+                        {% endif %}
+                        {% if p.wants_gk %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300" title="GK: {{ p.gk_willingness or 'Willing' }}"><i class="ti ti-hand-stop text-xs"></i>GK</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance + career stats -->
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 py-1.5">
+                    <div class="text-sm font-bold font-mono text-gray-900 dark:text-white leading-none">{{ (p.attendance_rate|round|int ~ '%') if p.has_attendance_data and p.attendance_rate is not none else '—' }}</div>
+                    <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Attendance</div>
+                </div>
+                <div class="rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 py-1.5">
+                    <div class="text-sm font-bold font-mono text-gray-900 dark:text-white leading-none">{{ p.career_goals }}</div>
+                    <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Goals</div>
+                </div>
+                <div class="rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 py-1.5">
+                    <div class="text-sm font-bold font-mono text-gray-900 dark:text-white leading-none">{{ p.career_assists }}</div>
+                    <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Assists</div>
+                </div>
+            </div>
+
+            <!-- Positions -->
+            <div class="space-y-1.5 text-xs">
+                {% if p.favorite_position %}
+                <div class="flex items-center gap-1.5 flex-wrap"><span class="text-gray-400 w-14 shrink-0">Favorite</span>
+                    <span class="px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green font-medium">{{ p.favorite_position }}</span>
+                </div>
+                {% endif %}
+                {% if p.other_positions %}
+                <div class="flex items-center gap-1.5 flex-wrap"><span class="text-gray-400 w-14 shrink-0">Also</span>
+                    {% for pos in p.other_positions %}<span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ pos }}</span>{% endfor %}
+                </div>
+                {% endif %}
+                {% if p.positions_not_to_play %}
+                <div class="flex items-center gap-1.5 flex-wrap"><span class="text-gray-400 w-14 shrink-0">Avoid</span>
+                    {% for pos in p.positions_not_to_play %}<span class="px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 line-through">{{ pos }}</span>{% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            {% if show_scores and not p.is_coach %}
+            <!-- Compiled ratings (progressive disclosure) -->
+            <details class="group mt-auto">
+                <summary class="flex items-center justify-between gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer select-none list-none pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <span class="flex items-center gap-1.5"><i class="ti ti-star text-sm text-ecs-green"></i>Ratings
+                        {% if not p.ratings.is_rated %}<span class="px-1.5 py-0.5 rounded text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-400">Unrated</span>{% endif %}
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        {% if p.ratings.composite is not none %}<span class="font-mono font-bold text-ecs-green">{{ '%.2f'|format(p.ratings.composite) }}</span>{% endif %}
+                        <i class="ti ti-chevron-down transition-transform group-open:rotate-180"></i>
+                    </span>
+                </summary>
+                <div class="mt-2 space-y-1.5">
+                    {% for m in metrics %}
+                    {% set v = p.ratings.metrics[m.key] %}
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-24 shrink-0 text-gray-500 dark:text-gray-400 truncate" title="{{ m.label }} ({{ m.weight|round|int }}%)">{{ m.label }}</span>
+                        <div class="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            {% if v is not none %}<div class="h-1.5 bg-ecs-green rounded-full" style="width: {{ ((v - 1) / 4 * 100)|round(1) }}%"></div>{% endif %}
+                        </div>
+                        <span class="w-9 text-right font-mono {{ 'text-gray-900 dark:text-white' if v is not none else 'text-gray-300 dark:text-gray-600' }}">{{ '%.2f'|format(v) if v is not none else '—' }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </details>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

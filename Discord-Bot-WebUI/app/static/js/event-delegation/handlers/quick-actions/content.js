@@ -94,19 +94,20 @@ window.EventDelegation.register('quick-test-notifications', function(element, e)
                 didOpen: () => {
                     window.Swal.showLoading();
 
-                    fetch('/admin/notifications/test-notification', {
+                    fetch('/admin-panel/communication/push-notifications/test', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                         }
                     })
                     .then(response => response.json())
                     .then(data => {
-                        if (data.msg && !data.msg.includes('error') && !data.msg.includes('Error')) {
-                            window.Swal.fire('Test Sent!', data.msg, 'success');
+                        if (data.success) {
+                            window.Swal.fire('Test Sent!', data.message, 'success');
                         } else {
-                            window.Swal.fire('Notice', data.msg || 'Test notification processed.', 'info');
+                            window.Swal.fire('Notice', data.message || 'Test notification processed.', 'info');
                         }
                     })
                     .catch(error => {

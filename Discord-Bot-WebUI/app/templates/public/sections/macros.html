@@ -257,7 +257,15 @@ bg-ecs-blue-600 text-white shadow-lg hover:bg-ecs-blue-700
         {% for post in posts %}
         <a href="{{ post.url }}"
            class="group rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden shadow-sm hover:shadow-md transition">
-            {% if post.image %}
+            {% if post.img %}
+            {# Media-library asset: responsive variants + WebP. #}
+            <picture>
+                {% if post.img.webp_srcset %}<source type="image/webp" srcset="{{ post.img.webp_srcset }}" sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw">{% endif %}
+                <img src="{{ post.img.url }}" {% if post.img.srcset %}srcset="{{ post.img.srcset }}" sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw"{% endif %}
+                     {% if post.img.width and post.img.height %}width="{{ post.img.width }}" height="{{ post.img.height }}"{% endif %}
+                     alt="{{ post.title }}" class="h-44 w-full object-cover" loading="lazy">
+            </picture>
+            {% elif post.image %}
             <img src="{{ post.image }}" alt="{{ post.title }}" class="h-44 w-full object-cover" loading="lazy">
             {% else %}
             <div class="h-44 w-full bg-gradient-to-br from-ecs-green to-ecs-green-dark flex items-center justify-center"><i class="ti ti-news text-4xl text-white/40"></i></div>

@@ -1,7 +1,7 @@
 {% extends "admin_panel/base_flowbite.html" %}
 
-{% block admin_title %}Campaign: {{ campaign.name }}{% endblock %}
-{% block panel_description %}{{ campaign.filter_description or 'Email broadcast campaign details' }}{% endblock %}
+{% block admin_title %}Email Blast: {{ campaign.name }}{% endblock %}
+{% block panel_description %}{{ campaign.filter_description or 'Email blast details' }}{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
@@ -34,6 +34,7 @@
 {% set delivery_rate = (campaign.sent_count / processed * 100) if processed > 0 else 0 %}
 {% set status_meta = {
   'draft':          {'i': 'ti-pencil',        'word': 'Draft',          'cls': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', 'dot': 'bg-gray-400'},
+  'scheduled':      {'i': 'ti-calendar-time', 'word': 'Scheduled',      'cls': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300', 'dot': 'bg-purple-500'},
   'sending':        {'i': 'ti-loader',        'word': 'Sending',        'cls': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300', 'dot': 'bg-blue-500'},
   'sent':           {'i': 'ti-circle-check',  'word': 'Sent',           'cls': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300', 'dot': 'bg-green-500'},
   'partially_sent': {'i': 'ti-alert-triangle','word': 'Partially Sent', 'cls': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300', 'dot': 'bg-amber-500'},
@@ -49,7 +50,7 @@
     <div class="min-w-0">
       <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-2">
         <i class="ti ti-mail-forward text-ecs-green" aria-hidden="true"></i>
-        Email Broadcast
+        Email Blast
         <span class="text-gray-300 dark:text-gray-600">/</span>
         <span class="font-mono">#{{ campaign.id }}</span>
       </p>
@@ -73,10 +74,10 @@
         <i class="ti ti-send" aria-hidden="true"></i> Send Now
       </button>
       {% endif %}
-      {% if campaign.status == 'sending' %}
+      {% if campaign.status in ('sending', 'scheduled') %}
       <button type="button" data-action="email-cancel-campaign" data-campaign-id="{{ campaign.id }}"
               class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-        <i class="ti ti-player-stop" aria-hidden="true"></i> Cancel Send
+        <i class="ti ti-player-stop" aria-hidden="true"></i> {{ 'Cancel Send' if campaign.status == 'sending' else 'Cancel Schedule' }}
       </button>
       {% endif %}
       {% if campaign.status in ('sending', 'failed', 'cancelled', 'partially_sent') %}
@@ -274,7 +275,7 @@
       <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
         <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
           <i class="ti ti-adjustments-alt text-ecs-green" aria-hidden="true"></i>
-          <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Campaign Spec</h2>
+          <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Blast Spec</h2>
         </div>
         <dl class="divide-y divide-gray-200 dark:divide-gray-700 text-sm">
           {% if campaign.filter_description %}

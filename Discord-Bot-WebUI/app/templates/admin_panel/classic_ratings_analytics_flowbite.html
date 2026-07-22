@@ -1,0 +1,178 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Classic Rating Analytics{% endblock %}
+{% block panel_description %}How the league's ratings move season over season{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="inline-flex items-center"><a href="{{ url_for('admin_panel.classic_ratings_dashboard') }}" class="text-sm text-gray-500 hover:text-ecs-green dark:text-gray-400">Classic Ratings</a></li>
+<li class="inline-flex items-center"><span class="mx-1 text-gray-400">/</span><span class="text-sm text-gray-500 dark:text-gray-400">Analytics</span></li>
+{% endblock %}
+
+{% block panel_content %}
+{% if not has_data %}
+<div class="flex flex-col items-center justify-center text-center px-6 py-16 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+    <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4"><i class="ti ti-chart-line text-2xl text-gray-400"></i></div>
+    <h3 class="text-base font-semibold text-gray-900 dark:text-white">No rating data yet</h3>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">Charts appear once coaches start submitting ratings. Trends build up season over season.</p>
+</div>
+{% else %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-1">League average by season</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Watch for drift — e.g. Intensity creeping up over time.</p>
+        <div class="relative h-72"><canvas id="cr-trend-chart"></canvas></div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+        <div class="flex items-center justify-between mb-1">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Current-season distribution</h3>
+            <select id="cr-dist-metric" class="py-1 pl-2 pr-7 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200">
+            </select>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Final per-player values in half-point bins.</p>
+        <div class="relative h-72"><canvas id="cr-dist-chart"></canvas></div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 lg:col-span-2">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-1">Coach leniency</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Each coach's mean given rating vs the all-coaches mean. Positive = rates high, negative = rates low. Useful context before overriding.</p>
+        <div class="relative h-64"><canvas id="cr-leniency-chart"></canvas></div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if has_data %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+(function () {
+    const data = {{ chart_data|tojson }};
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof Chart === 'undefined') return;
+        const isDark = document.documentElement.classList.contains('dark');
+        const gridColor = isDark ? 'rgba(148,163,184,0.15)' : 'rgba(100,116,139,0.15)';
+        const textColor = isDark ? '#cbd5e1' : '#475569';
+        Chart.defaults.color = textColor;
+
+        const makeChart = function (el, config) {
+            if (!el) return null;
+            const prev = Chart.getChart(el);
+            if (prev) prev.destroy();
+            return new Chart(el, config);
+        };
+
+        const METRIC_COLORS = {
+            intensity: '#ef4444',
+            on_ball_skill: '#3b82f6',
+            spirit: '#f59e0b',
+            knowledge_movement: '#8b5cf6',
+        };
+        const metricKeys = Object.keys(data.metric_labels);
+
+        // 1. Per-season metric trend
+        makeChart(document.getElementById('cr-trend-chart'), {
+            type: 'line',
+            data: {
+                labels: data.trends.map(s => s.name),
+                datasets: metricKeys.map(key => ({
+                    label: data.metric_labels[key],
+                    data: data.trends.map(s => s.averages[key]),
+                    borderColor: METRIC_COLORS[key],
+                    backgroundColor: METRIC_COLORS[key],
+                    tension: 0.3,
+                    pointRadius: 3,
+                    spanGaps: true,
+                })).concat([{
+                    label: 'Composite',
+                    data: data.trends.map(s => s.composite),
+                    borderColor: '#10b981',
+                    backgroundColor: '#10b981',
+                    borderDash: [6, 4],
+                    tension: 0.3,
+                    pointRadius: 2,
+                    spanGaps: true,
+                }]),
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { suggestedMin: 1, suggestedMax: 5, grid: { color: gridColor } },
+                    x: { grid: { display: false } },
+                },
+                plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+            },
+        });
+
+        // 2. Distribution histogram with metric switcher
+        const select = document.getElementById('cr-dist-metric');
+        metricKeys.forEach(key => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = data.metric_labels[key];
+            select.appendChild(option);
+        });
+        const distChart = makeChart(document.getElementById('cr-dist-chart'), {
+            type: 'bar',
+            data: {
+                labels: (data.distributions.intensity || { labels: [] }).labels,
+                datasets: [{
+                    label: 'Players',
+                    data: (data.distributions.intensity || { bins: [] }).bins,
+                    backgroundColor: METRIC_COLORS.intensity,
+                    borderRadius: 3,
+                }],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: gridColor } },
+                    x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                },
+                plugins: { legend: { display: false } },
+            },
+        });
+        select.addEventListener('change', function () {
+            const dist = data.distributions[this.value];
+            if (!dist || !distChart) return;
+            distChart.data.labels = dist.labels;
+            distChart.data.datasets[0].data = dist.bins;
+            distChart.data.datasets[0].backgroundColor = METRIC_COLORS[this.value];
+            distChart.update();
+        });
+
+        // 3. Coach leniency (diverging horizontal bars)
+        makeChart(document.getElementById('cr-leniency-chart'), {
+            type: 'bar',
+            data: {
+                labels: data.leniency.map(r => r.name),
+                datasets: [{
+                    label: 'Mean given − league mean',
+                    data: data.leniency.map(r => r.delta),
+                    backgroundColor: data.leniency.map(r => r.delta >= 0 ? '#10b981' : '#ef4444'),
+                    borderRadius: 3,
+                }],
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { min: -1, max: 1, grid: { color: gridColor } },
+                    y: { grid: { display: false } },
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                const r = data.leniency[ctx.dataIndex];
+                                return `Δ ${r.delta > 0 ? '+' : ''}${r.delta} (mean ${r.mean}, n=${r.count})`;
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

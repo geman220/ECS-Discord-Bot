@@ -53,7 +53,6 @@ const PAGES: { slug: string; url: string; risk: 'HIGH' | 'MEDIUM' | 'LOW' }[] = 
   { slug: 'manage-leagues', url: '/admin-panel/match-operations/leagues', risk: 'MEDIUM' },
   { slug: 'match-check-in-index', url: '/admin-panel/match-operations/check-in', risk: 'MEDIUM' },
   { slug: 'match-verification', url: '/admin-panel/match-verification', risk: 'MEDIUM' },
-  { slug: 'message-templates', url: '/admin-panel/communication/messages', risk: 'MEDIUM' },
   { slug: 'messaging-settings', url: '/admin-panel/communication/messaging-settings', risk: 'MEDIUM' },
   { slug: 'mls-matches', url: '/admin-panel/mls/matches', risk: 'MEDIUM' },
   { slug: 'mls-overview', url: '/admin-panel/mls', risk: 'MEDIUM' },

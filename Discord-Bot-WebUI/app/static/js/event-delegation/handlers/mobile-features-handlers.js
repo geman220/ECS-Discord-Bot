@@ -13,7 +13,6 @@
  * - mobile/push-subscriptions.js - Push subscription handlers
  * - mobile/config.js - Mobile config handlers
  * - mobile/users.js - Mobile users handlers
- * - mobile/push-campaigns.js - Push campaign handlers
  * - mobile/push-history.js - Push history handlers
  *
  * @module event-delegation/handlers/mobile-features-handlers
@@ -29,6 +28,5 @@ export {
     initPushSubscriptionsHandlers,
     initMobileConfigHandlers,
     initMobileUsersHandlers,
-    initPushCampaignsHandlers,
     initPushHistoryHandlers
 } from './mobile/index.js';

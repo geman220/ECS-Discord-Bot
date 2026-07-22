@@ -86,6 +86,13 @@ def build_nav_sections(user_roles, admin_settings):
         if has_any('Pub League Coach', 'Premier Coach', 'Classic Coach',
                    'Pub League Admin', 'Global Admin'):
             main_items.append(item('NAD Board', 'ti-user-plus', 'nad_board.index'))
+        # Classic Board + rating queue — same reasoning as the NAD board: coach
+        # tools live in the normal shell, not the admin panel. Ratings are
+        # Classic-Coach-only (admins may open the read-only view).
+        if has_any('Pub League Coach', 'Classic Coach', 'Pub League Admin', 'Global Admin'):
+            main_items.append(item('Classic Board', 'ti-clipboard-data', 'classic_board.index'))
+        if has_any('Classic Coach', 'Pub League Admin', 'Global Admin'):
+            main_items.append(item('Rate Players', 'ti-star', 'classic_board.rate'))
         if authenticated:
             main_items.append(item('Help Topics', 'ti-help-circle', 'help.index'))
         if main_items:
@@ -269,9 +276,7 @@ def _register_page_header_icon(app):
     '' (the header renders icon-less rather than showing a wrong icon)."""
 
     _PAGE_HEADER_ICONS = {
-        'admin.create_poll': 'ti-plus',
         'admin.discord_onboarding.admin_test_onboarding': 'ti-flask',
-        'admin.manage_polls': 'ti-chart-bar',
         'admin_panel.animations': 'ti-bounce-right',
         'admin_panel.announcements': 'ti-speakerphone',
         'admin_panel.api_management': 'ti-api',
@@ -324,7 +329,6 @@ def _register_page_header_icon(app):
         'admin_panel.match_operations': 'ti-dashboard',
         'admin_panel.match_reports': 'ti-report',
         'admin_panel.match_verification': 'ti-check',
-        'admin_panel.message_templates': 'ti-template',
         'admin_panel.messaging_settings': 'ti-settings',
         'admin_panel.mls_matches': 'ti-list',
         'admin_panel.mls_sessions': 'ti-broadcast',
@@ -338,9 +342,9 @@ def _register_page_header_icon(app):
         'admin_panel.mobile_features': 'ti-device-mobile',
         'admin_panel.mobile_users': 'ti-users',
         'admin_panel.navigation_settings': 'ti-menu-2',
+        'admin_panel.message_composer': 'ti-pencil-bolt',
         'admin_panel.notification_groups_list': 'ti-users-group',
         'admin_panel.playoff_management': 'ti-trophy',
-        'admin_panel.push_campaigns': 'ti-speakerphone',
         'admin_panel.push_history': 'ti-history',
         'admin_panel.push_notifications': 'ti-bell',
         'admin_panel.push_notifications_dashboard': 'ti-dashboard',
@@ -357,7 +361,6 @@ def _register_page_header_icon(app):
         'admin_panel.season_manage': 'ti-adjustments',
         'admin_panel.season_rollover': 'ti-rotate-clockwise',
         'admin_panel.security_dashboard': 'ti-shield-check',
-        'admin_panel.send_push_notification_form': 'ti-send',
         'admin_panel.sms_analytics_dashboard': 'ti-chart-bar',
         'admin_panel.spacing': 'ti-ruler-2',
         'admin_panel.store_analytics': 'ti-chart-bar',
@@ -401,7 +404,6 @@ def _register_page_header_icon(app):
         'admin_panel.edit_announcement': 'ti-speakerphone',
         'admin_panel.live_matches': 'ti-broadcast',
         'admin_panel.match_check_in_detail': 'ti-qrcode',
-        'admin_panel.message_template_management': 'ti-template',
         'admin_panel.quick_actions': 'ti-bolt',
         'admin_panel.role_comprehensive_users': 'ti-shield',
         'admin_panel.rsvp_status': 'ti-checkbox',

@@ -164,6 +164,14 @@ class RenderContext:
         if block.get('category'):
             q = q.filter(NewsPost.category == block['category'])
         posts = q.order_by(NewsPost.published_at.desc()).limit(block.get('count', 3)).all()
+        from app.services.media_service import render_info_for_urls
+        try:
+            imgs = render_info_for_urls(self._session,
+                                        [p.featured_image_url for p in posts])
+        except Exception:
+            # Cosmetic degradation only (cards fall back to bare <img>) — a
+            # media lookup blip must not 500 every page carrying this block.
+            imgs = {}
         out = []
         for p in posts:
             date = p.published_at or p.created_at
@@ -171,6 +179,7 @@ class RenderContext:
                 'url': url_for('public.news_detail', slug=p.slug),
                 'title': p.title, 'excerpt': p.excerpt,
                 'image': p.featured_image_url,
+                'img': imgs.get(p.featured_image_url),
                 'date': date.strftime('%B %-d, %Y') if date else '',
             })
         return out
@@ -265,20 +274,12 @@ class RenderContext:
 
     @staticmethod
     def _srcset(asset, webp=False, ver=''):
-        """Build a srcset string from the asset's generated variants."""
-        v = asset.variants or {}
-        widths = v.get('widths') or []
-        if not widths or '.' not in asset.url:
-            return None
-        base, ext = asset.url.rsplit('.', 1)
-        if webp:
-            if not v.get('webp'):
-                return None
-            return ', '.join(f'{base}-w{w}.webp{ver} {w}w' for w in widths)
-        parts = [f'{base}-w{w}.{ext}{ver} {w}w' for w in widths if not asset.width or w < asset.width]
-        if asset.width:
-            parts.append(f'{asset.url}{ver} {asset.width}w')
-        return ', '.join(parts)
+        """Build a srcset string from the asset's generated variants (shared
+        implementation in media_service so non-section pages match)."""
+        from app.services.media_service import srcset_parts
+        srcset, webp_srcset = srcset_parts(asset.url, asset.variants,
+                                           asset.width, ver)
+        return webp_srcset if webp else srcset
 
     def resolve_link(self, link):
         """Resolve a typed link ref to an href, or None."""

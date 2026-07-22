@@ -907,34 +907,6 @@ def api_generate_system_report():
         return jsonify({'success': False, 'message': 'Failed to generate system report.'}), 500
 
 
-# Message Templates Management
-@admin_panel_bp.route('/message-templates')
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-def message_template_management():
-    """Message template management hub."""
-    try:
-        from app.models.league_features import MessageTemplate, MessageCategory
-        
-        templates = MessageTemplate.query.order_by(MessageTemplate.name).all()
-        categories = MessageCategory.query.order_by(MessageCategory.name).all()
-        
-        stats = {
-            'total_templates': len(templates),
-            'active_templates': len([t for t in templates if t.is_active]),
-            'total_categories': len(categories)
-        }
-        
-        return render_template('admin_panel/message_template_management_flowbite.html',
-                             templates=templates,
-                             categories=categories,
-                             stats=stats)
-    except Exception as e:
-        logger.error(f"Error loading message template management: {e}")
-        flash('Message template management unavailable. Check database connectivity and templates.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
-
-
 # Discord Bot Management
 @admin_panel_bp.route('/discord-bot')
 @login_required

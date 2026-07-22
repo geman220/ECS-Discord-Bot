@@ -228,7 +228,8 @@ class TestPublicRenderIntegration:
     def test_public_pages_render(self, app, db):
         client = app.test_client()
         for path in ('/preview/', '/preview/about', '/preview/faqs',
-                     '/preview/register', '/preview/contact', '/preview/news'):
+                     '/preview/register', '/preview/contact', '/preview/news',
+                     '/preview/calendar', '/preview/calendar?view=month'):
             resp = client.get(path)
             assert resp.status_code in (200, 302), (path, resp.status_code)
 
@@ -249,3 +250,133 @@ class TestPublicRenderIntegration:
         resp = app.test_client().get('/preview/')
         assert resp.status_code == 200
         assert b'ECS Pub League' in resp.data or b'soccer' in resp.data.lower()
+
+    def test_dynamic_page_copy_overrides_render(self, app, db):
+        # Appearance-screen copy keys must flow through to the news/calendar
+        # banners (and blank/unset keys must fall back to shipped defaults).
+        with app.app_context():
+            from app.models.admin_config import AdminConfig
+            AdminConfig.set_setting('public_calendar_hero_title', 'Fixture Calendar',
+                                    category='public_site', auto_commit=True)
+            AdminConfig.set_setting('public_calendar_cta_heading', 'Fixture CTA',
+                                    category='public_site', auto_commit=True)
+        client = app.test_client()
+        body = client.get('/preview/calendar').data.decode()
+        assert 'Fixture Calendar' in body
+        assert 'Fixture CTA' in body
+        news = client.get('/preview/news').data.decode()
+        assert 'News' in news  # default title still applies (key never saved)
+
+
+class TestSrcsetParts:
+    """One srcset implementation for the whole public site (media_service)."""
+
+    def test_variants_produce_srcset_and_webp(self):
+        from app.services.media_service import srcset_parts
+        srcset, webp = srcset_parts(
+            '/static/img/publeague/pic.jpg',
+            {'widths': [320, 640], 'webp': True}, width=1000, ver='?v=abc123')
+        assert srcset == ('/static/img/publeague/pic-w320.jpg?v=abc123 320w, '
+                          '/static/img/publeague/pic-w640.jpg?v=abc123 640w, '
+                          '/static/img/publeague/pic.jpg?v=abc123 1000w')
+        assert webp == ('/static/img/publeague/pic-w320.webp?v=abc123 320w, '
+                        '/static/img/publeague/pic-w640.webp?v=abc123 640w')
+
+    def test_no_variants_means_no_srcset(self):
+        from app.services.media_service import srcset_parts
+        assert srcset_parts('/static/img/x.jpg', None) == (None, None)
+        assert srcset_parts('/static/img/x.jpg', {'widths': []}) == (None, None)
+        assert srcset_parts(None, {'widths': [320]}) == (None, None)
+
+
+class TestDynamicPageCache:
+    """The news/calendar full-page cache: hit path, bounded key space."""
+
+    def test_calendar_cached_and_category_not_cached(self, app, db, monkeypatch):
+        import app.services.public_cache as pc
+        store, calls = {}, {'store': 0}
+        monkeypatch.setattr(pc, 'cache_key',
+                            lambda host, path, scope='page', slug=None: f'k:{host}:{path}')
+        monkeypatch.setattr(pc, 'get_cached_html', store.get)
+        monkeypatch.setattr(pc, 'store_html',
+                            lambda k, h: (store.__setitem__(k, h),
+                                          calls.__setitem__('store', calls['store'] + 1)))
+        monkeypatch.setattr(pc, 'acquire_render_lock', lambda k: True)
+        monkeypatch.setattr(pc, 'get_stale_html', lambda k: None)
+        monkeypatch.setenv('PUBLIC_ONLY', 'true')
+        client = app.test_client()
+
+        r1 = client.get('/preview/calendar')
+        assert r1.status_code == 200
+        assert calls['store'] == 1
+        r2 = client.get('/preview/calendar')
+        assert r2.status_code == 200 and r2.data == r1.data
+        assert calls['store'] == 1  # second hit came from the cache
+        assert r2.headers.get('Cache-Control') == 'public, max-age=60'
+
+        # Free-text ?category is served live — an attacker must not be able to
+        # mint cache keys.
+        before = dict(store)
+        r3 = client.get('/preview/news?category=zzz-not-real')
+        assert r3.status_code == 200
+        assert store == before
+
+    def test_degraded_render_not_stored(self, app, db, monkeypatch):
+        # A render that hit a graceful-degradation except (transient DB error)
+        # must never be written to the cache — one blip must not serve an
+        # empty page to every anonymous visitor for the TTL.
+        import app.services.public_cache as pc
+        import app.services.media_service as ms
+        store = {}
+        monkeypatch.setattr(pc, 'cache_key',
+                            lambda host, path, scope='page', slug=None: f'k:{path}')
+        monkeypatch.setattr(pc, 'get_cached_html', store.get)
+        monkeypatch.setattr(pc, 'store_html', lambda k, h: store.__setitem__(k, h))
+        monkeypatch.setattr(pc, 'acquire_render_lock', lambda k: True)
+        monkeypatch.setattr(pc, 'get_stale_html', lambda k: None)
+        monkeypatch.setenv('PUBLIC_ONLY', 'true')
+
+        def _boom(session, urls):
+            raise RuntimeError('db blip')
+        monkeypatch.setattr(ms, 'render_info_for_urls', _boom)
+
+        resp = app.test_client().get('/preview/news')
+        assert resp.status_code == 200          # degraded page still serves
+        assert store == {}                       # ...but is never cached
+        assert resp.headers.get('Cache-Control') == 'no-store'
+
+
+class TestPageTemplates:
+    """Add-New-Page starter templates must be valid section docs — a template
+    that loses blocks in validation would silently seed a broken skeleton."""
+
+    def test_every_template_validates_losslessly(self):
+        from app.services.section_converter import PAGE_TEMPLATES, build_page_template
+        from app.services.section_schema import validate_sections
+        for t in PAGE_TEMPLATES:
+            built = build_page_template(t['key'], 'Summer Cup')
+            doc, notes = validate_sections({'v': 1, 'sections': built}, is_admin=False)
+            assert len(doc['sections']) == len(built), (t['key'], notes)
+            for raw_s, val_s in zip(built, doc['sections']):
+                assert len(val_s['blocks']) == len(raw_s['blocks']), (t['key'], notes)
+
+    def test_blank_and_unknown_are_empty(self):
+        from app.services.section_converter import build_page_template
+        assert build_page_template('blank', 'X') == []
+        assert build_page_template('nope', 'X') == []
+
+    def test_title_is_escaped_into_heading(self):
+        from app.services.section_converter import build_page_template
+        sections = build_page_template('info', '<script>alert(1)</script> & Co')
+        h1 = sections[0]['blocks'][0]
+        assert h1['type'] == 'heading'
+        assert '<script>' not in h1['html']
+        assert '&amp; Co' in h1['html']
+
+    def test_template_keys_match_metadata(self):
+        # Every advertised template must actually build something (except blank).
+        from app.services.section_converter import PAGE_TEMPLATES, build_page_template
+        for t in PAGE_TEMPLATES:
+            built = build_page_template(t['key'], 'X')
+            if t['key'] != 'blank':
+                assert built, f"template {t['key']} built an empty skeleton"

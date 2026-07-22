@@ -300,6 +300,9 @@ function initEditor(rootEl) {
     select: (f, v) => `<select data-k="${f.key}" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">${
       f.options.map((o) => `<option value="${o}" ${o === v ? 'selected' : ''}>${o}</option>`).join('')}</select>`,
     text: (f, v) => `<input data-k="${f.key}" type="text" value="${escAttr(v)}" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">`,
+    // Multi-line text (card body copy). Holds sanitized HTML; plain typed text
+    // is fine too — the server sanitizer normalizes either way.
+    textarea: (f, v) => `<textarea data-k="${f.key}" rows="4" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">${escAttr(v)}</textarea>`,
     number: (f, v) => `<input data-k="${f.key}" type="number" min="${f.min || 1}" max="${f.max || 12}" value="${escAttr(v || f.def || '')}" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">`,
     color: (f, v) => `<input data-k="${f.key}" type="color" value="${escAttr(v || '#40b050')}" class="h-10 w-full rounded-lg border-gray-300">`,
     toggle: (f, v) => `<label class="inline-flex items-center gap-2 text-sm"><input data-k="${f.key}" type="checkbox" ${v ? 'checked' : ''} class="rounded"> ${f.label}</label>`,
@@ -358,6 +361,10 @@ function initEditor(rootEl) {
     ],
     card: [
       { key: 'title', label: 'Title', type: 'text' },
+      // Card bodies have no inline-edit surface (data-editable covers only
+      // heading/richtext/quote), so the body copy MUST be editable here or
+      // seeded placeholder text is a dead end.
+      { key: 'html', label: 'Text', type: 'textarea' },
       { key: 'icon', label: 'Icon (tabler name, optional)', type: 'text' },
       { key: 'image', label: 'Image (optional)', type: 'image' },
       { key: 'link', label: 'Link (optional)', type: 'link' },

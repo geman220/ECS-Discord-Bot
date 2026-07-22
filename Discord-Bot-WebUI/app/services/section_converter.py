@@ -454,6 +454,139 @@ def build_builder_page_doc(page):
     return {'v': 1, 'sections': sections}
 
 
+# --------------------------------------------------------------------------- #
+# "Add New Page" starter templates
+# --------------------------------------------------------------------------- #
+# Squarespace-style page templates for the Add New Page picker: each seeds a
+# whole designed skeleton (sections + placeholder copy) so a non-technical
+# volunteer edits obvious placeholders inside a finished layout instead of
+# assembling a page from a blank canvas. Every skeleton is built from the SAME
+# section/block vocabulary as everything else and is run through
+# validate_sections at create time — a template can never produce an
+# off-design page. Keep keys stable; the picker's wireframe previews in
+# page_new_flowbite.html are matched by key.
+
+PAGE_TEMPLATES = [
+    {'key': 'info', 'label': 'Simple info page',
+     'desc': 'A banner and text — great for rules, policies, and how-tos.'},
+    {'key': 'landing', 'label': 'Landing page',
+     'desc': 'Big banner, three highlights, a photo story, and a sign-up call to action.'},
+    {'key': 'program', 'label': 'Program or event',
+     'desc': 'Describe a program with photos, details, and upcoming dates.'},
+    {'key': 'gallery', 'label': 'Photo gallery',
+     'desc': 'Show off match-day and event photos in a grid.'},
+    {'key': 'contact', 'label': 'Get in touch',
+     'desc': 'A short intro with the contact form underneath.'},
+    {'key': 'blank', 'label': 'Blank page',
+     'desc': 'Start from nothing and add sections yourself.'},
+]
+
+
+def build_page_template(key, title):
+    """Sections for one Add-New-Page template. `title` is user input — it is
+    escaped here because heading blocks carry HTML."""
+    from markupsafe import escape
+    t = str(escape((title or 'New page').strip()))
+
+    if key == 'info':
+        return [
+            _s('hero', [
+                _b('heading', level=1, html=t),
+                _b('richtext', html='<p>A one-line introduction to this page.</p>'),
+            ], size='sm', align='left'),
+            _s('content', [
+                _b('heading', level=2, html='Overview'),
+                # Placeholder copy must read sanely if published untouched —
+                # never reference the editor UI (buttons, clicking, placeholders).
+                _b('richtext', html='<p>Write your content here — a few short '
+                                    'paragraphs works best.</p>'),
+            ], width='narrow'),
+        ]
+
+    if key == 'landing':
+        return [
+            _s('hero', [
+                _b('heading', level=1, html=t),
+                _b('richtext', html='<p>One sentence on why this matters.</p>'),
+                _b('cta_live', kind='waitlist_or_register', style='primary'),
+            ], theme='dark', size='lg', align='left', overlay='medium'),
+            _s('columns', [
+                # Card copy is tag-free plain text: it is edited through the
+                # card's Text field (a plain textarea), not inline TinyMCE.
+                _b('card', col=0, icon='star', title='First highlight',
+                   html='A short selling point.'),
+                _b('card', col=1, icon='users-group', title='Second highlight',
+                   html='Another short selling point.'),
+                _b('card', col=2, icon='calendar', title='Third highlight',
+                   html='One more short selling point.'),
+            ], layout='3col'),
+            _s('columns', [
+                _b('image', col=0, image={}, size='full', aspect='4:3'),
+                _b('heading', col=1, level=2, html='Tell the story'),
+                _b('richtext', col=1, html='<p>Pair a photo with a couple of '
+                                           'paragraphs that tell the story.</p>'),
+            ], layout='50-50'),
+            _s('band', [
+                _b('heading', level=2, html='Ready to join us?'),
+                _b('cta_live', kind='waitlist_or_register', style='primary', align='center'),
+            ], theme='brand', align='center'),
+        ]
+
+    if key == 'gallery':
+        return [
+            _s('hero', [_b('heading', level=1, html=t)], size='sm', align='left'),
+            _s('content', [
+                _b('richtext', html='<p>A sentence or two about these photos.</p>'),
+            ], width='narrow'),
+            _s('content', [
+                _b('heading', level=2, html='Photos'),
+                _b('gallery', layout='grid-3', crop=True, items=[]),
+            ], width='wide'),
+        ]
+
+    if key == 'program':
+        return [
+            _s('hero', [
+                _b('heading', level=1, html=t),
+                _b('richtext', html='<p>One line on what this is.</p>'),
+            ], size='md', align='left'),
+            _s('columns', [
+                _b('image', col=0, image={}, size='full', aspect='4:3'),
+                _b('heading', col=1, level=2, html='What it is'),
+                _b('richtext', col=1, html='<p>Describe the program or event — who '
+                                           'it is for and what to expect.</p>'),
+            ], layout='50-50'),
+            _s('content', [
+                _b('heading', level=2, html='The details'),
+                _b('richtext', html='<p><strong>When:</strong> add day and time.<br>'
+                                    '<strong>Where:</strong> add the location.<br>'
+                                    '<strong>Cost:</strong> add cost, or say it&rsquo;s free.</p>'),
+            ], width='normal'),
+            _s('content', [
+                _b('heading', level=2, html='Upcoming dates'),
+                _b('calendar_teaser', count=4),
+            ], theme='light', width='narrow'),
+            _s('band', [
+                _b('heading', level=2, html='Questions?'),
+                _b('button', label='Contact us',
+                   link={'kind': 'builtin', 'value': 'contact'},
+                   style='outline', align='center'),
+            ], theme='brand', align='center'),
+        ]
+
+    if key == 'contact':
+        return [
+            _s('hero', [_b('heading', level=1, html=t)], size='sm', align='left'),
+            _s('content', [
+                _b('richtext', html='<p>Tell people what this form is for and when '
+                                    'to expect a reply.</p>'),
+                _b('form', form='contact'),
+            ], width='narrow'),
+        ]
+
+    return []   # 'blank' and anything unknown
+
+
 def build_register_doc():
     return {'v': 1, 'sections': [
         _s('hero', [

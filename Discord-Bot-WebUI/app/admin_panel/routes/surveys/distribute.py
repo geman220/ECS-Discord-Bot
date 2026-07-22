@@ -251,7 +251,10 @@ def survey_send_discord_embed(survey_id):
     if resp.status_code >= 400:
         return jsonify({'success': False, 'error': f'Discord rejected the post ({resp.status_code}).'}), 502
 
-    body = resp.json() if resp.content else {}
+    try:
+        body = resp.json() if resp.content else {}
+    except ValueError:
+        body = {}
     dist = _record_distribution(
         g.db_session, survey, 'discord_embed',
         discord_channel_id=channel_id,
@@ -270,34 +273,16 @@ def survey_send_discord_embed(survey_id):
 # Reuses the existing bot post-poll endpoint + DiscordPoll tracking.
 # ---------------------------------------------------------------------------
 
-@admin_panel_bp.route('/api/surveys/<int:survey_id>/send/native-poll', methods=['POST'])
-@login_required
-@role_required(_ROLES)
-@transactional
-def survey_send_native_poll(survey_id):
-    survey = Survey.query.get_or_404(survey_id)
-    data = request.get_json(force=True) or {}
-    channel_id = str(data.get('channel_id') or '').strip()
-    if not channel_id:
-        return jsonify({'success': False, 'error': 'A Discord channel ID is required.'}), 400
-
-    # Native polls map to exactly one choice question.
-    choice_qs = [q for q in survey.questions if q.question_type in ('single_choice', 'multi_choice')]
-    if len(choice_qs) != 1:
-        return jsonify({'success': False,
-                        'error': 'Native polls need exactly one single/multi-choice question.'}), 400
-    question = choice_qs[0]
-    options = [{'text': o.label[:55], 'emoji': None} for o in question.options][:10]
-    if len(options) < 2:
-        return jsonify({'success': False, 'error': 'The question needs at least 2 options.'}), 400
-
-    duration_hours = int(data.get('duration_hours') or 48)
+def _post_native_poll(survey, question, options, channel_id, tag_role_ids, duration_hours):
+    """Post one native Discord poll to one channel; persist DiscordPoll +
+    SurveyDistribution rows. Returns (distribution, message_url).
+    Raises RuntimeError with a human-readable message on bot failure."""
     payload = {
         'channel_id': channel_id,
-        'tag_role_ids': [str(r) for r in (data.get('tag_role_ids') or [])],
+        'tag_role_ids': tag_role_ids,
         'question': question.prompt[:300],
         'answers': options,
-        'duration_hours': max(1, min(168, duration_hours)),
+        'duration_hours': duration_hours,
         'allow_multiselect': question.question_type == 'multi_choice',
     }
     bot_url = f"{Config.BOT_API_URL.rstrip('/')}/api/discord/post-poll"
@@ -305,12 +290,21 @@ def survey_send_native_poll(survey_id):
         resp = requests.post(bot_url, json=payload, timeout=15)
     except requests.RequestException:
         logger.exception("Discord bot unreachable at %s", bot_url)
-        return jsonify({'success': False, 'error': 'Discord bot unreachable.'}), 502
+        raise RuntimeError('Discord bot unreachable.')
     if resp.status_code >= 400:
-        return jsonify({'success': False, 'error': f'Discord rejected the poll ({resp.status_code}).'}), 502
+        raise RuntimeError(f'Discord rejected the poll ({resp.status_code}).')
 
-    body = resp.json() if resp.content else {}
+    try:
+        body = resp.json() if resp.content else {}
+    except ValueError:
+        # Anything other than RuntimeError would escape the fan-out loop's
+        # handler and roll back polls already posted to other channels.
+        raise RuntimeError('The bot returned an unreadable response; votes would not sync.')
     message_id = str(body.get('message_id') or '')
+    if not message_id:
+        # Without the real message id, vote events can never match this poll —
+        # fail loudly instead of silently dropping every vote.
+        raise RuntimeError('The bot posted the poll but returned no message id; votes would not sync.')
     expires_raw = body.get('expires_at')
     try:
         expires_at = datetime.fromisoformat(expires_raw.replace('Z', '+00:00')).replace(tzinfo=None) \
@@ -319,7 +313,7 @@ def survey_send_native_poll(survey_id):
         expires_at = datetime.utcnow()
 
     poll = DiscordPoll(
-        discord_message_id=message_id or f'survey-{survey.id}-{question.id}',
+        discord_message_id=message_id,
         channel_id=channel_id,
         channel_key='survey',
         title=question.prompt[:300],
@@ -328,7 +322,7 @@ def survey_send_native_poll(survey_id):
         options=[{'answer_id': i, 'text': o['text'], 'emoji': o['emoji']}
                  for i, o in enumerate(options, start=1)],
         poll_kind='generic',
-        duration_hours=payload['duration_hours'],
+        duration_hours=duration_hours,
         allow_multiselect=payload['allow_multiselect'],
         created_by_user_id=current_user.id,
         expires_at=expires_at,
@@ -340,15 +334,75 @@ def survey_send_native_poll(survey_id):
     dist = _record_distribution(
         g.db_session, survey, 'native_poll',
         discord_channel_id=channel_id,
-        discord_message_id=message_id or None,
+        discord_message_id=message_id,
         discord_message_url=body.get('message_url'),
         discord_poll_id=poll.id,
         status='sent', sent_at=datetime.utcnow(),
     )
+    return dist, body.get('message_url')
+
+
+@admin_panel_bp.route('/api/surveys/<int:survey_id>/send/native-poll', methods=['POST'])
+@login_required
+@role_required(_ROLES)
+@transactional
+def survey_send_native_poll(survey_id):
+    """Post a native Discord poll to one channel, or fan out to every
+    current-season team channel (all_team_channels: true) — the capability
+    that replaced the legacy League Polls system."""
+    survey = Survey.query.get_or_404(survey_id)
+    data = request.get_json(force=True) or {}
+
+    # Native polls map to exactly one choice question.
+    choice_qs = [q for q in survey.questions if q.question_type in ('single_choice', 'multi_choice')]
+    if len(choice_qs) != 1:
+        return jsonify({'success': False,
+                        'error': 'Native polls need exactly one single/multi-choice question.'}), 400
+    question = choice_qs[0]
+    options = [{'text': o.label[:55], 'emoji': None} for o in question.options][:10]
+    if len(options) < 2:
+        return jsonify({'success': False, 'error': 'The question needs at least 2 options.'}), 400
+
+    tag_role_ids = [str(r) for r in (data.get('tag_role_ids') or [])]
+    duration_hours = max(1, min(168, int(data.get('duration_hours') or 48)))
+
+    if data.get('all_team_channels'):
+        teams = Team.query.join(League, Team.league_id == League.id).join(
+            Season, League.season_id == Season.id
+        ).filter(
+            Season.is_current == True,
+            Team.is_active == True,
+            Team.discord_channel_id.isnot(None)
+        ).order_by(Team.name).all()
+        targets = [(str(t.discord_channel_id), t.name) for t in teams]
+        if not targets:
+            return jsonify({'success': False,
+                            'error': 'No current-season teams have a Discord channel.'}), 400
+    else:
+        channel_id = str(data.get('channel_id') or '').strip()
+        if not channel_id:
+            return jsonify({'success': False, 'error': 'A Discord channel ID is required.'}), 400
+        targets = [(channel_id, None)]
+
+    sent, failures, first_url = 0, [], None
+    for channel_id, team_name in targets:
+        try:
+            _, message_url = _post_native_poll(
+                survey, question, options, channel_id, tag_role_ids, duration_hours)
+            sent += 1
+            first_url = first_url or message_url
+        except RuntimeError as e:
+            failures.append({'channel_id': channel_id, 'team': team_name, 'error': str(e)})
+            logger.error(f"Native poll post failed for channel {channel_id} ({team_name}): {e}")
+
+    if not sent:
+        return jsonify({'success': False,
+                        'error': failures[0]['error'] if failures else 'No polls were posted.'}), 502
+
     if survey.status == 'draft':
         survey_service.open_survey(g.db_session, survey)
-    return jsonify({'success': True, 'distribution_id': dist.id,
-                    'message_url': body.get('message_url')})
+    return jsonify({'success': True, 'sent': sent, 'failed': failures,
+                    'message_url': first_url})
 
 
 # ---------------------------------------------------------------------------

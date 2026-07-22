@@ -111,10 +111,14 @@ from .predictions import (
     DraftSeason, DraftPrediction, DraftPredictionSummary
 )
 
+from .ratings import (
+    PlayerSeasonRating, PlayerRatingOverride, ClassicRatingMetric
+)
+
 from .league_features import (
     LeaguePoll, LeaguePollResponse, LeaguePollDiscordMessage,
     DraftOrderHistory, MessageCategory, MessageTemplate, LeagueSetting,
-    DraftSession, DraftPickSlot
+    DraftSession, DraftPickSlot, DraftQueueEntry
 )
 
 # Backward-compat alias: legacy SubRequest is now SubstituteRequest
@@ -186,6 +190,8 @@ from .email_templates import (
 from .email_campaigns import (
     EmailCampaign, EmailCampaignRecipient
 )
+
+from .composed_message import ComposedMessage
 
 from .mobile_telemetry import (
     MobileSession, MobileScreenView, MobileFeatureUsage
@@ -290,12 +296,15 @@ __all__ = [
     
     # Prediction models
     'DraftSeason', 'DraftPrediction', 'DraftPredictionSummary',
+
+    # Classic rating models
+    'PlayerSeasonRating', 'PlayerRatingOverride', 'ClassicRatingMetric',
     
     # League features models
     'SubRequest',  # backward-compat alias for SubstituteRequest
     'LeaguePoll', 'LeaguePollResponse', 'LeaguePollDiscordMessage',
     'DraftOrderHistory', 'MessageCategory', 'MessageTemplate', 'LeagueSetting',
-    'DraftSession', 'DraftPickSlot',
+    'DraftSession', 'DraftPickSlot', 'DraftQueueEntry',
     
     # I-Spy models
     'ISpySeason', 'ISpyCategory', 'ISpyShot', 'ISpyShotTarget', 'ISpyCooldown',
@@ -346,6 +355,9 @@ __all__ = [
 
     # Email campaign models
     'EmailCampaign', 'EmailCampaignRecipient',
+
+    # Multi-channel composer
+    'ComposedMessage',
 
     # Mobile telemetry models
     'MobileSession', 'MobileScreenView', 'MobileFeatureUsage',

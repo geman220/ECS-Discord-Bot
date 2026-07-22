@@ -19,6 +19,37 @@ from app.sockets.utils import get_draft_lock, cleanup_draft_lock
 logger = logging.getLogger(__name__)
 
 
+def _is_draft_admin(session, user_id) -> bool:
+    """Pub League Admin / Global Admin, queried via the live session (the
+    current_user.has_role relationship may not be attached in socket context)."""
+    if not user_id:
+        return False
+    try:
+        from app.models.core import Role, user_roles
+        return session.query(user_roles.c.user_id).join(
+            Role, Role.id == user_roles.c.role_id
+        ).filter(
+            user_roles.c.user_id == user_id,
+            Role.name.in_(['Global Admin', 'Pub League Admin']),
+        ).first() is not None
+    except Exception:
+        return False
+
+
+def _user_coaches_team(session, user_id, team_id) -> bool:
+    """True when the user is a player_teams.is_coach coach of this team."""
+    if not user_id:
+        return False
+    from app.models import Player, player_teams
+    return session.query(player_teams.c.team_id).join(
+        Player, Player.id == player_teams.c.player_id
+    ).filter(
+        Player.user_id == user_id,
+        player_teams.c.team_id == team_id,
+        player_teams.c.is_coach == True,  # noqa: E712
+    ).first() is not None
+
+
 @socketio.on('join_draft_room', namespace='/')
 def handle_join_draft_room(data):
     """Handle joining a draft room for a specific league."""
@@ -124,20 +155,11 @@ def handle_draft_player_enhanced(data):
             emit('draft_error', {'message': 'Authentication required'})
             return
 
-        # Phase 5: Broadcast user activity to all clients in room
+        # Phase 5: activity banner data — broadcast AFTER T1 validation succeeds
+        # (below) so blocked picks (ownership guard, out-of-turn, already
+        # drafted) don't spam "X is drafting Y" to the room with no follow-up.
         player_name_from_request = data.get('player_name', 'a player')
         username = current_user.username if hasattr(current_user, 'username') else 'Someone'
-        emit('user_drafting', {
-            'username': username,
-            'player_name': player_name_from_request,
-            'team_name': None  # Will be filled after team is fetched
-        }, room=f'draft_{league_name}')
-        # Mirror to the mobile namespace so phones see web-board coaches mid-pick
-        # too, not just other phones.
-        socketio.emit('user_drafting', {
-            'username': username,
-            'player_name': player_name_from_request,
-        }, room=f'draft_{league_name}', namespace='/draft')
 
         # Database operations - Split into 3 optimized transactions
         from app.models import Player, Team, League, player_teams, Season, PlayerTeamSeason
@@ -194,6 +216,16 @@ def handle_draft_player_enhanced(data):
 
                 player_name = player.name
                 team_name = team.name
+
+                # Team-ownership guard: non-admin coaches may only draft players
+                # onto a team THEY coach. The on-the-clock check below already
+                # covers turn order during a locked session, but free-form mode
+                # (no session) used to let any coach assign players to any team.
+                _uid = getattr(current_user, 'id', None)
+                if not _is_draft_admin(session, _uid) and not _user_coaches_team(session, _uid, team_id):
+                    print(f"🚫 Non-coach draft to team {team_id} blocked for user {_uid}")
+                    emit('draft_error', {'message': f'You can only draft players to your own team ({team_name} is not yours)'})
+                    return
 
                 # On-the-clock enforcement (ADDITIVE: no-op when no active DraftSession exists,
                 # so free-form drafts behave exactly as before).
@@ -263,6 +295,19 @@ def handle_draft_player_enhanced(data):
                     emit('draft_error', {'message': f'Player "{player.name}" is already assigned to {team_name_existing} for this season'})
                     return
             # Transaction 1 committed automatically - connection released
+
+            # Validation + guards passed — now tell the room someone is mid-pick.
+            emit('user_drafting', {
+                'username': username,
+                'player_name': player_name_from_request,
+                'team_name': team_name
+            }, room=f'draft_{league_name}')
+            # Mirror to the mobile namespace so phones see web-board coaches
+            # mid-pick too, not just other phones.
+            socketio.emit('user_drafting', {
+                'username': username,
+                'player_name': player_name_from_request,
+            }, room=f'draft_{league_name}', namespace='/draft')
 
             # ===== TRANSACTION 2: Core write + history, ALL under the FOR UPDATE lock =====
             # Claim the turn ATOMICALLY: lock the draft_session row FOR UPDATE so this
@@ -589,9 +634,15 @@ def handle_draft_player_enhanced(data):
             # Broadcast to all clients in the draft room so everyone sees the update.
             # Also mirror to the '/draft' namespace so the mobile app (which connects
             # there, not on the web '/' namespace) sees web-board picks live.
-            emit('player_drafted_enhanced', response_data, room=f'draft_{league_name}')
-            socketio.emit('player_drafted_enhanced', response_data,
-                          room=f'draft_{league_name}', namespace='/draft')
+            # Fan out to exact + lowercased room variants (draft_clock.draft_rooms):
+            # a client that loaded /draft/Classic joins draft_Classic while the
+            # balanced/mobile boards join draft_classic — a single-casing emit
+            # would silently skip one of them.
+            from app.draft_clock import draft_rooms as _draft_rooms
+            for _room in _draft_rooms(league_name):
+                emit('player_drafted_enhanced', response_data, room=_room)
+                socketio.emit('player_drafted_enhanced', response_data,
+                              room=_room, namespace='/draft')
             print(f"✅ Successfully drafted {player_name} to {team_name} - broadcasted to room draft_{league_name}")
             logger.info(f"✅ Successfully drafted {player_name} to {team_name}")
 
@@ -679,6 +730,17 @@ def handle_update_player_position(data):
             # Check if player is on this team
             if team not in player.teams:
                 emit('error', {'message': 'Player is not on this team'})
+                return
+
+            # Team-ownership guard: only admins or this team's own coach may
+            # rearrange its formation (mirrors the draft/remove guards).
+            from flask_login import current_user
+            if not getattr(current_user, 'is_authenticated', False):
+                emit('error', {'message': 'Authentication required'})
+                return
+            _uid = getattr(current_user, 'id', None)
+            if not _is_draft_admin(session, _uid) and not _user_coaches_team(session, _uid, team_id):
+                emit('error', {'message': f'You can only manage positions on your own team ({team.name} is not yours)'})
                 return
 
             # Update the position in player_teams table
@@ -816,6 +878,14 @@ def handle_remove_player_enhanced(data):
                 if player not in team.players:
                     print(f"🚫 Player not on team for remove")
                     emit('remove_error', {'message': f'Player "{player.name}" is not on team "{team.name}"'})
+                    return
+
+                # Team-ownership guard: non-admin coaches may only remove players
+                # from a team THEY coach (mirrors the draft-side guard).
+                _uid = getattr(current_user, 'id', None)
+                if not _is_draft_admin(session, _uid) and not _user_coaches_team(session, _uid, team_id):
+                    print(f"🚫 Non-coach remove from team {team_id} blocked for user {_uid}")
+                    emit('remove_error', {'message': f'You can only remove players from your own team ({team.name} is not yours)'})
                     return
 
                 # Remove player from team using SQLAlchemy ORM
@@ -963,9 +1033,12 @@ def handle_remove_player_enhanced(data):
 
             # Broadcast to all clients in the draft room so everyone sees the update
             # (web '/' + mobile '/draft' namespaces).
-            emit('player_removed_enhanced', response_data, room=f'draft_{league_name}')
-            socketio.emit('player_removed_enhanced', response_data,
-                          room=f'draft_{league_name}', namespace='/draft')
+            # Same exact + lowercased room fan-out as the drafted broadcast.
+            from app.draft_clock import draft_rooms as _draft_rooms
+            for _room in _draft_rooms(league_name):
+                emit('player_removed_enhanced', response_data, room=_room)
+                socketio.emit('player_removed_enhanced', response_data,
+                              room=_room, namespace='/draft')
             print(f"✅ Successfully removed {player_name_local} from {team_name_local} - broadcasted to room draft_{league_name}")
             logger.info(f"✅ Successfully removed {player_name_local} from {team_name_local}")
 

@@ -2,7 +2,7 @@
 {% from 'public/_hero.html' import hero %}
 
 {% block content %}
-{{ hero('News', 'League announcements, team reveals, and season updates.') }}
+{{ hero(copy.hero_title, copy.hero_subtitle) }}
 
 <section class="py-16 sm:py-20">
     <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
@@ -24,8 +24,18 @@
             {% for post in posts %}
             <a href="{{ url_for('public.news_detail', slug=post.slug) }}"
                class="group flex flex-col rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-hidden shadow-sm hover:shadow-md transition">
-                {% if post.featured_image_url %}
-                <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" class="h-48 w-full object-cover">
+                {% set info = imgs.get(post.featured_image_url) if imgs is defined and imgs else none %}
+                {% if info %}
+                {# Media-library asset: responsive variants + WebP (same
+                   pipeline as the section renderer's images). #}
+                <picture>
+                    {% if info.webp_srcset %}<source type="image/webp" srcset="{{ info.webp_srcset }}" sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw">{% endif %}
+                    <img src="{{ info.url }}" {% if info.srcset %}srcset="{{ info.srcset }}" sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw"{% endif %}
+                         {% if info.width and info.height %}width="{{ info.width }}" height="{{ info.height }}"{% endif %}
+                         alt="{{ post.title }}" class="h-48 w-full object-cover" loading="lazy">
+                </picture>
+                {% elif post.featured_image_url %}
+                <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" class="h-48 w-full object-cover" loading="lazy">
                 {% else %}
                 <div class="h-48 w-full bg-gradient-to-br from-ecs-green to-ecs-green-dark flex items-center justify-center"><i class="ti ti-news text-4xl text-white/40"></i></div>
                 {% endif %}

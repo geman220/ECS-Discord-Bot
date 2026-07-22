@@ -140,8 +140,6 @@ Complete inventory of all JavaScript files in the codebase.
 |------|-------------|
 | `admin-dashboard.js` | Dashboard initialization |
 | `announcement-form.js` | Announcement creation form |
-| `message-categories.js` | Message category management |
-| `message-template-detail.js` | Template editing |
 | `push-campaigns.js` | Push notification campaigns |
 | `scheduled-messages.js` | Scheduled message management |
 
@@ -249,26 +247,22 @@ Complete inventory of all JavaScript files in the codebase.
 | `api-handlers.js` | Generic API actions |
 | `auth-actions.js` | Authentication actions |
 | `calendar-actions.js` | Calendar operations |
-| `communication-handlers.js` | Communication actions |
 | `discord-management.js` | Discord integration |
 | `draft-system.js` | Draft actions |
 | `ecs-fc-management.js` | ECS FC management |
 | `form-actions.js` | Form handling |
 | `match-management.js` | Match operations |
 | `match-reporting.js` | Match reporting |
-| `message-templates.js` | Template actions |
 | `mls-handlers.js` | MLS integration |
 | `mobile-features-handlers.js` | Mobile features |
 | `monitoring-handlers.js` | Monitoring actions |
 | `onboarding-wizard.js` | Onboarding flow |
 | `pass-studio.js` | Pass studio actions |
 | `profile-verification.js` | Profile verification |
-| `push-notifications.js` | Push notifications |
 | `referee-management.js` | Referee operations |
 | `roles-management.js` | Role actions |
 | `rsvp-actions.js` | RSVP operations |
 | `season-wizard.js` | Season wizard |
-| `security-actions.js` | Security operations |
 | `store-handlers.js` | Store actions |
 | `substitute-pool.js` | Substitute pool |
 | `system-handlers.js` | System operations |
@@ -361,7 +355,6 @@ Complete inventory of all JavaScript files in the codebase.
 | `appearance.js` | Appearance settings |
 | `bulk-operations.js` | Bulk data operations |
 | `cache-stats.js` | Cache statistics |
-| `db-monitoring.js` | Database monitoring |
 | `redis-stats.js` | Redis statistics |
 | `store-admin.js` | Store administration |
 | `user-analytics.js` | User analytics |

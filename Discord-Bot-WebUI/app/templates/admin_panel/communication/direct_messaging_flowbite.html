@@ -27,7 +27,7 @@
 {% set sms_pct = ((stats.players_with_phone / total) * 100) | round | int if total else 0 %}
 {% set discord_pct = ((stats.players_with_discord / total) * 100) | round | int if total else 0 %}
 
-{{ page_header("Direct Messaging", subtitle="Communication / Outbound") }}
+{{ page_header("Direct Messaging", subtitle="Send an SMS or Discord DM to one player at a time") }}
 
 <!-- Reachability KPI band -->
 <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">

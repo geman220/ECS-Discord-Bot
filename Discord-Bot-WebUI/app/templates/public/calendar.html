@@ -12,7 +12,7 @@
 } %}
 
 {% block content %}
-{{ hero('Calendar', 'Upcoming PLOPs, games, and events. New players — come to a PLOP to check us out.') }}
+{{ hero(copy.hero_title, copy.hero_subtitle) }}
 
 {# Subscribe / sync to your own calendar (like WordPress's export links) #}
 <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
@@ -41,7 +41,10 @@
             <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ grid.label }}</h2>
             <a href="{{ url_for('public.calendar', view='month', m=grid.next) }}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Next <i class="ti ti-chevron-right"></i></a>
         </div>
-        <div class="grid grid-cols-7 gap-px rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-700">
+        {# The 7-column grid needs ~640px to stay legible; below that it scrolls
+           sideways instead of crushing the day cells (full-bleed on phones). #}
+        <div class="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div class="min-w-[640px] grid grid-cols-7 gap-px rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-700">
             {% for wd in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] %}
             <div class="bg-gray-50 dark:bg-gray-800 px-2 py-1.5 text-center text-xs font-semibold text-gray-500 dark:text-gray-400">{{ wd }}</div>
             {% endfor %}
@@ -56,6 +59,7 @@
               </div>
               {% endfor %}
             {% endfor %}
+        </div>
         </div>
         {% if total == 0 %}<p class="mt-4 text-center text-sm text-gray-400">No public events this month.</p>{% endif %}
 
@@ -99,8 +103,8 @@
         {% endif %}
 
         <div class="mt-12 rounded-2xl bg-gray-50 dark:bg-gray-900 p-8 text-center">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">New to the league?</h3>
-            <p class="mt-2 text-gray-600 dark:text-gray-400">Come to a PLOP, get approved, and you're in. Here's how it works.</p>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ copy.cta_heading }}</h3>
+            <p class="mt-2 text-gray-600 dark:text-gray-400">{{ copy.cta_body }}</p>
             <a href="{{ url_for('public.register') }}" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-ecs-green px-5 py-2.5 text-sm font-semibold text-white hover:bg-ecs-green-dark transition">
                 <i class="ti ti-user-plus"></i> How to join
             </a>

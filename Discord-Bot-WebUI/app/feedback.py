@@ -230,6 +230,9 @@ def view_feedback(feedback_id):
         form = FeedbackReplyForm()
         
         if form.validate_on_submit():
+            if feedback.status == 'Closed':
+                show_error('This feedback is closed and cannot receive new replies.')
+                return redirect(url_for('feedback.view_feedback', feedback_id=feedback.id))
             try:
                 reply = FeedbackReply(
                     feedback_id=feedback.id,

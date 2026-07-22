@@ -1,0 +1,168 @@
+{% extends "base_flowbite.html" %}
+{% from 'classic_board/_metric_guide.html' import metric_anchors, metric_guide_accordion %}
+
+{% block title %}Rate Classic Players{% endblock %}
+{% block page_title %}Rate Classic Players{% endblock %}
+
+{% block main_content %}
+<div id="classic-rate-root" class="max-w-3xl w-full mx-auto px-3 sm:px-4 py-4 space-y-4"
+     data-save-url-template="{{ url_for('classic_board.save_rating', player_id=999999) }}"
+     data-can-submit="{{ 'true' if can_submit else 'false' }}"
+     data-total="{{ players|length }}">
+
+    <!-- Sticky progress header -->
+    <div class="sticky top-14 z-30 -mx-3 sm:-mx-4 px-3 sm:px-4 py-3 bg-white/95 dark:bg-gray-800/95 backdrop-blur border-b border-gray-200 dark:border-gray-700 space-y-2">
+        <div class="flex items-center gap-3 flex-wrap">
+            <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2 min-w-0">
+                <i class="ti ti-star text-ecs-green shrink-0"></i><span class="truncate">Rate Classic Players</span>
+            </h1>
+            {% if season_name %}<span class="text-xs text-gray-500 dark:text-gray-400">{{ season_name }}</span>{% endif %}
+            <span id="rate-save-status" class="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400" data-state="idle">
+                <i class="ti ti-circle-check text-sm"></i><span>Ready</span>
+            </span>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="flex-1 h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div id="rate-progress-bar" class="h-2.5 bg-ecs-green rounded-full transition-all" style="width: 0%"></div>
+            </div>
+            <span class="text-xs font-mono text-gray-600 dark:text-gray-300 shrink-0"><span id="rate-progress-count">{{ rated_count }}</span> / {{ players|length }} rated</span>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+            <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden text-xs" role="tablist">
+                <button type="button" data-action="rating-filter-tab" data-filter="all"
+                        class="rate-tab px-3 py-1.5 font-medium bg-ecs-green text-white" aria-pressed="true">All</button>
+                <button type="button" data-action="rating-filter-tab" data-filter="unrated"
+                        class="rate-tab px-3 py-1.5 font-medium bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-l border-gray-200 dark:border-gray-700">Unrated (<span id="rate-count-unrated"></span>)</button>
+                <button type="button" data-action="rating-filter-tab" data-filter="rated"
+                        class="rate-tab px-3 py-1.5 font-medium bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-l border-gray-200 dark:border-gray-700">Rated (<span id="rate-count-rated"></span>)</button>
+            </div>
+            <div class="relative flex-1 min-w-[140px]">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-gray-400"><i class="ti ti-search text-sm"></i></span>
+                <input type="text" id="rate-quick-jump" data-on-input="rating-quick-jump" placeholder="Jump to player…" autocomplete="off"
+                       class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+            </div>
+        </div>
+    </div>
+
+    {% if not window_open %}
+    <div class="flex items-start gap-3 p-4 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 text-sm">
+        <i class="ti ti-lock text-lg shrink-0"></i>
+        <div><span class="font-semibold">The rating window is closed.</span> You can review your ratings below, but changes are disabled until an admin reopens the window.</div>
+    </div>
+    {% elif not is_classic_coach %}
+    <div class="flex items-start gap-3 p-4 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-900/20 text-sky-800 dark:text-sky-200 text-sm">
+        <i class="ti ti-eye text-lg shrink-0"></i>
+        <div>Admin view — ratings are submitted by Classic Coaches; this page is read-only for you.</div>
+    </div>
+    {% endif %}
+
+    {{ metric_guide_accordion(metrics) }}
+
+    {% if not players %}
+    <div class="flex flex-col items-center justify-center text-center px-6 py-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+        <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4"><i class="ti ti-users text-2xl text-gray-400"></i></div>
+        <h3 class="text-base font-semibold text-gray-900 dark:text-white">No players to rate</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">Players appear here once they're active for the current Classic season.</p>
+    </div>
+    {% else %}
+    <!-- Player queue -->
+    <div id="rate-list" class="space-y-2">
+        {% for p in players %}
+        {% set mine = p.my_rating %}
+        {% set complete = mine and mine.is_complete %}
+        <div class="rate-row bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl"
+             data-player-id="{{ p.id }}"
+             data-name="{{ p.name|lower }}"
+             data-rated="{{ '1' if complete else '0' }}">
+            <!-- Collapsed row -->
+            <button type="button" data-action="rating-toggle-player" class="w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 text-left">
+                <span class="rate-status-icon shrink-0 w-6 h-6 rounded-full flex items-center justify-center
+                             {{ 'bg-ecs-green/10 text-ecs-green' if complete else 'border-2 border-gray-300 dark:border-gray-600 text-transparent' }}">
+                    <i class="ti ti-check text-sm"></i>
+                </span>
+                <img class="w-8 h-8 rounded-full object-cover shrink-0 {{ '' if p.avatar_url else 'hidden' }}"
+                     {% if p.avatar_url %}src="{{ p.avatar_url }}"{% endif %} alt="" loading="lazy"
+                     onerror="this.classList.add('hidden')">
+                <span class="min-w-0 flex-1">
+                    <span class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ p.name }}</span>
+                        {% if p.is_new %}<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">NEW</span>
+                        {% else %}<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">RET</span>{% endif %}
+                    </span>
+                </span>
+                <span class="rate-chips flex items-center gap-1 shrink-0 font-mono text-[11px] text-gray-500 dark:text-gray-400">
+                    {% if mine %}
+                        {% for m in metrics %}
+                        {% set v = mine[m.key] %}
+                        <span class="rate-chip px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700" data-metric="{{ m.key }}">{{ '%.2f'|format(v) if v is not none else '–' }}</span>
+                        {% endfor %}
+                    {% else %}
+                        {% for m in metrics %}<span class="rate-chip px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700" data-metric="{{ m.key }}">–</span>{% endfor %}
+                    {% endif %}
+                </span>
+                <i class="ti ti-chevron-down text-gray-400 shrink-0 rate-chevron transition-transform"></i>
+            </button>
+
+            <!-- Expanded rating panel -->
+            <div class="rate-panel hidden border-t border-gray-200 dark:border-gray-700 px-3 sm:px-4 py-4 space-y-5">
+                <!-- Player context -->
+                <div class="flex items-start gap-3">
+                    <img class="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 {{ '' if p.avatar_url else 'hidden' }}"
+                         {% if p.avatar_url %}src="{{ p.avatar_url }}"{% endif %} alt="" loading="lazy" onerror="this.classList.add('hidden')">
+                    <div class="min-w-0 flex-1 text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ p.name }}</span>
+                            {% if p.pronouns %}<span class="text-gray-400">{{ p.pronouns }}</span>{% endif %}
+                            <span class="font-medium {{ 'text-amber-600 dark:text-amber-400' if p.is_new else 'text-gray-400' }}">{{ 'First season' if p.is_new else 'Returning' }}</span>
+                        </div>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            {% if p.favorite_position %}<span><i class="ti ti-star text-ecs-green"></i> {{ p.favorite_position }}</span>{% endif %}
+                            {% if p.other_positions %}<span><i class="ti ti-plus text-gray-400"></i> {{ p.other_positions|join(', ') }}</span>{% endif %}
+                            {% if p.gk_willingness %}<span><i class="ti ti-hand-stop text-gray-400"></i> GK: {{ p.gk_willingness }}</span>{% endif %}
+                        </div>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            {% if p.has_attendance_data and p.attendance_rate is not none %}<span><i class="ti ti-calendar-check text-gray-400"></i> Att {{ p.attendance_rate|round|int }}%</span>{% endif %}
+                            <span><i class="ti ti-ball-football text-gray-400"></i> {{ p.career_goals }} G · {{ p.career_assists }} A career</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sliders -->
+                {% for m in metrics %}
+                {% set v = mine[m.key] if mine and mine[m.key] is not none else none %}
+                <div class="rate-metric" data-metric="{{ m.key }}">
+                    <div class="flex items-end justify-between gap-3 mb-1">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-xs uppercase tracking-wide font-semibold text-gray-700 dark:text-gray-200">{{ m.label }}</span>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-ecs-green/10 text-ecs-green">{{ m.weight|round|int }}%</span>
+                        </div>
+                        <span class="rate-readout font-mono text-xl font-bold leading-none shrink-0 {{ 'text-ecs-green' if v is not none else 'text-gray-300 dark:text-gray-600' }}">{{ '%.2f'|format(v) if v is not none else '—' }}</span>
+                    </div>
+                    <input type="range" min="1" max="5" step="0.25" value="{{ v if v is not none else 3 }}"
+                           data-on-input="rating-slider-input" data-metric="{{ m.key }}" data-set="{{ '1' if v is not none else '0' }}"
+                           aria-label="{{ m.label }} rating for {{ p.name }}"
+                           {% if not can_submit %}disabled{% endif %}
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-ecs-green disabled:opacity-50 disabled:cursor-not-allowed">
+                    <div class="flex justify-between text-[11px] font-mono text-gray-400 dark:text-gray-500 mt-0.5">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                    </div>
+                    {{ metric_anchors(m) }}
+                </div>
+                {% endfor %}
+
+                <!-- Actions -->
+                <div class="flex items-center justify-between gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" data-action="rating-skip"
+                            class="px-3 py-2 text-xs font-medium rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Skip</button>
+                    <button type="button" data-action="rating-save-next" {% if not can_submit %}disabled{% endif %}
+                            class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Save &amp; next unrated <i class="ti ti-arrow-right text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

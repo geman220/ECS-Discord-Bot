@@ -179,6 +179,7 @@ def db(_database, app):
             'match_events', 'sub_requests', 'availability', 'match_predictions',
             'mls_matches', 'match_dates',
             'points_event_award', 'points_event_type',
+            'player_season_ratings', 'player_rating_overrides', 'classic_rating_metric',
             'player_teams', 'player_league', 'player_team_season',
             'matches', 'schedule', 'week_configurations',
             'device_tokens', 'progress', 'sms_logs', 'discord_bot_status',

@@ -100,15 +100,36 @@
       p = post('/admin-panel/api/surveys/' + sid + '/send/discord-embed', { channel_id: ec })
         .then(function (res) { done(res, 'Embed posted'); });
     } else if (channel === 'native-poll') {
-      var pc = channelValue('poll-channel');
-      if (!pc) { window.Swal.fire('Pick a channel', 'Choose a Discord channel first.', 'warning'); send.disabled = false; return; }
-      p = post('/admin-panel/api/surveys/' + sid + '/send/native-poll',
-               { channel_id: pc,
-                 duration_hours: parseInt(document.getElementById('poll-duration').value, 10) || 48 })
-        .then(function (res) { done(res, 'Poll posted'); });
+      var allTeams = !!(document.getElementById('poll-all-teams') || {}).checked;
+      var payload = { duration_hours: parseInt(document.getElementById('poll-duration').value, 10) || 48 };
+      if (allTeams) {
+        payload.all_team_channels = true;
+      } else {
+        var pc = channelValue('poll-channel');
+        if (!pc) { window.Swal.fire('Pick a channel', 'Choose a Discord channel, or tick "every team\'s channel".', 'warning'); send.disabled = false; return; }
+        payload.channel_id = pc;
+      }
+      p = post('/admin-panel/api/surveys/' + sid + '/send/native-poll', payload)
+        .then(function (res) {
+          var msg = 'Poll posted';
+          if (res && res.success && typeof res.sent === 'number' && allTeams) {
+            msg = 'Poll posted to ' + res.sent + ' team channel' + (res.sent === 1 ? '' : 's');
+            if (res.failed && res.failed.length) msg += ' (' + res.failed.length + ' failed — see server log)';
+          }
+          done(res, msg);
+        });
     }
     if (p) p.finally(function () { send.disabled = false; });
   });
+
+  // "Every team's channel" toggle hides the single-channel picker.
+  var allTeamsToggle = document.getElementById('poll-all-teams');
+  if (allTeamsToggle) {
+    allTeamsToggle.addEventListener('change', function () {
+      var single = document.getElementById('poll-single-channel');
+      if (single) single.classList.toggle('hidden', this.checked);
+    });
+  }
 
   // Populate Discord channel pickers from the live (Pub League) channel list.
   (function loadChannelPickers() {

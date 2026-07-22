@@ -1,30 +1,54 @@
 {#
-  WordPress-style admin bar: a dark toolbar pinned to the top of the LIVE public
-  site, shown only to site admins. Gives the "edit directly on the page" round-trip
-  (View â‡„ Edit Page) that WordPress users expect. Rendered from base_public.html.
+  Admin bar: a toolbar pinned to the top of the LIVE public site, shown only to
+  site admins/editors (is_site_admin — role-gated, impersonation-aware, always
+  False on publicweb). Gives the "edit directly on the page" round-trip
+  (View ⇄ Edit Page) that WordPress users expect.
+
+  VISUAL PARITY: styled to match the site editor's toolbar
+  (site_editor_flowbite.html — white/dark-gray surface, h-9 rounded controls,
+  ecs_logo, green primary action) so viewing and editing feel like ONE tool.
+  Height is h-12 — base_public.html offsets (body pt-12, header top-12) must
+  match it. Rendered from base_public.html.
 #}
 {% if is_site_admin %}
-<div id="ecs-admin-bar" class="fixed top-0 inset-x-0 z-[100] h-8 bg-gray-900 text-gray-200 text-[13px] flex items-center px-3 gap-2 shadow-md">
-    <a href="{{ url_for('admin_panel.public_site_hub') }}" class="font-semibold text-white hover:text-ecs-gold flex items-center gap-1">
-        <i class="ti ti-world-www"></i><span class="hidden sm:inline">ECS Pub League</span>
+<div id="ecs-admin-bar" class="fixed top-0 inset-x-0 z-[100] h-12 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm flex items-center gap-2 px-3">
+    <a href="{{ url_for('admin_panel.public_site_hub') }}" title="Website admin"
+       class="inline-flex h-9 items-center gap-1.5 rounded-lg px-2 font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+        <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS" class="h-6 w-6">
+        <span class="hidden sm:inline">ECS Pub League</span>
     </a>
-    <span class="text-gray-600">|</span>
-    {# + New (Page / Post) #}
+
+    {% if edit_url is defined and edit_url %}
+    <a href="{{ edit_url }}"
+       class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-ecs-green px-3 font-semibold text-white hover:bg-ecs-green-dark">
+        <i class="ti ti-edit"></i> Edit<span class="hidden sm:inline">&nbsp;this page</span>
+    </a>
+    {% endif %}
+
+    {# + New (Page / Post) — hover for mouse, focus-within for touch/keyboard #}
     <div class="relative group">
-        <button type="button" class="hover:text-white flex items-center gap-1"><i class="ti ti-plus"></i> New</button>
-        <div class="absolute left-0 top-full hidden group-hover:block bg-gray-900 border border-gray-700 rounded-b shadow-lg py-1 min-w-[9rem]">
-            <a href="{{ url_for('admin_panel.public_site_pages') }}" class="block px-3 py-1.5 hover:bg-gray-800">Page</a>
-            <a href="{{ url_for('admin_panel.public_site_news_new') }}" class="block px-3 py-1.5 hover:bg-gray-800">Post</a>
+        <button type="button"
+                class="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="ti ti-plus"></i> New <i class="ti ti-chevron-down text-xs"></i>
+        </button>
+        <div class="absolute left-0 top-full hidden group-hover:block group-focus-within:block pt-1 min-w-[10rem] z-50">
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg py-1">
+                <a href="{{ url_for('admin_panel.public_site_page_new') }}" class="block px-3 py-1.5 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">Page</a>
+                <a href="{{ url_for('admin_panel.public_site_news_new') }}" class="block px-3 py-1.5 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">Post</a>
+            </div>
         </div>
     </div>
-    {% if edit_url is defined and edit_url %}
-    <span class="text-gray-600">|</span>
-    <a href="{{ edit_url }}" class="text-white hover:text-ecs-gold flex items-center gap-1 font-medium"><i class="ti ti-edit"></i> Edit Page</a>
-    {% endif %}
-    <div class="ml-auto flex items-center gap-3">
-        <a href="{{ portal_url('main.index') }}" class="hover:text-white hidden sm:inline">Dashboard</a>
-        <span class="text-gray-400 hidden md:inline">Howdy, {{ current_user.username }}</span>
-        <a href="{{ portal_url('auth.logout') }}" class="hover:text-white">Log out</a>
+
+    <div class="ml-auto flex items-center gap-1">
+        <a href="{{ portal_url('main.index') }}"
+           class="hidden sm:inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="ti ti-layout-dashboard"></i> Dashboard
+        </a>
+        <span class="hidden md:inline px-2 text-xs text-gray-400 dark:text-gray-500">Howdy, {{ current_user.username }}</span>
+        <a href="{{ portal_url('auth.logout') }}"
+           class="inline-flex h-9 items-center rounded-lg px-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            Log out
+        </a>
     </div>
 </div>
 {% endif %}

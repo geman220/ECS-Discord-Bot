@@ -22,6 +22,15 @@ from app.utils.db_utils import transactional
 logger = logging.getLogger(__name__)
 
 
+def _pst_form_time_to_utc(value):
+    """Parse a 'YYYY-MM-DDTHH:MM' form value entered as PST and return a naive
+    UTC datetime (the storage convention for scheduled_send_time)."""
+    import pytz
+    local_dt = datetime.strptime(value, '%Y-%m-%dT%H:%M')
+    pst = pytz.timezone('America/Los_Angeles')
+    return pst.localize(local_dt).astimezone(pytz.utc).replace(tzinfo=None)
+
+
 @admin_panel_bp.route('/communication/scheduled-messages')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -82,13 +91,18 @@ def create_scheduled_message():
         scheduled_time = request.form.get('scheduled_time')
 
         # Validate inputs
+        if not match_id:
+            flash('Please select a match.', 'error')
+            return redirect(url_for('admin_panel.schedule_new_message'))
         if not scheduled_time:
             flash('Scheduled time is required.', 'error')
-            return redirect(url_for('admin_panel.scheduled_messages'))
+            return redirect(url_for('admin_panel.schedule_new_message'))
 
-        # Parse scheduled time
+        # Parse scheduled time. The form collects PST (the labels say so) but
+        # scheduled_send_time is stored in UTC — the dispatcher compares it
+        # against datetime.utcnow() (tasks_core.py), so convert before storing.
         try:
-            scheduled_send_time = datetime.strptime(scheduled_time, '%Y-%m-%dT%H:%M')
+            scheduled_send_time = _pst_form_time_to_utc(scheduled_time)
         except ValueError:
             flash('Invalid date format. Please use the date picker.', 'error')
             return redirect(url_for('admin_panel.scheduled_messages'))
@@ -104,6 +118,7 @@ def create_scheduled_message():
         )
 
         db.session.add(scheduled_message)
+        db.session.flush()  # assign the id before it goes into the audit log
 
         # Log the action
         AdminAuditLog.log_action(
@@ -146,10 +161,11 @@ def scheduled_messages_queue():
 
         return render_template('admin_panel/communication/scheduled_messages_queue_flowbite.html',
                              pending_messages=pending_messages,
-                             now=datetime.utcnow(),
+                             # The template calls now() — pass the callable, not an instance.
+                             now=datetime.utcnow,
                              **stats)
     except Exception as e:
-        logger.error(f"Error loading scheduled messages queue: {e}")
+        logger.exception(f"Error loading scheduled messages queue: {e}")
         flash('Queue unavailable. Check database connectivity.', 'error')
         return redirect(url_for('admin_panel.communication_hub'))
 
@@ -221,85 +237,44 @@ def reorder_message_queue():
         return jsonify({'success': False, 'message': 'Failed to reorder queue.'}), 500
 
 
-@admin_panel_bp.route('/communication/scheduled-messages/new', methods=['GET', 'POST'])
+@admin_panel_bp.route('/communication/scheduled-messages/new')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-@transactional
 def schedule_new_message():
-    """Create/schedule a new message."""
-    if request.method == 'GET':
-        # Show form for creating new scheduled message
-        return render_template('admin_panel/communication/schedule_new_message_flowbite.html')
+    """Form for scheduling a match RSVP post.
 
-    try:
-        # Handle form submission
-        message_type = request.form.get('message_type', 'discord')  # discord, sms, push, discord_dm
-        recipient_type = request.form.get('recipient_type', 'all')
-        title = request.form.get('title')
-        content = request.form.get('content')
-        scheduled_time = request.form.get('scheduled_time')
+    The form POSTs to create_scheduled_message. The old POST branch here was
+    dead code: it passed columns ScheduledMessage doesn't have (title/content/
+    recipient_type) so it could never succeed, and the form never targeted it.
+    """
+    from app.models import Match
 
-        # Additional fields for different message types
-        discord_channel = request.form.get('discord_channel')
-        sms_template = request.form.get('sms_template')
-        push_priority = request.form.get('push_priority', 'normal')
-        dm_individual = request.form.get('dm_individual') == 'on'
+    # Upcoming matches that don't already have a scheduled message.
+    scheduled_match_ids = db.session.query(ScheduledMessage.match_id).filter(
+        ScheduledMessage.match_id.isnot(None),
+        ScheduledMessage.status.in_(['PENDING', 'QUEUED'])
+    ).subquery()
+    matches = Match.query.filter(
+        Match.date >= datetime.utcnow().date(),
+        ~Match.id.in_(scheduled_match_ids)
+    ).order_by(Match.date, Match.time).limit(100).all()
 
-        # Validate inputs
-        if not title or not content or not scheduled_time:
-            flash('Title, content, and scheduled time are required.', 'error')
-            return render_template('admin_panel/communication/schedule_new_message_flowbite.html')
+    recent_messages = ScheduledMessage.query.filter(
+        ScheduledMessage.match_id.isnot(None)
+    ).order_by(ScheduledMessage.created_at.desc()).limit(5).all()
 
-        # Parse scheduled time
-        try:
-            scheduled_datetime = datetime.strptime(scheduled_time, '%Y-%m-%dT%H:%M')
-        except ValueError:
-            flash('Invalid scheduled time format.', 'error')
-            return render_template('admin_panel/communication/schedule_new_message_flowbite.html')
+    # The template shows send times in PST; stamp the converted value the same
+    # way admin/scheduling_routes.py does.
+    import pytz
+    pst = pytz.timezone('America/Los_Angeles')
+    utc = pytz.utc
+    for message in recent_messages:
+        if message.scheduled_send_time:
+            message.scheduled_send_time_pst = utc.localize(message.scheduled_send_time).astimezone(pst)
 
-        # Create message metadata based on type
-        message_metadata = {}
-        if message_type == 'discord' and discord_channel:
-            message_metadata['discord_channel'] = discord_channel
-        elif message_type == 'sms':
-            message_metadata['sms_template'] = sms_template or 'default'
-        elif message_type == 'push':
-            message_metadata['priority'] = push_priority
-        elif message_type == 'discord_dm':
-            message_metadata['individual_dm'] = dm_individual
-
-        # Create scheduled message
-        scheduled_message = ScheduledMessage(
-            message_type=message_type,
-            recipient_type=recipient_type,
-            title=title,
-            content=content,
-            scheduled_send_time=scheduled_datetime,
-            status='PENDING',
-            created_by=current_user.id,
-            metadata=str(message_metadata) if message_metadata else None
-        )
-
-        db.session.add(scheduled_message)
-
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='schedule_message',
-            resource_type='scheduled_messages',
-            resource_id=str(scheduled_message.id),
-            new_value=f'Scheduled {message_type} message: {title}',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        flash(f'Message "{title}" scheduled for {scheduled_datetime.strftime("%Y-%m-%d %H:%M")}!', 'success')
-        return redirect(url_for('admin_panel.scheduled_messages_queue'))
-
-    except Exception as e:
-        logger.error(f"Error scheduling message: {e}")
-        flash('Failed to schedule message. Check database connectivity.', 'error')
-        return render_template('admin_panel/communication/schedule_new_message_flowbite.html')
+    return render_template('admin_panel/communication/schedule_new_message_flowbite.html',
+                           matches=matches,
+                           recent_messages=recent_messages)
 
 
 @admin_panel_bp.route('/communication/scheduled-messages/history')
@@ -436,10 +411,10 @@ def update_scheduled_message(message_id):
 
         old_time = message.scheduled_send_time
 
-        # Update fields
+        # Update fields (form time is PST; the column is UTC)
         if scheduled_time:
             try:
-                message.scheduled_send_time = datetime.strptime(scheduled_time, '%Y-%m-%dT%H:%M')
+                message.scheduled_send_time = _pst_form_time_to_utc(scheduled_time)
             except ValueError:
                 return jsonify({'success': False, 'message': 'Invalid date format'}), 400
 

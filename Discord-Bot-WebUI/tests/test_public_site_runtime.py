@@ -241,3 +241,41 @@ class TestRoleBoundary:
         assert site_editor_client.get('/admin-panel/public-site/pages').status_code in (200, 302)
         # Appearance/theme (full-admin only): forbidden.
         assert site_editor_client.get('/admin-panel/public-site/appearance').status_code == 403
+
+
+class TestPageTemplatePicker:
+    """Add New Page: picker renders, and creating from a template seeds the
+    chosen skeleton (validated) instead of an empty draft."""
+
+    def test_picker_renders_all_templates(self, app, db, gadmin_client):
+        from app.services.section_converter import PAGE_TEMPLATES
+        r = gadmin_client.get('/admin-panel/public-site/pages/new')
+        assert r.status_code == 200
+        body = r.data.decode()
+        for t in PAGE_TEMPLATES:
+            assert t['label'] in body
+
+    def test_create_from_template_seeds_sections(self, app, db, gadmin_client):
+        from app.models import SitePage
+        r = gadmin_client.post('/admin-panel/public-site/pages/create',
+                               data={'title': 'Template Test Landing',
+                                     'template': 'landing'})
+        assert r.status_code == 302 and '/site-editor/' in r.headers['Location']
+        with app.app_context():
+            page = SitePage.query.filter_by(slug='template-test-landing').first()
+            assert page is not None and page.status == 'draft'
+            sections = (page.sections_draft or {}).get('sections') or []
+            assert len(sections) == 4              # hero + cards + image/text + band
+            assert sections[0]['type'] == 'hero'
+            assert 'Template Test Landing' in sections[0]['blocks'][0]['html']
+
+    def test_create_blank_still_works(self, app, db, gadmin_client):
+        from app.models import SitePage
+        r = gadmin_client.post('/admin-panel/public-site/pages/create',
+                               data={'title': 'Template Test Blank',
+                                     'template': 'blank'})
+        assert r.status_code == 302
+        with app.app_context():
+            page = SitePage.query.filter_by(slug='template-test-blank').first()
+            assert page is not None
+            assert (page.sections_draft or {}).get('sections') == []

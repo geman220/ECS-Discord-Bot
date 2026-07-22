@@ -362,6 +362,93 @@ def _render_doc(page, doc, edit_mode):
     return _rt('public/sections/_render.html', doc=doc, ctx=ctx, edit_mode=edit_mode)
 
 
+def _dynamic_page_cache(cache_slug, key_suffix, render_fn):
+    """Full-page render cache for the dynamic (non-section) public pages —
+    news list/detail and calendar. Same guardrails as the section-page cache
+    in _render_page_sections: anonymous GETs in PUBLIC_ONLY mode only, never
+    with a flash pending, versioned keys + single-flight + stale-while-
+    revalidate.
+
+    key_suffix folds the page's query params into the key. Callers pass a
+    suffix built ONLY from validated/bounded values (resolved page number,
+    resolved month) so the key space stays finite, or None to skip caching
+    for this request (e.g. free-text category filters). render_fn does the
+    queries AND the render — a cache hit costs zero DB round-trips.
+
+    Degraded renders are NEVER stored: the routes' graceful-degradation
+    excepts (empty posts/events on a transient DB error) set
+    g.public_render_degraded, and this wrapper then serves the last good
+    stale copy if one exists — otherwise the degraded page goes out
+    uncached, exactly the pre-cache per-request behavior. Without this, one
+    pool-exhaustion blip would bake an empty page into BOTH cache keys
+    (store_html also refreshes ':stale') and serve it site-wide for the TTL.
+    """
+    import os as _os
+    from flask import session as _session
+    from flask_login import current_user
+    cacheable = (key_suffix is not None
+                 and request.method == 'GET'
+                 and _os.environ.get('PUBLIC_ONLY')
+                 and not current_user.is_authenticated
+                 and not _is_site_admin()
+                 and not _session.get('_flashes'))
+    if not cacheable:
+        return render_fn()
+    from app.services import public_cache as pc
+    host = (request.host or '').split(':')[0].lower()
+    key = pc.cache_key(host, request.path + key_suffix, 'page', cache_slug)
+    cached = pc.get_cached_html(key)
+    if cached is not None:
+        return Response(cached, mimetype='text/html',
+                        headers={'Cache-Control': 'public, max-age=60'})
+    if not pc.acquire_render_lock(key):
+        stale = pc.get_stale_html(key)
+        if stale is not None:
+            return Response(stale, mimetype='text/html',
+                            headers={'Cache-Control': 'public, max-age=30'})
+    rendered = render_fn()
+    if getattr(g, 'public_render_degraded', False):
+        stale = pc.get_stale_html(key)
+        if stale is not None:
+            return Response(stale, mimetype='text/html',
+                            headers={'Cache-Control': 'public, max-age=30'})
+        return Response(rendered, mimetype='text/html',
+                        headers={'Cache-Control': 'no-store'})
+    pc.store_html(key, rendered)
+    return Response(rendered, mimetype='text/html',
+                    headers={'Cache-Control': 'public, max-age=60'})
+
+
+# Admin-editable copy for the dynamic pages (Appearance screen). Defaults here
+# MUST mirror admin_panel/routes/public_site.py's appearance form so the form
+# shows exactly what the site renders when a key was never saved.
+_DYNAMIC_COPY_DEFAULTS = {
+    'public_news_hero_title': 'News',
+    'public_news_hero_subtitle': 'League announcements, team reveals, and season updates.',
+    'public_calendar_hero_title': 'Calendar',
+    'public_calendar_hero_subtitle': 'Upcoming PLOPs, games, and events. New players — '
+                                     'come to a PLOP to check us out.',
+    'public_calendar_cta_heading': 'New to the league?',
+    'public_calendar_cta_body': "Come to a PLOP, get approved, and you're in. "
+                                "Here's how it works.",
+}
+
+
+def _dynamic_copy(prefix):
+    """The editable-copy values for one dynamic page ('news' or 'calendar'),
+    keyed without the public_<prefix>_ part (hero_title, hero_subtitle, …)."""
+    out = {}
+    for key, default in _DYNAMIC_COPY_DEFAULTS.items():
+        if not key.startswith(f'public_{prefix}_'):
+            continue
+        try:
+            val = AdminConfig.get_setting(key, default)
+        except Exception:
+            val = default
+        out[key[len(f'public_{prefix}_'):]] = (val or default)
+    return out
+
+
 def _page_block(slug):
     """Fetch a live (non-trashed) SitePage by slug (None if missing/trashed)."""
     try:
@@ -643,42 +730,67 @@ def faqs():
 @public_bp.route('/news')
 def news_list():
     category = (request.args.get('category') or '').strip() or None
-    try:
-        q = (NewsPost.query
-             .filter(NewsPost.status == 'published',
-                     NewsPost.published_at.isnot(None),
-                     NewsPost.published_at <= datetime.utcnow()))
-        if category:
-            q = q.filter(NewsPost.category == category)
-        page_num = max(1, request.args.get('page', 1, type=int))
-        per_page = 12
-        total_posts = q.count()
-        posts = (q.order_by(NewsPost.published_at.desc())
-                 .offset((page_num - 1) * per_page).limit(per_page).all())
-        total_pages = max(1, -(-total_posts // per_page))
-    except Exception:
-        posts, page_num, total_pages = [], 1, 1
-    try:
-        categories = sorted({c[0] for c in db.session.query(NewsPost.category)
-                             .filter(NewsPost.category.isnot(None),
-                                     NewsPost.status == 'published').distinct().all()
-                             if c[0]})
-    except Exception:
-        categories = []
-    seo = _seo(
-        title=(f'{category} — News — ECS Pub League' if category else 'News — ECS Pub League'),
-        description='League announcements, team reveals, and season updates.',
-        canonical_endpoint='public.news_list',
-        json_ld=[_org_json_ld()],
-    )
-    return render_template('public/news_list.html', active_page='news', seo=seo,
-                           posts=posts, categories=categories, active_category=category,
-                           page_num=page_num, total_pages=total_pages,
-                           edit_url=_edit_url('admin_panel.public_site_news'))
+    page_num = max(1, request.args.get('page', 1, type=int))
+    copy = _dynamic_copy('news')
+
+    def _render():
+        nonlocal page_num
+        try:
+            q = (NewsPost.query
+                 .filter(NewsPost.status == 'published',
+                         NewsPost.published_at.isnot(None),
+                         NewsPost.published_at <= datetime.utcnow()))
+            if category:
+                q = q.filter(NewsPost.category == category)
+            per_page = 12
+            total_posts = q.count()
+            posts = (q.order_by(NewsPost.published_at.desc())
+                     .offset((page_num - 1) * per_page).limit(per_page).all())
+            total_pages = max(1, -(-total_posts // per_page))
+        except Exception:
+            posts, page_num, total_pages = [], 1, 1
+            g.public_render_degraded = True   # never cache this empty page
+        try:
+            categories = sorted({c[0] for c in db.session.query(NewsPost.category)
+                                 .filter(NewsPost.category.isnot(None),
+                                         NewsPost.status == 'published').distinct().all()
+                                 if c[0]})
+        except Exception:
+            categories = []
+            g.public_render_degraded = True
+        from app.services.media_service import render_info_for_urls
+        try:
+            imgs = render_info_for_urls(db.session,
+                                        [p.featured_image_url for p in posts])
+        except Exception:
+            imgs = {}
+            g.public_render_degraded = True
+        seo = _seo(
+            title=(f'{category} — News — ECS Pub League' if category else 'News — ECS Pub League'),
+            description=copy['hero_subtitle'],
+            canonical_endpoint='public.news_list',
+            json_ld=[_org_json_ld()],
+        )
+        return render_template('public/news_list.html', active_page='news', seo=seo,
+                               posts=posts, categories=categories, active_category=category,
+                               page_num=page_num, total_pages=total_pages, imgs=imgs,
+                               copy=copy,
+                               edit_url=_edit_url('admin_panel.public_site_news'))
+
+    # Free-text category filters and deep pages are served live — the cache
+    # key space must stay bounded (an attacker can mint ?category values).
+    suffix = f'?p={page_num}' if (category is None and page_num <= 50) else None
+    return _dynamic_page_cache('news', suffix, _render)
 
 
 @public_bp.route('/news/<slug>')
 def news_detail(slug):
+    # Cache key is the path itself; a 404 (unknown slug, unpublished draft)
+    # raises out of the render and nothing is stored.
+    return _dynamic_page_cache('news', '', lambda: _render_news_detail(slug))
+
+
+def _render_news_detail(slug):
     post = NewsPost.query.filter_by(slug=slug).first()
     # Published posts are public; drafts/scheduled are previewable by site admins.
     if not post or (not post.is_published and not _is_site_admin()):
@@ -702,8 +814,14 @@ def news_detail(slug):
         og_type='article',
         json_ld=[article_ld],
     )
+    from app.services.media_service import render_info_for_urls
+    try:
+        imgs = render_info_for_urls(db.session, [post.featured_image_url])
+    except Exception:
+        imgs = {}
+        g.public_render_degraded = True   # don't cache the srcset-less render
     return render_template('public/news_detail.html', active_page='news', seo=seo,
-                           post=post,
+                           post=post, img=imgs.get(post.featured_image_url),
                            edit_url=_edit_url('admin_panel.public_site_news_edit', post_id=post.id))
 
 
@@ -716,59 +834,78 @@ def calendar():
     import calendar as _calmod
     now = datetime.utcnow()
     view = 'month' if request.args.get('view') == 'month' else 'agenda'
+    copy = _dynamic_copy('calendar')
+
+    # Resolve the month up front so it can key the cache (invalid/absent ?m
+    # falls back to the current month — one shared key, not one per typo).
+    year = month = None
+    if view == 'month':
+        try:
+            year, month = (int(x) for x in (request.args.get('m') or '').split('-'))
+            if not (1 <= month <= 12 and 1900 <= year <= 2200):
+                raise ValueError('out of range')
+        except Exception:
+            year, month = now.year, now.month
 
     def _q():
         return LeagueEvent.query.filter(LeagueEvent.is_active.is_(True),
                                         LeagueEvent.is_public.is_(True))
-    seo = _seo(
-        title='Calendar — ECS Pub League',
-        description='Upcoming ECS Pub League PLOPs, games, and events in Seattle.',
-        canonical_endpoint='public.calendar',
-        json_ld=[_org_json_ld()],
-    )
+
+    def _render():
+        seo = _seo(
+            title='Calendar — ECS Pub League',
+            description='Upcoming ECS Pub League PLOPs, games, and events in Seattle.',
+            canonical_endpoint='public.calendar',
+            json_ld=[_org_json_ld()],
+        )
+
+        if view == 'month':
+            first = datetime(year, month, 1)
+            last = datetime(year + 1, 1, 1) if month == 12 else datetime(year, month + 1, 1)
+            try:
+                evs = (_q().filter(LeagueEvent.start_datetime >= first,
+                                   LeagueEvent.start_datetime < last)
+                       .order_by(LeagueEvent.start_datetime.asc()).all())
+            except Exception:
+                evs = []
+                g.public_render_degraded = True   # never cache this empty page
+            by_day = {}
+            for e in evs:
+                by_day.setdefault(e.start_datetime.date(), []).append(e)
+            prev_first = first - timedelta(days=1)
+            grid = {
+                'weeks': _calmod.Calendar(firstweekday=6).monthdatescalendar(year, month),
+                'by_day': by_day, 'month': month, 'label': first.strftime('%B %Y'),
+                'prev': prev_first.strftime('%Y-%m'), 'next': last.strftime('%Y-%m'),
+                'today': now.date(),
+            }
+            return render_template('public/calendar.html', active_page='calendar', seo=seo,
+                                   view='month', grid=grid, grouped={}, total=len(evs),
+                                   copy=copy)
+
+        # ---- Agenda (default) ----
+        try:
+            events = (_q().filter(LeagueEvent.start_datetime >= (now - timedelta(hours=18)))
+                      .order_by(LeagueEvent.start_datetime.asc()).limit(80).all())
+        except Exception:
+            events = []
+            g.public_render_degraded = True   # never cache this empty page
+        grouped = {}
+        for e in events:
+            grouped.setdefault(e.start_datetime.strftime('%B %Y'), []).append(e)
+        return render_template('public/calendar.html', active_page='calendar', seo=seo,
+                               view='agenda',
+                               grouped=grouped, total=len(events), copy=copy)
 
     if view == 'month':
-        m = request.args.get('m')
-        try:
-            year, month = (int(x) for x in m.split('-'))
-            if not (1 <= month <= 12 and 1900 <= year <= 2200):
-                raise ValueError('out of range')
-            first = datetime(year, month, 1)
-        except Exception:
-            year, month = now.year, now.month
-            first = datetime(year, month, 1)
-        last = datetime(year + 1, 1, 1) if month == 12 else datetime(year, month + 1, 1)
-        try:
-            evs = (_q().filter(LeagueEvent.start_datetime >= first,
-                               LeagueEvent.start_datetime < last)
-                   .order_by(LeagueEvent.start_datetime.asc()).all())
-        except Exception:
-            evs = []
-        by_day = {}
-        for e in evs:
-            by_day.setdefault(e.start_datetime.date(), []).append(e)
-        prev_first = first - timedelta(days=1)
-        grid = {
-            'weeks': _calmod.Calendar(firstweekday=6).monthdatescalendar(year, month),
-            'by_day': by_day, 'month': month, 'label': first.strftime('%B %Y'),
-            'prev': prev_first.strftime('%Y-%m'), 'next': last.strftime('%Y-%m'),
-            'today': now.date(),
-        }
-        return render_template('public/calendar.html', active_page='calendar', seo=seo,
-                               view='month', grid=grid, grouped={}, total=len(evs))
-
-    # ---- Agenda (default) ----
-    try:
-        events = (_q().filter(LeagueEvent.start_datetime >= (now - timedelta(hours=18)))
-                  .order_by(LeagueEvent.start_datetime.asc()).limit(80).all())
-    except Exception:
-        events = []
-    grouped = {}
-    for e in events:
-        grouped.setdefault(e.start_datetime.strftime('%B %Y'), []).append(e)
-    return render_template('public/calendar.html', active_page='calendar', seo=seo,
-                           view='agenda',
-                           grouped=grouped, total=len(events))
+        # Only months near "now" are cached (people paging around the current
+        # season); a crawler walking to 2200 renders live instead of minting
+        # unbounded keys.
+        near = abs(year - now.year) <= 2
+        suffix = f'?m={year}-{month:02d}' if near else None
+    else:
+        suffix = ''
+    return _dynamic_page_cache('calendar', suffix, _render)
 
 
 @public_bp.route('/calendar.ics')

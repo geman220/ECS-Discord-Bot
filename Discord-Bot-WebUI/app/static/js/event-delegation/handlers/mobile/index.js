@@ -12,7 +12,6 @@ import { initErrorHandlers } from './errors.js';
 import { initPushSubscriptionsHandlers } from './push-subscriptions.js';
 import { initMobileConfigHandlers } from './config.js';
 import { initMobileUsersHandlers } from './users.js';
-import { initPushCampaignsHandlers } from './push-campaigns.js';
 import { initPushHistoryHandlers } from './push-history.js';
 
 /**
@@ -33,7 +32,6 @@ export function initMobileFeaturesHandlers() {
     initPushSubscriptionsHandlers(ED);
     initMobileConfigHandlers(ED);
     initMobileUsersHandlers(ED);
-    initPushCampaignsHandlers(ED);
     initPushHistoryHandlers(ED);
 
     console.log('[MobileFeatures] All handlers registered');
@@ -50,6 +48,5 @@ export {
     initPushSubscriptionsHandlers,
     initMobileConfigHandlers,
     initMobileUsersHandlers,
-    initPushCampaignsHandlers,
     initPushHistoryHandlers
 };

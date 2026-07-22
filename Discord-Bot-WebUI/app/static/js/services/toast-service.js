@@ -7,7 +7,6 @@
  * - auto_schedule_wizard.js
  * - auto-schedule-wizard/ui-helpers.js
  * - chat-widget.js
- * - message-management.js
  * - admin-panel-feature-toggles.js
  * - admin-manage-subs.js
  * - player-profile.js

@@ -13,7 +13,16 @@
             {% if post.excerpt %}<p class="mt-4 text-lg text-gray-600 dark:text-gray-300">{{ post.excerpt }}</p>{% endif %}
         </header>
 
-        {% if post.featured_image_url %}
+        {% if img is defined and img %}
+        {# Media-library asset: responsive variants + WebP (same pipeline as
+           the section renderer's images). #}
+        <picture>
+            {% if img.webp_srcset %}<source type="image/webp" srcset="{{ img.webp_srcset }}" sizes="(min-width: 768px) 720px, 100vw">{% endif %}
+            <img src="{{ img.url }}" {% if img.srcset %}srcset="{{ img.srcset }}" sizes="(min-width: 768px) 720px, 100vw"{% endif %}
+                 {% if img.width and img.height %}width="{{ img.width }}" height="{{ img.height }}"{% endif %}
+                 alt="{{ post.title }}" class="mt-8 w-full rounded-2xl object-cover">
+        </picture>
+        {% elif post.featured_image_url %}
         <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" class="mt-8 w-full rounded-2xl object-cover">
         {% endif %}
 

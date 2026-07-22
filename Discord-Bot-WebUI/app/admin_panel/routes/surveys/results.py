@@ -27,37 +27,43 @@ logger = logging.getLogger(__name__)
 _ROLES = ['Global Admin', 'Pub League Admin']
 
 
-@admin_panel_bp.route('/surveys/<int:survey_id>')
-@login_required
-@role_required(_ROLES)
-def survey_results(survey_id):
-    """Results dashboard for a survey."""
-    # Load through g.db_session — the SAME session we hand to the service below.
-    # Survey.query binds to db.session, so `survey.responses` and their `answers`
-    # lazy-loaded as db.session objects, and sync_native_poll_responses'
-    # `session.delete(a)` (on g.db_session) then raised InvalidRequestError for a
-    # foreign object. That killed every RE-sync: a voter who changed their Discord
-    # vote never updated, the error was swallowed below, and the dashboard just
-    # rendered stale numbers.
+def _load_and_sync(survey_id):
+    """Load the survey via g.db_session and pull in any Discord native-poll
+    votes first, so every results surface (dashboard, JSON, CSV, responses)
+    reports the same numbers.
+
+    Loading through g.db_session matters: Survey.query binds to db.session, so
+    `survey.responses` lazy-load as db.session objects and the sync's
+    `session.delete()` (on g.db_session) raises InvalidRequestError for a
+    foreign object. Best-effort: sync failures never block the page.
+    """
     survey = g.db_session.query(Survey).get(survey_id)
     if survey is None:
         abort(404)
-
-    # Pull in any Discord native-poll votes before computing the summary so
-    # all channels show together. Best-effort: never block the dashboard.
     try:
         if survey_service.sync_native_poll_responses(g.db_session, survey):
             g.db_session.commit()
     except Exception as e:
         logger.warning(f"Native-poll sync skipped for survey {survey_id}: {e}")
         g.db_session.rollback()
+    return survey
+
+
+@admin_panel_bp.route('/surveys/<int:survey_id>')
+@login_required
+@role_required(_ROLES)
+def survey_results(survey_id):
+    """Results dashboard for a survey."""
+    survey = _load_and_sync(survey_id)
     summary = survey_service.get_summary(g.db_session, survey)
     trend = survey_service.get_trend(g.db_session, survey.category) if survey.category else []
+    team_breakdown = survey_service.get_team_breakdown(g.db_session, survey)
     return render_template(
         'admin_panel/surveys/survey_results_flowbite.html',
         survey=survey,
         summary=summary,
         trend=trend,
+        team_breakdown=team_breakdown,
         page_title=f'Results: {survey.title}',
     )
 
@@ -66,7 +72,7 @@ def survey_results(survey_id):
 @login_required
 @role_required(_ROLES)
 def survey_summary_json(survey_id):
-    survey = Survey.query.get_or_404(survey_id)
+    survey = _load_and_sync(survey_id)
     return jsonify({'success': True, 'summary': survey_service.get_summary(g.db_session, survey)})
 
 
@@ -84,7 +90,7 @@ def survey_trend_json(survey_id):
 @login_required
 @role_required(_ROLES)
 def survey_export_csv(survey_id):
-    survey = Survey.query.get_or_404(survey_id)
+    survey = _load_and_sync(survey_id)
     csv_data = survey_service.export_csv(g.db_session, survey)
     filename = f"survey-{survey.id}-responses.csv"
     return Response(
@@ -150,7 +156,7 @@ def survey_contact_respondents(survey_id):
 @role_required(_ROLES)
 def survey_responses_list(survey_id):
     """Individual completed-response viewer (respects anonymity)."""
-    survey = Survey.query.get_or_404(survey_id)
+    survey = _load_and_sync(survey_id)
     responses = survey.responses.filter(
         SurveyResponse.status == 'complete'
     ).order_by(SurveyResponse.submitted_at.desc()).all()

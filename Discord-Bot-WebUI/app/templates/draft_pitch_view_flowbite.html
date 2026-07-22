@@ -97,7 +97,12 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- ===== ROSTER POOL: feature card w/ header bar, eyebrow filters, dense player rows ===== -->
-        <div class="lg:col-span-4 lg:order-1 order-2 lg:sticky lg:top-4 lg:self-start">
+        {# max-h + overflow-y: without them the sticky column (queue panel + pool card)
+           can exceed the viewport and its bottom becomes unreachable — page scroll
+           only moves the pitch column. Mirrors the list view's sticky wrapper. #}
+        <div class="lg:col-span-4 lg:order-1 order-2 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1 lg:-mr-1 space-y-6">
+            <!-- ===== MY DRAFT QUEUE (private per-coach bookmarks, shared partial) ===== -->
+            {% include 'components/_draft_queue_panel.html' %}
             <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
                 <!-- header bar with status pill -->
                 <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2 bg-gray-50/60 dark:bg-gray-900/30">
@@ -217,6 +222,15 @@
 
         <!-- ===== PITCH: feature card per team w/ header bar carrying live formation pills ===== -->
         <div class="lg:col-span-8 lg:order-2 order-1">
+            {% if not teams %}
+            <!-- Coach scoping fails CLOSED: a coach with no team assignment sees this
+                 instead of everyone's boards. They can still watch the pool + build a queue. -->
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-center">
+                <i class="ti ti-shield-question text-3xl text-gray-300 dark:text-gray-600 mb-2 block" aria-hidden="true"></i>
+                <h3 class="text-base font-bold text-gray-900 dark:text-white mb-1">No team assigned to you yet</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">The pitch shows only teams you coach. Ask an admin to mark you as this team's coach, then reload. In the meantime you can browse the pool and build your draft queue.</p>
+            </section>
+            {% endif %}
             {% for team in teams %}
             <div class="{% if not loop.first %}hidden{% endif %}" id="team-{{ team.id }}-pitch" data-team-content>
                 <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">

@@ -71,7 +71,7 @@ window.EventDelegation.register('print-page', (element, event) => {
 
 /**
  * Delete Wallet Template confirmation
- * Note: Renamed from 'delete-template' to avoid conflict with admin/message-template-detail.js
+ * Note: named 'delete-wallet-template' (the older generic 'delete-template' action is gone)
  */
 window.EventDelegation.register('delete-wallet-template', (element, event) => {
     event.preventDefault();
@@ -118,7 +118,7 @@ window.EventDelegation.register('set-default-template', (element, event) => {
 
 /**
  * Edit Wallet Template - open modal with template data
- * Note: Renamed from 'edit-template' to avoid conflict with admin/message-template-detail.js
+ * Note: named 'edit-wallet-template' (the older generic 'edit-template' action is gone)
  */
 window.EventDelegation.register('edit-wallet-template', (element, event) => {
     event.preventDefault();

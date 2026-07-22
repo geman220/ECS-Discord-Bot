@@ -275,3 +275,57 @@ def backfill_variants(session, limit=None):
         except Exception:
             logger.warning('backfill skipped %s', asset.filename, exc_info=True)
     return done
+
+
+# ---- render-info lookups (srcset outside the section renderer) ------------ #
+
+def srcset_parts(url, variants, width=None, ver=''):
+    """(srcset, webp_srcset) for an asset URL from its variants record — the
+    ONE srcset implementation; the section renderer and the news/calendar
+    templates both resolve through here so responsive markup can't drift."""
+    v = variants or {}
+    widths = v.get('widths') or []
+    if not widths or not url or '.' not in url:
+        return None, None
+    base, ext = url.rsplit('.', 1)
+    webp = (', '.join(f'{base}-w{w}.webp{ver} {w}w' for w in widths)
+            if v.get('webp') else None)
+    parts = [f'{base}-w{w}.{ext}{ver} {w}w' for w in widths if not width or w < width]
+    if width:
+        parts.append(f'{url}{ver} {width}w')
+    return ', '.join(parts), webp
+
+
+def render_info_for_urls(session, urls):
+    """Batch render info for plain image URLs (NewsPost.featured_image_url et
+    al) keyed by the URL as stored. Non-library URLs (external, legacy) simply
+    get no entry — callers fall back to a bare <img src>. Query strings are
+    stripped for the lookup; the returned URLs carry the content-hash
+    cache-bust suffix like the section renderer's."""
+    from app.models import MediaAsset
+    # base -> ALL original spellings that stripped to it (two posts may store
+    # the same asset with and without a ?v= suffix — both must resolve).
+    wanted = {}
+    for u in urls:
+        if u:
+            wanted.setdefault(u.split('?', 1)[0], set()).add(u)
+    if not wanted:
+        return {}
+    try:
+        assets = (session.query(MediaAsset)
+                  .filter(MediaAsset.url.in_(wanted.keys())).all())
+    except Exception:
+        logger.debug('media render-info lookup failed', exc_info=True)
+        raise
+    out = {}
+    for a in assets:
+        h = getattr(a, 'content_hash', None)
+        ver = f'?v={h[:8]}' if h else ''
+        srcset, webp = srcset_parts(a.url, a.variants, a.width, ver)
+        info = {
+            'url': a.url + ver, 'srcset': srcset, 'webp_srcset': webp,
+            'width': a.width, 'height': a.height,
+        }
+        for original in wanted.get(a.url, ()):
+            out[original] = info
+    return out

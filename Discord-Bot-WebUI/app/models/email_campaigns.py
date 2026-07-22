@@ -38,7 +38,10 @@ class EmailCampaign(db.Model):
 
     # Status tracking
     status = db.Column(db.String(20), nullable=False, default='draft', index=True)
-    # draft | sending | sent | partially_sent | failed | cancelled
+    # draft | scheduled | sending | sent | partially_sent | failed | cancelled
+
+    # Optional future send (UTC). Requires sql_add_email_campaign_scheduling.sql.
+    scheduled_send_time = db.Column(db.DateTime, nullable=True)
     total_recipients = db.Column(db.Integer, default=0, nullable=False)
     sent_count = db.Column(db.Integer, default=0, nullable=False)
     failed_count = db.Column(db.Integer, default=0, nullable=False)

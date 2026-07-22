@@ -179,20 +179,21 @@ window.EventDelegation.register('send-bulk-notifications', function(element, e) 
                 didOpen: () => {
                     window.Swal.showLoading();
 
-                    fetch('/admin/notifications/broadcast', {
+                    fetch('/admin-panel/communication/push-notifications/broadcast', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                         },
                         body: JSON.stringify(result.value)
                     })
                     .then(response => response.json())
                     .then(data => {
-                        if (data.msg && !data.msg.toLowerCase().includes('error')) {
-                            window.Swal.fire('Sent!', data.msg, 'success');
+                        if (data.success) {
+                            window.Swal.fire('Sent!', data.message, 'success');
                         } else {
-                            window.Swal.fire('Notice', data.msg || 'Notification broadcast completed.', 'info');
+                            window.Swal.fire('Notice', data.message || 'Notification broadcast completed.', 'info');
                         }
                     })
                     .catch(error => {

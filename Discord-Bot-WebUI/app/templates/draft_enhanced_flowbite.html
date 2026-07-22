@@ -114,6 +114,18 @@
         </div>
     </section>
 
+    {% if not nav_is_admin and not viewer_team_ids %}
+    <!-- Coach not flagged on any team: picks are server-rejected, so say it up front
+         instead of letting every draft attempt fail with an error toast. -->
+    <div class="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/15 px-4 py-3 mb-5 sm:mb-6 flex items-start gap-2.5">
+        <i class="ti ti-alert-triangle text-amber-500 text-lg shrink-0 mt-0.5" aria-hidden="true"></i>
+        <p class="text-sm text-amber-800 dark:text-amber-200">
+            You're not marked as a coach of any team in this draft yet, so you can browse and build your queue but can't make picks.
+            Ask an admin to set you as your team's coach.
+        </p>
+    </div>
+    {% endif %}
+
     <!-- Toolbar: always-visible search + progressive-disclosure advanced filters -->
     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 mb-5 sm:mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-4">
@@ -219,6 +231,8 @@
                     <span class="w-16 text-center shrink-0">Cards</span>
                     <span class="w-14 text-center shrink-0">Att%</span>
                     <span class="w-[150px] text-right shrink-0">Pick</span>
+                    {# spacer matching the injected queue-bookmark star so columns stay aligned #}
+                    <span class="w-8 shrink-0"></span>
                 </div>
                 <div class="p-3 sm:p-0">
                     <div id="available-players" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 lg:divide-y lg:divide-gray-200 lg:dark:divide-gray-700 gap-3 lg:gap-0 js-draft-drop-zone" data-drop-target="available">
@@ -385,6 +399,10 @@
         <!-- ===== TEAMS / ROSTER BOARD ===== -->
         <div class="lg:col-span-4">
             <div class="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-1 lg:-mr-1 space-y-6">
+
+            <!-- ===== MY DRAFT QUEUE (private per-coach bookmarks, shared partial) ===== -->
+            {% set queue_can_draft = true %}
+            {% include 'components/_draft_queue_panel.html' %}
 
             <!-- ===== DRAFT HISTORY (always visible, live pick feed everyone watches) ===== -->
             <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">

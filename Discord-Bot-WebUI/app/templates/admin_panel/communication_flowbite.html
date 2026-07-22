@@ -1,616 +1,184 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/_modern_kit.html' import page_header %}
 
 {% block admin_title %}Communication Hub{% endblock %}
-{% block panel_description %}Comprehensive communication management{% endblock %}
+{% block panel_description %}Send messages, collect feedback, and manage how the league reaches members{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Communication Hub</span>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Communication</span>
     </div>
 </li>
 {% endblock %}
 
 {% block panel_content %}
-{% if shell == 'console' %}
-{# ===================== Modern admin console (shell == 'console') ===================== #}
-{% from 'macros/_modern_kit.html' import page_header, section_card %}
-{% set channel_pill_on = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' %}
-{% set channel_pill_off = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' %}
-<div class="space-y-5 sm:space-y-6">
+<div class="space-y-6">
 
-  {% call page_header('Communication Hub', subtitle='Templates · Schedules · Push · Discord · SMS') %}
-    <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}"
-       class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <i class="ti ti-calendar text-base" aria-hidden="true"></i><span class="hidden sm:inline">Queue</span>
-    </a>
-    <a href="{{ url_for('admin_panel.schedule_new_message') }}"
-       class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-      <i class="ti ti-plus text-base" aria-hidden="true"></i> Schedule Message
-    </a>
-  {% endcall %}
+  {% call page_header('Communication Hub', subtitle='What do you want to do?') %}{% endcall %}
 
-  <!-- Quick-action command tiles: most-used send actions -->
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-    <a href="{{ url_for('admin_panel.send_push_notification_form') }}"
-       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <div class="h-9 w-9 rounded-lg bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400 inline-flex items-center justify-center">
-        <i class="ti ti-bell-ringing text-lg" aria-hidden="true"></i>
+  {# ===== Task cards: one card per job, plain-language descriptions ===== #}
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+
+    <a href="{{ url_for('admin_panel.message_composer') }}"
+       class="group rounded-xl border-2 border-ecs-green/40 dark:border-ecs-green/50 bg-white dark:bg-gray-800 p-5 hover:border-ecs-green hover:shadow-md transition-all sm:col-span-2 xl:col-span-3">
+      <div class="flex items-start gap-4">
+        <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-ecs-green/10 shrink-0">
+          <i class="ti ti-pencil-bolt text-xl text-ecs-green" aria-hidden="true"></i>
+        </div>
+        <div class="min-w-0">
+          <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green transition-colors">Compose a Message <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-ecs-green text-white align-middle">New</span></h3>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Write once and deliver by app alert, push, email, Discord DM, or SMS — in one go. Each member only receives channels they have turned on, and you can schedule it for later.</p>
+        </div>
       </div>
-      <div class="mt-3 text-sm font-semibold text-gray-900 dark:text-white">Send Push</div>
-      <div class="text-xs text-gray-500 dark:text-gray-400">Instant mobile alert</div>
     </a>
+
+    <a href="{{ url_for('admin_panel.email_broadcast_compose') }}"
+       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-ecs-green hover:shadow-md transition-all">
+      <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-green-500/10 mb-3">
+        <i class="ti ti-mail-forward text-xl text-green-600 dark:text-green-400" aria-hidden="true"></i>
+      </div>
+      <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green transition-colors">Send an Email Blast</h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">A one-time email to a division, team, role, or members you pick. Use saved layouts so every email looks consistent.</p>
+    </a>
+
+    <a href="{{ url_for('admin_panel.push_notifications') }}"
+       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-ecs-green hover:shadow-md transition-all">
+      <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-blue-500/10 mb-3">
+        <i class="ti ti-bell text-xl text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+      </div>
+      <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green transition-colors">Send a Push Notification</h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">An alert to phones with the ECS app installed. Sends immediately — the Scheduled &amp; History tab handles future sends.</p>
+    </a>
+
     <a href="{{ url_for('admin_panel.direct_messaging') }}"
-       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <div class="h-9 w-9 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400 inline-flex items-center justify-center">
-        <i class="ti ti-message text-lg" aria-hidden="true"></i>
+       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-ecs-green hover:shadow-md transition-all">
+      <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-purple-500/10 mb-3">
+        <i class="ti ti-send text-xl text-purple-600 dark:text-purple-400" aria-hidden="true"></i>
       </div>
-      <div class="mt-3 text-sm font-semibold text-gray-900 dark:text-white">Send SMS</div>
-      <div class="text-xs text-gray-500 dark:text-gray-400">Direct text message</div>
+      <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green transition-colors">Message One Person</h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">A direct SMS or Discord DM to a single player — for individual follow-ups.</p>
     </a>
+
     <a href="{{ url_for('admin_panel.announcements') }}"
-       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <div class="h-9 w-9 rounded-lg bg-amber-100 text-ecs-gold-600 dark:bg-amber-500/15 dark:text-ecs-gold-400 inline-flex items-center justify-center">
-        <i class="ti ti-speakerphone text-lg" aria-hidden="true"></i>
+       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-ecs-green hover:shadow-md transition-all">
+      <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-amber-500/10 mb-3">
+        <i class="ti ti-speakerphone text-xl text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
       </div>
-      <div class="mt-3 text-sm font-semibold text-gray-900 dark:text-white">Announcement</div>
-      <div class="text-xs text-gray-500 dark:text-gray-400">Broadcast to league</div>
+      <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green transition-colors">Post a Homepage Announcement</h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">A banner at the top of the member homepage. It does not notify anyone — pair it with an email or push to reach people directly.</p>
     </a>
-    <a href="{{ url_for('admin_panel.message_templates') }}"
-       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-      <div class="h-9 w-9 rounded-lg bg-cyan-100 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-400 inline-flex items-center justify-center">
-        <i class="ti ti-template text-lg" aria-hidden="true"></i>
+
+    {% if endpoint_exists('admin_panel.surveys_list') %}
+    <a href="{{ url_for('admin_panel.surveys_list') }}"
+       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-ecs-green hover:shadow-md transition-all">
+      <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-cyan-500/10 mb-3">
+        <i class="ti ti-clipboard-list text-xl text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i>
       </div>
-      <div class="mt-3 text-sm font-semibold text-gray-900 dark:text-white">Templates</div>
-      <div class="text-xs text-gray-500 dark:text-gray-400">Reusable copy</div>
+      <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green transition-colors">Create a Survey or Poll</h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Collect feedback with a web form, or run a quick vote right inside Discord.</p>
     </a>
+    {% endif %}
+
+    <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}"
+       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-ecs-green hover:shadow-md transition-all">
+      <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-indigo-500/10 mb-3">
+        <i class="ti ti-clock text-xl text-indigo-600 dark:text-indigo-400" aria-hidden="true"></i>
+      </div>
+      <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green transition-colors">Match RSVP Posts</h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Scheduled RSVP embeds posted to team Discord channels before each match. Review the queue or schedule one-offs.</p>
+    </a>
+
   </div>
 
-  <!-- KPI band (real data, mono figures + divider footers) -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    <!-- Templates -->
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Message Templates</span>
-        <i class="ti ti-template text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
-      </div>
-      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ stats.total_templates or 0 }}</div>
-      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono">
-        {{ stats.total_categories or 0 }} categories
-      </div>
+  {# ===== Activity: real numbers only ===== #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-activity text-ecs-green" aria-hidden="true"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
     </div>
-    <!-- Scheduled queue -->
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Scheduled Queue</span>
-        <i class="ti ti-clock text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+    <dl class="grid grid-cols-2 md:grid-cols-5 divide-x divide-y md:divide-y-0 divide-gray-100 dark:divide-gray-700/70">
+      <div class="px-4 py-4 text-center">
+        <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Email Blasts <span class="normal-case">(30d)</span></dt>
+        <dd class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.emails_sent_30d }}</dd>
       </div>
-      <div class="mt-3 flex items-end gap-2 flex-wrap">
-        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ stats.scheduled_messages or 0 }}</span>
-        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">pending</span>
+      <div class="px-4 py-4 text-center">
+        <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">SMS Sent <span class="normal-case">(30d)</span></dt>
+        <dd class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.sms_sent_30d }}</dd>
       </div>
-      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-mono flex items-center gap-3">
-        <span class="text-green-600 dark:text-green-400">{{ stats.scheduled_messages_sent or 0 }} sent</span>
-        <span class="text-red-600 dark:text-red-400">{{ stats.scheduled_messages_failed or 0 }} failed</span>
+      <div class="px-4 py-4 text-center">
+        <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Push Devices</dt>
+        <dd class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.push_subscriptions }}</dd>
       </div>
+      <div class="px-4 py-4 text-center">
+        <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">In-App Notices <span class="normal-case">(7d)</span></dt>
+        <dd class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.recent_notifications }}</dd>
+      </div>
+      <div class="px-4 py-4 text-center">
+        <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">RSVP Queue</dt>
+        <dd class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.scheduled_messages }}</dd>
+        <dd class="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+          <span class="text-green-600 dark:text-green-400 font-medium">{{ stats.scheduled_messages_sent }} sent</span>
+          {% if stats.scheduled_messages_failed %} · <span class="text-red-600 dark:text-red-400 font-medium">{{ stats.scheduled_messages_failed }} failed</span>{% endif %}
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  {# ===== Tools & settings ===== #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-settings text-ecs-green" aria-hidden="true"></i> Tools &amp; Settings
+      </h2>
+      <span class="shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold {{ 'bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20' if push_notifications_enabled else 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' }}">
+        <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i> Push {{ 'enabled' if push_notifications_enabled else 'disabled' }}
+      </span>
     </div>
-    <!-- Push subscriptions (real active FCM device tokens) -->
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Push Devices</span>
-        <i class="ti ti-device-mobile text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
-      </div>
-      <div class="mt-3 flex items-end gap-2 flex-wrap">
-        <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ stats.push_subscriptions or 0 }}</span>
-        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">active tokens</span>
-      </div>
-      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-        Push {% if push_notifications_enabled %}<span class="text-green-600 dark:text-green-400 font-semibold">enabled</span>{% else %}<span class="text-red-600 dark:text-red-400 font-semibold">disabled</span>{% endif %}
-      </div>
+    <div class="divide-y divide-gray-100 dark:divide-gray-700/70">
+      <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+        <i class="ti ti-users-group text-gray-400" aria-hidden="true"></i>
+        <span class="flex-1 min-w-0">
+          <span class="block text-sm font-semibold text-gray-900 dark:text-white">Audiences</span>
+          <span class="block text-xs text-gray-500 dark:text-gray-400">Saved recipient groups for push targeting — build once, reuse on every send</span>
+        </span>
+        <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+      </a>
+      <a href="{{ url_for('admin_panel.sms_analytics_dashboard') }}" class="flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+        <i class="ti ti-chart-bar text-gray-400" aria-hidden="true"></i>
+        <span class="flex-1 min-w-0">
+          <span class="block text-sm font-semibold text-gray-900 dark:text-white">SMS Delivery &amp; Costs</span>
+          <span class="block text-xs text-gray-500 dark:text-gray-400">Is SMS delivering, and what is it costing?</span>
+        </span>
+        <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+      </a>
+      <a href="{{ url_for('admin_panel.push_notifications_settings') }}" class="flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+        <i class="ti ti-bell-cog text-gray-400" aria-hidden="true"></i>
+        <span class="flex-1 min-w-0">
+          <span class="block text-sm font-semibold text-gray-900 dark:text-white">Push Settings</span>
+          <span class="block text-xs text-gray-500 dark:text-gray-400">Master on/off switch for mobile push</span>
+        </span>
+        <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+      </a>
+      <a href="{{ url_for('admin_panel.messaging_settings') }}" class="flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+        <i class="ti ti-message-cog text-gray-400" aria-hidden="true"></i>
+        <span class="flex-1 min-w-0">
+          <span class="block text-sm font-semibold text-gray-900 dark:text-white">In-App Messaging</span>
+          <span class="block text-xs text-gray-500 dark:text-gray-400">Settings for the player↔coach↔admin direct-message system on this website</span>
+        </span>
+        <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+      </a>
+      <a href="{{ url_for('admin_panel.league_settings') }}" class="flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+        <i class="ti ti-brand-discord text-gray-400" aria-hidden="true"></i>
+        <span class="flex-1 min-w-0">
+          <span class="block text-sm font-semibold text-gray-900 dark:text-white">Discord Welcome Messages</span>
+          <span class="block text-xs text-gray-500 dark:text-gray-400">Per-league welcome text the Discord bot sends to new members</span>
+        </span>
+        <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+      </a>
     </div>
-    <!-- Active channels -->
-    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Active Channels</span>
-        <i class="ti ti-brand-hipchat text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
-      </div>
-      <div class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ stats.active_channels or 0 }}</div>
-      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-        Discord · Email · Push
-      </div>
-    </div>
-  </div>
-
-  <!-- Channel feature cards -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
-
-    <!-- Message Templates -->
-    {% call section_card('Message Templates', icon='ti-template') %}
-      <div class="p-4 sm:p-5">
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Automated message templates, categories, announcements, and league welcome copy.</p>
-        <nav class="space-y-2">
-          <a href="{{ url_for('admin_panel.message_templates') }}"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-folder text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-sm font-medium text-gray-900 dark:text-white">Template Categories</span>
-            </span>
-            <span class="flex items-center gap-2">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ stats.total_categories or 0 }}</span>
-              <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-            </span>
-          </a>
-          <a href="{{ url_for('admin_panel.message_templates') }}"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-edit text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-sm font-medium text-gray-900 dark:text-white">Manage All Templates</span>
-            </span>
-            <span class="flex items-center gap-2">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ stats.total_templates or 0 }}</span>
-              <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-            </span>
-          </a>
-          <a href="{{ url_for('admin_panel.announcements') }}"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-speakerphone text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-sm font-medium text-gray-900 dark:text-white">Announcements</span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-          </a>
-          <a href="{{ url_for('admin_panel.league_settings') }}"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-trophy text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="min-w-0">
-                <span class="block text-sm font-medium text-gray-900 dark:text-white">League Settings</span>
-                <span class="block text-xs text-gray-500 dark:text-gray-400">Configure league welcome messages</span>
-              </span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-          </a>
-        </nav>
-      </div>
-    {% endcall %}
-
-    <!-- Scheduled Messages -->
-    {% call section_card('Scheduled Messages', icon='ti-clock') %}
-      <div class="p-4 sm:p-5">
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Queue and track messages across Discord, SMS, push, and Discord DMs.</p>
-        <!-- inline queue status strip (real data) -->
-        <div class="grid grid-cols-3 gap-2 mb-4">
-          <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-2 text-center">
-            <div class="font-mono text-lg font-bold text-amber-600 dark:text-amber-400 leading-none">{{ stats.scheduled_messages or 0 }}</div>
-            <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Pending</div>
-          </div>
-          <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-2 text-center">
-            <div class="font-mono text-lg font-bold text-green-600 dark:text-green-400 leading-none">{{ stats.scheduled_messages_sent or 0 }}</div>
-            <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Sent</div>
-          </div>
-          <div class="rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-2 text-center">
-            <div class="font-mono text-lg font-bold text-red-600 dark:text-red-400 leading-none">{{ stats.scheduled_messages_failed or 0 }}</div>
-            <div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Failed</div>
-          </div>
-        </div>
-        <nav class="space-y-2">
-          <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-calendar text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-sm font-medium text-gray-900 dark:text-white">View Queue</span>
-            </span>
-            <span class="flex items-center gap-2">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">{{ stats.scheduled_messages or 0 }}</span>
-              <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-            </span>
-          </a>
-          <a href="{{ url_for('admin_panel.schedule_new_message') }}"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-plus text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-sm font-medium text-gray-900 dark:text-white">Schedule New Message</span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-          </a>
-          <a href="{{ url_for('admin_panel.scheduled_messages_history') }}"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-history text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-sm font-medium text-gray-900 dark:text-white">Message History</span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-          </a>
-        </nav>
-      </div>
-    {% endcall %}
-
-    <!-- Push & SMS -->
-    {% call section_card('Push & SMS', icon='ti-bell') %}
-      <div class="p-4 sm:p-5">
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Send instant push and SMS, and monitor delivery and cost.</p>
-        <nav class="space-y-2">
-          <a href="{{ url_for('admin_panel.push_notifications_dashboard') }}"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-dashboard text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-sm font-medium text-gray-900 dark:text-white">Notification Dashboard</span>
-            </span>
-            <span class="flex items-center gap-2">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ stats.push_subscriptions or 0 }}</span>
-              <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-            </span>
-          </a>
-          <a href="{{ url_for('admin_panel.send_push_notification_form') }}"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-bell-ringing text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-sm font-medium text-gray-900 dark:text-white">Send Push Notification</span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-          </a>
-          <a href="{{ url_for('admin_panel.direct_messaging') }}"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-message text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-sm font-medium text-gray-900 dark:text-white">Send SMS</span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-          </a>
-          <a href="{{ url_for('admin_panel.sms_analytics_dashboard') }}"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-chart-bar text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="min-w-0">
-                <span class="block text-sm font-medium text-gray-900 dark:text-white">SMS Cost Dashboard</span>
-                <span class="block text-xs text-gray-500 dark:text-gray-400">View SMS costs and delivery metrics</span>
-              </span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-          </a>
-        </nav>
-      </div>
-    {% endcall %}
-
-    <!-- System Status -->
-    {% call section_card('System Status & Settings', icon='ti-settings') %}
-      <div class="p-4 sm:p-5">
-        <!-- channel status pills (real data) -->
-        <div class="space-y-2 mb-4">
-          <div class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-            <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
-              <i class="ti ti-bell text-lg text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Push Notifications
-            </span>
-            {% if push_notifications_enabled %}
-            <span class="{{ channel_pill_on }}"><i class="ti ti-circle-check" aria-hidden="true"></i>Enabled</span>
-            {% else %}
-            <span class="{{ channel_pill_off }}"><i class="ti ti-circle-x" aria-hidden="true"></i>Disabled</span>
-            {% endif %}
-          </div>
-          <div class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-            <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
-              <i class="ti ti-mail text-lg text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Email Notifications
-            </span>
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>
-          </div>
-          <div class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-            <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
-              <i class="ti ti-activity text-lg text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Notifications (last 7 days)
-            </span>
-            <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ stats.recent_notifications or 0 }}</span>
-          </div>
-        </div>
-        <nav class="space-y-2">
-          <a href="{{ url_for('admin_panel.messaging_settings') }}"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-message-cog text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="min-w-0">
-                <span class="block text-sm font-medium text-gray-900 dark:text-white">In-App Messaging Settings</span>
-                <span class="block text-xs text-gray-500 dark:text-gray-400">Configure direct messaging permissions</span>
-              </span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
-          </a>
-          <a href="{{ url_for('admin_panel.push_notifications_settings') }}"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-settings text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-sm font-medium text-gray-900 dark:text-white">Notification Settings</span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-          </a>
-          <a href="{{ url_for('admin_panel.feature_toggles') }}#communication"
-             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-            <span class="flex items-center gap-3">
-              <i class="ti ti-toggle-left text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
-              <span class="text-sm font-medium text-gray-900 dark:text-white">Enable/Disable Features</span>
-            </span>
-            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-          </a>
-        </nav>
-      </div>
-    {% endcall %}
-  </div>
-
-  <!-- Info note -->
-  <div class="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-900/30 p-4 text-sm text-blue-800 dark:text-blue-300 flex items-start gap-3">
-    <i class="ti ti-info-circle text-lg mt-0.5 shrink-0" aria-hidden="true"></i>
-    <div>
-      <strong>Communication Hub:</strong>
-      Comprehensive communication management across Discord channels, SMS, mobile push notifications, and Discord DMs.
-      Schedule messages, send instant notifications, and configure delivery settings for all channels.
-    </div>
-  </div>
+  </section>
 
 </div>
-{% else %}
-<!-- Communication Overview Stats -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
-        <div class="flex flex-col items-center text-center">
-            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
-                <i class="ti ti-template text-2xl text-blue-600 dark:text-blue-400"></i>
-            </div>
-            <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.total_templates or 0 }}</h3>
-            <span class="text-sm text-blue-700 dark:text-blue-300">Message Templates</span>
-        </div>
-    </div>
-    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
-        <div class="flex flex-col items-center text-center">
-            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
-                <i class="ti ti-clock text-2xl text-yellow-600 dark:text-yellow-400"></i>
-            </div>
-            <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.scheduled_messages or 0 }}</h3>
-            <span class="text-sm text-yellow-700 dark:text-yellow-300">Scheduled Messages</span>
-        </div>
-    </div>
-    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
-        <div class="flex flex-col items-center text-center">
-            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
-                <i class="ti ti-bell text-2xl text-green-600 dark:text-green-400"></i>
-            </div>
-            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.push_notifications or 0 }}</h3>
-            <span class="text-sm text-green-700 dark:text-green-300">Push Notifications</span>
-        </div>
-    </div>
-    <div class="bg-purple-50 dark:bg-purple-900/30 rounded-lg shadow p-5">
-        <div class="flex flex-col items-center text-center">
-            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/50 mb-3">
-                <i class="ti ti-brand-hipchat text-2xl text-purple-600 dark:text-purple-400"></i>
-            </div>
-            <h3 class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ stats.active_channels or 0 }}</h3>
-            <span class="text-sm text-purple-700 dark:text-purple-300">Active Channels</span>
-        </div>
-    </div>
-</div>
-
-<!-- Communication Management Sections -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-    <!-- Message Templates -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
-            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                <i class="ti ti-template text-blue-500 mr-2"></i>Message Templates
-            </h5>
-        </div>
-        <div class="p-5">
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Manage automated message templates and categories</p>
-            <nav class="space-y-2">
-                <a href="{{ url_for('admin_panel.message_templates') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-folder text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Template Categories</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ stats.total_categories or 0 }}</span>
-                        <i class="ti ti-chevron-right text-gray-400"></i>
-                    </div>
-                </a>
-                <a href="{{ url_for('admin_panel.message_templates') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-edit text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Message Templates</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ stats.total_templates or 0 }}</span>
-                        <i class="ti ti-chevron-right text-gray-400"></i>
-                    </div>
-                </a>
-                <a href="{{ url_for('admin_panel.message_templates') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-plus text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Manage All Templates</span>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </a>
-                <a href="{{ url_for('admin_panel.announcements') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-speakerphone text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Announcements</span>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </a>
-                <a href="{{ url_for('admin_panel.league_settings') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-trophy text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <div>
-                            <span class="text-sm font-medium text-gray-900 dark:text-white">League Settings</span>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Configure league welcome messages</p>
-                        </div>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </a>
-            </nav>
-        </div>
-    </div>
-
-    <!-- Scheduled Messages -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
-            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                <i class="ti ti-clock text-yellow-500 mr-2"></i>Scheduled Messages
-            </h5>
-        </div>
-        <div class="p-5">
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Schedule and manage messages across Discord, SMS, push notifications, and Discord DMs</p>
-            <nav class="space-y-2">
-                <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-calendar text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">View Queue</span>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </a>
-                <a href="{{ url_for('admin_panel.schedule_new_message') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-plus text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Schedule New Message</span>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </a>
-                <a href="{{ url_for('admin_panel.scheduled_messages_history') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-history text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Message History</span>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </a>
-            </nav>
-        </div>
-    </div>
-</div>
-
-<!-- SMS Analytics & Push Notifications -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-    <!-- SMS Analytics -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
-            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                <i class="ti ti-message-dollar text-cyan-500 mr-2"></i>SMS Analytics
-            </h5>
-        </div>
-        <div class="p-5">
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Monitor SMS costs, delivery rates, and usage patterns</p>
-            <nav class="space-y-2">
-                <a href="{{ url_for('admin_panel.sms_analytics_dashboard') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-chart-bar text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <div>
-                            <span class="text-sm font-medium text-gray-900 dark:text-white">Cost Dashboard</span>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">View SMS costs and delivery metrics</p>
-                        </div>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </a>
-                <a href="{{ url_for('admin_panel.direct_messaging') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-send text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Send SMS</span>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </a>
-            </nav>
-        </div>
-    </div>
-
-    <!-- Push Notifications -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
-            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                <i class="ti ti-bell text-green-500 mr-2"></i>Push Notifications
-            </h5>
-        </div>
-        <div class="p-5">
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Send and configure notifications across push, SMS, Discord channels, and direct messages</p>
-            <nav class="space-y-2">
-                <a href="{{ url_for('admin_panel.push_notifications_dashboard') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-dashboard text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Notification Dashboard</span>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </a>
-                <a href="{{ url_for('admin_panel.send_push_notification_form') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-send text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Send Push Notification</span>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </a>
-                <a href="{{ url_for('admin_panel.push_notifications_settings') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-settings text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Notification Settings</span>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </a>
-            </nav>
-        </div>
-    </div>
-
-    <!-- Communication Settings -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
-            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                <i class="ti ti-settings text-cyan-500 mr-2"></i>Communication Settings
-            </h5>
-        </div>
-        <div class="p-5">
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Configure communication system settings</p>
-            <nav class="space-y-2">
-                <a href="{{ url_for('admin_panel.messaging_settings') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-message-cog text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <div>
-                            <span class="text-sm font-medium text-gray-900 dark:text-white">In-App Messaging Settings</span>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Configure direct messaging permissions</p>
-                        </div>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </a>
-                <a href="{{ url_for('admin_panel.feature_toggles') }}#communication" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center">
-                        <i class="ti ti-toggle-left text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Enable/Disable Features</span>
-                    </div>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </a>
-                <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-                    <div class="flex items-center">
-                        <i class="ti ti-bell text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Push Notifications</span>
-                    </div>
-                    {% if push_notifications_enabled %}
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Enabled</span>
-                    {% else %}
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Disabled</span>
-                    {% endif %}
-                </div>
-                <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-                    <div class="flex items-center">
-                        <i class="ti ti-mail text-gray-500 dark:text-gray-400 mr-3"></i>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Email Notifications</span>
-                    </div>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">Active</span>
-                </div>
-            </nav>
-        </div>
-    </div>
-</div>
-
-<!-- Info Alert -->
-<div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
-    <div class="flex items-start">
-        <i class="ti ti-info-circle text-lg mr-3 mt-0.5"></i>
-        <div>
-            <strong>Communication Hub:</strong>
-            Comprehensive communication management across Discord channels, SMS, mobile push notifications, and Discord DMs.
-            Schedule messages, send instant notifications, and configure delivery settings for all communication channels.
-        </div>
-    </div>
-</div>
-{% endif %}
 {% endblock %}

@@ -16,12 +16,10 @@
   <a href="{{ url_for('admin_panel.public_site_faqs') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-help"></i> FAQs</a>
 {% endcall %}
 
-{# WordPress-style "Add New Page" #}
-<form method="POST" action="{{ url_for('admin_panel.public_site_page_create') }}" class="mb-5 flex flex-col sm:flex-row gap-2 max-w-xl">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <input type="text" name="title" required placeholder="New page title (e.g. Sponsors)" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-  <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-ecs-green px-4 py-2 text-sm font-semibold text-white hover:bg-ecs-green-dark"><i class="ti ti-plus"></i> Add New Page</button>
-</form>
+{# "Add New Page" → the template picker (choose a starter layout, then name it) #}
+<div class="mb-5">
+  <a href="{{ url_for('admin_panel.public_site_page_new') }}" class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-ecs-green px-4 py-2 text-sm font-semibold text-white hover:bg-ecs-green-dark"><i class="ti ti-plus"></i> Add New Page</a>
+</div>
 
 {# Status filter tabs (WordPress-style) #}
 <div class="mb-4 flex items-center gap-4 text-sm">

@@ -690,8 +690,9 @@ def admin_test_onboarding():
                 results.append(f"Error: {e}")
                 
         elif action == 'manage_messages':
-            # Redirect to message management
-            return redirect(url_for('admin.message_config.list_categories'))
+            # Message template management was removed; the closest surviving
+            # surface for bot messaging copy is the Discord welcome messages page.
+            return redirect(url_for('admin_panel.league_settings'))
         
         # Quick league selection tests
         elif action in ['test_league_classic', 'test_league_premier', 'test_league_ecs_fc', 'test_league_unclear']:

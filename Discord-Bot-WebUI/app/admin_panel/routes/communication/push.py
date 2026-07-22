@@ -161,13 +161,20 @@ def push_notifications():
         # Real delivery/click rates aggregated from campaign analytics (no estimates).
         # delivery_rate = delivered/sent, click_rate = clicked/delivered; 'N/A' when
         # there is nothing sent yet rather than a fabricated percentage.
-        from app.models.push_campaigns import PushNotificationCampaign
-        from sqlalchemy import func as _func
-        _sent, _delivered, _clicked = db.session.query(
-            _func.coalesce(_func.sum(PushNotificationCampaign.sent_count), 0),
-            _func.coalesce(_func.sum(PushNotificationCampaign.delivered_count), 0),
-            _func.coalesce(_func.sum(PushNotificationCampaign.click_count), 0),
-        ).first() or (0, 0, 0)
+        # Wrapped defensively: a missing/mismatched campaigns table must degrade
+        # to N/A rates, not take down the whole page.
+        try:
+            from app.models.push_campaigns import PushNotificationCampaign
+            from sqlalchemy import func as _func
+            _sent, _delivered, _clicked = db.session.query(
+                _func.coalesce(_func.sum(PushNotificationCampaign.sent_count), 0),
+                _func.coalesce(_func.sum(PushNotificationCampaign.delivered_count), 0),
+                _func.coalesce(_func.sum(PushNotificationCampaign.click_count), 0),
+            ).first() or (0, 0, 0)
+        except Exception as analytics_err:
+            logger.warning(f"Campaign analytics unavailable, showing N/A rates: {analytics_err}")
+            db.session.rollback()
+            _sent, _delivered, _clicked = 0, 0, 0
         delivery_rate = f"{round(100 * _delivered / _sent)}%" if _sent else 'N/A'
         click_rate = f"{round(100 * _clicked / _delivered)}%" if _delivered else 'N/A'
 
@@ -206,8 +213,8 @@ def push_notifications():
                              notification_groups=notification_groups,
                              **stats)
     except Exception as e:
-        logger.error(f"Error loading push notifications: {e}")
-        flash('Push notifications unavailable. Verify push service and database connectivity.', 'error')
+        logger.exception(f"Error loading push notifications page: {e}")
+        flash('The Push Notifications page failed to load. The error has been logged — check the server log for details.', 'error')
         return redirect(url_for('admin_panel.communication_hub'))
 
 
@@ -254,13 +261,18 @@ def push_notifications_dashboard():
 
         # Real delivery/engagement from campaign analytics (no estimates); 'N/A'
         # until there is real sent/delivered volume rather than a fabricated %.
-        from app.models.push_campaigns import PushNotificationCampaign as _PNC
-        from sqlalchemy import func as _f
-        _sent, _delivered, _clicked = db.session.query(
-            _f.coalesce(_f.sum(_PNC.sent_count), 0),
-            _f.coalesce(_f.sum(_PNC.delivered_count), 0),
-            _f.coalesce(_f.sum(_PNC.click_count), 0),
-        ).first() or (0, 0, 0)
+        try:
+            from app.models.push_campaigns import PushNotificationCampaign as _PNC
+            from sqlalchemy import func as _f
+            _sent, _delivered, _clicked = db.session.query(
+                _f.coalesce(_f.sum(_PNC.sent_count), 0),
+                _f.coalesce(_f.sum(_PNC.delivered_count), 0),
+                _f.coalesce(_f.sum(_PNC.click_count), 0),
+            ).first() or (0, 0, 0)
+        except Exception as analytics_err:
+            logger.warning(f"Campaign analytics unavailable, showing N/A rates: {analytics_err}")
+            db.session.rollback()
+            _sent, _delivered, _clicked = 0, 0, 0
 
         stats = {
             'total_subscribers': total_subscribers,
@@ -280,141 +292,6 @@ def push_notifications_dashboard():
         logger.error(f"Error loading push notifications dashboard: {e}")
         flash('Dashboard unavailable. Check database connectivity.', 'error')
         return redirect(url_for('admin_panel.communication_hub'))
-
-
-@admin_panel_bp.route('/communication/push-notifications/send', methods=['GET', 'POST'])
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-def send_push_notification_form():
-    """Send push notification form and handler."""
-    from app.models import Team, League
-    from app.models.players import player_teams
-
-    if request.method == 'GET':
-        teams = Team.query.filter_by(is_active=True).order_by(Team.name).all()
-        leagues = League.query.order_by(League.name).all()
-        total_subscribers = UserFCMToken.query.filter_by(is_active=True).count()
-        return render_template(
-            'admin_panel/communication/send_push_notification_flowbite.html',
-            teams=teams, leagues=leagues, total_subscribers=total_subscribers)
-
-    try:
-        title = request.form.get('title')
-        body = request.form.get('body')
-        target_type = request.form.get('target_type', 'all')
-        notification_type = request.form.get('notification_type', 'push')
-        action_url = request.form.get('action_url')
-
-        if not title or not body:
-            flash('Title and body are required.', 'error')
-            return redirect(url_for('admin_panel.send_push_notification_form'))
-
-        # Build target user list based on target_type
-        if target_type == 'team':
-            team_id = request.form.get('team_id', type=int)
-            if not team_id:
-                flash('Please select a team.', 'error')
-                return redirect(url_for('admin_panel.send_push_notification_form'))
-            from app.models import Player
-            target_users = User.query.join(Player, Player.user_id == User.id).join(
-                player_teams, player_teams.c.player_id == Player.id
-            ).join(UserFCMToken).filter(
-                player_teams.c.team_id == team_id,
-                UserFCMToken.is_active == True
-            ).distinct().all()
-        elif target_type == 'league':
-            league_id = request.form.get('league_id', type=int)
-            if not league_id:
-                flash('Please select a league.', 'error')
-                return redirect(url_for('admin_panel.send_push_notification_form'))
-            from app.models import Player
-            target_users = User.query.join(Player, Player.user_id == User.id).join(
-                player_teams, player_teams.c.player_id == Player.id
-            ).join(Team, Team.id == player_teams.c.team_id).join(UserFCMToken).filter(
-                Team.league_id == league_id,
-                UserFCMToken.is_active == True
-            ).distinct().all()
-        elif target_type == 'role':
-            role = request.form.get('role')
-            role_map = {
-                'captain': ['Pub League Captain'],
-                'coach': ['Pub League Coach', 'ECS FC Coach'],
-                'admin': ['Global Admin', 'Pub League Admin'],
-            }
-            from app.models import UserRole, Role
-            role_names = role_map.get(role, [])
-            target_users = User.query.join(UserRole).join(Role).join(UserFCMToken).filter(
-                Role.name.in_(role_names),
-                UserFCMToken.is_active == True
-            ).distinct().all()
-        elif target_type == 'users':
-            user_ids = request.form.getlist('user_ids')
-            if not user_ids:
-                user_ids_str = request.form.get('user_ids', '')
-                user_ids = [uid.strip() for uid in user_ids_str.split(',') if uid.strip()]
-            target_users = User.query.join(UserFCMToken).filter(
-                User.id.in_([int(uid) for uid in user_ids if uid]),
-                UserFCMToken.is_active == True
-            ).distinct().all()
-        else:  # all
-            target_users = User.query.join(UserFCMToken).filter(
-                UserFCMToken.is_active == True
-            ).distinct().all()
-
-        if not target_users:
-            flash('No users with active push tokens match the selected target.', 'warning')
-            return redirect(url_for('admin_panel.send_push_notification_form'))
-
-        # Deliver to the resolved recipients' devices via FCM.
-        user_ids = [u.id for u in target_users]
-        tokens = [
-            row[0] for row in db.session.query(UserFCMToken.fcm_token).filter(
-                UserFCMToken.user_id.in_(user_ids),
-                UserFCMToken.is_active == True
-            ).all()
-        ]
-
-        from app.services.notification_service import notification_service
-        extra_data = {'priority': 'normal'}
-        if action_url:
-            extra_data['action_url'] = action_url
-            extra_data['deep_link'] = action_url
-        result = notification_service.send_general_notification(tokens, title, body, extra_data) if tokens else {}
-        delivered = result.get('success', 0)
-        failed = result.get('failure', 0)
-
-        # Mirror to in-app notifications so recipients also see it in-app / in history.
-        for user in target_users:
-            db.session.add(Notification(
-                user_id=user.id,
-                content=f"{title}: {body}",
-                notification_type='push',
-                icon='ti ti-bell',
-            ))
-        db.session.commit()
-
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='send_push_notification',
-            resource_type='push_notifications',
-            resource_id='bulk',
-            new_value=f'Push "{title}" to {len(tokens)} device(s) (target: {target_type}): {delivered} delivered, {failed} failed',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        if delivered and not failed:
-            flash(f'Push "{title}" delivered to {delivered} device(s).', 'success')
-        elif delivered:
-            flash(f'Push "{title}" delivered to {delivered} device(s); {failed} failed.', 'warning')
-        else:
-            flash(f'"{title}" saved to {len(target_users)} in-app inbox(es), but no device delivery occurred. Check push service connectivity.', 'warning')
-        return redirect(url_for('admin_panel.push_notifications_dashboard'))
-
-    except Exception as e:
-        logger.error(f"Error sending push notification: {e}")
-        flash('Failed to send notification. Check push service connectivity.', 'error')
-        return render_template('admin_panel/communication/send_push_notification_flowbite.html')
 
 
 @admin_panel_bp.route('/communication/push-notifications/search-users')
@@ -467,11 +344,10 @@ def push_notifications_settings():
             # The master toggle is mobile_push_notifications — the key served
             # to the app via /app_config. (push_notifications_enabled and
             # auto_notifications_enabled were ghost flags nothing read;
-            # removed 2026-07.)
+            # removed 2026-07. quiet_hours_* were write-only config no send
+            # path ever read — removed from the form 2026-07 rather than
+            # pretending they were enforced.)
             'push_notifications_enabled': AdminConfig.get_setting('mobile_push_notifications', True),
-            'quiet_hours_enabled': AdminConfig.get_setting('quiet_hours_enabled', False),
-            'quiet_hours_start': AdminConfig.get_setting('quiet_hours_start', '22:00'),
-            'quiet_hours_end': AdminConfig.get_setting('quiet_hours_end', '08:00'),
         }
         return render_template('admin_panel/communication/push_notifications_settings_flowbite.html',
                              **settings)
@@ -489,23 +365,6 @@ def push_notifications_settings():
                               category='mobile_features', data_type='boolean', user_id=current_user.id)
         if old_push != push_on:
             updates.append(f'mobile_push_notifications: {old_push} -> {push_on}')
-
-        quiet_on = request.form.get('quiet_hours_enabled') == 'on'
-        old_quiet = AdminConfig.get_setting('quiet_hours_enabled', False)
-        AdminConfig.set_setting('quiet_hours_enabled', quiet_on,
-                              description='Push notification setting: quiet_hours_enabled',
-                              category='push_notifications', data_type='boolean', user_id=current_user.id)
-        if old_quiet != quiet_on:
-            updates.append(f'quiet_hours_enabled: {old_quiet} -> {quiet_on}')
-
-        for form_name, key in (('quiet_start', 'quiet_hours_start'), ('quiet_end', 'quiet_hours_end')):
-            value = request.form.get(form_name)
-            if value:
-                old_value = AdminConfig.get_setting(key, '')
-                AdminConfig.set_setting(key, value, description=f'Quiet hours setting: {key}',
-                                      category='push_notifications', data_type='string', user_id=current_user.id)
-                if old_value != value:
-                    updates.append(f'{key}: {old_value} -> {value}')
 
         if updates:
             AdminAuditLog.log_action(
@@ -562,11 +421,18 @@ def send_push_notification():
         elif target_type == 'group':
             group_id = request.form.get('notification_group_id', type=int)
             target_ids = [group_id] if group_id else []
+        elif target_type == 'users':
+            target_ids = request.form.getlist('user_ids', type=int)
+            if not target_ids:
+                flash('Please pick at least one person to send to.', 'error')
+                return redirect(url_for('admin_panel.push_notifications'))
         else:  # 'all' or 'platform'
             target_ids = []
 
-        # Resolve the audience to actual device tokens.
-        tokens = push_targeting_service.resolve_targets(target_type, target_ids, platform)
+        # Resolve the audience to actual device tokens. The targeting service
+        # calls specific-user targeting 'custom'.
+        resolved_type = 'custom' if target_type == 'users' else target_type
+        tokens = push_targeting_service.resolve_targets(resolved_type, target_ids, platform)
         if not tokens:
             flash('No devices with active push tokens match the selected audience.', 'warning')
             return redirect(url_for('admin_panel.push_notifications'))
@@ -588,7 +454,7 @@ def send_push_notification():
         ]
         for uid in recipient_user_ids:
             db.session.add(Notification(
-                user_id=uid, content=f"{title}: {body}",
+                user_id=uid, content=f"{title}: {body}"[:255],  # column is String(255)
                 notification_type='push', icon='ti ti-bell'
             ))
         db.session.commit()
@@ -654,6 +520,10 @@ def push_notification_broadcast():
         tokens_objs = query.all()
         token_attr = 'fcm_token' if hasattr(token_model, 'fcm_token') else 'token'
         tokens = [getattr(token, token_attr) for token in tokens_objs]
+
+        # Honor each user's push-notification preference.
+        from app.services.push_targeting_service import push_targeting_service
+        tokens = push_targeting_service.filter_by_user_preference(tokens)
 
         if not tokens:
             return jsonify({'success': False, 'message': 'No devices found for selected target'}), 404
@@ -985,28 +855,9 @@ def push_notification_status():
 # =============================================================================
 # LEGACY ROUTES
 # =============================================================================
-
-@admin_panel_bp.route('/push-notifications/duplicate/<int:notification_id>', methods=['POST'])
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-@transactional
-def duplicate_notification_legacy(notification_id):
-    """Duplicate an existing push notification."""
-    try:
-        logger.info(f"Admin {current_user.id} attempting to duplicate notification {notification_id}")
-        AdminAuditLog.log_action(
-            user_id=current_user.id, action='DUPLICATE_NOTIFICATION',
-            resource_type='Notification', resource_id=str(notification_id),
-            new_value=f'Duplicated notification {notification_id}',
-            ip_address=request.remote_addr, user_agent=request.headers.get('User-Agent')
-        )
-        flash('Notification duplicated successfully!', 'success')
-        return redirect(url_for('admin_panel.push_notifications'))
-    except Exception as e:
-        logger.error(f"Error duplicating notification: {e}")
-        flash('Notification duplication failed.', 'error')
-        return redirect(url_for('admin_panel.push_notifications'))
-
+# duplicate_notification_legacy REMOVED 2026-07-21: it flashed "duplicated
+# successfully" without duplicating anything. The real duplicate lives at
+# ajax.py duplicate_notification (/push-notifications/<id>/duplicate).
 
 @admin_panel_bp.route('/resend-notification', methods=['POST'])
 @login_required

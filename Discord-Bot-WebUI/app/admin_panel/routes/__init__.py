@@ -110,6 +110,15 @@ def register_all_routes(admin_panel_bp):
         logging.getLogger(__name__).error(
             "Failed to register Public Site routes", exc_info=True)
 
+    # Phase 14: Classic ratings (blind coach ratings, overrides, analytics).
+    # Isolated so a fault here can't block the whole admin panel from booting.
+    try:
+        from . import classic_ratings
+    except Exception:
+        import logging
+        logging.getLogger(__name__).error(
+            "Failed to register Classic Ratings routes", exc_info=True)
+
     # Phase 13: The in-place site editor (section model) for the public site.
     try:
         from . import site_editor

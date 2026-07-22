@@ -1,8 +1,8 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert, modal_info %}
 
-{% block admin_title %}Schedule New Message{% endblock %}
-{% block panel_description %}Create and schedule a new message for delivery{% endblock %}
+{% block admin_title %}Schedule Match RSVP Post{% endblock %}
+{% block panel_description %}Schedule an RSVP post to both teams' Discord channels for an upcoming match{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
@@ -31,7 +31,7 @@
 {% from 'macros/_modern_kit.html' import page_header, empty_state %}
 <div class="space-y-6">
 
-  {% call page_header('Schedule New Message', subtitle='Communication / Scheduled Messages') %}
+  {% call page_header('Schedule Match RSVP Post', subtitle='Communication / Match RSVP Posts') %}
     <a href="{{ url_for('admin_panel.scheduled_messages') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
               border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
@@ -53,9 +53,13 @@
           <!-- header bar -->
           <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
             <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
-              <i class="ti ti-calendar-plus text-ecs-green" aria-hidden="true"></i> Compose RSVP Message
+              <i class="ti ti-calendar-plus text-ecs-green" aria-hidden="true"></i> Schedule RSVP Post
             </h2>
             <span class="text-[11px] font-mono text-gray-400 dark:text-gray-500">timezone PST</span>
+          </div>
+          <div class="px-4 sm:px-5 py-3 border-b border-gray-100 dark:border-gray-700/70 bg-blue-50/60 dark:bg-blue-900/10 text-xs text-blue-800 dark:text-blue-200 flex items-start gap-2">
+            <i class="ti ti-info-circle mt-0.5" aria-hidden="true"></i>
+            <span>At the scheduled time, an RSVP embed is posted to <strong>both teams' Discord channels</strong> asking players if they can make the match. Players' responses sync back automatically.</span>
           </div>
 
           <div class="divide-y divide-gray-100 dark:divide-gray-700/70">
@@ -173,91 +177,6 @@
               </div>
             </div>
 
-            <!-- STEP 4 · delivery channels (dense rows w/ toggles) -->
-            <div class="p-4 sm:p-5">
-              <div class="flex items-center gap-2 mb-3">
-                <span class="font-mono text-xs font-bold text-ecs-green">04</span>
-                <span class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Delivery Channels</span>
-              </div>
-              <div class="rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700/70 overflow-hidden">
-                <div class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
-                  <div class="flex items-center gap-3 min-w-0">
-                    <span class="flex items-center justify-center w-9 h-9 rounded-lg bg-indigo-500/10 shrink-0">
-                      <i class="ti ti-brand-discord text-indigo-500 text-lg" aria-hidden="true"></i>
-                    </span>
-                    <div class="min-w-0">
-                      <p class="text-sm font-semibold text-gray-900 dark:text-white">Discord</p>
-                      <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Posts an RSVP embed to the team channel</p>
-                    </div>
-                  </div>
-                  <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                    <span class="sr-only">Enable Discord delivery</span>
-                    <input type="checkbox" name="send_discord" class="sr-only peer" checked>
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
-                  </label>
-                </div>
-                <div class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
-                  <div class="flex items-center gap-3 min-w-0">
-                    <span class="flex items-center justify-center w-9 h-9 rounded-lg bg-blue-500/10 shrink-0">
-                      <i class="ti ti-bell text-blue-500 text-lg" aria-hidden="true"></i>
-                    </span>
-                    <div class="min-w-0">
-                      <p class="text-sm font-semibold text-gray-900 dark:text-white">Push Notification</p>
-                      <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Mobile app alert with RSVP buttons</p>
-                    </div>
-                  </div>
-                  <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                    <span class="sr-only">Enable push delivery</span>
-                    <input type="checkbox" name="send_push" class="sr-only peer" checked>
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
-                  </label>
-                </div>
-                <div class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
-                  <div class="flex items-center gap-3 min-w-0">
-                    <span class="flex items-center justify-center w-9 h-9 rounded-lg bg-green-500/10 shrink-0">
-                      <i class="ti ti-mail text-green-500 text-lg" aria-hidden="true"></i>
-                    </span>
-                    <div class="min-w-0">
-                      <p class="text-sm font-semibold text-gray-900 dark:text-white">Email</p>
-                      <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Fallback for players without Discord</p>
-                    </div>
-                  </div>
-                  <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                    <span class="sr-only">Enable email delivery</span>
-                    <input type="checkbox" name="send_email" class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <!-- STEP 5 · message body + priority -->
-            <div class="p-4 sm:p-5 space-y-5">
-              <div class="flex items-center gap-2">
-                <span class="font-mono text-xs font-bold text-ecs-green">05</span>
-                <span class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Message &amp; Priority</span>
-              </div>
-              <div>
-                <label for="custom_message" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
-                  Custom Message <span class="text-xs font-normal text-gray-400">optional</span>
-                </label>
-                <textarea id="custom_message" name="custom_message" rows="4" placeholder="Leave blank to use the default RSVP message template…" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"></textarea>
-                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                  Supports markdown and variables:
-                  <code class="font-mono text-[11px] px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-ecs-green">{match_date}</code>
-                  <code class="font-mono text-[11px] px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-ecs-green">{match_time}</code>
-                  <code class="font-mono text-[11px] px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-ecs-green">{team_name}</code>
-                </p>
-              </div>
-              <div>
-                <label for="priority" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Priority</label>
-                <select id="priority" name="priority" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                  <option value="normal" selected>Normal</option>
-                  <option value="high">High — Important match / event</option>
-                  <option value="urgent">Urgent — Requires immediate attention</option>
-                </select>
-              </div>
-            </div>
           </div>
 
           <!-- command toolbar / actions -->
@@ -353,11 +272,7 @@
             </li>
             <li class="flex items-start gap-2">
               <i class="ti ti-check text-green-500 mt-0.5 shrink-0" aria-hidden="true"></i>
-              <span>Use high priority for playoff matches or important events</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <i class="ti ti-check text-green-500 mt-0.5 shrink-0" aria-hidden="true"></i>
-              <span>Enable both Discord and Push for maximum reach</span>
+              <span>Weekly RSVP posts are usually scheduled automatically — use this form for one-off or rescheduled matches</span>
             </li>
           </ul>
         </section>
@@ -480,69 +395,9 @@
                         </div>
                     </div>
 
-                    <!-- Delivery Methods -->
-                    <div>
-                        <label class="block mb-3 text-sm font-medium text-gray-900 dark:text-white">Delivery Methods</label>
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                <div class="flex items-center">
-                                    <i class="ti ti-brand-discord text-indigo-500 mr-3"></i>
-                                    <div>
-                                        <label class="text-sm font-medium text-gray-900 dark:text-white">Discord</label>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">Send via Discord channel</p>
-                                    </div>
-                                </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" name="send_discord" class="sr-only peer" checked>
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
-                                </label>
-                            </div>
-                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                <div class="flex items-center">
-                                    <i class="ti ti-bell text-blue-500 mr-3"></i>
-                                    <div>
-                                        <label class="text-sm font-medium text-gray-900 dark:text-white">Push Notification</label>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">Send to mobile app</p>
-                                    </div>
-                                </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" name="send_push" class="sr-only peer" checked>
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
-                                </label>
-                            </div>
-                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                <div class="flex items-center">
-                                    <i class="ti ti-mail text-green-500 mr-3"></i>
-                                    <div>
-                                        <label class="text-sm font-medium text-gray-900 dark:text-white">Email</label>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">Send email notification</p>
-                                    </div>
-                                </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" name="send_email" class="sr-only peer">
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Custom Message (Optional) -->
-                    <div>
-                        <label for="custom_message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            Custom Message (Optional)
-                        </label>
-                        <textarea id="custom_message" name="custom_message" rows="4" placeholder="Leave blank to use the default RSVP message template..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"></textarea>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Supports markdown formatting and variables like {match_date}, {match_time}, {team_name}</p>
-                    </div>
-
-                    <!-- Priority -->
-                    <div>
-                        <label for="priority" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Priority</label>
-                        <select id="priority" name="priority" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            <option value="normal" selected>Normal</option>
-                            <option value="high">High - Important match/event</option>
-                            <option value="urgent">Urgent - Requires immediate attention</option>
-                        </select>
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-800 dark:text-blue-200">
+                        <i class="ti ti-info-circle mr-1"></i>
+                        At the scheduled time, an RSVP embed is posted to both teams' Discord channels asking players if they can make the match. Players' responses sync back automatically.
                     </div>
                 </div>
 
@@ -621,11 +476,7 @@
                     </li>
                     <li class="flex items-start">
                         <i class="ti ti-check text-green-500 mr-2 mt-0.5 flex-shrink-0"></i>
-                        <span>Use high priority for playoff matches or important events</span>
-                    </li>
-                    <li class="flex items-start">
-                        <i class="ti ti-check text-green-500 mr-2 mt-0.5 flex-shrink-0"></i>
-                        <span>Enable both Discord and Push for maximum reach</span>
+                        <span>Weekly RSVP posts are usually scheduled automatically — use this form for one-off or rescheduled matches</span>
                     </li>
                 </ul>
             </div>
@@ -708,7 +559,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Preview button
     document.querySelector('[data-action="preview"]').addEventListener('click', function() {
         const matchOption = matchSelect.options[matchSelect.selectedIndex];
-        const customMessage = document.getElementById('custom_message').value;
         const scheduledDate = document.getElementById('scheduled_date').value;
         const scheduledTime = document.getElementById('scheduled_time').value;
 
@@ -724,9 +574,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p class="text-gray-900 dark:text-white">${scheduledDate} at ${scheduledTime} PST</p>
                 </div>
                 <div class="mb-4">
-                    <h6 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Message</h6>
+                    <h6 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">What gets posted</h6>
                     <div class="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
-                        <p class="text-gray-900 dark:text-white whitespace-pre-wrap">${customMessage || 'Default RSVP message template will be used.'}</p>
+                        <p class="text-gray-900 dark:text-white">The standard RSVP embed is posted to both teams' Discord channels with Yes / No / Maybe buttons.</p>
                     </div>
                 </div>
             `;
@@ -823,7 +673,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // The create_scheduled_message route expects a single datetime-local value
         // named scheduled_time (YYYY-MM-DDTHH:MM). Combine the date + time inputs.
-        let combined = form.querySelector('input[name="scheduled_time_combined"]');
+        let combined = form.querySelector('input[type="hidden"][name="scheduled_time"]');
         if (!combined) {
             combined = document.createElement('input');
             combined.type = 'hidden';

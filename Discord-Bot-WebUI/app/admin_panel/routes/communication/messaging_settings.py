@@ -10,7 +10,6 @@ This module contains routes for configuring the in-app direct messaging system:
 """
 
 import logging
-from datetime import datetime
 
 from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
@@ -331,63 +330,6 @@ def messaging_stats_api():
 # REMOVED 2026-07: save_communication_settings (/communication/settings/save).
 # It dumped every posted form field into communication_* AdminConfig rows that
 # no code ever read, and no template rendered a form posting to it.
-
-
-@admin_panel_bp.route('/communication/settings/test-webhook', methods=['POST'])
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-def test_communication_webhook():
-    """Test a webhook URL by sending a test payload."""
-    import requests as http_requests
-    from app.utils.url_validator import validate_url_for_ssrf, SSRFValidationError
-
-    try:
-        data = request.get_json()
-        webhook_url = data.get('webhook_url', '').strip()
-
-        if not webhook_url:
-            return jsonify({'success': False, 'error': 'Webhook URL is required'}), 400
-
-        # Validate URL for SSRF
-        try:
-            validate_url_for_ssrf(webhook_url)
-        except SSRFValidationError as e:
-            return jsonify({'success': False, 'error': f'Invalid URL: {str(e)}'}), 400
-
-        test_payload = {
-            'text': 'Test message from ECS Admin Panel',
-            'source': 'ecs-discord-bot',
-            'timestamp': datetime.utcnow().isoformat()
-        }
-
-        resp = http_requests.post(
-            webhook_url,
-            json=test_payload,
-            timeout=10,
-            headers={'Content-Type': 'application/json'}
-        )
-
-        if resp.status_code < 300:
-            AdminAuditLog.log_action(
-                user_id=current_user.id,
-                action='test_webhook',
-                resource_type='communication_settings',
-                resource_id='webhook',
-                new_value=f"Tested webhook: {webhook_url[:50]}... Status: {resp.status_code}",
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-            return jsonify({'success': True, 'message': 'Webhook test successful'})
-        else:
-            return jsonify({
-                'success': False,
-                'error': f'Webhook returned status {resp.status_code}'
-            }), 400
-
-    except http_requests.Timeout:
-        return jsonify({'success': False, 'error': 'Webhook request timed out'}), 400
-    except http_requests.ConnectionError:
-        return jsonify({'success': False, 'error': 'Could not connect to webhook URL'}), 400
-    except Exception as e:
-        logger.error(f"Error testing webhook: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+# REMOVED 2026-07-21: test_communication_webhook (/communication/settings/
+# test-webhook). Its only caller was the removed settings form's test-webhook
+# button (communication-handlers.js, also deleted).

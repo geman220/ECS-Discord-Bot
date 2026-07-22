@@ -3,7 +3,8 @@
 """
 Communication Hub Routes
 
-Main communication dashboard with statistics.
+Task-oriented landing page for the Comms section: "what do you want to do?"
+cards plus real cross-channel activity stats.
 """
 
 import logging
@@ -13,7 +14,7 @@ from flask import render_template, flash, redirect, url_for
 from flask_login import login_required
 
 from app.admin_panel import admin_panel_bp
-from app.models import MessageCategory, MessageTemplate
+from app.core import db
 from app.models.communication import ScheduledMessage, Notification
 from app.models.notifications import UserFCMToken
 from app.decorators import role_required
@@ -27,43 +28,60 @@ logger = logging.getLogger(__name__)
 def communication_hub():
     """Communication hub page."""
     try:
-        # Get communication statistics
-        total_templates = MessageTemplate.query.count()
-        total_categories = MessageCategory.query.count()
+        # Scheduled RSVP-post queue
+        scheduled_pending = ScheduledMessage.query.filter_by(status='PENDING').count()
+        scheduled_sent = ScheduledMessage.query.filter_by(status='SENT').count()
+        scheduled_failed = ScheduledMessage.query.filter_by(status='FAILED').count()
 
-        # Get real scheduled message statistics
-        scheduled_messages_count = ScheduledMessage.query.filter_by(status='PENDING').count()
-        scheduled_messages_sent = ScheduledMessage.query.filter_by(status='SENT').count()
-        scheduled_messages_failed = ScheduledMessage.query.filter_by(status='FAILED').count()
-
-        # Get notification statistics from device tokens (approximation of push notification capability)
+        # Push devices
         push_subscriptions = UserFCMToken.query.filter_by(is_active=True).count()
 
-        # Get recent notification activity
+        # In-app notification volume, last 7 days
         recent_notifications = Notification.query.filter(
             Notification.created_at >= datetime.utcnow() - timedelta(days=7)
         ).count()
 
-        # Check if push notifications are enabled (use the feature toggle key the app reads)
+        # Email blasts sent in the last 30 days (partially_sent still delivered
+        # mail, so it counts). Defensive: table may lag code.
+        emails_sent_30d = 0
+        try:
+            from app.models.email_campaigns import EmailCampaign
+            emails_sent_30d = EmailCampaign.query.filter(
+                EmailCampaign.status.in_(['sent', 'partially_sent']),
+                EmailCampaign.sent_at >= datetime.utcnow() - timedelta(days=30)
+            ).count()
+        except Exception:
+            db.session.rollback()
+
+        # SMS sent in the last 30 days. Defensive for the same reason.
+        sms_sent_30d = 0
+        try:
+            from app.models.communication import SMSLog
+            sms_sent_30d = SMSLog.query.filter(
+                SMSLog.sent_at >= datetime.utcnow() - timedelta(days=30)
+            ).count()
+        except Exception:
+            db.session.rollback()
+
+        # Push master toggle (the key the mobile app actually reads)
         from app.models.admin_config import AdminConfig
         push_enabled_val = AdminConfig.get_setting('mobile_push_notifications', 'true')
         push_notifications_enabled = str(push_enabled_val).lower() in ('true', '1', 'yes', 'on')
 
         stats = {
-            'total_templates': total_templates,
-            'total_categories': total_categories,
-            'scheduled_messages': scheduled_messages_count,
-            'scheduled_messages_sent': scheduled_messages_sent,
-            'scheduled_messages_failed': scheduled_messages_failed,
+            'scheduled_messages': scheduled_pending,
+            'scheduled_messages_sent': scheduled_sent,
+            'scheduled_messages_failed': scheduled_failed,
             'push_subscriptions': push_subscriptions,
             'recent_notifications': recent_notifications,
-            'active_channels': 3  # Discord, Email, Push
+            'emails_sent_30d': emails_sent_30d,
+            'sms_sent_30d': sms_sent_30d,
         }
 
         return render_template('admin_panel/communication_flowbite.html',
                              stats=stats,
                              push_notifications_enabled=push_notifications_enabled)
     except Exception as e:
-        logger.error(f"Error loading communication hub: {e}")
-        flash('Communication hub unavailable. Check database connectivity and message models.', 'error')
+        logger.exception(f"Error loading communication hub: {e}")
+        flash('The Communication Hub failed to load. The error has been logged — check the server log for details.', 'error')
         return redirect(url_for('admin_panel.dashboard'))

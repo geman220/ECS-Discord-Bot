@@ -134,6 +134,11 @@ import './profile-verification.js';
 import './draft-history.js';
 import './pitch-view.js';
 
+// Classic board + coach rating queue + balanced draft
+import './classic-board.js';
+import './classic-ratings/rate.js';
+import './draft-balanced/index.js';
+
 // Home page (home.js is in custom_js, loaded per-page)
 
 // ============================================================================
@@ -258,7 +263,6 @@ import '../custom_js/sync-review.js';
 
 import './auto_schedule_wizard.js';
 import './mobile-draft.js';
-import './message-management.js';
 // messages-inbox.js retired 2026-07: the /messages page redirects into the
 // floating chat widget (chat-widget.js), which owns all messaging UI now.
 import './admin-search.js';

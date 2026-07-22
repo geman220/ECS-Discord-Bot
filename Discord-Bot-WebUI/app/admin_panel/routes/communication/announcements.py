@@ -40,13 +40,11 @@ def announcements():
                     recent_announcements += 1
             except Exception:
                 pass
-        announcement_types = []
 
         return render_template('admin_panel/communication/announcements_flowbite.html',
                              announcements=announcements_list,
                              active_announcements=active_announcements,
-                             recent_announcements=recent_announcements,
-                             announcement_types=announcement_types)
+                             recent_announcements=recent_announcements)
     except Exception as e:
         logger.error(f"Error loading announcements: {e}")
         logger.error(traceback.format_exc())
@@ -64,8 +62,6 @@ def create_announcement():
         try:
             title = request.form.get('title')
             content = request.form.get('content')
-            announcement_type = request.form.get('announcement_type', 'general')
-            priority = request.form.get('priority', 'normal')
 
             if not title or not content:
                 flash('Title and content are required.', 'error')
@@ -74,13 +70,11 @@ def create_announcement():
             announcement = Announcement(
                 title=title,
                 content=content,
-                created_by=current_user.id,
-                created_at=datetime.utcnow(),
-                announcement_type=announcement_type,
-                priority=priority
+                created_at=datetime.utcnow()
             )
 
             db.session.add(announcement)
+            db.session.flush()  # assign the id before it goes into the audit log
 
             # Log the action
             AdminAuditLog.log_action(
@@ -117,8 +111,6 @@ def edit_announcement(announcement_id):
         try:
             announcement.title = request.form.get('title')
             announcement.content = request.form.get('content')
-            announcement.announcement_type = request.form.get('announcement_type', 'general')
-            announcement.priority = request.form.get('priority', 'normal')
 
             if not announcement.title or not announcement.content:
                 flash('Title and content are required.', 'error')

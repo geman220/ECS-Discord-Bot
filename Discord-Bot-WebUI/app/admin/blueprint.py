@@ -30,10 +30,6 @@ from app.admin import draft_history_routes
 from app.admin.discord_onboarding_routes import discord_onboarding
 admin_bp.register_blueprint(discord_onboarding)
 
-# Import message configuration routes
-from app.admin.message_config_routes import message_config
-admin_bp.register_blueprint(message_config)
-
 # Import user waitlist routes
 from app.admin import user_waitlist_routes
 

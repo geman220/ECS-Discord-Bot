@@ -1,0 +1,165 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Classic Balanced Draft{% endblock %}
+{% block page_title %}Classic Balanced Draft{% endblock %}
+
+{% block main_content %}
+<div id="draft-balanced-root" class="max-w-[1700px] w-full mx-auto px-3 sm:px-4 py-4 space-y-4"
+     data-state-url="{{ url_for('classic_draft.state') }}"
+     data-suggestions-url="{{ url_for('classic_draft.suggestions') }}"
+     data-check-url="{{ url_for('classic_draft.check') }}"
+     data-is-admin="{{ '1' if viewer_is_admin | default(false) else '0' }}"
+     data-my-teams="{{ (viewer_team_ids or [])|join(',') }}">
+
+    <!-- Header band: live pill + balance chips + progress + M/F -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-2">
+        <div class="flex items-center gap-3 flex-wrap">
+            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2 min-w-0">
+                <i class="ti ti-scale text-ecs-green shrink-0"></i><span class="truncate">Classic Balanced Draft</span>
+            </h1>
+            {% if season_name %}<span class="text-xs text-gray-500 dark:text-gray-400">{{ season_name }}</span>{% endif %}
+            <span id="db-connection" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>Connecting…
+            </span>
+            <div class="ml-auto flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                <span id="db-progress" class="font-mono"></span>
+                <span id="db-league-genders" class="font-mono"></span>
+                <button type="button" data-drawer-target="db-balance-drawer" data-drawer-show="db-balance-drawer" data-drawer-placement="right"
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <i class="ti ti-table"></i><span class="hidden sm:inline">Balance matrix</span>
+                </button>
+            </div>
+        </div>
+        <div id="db-balance-chips" class="flex items-center gap-2 flex-wrap">
+            <!-- per-metric gap chips rendered by JS -->
+        </div>
+    </div>
+
+    {% if clock_session_active %}
+    <div class="flex items-start gap-3 p-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 text-sm">
+        <i class="ti ti-alarm text-lg shrink-0"></i>
+        <div><span class="font-semibold">A clocked draft session is still active for Classic.</span>
+            Picks will be turn-enforced by the on-the-clock rules even though this board shows no clock.
+            End or pause the session from Draft Setup if you want free-form balanced drafting.</div>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-12 gap-4 items-start">
+        <!-- Team columns -->
+        <div class="col-span-12 lg:col-span-8 xl:col-span-9">
+            <div id="db-teams" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                <!-- team columns rendered by JS -->
+            </div>
+        </div>
+
+        <!-- Right rail: pool + suggestions -->
+        <div class="col-span-12 lg:col-span-4 xl:col-span-3 lg:sticky lg:top-16">
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden flex flex-col max-h-[calc(100vh-9rem)]">
+                <div class="flex border-b border-gray-200 dark:border-gray-700 text-sm font-medium">
+                    <button type="button" data-action="balanced-pool-tab"
+                            class="db-rail-tab flex-1 px-3 py-2.5 text-ecs-green border-b-2 border-ecs-green" data-tab="pool">
+                        Pool <span id="db-pool-count" class="font-mono text-xs"></span>
+                    </button>
+                    <button type="button" data-action="balanced-suggest-tab"
+                            class="db-rail-tab flex-1 px-3 py-2.5 text-gray-500 dark:text-gray-400 border-b-2 border-transparent" data-tab="suggest">
+                        Suggest
+                    </button>
+                </div>
+
+                <!-- Pool tab -->
+                <div id="db-pool-panel" class="flex flex-col min-h-0">
+                    <div class="p-2.5 space-y-2 border-b border-gray-200 dark:border-gray-700">
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-gray-400"><i class="ti ti-search text-sm"></i></span>
+                            <input type="text" id="db-pool-search" data-on-input="balanced-filter" placeholder="Search pool…" autocomplete="off"
+                                   class="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+                        </div>
+                        <details class="group">
+                            <summary class="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer select-none list-none">
+                                <i class="ti ti-filter text-sm"></i>Filters
+                                <i class="ti ti-chevron-down text-xs transition-transform group-open:rotate-180"></i>
+                                <button type="button" data-action="balanced-clear-filters" class="ml-auto text-ecs-green hover:underline">Clear</button>
+                            </summary>
+                            <div class="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                                <select id="db-f-intensity" data-on-change="balanced-filter" class="db-metric-filter py-1 pl-2 pr-6 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900" data-metric="intensity">
+                                    <option value="">Intensity: any</option>
+                                    <option value="4.5">≥ 4.5</option><option value="4">≥ 4.0</option><option value="3.5">≥ 3.5</option><option value="3">≥ 3.0</option>
+                                    <option value="lt3">&lt; 3.0</option>
+                                </select>
+                                <select id="db-f-on_ball_skill" data-on-change="balanced-filter" class="db-metric-filter py-1 pl-2 pr-6 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900" data-metric="on_ball_skill">
+                                    <option value="">Skill: any</option>
+                                    <option value="4.5">≥ 4.5</option><option value="4">≥ 4.0</option><option value="3.5">≥ 3.5</option><option value="3">≥ 3.0</option>
+                                    <option value="lt3">&lt; 3.0</option>
+                                </select>
+                                <select id="db-f-spirit" data-on-change="balanced-filter" class="db-metric-filter py-1 pl-2 pr-6 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900" data-metric="spirit">
+                                    <option value="">Spirit: any</option>
+                                    <option value="4.5">≥ 4.5</option><option value="4">≥ 4.0</option><option value="3.5">≥ 3.5</option><option value="3">≥ 3.0</option>
+                                    <option value="lt3">&lt; 3.0</option>
+                                </select>
+                                <select id="db-f-knowledge_movement" data-on-change="balanced-filter" class="db-metric-filter py-1 pl-2 pr-6 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900" data-metric="knowledge_movement">
+                                    <option value="">Knowledge: any</option>
+                                    <option value="4.5">≥ 4.5</option><option value="4">≥ 4.0</option><option value="3.5">≥ 3.5</option><option value="3">≥ 3.0</option>
+                                    <option value="lt3">&lt; 3.0</option>
+                                </select>
+                                <select id="db-f-position" data-on-change="balanced-filter" class="py-1 pl-2 pr-6 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                                    <option value="">Position: any</option>
+                                </select>
+                                <select id="db-f-gender" data-on-change="balanced-filter" class="py-1 pl-2 pr-6 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                                    <option value="">Gender: any</option>
+                                    <option value="M">M</option><option value="F">F</option><option value="X">X/unknown</option>
+                                </select>
+                                <select id="db-f-status" data-on-change="balanced-filter" class="py-1 pl-2 pr-6 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                                    <option value="">Any status</option>
+                                    <option value="new">New</option><option value="returning">Returning</option>
+                                    <option value="gk">Willing to GK</option><option value="unrated">Unrated</option>
+                                </select>
+                                <select id="db-f-attendance" data-on-change="balanced-filter" class="py-1 pl-2 pr-6 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                                    <option value="">Attendance: any</option>
+                                    <option value="80">≥ 80%</option><option value="60">≥ 60%</option><option value="lt60">&lt; 60%</option>
+                                </select>
+                            </div>
+                        </details>
+                        <p id="db-active-target" class="text-[11px] text-gray-400 dark:text-gray-500"></p>
+                    </div>
+                    <!-- Multi-select bar (visible when ≥1 pool player checked) -->
+                    <div id="db-multi-bar" class="hidden items-center gap-2 px-2.5 py-2 border-b border-gray-200 dark:border-gray-700 bg-ecs-green/5">
+                        <span class="text-xs font-medium text-gray-700 dark:text-gray-200"><span id="db-multi-count">0</span> selected</span>
+                        <button type="button" data-action="balanced-assign-selected"
+                                class="ml-auto px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-ecs-green text-white hover:bg-ecs-green/90">Assign selected</button>
+                        <button type="button" data-action="balanced-multi-clear"
+                                class="px-2 py-1 rounded-lg text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">Clear</button>
+                    </div>
+                    <div id="db-pool" class="overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/60 min-h-0">
+                        <!-- pool rows rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Suggest tab -->
+                <div id="db-suggest-panel" class="hidden flex-col min-h-0">
+                    <div class="p-2.5 border-b border-gray-200 dark:border-gray-700 space-y-1.5">
+                        <div id="db-suggest-teams" class="flex items-center gap-1.5 flex-wrap"><!-- team buttons --></div>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500">Suggestions only — you decide. Ranked to close metric gaps.</p>
+                    </div>
+                    <div id="db-suggest-list" class="overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/60 min-h-0">
+                        <!-- suggestion cards rendered by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Balance matrix drawer -->
+<div id="db-balance-drawer" tabindex="-1"
+     class="fixed top-0 right-0 z-50 h-screen p-4 overflow-y-auto transition-transform translate-x-full bg-white w-96 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700">
+    <div class="flex items-center justify-between mb-3">
+        <h5 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-table text-ecs-green"></i>Balance matrix</h5>
+        <button type="button" data-drawer-hide="db-balance-drawer" class="text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg p-1.5"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="db-balance-matrix" class="text-xs"><!-- rendered by JS --></div>
+</div>
+
+{# tojson escapes </ as </ — json.dumps|safe would allow a player-controlled
+   name/GK answer containing </script> to break out and execute (stored XSS). #}
+<script type="application/json" id="db-initial-state">{{ initial_state|tojson }}</script>
+{% endblock %}

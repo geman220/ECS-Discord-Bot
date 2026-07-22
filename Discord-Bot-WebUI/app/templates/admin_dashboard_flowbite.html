@@ -49,7 +49,7 @@
            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-clock text-base text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i> Waitlist
         </a>
-        <a href="{{ url_for('monitoring.monitor_dashboard') }}"
+        <a href="{{ url_for('admin_panel.system_monitoring') }}"
            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-chart-dots text-base text-purple-600 dark:text-purple-400" aria-hidden="true"></i> Monitoring
         </a>
@@ -286,29 +286,31 @@
             <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Quick Admin Links</h2>
         </div>
         <div class="p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-            <a href="{{ url_for('admin.message_config.list_categories') }}"
+            <a href="{{ url_for('admin_panel.communication_hub') }}"
                class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                     <i class="ti ti-message-2 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h4 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">Message Management</h4>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Discord bot messages &amp; announcements</p>
+                    <h4 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">Communication Hub</h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Email, push, SMS &amp; announcements</p>
                 </div>
                 <i class="ti ti-chevron-right text-gray-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i>
             </a>
 
-            <a href="{{ url_for('admin.manage_polls') }}"
+            {% if endpoint_exists('admin_panel.surveys_list') %}
+            <a href="{{ url_for('admin_panel.surveys_list') }}"
                class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
-                    <i class="ti ti-chart-bar text-green-600 dark:text-green-400" aria-hidden="true"></i>
+                    <i class="ti ti-clipboard-list text-green-600 dark:text-green-400" aria-hidden="true"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h4 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">League Polls</h4>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Create and manage league polls</p>
+                    <h4 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">Surveys &amp; Polls</h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Collect feedback on the web or in Discord</p>
                 </div>
                 <i class="ti ti-chevron-right text-gray-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i>
             </a>
+            {% endif %}
 
             <a href="{{ url_for('admin_panel.user_approvals') }}"
                class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
@@ -334,7 +336,7 @@
                 <i class="ti ti-chevron-right text-gray-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i>
             </a>
 
-            <a href="{{ url_for('monitoring.monitor_dashboard') }}"
+            <a href="{{ url_for('admin_panel.system_monitoring') }}"
                class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
                     <i class="ti ti-chart-dots text-purple-600 dark:text-purple-400" aria-hidden="true"></i>
@@ -493,29 +495,31 @@
             </div>
             <div class="p-4">
                 <div class="space-y-2">
-                    <a href="{{ url_for('admin.message_config.list_categories') }}"
+                    <a href="{{ url_for('admin_panel.communication_hub') }}"
                        class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
                         <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                             <i class="ti ti-message-2 text-blue-600 dark:text-blue-400"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h6 class="font-medium text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">Message Management</h6>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Manage Discord bot messages and website announcements</p>
+                            <h6 class="font-medium text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">Communication Hub</h6>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Email, push, SMS and announcements</p>
                         </div>
                         <i class="ti ti-chevron-right text-gray-400"></i>
                     </a>
 
-                    <a href="{{ url_for('admin.manage_polls') }}"
+                    {% if endpoint_exists('admin_panel.surveys_list') %}
+                    <a href="{{ url_for('admin_panel.surveys_list') }}"
                        class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
                         <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
-                            <i class="ti ti-chart-bar text-green-600 dark:text-green-400"></i>
+                            <i class="ti ti-clipboard-list text-green-600 dark:text-green-400"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h6 class="font-medium text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">League Polls</h6>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Create and manage league polls</p>
+                            <h6 class="font-medium text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">Surveys &amp; Polls</h6>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Collect feedback on the web or in Discord</p>
                         </div>
                         <i class="ti ti-chevron-right text-gray-400"></i>
                     </a>
+                    {% endif %}
 
                     <a href="{{ url_for('admin_panel.user_approvals') }}"
                        class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
@@ -541,7 +545,7 @@
                         <i class="ti ti-chevron-right text-gray-400"></i>
                     </a>
 
-                    <a href="{{ url_for('monitoring.monitor_dashboard') }}"
+                    <a href="{{ url_for('admin_panel.system_monitoring') }}"
                        class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
                         <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
                             <i class="ti ti-chart-dots text-purple-600 dark:text-purple-400"></i>

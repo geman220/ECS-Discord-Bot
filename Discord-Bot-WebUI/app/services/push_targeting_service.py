@@ -61,29 +61,58 @@ class PushTargetingService:
         """
         try:
             if target_type == 'all':
-                return self.get_all_tokens(platform)
+                tokens = self.get_all_tokens(platform)
             elif target_type == 'team':
-                return self.get_tokens_for_teams(target_ids or [], platform)
+                tokens = self.get_tokens_for_teams(target_ids or [], platform)
             elif target_type == 'league':
-                return self.get_tokens_for_leagues(target_ids or [], platform)
+                tokens = self.get_tokens_for_leagues(target_ids or [], platform)
             elif target_type == 'role':
-                return self.get_tokens_for_roles(target_ids or [], platform)
+                tokens = self.get_tokens_for_roles(target_ids or [], platform)
             elif target_type == 'pool':
-                return self.get_tokens_for_substitute_pools(target_ids or [], platform)
+                tokens = self.get_tokens_for_substitute_pools(target_ids or [], platform)
             elif target_type == 'group':
                 group_id = target_ids[0] if target_ids else None
-                return self.get_tokens_for_notification_group(group_id, platform)
+                tokens = self.get_tokens_for_notification_group(group_id, platform)
             elif target_type == 'platform':
-                return self.get_tokens_for_platform(platform or 'all')
+                tokens = self.get_tokens_for_platform(platform or 'all')
             elif target_type == 'custom':
                 # Custom targets are user IDs
-                return self.get_tokens_for_users(target_ids or [], platform)
+                tokens = self.get_tokens_for_users(target_ids or [], platform)
             else:
                 logger.warning(f"Unknown target type: {target_type}")
                 return []
+            return self.filter_by_user_preference(tokens)
         except Exception as e:
             logger.error(f"Error resolving targets: {e}")
             return []
+
+    def filter_by_user_preference(self, tokens: List[str]) -> List[str]:
+        """Drop tokens belonging to users who turned off push notifications.
+
+        Admin sends previously ignored User.push_notifications entirely — every
+        active device token got the blast. NULL is treated as opted-in (the user
+        never touched the toggle).
+        """
+        if not tokens:
+            return tokens
+        try:
+            rows = self.session.query(UserFCMToken.fcm_token).join(
+                User, User.id == UserFCMToken.user_id
+            ).filter(
+                UserFCMToken.fcm_token.in_(tokens),
+                or_(User.push_notifications == True,  # noqa: E712
+                    User.push_notifications.is_(None))
+            ).all()
+            allowed = list({row[0] for row in rows})
+            dropped = len(set(tokens)) - len(allowed)
+            if dropped:
+                logger.info(f"Push preference filter dropped {dropped} opted-out device token(s)")
+            return allowed
+        except Exception as e:
+            # Never let the preference filter break sending outright; fall back
+            # to the unfiltered list and log loudly.
+            logger.error(f"Push preference filter failed, sending unfiltered: {e}")
+            return tokens
 
     def get_all_tokens(self, platform: Optional[str] = None) -> List[str]:
         """Get all active FCM tokens, optionally filtered by platform."""

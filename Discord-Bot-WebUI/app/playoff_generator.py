@@ -9,6 +9,7 @@ This module generates playoff schedules with the following structure:
 - Week 2 Afternoon: Placement games based on group standings
 """
 
+import hashlib
 import random
 import logging
 from datetime import date, time
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 class PlayoffGenerator:
     """Generates playoff schedules with group-based round-robin and placement games."""
 
-    def __init__(self, league_id: int, season_id: int, session):
+    def __init__(self, league_id: int, season_id: int, session, rng: Optional[random.Random] = None):
         """
         Initialize the playoff generator.
 
@@ -31,10 +32,15 @@ class PlayoffGenerator:
             league_id: ID of the league
             season_id: ID of the current season
             session: Database session
+            rng: Optional seeded random.Random. Passing the same seed replays the
+                 exact same "random" choices (group A/B label, round-robin order),
+                 which is how the preview endpoint's schedule is reproduced
+                 verbatim by the commit endpoint. Default: fresh randomness.
         """
         self.league_id = league_id
         self.season_id = season_id
         self.session = session
+        self.rng = rng if rng is not None else random.Random()
 
         # Time slots for Premier League (default)
         self.time_slots = [
@@ -46,6 +52,23 @@ class PlayoffGenerator:
 
         # Fields
         self.fields = ['North', 'South']
+
+    def standings_fingerprint(self) -> str:
+        """
+        Hash of the standings inputs that drive playoff seeding.
+
+        Only (team_id, points, goal_difference) feed the ranking/tie-break
+        logic, so same fingerprint + same rng seed => identical schedule.
+        The preview endpoint returns this and the commit endpoint compares it
+        to detect standings changing between preview and confirm.
+        """
+        standings = self.session.query(Standings).filter_by(
+            season_id=self.season_id
+        ).join(Team).filter(
+            Team.league_id == self.league_id
+        ).all()
+        rows = sorted((s.team_id, s.points, s.goal_difference) for s in standings)
+        return hashlib.sha256(repr(rows).encode()).hexdigest()[:16]
 
     def get_top_teams_with_tiebreaking(self, num_teams: int = 8) -> List[Team]:
         """
@@ -98,7 +121,10 @@ class PlayoffGenerator:
                     if len(gd_tied_teams) > 1:
                         # Still tied after goal difference - randomize
                         logger.info(f"Tie detected: {len(gd_tied_teams)} teams with {points} points and {gd} GD - randomizing order")
-                        random.shuffle(gd_tied_teams)
+                        # Sort by team_id first so the shuffle input doesn't depend
+                        # on DB row order — required for seeded runs to reproduce.
+                        gd_tied_teams.sort(key=lambda s: s.team_id)
+                        self.rng.shuffle(gd_tied_teams)
 
                     for standing in gd_tied_teams:
                         ranked_teams.append(standing.team)
@@ -135,7 +161,7 @@ class PlayoffGenerator:
         logger.info(f"Group 2: {[t.name for t in group2]}")
 
         # Randomly assign which group is A or B
-        if random.choice([True, False]):
+        if self.rng.choice([True, False]):
             group_a, group_b = group1, group2
             logger.info("Group 1 assigned as Group A, Group 2 as Group B")
         else:
@@ -180,11 +206,11 @@ class PlayoffGenerator:
         ]
 
         # Randomly shuffle the rounds themselves
-        random.shuffle(seed_pairings)
+        self.rng.shuffle(seed_pairings)
 
         # Randomly shuffle the order of matches within each round
         for round_matches in seed_pairings:
-            random.shuffle(round_matches)
+            self.rng.shuffle(round_matches)
 
         # Convert seed pairings to team pairings (higher seed always home)
         rounds = []
@@ -372,7 +398,7 @@ class PlayoffGenerator:
         # Sort teams by points, then goal difference, then random
         def sort_key(team):
             stats = team_stats[team.id]
-            return (stats['points'], stats['gd'], stats['gf'], random.random())
+            return (stats['points'], stats['gd'], stats['gf'], self.rng.random())
 
         sorted_teams = sorted(group_teams, key=sort_key, reverse=True)
 

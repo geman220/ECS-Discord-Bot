@@ -99,6 +99,7 @@ def register_mobile_api_routes():
         engagement,
         pub_league,
         nad_internal,
+        classic_ratings,
     )
 
 

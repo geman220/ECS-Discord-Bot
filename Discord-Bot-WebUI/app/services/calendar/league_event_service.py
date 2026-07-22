@@ -38,6 +38,19 @@ class LeagueEventService(BaseService):
         """
         super().__init__(session)
 
+    @staticmethod
+    def _bump_public_cache():
+        """Invalidate the public-site render cache — league events feed the
+        public /calendar page, its .ics feed, and calendar_teaser blocks on
+        section pages, so any event write must flush cached HTML. Global bump
+        (matching the news/FAQ philosophy); called AFTER _commit() so a
+        concurrent reader can't refill the cache with pre-commit rows."""
+        try:
+            from app.services.public_cache import bump_public_cache
+            bump_public_cache('global')
+        except Exception:
+            logger.debug('public cache bump failed', exc_info=True)
+
     def create_event(
         self,
         title: str,
@@ -126,6 +139,7 @@ class LeagueEventService(BaseService):
 
             self.session.add(event)
             self._commit()
+            self._bump_public_cache()
 
             self._log_operation_success('create_event', event_id=event.id)
             return ServiceResult.ok(event, 'Event created successfully')
@@ -228,6 +242,7 @@ class LeagueEventService(BaseService):
 
             event.updated_at = datetime.utcnow()
             self._commit()
+            self._bump_public_cache()
 
             self._log_operation_success('update_event', event_id=event_id)
             return ServiceResult.ok(event, 'Event updated successfully')
@@ -266,6 +281,7 @@ class LeagueEventService(BaseService):
                 self.session.delete(event)
 
             self._commit()
+            self._bump_public_cache()
 
             self._log_operation_success('delete_event', event_id=event_id)
             return ServiceResult.ok(True, 'Event deleted successfully')

@@ -316,7 +316,7 @@ def dashboard():
 # dedicated editors (with context/notices a bare toggle row here would lose).
 FEATURE_TOGGLE_CATEGORIES = (
     'navigation', 'registration', 'features', 'system', 'pub_league', 'mls',
-    'ai_assistant', 'mobile_app', 'mobile_features', 'mobile',
+    'ai_assistant', 'mobile_app', 'mobile_features', 'mobile', 'classic_ratings',
 )
 
 
@@ -982,7 +982,7 @@ def quick_bulk_send_messages():
             return jsonify({'success': False, 'message': 'Message content is required'}), 400
 
         from app.models.core import User
-        from app.models.notifications import Notification
+        from app.models.communication import Notification
 
         # Get recipients based on type
         if recipient_type == 'active_users':

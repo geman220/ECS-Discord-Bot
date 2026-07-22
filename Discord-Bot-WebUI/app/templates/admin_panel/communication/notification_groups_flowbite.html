@@ -1,8 +1,8 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert, modal_form, modal_info %}
 
-{% block admin_title %}Notification Groups{% endblock %}
-{% block panel_description %}Manage notification target groups{% endblock %}
+{% block admin_title %}Audiences{% endblock %}
+{% block panel_description %}Saved recipient groups for push targeting — build once, reuse on every send{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
@@ -14,7 +14,7 @@
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Notification Groups</span>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Audiences</span>
     </div>
 </li>
 {% endblock %}
@@ -25,7 +25,7 @@
 {% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state %}
 <div class="space-y-6">
 
-  {% call page_header('Notification Groups', subtitle='Communication / Push Targeting') %}
+  {% call page_header('Audiences', subtitle='Saved recipient groups for push targeting') %}
     <button type="button" onclick="history.back()"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Back</span>

@@ -458,7 +458,7 @@ window.PushCampaigns = PushCampaigns;
 
 // Backward compatibility
 window.CampaignsConfig = CampaignsConfig;
-// Note: NOT exporting handleGoBack to window - message-template-detail.js already exports it.
+// Note: handleGoBack stays module-local; nothing reads window.handleGoBack.
 window.handleViewCampaign = handleViewCampaign;
 window.handleSendCampaign = handleSendCampaign;
 window.handleScheduleCampaign = handleScheduleCampaign;

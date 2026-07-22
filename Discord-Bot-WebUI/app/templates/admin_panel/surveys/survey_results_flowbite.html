@@ -35,6 +35,25 @@
 </div>
 {% endif %}
 
+{% if team_breakdown %}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 mb-4">
+  <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-3"><i class="ti ti-users-group text-ecs-green"></i> Responses by team</h3>
+  {% set max_team = team_breakdown[0].responses %}
+  <div class="space-y-2">
+    {% for row in team_breakdown %}
+    <div class="flex items-center gap-3">
+      <span class="w-40 shrink-0 text-sm text-gray-700 dark:text-gray-300 truncate">{{ row.team }}</span>
+      <div class="flex-1 h-4 rounded bg-gray-100 dark:bg-gray-700 overflow-hidden">
+        <div class="h-full bg-ecs-green" style="width: {{ (100 * row.responses / max_team) | round(0, 'floor') | int if max_team else 0 }}%"></div>
+      </div>
+      <span class="w-8 text-right font-mono text-sm text-gray-900 dark:text-white">{{ row.responses }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Identified responses from current-season rostered players. Anonymous responses can't be attributed to a team.</p>
+</div>
+{% endif %}
+
 <div class="space-y-4">
 {% for item in summary.questions %}
 {% set q = item.question %}

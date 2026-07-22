@@ -17,6 +17,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.sql import exists, and_, or_
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 
 from app.mobile_api import mobile_api_v2
 from app.constants.positions import label_for
@@ -732,6 +733,14 @@ def draft_player(league_name: str):
         if not team:
             return jsonify({"msg": "Team not found in this league"}), 404
 
+        # Team-ownership guard BEFORE taking the FOR UPDATE lock: non-admin
+        # coaches may only draft players onto a team THEY coach (mirrors the
+        # web socket + REST guards — free-form mode has no turn check).
+        is_admin = _user_is_admin(session, current_user_id)
+        if not is_admin and team_id not in _my_coached_team_ids(session, current_user_id, league.id):
+            return jsonify({"success": False,
+                            "msg": f"You can only draft players to your own team ({team.name} is not yours)"}), 403
+
         from app import draft_clock
         from sqlalchemy import update as _sa_update
 
@@ -741,7 +750,6 @@ def draft_player(league_name: str):
         # and advance — all in one transaction. A racing second pick blocks here until we
         # commit, then sees the clock already moved and is rejected: no double-draft. ----
         ds = draft_clock.get_session(session, league.season_id, league.id, for_update=True)
-        is_admin = _user_is_admin(session, current_user_id)
 
         # Turn check under the lock (no-op in free-form / paused; admins may go out of turn).
         ok, code = draft_clock.check_turn(ds, team_id, is_admin, data.get('expected_pick'))
@@ -950,17 +958,44 @@ def remove_player_from_team(league_name: str, player_id: int):
         if not player:
             return jsonify({"msg": "Player not found"}), 404
 
-        # Find which team the player is on in this league
-        team = None
-        for t in player.teams:
-            if t.league_id == league.id:
-                team = t
-                break
-
-        if not team:
+        # Which team to remove from. ECS FC players can be on SEVERAL teams in
+        # the league, so honor an explicit team_id (query param or JSON body)
+        # first, then the caller's own coached team, then the single match —
+        # never an arbitrary first match.
+        candidates = [t for t in player.teams if t.league_id == league.id]
+        if not candidates:
             return jsonify({"msg": "Player is not on a team in this league"}), 400
 
+        _uid = int(get_jwt_identity())
+        is_admin = _user_is_admin(session, _uid)
+        my_team_ids = set(_my_coached_team_ids(session, _uid, league.id))
+
+        req_team_id = request.args.get('team_id') or (request.get_json(silent=True) or {}).get('team_id')
+        if req_team_id:
+            try:
+                req_team_id = int(req_team_id)
+            except (TypeError, ValueError):
+                return jsonify({"success": False, "msg": "Invalid team_id"}), 400
+            team = next((t for t in candidates if t.id == req_team_id), None)
+            if not team:
+                return jsonify({"success": False, "msg": "Player is not on that team in this league"}), 400
+        elif len(candidates) == 1:
+            team = candidates[0]
+        else:
+            mine = [t for t in candidates if t.id in my_team_ids]
+            if len(mine) == 1:
+                team = mine[0]
+            else:
+                return jsonify({"success": False,
+                                "msg": "Player is on multiple teams in this league — pass team_id"}), 400
+
         team_name = team.name
+
+        # Team-ownership guard: non-admin coaches may only remove players from
+        # a team THEY coach (mirrors the pick guard).
+        if not is_admin and team.id not in my_team_ids:
+            return jsonify({"success": False,
+                            "msg": f"You can only remove players from your own team ({team_name} is not yours)"}), 403
 
         # Remove player from team
         team.players.remove(player)
@@ -1876,3 +1911,110 @@ def normalize_draft_positions(league_name: str):
 
     DraftCacheService.clear_all_league_caches(db_league_name)
     return jsonify(result), 200
+
+
+# =============================================================================
+# Draft queue (bookmarks) — a coach's PRIVATE watchlist of players they're
+# considering. Shared storage with the web board (draft_queue_entry), so the
+# same queue shows up in the Flask UI and the app. Drafted players are
+# filtered out at read time; an admin undo puts them back automatically.
+# Client-side: on `player_drafted_enhanced` drop that player from the local
+# queue; on `player_removed_enhanced` re-fetch GET /queue.
+# =============================================================================
+
+def _queue_response(session, user_id, league, status=200):
+    from app.services import draft_queue_service
+    queue = draft_queue_service.get_queue(session, user_id, league)
+    return jsonify({"success": True, "queue": queue, "total": len(queue)}), status
+
+
+@mobile_api_v2.route('/draft/<league_name>/queue', methods=['GET'])
+@jwt_required()
+@_draft_access_required
+def get_draft_queue(league_name: str):
+    """The calling coach's draft queue for this league (ordered, available players only)."""
+    db_league_name = get_db_league_name(league_name)
+    if not db_league_name:
+        return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
+    user_id = int(get_jwt_identity())
+    with managed_session() as session:
+        league = _current_league(session, db_league_name)
+        if not league:
+            return jsonify({"msg": "League not found"}), 404
+        return _queue_response(session, user_id, league)
+
+
+@mobile_api_v2.route('/draft/<league_name>/queue', methods=['POST'])
+@jwt_required()
+@_draft_access_required
+def add_to_draft_queue(league_name: str):
+    """Bookmark a player. Body: {player_id}. Idempotent. Returns the full queue."""
+    db_league_name = get_db_league_name(league_name)
+    if not db_league_name:
+        return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
+    data = request.get_json(silent=True) or {}
+    try:
+        player_id = int(data.get('player_id'))
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "msg": "Invalid player_id"}), 400
+    user_id = int(get_jwt_identity())
+    from app.services import draft_queue_service
+    with managed_session() as session:
+        league = _current_league(session, db_league_name)
+        if not league:
+            return jsonify({"msg": "League not found"}), 404
+        ok, err = draft_queue_service.add_to_queue(session, user_id, league, player_id)
+        if not ok:
+            return jsonify({"success": False, "msg": err}), 400
+        try:
+            session.commit()
+        except IntegrityError:
+            # concurrent duplicate add (double-tap / web+phone race) — idempotent success
+            session.rollback()
+        return _queue_response(session, user_id, league)
+
+
+@mobile_api_v2.route('/draft/<league_name>/queue/<int:player_id>', methods=['DELETE'])
+@jwt_required()
+@_draft_access_required
+def remove_from_draft_queue(league_name: str, player_id: int):
+    """Un-bookmark a player. Idempotent. Returns the full queue."""
+    db_league_name = get_db_league_name(league_name)
+    if not db_league_name:
+        return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
+    user_id = int(get_jwt_identity())
+    from app.services import draft_queue_service
+    with managed_session() as session:
+        league = _current_league(session, db_league_name)
+        if not league:
+            return jsonify({"msg": "League not found"}), 404
+        draft_queue_service.remove_from_queue(session, user_id, league, player_id)
+        session.commit()
+        return _queue_response(session, user_id, league)
+
+
+@mobile_api_v2.route('/draft/<league_name>/queue/order', methods=['PUT'])
+@jwt_required()
+@_draft_access_required
+def reorder_draft_queue(league_name: str):
+    """Reorder the queue. Body: {player_ids: [top_first, ...]}. Returns the full queue."""
+    db_league_name = get_db_league_name(league_name)
+    if not db_league_name:
+        return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
+    data = request.get_json(silent=True) or {}
+    player_ids = data.get('player_ids')
+    if not isinstance(player_ids, list):
+        return jsonify({"success": False, "msg": "player_ids must be a list"}), 400
+    try:
+        player_ids = [int(p) for p in player_ids]
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "msg": "player_ids must be integers"}), 400
+    user_id = int(get_jwt_identity())
+    from app.services import draft_queue_service
+    with managed_session() as session:
+        league = _current_league(session, db_league_name)
+        if not league:
+            return jsonify({"msg": "League not found"}), 404
+        draft_queue_service.reorder_queue(session, user_id, league, player_ids)
+        session.commit()
+        return _queue_response(session, user_id, league)

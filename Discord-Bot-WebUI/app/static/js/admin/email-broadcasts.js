@@ -379,9 +379,22 @@ async function handleSaveDraft() {
     }
 }
 
+// Optional "schedule for later" from the compose Launch panel (PST local time).
+function getScheduleTime() {
+    return document.getElementById('emailScheduleTime')?.value || '';
+}
+
+function scheduleConfirmHtml(scheduleTime) {
+    return scheduleTime
+        ? `This will schedule the email for <strong>${scheduleTime.replace('T', ' ')} PST</strong>.`
+        : 'This will send the email to all matched recipients.<br>This action cannot be undone.';
+}
+
 async function handleSendCampaign(element) {
     const campaignId = element?.dataset?.campaignId;
     const editId = getEditCampaignId();
+    const scheduleTime = getScheduleTime();
+    const sendBody = JSON.stringify(scheduleTime ? { scheduled_send_time: scheduleTime } : {});
 
     if (!campaignId && !editId) {
         // Compose page (new): create + send
@@ -392,11 +405,11 @@ async function handleSendCampaign(element) {
         }
 
         const confirm = await window.Swal.fire({
-            title: 'Send Email Broadcast?',
-            html: `This will send the email to all matched recipients.<br>This action cannot be undone.`,
+            title: scheduleTime ? 'Schedule Email Blast?' : 'Send Email Blast?',
+            html: scheduleConfirmHtml(scheduleTime),
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Create & Send',
+            confirmButtonText: scheduleTime ? 'Create & Schedule' : 'Create & Send',
             confirmButtonColor: '#1a472a',
         });
         if (!confirm.isConfirmed) return;
@@ -417,13 +430,14 @@ async function handleSendCampaign(element) {
             const sendResp = await fetch(`${ADMIN_BASE}/communication/email-broadcasts/${createResult.campaign.id}/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: sendBody,
             });
             const sendResult = await sendResp.json();
 
             if (sendResult.success) {
                 window.Swal.fire({
-                    title: 'Sending Started',
-                    text: 'Campaign is now being sent. You can track progress on the detail page.',
+                    title: sendResult.scheduled ? 'Blast Scheduled' : 'Sending Started',
+                    text: sendResult.scheduled ? sendResult.message : 'Campaign is now being sent. You can track progress on the detail page.',
                     icon: 'success',
                     confirmButtonColor: '#1a472a',
                 }).then(() => {
@@ -444,11 +458,11 @@ async function handleSendCampaign(element) {
         }
 
         const confirm = await window.Swal.fire({
-            title: 'Save & Send Campaign?',
-            html: `This will save your changes and begin sending to all recipients.<br>This action cannot be undone.`,
+            title: scheduleTime ? 'Save & Schedule Blast?' : 'Save & Send Blast?',
+            html: scheduleConfirmHtml(scheduleTime),
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Save & Send',
+            confirmButtonText: scheduleTime ? 'Save & Schedule' : 'Save & Send',
             confirmButtonColor: '#1a472a',
         });
         if (!confirm.isConfirmed) return;
@@ -471,13 +485,14 @@ async function handleSendCampaign(element) {
             const sendResp = await fetch(`${ADMIN_BASE}/communication/email-broadcasts/${editId}/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: sendBody,
             });
             const sendResult = await sendResp.json();
 
             if (sendResult.success) {
                 window.Swal.fire({
-                    title: 'Sending Started',
-                    text: 'Campaign is now being sent.',
+                    title: sendResult.scheduled ? 'Blast Scheduled' : 'Sending Started',
+                    text: sendResult.scheduled ? sendResult.message : 'Campaign is now being sent.',
                     icon: 'success',
                     confirmButtonColor: '#1a472a',
                 }).then(() => {

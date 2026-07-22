@@ -191,7 +191,7 @@ def cleanup_connections():
 def draft_cache_stats():
     """Retired duplicate — redirects to the canonical draft-cache page.
 
-    This route rendered templates/admin/draft_cache_stats_flowbite.html, a near-duplicate of
+    This route rendered templates/admin/draft_cache_stats_flowbite.html (since deleted), a near-duplicate of
     the admin_panel page that the nav actually links to. It had NEVER rendered: it called
     DraftCacheService.warm_cache_for_league(), which does not exist, so it 500'd on every
     request. Repairing it was not worth it — the template is broken independently of that:

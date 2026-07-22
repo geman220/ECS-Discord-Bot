@@ -1,7 +1,7 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, badge, alert %}
 
-{% block admin_title %}SMS Analytics & Costs{% endblock %}
+{% block admin_title %}SMS Delivery & Costs{% endblock %}
 {% block panel_description %}Monitor SMS usage, delivery rates, and costs{% endblock %}
 
 {% block breadcrumb_items %}
@@ -14,7 +14,7 @@
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">SMS Analytics</span>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">SMS Delivery &amp; Costs</span>
     </div>
 </li>
 {% endblock %}
@@ -28,7 +28,7 @@
 {% set m_rate = m.delivery_rate %}
 <div data-page="sms-analytics">
 
-  {% call page_header("SMS Analytics & Costs", subtitle="Communication") %}
+  {% call page_header("SMS Delivery & Costs", subtitle="Is SMS delivering, and what is it costing?") %}
     <span class="hidden sm:inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
       <i class="ti ti-message" aria-hidden="true"></i>
       <span class="font-mono">{{ m.count }}</span> SMS in 30d

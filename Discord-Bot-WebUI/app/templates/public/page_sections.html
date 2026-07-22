@@ -6,6 +6,13 @@
 
 {% block content %}
 {{ sections_html | safe }}
+{% if active_page == 'guide' and not edit_mode %}
+{# Guide reader chrome (sticky TOC bar + in-page search + scrollspy). Pure
+   progressive enhancement over the rendered headings, so it survives admin
+   edits to the page. Skipped in the editor iframe — it would fight the
+   selection overlay. #}
+{{ vite_asset('js/public-guide.js') }}
+{% endif %}
 {% if edit_mode %}
 {# Site-editor bridge: only rendered for authenticated site editors inside the
    editor iframe (?edit=1). Provides selection overlay, inline text editing,

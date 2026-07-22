@@ -208,6 +208,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const matchesTableBody = document.getElementById('matchesTableBody');
 
     let currentScheduleData = null;
+    // RNG seed of the last successful preview. Sent back on confirm so the server
+    // replays the exact previewed schedule instead of re-randomizing. Each new
+    // preview overwrites it (last preview wins); null = no preview this session.
+    let capturedSeed = null;
+    // Standings hash from the same preview; the server refuses the seed replay
+    // (409) if standings changed since, instead of silently saving a schedule
+    // that differs from the one previewed.
+    let capturedFingerprint = null;
+    // Client-side A/B swap is display-only (never sent to the server), so track it
+    // to warn honestly at confirm time.
+    let groupsSwapped = false;
 
     previewBtn.addEventListener('click', generatePreview);
     document.getElementById('regenerateBtn')?.addEventListener('click', generatePreview);
@@ -220,6 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tempA = currentScheduleData.groupA;
         currentScheduleData.groupA = currentScheduleData.groupB;
         currentScheduleData.groupB = tempA;
+        groupsSwapped = !groupsSwapped;
         renderPreview(currentScheduleData);
     });
 
@@ -239,12 +251,15 @@ document.addEventListener('DOMContentLoaded', function() {
             previewBtn.innerHTML = '<i class="ti ti-wand mr-2"></i>Generate Preview';
 
             if (data.success) {
-                // Backend returns {preview: {group_a: [{id,name}], group_b, matches}}
+                // Backend returns {preview: {group_a: [{id,name}], group_b, matches}, seed}
                 currentScheduleData = {
                     groupA: data.preview.group_a.map(t => t.name),
                     groupB: data.preview.group_b.map(t => t.name),
                     matches: data.preview.matches
                 };
+                capturedSeed = (typeof data.seed === 'number') ? data.seed : null;
+                capturedFingerprint = (typeof data.standings_fingerprint === 'string') ? data.standings_fingerprint : null;
+                groupsSwapped = false;
                 renderPreview(currentScheduleData);
                 previewSection.classList.remove('hidden');
             } else {
@@ -301,9 +316,18 @@ document.addEventListener('DOMContentLoaded', function() {
     function confirmSchedule() {
         if (!currentScheduleData) return;
 
+        let confirmText;
+        if (capturedSeed !== null && groupsSwapped) {
+            confirmText = 'The previewed schedule will be saved, but the A ↔ B swap is display-only and will NOT be saved — groups will keep their original labels from the preview.';
+        } else if (capturedSeed !== null) {
+            confirmText = 'The playoff schedule will be saved exactly as previewed above.';
+        } else {
+            confirmText = 'This will generate and save a fresh playoff schedule. Groups and matchups are re-randomized on save, so the result may differ from the preview shown.';
+        }
+
         Swal.fire({
             title: 'Confirm Schedule?',
-            text: 'This will generate and save a fresh playoff schedule. Groups and matchups are re-randomized on save, so the result may differ from the preview shown.',
+            text: confirmText,
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Yes, save it',
@@ -312,10 +336,19 @@ document.addEventListener('DOMContentLoaded', function() {
             color: isDark ? '#f3f4f6' : '#111827'
         }).then((result) => {
             if (result.isConfirmed) {
-                fetch(`/admin/playoffs/league/${leagueId}/generate-schedule`, {
+                // Send the preview's seed so the server replays the exact schedule
+                // shown above. No seed captured -> no body (old fresh-random behavior).
+                const fetchOptions = {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
-                })
+                };
+                if (capturedSeed !== null) {
+                    fetchOptions.body = JSON.stringify({
+                        seed: capturedSeed,
+                        standings_fingerprint: capturedFingerprint
+                    });
+                }
+                fetch(`/admin/playoffs/league/${leagueId}/generate-schedule`, fetchOptions)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {

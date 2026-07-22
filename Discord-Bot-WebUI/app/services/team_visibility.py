@@ -92,22 +92,38 @@ def reset_teams_reveal(session):
     Force make_teams_public to 'false'. Called from every path that makes a
     Pub League season current, so each new season starts with assignments
     hidden until an admin flips the toggle at the reveal party.
+
+    Also closes the Classic rating window (classic_ratings_window_open) —
+    ratings are per-season, so a rollover must never leave last season's
+    window open against the new season's roster.
     """
     from app.models.admin_config import AdminConfig
     from datetime import datetime
-    reveal = session.query(AdminConfig).filter_by(key=TEAMS_PUBLIC_KEY).first()
-    if reveal:
-        reveal.value = 'false'
-        reveal.updated_at = datetime.utcnow()
-    else:
-        session.add(AdminConfig(
-            key=TEAMS_PUBLIC_KEY,
-            value='false',
-            description='Reveal team assignments to players (web, mobile app, and Discord team channels).',
-            category='pub_league',
-            data_type='boolean'
-        ))
+
+    def _force_false(key, description, category):
+        row = session.query(AdminConfig).filter_by(key=key).first()
+        if row:
+            row.value = 'false'
+            row.updated_at = datetime.utcnow()
+        else:
+            session.add(AdminConfig(
+                key=key,
+                value='false',
+                description=description,
+                category=category,
+                data_type='boolean'
+            ))
+
+    _force_false(
+        TEAMS_PUBLIC_KEY,
+        'Reveal team assignments to players (web, mobile app, and Discord team channels).',
+        'pub_league')
+    _force_false(
+        'classic_ratings_window_open',
+        'Allow Classic coaches to submit/edit player ratings',
+        'classic_ratings')
     session.flush()
+    AdminConfig._l2_invalidate()
     logger.info("make_teams_public reset to false (new Pub League season becoming current)")
 
 

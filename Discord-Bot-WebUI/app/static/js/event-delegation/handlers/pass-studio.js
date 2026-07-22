@@ -421,7 +421,7 @@ window.EventDelegation.register('edit-subgroup', function(element, e) {
 // ============================================================================
 // TEMPLATE SECTION ACTIONS - Handled by wallet-config-handlers.js / message-templates.js
 // ============================================================================
-// Removed: edit-category (handled by communication-handlers.js)
+// Removed: edit-category (legacy handler deleted)
 // Removed: edit-template (handled by wallet-config-handlers.js)
 // Removed: preview-template (handled by message-templates.js)
 // Removed: copy-template (handled by message-templates.js)

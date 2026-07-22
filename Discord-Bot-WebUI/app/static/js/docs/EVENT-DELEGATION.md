@@ -215,26 +215,22 @@ event-delegation/
     ├── api-handlers.js
     ├── auth-actions.js
     ├── calendar-actions.js
-    ├── communication-handlers.js
     ├── discord-management.js
     ├── draft-system.js
     ├── ecs-fc-management.js
     ├── form-actions.js
     ├── match-management.js
     ├── match-reporting.js
-    ├── message-templates.js
     ├── mls-handlers.js
     ├── mobile-features-handlers.js
     ├── monitoring-handlers.js
     ├── onboarding-wizard.js
     ├── pass-studio.js
     ├── profile-verification.js
-    ├── push-notifications.js
     ├── referee-management.js
     ├── roles-management.js
     ├── rsvp-actions.js
     ├── season-wizard.js
-    ├── security-actions.js
     ├── store-handlers.js
     ├── substitute-pool.js
     ├── system-handlers.js

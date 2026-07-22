@@ -1,14 +1,14 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert %}
 
-{% block admin_title %}Scheduled Messages{% endblock %}
-{% block panel_description %}Manage scheduled availability messages{% endblock %}
+{% block admin_title %}Match RSVP Posts{% endblock %}
+{% block panel_description %}RSVP embeds posted to team Discord channels for upcoming matches{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Scheduled Messages</span>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Match RSVP Posts</span>
     </div>
 </li>
 {% endblock %}
@@ -19,7 +19,7 @@
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
 <div class="space-y-6">
 
-  {{ page_header('Scheduled Messages', subtitle='Availability messages for upcoming matches') }}
+  {{ page_header('Match RSVP Posts', subtitle='RSVP embeds posted to team Discord channels for upcoming matches') }}
 
   <!-- KPI band (real data) -->
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

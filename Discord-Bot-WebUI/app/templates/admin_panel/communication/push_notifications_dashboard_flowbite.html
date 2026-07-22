@@ -39,7 +39,7 @@
               text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-users-group text-base" aria-hidden="true"></i><span class="hidden sm:inline">Subscribers</span>
     </a>
-    <a href="{{ url_for('admin_panel.send_push_notification_form') }}"
+    <a href="{{ url_for('admin_panel.push_notifications') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg
               bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
@@ -362,7 +362,7 @@
     </div>
   </section>
   {% else %}
-  {{ empty_state('ti-bell-off', 'No recent notifications', 'Push notifications you send will appear here.', action={'label': 'Send First Notification', 'url': url_for('admin_panel.send_push_notification_form'), 'icon': 'ti-send'}) }}
+  {{ empty_state('ti-bell-off', 'No recent notifications', 'Push notifications you send will appear here.', action={'label': 'Send First Notification', 'url': url_for('admin_panel.push_notifications'), 'icon': 'ti-send'}) }}
   {% endif %}
 
 </div>
@@ -417,7 +417,7 @@
             </h5>
         </div>
         <div class="p-5 space-y-3">
-            <a href="{{ url_for('admin_panel.send_push_notification_form') }}" class="block w-full px-4 py-2 text-sm font-medium text-center text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+            <a href="{{ url_for('admin_panel.push_notifications') }}" class="block w-full px-4 py-2 text-sm font-medium text-center text-white bg-blue-600 rounded-lg hover:bg-blue-700">
                 <i class="ti ti-send mr-2"></i>Send New Notification
             </a>
             <a href="{{ url_for('admin_panel.push_notifications') }}" class="block w-full px-4 py-2 text-sm font-medium text-center text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
@@ -543,7 +543,7 @@
         </div>
         <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No recent notifications</h5>
         <p class="text-gray-500 dark:text-gray-400 mb-4">Push notifications you send will appear here.</p>
-        <a href="{{ url_for('admin_panel.send_push_notification_form') }}" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+        <a href="{{ url_for('admin_panel.push_notifications') }}" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
             <i class="ti ti-send mr-1"></i>Send First Notification
         </a>
     </div>

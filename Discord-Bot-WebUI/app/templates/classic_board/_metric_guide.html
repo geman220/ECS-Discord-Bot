@@ -1,0 +1,57 @@
+{# Shared Classic rating metric guide.
+   metric_anchors(metric): compact 1/3/5 anchor grid used inside rating panels.
+   metric_guide_accordion(metrics): full page-top scoring guide. #}
+
+{% macro metric_anchors(metric) %}
+<details class="group mt-2">
+    <summary class="flex items-center gap-1 text-xs font-medium text-ecs-green cursor-pointer select-none list-none">
+        <i class="ti ti-info-circle text-sm"></i>
+        <span>What does this mean?</span>
+        <i class="ti ti-chevron-down text-xs transition-transform group-open:rotate-180"></i>
+    </summary>
+    <div class="mt-2 space-y-2 text-xs text-gray-600 dark:text-gray-300">
+        <p>{{ metric.description }}</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2 bg-gray-50 dark:bg-gray-900/40">
+                <div class="font-mono font-bold text-gray-900 dark:text-white mb-1">1</div>
+                <p>{{ metric.anchor_1 }}</p>
+            </div>
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2 bg-gray-50 dark:bg-gray-900/40">
+                <div class="font-mono font-bold text-gray-900 dark:text-white mb-1">3</div>
+                <p>{{ metric.anchor_3 }}</p>
+            </div>
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2 bg-gray-50 dark:bg-gray-900/40">
+                <div class="font-mono font-bold text-gray-900 dark:text-white mb-1">5</div>
+                <p>{{ metric.anchor_5 }}</p>
+            </div>
+        </div>
+    </div>
+</details>
+{% endmacro %}
+
+{% macro metric_guide_accordion(metrics) %}
+<details class="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+    <summary class="flex items-center justify-between gap-2 px-4 py-3 cursor-pointer select-none list-none">
+        <span class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-book-2 text-ecs-green"></i> Scoring guide — read once before you start
+        </span>
+        <i class="ti ti-chevron-down text-gray-400 transition-transform group-open:rotate-180"></i>
+    </summary>
+    <div class="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-gray-700 pt-3">
+        {% for metric in metrics %}
+        <div>
+            <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-gray-900 dark:text-white">{{ metric.label }}</h3>
+                <span class="px-1.5 py-0.5 rounded text-[11px] font-mono bg-ecs-green/10 text-ecs-green">{{ metric.weight|round|int }}%</span>
+            </div>
+            <p class="mt-1 text-xs text-gray-600 dark:text-gray-300">{{ metric.description }}</p>
+            <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600 dark:text-gray-300">
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2"><span class="font-mono font-bold text-gray-900 dark:text-white">1</span> — {{ metric.anchor_1 }}</div>
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2"><span class="font-mono font-bold text-gray-900 dark:text-white">3</span> — {{ metric.anchor_3 }}</div>
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-2"><span class="font-mono font-bold text-gray-900 dark:text-white">5</span> — {{ metric.anchor_5 }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</details>
+{% endmacro %}

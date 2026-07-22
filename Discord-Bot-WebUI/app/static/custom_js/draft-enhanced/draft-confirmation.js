@@ -72,8 +72,16 @@ export function showDraftTeamSelection(playerId, playerName, existingTeams = '')
     // Get all teams and their player counts
     // DEBUG: FIXED VERSION - uses closest() not parentElement - 2026-02-02
     console.log('[draft-confirmation] FIXED VERSION LOADED - using closest()');
+    // Non-admin coaches may only draft to their own team(s) — the server rejects
+    // anything else, so don't offer other teams here. rostersSection stamps
+    // data-scoped-default="1" only for non-admin coaches with teams.
+    const rosters = document.getElementById('rostersSection');
+    const myTeamIds = (rosters?.dataset.scopedDefault === '1')
+        ? (rosters.dataset.myTeams || '').split(',').filter(Boolean)
+        : null;
     document.querySelectorAll('[id^="teamCount"]').forEach(badge => {
         const teamId = badge.id.replace('teamCount', '');
+        if (myTeamIds && !myTeamIds.includes(teamId)) return;
         // Find team name using closest() to traverse up DOM tree
         const summary = badge.closest('summary');
         const details = badge.closest('details');

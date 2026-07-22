@@ -1,8 +1,8 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert, modal_info %}
 
-{% block admin_title %}Message History{% endblock %}
-{% block panel_description %}View sent and archived scheduled messages{% endblock %}
+{% block admin_title %}RSVP Post History{% endblock %}
+{% block panel_description %}Sent and failed match RSVP posts{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
@@ -14,7 +14,7 @@
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <a href="{{ url_for('admin_panel.scheduled_messages') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Scheduled Messages</a>
+        <a href="{{ url_for('admin_panel.scheduled_messages') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Match RSVP Posts</a>
     </div>
 </li>
 <li>
@@ -37,7 +37,7 @@
 {% set all_messages = (sent_messages or []) + (failed_messages or []) %}
 {% set total_processed = (total_sent or 0) + (total_failed or 0) %}
 
-{% call(slot) page_header("Message History", subtitle="Communication · Scheduled Messages") %}
+{% call(slot) page_header("RSVP Post History", subtitle="Communication · Match RSVP Posts") %}
   <a href="{{ url_for('admin_panel.scheduled_messages') }}"
      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
             border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300

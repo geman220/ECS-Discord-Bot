@@ -18,7 +18,7 @@ Copy is plain human text per the community's no-AI-tone rule.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.decorators import celery_task
 
@@ -78,11 +78,28 @@ def process_site_scheduling(self, session):
         claimed.append({'id': post.id, 'slug': post.slug, 'title': post.title,
                         'excerpt': post.excerpt})
 
+    # ---- Clock-based news publishes ---------------------------------------
+    # A scheduled post is status='published' with a future published_at — it
+    # goes live purely by the clock, with NO row flip for the blocks above to
+    # see. The cached /news list (and news_latest blocks) would otherwise keep
+    # serving the pre-publish copy for up to TTL_HTML after the moment passes,
+    # so bump whenever a post's published_at crossed since (roughly) the last
+    # beat run. Slightly generous window > beat interval; a redundant bump is
+    # a no-op-cheap version increment.
+    crossed = (session.query(NewsPost.id)
+               .filter(NewsPost.status == 'published',
+                       NewsPost.published_at.isnot(None),
+                       NewsPost.published_at <= now,
+                       NewsPost.published_at > now - timedelta(minutes=6))
+               .first() is not None)
+
     if flipped or claimed:
         session.commit()   # claims + flips are durable BEFORE any HTTP
         bump_public_cache('global')
         for kind, slug in flipped:
             logger.info('site scheduling: %s %s', kind, slug)
+    elif crossed:
+        bump_public_cache('global')
 
     for item in claimed:
         _post_news_embed(item)

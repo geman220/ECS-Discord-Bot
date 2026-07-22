@@ -16,7 +16,7 @@ import { EventDelegation } from '../core.js';
 
 /**
  * Confirm delete scheduled message form submission
- * Note: Renamed from 'delete-message' to avoid conflict with communication-handlers.js
+ * Note: named 'delete-scheduled-message' (the older generic 'delete-message' action is gone)
  */
 window.EventDelegation.register('delete-scheduled-message', (element, event) => {
     event.preventDefault();

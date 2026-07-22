@@ -688,6 +688,37 @@ class SurveyService:
             })
         return series
 
+    def get_team_breakdown(self, session, survey):
+        """Per-team completed-response counts (current-season teams only).
+
+        Only meaningful for identified surveys — anonymous responses have no
+        player linkage, so this returns [] for them. Replaces the legacy
+        LeaguePoll per-team breakdown.
+        """
+        if survey.is_anonymous:
+            return []
+        from app.models import Team, League, Season
+        from app.models.players import player_teams
+        count = db.func.count(db.distinct(SurveyResponse.id))
+        rows = session.query(Team.name, count).select_from(SurveyResponse).join(
+            Player, Player.user_id == SurveyResponse.user_id
+        ).join(
+            player_teams, player_teams.c.player_id == Player.id
+        ).join(
+            Team, Team.id == player_teams.c.team_id
+        ).join(
+            League, Team.league_id == League.id
+        ).join(
+            Season, League.season_id == Season.id
+        ).filter(
+            SurveyResponse.survey_id == survey.id,
+            SurveyResponse.status == 'complete',
+            SurveyResponse.user_id.isnot(None),
+            Season.is_current == True,
+            Team.is_active == True,
+        ).group_by(Team.name).order_by(count.desc(), Team.name).all()
+        return [{'team': name, 'responses': n} for name, n in rows]
+
     # --------------------------------------------------------------------- #
     # Export
     # --------------------------------------------------------------------- #

@@ -24,7 +24,7 @@
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, data_table_th, empty_state, modal %}
 
-{% call page_header('Push Notifications', subtitle='Communication') %}
+{% call page_header('Push Notifications', subtitle='Send an alert to phones with the ECS app installed') %}
 <a href="{{ url_for('admin_panel.communication_hub') }}"
    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
           border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
@@ -49,10 +49,10 @@
     push notifications dispatched
   {% endcall %}
   {% call stat_card('ti-chart-line', 'Delivery Rate', delivery_rate or '0%', tone='primary') %}
-    estimated successful delivery
+    successful delivery (from campaign analytics)
   {% endcall %}
   {% call stat_card('ti-click', 'Click Rate', click_rate or '0%', tone='gold') %}
-    estimated engagement
+    engagement (from campaign analytics)
   {% endcall %}
 </div>
 
@@ -161,8 +161,9 @@
                         <option value="team">By Team</option>
                         <option value="league">By League</option>
                         <option value="role">By Role</option>
+                        <option value="users">Specific People</option>
                         <option value="pool">Substitute Pool</option>
-                        <option value="group">Notification Group</option>
+                        <option value="group">Audience (saved group)</option>
                         <option value="platform">By Platform</option>
                     </select>
                 </div>
@@ -215,16 +216,28 @@
             </div>
 
             <div id="notification_group_selector_container" class="hidden mb-4">
-                <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Select Notification Group</label>
+                <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Select Audience</label>
                 <select id="notification_group_selector" name="notification_group_id" class="select-ecs">
-                    <option value="">Select a group...</option>
+                    <option value="">Select an audience...</option>
                     {% for group in notification_groups|default([]) %}
                     <option value="{{ group.id }}">{{ group.name }} ({{ group.group_type }})</option>
                     {% endfor %}
                 </select>
                 <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="inline-flex items-center mt-2 text-sm text-ecs-green hover:text-ecs-green-700 dark:text-ecs-green">
-                    <i class="ti ti-plus mr-1" aria-hidden="true"></i>Manage Groups
+                    <i class="ti ti-plus mr-1" aria-hidden="true"></i>Manage Audiences
                 </a>
+            </div>
+
+            <div id="users_selector_container" class="hidden mb-4">
+                <label for="push-user-search" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Search People</label>
+                <div class="relative">
+                    <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+                    <input type="text" id="push-user-search" placeholder="Type a name or username…" autocomplete="off"
+                           class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 pl-9 pr-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                    <div id="push-user-results" class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
+                </div>
+                <div id="push-user-selected" class="flex flex-wrap gap-2 mt-2"></div>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Only people with the app installed can receive a push.</p>
             </div>
 
             <!-- Recipient Count Preview -->
@@ -258,37 +271,16 @@
         <!-- Delivery group -->
         <div class="p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700">
             <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3"><i class="ti ti-settings-2 mr-1" aria-hidden="true"></i>Delivery</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label for="notification_icon" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Icon</label>
-                    <select id="notification_icon" name="icon" class="select-ecs">
-                        <option value="default">Default</option>
-                        <option value="announcement">Announcement</option>
-                        <option value="match">Match</option>
-                        <option value="alert">Alert</option>
-                        <option value="info">Info</option>
-                        <option value="celebration">Celebration</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="send_time" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Send Time</label>
-                    <select id="send_time" name="send_time" required class="select-ecs">
-                        <option value="now">Send Now</option>
-                        <option value="scheduled">Schedule for Later</option>
-                    </select>
-                </div>
-            </div>
-
-            <div id="schedule_time_container" class="hidden mb-4">
-                <label for="schedule_datetime" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Schedule Date &amp; Time</label>
-                <input type="datetime-local" id="schedule_datetime" name="schedule_datetime" class="input-ecs">
-            </div>
-
             <div>
                 <label for="action_url" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Action URL (Optional)</label>
                 <input type="url" id="action_url" name="action_url" class="input-ecs" placeholder="https://example.com/action">
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">URL to open when notification is clicked</p>
             </div>
+            <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+                <i class="ti ti-calendar-time mt-0.5 shrink-0" aria-hidden="true"></i>
+                <span>This form sends immediately. To schedule a push for later, use
+                <a href="{{ url_for('admin_panel.campaigns_list') }}" class="text-ecs-green font-medium hover:underline">Scheduled &amp; History</a>.</span>
+            </p>
         </div>
 
         <!-- Command toolbar -->
@@ -737,33 +729,6 @@
                 </span>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label for="notification_icon" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Icon</label>
-                    <select id="notification_icon" name="icon" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        <option value="default">Default</option>
-                        <option value="announcement">Announcement</option>
-                        <option value="match">Match</option>
-                        <option value="alert">Alert</option>
-                        <option value="info">Info</option>
-                        <option value="celebration">Celebration</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="send_time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send Time</label>
-                    <select id="send_time" name="send_time" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        <option value="now">Send Now</option>
-                        <option value="scheduled">Schedule for Later</option>
-                    </select>
-                </div>
-            </div>
-
-            <div id="schedule_time_container" class="hidden mb-4">
-                <label for="schedule_datetime" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Schedule Date & Time</label>
-                <input type="datetime-local" id="schedule_datetime" name="schedule_datetime"
-                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-            </div>
-
             <div class="mb-4">
                 <label for="action_url" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Action URL (Optional)</label>
                 <input type="url" id="action_url" name="action_url"
@@ -809,63 +774,37 @@
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
                         <th scope="col" class="px-3 sm:px-6 py-3">Notification</th>
-                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Target</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Recipient</th>
                         <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Sent</th>
-                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Delivered</th>
-                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Clicked</th>
-                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Status</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Read</th>
                         <th scope="col" class="px-3 sm:px-6 py-3">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for notification in notification_history %}
-                    <tr class="notification-row bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" data-status="{{ notification.status or 'sent' }}">
+                    <tr class="notification-row bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td class="px-3 sm:px-6 py-4">
-                            <div class="font-medium text-gray-900 dark:text-white">{{ notification.title }}</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ notification.body[:40] }}...</div>
-                            {% if notification.priority == 'urgent' %}
-                            <span class="inline-flex items-center px-2 py-0.5 mt-1 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Urgent</span>
-                            {% elif notification.priority == 'high' %}
-                            <span class="inline-flex items-center px-2 py-0.5 mt-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">High Priority</span>
-                            {% endif %}
+                            <div class="font-medium text-gray-900 dark:text-white">{{ notification.content[:60] }}{% if notification.content|length > 60 %}…{% endif %}</div>
                         </td>
-                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ notification.target_audience|title }}</span>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ notification.target_count or 0 }} recipients</div>
+                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell text-xs">
+                            {{ notification.user.username if notification.user else '—' }}
                         </td>
                         <td class="px-3 sm:px-6 py-4 text-xs hidden md:table-cell">
-                            {{ notification.sent_at.strftime('%Y-%m-%d %H:%M') if notification.sent_at else 'Not sent' }}
+                            {{ notification.created_at.strftime('%Y-%m-%d %H:%M') if notification.created_at else '—' }}
                         </td>
                         <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ notification.delivered_count or 0 }}</span>
-                            {% if notification.target_count and notification.target_count > 0 %}
-                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ ((notification.delivered_count or 0) / notification.target_count * 100)|round(1) }}%</div>
+                            {% if notification.read %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Read</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Unread</span>
                             {% endif %}
-                        </td>
-                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ notification.clicked_count or 0 }}</span>
-                            {% if notification.delivered_count and notification.delivered_count > 0 %}
-                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ ((notification.clicked_count or 0) / notification.delivered_count * 100)|round(1) }}%</div>
-                            {% endif %}
-                        </td>
-                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
-                            {% set status = notification.status or 'sent' %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if status == 'sent' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% elif status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif status == 'scheduled' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
-                                {{ status|title }}
-                            </span>
                         </td>
                         <td class="px-3 sm:px-6 py-4">
                             <div class="flex items-center gap-1">
                                 <button class="p-2 text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-blue-900/50"
-                                        onclick="viewNotificationDetails('{{ notification.id }}', '{{ notification.title|e }}')" title="View">
+                                        onclick="viewNotificationDetails('{{ notification.id }}', '{{ notification.content|e }}')" title="View">
                                     <i class="ti ti-eye"></i>
                                 </button>
-                                {% if notification.status == 'failed' %}
-                                <button class="p-2 text-green-600 hover:bg-green-100 rounded dark:text-green-400 dark:hover:bg-green-900/50"
-                                        onclick="resendNotification('{{ notification.id }}', '{{ notification.title|e }}')" title="Resend">
-                                    <i class="ti ti-refresh"></i>
-                                </button>
-                                {% endif %}
                                 <button class="p-2 text-gray-600 hover:bg-gray-100 rounded dark:text-gray-400 dark:hover:bg-gray-700"
                                         onclick="duplicateNotification('{{ notification.id }}')" title="Duplicate">
                                     <i class="ti ti-copy"></i>
@@ -1005,7 +944,8 @@ const targetContainers = {
     'league': 'league_selector_container',
     'role': 'role_selector_container',
     'pool': 'pool_selector_container',
-    'group': 'notification_group_selector_container'
+    'group': 'notification_group_selector_container',
+    'users': 'users_selector_container'
 };
 
 // Hide all target selectors
@@ -1025,10 +965,31 @@ document.getElementById('target_type')?.addEventListener('change', function() {
     updateRecipientCount();
 });
 
+// Collect the selected IDs for the active target type so the preview counts
+// the real audience, not the whole category.
+function collectTargetIds(targetType) {
+    const multi = (id) => Array.from(document.getElementById(id)?.selectedOptions || []).map(o => o.value);
+    switch (targetType) {
+        case 'team': return multi('team_selector').map(Number);
+        case 'league': return multi('league_selector').map(Number);
+        case 'role': return multi('role_selector');
+        case 'pool': return [document.getElementById('pool_selector')?.value || 'all'];
+        case 'group': {
+            const v = document.getElementById('notification_group_selector')?.value;
+            return v ? [Number(v)] : [];
+        }
+        case 'users':
+            return Array.from(document.querySelectorAll('#push-user-selected input[name="user_ids"]')).map(i => Number(i.value));
+        default: return [];
+    }
+}
+
 // Update recipient count
 async function updateRecipientCount() {
     const targetType = document.getElementById('target_type').value;
     const platformFilter = document.getElementById('platform_filter').value;
+    // The backend's targeting service calls specific-user targeting 'custom'.
+    const previewType = targetType === 'users' ? 'custom' : targetType;
 
     try {
         const response = await fetch('/admin-panel/communication/push-notifications/preview', {
@@ -1038,7 +999,8 @@ async function updateRecipientCount() {
                 'X-CSRFToken': '{{ csrf_token() }}'
             },
             body: JSON.stringify({
-                target_type: targetType,
+                target_type: previewType,
+                target_ids: collectTargetIds(targetType),
                 platform: platformFilter
             })
         });
@@ -1060,18 +1022,63 @@ async function updateRecipientCount() {
     }
 }
 
-// Schedule time toggle
-document.getElementById('send_time')?.addEventListener('change', function() {
-    const container = document.getElementById('schedule_time_container');
-    const input = document.getElementById('schedule_datetime');
-    if (this.value === 'scheduled') {
-        container.classList.remove('hidden');
-        input.required = true;
-    } else {
-        container.classList.add('hidden');
-        input.required = false;
+// Specific-people typeahead (uses the push user-search endpoint; only users
+// with an active device token appear).
+(function () {
+    const input = document.getElementById('push-user-search');
+    const results = document.getElementById('push-user-results');
+    const selected = document.getElementById('push-user-selected');
+    if (!input || !results || !selected) return;
+
+    const escapeHtml = (s) => String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+    let debounceTimer = null;
+    let lastQuery = '';
+
+    function addUser(id, name) {
+        if (selected.querySelector(`input[value="${id}"]`)) return;
+        const chip = document.createElement('span');
+        chip.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20';
+        chip.innerHTML = `${escapeHtml(name)}<button type="button" class="hover:text-red-600" aria-label="Remove ${escapeHtml(name)}"><i class="ti ti-x text-[11px]"></i></button><input type="hidden" name="user_ids" value="${Number(id)}">`;
+        chip.querySelector('button').addEventListener('click', () => { chip.remove(); updateRecipientCount(); });
+        selected.appendChild(chip);
+        updateRecipientCount();
     }
-});
+
+    input.addEventListener('input', function () {
+        const q = this.value.trim();
+        clearTimeout(debounceTimer);
+        if (q.length < 2) { results.classList.add('hidden'); return; }
+        debounceTimer = setTimeout(async () => {
+            lastQuery = q;
+            try {
+                const resp = await fetch(`{{ url_for('admin_panel.push_search_users') }}?q=${encodeURIComponent(q)}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const users = await resp.json();
+                if (q !== lastQuery) return;  // stale response
+                results.innerHTML = users.length
+                    ? users.map(u => `<button type="button" data-id="${Number(u.id)}" data-name="${escapeHtml(u.name)}" class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">${escapeHtml(u.name)} <span class="text-xs text-gray-400">@${escapeHtml(u.username)}</span></button>`).join('')
+                    : '<div class="px-3 py-2 text-sm text-gray-500">No one with the app matches that search.</div>';
+                results.classList.remove('hidden');
+            } catch (e) { results.classList.add('hidden'); }
+        }, 250);
+    });
+
+    results.addEventListener('click', function (e) {
+        const btn = e.target.closest('button[data-id]');
+        if (!btn) return;
+        addUser(btn.dataset.id, btn.dataset.name);
+        input.value = '';
+        results.classList.add('hidden');
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!results.contains(e.target) && e.target !== input) results.classList.add('hidden');
+    });
+})();
 
 // History filter
 document.querySelectorAll('.history-filter').forEach(btn => {
@@ -1191,24 +1198,29 @@ function resendNotification(id, title) {
     });
 }
 
-// Duplicate notification
+// Duplicate notification — the endpoint returns JSON, so fetch + reload
+// (a full-page form submit would land the admin on a raw JSON page).
 function duplicateNotification(id) {
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '{{ url_for("admin_panel.duplicate_notification", notification_id=0) }}'.replace('0', id);
-    form.innerHTML = `<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">`;
-    document.body.appendChild(form);
-    form.submit();
+    fetch('{{ url_for("admin_panel.duplicate_notification", notification_id=0) }}'.replace('0', id), {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to duplicate notification.',
+                        background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+        }
+    })
+    .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to duplicate notification.',
+                             background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }));
 }
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     updateRecipientCount();
-
-    // Set minimum datetime
-    const now = new Date();
-    const minDateTime = now.toISOString().slice(0, 16);
-    document.getElementById('schedule_datetime').min = minDateTime;
 });
 
 // Update count on selector changes

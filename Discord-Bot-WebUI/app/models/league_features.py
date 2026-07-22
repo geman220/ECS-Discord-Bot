@@ -240,6 +240,37 @@ class DraftPickSlot(db.Model):
         return f"<DraftPickSlot session={self.draft_session_id} slot={self.slot} team={self.team_id}>"
 
 
+class DraftQueueEntry(db.Model):
+    """One coach's private draft queue/bookmark of a player they're considering.
+
+    Personal per-user (not per-team) so co-coaches each keep their own list.
+    Rows are NOT deleted when the player gets drafted — reads filter out players
+    already on a team in the league, so an undo/removal puts them straight back
+    into every queue that held them.
+    """
+    __tablename__ = 'draft_queue_entry'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id', ondelete='CASCADE'), nullable=False)
+    league_id = db.Column(db.Integer, db.ForeignKey('league.id', ondelete='CASCADE'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
+    sort_order = db.Column(db.Integer, nullable=False, default=0, server_default='0')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    user = db.relationship('User', backref=db.backref('draft_queue_entries', lazy='dynamic', passive_deletes=True))
+    player = db.relationship('Player', backref=db.backref('draft_queue_entries', lazy='dynamic', passive_deletes=True), passive_deletes=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'season_id', 'league_id', 'player_id', name='uq_draft_queue_user_player'),
+        db.Index('idx_draft_queue_user_league', 'user_id', 'league_id'),
+        db.Index('idx_draft_queue_player', 'player_id'),
+    )
+
+    def __repr__(self):
+        return f"<DraftQueueEntry u{self.user_id} p{self.player_id} L{self.league_id} #{self.sort_order}>"
+
+
 class MessageCategory(db.Model):
     """Model representing categories for configurable messages."""
     __tablename__ = 'message_categories'

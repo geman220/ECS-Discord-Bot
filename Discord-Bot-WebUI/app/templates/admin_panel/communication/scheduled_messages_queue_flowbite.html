@@ -1,8 +1,8 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert %}
 
-{% block admin_title %}Message Queue{% endblock %}
-{% block panel_description %}View and manage messages queued for delivery{% endblock %}
+{% block admin_title %}Match RSVP Posts{% endblock %}
+{% block panel_description %}RSVP embeds queued to post to team Discord channels before each match{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
@@ -14,7 +14,7 @@
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <a href="{{ url_for('admin_panel.scheduled_messages') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Scheduled Messages</a>
+        <a href="{{ url_for('admin_panel.scheduled_messages') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Match RSVP Posts</a>
     </div>
 </li>
 <li>
@@ -43,7 +43,7 @@
 {% endfor %}
 <div class="space-y-6">
 
-  {% call page_header('Message Queue', subtitle='Communication / Scheduled Messages') %}
+  {% call page_header('Match RSVP Posts', subtitle='RSVP embeds queued to post to team Discord channels') %}
     <button type="button" onclick="location.reload()"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-refresh" aria-hidden="true"></i><span>Refresh</span>

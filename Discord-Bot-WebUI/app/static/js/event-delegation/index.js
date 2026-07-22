@@ -48,16 +48,12 @@ import './handlers/substitute-pool.js';      // Substitute pool management
 import './handlers/season-wizard.js';        // Season creation, auto-scheduling (legacy)
 import './handlers/season-builder.js';       // Season builder wizard with division-specific weeks
 import './handlers/pass-studio.js';          // Wallet pass design
-import './handlers/security-actions.js';     // IP banning, security monitoring
 import './handlers/calendar-actions.js';     // Calendar subscriptions
 import './handlers/ecs-fc-management.js';    // ECS FC team management
-import './handlers/push-notifications.js';   // Push notification management
-import './handlers/message-templates.js';    // Message templates and announcements
 
 // System Administration
 import './handlers/system-handlers.js';      // Health, Redis, Docker management
 import './handlers/store-handlers.js';       // Store items, orders, analytics
-import './handlers/communication-handlers.js'; // Announcements, campaigns, messaging
 import './handlers/api-handlers.js';         // API keys, config, logs
 import './handlers/ai-prompts-handlers.js';  // AI prompt configuration
 import './handlers/mls-handlers.js';         // MLS match management, live reporting

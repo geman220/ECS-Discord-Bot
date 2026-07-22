@@ -120,6 +120,13 @@ class NotificationPayload:
     # Ignored when force_* flags are set or skip_preferences=True.
     tiered: bool = True
 
+    # Explicit channel allow-list (the admin composer's mode). When set, tiering
+    # is bypassed and delivery is attempted ONLY on the listed channels — each
+    # still gated per-user by the _should_send_* preference checks. Valid values:
+    # 'in_app', 'push', 'email', 'sms', 'discord'. None = legacy behavior
+    # (tiered or all-channels; in-app always created).
+    channels: Optional[List[str]] = None
+
     # Email-specific fields
     email_subject: Optional[str] = None  # Custom email subject (defaults to title)
     email_html_body: Optional[str] = None  # Custom HTML email body
@@ -145,8 +152,15 @@ def payload_to_dict(payload: 'NotificationPayload') -> Dict[str, Any]:
 
 
 def payload_from_dict(data: Dict[str, Any]) -> 'NotificationPayload':
-    """Rebuild a NotificationPayload from :func:`payload_to_dict` output."""
-    data = dict(data)
+    """Rebuild a NotificationPayload from :func:`payload_to_dict` output.
+
+    Unknown keys are dropped rather than raising TypeError so that a worker
+    running older code never permanently discards a payload queued by newer
+    web code (rolling-restart safety).
+    """
+    from dataclasses import fields
+    known = {f.name for f in fields(NotificationPayload)}
+    data = {k: v for k, v in data.items() if k in known}
     data['notification_type'] = NotificationType[data['notification_type']]
     return NotificationPayload(**data)
 
@@ -283,19 +297,25 @@ class NotificationOrchestrator:
             # Get user preferences and contact info
             users_with_prefs = self._get_users_with_preferences(payload.user_ids)
 
-            # In-App Notification (always, regardless of tier mode)
-            for user_id, preferences in users_with_prefs.items():
-                if self._should_send_in_app(payload, preferences):
-                    if self._create_in_app_notification(user_id, payload):
-                        results['in_app']['created'] += 1
+            # In-App Notification. Always created in legacy mode; when an
+            # explicit channel allow-list is set, only if 'in_app' is listed.
+            if self._channel_allowed(payload, 'in_app'):
+                for user_id, preferences in users_with_prefs.items():
+                    if self._should_send_in_app(payload, preferences):
+                        if self._create_in_app_notification(user_id, payload):
+                            results['in_app']['created'] += 1
+                        else:
+                            results['in_app']['skipped'] += 1
                     else:
                         results['in_app']['skipped'] += 1
-                else:
-                    results['in_app']['skipped'] += 1
+            else:
+                results['in_app']['skipped'] = len(users_with_prefs)
 
-            # Determine delivery mode
+            # Determine delivery mode. An explicit channel allow-list always
+            # uses all-channels dispatch restricted to the listed channels.
             use_tiered = (
-                payload.tiered
+                payload.channels is None
+                and payload.tiered
                 and not payload.skip_preferences
                 and not self._has_force_overrides(payload)
             )
@@ -356,6 +376,14 @@ class NotificationOrchestrator:
             payload.force_push, payload.force_in_app,
             payload.force_email, payload.force_sms, payload.force_discord
         ])
+
+    def _channel_allowed(self, payload: NotificationPayload, channel: str) -> bool:
+        """Is this channel permitted by the payload's explicit allow-list?
+
+        None (no allow-list) keeps legacy behavior: every channel permitted,
+        with tiering/preferences deciding what actually fires.
+        """
+        return payload.channels is None or channel in payload.channels
 
     def _determine_tier(self, payload: NotificationPayload, preferences: Dict, user_id: int) -> Optional[str]:
         """
@@ -474,62 +502,76 @@ class NotificationOrchestrator:
         """
         Send notifications through all enabled channels (original behavior).
 
-        Used when force_* flags are set, skip_preferences=True, or tiered=False.
+        Used when force_* flags are set, skip_preferences=True, tiered=False,
+        or an explicit channel allow-list is present (payload.channels), which
+        restricts dispatch to the listed channels.
         """
         # Push Notifications (batch for efficiency)
-        push_user_ids = [
-            uid for uid, prefs in users_with_prefs.items()
-            if self._should_send_push(payload, prefs)
-        ]
+        if self._channel_allowed(payload, 'push'):
+            push_user_ids = [
+                uid for uid, prefs in users_with_prefs.items()
+                if self._should_send_push(payload, prefs)
+            ]
 
-        if push_user_ids:
-            push_results = self._send_push_notifications(push_user_ids, payload)
-            results['push']['success'] = push_results.get('success', 0)
-            results['push']['failure'] = push_results.get('failure', 0)
+            if push_user_ids:
+                push_results = self._send_push_notifications(push_user_ids, payload)
+                results['push']['success'] = push_results.get('success', 0)
+                results['push']['failure'] = push_results.get('failure', 0)
 
-        results['push']['skipped'] = len(payload.user_ids) - len(push_user_ids)
+            results['push']['skipped'] = len(payload.user_ids) - len(push_user_ids)
+        else:
+            results['push']['skipped'] = len(payload.user_ids)
 
         # Email Notifications
-        for user_id, prefs in users_with_prefs.items():
-            if self._should_send_email(payload, prefs):
-                email = prefs.get('email')
-                if email:
-                    if self._send_email_notification(email, payload):
-                        results['email']['success'] += 1
+        if self._channel_allowed(payload, 'email'):
+            for user_id, prefs in users_with_prefs.items():
+                if self._should_send_email(payload, prefs):
+                    email = prefs.get('email')
+                    if email:
+                        if self._send_email_notification(email, payload):
+                            results['email']['success'] += 1
+                        else:
+                            results['email']['failure'] += 1
                     else:
-                        results['email']['failure'] += 1
+                        results['email']['skipped'] += 1
                 else:
                     results['email']['skipped'] += 1
-            else:
-                results['email']['skipped'] += 1
+        else:
+            results['email']['skipped'] = len(payload.user_ids)
 
         # SMS Notifications
-        for user_id, prefs in users_with_prefs.items():
-            if self._should_send_sms(payload, prefs):
-                phone = prefs.get('phone')
-                if phone:
-                    if self._send_sms_notification(phone, user_id, payload):
-                        results['sms']['success'] += 1
+        if self._channel_allowed(payload, 'sms'):
+            for user_id, prefs in users_with_prefs.items():
+                if self._should_send_sms(payload, prefs):
+                    phone = prefs.get('phone')
+                    if phone:
+                        if self._send_sms_notification(phone, user_id, payload):
+                            results['sms']['success'] += 1
+                        else:
+                            results['sms']['failure'] += 1
                     else:
-                        results['sms']['failure'] += 1
+                        results['sms']['skipped'] += 1
                 else:
                     results['sms']['skipped'] += 1
-            else:
-                results['sms']['skipped'] += 1
+        else:
+            results['sms']['skipped'] = len(payload.user_ids)
 
         # Discord DM Notifications
-        for user_id, prefs in users_with_prefs.items():
-            if self._should_send_discord(payload, prefs):
-                discord_id = prefs.get('discord_id')
-                if discord_id:
-                    if self._send_discord_notification(discord_id, payload):
-                        results['discord']['success'] += 1
+        if self._channel_allowed(payload, 'discord'):
+            for user_id, prefs in users_with_prefs.items():
+                if self._should_send_discord(payload, prefs):
+                    discord_id = prefs.get('discord_id')
+                    if discord_id:
+                        if self._send_discord_notification(discord_id, payload):
+                            results['discord']['success'] += 1
+                        else:
+                            results['discord']['failure'] += 1
                     else:
-                        results['discord']['failure'] += 1
+                        results['discord']['skipped'] += 1
                 else:
                     results['discord']['skipped'] += 1
-            else:
-                results['discord']['skipped'] += 1
+        else:
+            results['discord']['skipped'] = len(payload.user_ids)
 
     def _get_users_with_preferences(self, user_ids: List[int]) -> Dict[int, Dict]:
         """Get users and their notification preferences along with contact info"""
@@ -768,6 +810,20 @@ class NotificationOrchestrator:
         if notification_type == NotificationType.DIRECT_MESSAGE:
             return preferences.get('dm_notifications', True)
 
+        if notification_type in (NotificationType.FEEDBACK_NEW,
+                                  NotificationType.FEEDBACK_REPLY_FROM_USER):
+            # Admin-side fan-out events
+            return preferences.get('feedback_alerts', True)
+
+        if notification_type in (NotificationType.FEEDBACK_REPLY,
+                                  NotificationType.FEEDBACK_STATUS_CHANGE,
+                                  NotificationType.FEEDBACK_CLOSED):
+            # Owner-side update events
+            return preferences.get('feedback_updates', True)
+
+        if notification_type == NotificationType.DRAFT_ON_THE_CLOCK:
+            return preferences.get('draft_alerts', True)
+
         # Default: send
         return True
 
@@ -811,6 +867,20 @@ class NotificationOrchestrator:
         if notification_type == NotificationType.DIRECT_MESSAGE:
             return preferences.get('dm_notifications', True)
 
+        if notification_type in (NotificationType.FEEDBACK_NEW,
+                                  NotificationType.FEEDBACK_REPLY_FROM_USER):
+            # Admin-side fan-out events
+            return preferences.get('feedback_alerts', True)
+
+        if notification_type in (NotificationType.FEEDBACK_REPLY,
+                                  NotificationType.FEEDBACK_STATUS_CHANGE,
+                                  NotificationType.FEEDBACK_CLOSED):
+            # Owner-side update events
+            return preferences.get('feedback_updates', True)
+
+        if notification_type == NotificationType.DRAFT_ON_THE_CLOCK:
+            return preferences.get('draft_alerts', True)
+
         # Default: send
         return True
 
@@ -825,7 +895,7 @@ class NotificationOrchestrator:
 
             notification = Notification(
                 user_id=user_id,
-                content=payload.message,
+                content=payload.message[:255],  # column is String(255)
                 notification_type=payload.notification_type.value,
                 icon=icon,
                 read=False
@@ -838,6 +908,13 @@ class NotificationOrchestrator:
 
         except Exception as e:
             logger.error(f"Error creating in-app notification for user {user_id}: {e}")
+            # Leave the session usable for the rest of this send() — without the
+            # rollback a failed insert poisons db.session and every later
+            # channel/chunk in the same call dies with PendingRollbackError.
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
             return False
 
     def _send_push_notifications(self, user_ids: List[int], payload: NotificationPayload) -> Dict[str, int]:

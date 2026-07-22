@@ -9,6 +9,40 @@ from common import server_id, has_admin_role
 logger = logging.getLogger(__name__)
 WEBUI_API_URL = os.getenv("WEBUI_API_URL", "http://localhost:5000/api")
 
+# Division-wide coach roles (assigned team-independently). Per-team coach roles
+# follow the ECS-FC-PL-<team>-Coach pattern — pub league AND ECS FC teams alike
+# (e.g. ECS-FC-PL-FC-Rainier-Coach).
+DIVISION_COACH_ROLES = {
+    "ecs-fc-pl-premier-coach",
+    "ecs-fc-pl-classic-coach",
+    "ecs-fc-pl-ecs-fc-coach",
+}
+
+
+def is_coach_role_name(name: str) -> bool:
+    """True for any ECS-FC-PL-*-Coach role — per-team or division-wide."""
+    n = (name or "").strip().lower()
+    return n.startswith("ecs-fc-pl-") and n.endswith("-coach")
+
+
+def get_coached_team_player_roles(member: discord.Member, guild: discord.Guild) -> list[discord.Role]:
+    """
+    Map the member's per-team ECS-FC-PL-<team>-Coach roles to the guild's
+    matching ECS-FC-PL-<team>-Player roles (the mention target for /team).
+    Looked up on the guild, not the member, so a coach who isn't rostered as a
+    player on their team can still message it.
+    """
+    guild_roles_by_lower = {r.name.strip().lower(): r for r in guild.roles}
+    player_roles = []
+    for role in member.roles:
+        lowered = role.name.strip().lower()
+        if not is_coach_role_name(lowered) or lowered in DIVISION_COACH_ROLES:
+            continue
+        player_role = guild_roles_by_lower.get(lowered[:-len("-coach")] + "-player")
+        if player_role and player_role not in player_roles:
+            player_roles.append(player_role)
+    return player_roles
+
 class SMSEnrollmentModal(discord.ui.Modal, title="SMS Enrollment"):
     def __init__(self, default_phone: str = ""):
         super().__init__()
@@ -276,21 +310,27 @@ class PubLeagueCommands(commands.Cog):
     @app_commands.describe(message="The message to send to your team")
     @app_commands.guilds(discord.Object(id=server_id))
     async def team(self, interaction: discord.Interaction, message: str):
-        allowed_coach_roles = ["ECS-FC-PL-PREMIER-COACH", "ECS-FC-PL-CLASSIC-COACH"]
         member = interaction.user
-        
+
         # Log raw user roles for debugging.
         logger.debug("User roles (raw): %s", [repr(role.name) for role in member.roles])
-        
-        if not any(role.name in allowed_coach_roles for role in member.roles):
+
+        # Any ECS-FC-PL-*-Coach role qualifies: per-team (ECS-FC-PL-<team>-Coach,
+        # pub league and ECS FC teams alike) or division-wide.
+        if not any(is_coach_role_name(role.name) for role in member.roles):
             await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
             return
 
-        # Use lower-case for comparison after stripping whitespace.
-        team_roles = [
-            role for role in member.roles
-            if role.name.strip().lower().startswith("ecs-fc-pl-") and role.name.strip().lower().endswith("-player")
-        ]
+        # Teams this member COACHES, derived from their per-team -Coach roles.
+        team_roles = get_coached_team_player_roles(member, interaction.guild)
+
+        # Fallback for division-wide coaches with no per-team coach role yet:
+        # the teams they hold -Player roles for (legacy behavior).
+        if not team_roles:
+            team_roles = [
+                role for role in member.roles
+                if role.name.strip().lower().startswith("ecs-fc-pl-") and role.name.strip().lower().endswith("-player")
+            ]
         logger.debug("Filtered team roles (team command): %s", [repr(role.name) for role in team_roles])
         
         if not team_roles:
@@ -380,18 +420,21 @@ class PubLeagueCommands(commands.Cog):
     )
     @app_commands.guilds(discord.Object(id=server_id))
     async def checkteam(self, interaction: discord.Interaction):
-        allowed_coach_roles = ["ECS-FC-PL-CLASSIC-COACH", "ECS-FC-PL-PREMIER-COACH"]
-        if not any(role.name in allowed_coach_roles for role in interaction.user.roles):
+        # Any ECS-FC-PL-*-Coach role qualifies: per-team or division-wide.
+        if not any(is_coach_role_name(role.name) for role in interaction.user.roles):
             await interaction.response.send_message("You do not have permission to execute this command.", ephemeral=True)
             return
 
         logger.debug("User roles (raw) for checkteam: %s", [repr(role.name) for role in interaction.user.roles])
-        
-        # Filter using lower-case comparisons.
-        team_roles = [
-            role for role in interaction.user.roles
-            if role.name.strip().lower().startswith("ecs-fc-pl-") and role.name.strip().lower().endswith("-player")
-        ]
+
+        # Teams this member coaches, from their per-team -Coach roles; fall back
+        # to their own -Player roles for division-wide coaches.
+        team_roles = get_coached_team_player_roles(interaction.user, interaction.guild)
+        if not team_roles:
+            team_roles = [
+                role for role in interaction.user.roles
+                if role.name.strip().lower().startswith("ecs-fc-pl-") and role.name.strip().lower().endswith("-player")
+            ]
         logger.debug("Filtered team roles (checkteam command): %s", [repr(role.name) for role in team_roles])
         
         if not team_roles:
@@ -508,13 +551,11 @@ class PubLeagueCommands(commands.Cog):
         Lookup a player by name via your Flask API, retrieve their discord_id,
         then get and display the member's roles from your Discord guild.
         """
-        # Only allow specific roles to execute this command.
-        allowed_roles = [
-            "ECS-FC-PL-CLASSIC-COACH",
-            "ECS-FC-PL-PREMIER-COACH",
-            "WG: ECS FC PL Leadership"
-        ]
-        if not any(role.name in allowed_roles for role in interaction.user.roles):
+        # Coaches (any ECS-FC-PL-*-Coach role, per-team or division) + leadership.
+        if not any(
+            is_coach_role_name(role.name) or role.name == "WG: ECS FC PL Leadership"
+            for role in interaction.user.roles
+        ):
             await interaction.response.send_message(
                 "You do not have permission to execute this command.",
                 ephemeral=True

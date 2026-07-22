@@ -29,10 +29,7 @@
    reads announcement_type/priority from the form but the model never stores them).
    So the LIBRARY TABLE below deliberately shows ID/Announcement/Published/Updated/
    Actions and never fabricates type/priority/status chips from non-existent fields.
-   The COMPOSE FORM does expose Priority/Type selects because those map to real
-   request.form fields the create_announcement route reads — the inputs are real,
-   even though the model currently discards them.
-   announcement_types is always [] from the route, so no "Categories" KPI is shown. #}
+   The COMPOSE FORM collects only title + content — the model's real columns. #}
 {% from 'macros/_modern_kit.html' import page_header, empty_state, modal %}
 <div class="space-y-6">
 
@@ -82,19 +79,16 @@
 
   {# ===== Composer (left, spans 2) + Live Preview / Tips rail (right) =====
      The composer is a real working form: it POSTs to create_announcement, the
-     same route the create page uses. The route reads title, content,
-     announcement_type and priority from request.form (see create_announcement),
-     so all four inputs map to real backend form fields — nothing fabricated.
-     The Latest-published feature card was removed in favour of this inline
-     composer to match the mock; the most-recent announcement is still the top
-     row of the library table below. #}
+     same route the create page uses. Only title + content are persisted — the
+     Announcement model has no type/priority columns, so those inputs were
+     removed rather than silently discarded. #}
   <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
 
     <section class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
       <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
         <i class="ti ti-edit text-ecs-green" aria-hidden="true"></i>
         <h2 class="font-semibold text-gray-900 dark:text-white">Compose Announcement</h2>
-        <span class="ml-auto text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">Broadcasts to the league feed</span>
+        <span class="ml-auto text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">Shown on the member homepage — sends no notifications</span>
       </div>
 
       <form id="ann-compose-form" method="POST" action="{{ url_for('admin_panel.create_announcement') }}" class="p-4 sm:p-5 space-y-4">
@@ -106,34 +100,12 @@
                  class="input-ecs h-10 px-3 text-sm w-full">
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label for="ann-priority" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Priority</label>
-            <select id="ann-priority" name="priority" class="input-ecs h-10 px-3 text-sm w-full">
-              <option value="low">Low</option>
-              <option value="normal" selected>Normal</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
-          <div>
-            <label for="ann-type" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Type</label>
-            <select id="ann-type" name="announcement_type" class="input-ecs h-10 px-3 text-sm w-full">
-              <option value="general" selected>General</option>
-              <option value="league">League</option>
-              <option value="match">Match</option>
-              <option value="system">System</option>
-              <option value="urgent">Urgent</option>
-            </select>
-          </div>
-        </div>
-
         <div>
           <label for="ann-content" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Content <span class="text-red-600 dark:text-red-400">*</span></label>
           <textarea id="ann-content" name="content" rows="9" required placeholder="Write the announcement body…"
                     class="input-ecs px-3 py-2.5 text-sm w-full leading-relaxed resize-y"></textarea>
           <div class="mt-1.5 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-            <span class="inline-flex items-center gap-1"><i class="ti ti-info-circle" aria-hidden="true"></i> Plain text — shown in the in-app feed</span>
+            <span class="inline-flex items-center gap-1"><i class="ti ti-info-circle" aria-hidden="true"></i> Shown in the banner on the member homepage — does not notify anyone</span>
             <span class="font-mono" id="ann-charcount">0 chars</span>
           </div>
         </div>
@@ -161,14 +133,10 @@
         </div>
         <div class="p-4 sm:p-5">
           <div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-            <div class="flex justify-between items-start gap-3">
-              <h6 id="ann-preview-title" class="text-base font-semibold text-gray-900 dark:text-white break-words">Announcement title</h6>
-              <span id="ann-preview-priority" class="shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> Normal</span>
-            </div>
+            <h6 id="ann-preview-title" class="text-base font-semibold text-gray-900 dark:text-white break-words">Announcement title</h6>
             <p id="ann-preview-content" class="mt-2 text-sm text-gray-500 dark:text-gray-400 break-words whitespace-pre-wrap leading-relaxed">Your announcement body will appear here as you type…</p>
             <hr class="my-3 border-gray-200 dark:border-gray-700">
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-              <span><span class="font-semibold text-gray-700 dark:text-gray-300">Type:</span> <span id="ann-preview-type">General</span></span>
               <span><span class="font-semibold text-gray-700 dark:text-gray-300">Length:</span> <span class="font-mono" id="ann-preview-len">0</span> chars</span>
             </div>
           </div>
@@ -181,9 +149,9 @@
           <h2 class="font-semibold text-gray-900 dark:text-white">Publishing tips</h2>
         </div>
         <ul class="p-4 sm:p-5 space-y-2.5 text-sm text-gray-500 dark:text-gray-400">
-          <li class="flex gap-2"><i class="ti ti-flag text-amber-500 dark:text-amber-400 mt-0.5" aria-hidden="true"></i><span>Set <span class="text-gray-700 dark:text-gray-300 font-medium">High</span> priority only for time-sensitive notices.</span></li>
-          <li class="flex gap-2"><i class="ti ti-tag text-blue-600 dark:text-blue-400 mt-0.5" aria-hidden="true"></i><span>Use the <span class="text-gray-700 dark:text-gray-300 font-medium">Match</span> type for fixtures and results.</span></li>
-          <li class="flex gap-2"><i class="ti ti-eye text-ecs-green mt-0.5" aria-hidden="true"></i><span>Preview reflects exactly how members see the feed entry.</span></li>
+          <li class="flex gap-2"><i class="ti ti-home text-ecs-green mt-0.5" aria-hidden="true"></i><span>Announcements appear in the carousel at the top of the member homepage — the 5 newest are shown.</span></li>
+          <li class="flex gap-2"><i class="ti ti-bell-off text-amber-500 dark:text-amber-400 mt-0.5" aria-hidden="true"></i><span>Posting here does <span class="text-gray-700 dark:text-gray-300 font-medium">not</span> notify anyone. Pair with an Email Blast or Push Notification to reach people directly.</span></li>
+          <li class="flex gap-2"><i class="ti ti-eye text-ecs-green mt-0.5" aria-hidden="true"></i><span>Preview reflects exactly how members see the entry.</span></li>
         </ul>
       </section>
     </div>
@@ -318,15 +286,6 @@
             <span class="text-sm text-cyan-700 dark:text-cyan-300">This Week</span>
         </div>
     </div>
-    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
-        <div class="flex flex-col items-center text-center">
-            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
-                <i class="ti ti-tags text-2xl text-yellow-600 dark:text-yellow-400"></i>
-            </div>
-            <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ announcement_types|length }}</h3>
-            <span class="text-sm text-yellow-700 dark:text-yellow-300">Categories</span>
-        </div>
-    </div>
 </div>
 
 <!-- Announcements Table -->
@@ -352,10 +311,7 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-4 py-3">Announcement</th>
-                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Type</th>
-                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Priority</th>
                     <th scope="col" class="px-4 py-3 hidden md:table-cell">Created</th>
-                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Status</th>
                     <th scope="col" class="px-4 py-3">Actions</th>
                 </tr>
             </thead>
@@ -366,17 +322,7 @@
                         <div class="font-medium text-gray-900 dark:text-white">{{ announcement.title }}</div>
                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ announcement.content[:100] }}{% if announcement.content|length > 100 %}...{% endif %}</p>
                     </td>
-                    <td class="px-4 py-3 hidden md:table-cell">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ announcement.announcement_type or 'General' }}</span>
-                    </td>
-                    <td class="px-4 py-3 hidden md:table-cell">
-                        {% set priority = announcement.priority or 'normal' %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {% if priority == 'high' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif priority == 'medium' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300{% endif %}">{{ priority|title }}</span>
-                    </td>
                     <td class="px-4 py-3 text-sm hidden md:table-cell">{{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td class="px-4 py-3 hidden md:table-cell">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
-                    </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-1">
                             <button type="button" class="p-2 text-cyan-600 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg" data-action="view-announcement" data-id="{{ announcement.id }}" data-title="{{ announcement.title }}" data-content="{{ announcement.content }}" title="View">
@@ -402,9 +348,9 @@
         </div>
         <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No announcements found</h5>
         <p class="text-gray-500 dark:text-gray-400 mb-4">Create your first announcement to get started.</p>
-        <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" onclick="showCreateModal()">
+        <a href="{{ url_for('admin_panel.create_announcement') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
             <i class="ti ti-plus mr-1"></i>Create Announcement
-        </button>
+        </a>
     </div>
     {% endif %}
 </div>
@@ -430,27 +376,13 @@ document.addEventListener('DOMContentLoaded', function() {
     (function () {
         const titleEl = document.getElementById('ann-title');
         const contentEl = document.getElementById('ann-content');
-        const typeEl = document.getElementById('ann-type');
-        const priorityEl = document.getElementById('ann-priority');
         const charCountEl = document.getElementById('ann-charcount');
         const form = document.getElementById('ann-compose-form');
         if (!contentEl && !titleEl) return;
 
         const pTitle = document.getElementById('ann-preview-title');
         const pContent = document.getElementById('ann-preview-content');
-        const pType = document.getElementById('ann-preview-type');
         const pLen = document.getElementById('ann-preview-len');
-        const pPriority = document.getElementById('ann-preview-priority');
-
-        const PRIORITY_CLASSES = {
-            low: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-            normal: 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400',
-            medium: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400',
-            high: 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400'
-        };
-        const PRIORITY_BASE = 'shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold';
-
-        function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
         function refresh() {
             const title = titleEl ? titleEl.value.trim() : '';
@@ -460,21 +392,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (pTitle) pTitle.textContent = title || 'Announcement title';
             if (pContent) pContent.textContent = content || 'Your announcement body will appear here as you type…';
             if (pLen) pLen.textContent = len;
-            if (pType && typeEl) {
-                const opt = typeEl.options[typeEl.selectedIndex];
-                pType.textContent = opt ? opt.textContent : 'General';
-            }
-            if (pPriority && priorityEl) {
-                const val = priorityEl.value;
-                pPriority.className = PRIORITY_BASE + ' ' + (PRIORITY_CLASSES[val] || PRIORITY_CLASSES.normal);
-                pPriority.innerHTML = '<i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> ' + cap(val);
-            }
         }
 
         if (titleEl) titleEl.addEventListener('input', refresh);
         if (contentEl) contentEl.addEventListener('input', refresh);
-        if (typeEl) typeEl.addEventListener('change', refresh);
-        if (priorityEl) priorityEl.addEventListener('change', refresh);
         // 'reset' fires before fields clear; refresh on the next tick.
         if (form) form.addEventListener('reset', function () { setTimeout(refresh, 0); });
         refresh();

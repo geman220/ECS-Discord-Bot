@@ -1,8 +1,8 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert, modal_form %}
 
-{% block admin_title %}Push Campaigns{% endblock %}
-{% block panel_description %}Manage push notification campaigns{% endblock %}
+{% block admin_title %}Push — Scheduled &amp; History{% endblock %}
+{% block panel_description %}Schedule push notifications and track how past sends performed{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
@@ -14,7 +14,7 @@
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Push Campaigns</span>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Push — Scheduled &amp; History</span>
     </div>
 </li>
 {% endblock %}
@@ -46,10 +46,10 @@
 
 <div class="space-y-6">
   {# Primary CTA lives in the header — the page's one job is launching/managing pushes #}
-  {% call page_header('Push Campaigns', subtitle='Communication / Reach') %}
+  {% call page_header('Push — Scheduled & History', subtitle='Schedule a push for later, or review how past sends performed') %}
     <button type="button" data-modal-target="createCampaignModal" data-modal-toggle="createCampaignModal"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-      <i class="ti ti-plus text-sm" aria-hidden="true"></i>New Campaign
+      <i class="ti ti-plus text-sm" aria-hidden="true"></i>New Push
     </button>
   {% endcall %}
 

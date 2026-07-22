@@ -1,0 +1,126 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header %}
+
+{% block admin_title %}Public Site — Add New Page{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <a href="{{ url_for('admin_panel.public_site_pages') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Public Site · Pages</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Add New</span></div></li>
+{% endblock %}
+
+{# ---- Wireframe previews -----------------------------------------------
+   One tiny CSS mockup per template key so a non-technical person can SEE the
+   layout they are picking. Pure divs — matched to build_page_template() in
+   section_converter.py; update both together. ---- #}
+{% macro wire(key) %}
+<div class="h-36 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 overflow-hidden p-1.5 space-y-1 select-none" aria-hidden="true">
+  {% if key == 'info' %}
+    <div class="h-9 rounded bg-ecs-green/80 flex flex-col justify-center px-2 gap-1">
+      <div class="h-1.5 w-16 rounded bg-white/90"></div><div class="h-1 w-24 rounded bg-white/50"></div>
+    </div>
+    <div class="px-6 pt-2 space-y-1">
+      <div class="h-1.5 w-14 rounded bg-gray-400 dark:bg-gray-500"></div>
+      <div class="h-1 w-full rounded bg-gray-300 dark:bg-gray-600"></div>
+      <div class="h-1 w-full rounded bg-gray-300 dark:bg-gray-600"></div>
+      <div class="h-1 w-2/3 rounded bg-gray-300 dark:bg-gray-600"></div>
+    </div>
+  {% elif key == 'landing' %}
+    <div class="h-14 rounded bg-gradient-to-br from-ecs-green to-ecs-green-dark flex flex-col justify-center px-2 gap-1">
+      <div class="h-2 w-20 rounded bg-white/90"></div><div class="h-1 w-28 rounded bg-white/50"></div>
+      <div class="h-2.5 w-10 rounded-full bg-white/90 mt-0.5"></div>
+    </div>
+    <div class="grid grid-cols-3 gap-1">
+      {% for _ in range(3) %}<div class="h-7 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1"><div class="h-1 w-2/3 rounded bg-gray-300 dark:bg-gray-600 mb-0.5"></div><div class="h-1 w-full rounded bg-gray-200 dark:bg-gray-700"></div></div>{% endfor %}
+    </div>
+    <div class="grid grid-cols-2 gap-1">
+      <div class="h-6 rounded bg-gray-300 dark:bg-gray-600 flex items-center justify-center"><i class="ti ti-photo text-[10px] text-gray-400 dark:text-gray-500"></i></div>
+      <div class="space-y-0.5 pt-0.5"><div class="h-1 w-3/4 rounded bg-gray-400 dark:bg-gray-500"></div><div class="h-1 w-full rounded bg-gray-200 dark:bg-gray-700"></div><div class="h-1 w-full rounded bg-gray-200 dark:bg-gray-700"></div></div>
+    </div>
+    <div class="h-5 rounded bg-ecs-green/80 flex items-center justify-center"><div class="h-2 w-10 rounded-full bg-white/90"></div></div>
+  {% elif key == 'program' %}
+    <div class="h-8 rounded bg-ecs-green/80 flex flex-col justify-center px-2 gap-1"><div class="h-1.5 w-16 rounded bg-white/90"></div><div class="h-1 w-20 rounded bg-white/50"></div></div>
+    <div class="grid grid-cols-2 gap-1">
+      <div class="h-8 rounded bg-gray-300 dark:bg-gray-600 flex items-center justify-center"><i class="ti ti-photo text-[10px] text-gray-400 dark:text-gray-500"></i></div>
+      <div class="space-y-0.5 pt-0.5"><div class="h-1 w-2/3 rounded bg-gray-400 dark:bg-gray-500"></div><div class="h-1 w-full rounded bg-gray-200 dark:bg-gray-700"></div><div class="h-1 w-5/6 rounded bg-gray-200 dark:bg-gray-700"></div></div>
+    </div>
+    <div class="rounded bg-gray-100 dark:bg-gray-800 p-1 space-y-0.5">
+      <div class="h-1 w-16 rounded bg-gray-400 dark:bg-gray-500"></div>
+      <div class="h-1 w-full rounded bg-gray-200 dark:bg-gray-700"></div>
+      <div class="h-1 w-full rounded bg-gray-200 dark:bg-gray-700"></div>
+    </div>
+    <div class="h-4 rounded bg-ecs-green/80 flex items-center justify-center"><div class="h-1.5 w-8 rounded-full bg-white/90"></div></div>
+  {% elif key == 'gallery' %}
+    <div class="h-8 rounded bg-ecs-green/80 flex items-center px-2"><div class="h-1.5 w-16 rounded bg-white/90"></div></div>
+    <div class="px-6"><div class="h-1 w-full rounded bg-gray-300 dark:bg-gray-600"></div></div>
+    <div class="grid grid-cols-3 gap-1">
+      {% for _ in range(6) %}<div class="h-8 rounded bg-gray-300 dark:bg-gray-600 flex items-center justify-center"><i class="ti ti-photo text-[10px] text-gray-400 dark:text-gray-500"></i></div>{% endfor %}
+    </div>
+  {% elif key == 'contact' %}
+    <div class="h-8 rounded bg-ecs-green/80 flex items-center px-2"><div class="h-1.5 w-16 rounded bg-white/90"></div></div>
+    <div class="px-8 pt-1 space-y-1">
+      <div class="h-1 w-full rounded bg-gray-300 dark:bg-gray-600"></div>
+      <div class="h-1 w-2/3 rounded bg-gray-300 dark:bg-gray-600"></div>
+      <div class="h-3.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"></div>
+      <div class="h-3.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"></div>
+      <div class="h-6 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"></div>
+      <div class="h-3 w-12 rounded bg-ecs-green/80"></div>
+    </div>
+  {% else %}
+    <div class="h-full rounded border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center">
+      <i class="ti ti-plus text-2xl text-gray-300 dark:text-gray-600"></i>
+    </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% block panel_content %}
+{% set cms_active = 'pages' %}{% include 'admin_panel/public_site/_cms_tabs.html' %}
+{% call page_header("Add New Page", subtitle="Public Site") %}
+  <a href="{{ url_for('admin_panel.public_site_pages') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrow-left"></i> Back to Pages</a>
+{% endcall %}
+
+<form method="POST" action="{{ url_for('admin_panel.public_site_page_create') }}" class="max-w-4xl">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">Pick a starting layout — every choice already matches the site's design, and you can add, remove, or rearrange sections afterwards. Then name your page and hit Create.</p>
+
+  {# ---- Template cards (pure-CSS radio selection, no JS) ---- #}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    {% for t in templates %}
+    <label class="cursor-pointer">
+      <input type="radio" name="template" value="{{ t.key }}" class="peer sr-only" {{ 'checked' if loop.first }}>
+      <div class="rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 h-full transition
+                  hover:border-ecs-green/60
+                  peer-checked:border-ecs-green peer-checked:ring-2 peer-checked:ring-ecs-green/30 peer-checked:shadow-md
+                  peer-checked:[&_.tpl-check]:text-ecs-green
+                  peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green/50">
+        {{ wire(t.key) }}
+        <div class="mt-3 flex items-start gap-2">
+          <i class="tpl-check ti ti-circle-check text-lg leading-none mt-0.5 text-gray-300 dark:text-gray-600 transition"></i>
+          <div>
+            <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ t.label }}</p>
+            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ t.desc }}</p>
+          </div>
+        </div>
+      </div>
+    </label>
+    {% endfor %}
+  </div>
+
+  {# ---- Name + create ---- #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex flex-col sm:flex-row gap-3 sm:items-end">
+    <div class="flex-1">
+      <label for="page-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Page name</label>
+      <input type="text" id="page-title" name="title" required maxlength="120" placeholder="e.g. Sponsors, Summer Cup, Volunteer with us"
+             class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+      <p class="mt-1 text-xs text-gray-400">This becomes the page's headline and its web address — you can change both later.</p>
+    </div>
+    <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-ecs-green px-5 py-2.5 text-sm font-semibold text-white hover:bg-ecs-green-dark">
+      <i class="ti ti-plus"></i> Create page
+    </button>
+  </div>
+  <p class="mt-3 text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-info-circle"></i> The page is created as a <strong>draft</strong> — nobody sees it on the site until you press Publish.</p>
+</form>
+{% endblock %}

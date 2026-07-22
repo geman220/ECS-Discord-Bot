@@ -1,0 +1,498 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header %}
+
+{% block admin_title %}Compose a Message{% endblock %}
+{% block panel_description %}Write once — deliver by app alert, push, email, Discord DM, or SMS. Member preferences are honored automatically.{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Compose</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% set IFIELD = 'w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green' %}
+<div class="space-y-6" id="composer-root">
+
+  {% call page_header('Compose a Message', subtitle='Write once — send everywhere it matters. Each member only gets channels they have turned on.') %}{% endcall %}
+
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <div class="xl:col-span-2 space-y-6">
+
+      <!-- STEP 1: Write -->
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+          <span class="font-mono text-xs font-bold text-ecs-green">01</span>
+          <h2 class="font-semibold text-gray-900 dark:text-white">Write your message</h2>
+        </div>
+        <div class="p-4 sm:p-5 space-y-4">
+          <div>
+            <label for="cm-title" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Title <span class="text-red-500">*</span></label>
+            <input type="text" id="cm-title" maxlength="100" required placeholder="e.g. Fields closed this Sunday" class="{{ IFIELD }}">
+          </div>
+          <div>
+            <label for="cm-message" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Message <span class="text-red-500">*</span></label>
+            <textarea id="cm-message" rows="5" maxlength="1000" required placeholder="Keep it short — this same text goes to every channel." class="{{ IFIELD }}"></textarea>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 flex justify-between"><span>Plain text. Push shows ~150 characters; SMS ~2 segments.</span><span id="cm-charcount" class="font-mono">0 / 1000</span></p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="cm-action-url" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Link (optional)</label>
+              <input type="url" id="cm-action-url" placeholder="https://…" class="{{ IFIELD }}">
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Included in email/SMS; opens on push tap.</p>
+            </div>
+            <div>
+              <label for="cm-priority" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Priority</label>
+              <select id="cm-priority" class="{{ IFIELD }}">
+                <option value="normal" selected>Normal</option>
+                <option value="high">High — time-sensitive</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 2: Channels -->
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+          <span class="font-mono text-xs font-bold text-ecs-green">02</span>
+          <h2 class="font-semibold text-gray-900 dark:text-white">Pick channels</h2>
+          <span class="ml-auto text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">Members who turned a channel off are skipped automatically</span>
+        </div>
+        <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-3" id="cm-channels">
+          {% for ch, icon, label, blurb, default in [
+            ('in_app', 'ti-bell-ringing', 'In-App Alert', 'Notification bell on the website and app', true),
+            ('push', 'ti-device-mobile', 'Push Notification', 'Alert on phones with the ECS app', true),
+            ('email', 'ti-mail', 'Email', 'Individual email from the league', false),
+            ('discord', 'ti-brand-discord', 'Discord DM', 'Direct message from the ECS bot', false),
+            ('sms', 'ti-message', 'SMS', 'Text message — costs money; verified + consented numbers only', false),
+          ] %}
+          <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green cursor-pointer transition-colors">
+            <input type="checkbox" class="cm-channel mt-1 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green" value="{{ ch }}" {% if default %}checked{% endif %}>
+            <span class="min-w-0">
+              <span class="flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white"><i class="ti {{ icon }} text-ecs-green"></i>{{ label }}
+                <span class="cm-reach font-mono text-xs text-gray-400" data-channel="{{ ch }}">—</span>
+              </span>
+              <span class="block text-xs text-gray-500 dark:text-gray-400">{{ blurb }}</span>
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- STEP 3: Audience -->
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+          <span class="font-mono text-xs font-bold text-ecs-green">03</span>
+          <h2 class="font-semibold text-gray-900 dark:text-white">Choose who gets it</h2>
+        </div>
+        <div class="p-4 sm:p-5 space-y-4">
+          <div class="sm:max-w-xs">
+            <label for="cm-audience-type" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Audience</label>
+            <select id="cm-audience-type" class="{{ IFIELD }}">
+              <option value="all_active" selected>Everyone (active members)</option>
+              <option value="league">A league / division</option>
+              <option value="team">A team</option>
+              <option value="role">A role</option>
+              <option value="users">Specific people</option>
+            </select>
+          </div>
+
+          <div id="cm-picker-league" class="hidden">
+            <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Leagues</label>
+            <select id="cm-league-ids" multiple class="{{ IFIELD }} min-h-[100px]">
+              {% for l in leagues %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div id="cm-picker-team" class="hidden">
+            <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Teams</label>
+            <select id="cm-team-ids" multiple class="{{ IFIELD }} min-h-[120px]">
+              {% for t in teams %}<option value="{{ t.id }}">{{ t.name }}{% if t.league %} ({{ t.league.name }}){% endif %}</option>{% endfor %}
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple.</p>
+          </div>
+          <div id="cm-picker-role" class="hidden">
+            <label class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Roles</label>
+            <select id="cm-role-names" multiple class="{{ IFIELD }} min-h-[100px]">
+              {% for r in roles %}<option value="{{ r.name }}">{{ r.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div id="cm-picker-users" class="hidden">
+            <label for="cm-user-search" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Search people</label>
+            <div class="relative">
+              <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+              <input type="text" id="cm-user-search" autocomplete="off" placeholder="Type a name or username…" class="{{ IFIELD }} pl-9">
+              <div id="cm-user-results" class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
+            </div>
+            <div id="cm-user-selected" class="flex flex-wrap gap-2 mt-2"></div>
+          </div>
+
+          <!-- Reach preview -->
+          <div class="rounded-xl border border-ecs-green/30 bg-ecs-green/5 dark:bg-ecs-green/10 p-4">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="ti ti-target text-ecs-green text-lg shrink-0"></i>
+                <p class="text-sm text-gray-700 dark:text-gray-300 truncate">
+                  <span id="cm-reach-desc">Everyone (active members)</span> ·
+                  <span class="font-mono font-bold" id="cm-reach-total">—</span> members
+                </p>
+              </div>
+              <span id="cm-reach-spinner" class="hidden text-gray-400"><i class="ti ti-loader-2 animate-spin"></i></span>
+            </div>
+            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Per-channel counts show next to each channel above. A member counts for a channel only if they have it turned on and can actually be reached there.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Right rail: send + recipient-eye preview -->
+    <div class="space-y-6">
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden lg:sticky lg:top-4">
+        <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+          <i class="ti ti-rocket text-ecs-green"></i>
+          <h2 class="font-semibold text-gray-900 dark:text-white">Send</h2>
+        </div>
+        <div class="p-4 sm:p-5 space-y-4">
+          <div>
+            <label for="cm-schedule" class="block mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Schedule for later <span class="normal-case font-normal text-gray-400">(optional, PST)</span></label>
+            <input type="datetime-local" id="cm-schedule" class="{{ IFIELD }} font-mono">
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave blank to send immediately.</p>
+          </div>
+          <button type="button" id="cm-send-btn"
+                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-send"></i> <span id="cm-send-label">Send Message</span>
+          </button>
+          <p class="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+            <i class="ti ti-shield-check mt-0.5 shrink-0 text-ecs-green"></i>
+            <span>Every send respects each member's notification preferences. SMS only goes to verified numbers that opted in.</span>
+          </p>
+        </div>
+      </section>
+
+      <!-- Phone-style push preview -->
+      <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center justify-between px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white"><i class="ti ti-eye text-ecs-green"></i> Preview</h2>
+          <span class="text-[11px] uppercase tracking-wide text-gray-400">what members see</span>
+        </div>
+        <div class="p-4 sm:p-5 space-y-4">
+          <div>
+            <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-1.5">Push / in-app</p>
+            <div class="rounded-xl bg-gray-900 p-3">
+              <div class="rounded-lg bg-gray-800 p-3 flex gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-ecs-green flex items-center justify-center text-white text-xs font-bold shrink-0">ECS</div>
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-white truncate" id="cm-prev-title">Title appears here</p>
+                  <p class="text-xs text-gray-300 line-clamp-3" id="cm-prev-body">Your message appears here as you type…</p>
+                  <p class="text-[10px] text-gray-500 mt-1">ECS FC · now</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p class="text-[11px] uppercase tracking-wide text-gray-400 mb-1.5">Discord DM</p>
+            <div class="rounded-lg bg-[#313338] p-3 flex gap-2.5">
+              <div class="w-8 h-8 rounded-full bg-ecs-green flex items-center justify-center text-white text-xs font-bold shrink-0">ECS</div>
+              <div class="min-w-0">
+                <p class="text-xs"><span class="font-semibold text-white">ECS Bot</span> <span class="ml-1 px-1 rounded bg-indigo-500 text-white text-[9px] uppercase">App</span></p>
+                <p class="text-xs text-gray-200 mt-0.5"><span class="font-semibold" id="cm-prev-d-title">Title appears here</span></p>
+                <p class="text-xs text-gray-300 line-clamp-3" id="cm-prev-d-body">Your message appears here as you type…</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- History -->
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-history text-ecs-green"></i>
+      <h2 class="font-semibold text-gray-900 dark:text-white">Recent messages</h2>
+    </div>
+    {% if history %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+          <tr>
+            <th class="px-4 py-3">Message</th>
+            <th class="px-4 py-3 hidden md:table-cell">Channels</th>
+            <th class="px-4 py-3 hidden md:table-cell">Audience</th>
+            <th class="px-4 py-3 hidden md:table-cell">Reached</th>
+            <th class="px-4 py-3">Status</th>
+            <th class="px-4 py-3">When</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in history %}
+          <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td class="px-4 py-3">
+              <div class="font-medium text-gray-900 dark:text-white">{{ m.title }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">{{ m.message[:80] }}{% if m.message|length > 80 %}…{% endif %}</div>
+            </td>
+            <td class="px-4 py-3 hidden md:table-cell">
+              <div class="flex gap-1.5 text-gray-400">
+                {% set ch_icons = {'in_app': 'ti-bell-ringing', 'push': 'ti-device-mobile', 'email': 'ti-mail', 'discord': 'ti-brand-discord', 'sms': 'ti-message'} %}
+                {% for ch in m.channels or [] %}<i class="ti {{ ch_icons.get(ch, 'ti-send') }}" title="{{ ch }}"></i>{% endfor %}
+              </div>
+            </td>
+            <td class="px-4 py-3 hidden md:table-cell text-xs">{{ m.audience_description or m.audience_type }}</td>
+            <td class="px-4 py-3 hidden md:table-cell font-mono text-xs">
+              {% if m.results %}
+                {% set delivered = (m.results.get('push', {}).get('success', 0)) + (m.results.get('email', {}).get('success', 0)) + (m.results.get('sms', {}).get('success', 0)) + (m.results.get('discord', {}).get('success', 0)) + (m.results.get('in_app', {}).get('created', 0)) %}
+                {{ delivered }} deliveries / {{ m.total_recipients }} members
+              {% else %}
+                {{ m.total_recipients }} members
+              {% endif %}
+            </td>
+            <td class="px-4 py-3">
+              {% if m.status == 'scheduled' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300" {% if m.scheduled_send_time %}title="Sends {{ m.scheduled_send_time.strftime('%b %d %H:%M') }} UTC"{% endif %}>Scheduled</span>
+              <button type="button" class="cm-cancel ml-1 text-xs text-red-600 dark:text-red-400 hover:underline" data-cancel-url="{{ url_for('admin_panel.composer_cancel', message_id=m.id) }}">cancel</button>
+              {% elif m.status == 'sending' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-loader animate-spin mr-1"></i>Sending</span>
+              {% elif m.status == 'sent' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Sent</span>
+              {% elif m.status == 'partially_sent' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Partial</span>
+              {% elif m.status == 'failed' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" {% if m.error_message %}title="{{ m.error_message }}"{% endif %}>Failed</span>
+              {% else %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">{{ m.status|title }}</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-xs font-mono">{{ m.created_at.strftime('%b %d %H:%M') if m.created_at else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-8 text-center text-gray-500 dark:text-gray-400">
+      <i class="ti ti-message-off text-3xl mb-2"></i>
+      <p class="text-sm">Nothing sent from the composer yet. Your history will appear here.</p>
+    </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const isDark = document.documentElement.classList.contains('dark');
+    const CSRF = '{{ csrf_token() }}';
+
+    const escapeHtml = (s) => String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+    // ---- live text preview -------------------------------------------------
+    const titleEl = document.getElementById('cm-title');
+    const msgEl = document.getElementById('cm-message');
+    function refreshPreview() {
+        const t = titleEl.value.trim() || 'Title appears here';
+        const b = msgEl.value.trim() || 'Your message appears here as you type…';
+        document.getElementById('cm-prev-title').textContent = t;
+        document.getElementById('cm-prev-body').textContent = b;
+        document.getElementById('cm-prev-d-title').textContent = t;
+        document.getElementById('cm-prev-d-body').textContent = b;
+        document.getElementById('cm-charcount').textContent = msgEl.value.length + ' / 1000';
+    }
+    titleEl.addEventListener('input', refreshPreview);
+    msgEl.addEventListener('input', refreshPreview);
+    refreshPreview();
+
+    // ---- audience pickers --------------------------------------------------
+    const audienceType = document.getElementById('cm-audience-type');
+    const pickers = { league: 'cm-picker-league', team: 'cm-picker-team', role: 'cm-picker-role', users: 'cm-picker-users' };
+    function audienceIds() {
+        const multi = (id) => Array.from(document.getElementById(id).selectedOptions).map(o => o.value);
+        switch (audienceType.value) {
+            case 'league': return multi('cm-league-ids').map(Number);
+            case 'team': return multi('cm-team-ids').map(Number);
+            case 'role': return multi('cm-role-names');
+            case 'users':
+                return Array.from(document.querySelectorAll('#cm-user-selected input')).map(i => Number(i.value));
+            default: return [];
+        }
+    }
+    audienceType.addEventListener('change', function () {
+        Object.values(pickers).forEach(id => document.getElementById(id).classList.add('hidden'));
+        if (pickers[this.value]) document.getElementById(pickers[this.value]).classList.remove('hidden');
+        refreshReach();
+    });
+    ['cm-league-ids', 'cm-team-ids', 'cm-role-names'].forEach(id =>
+        document.getElementById(id).addEventListener('change', refreshReach));
+
+    // ---- user typeahead ----------------------------------------------------
+    const uInput = document.getElementById('cm-user-search');
+    const uResults = document.getElementById('cm-user-results');
+    const uSelected = document.getElementById('cm-user-selected');
+    let uTimer = null, uLast = '';
+    uInput.addEventListener('input', function () {
+        const q = this.value.trim();
+        clearTimeout(uTimer);
+        if (q.length < 2) { uResults.classList.add('hidden'); return; }
+        uTimer = setTimeout(async () => {
+            uLast = q;
+            try {
+                const resp = await fetch(`{{ url_for('admin_panel.composer_search_users') }}?q=${encodeURIComponent(q)}`,
+                                         { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const data = await resp.json();
+                if (q !== uLast) return;
+                const users = data.users || [];
+                uResults.innerHTML = users.length
+                    ? users.map(u => `<button type="button" data-id="${Number(u.id)}" data-name="${escapeHtml(u.name)}" class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">${escapeHtml(u.name)} <span class="text-xs text-gray-400">@${escapeHtml(u.username)}</span></button>`).join('')
+                    : '<div class="px-3 py-2 text-sm text-gray-500">No matches.</div>';
+                uResults.classList.remove('hidden');
+            } catch (e) { uResults.classList.add('hidden'); }
+        }, 250);
+    });
+    uResults.addEventListener('click', function (e) {
+        const btn = e.target.closest('button[data-id]');
+        if (!btn) return;
+        if (!uSelected.querySelector(`input[value="${btn.dataset.id}"]`)) {
+            const chip = document.createElement('span');
+            chip.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20';
+            chip.innerHTML = `${escapeHtml(btn.dataset.name)}<button type="button" class="hover:text-red-600" aria-label="Remove"><i class="ti ti-x text-[11px]"></i></button><input type="hidden" value="${Number(btn.dataset.id)}">`;
+            chip.querySelector('button').addEventListener('click', () => { chip.remove(); refreshReach(); });
+            uSelected.appendChild(chip);
+        }
+        uInput.value = '';
+        uResults.classList.add('hidden');
+        refreshReach();
+    });
+    document.addEventListener('click', function (e) {
+        if (!uResults.contains(e.target) && e.target !== uInput) uResults.classList.add('hidden');
+    });
+
+    // ---- reach preview -----------------------------------------------------
+    let reachTimer = null;
+    let reachSeq = 0;
+    function refreshReach() {
+        clearTimeout(reachTimer);
+        reachTimer = setTimeout(async () => {
+            const seq = ++reachSeq;
+            document.getElementById('cm-reach-spinner').classList.remove('hidden');
+            try {
+                const resp = await fetch('{{ url_for('admin_panel.composer_preview') }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                    body: JSON.stringify({ audience_type: audienceType.value, audience_ids: audienceIds() })
+                });
+                const data = await resp.json();
+                if (seq !== reachSeq) return;  // a newer preview superseded this one
+                if (data.success) {
+                    document.getElementById('cm-reach-total').textContent = data.reach.total;
+                    document.getElementById('cm-reach-desc').textContent = data.description;
+                    document.querySelectorAll('.cm-reach').forEach(el => {
+                        const n = data.reach[el.dataset.channel];
+                        el.textContent = (n === undefined) ? '—' : `(${n})`;
+                    });
+                }
+            } catch (e) { /* leave stale numbers */ }
+            document.getElementById('cm-reach-spinner').classList.add('hidden');
+        }, 300);
+    }
+    refreshReach();
+
+    // ---- schedule label ----------------------------------------------------
+    const scheduleEl = document.getElementById('cm-schedule');
+    scheduleEl.addEventListener('input', function () {
+        document.getElementById('cm-send-label').textContent = this.value ? 'Schedule Message' : 'Send Message';
+    });
+
+    // ---- history cancel ----------------------------------------------------
+    document.querySelectorAll('.cm-cancel').forEach(btn => btn.addEventListener('click', function () {
+        const cancelUrl = this.dataset.cancelUrl;
+        Swal.fire({
+            title: 'Cancel this scheduled message?', icon: 'warning', showCancelButton: true,
+            confirmButtonText: 'Yes, cancel it', confirmButtonColor: '#dc2626',
+            background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+        }).then(res => {
+            if (!res.isConfirmed) return;
+            fetch(cancelUrl, {
+                method: 'POST', headers: { 'X-CSRFToken': CSRF }
+            }).then(r => r.json()).then(data => {
+                if (data.success) window.location.reload();
+                else Swal.fire('Error', data.error || 'Could not cancel.', 'error');
+            });
+        });
+    }));
+
+    // ---- send --------------------------------------------------------------
+    document.getElementById('cm-send-btn').addEventListener('click', async function () {
+        const btn = this;
+        const channels = Array.from(document.querySelectorAll('.cm-channel:checked')).map(c => c.value);
+        const payload = {
+            title: titleEl.value.trim(),
+            message: msgEl.value.trim(),
+            channels: channels,
+            audience_type: audienceType.value,
+            audience_ids: audienceIds(),
+            action_url: document.getElementById('cm-action-url').value.trim(),
+            priority: document.getElementById('cm-priority').value,
+            scheduled_send_time: scheduleEl.value,
+        };
+        if (!payload.title || !payload.message) {
+            Swal.fire({ icon: 'error', title: 'Missing fields', text: 'Title and message are required.',
+                        background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            return;
+        }
+        if (!channels.length) {
+            Swal.fire({ icon: 'error', title: 'No channels', text: 'Pick at least one channel.',
+                        background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            return;
+        }
+        const total = document.getElementById('cm-reach-total').textContent;
+        const confirm = await Swal.fire({
+            title: scheduleEl.value ? 'Schedule this message?' : 'Send this message?',
+            html: `<strong>${escapeHtml(payload.title)}</strong><br>` +
+                  `to <strong>${escapeHtml(document.getElementById('cm-reach-desc').textContent)}</strong> (${escapeHtml(total)} members)<br>` +
+                  `via ${channels.map(escapeHtml).join(', ')}` +
+                  (scheduleEl.value ? `<br>at <strong>${escapeHtml(scheduleEl.value.replace('T', ' '))} PST</strong>` : ''),
+            icon: 'question', showCancelButton: true,
+            confirmButtonText: scheduleEl.value ? 'Schedule' : 'Send',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+        });
+        if (!confirm.isConfirmed) return;
+
+        btn.disabled = true;
+        try {
+            const resp = await fetch('{{ url_for('admin_panel.composer_send') }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (data.success) {
+                await Swal.fire({ icon: 'success', title: data.scheduled ? 'Scheduled' : 'Sending',
+                                  text: data.status_message,
+                                  background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                window.location.reload();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.error || 'Send failed.',
+                            background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            }
+        } catch (e) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Network error.',
+                        background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+        }
+        btn.disabled = false;
+    });
+});
+</script>
+{% endblock %}

@@ -578,6 +578,15 @@ def public_site_appearance():
         'news_discord_channel_id': g_('public_news_discord_channel_id', None),
         'ecs_member_login_url': g_('ecs_member_login_url',
                                    '{shop}/wp-login.php?redirect_to={redirect}'),
+        # Dynamic-page copy (news/calendar banners + calendar footer CTA).
+        # Stored empty = use the shipped default (shown as the placeholder);
+        # consumers fall back in public_site.py's _dynamic_copy().
+        'news_hero_title': g_('public_news_hero_title', None),
+        'news_hero_subtitle': g_('public_news_hero_subtitle', None),
+        'calendar_hero_title': g_('public_calendar_hero_title', None),
+        'calendar_hero_subtitle': g_('public_calendar_hero_subtitle', None),
+        'calendar_cta_heading': g_('public_calendar_cta_heading', None),
+        'calendar_cta_body': g_('public_calendar_cta_body', None),
     }
     return render_template('admin_panel/public_site/appearance_flowbite.html',
                            settings=settings, font_pairs=FONT_PAIRS)
@@ -649,6 +658,17 @@ def public_site_appearance_save():
         flash('Member login URL must contain {redirect} — reset to the default.', 'warning')
         member_login = _MEMBER_LOGIN_DEFAULT
     set_('ecs_member_login_url', member_login)
+
+    # Dynamic-page copy: plain text (Jinja autoescapes on render), length-capped,
+    # empty stored as None so the shipped defaults keep applying.
+    for form_key, cfg_key, cap in (
+            ('news_hero_title', 'public_news_hero_title', 80),
+            ('news_hero_subtitle', 'public_news_hero_subtitle', 200),
+            ('calendar_hero_title', 'public_calendar_hero_title', 80),
+            ('calendar_hero_subtitle', 'public_calendar_hero_subtitle', 200),
+            ('calendar_cta_heading', 'public_calendar_cta_heading', 80),
+            ('calendar_cta_body', 'public_calendar_cta_body', 300)):
+        set_(cfg_key, (request.form.get(form_key) or '').strip()[:cap] or None)
 
     flash('Appearance saved — your colors and fonts are live across the site.', 'success')
     _bump_public()
@@ -729,16 +749,29 @@ def public_site_page_delete(page_id):
     return redirect(url_for('admin_panel.public_site_pages', view='trash'))
 
 
+@admin_panel_bp.route('/public-site/pages/new')
+@login_required
+@role_required(_ROLES)
+def public_site_page_new():
+    """Squarespace-style 'Add New Page' picker: choose a starter template
+    (with a wireframe preview), name the page, create."""
+    from app.services.section_converter import PAGE_TEMPLATES
+    return render_template('admin_panel/public_site/page_new_flowbite.html',
+                           templates=PAGE_TEMPLATES)
+
+
 @admin_panel_bp.route('/public-site/pages/create', methods=['POST'])
 @login_required
 @role_required(_ROLES)
 @transactional
 def public_site_page_create():
-    """WordPress-style 'Add New Page' — create then open the builder."""
+    """'Add New Page' — create from the chosen starter template, then open the
+    builder. The skeleton runs through validate_sections like every other save,
+    so a template can never seed an out-of-vocabulary document."""
     title = (request.form.get('title') or '').strip()
     if not title:
         flash('Enter a page title.', 'error')
-        return redirect(url_for('admin_panel.public_site_pages'))
+        return redirect(url_for('admin_panel.public_site_page_new'))
     reserved = set(_BLOCK_SLUGS) | {'about', 'guide', 'guests', 'home', 'news',
                                     'faqs', 'calendar', 'register', 'contact'}
     base = slugify(request.form.get('slug') or title)
@@ -746,13 +779,20 @@ def public_site_page_create():
     while slug in reserved or g.db_session.query(SitePage).filter_by(slug=slug).first():
         slug = f'{base}-{n}'
         n += 1
-    # New pages start as an empty draft in the section model and open straight
-    # in the in-place editor (no legacy body_html placeholder).
-    page = SitePage(slug=slug, title=title, status='draft',
-                    sections_draft={'v': 1, 'sections': []})
+    from app.services.section_converter import build_page_template
+    from app.services.section_schema import validate_sections
+    try:
+        doc, _notes = validate_sections(
+            {'v': 1, 'sections': build_page_template(
+                (request.form.get('template') or 'blank').strip(), title)},
+            is_admin=False)
+    except Exception:
+        logger.exception('page template build failed — falling back to blank')
+        doc = {'v': 1, 'sections': []}
+    page = SitePage(slug=slug, title=title, status='draft', sections_draft=doc)
     g.db_session.add(page)
     g.db_session.flush()
-    flash('Draft page created — add your first section, then Publish when ready.',
+    flash('Draft page created — click any text to edit it, then Publish when ready.',
           'success')
     return redirect(url_for('admin_panel.site_editor', page_id=page.id))
 

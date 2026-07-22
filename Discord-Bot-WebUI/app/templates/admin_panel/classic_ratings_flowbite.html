@@ -1,0 +1,329 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Classic Ratings{% endblock %}
+{% block panel_description %}Blind coach ratings — compiled averages, overrides, and completion{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="inline-flex items-center"><span class="text-sm text-gray-500 dark:text-gray-400">Classic Ratings</span></li>
+{% endblock %}
+
+{% block panel_content %}
+<div id="classic-ratings-admin-root" class="space-y-5"
+     data-override-url="{{ url_for('admin_panel.classic_ratings_override') }}"
+     data-window-url="{{ url_for('admin_panel.classic_ratings_window') }}"
+     data-config-url="{{ url_for('admin_panel.classic_ratings_config') }}"
+     data-metrics-url="{{ url_for('admin_panel.classic_ratings_metrics') }}"
+     data-gender-url-template="{{ url_for('admin_panel.classic_ratings_gender', player_id=999999) }}">
+
+    <!-- Header row: season + window toggle + links -->
+    <div class="flex items-center gap-3 flex-wrap">
+        {% if season_name %}<span class="text-sm text-gray-500 dark:text-gray-400">Season: <span class="font-medium text-gray-900 dark:text-white">{{ season_name }}</span></span>{% endif %}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium {{ 'bg-ecs-green/10 text-ecs-green' if config.window_open else 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' }}">
+            <i class="ti {{ 'ti-lock-open' if config.window_open else 'ti-lock' }}"></i>
+            Rating window {{ 'OPEN' if config.window_open else 'CLOSED' }}
+        </span>
+        <button type="button" data-action="ratings-toggle-window" data-open="{{ '0' if config.window_open else '1' }}"
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg {{ 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-200' if config.window_open else 'bg-ecs-green text-white hover:bg-ecs-green/90' }}">
+            {{ 'Close window' if config.window_open else 'Open window' }}
+        </button>
+        <div class="ml-auto flex items-center gap-2">
+            <a href="{{ url_for('admin_panel.classic_ratings_analytics') }}"
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <i class="ti ti-chart-line"></i>Analytics
+            </a>
+            <button type="button" data-modal-target="cr-metrics-modal" data-modal-toggle="cr-metrics-modal"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <i class="ti ti-book-2"></i>Metric guide
+            </button>
+            <button type="button" data-modal-target="cr-config-modal" data-modal-toggle="cr-config-modal"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <i class="ti ti-adjustments"></i>Configure
+            </button>
+        </div>
+    </div>
+
+    <!-- Coach completion strip -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {% for coach in progress %}
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ coach.name }}</span>
+                <span class="text-xs font-mono text-gray-500 dark:text-gray-400 shrink-0">{{ coach.complete }}/{{ coach.total }}</span>
+            </div>
+            <div class="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div class="h-2 bg-ecs-green rounded-full" style="width: {{ ((coach.complete / coach.total * 100)|round(1)) if coach.total else 0 }}%"></div>
+            </div>
+            <div class="mt-1 flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500">
+                <span>{% if coach.partial %}{{ coach.partial }} in progress{% endif %}</span>
+                <span>{% if coach.last_activity %}active {{ coach.last_activity[:10] }}{% else %}no activity{% endif %}</span>
+            </div>
+        </div>
+        {% else %}
+        <div class="sm:col-span-2 lg:col-span-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-500 dark:text-gray-400">
+            No Classic Coaches found — assign the 'Classic Coach' role at Seasons → Coaches.
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Player table -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+        <div class="p-3 flex items-center gap-2 flex-wrap border-b border-gray-200 dark:border-gray-700">
+            <div class="relative flex-1 min-w-[180px]">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="ti ti-search text-sm"></i></span>
+                <input type="text" id="cr-table-search" data-on-input="ratings-table-filter" placeholder="Filter players…" autocomplete="off"
+                       class="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+            </div>
+            <select id="cr-table-show" data-on-change="ratings-table-filter"
+                    class="py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+                <option value="">All players</option>
+                <option value="overridden">With overrides</option>
+                <option value="incomplete">Not fully rated</option>
+            </select>
+            <span id="cr-table-count" class="text-xs text-gray-500 dark:text-gray-400 ml-auto"></span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+                <thead class="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/40">
+                    <tr>
+                        <th class="px-3 py-2">Player</th>
+                        <th class="px-2 py-2 text-right">Int</th>
+                        <th class="px-2 py-2 text-right">Skl</th>
+                        <th class="px-2 py-2 text-right hidden sm:table-cell">Spr</th>
+                        <th class="px-2 py-2 text-right hidden md:table-cell">Knw</th>
+                        <th class="px-2 py-2 text-right">Comp</th>
+                        <th class="px-2 py-2 text-right hidden md:table-cell">Raters</th>
+                        <th class="px-2 py-2 text-center hidden sm:table-cell">M/F</th>
+                        <th class="px-2 py-2 text-center">⚑</th>
+                        <th class="px-2 py-2"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for p in players %}
+                    {% set metric_keys = ['intensity', 'on_ball_skill', 'spirit', 'knowledge_movement'] %}
+                    <tr class="cr-row" data-player-id="{{ p.id }}" data-name="{{ p.name|lower }}"
+                        data-overridden="{{ '1' if p.has_override else '0' }}" data-rated="{{ '1' if p.is_rated else '0' }}">
+                        <td class="px-3 py-2">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <img class="w-7 h-7 rounded-full object-cover shrink-0 {{ '' if p.avatar_url else 'hidden' }}"
+                                     {% if p.avatar_url %}src="{{ p.avatar_url }}"{% endif %} alt="" loading="lazy" onerror="this.classList.add('hidden')">
+                                <div class="min-w-0">
+                                    <div class="font-medium text-gray-900 dark:text-white truncate">{{ p.name }}</div>
+                                    <div class="text-[11px] text-gray-400">{{ 'NEW' if p.is_new else 'Returning' }}{% if p.team_name %} · {{ p.team_name }}{% endif %}</div>
+                                </div>
+                            </div>
+                        </td>
+                        {% for key, cls in [('intensity',''), ('on_ball_skill',''), ('spirit','hidden sm:table-cell'), ('knowledge_movement','hidden md:table-cell')] %}
+                        {% set f = p.final[key] %}
+                        <td class="px-2 py-2 text-right font-mono {{ cls }} cr-cell" data-metric="{{ key }}">
+                            {% if f.value is not none %}
+                                <span class="{{ 'text-amber-600 dark:text-amber-400 font-semibold' if f.overridden else 'text-gray-900 dark:text-white' }}"
+                                      {% if f.overridden %}title="Admin override — average was {{ '%.2f'|format(f.avg) if f.avg is not none else '—' }}"{% endif %}>
+                                    {{ '%.2f'|format(f.value) }}{% if f.overridden %}<i class="ti ti-pencil text-[10px] ml-0.5"></i>{% endif %}
+                                </span>
+                            {% else %}<span class="text-gray-300 dark:text-gray-600">—</span>{% endif %}
+                        </td>
+                        {% endfor %}
+                        <td class="px-2 py-2 text-right font-mono font-semibold cr-composite {{ 'text-ecs-green' if p.composite is not none else 'text-gray-300 dark:text-gray-600' }}">
+                            {{ '%.2f'|format(p.composite) if p.composite is not none else '—' }}
+                        </td>
+                        <td class="px-2 py-2 text-right text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ p.coach_ratings|length }}</td>
+                        <td class="px-2 py-2 text-center hidden sm:table-cell">
+                            <select data-on-change="ratings-set-gender" data-player-id="{{ p.id }}"
+                                    class="py-1 pl-2 pr-6 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200">
+                                <option value="" {{ 'selected' if not p.balance_gender }}>auto</option>
+                                <option value="M" {{ 'selected' if p.balance_gender == 'M' }}>M</option>
+                                <option value="F" {{ 'selected' if p.balance_gender == 'F' }}>F</option>
+                                <option value="X" {{ 'selected' if p.balance_gender == 'X' }}>X</option>
+                            </select>
+                        </td>
+                        <td class="px-2 py-2 text-center cr-flag">{% if p.has_override %}<span class="inline-block w-2 h-2 rounded-full bg-amber-400" title="Has admin override"></span>{% endif %}</td>
+                        <td class="px-2 py-2 text-right">
+                            <button type="button" data-action="ratings-toggle-player-detail"
+                                    class="p-1.5 rounded-lg text-gray-400 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-chevron-down cr-detail-chevron transition-transform"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="cr-detail hidden bg-gray-50 dark:bg-gray-900/40" data-player-id="{{ p.id }}">
+                        <td colspan="10" class="px-3 sm:px-6 py-4">
+                            <div class="overflow-x-auto">
+                                <table class="text-xs font-mono min-w-[420px]">
+                                    <thead>
+                                        <tr class="text-gray-400 dark:text-gray-500">
+                                            <th class="text-left pr-4 py-1 font-sans font-medium">Rater</th>
+                                            <th class="text-right px-3 py-1 font-sans font-medium">Intensity</th>
+                                            <th class="text-right px-3 py-1 font-sans font-medium">On-Ball</th>
+                                            <th class="text-right px-3 py-1 font-sans font-medium">Spirit</th>
+                                            <th class="text-right px-3 py-1 font-sans font-medium">Knowledge</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-gray-700 dark:text-gray-200">
+                                        {% for rater_id, rating in p.coach_ratings.items() %}
+                                        <tr>
+                                            <td class="pr-4 py-1 font-sans">{{ raters[rater_id].name if rater_id in raters else 'User ' ~ rater_id }}</td>
+                                            {% for key in metric_keys %}
+                                            <td class="text-right px-3 py-1">{{ '%.2f'|format(rating[key]) if rating[key] is not none else '—' }}</td>
+                                            {% endfor %}
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="5" class="py-1 text-gray-400 font-sans">No coach ratings yet.</td></tr>
+                                        {% endfor %}
+                                        <tr class="border-t border-gray-200 dark:border-gray-700 font-semibold">
+                                            <td class="pr-4 py-1 font-sans">Average</td>
+                                            {% for key in metric_keys %}
+                                            <td class="text-right px-3 py-1">{{ '%.2f'|format(p.final[key].avg) if p.final[key].avg is not none else '—' }}</td>
+                                            {% endfor %}
+                                        </tr>
+                                        <tr>
+                                            <td class="pr-4 py-2 font-sans text-amber-600 dark:text-amber-400 font-semibold">Override</td>
+                                            {% for key in metric_keys %}
+                                            <td class="text-right px-3 py-2">
+                                                <input type="number" min="1" max="5" step="0.25"
+                                                       value="{{ '%.2f'|format(p.final[key].value) if p.final[key].overridden else '' }}"
+                                                       placeholder="—" data-metric="{{ key }}" data-player-id="{{ p.id }}"
+                                                       data-overridden="{{ '1' if p.final[key].overridden else '0' }}"
+                                                       class="cr-override-input w-16 py-1 px-1.5 text-right text-xs rounded border {{ 'border-amber-400 ring-1 ring-amber-300' if p.final[key].overridden else 'border-gray-200 dark:border-gray-600' }} bg-white dark:bg-gray-900">
+                                            </td>
+                                            {% endfor %}
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-3 flex items-center gap-2 flex-wrap">
+                                <input type="text" placeholder="Override reason (optional)" data-player-id="{{ p.id }}"
+                                       class="cr-override-reason flex-1 min-w-[200px] py-1.5 px-3 text-xs rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+                                <button type="button" data-action="ratings-override-save" data-player-id="{{ p.id }}"
+                                        class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 text-white hover:bg-amber-600">Save overrides</button>
+                                <span class="text-[11px] text-gray-400">Blank a field and save to revert that metric to the coach average.</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Metric guide editor modal -->
+<div id="cr-metrics-modal" tabindex="-1" aria-hidden="true"
+     class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-xl shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 rounded-t">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white">Edit metric guide text</h3>
+                <button type="button" data-modal-hide="cr-metrics-modal" class="text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg p-1.5"><i class="ti ti-x"></i></button>
+            </div>
+            <div class="p-4 space-y-3 text-sm">
+                <select id="cr-metric-picker" data-on-change="ratings-metric-pick"
+                        class="w-full py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+                    {% for m in metrics %}<option value="{{ m.key }}">{{ m.label }} ({{ m.weight|round|int }}%)</option>{% endfor %}
+                </select>
+                {% for m in metrics %}
+                <div class="cr-metric-form {{ 'hidden' if not loop.first }} space-y-2" data-metric="{{ m.key }}">
+                    <label class="block text-xs text-gray-600 dark:text-gray-300">Label
+                        <input type="text" name="label" value="{{ m.label }}"
+                               class="mt-1 w-full py-1.5 px-2 text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                    </label>
+                    <label class="block text-xs text-gray-600 dark:text-gray-300">Description
+                        <textarea name="description" rows="3"
+                                  class="mt-1 w-full py-1.5 px-2 text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">{{ m.description }}</textarea>
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <label class="block text-xs text-gray-600 dark:text-gray-300">Scale anchor 1
+                            <textarea name="anchor_1" rows="4" class="mt-1 w-full py-1.5 px-2 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">{{ m.anchor_1 }}</textarea>
+                        </label>
+                        <label class="block text-xs text-gray-600 dark:text-gray-300">Scale anchor 3
+                            <textarea name="anchor_3" rows="4" class="mt-1 w-full py-1.5 px-2 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">{{ m.anchor_3 }}</textarea>
+                        </label>
+                        <label class="block text-xs text-gray-600 dark:text-gray-300">Scale anchor 5
+                            <textarea name="anchor_5" rows="4" class="mt-1 w-full py-1.5 px-2 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">{{ m.anchor_5 }}</textarea>
+                        </label>
+                    </div>
+                </div>
+                {% endfor %}
+                <p class="text-[11px] text-gray-400">Weights are edited under Configure — this modal is wording only. Changes appear on the rating screen immediately.</p>
+                <div class="flex justify-end gap-2 pt-2 border-t dark:border-gray-700">
+                    <button type="button" data-modal-hide="cr-metrics-modal" class="px-3 py-1.5 text-xs rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Close</button>
+                    <button type="button" data-action="ratings-metric-save"
+                            class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">Save this metric</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Config modal -->
+<div id="cr-config-modal" tabindex="-1" aria-hidden="true"
+     class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-lg max-h-full">
+        <div class="relative bg-white rounded-xl shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 rounded-t">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white">Classic rating configuration</h3>
+                <button type="button" data-modal-hide="cr-config-modal" class="text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg p-1.5"><i class="ti ti-x"></i></button>
+            </div>
+            <form id="cr-config-form" class="p-4 space-y-4 text-sm">
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-medium text-gray-900 dark:text-white">Metric weights (%)</span>
+                        <span id="cr-weight-sum" class="text-xs font-mono text-gray-500">100</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        {% for m in metrics %}
+                        <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                            <span class="flex-1 truncate">{{ m.label }}</span>
+                            <input type="number" min="0" max="100" step="0.5" name="weight_{{ m.key }}" value="{{ weights[m.key] }}"
+                                   class="cr-weight w-16 py-1 px-1.5 text-right rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <p class="mt-1 text-[11px] text-gray-400">Must sum to exactly 100.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="text-xs text-gray-600 dark:text-gray-300">Max per-metric team gap
+                        <input type="number" min="0" max="100" step="0.25" name="max_metric_gap" value="{{ config.max_metric_gap }}"
+                               class="mt-1 w-full py-1.5 px-2 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                    </label>
+                    <label class="text-xs text-gray-600 dark:text-gray-300">Unrated player default
+                        <input type="number" min="1" max="5" step="0.25" name="unrated_default" value="{{ config.unrated_default }}"
+                               class="mt-1 w-full py-1.5 px-2 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                    </label>
+                    <label class="text-xs text-gray-600 dark:text-gray-300">Suggestions shown
+                        <input type="number" min="1" max="50" step="1" name="suggestion_count" value="{{ config.suggestion_count }}"
+                               class="mt-1 w-full py-1.5 px-2 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                    </label>
+                    <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 mt-5">
+                        <input type="checkbox" name="gender_balance_enabled" {{ 'checked' if config.gender_balance_enabled }}
+                               class="w-4 h-4 rounded text-ecs-green focus:ring-ecs-green">
+                        Factor M/F balance
+                    </label>
+                    <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 col-span-2">
+                        <input type="checkbox" name="balanced_draft_enabled" {{ 'checked' if config.balanced_draft_enabled }}
+                               class="w-4 h-4 rounded text-ecs-green focus:ring-ecs-green">
+                        Serve the balanced-draft UI at /draft/classic (off = legacy draft)
+                    </label>
+                </div>
+                <details class="group">
+                    <summary class="text-xs font-medium text-gray-500 cursor-pointer select-none">Advanced: suggestion coefficients</summary>
+                    <div class="mt-2 grid grid-cols-2 gap-2">
+                        {% for key, label in [('balance','Balance'), ('need','Team need'), ('gender','Gender'), ('position','Position')] %}
+                        <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                            <span class="flex-1">{{ label }}</span>
+                            <input type="number" min="0" max="10" step="0.05" name="coeff_{{ key }}" value="{{ config.suggestion_coefficients[key] }}"
+                                   class="w-16 py-1 px-1.5 text-right rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                        </label>
+                        {% endfor %}
+                    </div>
+                </details>
+                <p class="text-[11px] text-gray-400">Changes take effect on the next board refresh — safe mid-draft (balance is advisory).</p>
+                <div class="flex justify-end gap-2 pt-2 border-t dark:border-gray-700">
+                    <button type="button" data-modal-hide="cr-config-modal" class="px-3 py-1.5 text-xs rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancel</button>
+                    <button type="submit" class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">Save configuration</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

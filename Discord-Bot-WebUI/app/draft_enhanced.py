@@ -18,6 +18,7 @@ from flask_socketio import emit, join_room, leave_room, rooms
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.sql import exists, and_, or_, func
 from sqlalchemy import text, desc
+from sqlalchemy.exc import IntegrityError
 
 from app.core import socketio, db
 from app.decorators import role_required
@@ -1176,7 +1177,7 @@ def draft_league(league_name: str):
     """Enhanced draft page for any league."""
     print(f"🔴 DRAFT_ENHANCED ROUTE HIT: {league_name}")
     logger.info(f"🔴 Enhanced draft route accessed: {league_name}")
-    
+
     # Validate league name. Accept both the slug ('ecs_fc') and the display name
     # ('ECS FC') — URLs built from a League's display name were failing with
     # "Invalid league name: ECS FC" because of the space.
@@ -1185,6 +1186,70 @@ def draft_league(league_name: str):
     if norm_league not in valid_leagues:
         show_error(f'Invalid league name: {league_name}')
         return redirect(url_for('main.index'))
+
+    # Classic gets the balanced-draft board when the toggle is on (instant
+    # rollback to this legacy page by flipping classic_balanced_draft_enabled
+    # off). Assignment still flows through the same socket events, so the
+    # persistence/Discord chain stays the only write path.
+    if norm_league == 'classic':
+        from app.models.admin_config import AdminConfig
+        from app.services.classic_draft_service import (
+            get_board_state, viewer_can_access_balanced_draft)
+        # Viewers WITHOUT score access (Premier/Pub League Coach) fall through
+        # to the legacy page below — the balanced payload embeds averaged final
+        # scores, which follow the blindness contract
+        # (classic_draft_service.SCORE_ACCESS_ROLES).
+        if AdminConfig.get_setting('classic_balanced_draft_enabled', False) \
+                and viewer_can_access_balanced_draft(g.db_session, current_user.id):
+            state = get_board_state(g.db_session)
+            # Warn the operator if a leftover clocked DraftSession would
+            # turn-enforce picks — the balanced UI renders no clock.
+            stale_clock = False
+            try:
+                from app.models import DraftSession
+                if state['league_id'] is not None:
+                    stale_clock = g.db_session.query(DraftSession).filter(
+                        DraftSession.league_id == state['league_id'],
+                        DraftSession.status.in_(('active', 'paused')),
+                    ).first() is not None
+            except Exception as _clock_err:
+                logger.warning(f"balanced board clock check failed: {_clock_err}")
+            # Viewer scope for the balanced board: the pick/remove socket events
+            # are team-ownership-guarded server-side, so the UI must know which
+            # teams this viewer may actually draft to (admins: all).
+            _bal_admin = False
+            _bal_my_teams = []
+            try:
+                from app.models.core import Role, user_roles as _ur
+                _bal_admin = g.db_session.query(_ur.c.user_id).join(
+                    Role, Role.id == _ur.c.role_id
+                ).filter(
+                    _ur.c.user_id == current_user.id,
+                    Role.name.in_(['Pub League Admin', 'Global Admin'])
+                ).first() is not None
+                _pid = getattr(getattr(current_user, 'player', None), 'id', None)
+                if _pid:
+                    _rows = g.db_session.query(player_teams.c.team_id).join(
+                        Team, Team.id == player_teams.c.team_id
+                    ).join(League, League.id == Team.league_id).join(
+                        Season, Season.id == League.season_id
+                    ).filter(
+                        player_teams.c.player_id == _pid,
+                        player_teams.c.is_coach == True,  # noqa: E712
+                        League.name == 'Classic',
+                        Season.is_current == True,  # noqa: E712
+                    ).all()
+                    _bal_my_teams = [tid for (tid,) in _rows]
+            except Exception as _bal_err:
+                logger.warning(f"balanced board viewer scope resolve failed: {_bal_err}")
+            return render_template(
+                'draft_balanced_flowbite.html',
+                initial_state=state,
+                season_name=state['season_name'],
+                viewer_is_admin=_bal_admin,
+                viewer_team_ids=_bal_my_teams,
+                clock_session_active=stale_clock,
+            )
 
     # Normalize league name for database lookup
     db_league_name = {
@@ -1589,10 +1654,13 @@ def draft_league_pitch_view(league_name: str):
         logger.warning(f"pitch view viewer_team_ids resolve failed: {_vt_err}")
 
     # Coach scoping: non-admin coaches see ONLY their own team's pitch (and can
-    # therefore only tap-draft onto it). Admins keep the full board. Fail-open
-    # when the viewer coaches nothing (empty viewer_team_ids) so a mis-flagged
-    # account still gets a usable page — the FOR UPDATE turn/role checks on the
-    # pick endpoints remain the real enforcement regardless of what is rendered.
+    # therefore only tap-draft onto it). Admins keep the full board. Fails
+    # CLOSED: a coach with no player_teams.is_coach row gets an empty board
+    # with a "no team assigned" notice (rendered by the template) rather than
+    # everyone's pitch — coaches must never be able to edit another team's
+    # formation by accident. The FOR UPDATE turn/role checks on the pick
+    # endpoints remain the hard enforcement regardless of what is rendered.
+    _is_admin_viewer = False
     try:
         from app.models.core import Role, user_roles as _user_roles
         _is_admin_viewer = db.session.query(_user_roles.c.user_id).join(
@@ -1601,13 +1669,13 @@ def draft_league_pitch_view(league_name: str):
             _user_roles.c.user_id == current_user.id,
             Role.name.in_(['Pub League Admin', 'Global Admin'])
         ).first() is not None
-        if not _is_admin_viewer and viewer_team_ids:
-            _mine = set(viewer_team_ids)
-            teams = [t for t in teams if t.id in _mine]
-            teams_json = [tj for tj in teams_json if tj['id'] in _mine]
-            drafted_by_team = {tid: v for tid, v in drafted_by_team.items() if tid in _mine}
     except Exception as _scope_err:
-        logger.warning(f"pitch view coach scoping skipped: {_scope_err}")
+        logger.warning(f"pitch view admin check failed (treating as coach): {_scope_err}")
+    if not _is_admin_viewer:
+        _mine = set(viewer_team_ids)
+        teams = [t for t in teams if t.id in _mine]
+        teams_json = [tj for tj in teams_json if tj['id'] in _mine]
+        drafted_by_team = {tid: v for tid, v in drafted_by_team.items() if tid in _mine}
 
     return render_template(
         'draft_pitch_view_flowbite.html',
@@ -1797,6 +1865,21 @@ def api_draft_player():
             ).first() is not None
         except Exception:
             is_admin = False
+
+        # Team-ownership guard: non-admin coaches may only draft players onto a
+        # team THEY coach (mirrors the socket handler — free-form mode has no
+        # turn check, so without this any coach could assign to any team).
+        if not is_admin:
+            _owns = session.query(player_teams.c.team_id).join(
+                Player, Player.id == player_teams.c.player_id
+            ).filter(
+                Player.user_id == current_user.id,
+                player_teams.c.team_id == team_id,
+                player_teams.c.is_coach == True,  # noqa: E712
+            ).first() is not None
+            if not _owns:
+                return jsonify({'error': f'You can only draft players to your own team ({team.name} is not yours)'}), 403
+
         ok, _turn_code = draft_clock.check_turn(ds, team_id, is_admin)
         if not ok:
             on_clock = session.query(Team).filter(Team.id == ds.current_team_id).first() if ds else None
@@ -2001,6 +2084,101 @@ def api_position_analysis(league_name: str, team_id: int):
     except Exception as e:
         logger.error(f"Error in position analysis API: {str(e)}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500
+
+
+#
+# Draft queue (bookmarks) — a coach's private watchlist. Same roles as the
+# draft board itself; every mutation returns the full re-serialized queue so
+# the panel just re-renders whatever comes back.
+#
+
+DRAFT_VIEW_ROLES = ['Pub League Admin', 'Global Admin', 'Pub League Coach', 'Premier Coach', 'Classic Coach']
+
+
+def _queue_league_or_none(league_name):
+    """Current-season League row for a /draft URL slug or display name."""
+    db_league_name = {
+        'classic': 'Classic', 'premier': 'Premier', 'ecs_fc': 'ECS FC'
+    }.get(league_name.lower().replace(' ', '_'))
+    if not db_league_name:
+        return None
+    return g.db_session.query(League).join(Season).filter(
+        League.name == db_league_name,
+        Season.is_current == True  # noqa: E712
+    ).first()
+
+
+@draft_enhanced.route('/api/<league_name>/queue', methods=['GET'])
+@login_required
+@role_required(DRAFT_VIEW_ROLES)
+def api_get_draft_queue(league_name):
+    from app.services import draft_queue_service
+    league = _queue_league_or_none(league_name)
+    if not league:
+        return jsonify({'success': False, 'error': 'League not found'}), 404
+    queue = draft_queue_service.get_queue(g.db_session, current_user.id, league)
+    return jsonify({'success': True, 'queue': queue})
+
+
+@draft_enhanced.route('/api/<league_name>/queue', methods=['POST'])
+@login_required
+@role_required(DRAFT_VIEW_ROLES)
+def api_add_to_draft_queue(league_name):
+    from app.services import draft_queue_service
+    league = _queue_league_or_none(league_name)
+    if not league:
+        return jsonify({'success': False, 'error': 'League not found'}), 404
+    data = request.get_json(silent=True) or {}
+    try:
+        player_id = int(data.get('player_id'))
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'Invalid player_id'}), 400
+    session = g.db_session
+    ok, err = draft_queue_service.add_to_queue(session, current_user.id, league, player_id)
+    if not ok:
+        return jsonify({'success': False, 'error': err}), 400
+    try:
+        session.commit()
+    except IntegrityError:
+        # concurrent duplicate add (double-tap / web+phone race) — idempotent success
+        session.rollback()
+    return jsonify({'success': True, 'queue': draft_queue_service.get_queue(session, current_user.id, league)})
+
+
+@draft_enhanced.route('/api/<league_name>/queue/<int:player_id>', methods=['DELETE'])
+@login_required
+@role_required(DRAFT_VIEW_ROLES)
+def api_remove_from_draft_queue(league_name, player_id):
+    from app.services import draft_queue_service
+    league = _queue_league_or_none(league_name)
+    if not league:
+        return jsonify({'success': False, 'error': 'League not found'}), 404
+    session = g.db_session
+    draft_queue_service.remove_from_queue(session, current_user.id, league, player_id)
+    session.commit()
+    return jsonify({'success': True, 'queue': draft_queue_service.get_queue(session, current_user.id, league)})
+
+
+@draft_enhanced.route('/api/<league_name>/queue/order', methods=['PUT'])
+@login_required
+@role_required(DRAFT_VIEW_ROLES)
+def api_reorder_draft_queue(league_name):
+    from app.services import draft_queue_service
+    league = _queue_league_or_none(league_name)
+    if not league:
+        return jsonify({'success': False, 'error': 'League not found'}), 404
+    data = request.get_json(silent=True) or {}
+    player_ids = data.get('player_ids')
+    if not isinstance(player_ids, list):
+        return jsonify({'success': False, 'error': 'player_ids must be a list'}), 400
+    try:
+        player_ids = [int(p) for p in player_ids]
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'player_ids must be integers'}), 400
+    session = g.db_session
+    draft_queue_service.reorder_queue(session, current_user.id, league, player_ids)
+    session.commit()
+    return jsonify({'success': True, 'queue': draft_queue_service.get_queue(session, current_user.id, league)})
 
 
 #

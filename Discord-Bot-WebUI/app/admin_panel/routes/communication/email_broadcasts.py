@@ -15,7 +15,7 @@ from app.admin_panel import admin_panel_bp
 from app.core import db
 from app.models import (
     Team, League, Season, Role,
-    EmailCampaign, EmailCampaignRecipient, EmailTemplate, User, PlayerTeamSeason,
+    EmailCampaign, EmailCampaignRecipient, EmailTemplate, User,
 )
 from app.decorators import role_required
 from app.services.email_broadcast_service import email_broadcast_service
@@ -45,6 +45,7 @@ def email_broadcasts_list():
         status_counts = {
             'all': EmailCampaign.query.count(),
             'draft': EmailCampaign.query.filter_by(status='draft').count(),
+            'scheduled': EmailCampaign.query.filter_by(status='scheduled').count(),
             'sending': EmailCampaign.query.filter_by(status='sending').count(),
             'sent': EmailCampaign.query.filter_by(status='sent').count(),
             'failed': EmailCampaign.query.filter_by(status='failed').count(),
@@ -60,7 +61,7 @@ def email_broadcasts_list():
             status_filter=status_filter,
             status_counts=status_counts,
             total_emails_sent=total_emails_sent,
-            page_title='Email Broadcasts',
+            page_title='Email Blasts',
         )
     except Exception as e:
         logger.error(f"Error listing email broadcasts: {e}", exc_info=True)
@@ -328,7 +329,11 @@ def email_broadcast_update(campaign_id):
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def email_broadcast_send(campaign_id):
-    """Trigger sending a campaign (JSON API)."""
+    """Trigger sending a campaign now, or schedule it for later (JSON API).
+
+    Optional JSON body: {"scheduled_send_time": "YYYY-MM-DDTHH:MM"} — admin's
+    local PST time; converted to UTC and sent via a Celery eta task.
+    """
     try:
         campaign = EmailCampaign.query.get(campaign_id)
         if not campaign:
@@ -340,8 +345,34 @@ def email_broadcast_send(campaign_id):
         if campaign.total_recipients == 0:
             return jsonify({'success': False, 'error': 'Campaign has no recipients'}), 400
 
-        # Launch Celery task
+        data = request.get_json(silent=True) or {}
+        schedule_raw = (data.get('scheduled_send_time') or '').strip()
+
         from app.tasks.tasks_email_broadcast import send_email_broadcast
+
+        if schedule_raw:
+            import pytz
+            pst = pytz.timezone('America/Los_Angeles')
+            try:
+                local_dt = datetime.strptime(schedule_raw, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Invalid schedule time format.'}), 400
+            send_at_utc = pst.localize(local_dt).astimezone(pytz.utc).replace(tzinfo=None)
+            if send_at_utc <= datetime.utcnow():
+                return jsonify({'success': False, 'error': 'The scheduled time must be in the future.'}), 400
+
+            result = send_email_broadcast.apply_async(args=[campaign_id], eta=pst.localize(local_dt).astimezone(pytz.utc))
+            campaign.celery_task_id = result.id
+            campaign.status = 'scheduled'
+            campaign.scheduled_send_time = send_at_utc
+            return jsonify({
+                'success': True,
+                'scheduled': True,
+                'message': f'Blast scheduled for {schedule_raw.replace("T", " ")} PST',
+                'task_id': result.id,
+            })
+
+        # Launch Celery task immediately
         result = send_email_broadcast.delay(campaign_id)
 
         campaign.celery_task_id = result.id
@@ -370,11 +401,22 @@ def email_broadcast_cancel(campaign_id):
         if not campaign:
             return jsonify({'success': False, 'error': 'Campaign not found'}), 404
 
-        if campaign.status != 'sending':
-            return jsonify({'success': False, 'error': 'Campaign is not currently sending'}), 400
+        if campaign.status not in ('sending', 'scheduled'):
+            return jsonify({'success': False, 'error': 'Campaign is not sending or scheduled'}), 400
+
+        # Best-effort revoke of the queued eta task so a later reset-to-draft
+        # can't be blasted by the orphaned schedule (the task's identity guard
+        # is the backstop if revoke doesn't reach the worker).
+        if campaign.status == 'scheduled' and campaign.celery_task_id:
+            try:
+                from app.core import celery
+                celery.control.revoke(campaign.celery_task_id)
+            except Exception as revoke_err:
+                logger.warning(f"Could not revoke scheduled task {campaign.celery_task_id}: {revoke_err}")
 
         campaign.status = 'cancelled'
         campaign.completed_at = datetime.utcnow()
+        campaign.scheduled_send_time = None
 
         # Mark remaining pending recipients as skipped
         EmailCampaignRecipient.query.filter_by(
@@ -402,10 +444,19 @@ def email_broadcast_reset_to_draft(campaign_id):
         if campaign.status not in ('sending', 'failed', 'cancelled', 'partially_sent'):
             return jsonify({'success': False, 'error': f'Cannot reset a {campaign.status} campaign'}), 400
 
+        # Best-effort revoke of any still-queued task before detaching it.
+        if campaign.celery_task_id:
+            try:
+                from app.core import celery
+                celery.control.revoke(campaign.celery_task_id)
+            except Exception as revoke_err:
+                logger.warning(f"Could not revoke task {campaign.celery_task_id}: {revoke_err}")
+
         campaign.status = 'draft'
         campaign.sent_at = None
         campaign.completed_at = None
         campaign.celery_task_id = None
+        campaign.scheduled_send_time = None
 
         # Reset all unsent recipients back to pending
         EmailCampaignRecipient.query.filter_by(

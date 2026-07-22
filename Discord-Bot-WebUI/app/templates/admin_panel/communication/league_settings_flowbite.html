@@ -1,8 +1,8 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert, modal_form %}
 
-{% block admin_title %}League Settings{% endblock %}
-{% block panel_description %}Configure Discord bot league settings{% endblock %}
+{% block admin_title %}Discord Welcome Messages{% endblock %}
+{% block panel_description %}Per-league welcome text the Discord bot sends to new members{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
@@ -14,7 +14,7 @@
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">League Settings</span>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Discord Welcome Messages</span>
     </div>
 </li>
 {% endblock %}
@@ -27,7 +27,7 @@
 {% set total_count = (settings|length) if settings else 0 %}
 <div class="space-y-6">
   {# ---- Command header: one primary job (configure bot welcome flows), one CTA ---- #}
-  {% call page_header('League Settings', subtitle='Communication') %}
+  {% call page_header('Discord Welcome Messages', subtitle='Per-league welcome text the bot sends during onboarding') %}
     <button type="button" data-modal-target="createLeagueModal" data-modal-toggle="createLeagueModal"
             class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                    bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors

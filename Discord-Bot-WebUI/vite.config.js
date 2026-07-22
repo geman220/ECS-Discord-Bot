@@ -59,6 +59,9 @@ export default defineConfig({
         // the in-iframe bridge injected into edit-mode /preview renders.
         'site-editor-shell': resolve(__dirname, 'app/static/js/site-editor/shell.js'),
         'site-editor-bridge': resolve(__dirname, 'app/static/js/site-editor/bridge.js'),
+        // Public /guide long-read chrome (TOC + search + scrollspy); loaded
+        // only on that page, so it must stay its own small entry.
+        'public-guide': resolve(__dirname, 'app/static/js/public-guide.js'),
         // NOTE: css/main-entry.css (the Bootstrap-era cascade-layers bundle) was
         // built here as a `styles` entry for years but NOTHING ever linked its
         // output — 1.9 MB of dead weight in every build. Removed 2026-07.

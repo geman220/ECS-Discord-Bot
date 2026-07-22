@@ -70,6 +70,7 @@ class CeleryConfig:
         'app.tasks.tasks_push_notifications',  # Push notification campaigns
         'app.tasks.tasks_api_logging',  # Async API request logging
         'app.tasks.tasks_email_broadcast',  # Email broadcast campaigns
+        'app.tasks.tasks_composed_messages',  # Multi-channel composer (orchestrator-routed)
         'app.tasks.tasks_quick_profiles',  # Field quick-profile claim-code delivery
         'app.tasks.tasks_audit',  # Deferred admin audit log writes
         'app.tasks.tasks_data_export',  # User data export (GDPR)
@@ -236,6 +237,7 @@ class CeleryConfig:
         'app.tasks.tasks_notifications.*': {'queue': 'celery'},
         'app.tasks.tasks_push_notifications.*': {'queue': 'celery'},
         'app.tasks.tasks_email_broadcast.*': {'queue': 'celery'},
+        'app.tasks.tasks_composed_messages.*': {'queue': 'celery'},
         'app.tasks.tasks_quick_profiles.*': {'queue': 'celery'},
         'app.tasks.tasks_audit.*': {'queue': 'celery'},
         'app.tasks.tasks_rsvp_dm_reminders.*': {'queue': 'discord'},

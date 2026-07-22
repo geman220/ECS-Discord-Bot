@@ -79,9 +79,21 @@ def send_email_broadcast(self, session, campaign_id):
         logger.error(f"Campaign {campaign_id} not found")
         return {'success': False, 'error': 'Campaign not found'}
 
-    if campaign.status not in ('draft', 'sending'):
+    # 'scheduled' arrives via the eta task; a cancel in the meantime flips the
+    # status away and this guard makes the fired task a no-op.
+    if campaign.status not in ('draft', 'scheduled', 'sending'):
         logger.warning(f"Campaign {campaign_id} has status '{campaign.status}', skipping")
         return {'success': False, 'error': f'Campaign status is {campaign.status}'}
+
+    # Task-identity guard: only the task the campaign currently points at may
+    # send it. Protects against orphaned eta tasks firing after a schedule was
+    # cancelled and the campaign was reset to draft (or re-scheduled) — the
+    # stale task's id no longer matches, so it no-ops instead of blasting.
+    if campaign.celery_task_id and self.request.id and campaign.celery_task_id != self.request.id:
+        logger.warning(
+            f"Campaign {campaign_id}: task {self.request.id} is stale "
+            f"(campaign now owned by {campaign.celery_task_id}), skipping")
+        return {'success': False, 'error': 'Stale task for this campaign'}
 
     # Mark as sending
     campaign.status = 'sending'

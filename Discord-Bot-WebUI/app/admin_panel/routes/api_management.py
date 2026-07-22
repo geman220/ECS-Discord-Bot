@@ -406,14 +406,6 @@ def _get_api_endpoints():
                 'authentication': 'admin'
             },
             {
-                'path': '/api/template/<int:template_id>',
-                'methods': ['GET', 'POST', 'PUT'],
-                'blueprint': 'message_config',
-                'description': 'Message template management',
-                'status': 'active',
-                'authentication': 'admin'
-            },
-            {
                 'path': '/api/draft-player',
                 'methods': ['POST'],
                 'blueprint': 'draft_enhanced',

@@ -395,7 +395,6 @@ def create_production_js_bundle():
         'js/event-delegation/handlers/substitute-pool.js',
         'js/event-delegation/handlers/season-wizard.js',
         'js/event-delegation/handlers/pass-studio.js',
-        'js/event-delegation/handlers/security-actions.js',
         'js/event-delegation/handlers/calendar-actions.js',
         'js/event-delegation/handlers/onboarding-wizard.js',
         'js/ui-enhancements.js',
@@ -410,8 +409,6 @@ def create_production_js_bundle():
         # Admin Feature JS
         'js/admin/admin-dashboard.js',
         'js/admin/announcement-form.js',
-        'js/admin/message-categories.js',
-        'js/admin/message-template-detail.js',
         'js/admin/push-campaigns.js',
         'js/admin/scheduled-messages.js',
 

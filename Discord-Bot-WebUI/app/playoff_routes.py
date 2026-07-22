@@ -7,6 +7,8 @@ This module provides routes for managing playoff assignments and scheduling.
 """
 
 import logging
+import random
+import secrets
 # timedelta: resend_playoff_rsvps() at :927 uses it to stagger sends, but it was never
 # imported — a NameError that its `except Exception` swallowed, so that admin button
 # silently did nothing every time it was pressed.
@@ -512,8 +514,17 @@ def preview_playoff_schedule(league_id: int):
         return jsonify({'success': False, 'error': 'No active season found'}), 400
 
     try:
+        # Seed the generator so this exact schedule can be reproduced. The seed is
+        # returned to the client, which passes it back to generate-schedule so the
+        # committed schedule is identical to the one the admin approved.
+        seed = secrets.randbits(32)
+
         # Initialize playoff generator
-        generator = PlayoffGenerator(league_id, league.season.id, session)
+        generator = PlayoffGenerator(league_id, league.season.id, session, rng=random.Random(seed))
+
+        # Snapshot the standings hash BEFORE generating so it reflects exactly
+        # the inputs this preview is built from.
+        standings_fp = generator.standings_fingerprint()
 
         # Get top 8 teams
         top_teams = generator.get_top_teams_with_tiebreaking(8)
@@ -604,7 +615,9 @@ def preview_playoff_schedule(league_id: int):
 
         return jsonify({
             'success': True,
-            'preview': preview_data
+            'preview': preview_data,
+            'seed': seed,
+            'standings_fingerprint': standings_fp
         })
 
     except Exception as e:
@@ -641,8 +654,34 @@ def generate_playoff_schedule(league_id: int):
         return jsonify({'success': False, 'error': 'No active season found'}), 400
 
     try:
+        # Optional JSON body {"seed": <int>}: replays the RNG from a preview so the
+        # committed schedule is byte-for-byte the one the admin approved. No/invalid
+        # seed falls back to fresh randomness (old behavior). silent=True because
+        # Flask 3 raises 415 on get_json() with no body, and bodyless POSTs are legal here.
+        payload = request.get_json(silent=True) or {}
+        seed = payload.get('seed') if isinstance(payload, dict) else None
+        if isinstance(seed, int) and not isinstance(seed, bool):
+            rng = random.Random(seed)
+            logger.info(f"Committing playoff schedule for league {league_id} with preview seed {seed}")
+        else:
+            rng = None
+
         # Initialize playoff generator
-        generator = PlayoffGenerator(league_id, league.season.id, session)
+        generator = PlayoffGenerator(league_id, league.season.id, session, rng=rng)
+
+        # A seed replay only reproduces the preview if the standings inputs are
+        # unchanged. Refuse to commit against drifted standings rather than
+        # silently saving a schedule that differs from the approved preview.
+        expected_fp = payload.get('standings_fingerprint') if isinstance(payload, dict) else None
+        if rng is not None and isinstance(expected_fp, str) and expected_fp:
+            current_fp = generator.standings_fingerprint()
+            if current_fp != expected_fp:
+                return jsonify({
+                    'success': False,
+                    'error': 'Standings have changed since this preview was generated, '
+                             'so the previewed schedule is no longer valid. '
+                             'Please regenerate the preview.'
+                }), 409
 
         # Get existing playoff matches (both placeholders and already-updated matches)
         # This allows regeneration after initial schedule has been applied
