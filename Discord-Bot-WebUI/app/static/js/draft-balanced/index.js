@@ -5,7 +5,7 @@
  * JSON, wires EventDelegation actions, drag-and-drop, tabs, and sockets.
  */
 
-import { state, loadInitial, findTeam } from './state.js';
+import { state, loadInitial, findTeam, METRIC_SHORT } from './state.js';
 import {
     renderAll, renderPool, renderSuggestions, renderSuggestTeams,
     populatePositionFilter, updateMultiBar,
@@ -92,7 +92,15 @@ function chooseTeamAndDraft(playerId) {
 
 function chooseTeamForMulti() {
     const teams = draftableTeams();
-    if (!teams.length || !window.Swal) return;
+    if (!teams.length) {
+        if (window.Swal) window.Swal.fire({
+            icon: 'info',
+            title: "You're not marked as a coach of a Classic team",
+            text: 'Ask an admin to set you as your team\'s coach — until then picks are view-only.',
+        });
+        return;
+    }
+    if (!window.Swal) return;
     const buttons = teams.map(team =>
         `<button type="button" class="swal2-styled" data-swal-team="${team.id}" style="margin:4px">${
             (window.escapeHtml || (s => s))(team.name)} (${team.roster.filter(p => !p.is_coach).length})</button>`).join('');
@@ -131,7 +139,7 @@ async function assignSelectedTo(teamId) {
         const last = data?.steps?.[data.steps.length - 1];
         if (resp.ok && data.success && last && !last.error) {
             const gapsLine = Object.entries(last.gaps || {})
-                .map(([metric, gap]) => `${metric.split('_')[0]} ${gap}`).join(' · ');
+                .map(([metric, gap]) => `${METRIC_SHORT[metric] || metric} ${gap}`).join(' · ');
             preview = last.violates_gap
                 ? `⚠️ At least one metric gap would exceed the limit afterwards (${gapsLine}).`
                 : `All metric gaps stay within the limit (${gapsLine}).`;
@@ -283,6 +291,13 @@ function registerHandlers() {
 
     ED.register('balanced-assign-selected', () => {
         if (!state.selectedIds.size) return;
+        if (state.selectedIds.size > 30) {
+            if (window.Swal) window.Swal.fire({
+                icon: 'info', title: 'Too many at once',
+                text: 'Select 30 or fewer players per multi-assign.',
+            });
+            return;
+        }
         const target = state.activeTeamId && canOperateTeam(state.activeTeamId)
             ? state.activeTeamId : null;
         if (target) assignSelectedTo(target);

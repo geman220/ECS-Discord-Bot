@@ -353,6 +353,17 @@ def discord_callback():
 
             # Handle waitlist intent - auto-add user to waitlist
             if waitlist_intent:
+                # Already in the current season (rostered on a current-season
+                # team or an active/paid player) → the waitlist doesn't apply.
+                from app.auth.waitlist import is_actively_playing
+                if is_actively_playing(user, session=db_session):
+                    logger.info(f"User {user.id} is already in the season; skipping waitlist auto-add")
+                    show_info("You're already playing this season, so you don't need the waitlist.")
+                    next_page = session.pop('next', None)
+                    if next_page and is_safe_url(next_page):
+                        return redirect(next_page)
+                    return redirect(url_for('main.index'))
+
                 logger.info(f"User {user.id} has waitlist intent, auto-adding to waitlist")
                 try:
                     # Merge user into the transactional session to avoid

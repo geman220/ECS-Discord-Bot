@@ -67,8 +67,12 @@ class QuickProfile(db.Model):
     # Admin who created this profile
     created_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
-    # If claimed - which player received the data
-    claimed_by_player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=True)
+    # If claimed - which player received the data.
+    # ondelete='SET NULL': if the referenced player row is ever deleted, null this
+    # out instead of leaving a DANGLING id that points at a nonexistent player
+    # (which stranded prospects and 404'd their profile links). A NULLed reference
+    # surfaces in the approvals "Needs Account" list as "linked player missing".
+    claimed_by_player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='SET NULL'), nullable=True)
     claimed_at = db.Column(db.DateTime, nullable=True)
 
     # If manually linked - which admin linked it
@@ -184,6 +188,30 @@ class QuickProfile(db.Model):
             self.status = QuickProfileStatus.EXPIRED.value
             return False
         return True
+
+    def extend(self, days=30, regenerate_code=False):
+        """Revive a lapsed profile so its claim code works again.
+
+        A quick profile expires 30 days after creation; once expired it can no
+        longer be claimed (is_valid() flips it to EXPIRED). This pushes the expiry
+        out and sets status back to PENDING so a walk-in who missed the window can
+        still claim without an admin re-entering their details. Optionally issues a
+        fresh code (use when the old one may have leaked or been forgotten).
+
+        Only PENDING or EXPIRED profiles can be extended — a CLAIMED/LINKED profile
+        already found its player and must not be re-opened.
+
+        Returns the (possibly new) claim code.
+        """
+        if self.status in (QuickProfileStatus.CLAIMED.value, QuickProfileStatus.LINKED.value):
+            raise ValueError("Cannot extend a profile that has already been claimed or linked")
+        if regenerate_code:
+            self.claim_code = self.generate_claim_code()
+        self.expires_at = datetime.utcnow() + timedelta(days=days)
+        self.status = QuickProfileStatus.PENDING.value
+        logger.info(f"Quick profile {self.id} extended {days}d "
+                    f"(regenerated_code={regenerate_code}), now expires {self.expires_at}")
+        return self.claim_code
 
     def claim(self, player):
         """

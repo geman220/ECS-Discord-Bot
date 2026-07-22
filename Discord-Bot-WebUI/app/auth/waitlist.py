@@ -34,6 +34,46 @@ from app.duplicate_prevention import (
 logger = logging.getLogger(__name__)
 
 
+def is_actively_playing(user, session=None):
+    """True when ``user`` is already IN the current season and therefore must
+    NOT be able to join the waitlist.
+
+    "In the season" means either of:
+      * rostered on a team for a current season — a ``PlayerTeamSeason`` row
+        against any ``Season.is_current`` season, or
+      * flagged ``is_current_player`` (paid/linked a season pass this season).
+
+    An approved player who is NOT on a current-season team and NOT an active
+    current player is between seasons and CAN still waitlist for a spot.
+
+    Blocking the in-season case also protects their roles: the waitlist/approval
+    path resets ``approval_status`` to 'pending', which the Discord role
+    calculator treats as unverified and strips league/team roles.
+    """
+    player = getattr(user, 'player', None)
+    if not player:
+        return False
+
+    # Paid/active this season.
+    if getattr(player, 'is_current_player', False):
+        return True
+
+    # Rostered on a team in any current season. Single indexed query (joined to
+    # Season) — this runs during banner render on every authenticated page for
+    # between-seasons members, so keep it to one round-trip. is_current_player
+    # short-circuits above for active players so they never reach here.
+    from app.models import Season, PlayerTeamSeason
+    if session is None:
+        session = g.db_session
+    rostered = session.query(PlayerTeamSeason.id).join(
+        Season, PlayerTeamSeason.season_id == Season.id
+    ).filter(
+        PlayerTeamSeason.player_id == player.id,
+        Season.is_current.is_(True),
+    ).first()
+    return rostered is not None
+
+
 def waitlist_confirmation_id(user):
     """Deterministic display ID for a waitlist signup, e.g. ``WL-2026-04817``.
 
@@ -106,6 +146,13 @@ def waitlist_register():
 
     # Handle authenticated users - add them to waitlist
     if current_user.is_authenticated:
+        # Already playing this season → the waitlist doesn't apply. Never move
+        # an active player into the waitlist/approval queue: it would strip
+        # their league/team Discord roles when the role sync next runs.
+        if is_actively_playing(current_user):
+            show_info("You're already playing this season, so you don't need the waitlist.")
+            return redirect(url_for('main.index'))
+
         # If already on waitlist, redirect to status page
         if current_user.waitlist_joined_at:
             return redirect(url_for('auth.waitlist_status'))
@@ -418,6 +465,15 @@ def waitlist_register_with_discord():
         existing_user = db_session.query(User).filter_by(email=discord_email).first()
 
         if existing_user:
+            # Already playing this season → don't waitlist them and don't touch
+            # their roles/status. Log them into their existing account instead.
+            if is_actively_playing(existing_user):
+                login_user(existing_user, remember=True)
+                update_last_login(existing_user)
+                _clear_waitlist_session()
+                show_info("You're already playing this season, so you don't need the waitlist.")
+                return redirect(url_for('main.index'))
+
             # Handle existing user - add to waitlist
             return _handle_existing_user_waitlist(db_session, existing_user, discord_id, discord_email, discord_username)
 
@@ -451,8 +507,11 @@ def _handle_existing_user_waitlist(db_session, existing_user, discord_id, discor
         # Set waitlist joined timestamp
         existing_user.waitlist_joined_at = datetime.utcnow()
 
-    # Add unverified role if not already assigned (for approval system)
-    if unverified_role not in existing_user.roles:
+    # Only unverified (new-to-the-league) users get pl-unverified. Never add it
+    # to an already-approved player: combined with the approval reset it makes
+    # the Discord role calculator treat them as unverified and strip their
+    # league/team roles. Approved returning players just take a waitlist spot.
+    if existing_user.approval_status != 'approved' and unverified_role not in existing_user.roles:
         existing_user.roles.append(unverified_role)
 
     # Get form data for player profile
@@ -657,18 +716,22 @@ def _update_player_profile(db_session, user, discord_id, discord_email, discord_
 
     # Update user preferences
     user.preferred_league = preferred_league
-    was_already_pending = (user.approval_status == 'pending' and not is_new_user)
-    user.approval_status = 'pending'
-    # Surface the waitlist signup in the admin approval channel — this helper
-    # is the single spot both waitlist paths go through. Only on the FIRST
-    # transition into the queue: a returning user re-submitting the waitlist
-    # form was already pending and must not re-post on every profile edit.
-    if not was_already_pending:
-        try:
-            from app.auth.registration import _notify_approval_queue
-            _notify_approval_queue(user.id)
-        except Exception:
-            logger.warning(f"Could not dispatch approval-queue notification for user {user.id}")
+    # Never downgrade an already-approved player back into the approval queue —
+    # that 'pending' reset is exactly what strips their league/team roles. New
+    # users and still-unapproved existing users go into (or stay in) 'pending'.
+    if user.approval_status != 'approved':
+        was_already_pending = (user.approval_status == 'pending' and not is_new_user)
+        user.approval_status = 'pending'
+        # Surface the waitlist signup in the admin approval channel — this
+        # helper is the single spot both waitlist paths go through. Only on the
+        # FIRST transition into the queue: a returning user re-submitting the
+        # waitlist form was already pending and must not re-post on every edit.
+        if not was_already_pending:
+            try:
+                from app.auth.registration import _notify_approval_queue
+                _notify_approval_queue(user.id)
+            except Exception:
+                logger.warning(f"Could not dispatch approval-queue notification for user {user.id}")
     user.has_completed_onboarding = True
     user.has_skipped_profile_creation = False
     user.has_completed_tour = False
@@ -719,8 +782,10 @@ def _update_player_profile(db_session, user, discord_id, discord_email, discord_
         player.player_notes = player_notes
         player.interested_in_sub = available_for_subbing
         player.discord_id = discord_id
-        # Joining the waitlist does not make someone an active/paid player.
-        player.is_current_player = False
+        # Do NOT touch is_current_player for an existing player. Joining the
+        # waitlist must never revoke an active-season status (which would strip
+        # their league/team Discord roles); that flag is owned by pass payment.
+        # Actively-playing users are already blocked from this path upstream.
 
     db_session.flush()
 

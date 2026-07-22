@@ -307,6 +307,13 @@ class CeleryConfig:
             'schedule': crontab(hour=0, minute=0, day_of_week=1),
             'options': {'queue': 'celery'},
         },
+        'expire-stale-substitute-pools': {
+            # Sub-pool hygiene: deactivate memberships inactive > 120 days so nobody
+            # lingers in the active sub pool forever. Weekly, Monday pre-dawn.
+            'task': 'app.tasks.tasks_maintenance.expire_stale_substitute_pools',
+            'schedule': crontab(hour=1, minute=30, day_of_week=1),
+            'options': {'queue': 'celery'},
+        },
         'cleanup-old-scheduled-messages': {
             'task': 'app.tasks.tasks_maintenance.cleanup_old_scheduled_messages',
             'schedule': crontab(hour=2, minute=0),

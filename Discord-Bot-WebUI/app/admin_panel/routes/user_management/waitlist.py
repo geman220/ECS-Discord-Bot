@@ -148,9 +148,21 @@ def remove_from_waitlist(user_id: int):
             # Remove the waitlist role
             user.roles.remove(waitlist_role)
 
-            # Clear waitlist joined timestamp since they're no longer on waitlist
+            # Restore pl-unverified for anyone not already approved, so a removed
+            # waitlister lands back as an ordinary pending user (with the unverified
+            # role the Discord calculator + approvals flow expect) rather than
+            # role-less. Mirrors the bulk process_waitlist_user path. Approved
+            # returning players keep their real roles — don't touch them.
+            if not user.is_approved and user.approval_status != 'approved':
+                unverified_role = db.session.query(Role).filter_by(name='pl-unverified').first()
+                if unverified_role and unverified_role not in user.roles:
+                    user.roles.append(unverified_role)
+
+            # Clear waitlist joined timestamp + lane since they're no longer on waitlist
             if hasattr(user, 'waitlist_joined_at'):
                 user.waitlist_joined_at = None
+            if hasattr(user, 'waitlist_league'):
+                user.waitlist_league = None
 
             # Update user record
             user.updated_at = datetime.utcnow()
@@ -538,10 +550,15 @@ def process_waitlist_user():
                     with lock_user_for_role_update(uid, session=db.session, nowait=True) as user:
                         if waitlist_role in user.roles:
                             user.roles.remove(waitlist_role)
-                        if unverified_role and unverified_role not in user.roles:
-                            user.roles.append(unverified_role)
-
-                        user.approval_status = 'pending'
+                        # Never downgrade an already-approved player — adding
+                        # pl-unverified + resetting to 'pending' makes the Discord
+                        # role calculator strip their league/team roles. Approved
+                        # players are just taken off the waitlist; only still-
+                        # unapproved users move into the pending/unverified queue.
+                        if user.approval_status != 'approved':
+                            if unverified_role and unverified_role not in user.roles:
+                                user.roles.append(unverified_role)
+                            user.approval_status = 'pending'
 
                         # Queue Discord sync
                         if user.player and user.player.discord_id:

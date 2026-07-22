@@ -6,7 +6,7 @@
  */
 
 import {
-    METRICS, METRIC_SHORT, state, teamTotals, computeGaps,
+    METRICS, DISPLAY_ORDER, METRIC_SHORT, state, teamTotals, computeGaps,
     draftedCount, totalPlayers, isRated,
 } from './state.js';
 
@@ -39,6 +39,56 @@ function metricLabel(key) {
     return metric ? metric.label : key;
 }
 
+/** Heat tint for a metric value cell (spreadsheet-style). Intensity inverts:
+ * the league deliberately watches intensity creep, so HIGH intensity warms. */
+function valueCellClass(metric, value) {
+    if (value === null || value === undefined) {
+        return 'bg-gray-100 dark:bg-gray-700 text-gray-400';
+    }
+    const high = metric === 'intensity'
+        ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+        : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300';
+    const low = metric === 'intensity'
+        ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+        : 'bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400';
+    if (value >= 4) return high;
+    if (value < 2.5) return low;
+    return 'bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-200';
+}
+
+/** 2×2 metric grid (OBS I / S K·M) — the spreadsheet cell block per player. */
+function metricGrid(player) {
+    if (player.is_coach) return '';
+    const cells = DISPLAY_ORDER.map(metric => {
+        const value = player?.ratings?.metrics?.[metric];
+        return `<span class="px-1 py-0.5 rounded text-center ${valueCellClass(metric, value)}"
+                      title="${esc(metricLabel(metric))}">${value === null || value === undefined ? '–' : Number(value).toFixed(2)}</span>`;
+    }).join('');
+    return `<span class="grid grid-cols-2 gap-0.5 font-mono text-[10px] leading-tight w-[4.6rem] shrink-0">${cells}</span>`;
+}
+
+/** Attendance dot (spreadsheet colors names by attendance; we use a dot). */
+function attendanceDot(player) {
+    let cls = 'bg-gray-300 dark:bg-gray-600';
+    let label = 'No attendance data';
+    if (player.has_attendance_data && player.attendance_rate !== null && player.attendance_rate !== undefined) {
+        const att = Math.round(player.attendance_rate);
+        label = `Attendance ${att}%`;
+        cls = att >= 80 ? 'bg-green-500' : att >= 60 ? 'bg-lime-400' : att >= 40 ? 'bg-amber-400' : 'bg-red-500';
+    }
+    return `<span class="w-1.5 h-1.5 rounded-full shrink-0 ${cls}" title="${label}"></span>`;
+}
+
+/** GK vs PT GK tag from the free-text willingness (spreadsheet distinction). */
+function gkTag(player) {
+    if (!player.wants_gk) return '';
+    const freq = (player.gk_willingness || '').toLowerCase();
+    const partTime = /sometimes|maybe|part|occasion|rarely|pt/.test(freq);
+    const label = partTime ? 'PT' : 'GK';
+    return `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 shrink-0"
+                  title="GK: ${esc(player.gk_willingness || 'willing')}">${label}</span>`;
+}
+
 // ---------------------------------------------------------------------------
 // Header: balance chips, progress, league genders
 // ---------------------------------------------------------------------------
@@ -47,7 +97,7 @@ export function renderHeader() {
     const gaps = computeGaps();
     const chips = document.getElementById('db-balance-chips');
     if (chips) {
-        chips.innerHTML = METRICS.map(metric => {
+        chips.innerHTML = DISPLAY_ORDER.map(metric => {
             const gap = gaps[metric];
             const ok = gap.withinLimit;
             return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium ${
@@ -74,22 +124,33 @@ export function renderHeader() {
 // Team columns
 // ---------------------------------------------------------------------------
 
+function avatar(player, sizeClass) {
+    const peek = player.profile_picture_url || player.avatar_url;
+    const peekAttrs = peek ? `data-peek-src="${esc(peek)}" data-peek-name="${esc(player.name)}"` : '';
+    if (player.avatar_url) {
+        return `<img src="${esc(player.avatar_url)}" ${peekAttrs}
+                     class="${sizeClass} rounded-full object-cover shrink-0 cursor-zoom-in" alt="${esc(player.name)}"
+                     loading="lazy" onerror="this.style.display='none'">`;
+    }
+    return `<span ${peekAttrs} class="${sizeClass} rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center text-[10px] font-semibold shrink-0">${esc((player.name || '?')[0].toUpperCase())}</span>`;
+}
+
 function rosterRow(player) {
     const detailId = `db-roster-detail-${player.id}`;
     return `
     <div class="db-roster-row" data-player-id="${player.id}">
-        <div class="flex items-center gap-2 px-2 py-1.5">
-            ${player.avatar_url
-                ? `<img src="${esc(player.avatar_url)}" class="w-6 h-6 rounded-full object-cover shrink-0" alt="" loading="lazy" onerror="this.style.display='none'">`
-                : `<span class="w-6 h-6 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center text-[10px] font-semibold shrink-0">${esc((player.name || '?')[0].toUpperCase())}</span>`}
-            <span class="min-w-0 flex-1 flex items-center gap-1.5">
+        <div class="flex items-center gap-1.5 px-2 py-1">
+            ${attendanceDot(player)}
+            ${avatar(player, 'w-6 h-6')}
+            <span class="min-w-0 flex-1 flex items-center gap-1">
                 <span class="text-xs font-medium text-gray-900 dark:text-white truncate">${esc(player.name)}</span>
-                ${player.is_coach ? '<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">C</span>' : genderGlyph(player.gender)}
-                ${!player.is_coach && !isRated(player) ? '<span class="px-1 py-0.5 rounded text-[9px] bg-gray-100 dark:bg-gray-700 text-gray-400">unrated</span>' : ''}
+                ${player.is_coach ? '<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 shrink-0">C</span>' : genderGlyph(player.gender)}
+                ${player.is_new && !player.is_coach ? '<span class="text-[9px] font-bold text-amber-500 shrink-0">N</span>' : ''}
             </span>
-            ${player.is_coach ? '' : compositeChip(player)}
+            ${gkTag(player)}
+            ${metricGrid(player)}
             <button type="button" data-action="balanced-toggle-player-detail" data-target="${detailId}"
-                    class="p-1 rounded text-gray-400 hover:text-ecs-green"><i class="ti ti-chevron-down text-xs transition-transform"></i></button>
+                    class="p-0.5 rounded text-gray-400 hover:text-ecs-green shrink-0"><i class="ti ti-chevron-down text-xs transition-transform"></i></button>
         </div>
         <div id="${detailId}" class="hidden px-2 pb-2 text-[11px] text-gray-500 dark:text-gray-400 space-y-1">
             ${playerDetailHtml(player)}
@@ -105,15 +166,25 @@ function playerDetailHtml(player) {
     if (player.favorite_position) positions.push(`<span class="text-ecs-green">${esc(player.favorite_position)}</span>`);
     (player.other_positions || []).forEach(p => positions.push(esc(p)));
     const avoid = (player.positions_not_to_play || []).map(p => `<span class="line-through text-red-400">${esc(p)}</span>`);
-    const metricsLine = player.is_coach ? '' : METRICS.map(m => {
+    // Metric bars — same visual as the Classic board's ratings disclosure.
+    const metricBars = player.is_coach ? '' : DISPLAY_ORDER.map(m => {
         const value = player?.ratings?.metrics?.[m];
-        return `${METRIC_SHORT[m]} <span class="font-mono">${value === null || value === undefined ? '–' : fmt(value)}</span>`;
-    }).join(' · ');
+        const width = (value === null || value === undefined)
+            ? 0 : Math.max(0, Math.min(100, ((value - 1) / 4) * 100));
+        return `
+        <div class="flex items-center gap-2">
+            <span class="w-8 shrink-0">${METRIC_SHORT[m]}</span>
+            <div class="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                ${width ? `<div class="h-1.5 bg-ecs-green rounded-full" style="width:${width}%"></div>` : ''}
+            </div>
+            <span class="w-9 text-right font-mono">${value === null || value === undefined ? '—' : fmt(value)}</span>
+        </div>`;
+    }).join('');
     return `
         ${positions.length ? `<div>Pos: ${positions.join(', ')}${avoid.length ? ` · avoid ${avoid.join(', ')}` : ''}</div>` : ''}
         ${player.wants_gk ? `<div><i class="ti ti-hand-stop"></i> GK: ${esc(player.gk_willingness || 'willing')}</div>` : ''}
         <div>${player.has_attendance_data && player.attendance_rate !== null ? `Att ${Math.round(player.attendance_rate)}% · ` : ''}${player.career_goals ?? 0} G · ${player.career_assists ?? 0} A career${player.is_new ? ' · <span class="text-amber-500">NEW</span>' : ''}</div>
-        ${metricsLine ? `<div>${metricsLine}</div>` : ''}`;
+        ${metricBars ? `<div class="space-y-1 pt-1">${metricBars}</div>` : ''}`;
 }
 
 export function renderTeams() {
@@ -124,7 +195,7 @@ export function renderTeams() {
     container.innerHTML = state.teams.map(team => {
         const totals = teamTotals(team);
         const active = state.activeTeamId === team.id;
-        const metricRows = METRICS.map(metric => {
+        const metricRows = DISPLAY_ORDER.map(metric => {
             const entry = totals.metrics[metric];
             const offending = !gaps[metric].withinLimit
                 && (gaps[metric].maxTeamId === team.id || gaps[metric].minTeamId === team.id);
@@ -150,9 +221,10 @@ export function renderTeams() {
                     <span class="text-sm font-bold text-gray-900 dark:text-white truncate flex-1">${esc(team.name)}</span>
                     ${active ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-ecs-green text-white">TARGET</span>' : ''}
                 </span>
-                <span class="mt-0.5 flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                <span class="mt-0.5 flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 flex-wrap">
                     <span>${totals.size} players</span>
                     <span class="font-mono">${totals.genders.M}M · ${totals.genders.F}F</span>
+                    <span class="font-mono" title="Returning · New · willing GKs">Ret ${totals.size - totals.newCount} · New ${totals.newCount} · GK ${totals.gkCount}</span>
                     ${totals.unratedCount ? `<span class="text-gray-400">${totals.unratedCount} unrated</span>` : ''}
                 </span>
             </button>
@@ -217,9 +289,7 @@ export function renderPool() {
                        ${state.selectedIds.has(player.id) ? 'checked' : ''}
                        class="db-multi-check w-3.5 h-3.5 rounded text-ecs-green focus:ring-ecs-green shrink-0"
                        aria-label="Select ${esc(player.name)} for multi-assign">
-                ${player.avatar_url
-                    ? `<img src="${esc(player.avatar_url)}" class="w-7 h-7 rounded-full object-cover shrink-0" alt="" loading="lazy" onerror="this.style.display='none'">`
-                    : `<span class="w-7 h-7 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center text-[11px] font-semibold shrink-0">${esc((player.name || '?')[0].toUpperCase())}</span>`}
+                ${avatar(player, 'w-7 h-7')}
                 <span class="min-w-0 flex-1">
                     <span class="flex items-center gap-1.5">
                         <span class="text-xs font-medium text-gray-900 dark:text-white truncate">${esc(player.name)}</span>
@@ -303,7 +373,7 @@ export function renderSuggestions(suggestions, loading = false, error = null) {
         return;
     }
     container.innerHTML = suggestions.map(s => {
-        const deltas = METRICS.map(metric => {
+        const deltas = DISPLAY_ORDER.map(metric => {
             const proj = s.projection[metric];
             const closes = proj.gap_after < proj.gap_before;
             const worsens = proj.gap_after > proj.gap_before;
@@ -312,10 +382,13 @@ export function renderSuggestions(suggestions, loading = false, error = null) {
             return `<span class="${color}" title="${esc(metricLabel(metric))} team total ${proj.team_total_before}→${proj.team_total_after}, gap ${proj.gap_before}→${proj.gap_after}">${METRIC_SHORT[metric]} ${arrow}${Math.abs(proj.gap_after - proj.gap_before).toFixed(1)}</span>`;
         }).join(' ');
         const positions = [s.favorite_position, ...(s.other_positions || [])].filter(Boolean).slice(0, 3);
+        const best = s.rank === 1 && !s.violates_gap;
         return `
-        <div class="px-2.5 py-2 space-y-1 ${s.violates_gap ? 'opacity-70' : ''}">
+        <div class="px-2.5 py-2 space-y-1 ${s.violates_gap ? 'opacity-70' : ''} ${best ? 'bg-ecs-green/5 border-l-2 border-ecs-green' : ''}">
             <div class="flex items-center gap-2">
-                <span class="w-5 text-center font-mono text-[11px] text-gray-400">${s.rank}</span>
+                ${best ? '<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-ecs-green text-white shrink-0" title="Best mathematical fit — advisory only">BEST</span>'
+                       : `<span class="w-5 text-center font-mono text-[11px] text-gray-400">${s.rank}</span>`}
+                ${avatar(s, 'w-6 h-6')}
                 <span class="min-w-0 flex-1 flex items-center gap-1.5">
                     <span class="text-xs font-semibold text-gray-900 dark:text-white truncate">${esc(s.name)}</span>
                     ${genderGlyph(s.gender)}
@@ -345,7 +418,7 @@ export function renderMatrix() {
 
     const headers = perTeam.map(({ team }) =>
         `<th class="px-2 py-1.5 text-right font-medium">${esc(team.name)}</th>`).join('');
-    const rows = METRICS.map(metric => {
+    const rows = DISPLAY_ORDER.map(metric => {
         const gap = gaps[metric];
         const cells = perTeam.map(({ team, totals }) => {
             const isMax = gap.maxTeamId === team.id;

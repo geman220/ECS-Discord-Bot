@@ -17,6 +17,7 @@ profile later during Discord registration.
 """
 
 import logging
+import secrets
 from datetime import datetime
 from difflib import SequenceMatcher
 
@@ -334,6 +335,74 @@ def delete_quick_profile(profile_id):
         return jsonify({'success': False, 'error': 'Failed to delete quick profile'}), 500
 
 
+# ==================== Account / Approval-queue plumbing ====================
+
+def ensure_pending_user_for_player(session, player, email=None, source='quick_profile'):
+    """Guarantee a claimed/linked player has an account that sits in the approvals queue.
+
+    A claimed/linked quick profile is meaningless downstream unless the player it
+    points at has a *User* row — every admin surface (user-management, approvals) is
+    User-driven, so a player with ``user_id IS NULL`` (a legacy-roster orphan) is
+    invisible and un-approvable. This is exactly how walk-in prospects fell into
+    limbo (see the person-lifecycle work).
+
+    Behaviour:
+      * Player already has a User → re-enter the approvals queue by setting the user
+        back to ``pending`` UNLESS they are already ``approved`` (never downgrade an
+        active/approved member just because a profile got linked to them).
+      * Orphan player (no User) → mint a shell pending User (random password, the
+        quick-profile email if we have one, ``pl-unverified`` role) and attach it,
+        mirroring the account adoption in registration.py / player_management_helpers.
+
+    Runs on the caller's session and flushes; the caller owns the transaction and
+    auditing. Returns ``(user, created_bool)``.
+    """
+    from app.models import Role
+    from app.user_management import generate_unique_username
+
+    user = player.user
+    if user is not None:
+        # Existing account: pull them back into the queue ONLY if they are not
+        # approved by EITHER signal. This codebase has live members with
+        # is_approved=True while approval_status != 'approved' (e.g. approved
+        # returning players holding a waitlist spot — see waitlist.py / the
+        # integrity service's documented state). Downgrading those on a mere
+        # profile link would silently revoke an active member's access, so we
+        # require BOTH signals to be un-approved before re-queuing.
+        if not user.is_approved and user.approval_status != 'approved':
+            user.approval_status = 'pending'
+            user.is_approved = False
+            session.add(user)
+            session.flush()
+        return user, False
+
+    # Orphan player — create a shell account so they enter the funnel.
+    base_name = (player.name or email or 'player').strip() or 'player'
+    user = User(
+        username=generate_unique_username(base_name, session),
+        is_approved=False,
+        approval_status='pending',
+    )
+    if email:
+        user.email = email
+    user.set_password(secrets.token_urlsafe(16))
+
+    unverified_role = session.query(Role).filter_by(name='pl-unverified').first()
+    if unverified_role:
+        user.roles.append(unverified_role)
+
+    session.add(user)
+    session.flush()  # need user.id before attaching the player
+    player.user_id = user.id
+    session.add(player)
+    session.flush()
+
+    logger.info(
+        f"Created shell pending User {user.id} for orphan player {player.id} via {source}"
+    )
+    return user, True
+
+
 # ==================== Link to Existing Player ====================
 
 @admin_panel_bp.route('/quick-profiles/<int:profile_id>/link', methods=['POST'])
@@ -369,13 +438,22 @@ def link_quick_profile(profile_id):
         # Link the profile
         profile.link_to_player(player, current_user, overwrite_photo=overwrite_photo)
 
+        # Make sure the linked player has an account sitting in the approvals queue.
+        # Without this, linking to an orphan legacy-roster player (user_id IS NULL)
+        # leaves the prospect invisible in user-management AND absent from approvals —
+        # the exact limbo that stranded walk-in claims.
+        _, account_created = ensure_pending_user_for_player(
+            session, player, email=profile.email, source='link_quick_profile'
+        )
+
         # Log the action
         AdminAuditLog.log_action(
             user_id=current_user.id,
             action='link_quick_profile',
             resource_type='quick_profile',
             resource_id=profile_id,
-            new_value=str({'player_id': player_id, 'player_name': player.name}),
+            new_value=str({'player_id': player_id, 'player_name': player.name,
+                           'account_created': account_created}),
         )
 
         logger.info(f"Quick profile {profile_id} linked to player {player_id} by {current_user.username}")
@@ -383,6 +461,7 @@ def link_quick_profile(profile_id):
         return jsonify({
             'success': True,
             'message': 'Quick profile linked to player',
+            'account_created': account_created,
             'player': {
                 'id': player.id,
                 'name': player.name,
@@ -395,6 +474,112 @@ def link_quick_profile(profile_id):
     except Exception as e:
         logger.error(f"Error linking quick profile: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': 'Failed to link quick profile'}), 500
+
+
+@admin_panel_bp.route('/quick-profiles/<int:profile_id>/extend', methods=['POST'])
+@login_required
+@role_required(ADMIN_ROLES)
+@transactional
+def extend_quick_profile(profile_id):
+    """Revive a lapsed (expired) or pending quick profile so its code works again.
+
+    Body (JSON, all optional): days (default 30), regenerate_code (default False).
+    """
+    data = request.get_json(silent=True) or {}
+    try:
+        days = int(data.get('days', 30))
+    except (TypeError, ValueError):
+        days = 30
+    days = max(1, min(days, 365))  # clamp to a sane window
+    regenerate = bool(data.get('regenerate_code', False))
+
+    session = g.db_session
+    profile = session.query(QuickProfile).get(profile_id)
+    if not profile:
+        return jsonify({'success': False, 'error': 'Quick profile not found'}), 404
+
+    try:
+        new_code = profile.extend(days=days, regenerate_code=regenerate)
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='extend_quick_profile',
+        resource_type='quick_profile',
+        resource_id=profile_id,
+        new_value=str({'days': days, 'regenerated_code': regenerate,
+                       'expires_at': profile.expires_at.isoformat()}),
+    )
+    logger.info(f"Quick profile {profile_id} extended {days}d by {current_user.username} "
+                f"(regenerate={regenerate})")
+
+    return jsonify({
+        'success': True,
+        'message': ('New code issued and profile extended.' if regenerate
+                    else 'Profile extended.'),
+        'claim_code': new_code,
+        'expires_at': profile.expires_at.isoformat(),
+        'status': profile.status,
+    })
+
+
+@admin_panel_bp.route('/quick-profiles/<int:profile_id>/create-account', methods=['POST'])
+@login_required
+@role_required(ADMIN_ROLES)
+@transactional
+def create_account_for_quick_profile(profile_id):
+    """Mint (or re-queue) an account for an already claimed/linked profile.
+
+    Repairs historically-stranded profiles: a claimed/linked quick profile whose
+    linked player has no User row (or whose user drifted out of the queue). After
+    this the prospect appears in the normal approvals queue and can be routed.
+    """
+    session = g.db_session
+    profile = session.query(QuickProfile).get(profile_id)
+    if not profile:
+        return jsonify({'success': False, 'error': 'Quick profile not found'}), 404
+
+    if profile.status not in (QuickProfileStatus.CLAIMED.value, QuickProfileStatus.LINKED.value):
+        return jsonify({
+            'success': False,
+            'error': 'Only claimed or linked profiles can have an account created'
+        }), 400
+
+    player = profile.claimed_by_player
+    if player is None:
+        # Dangling reference — the linked player row is gone. Can't mint an account
+        # against a missing player; admin must re-link or delete the profile.
+        return jsonify({
+            'success': False,
+            'error': 'The linked player no longer exists. Re-link this profile to a valid player or delete it.'
+        }), 400
+
+    user, created = ensure_pending_user_for_player(
+        session, player, email=profile.email, source='create_account_for_quick_profile'
+    )
+
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='create_account_for_quick_profile',
+        resource_type='quick_profile',
+        resource_id=profile_id,
+        new_value=str({'player_id': player.id, 'user_id': user.id, 'account_created': created}),
+    )
+
+    logger.info(
+        f"Account ensured (created={created}) for quick profile {profile_id} "
+        f"player {player.id} user {user.id} by {current_user.username}"
+    )
+
+    return jsonify({
+        'success': True,
+        'account_created': created,
+        'message': ('Account created — prospect is now in the approvals queue.'
+                    if created else 'Prospect returned to the approvals queue.'),
+        'user_id': user.id,
+        'player_id': player.id,
+    })
 
 
 # ==================== Search Players (for linking) ====================

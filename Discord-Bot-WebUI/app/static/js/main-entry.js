@@ -138,6 +138,7 @@ import './pitch-view.js';
 import './classic-board.js';
 import './classic-ratings/rate.js';
 import './draft-balanced/index.js';
+import './photo-peek.js';
 
 // Home page (home.js is in custom_js, loaded per-page)
 

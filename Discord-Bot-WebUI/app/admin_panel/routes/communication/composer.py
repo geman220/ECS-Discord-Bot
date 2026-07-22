@@ -87,8 +87,16 @@ def composer_preview():
         if audience_type not in audience_service.AUDIENCE_TYPES:
             return jsonify({'success': False, 'error': 'Unknown audience type'}), 400
 
+        # When "force delivery" is on, count the selected forceable channels as
+        # reaching everyone we have contact info for, ignoring their opt-outs —
+        # so the preview matches what the send will actually do.
+        force_channels = set()
+        if data.get('force_delivery'):
+            selected = [c for c in (data.get('channels') or []) if c in VALID_CHANNELS]
+            force_channels = set(selected) & set(audience_service.FORCEABLE_CHANNELS)
+
         user_ids = audience_service.resolve_user_ids(db.session, audience_type, audience_ids)
-        reach = audience_service.channel_reach(db.session, user_ids)
+        reach = audience_service.channel_reach(db.session, user_ids, force_channels=force_channels)
         description = audience_service.describe(db.session, audience_type, audience_ids)
         return jsonify({'success': True, 'reach': reach, 'description': description})
     except Exception as e:
@@ -112,6 +120,11 @@ def composer_send():
         audience_ids = data.get('audience_ids') or []
         action_url = (data.get('action_url') or '').strip() or None
         priority = 'high' if data.get('priority') == 'high' else 'normal'
+        force_delivery = bool(data.get('force_delivery'))
+        # Force only actually overrides anything if a FORCEABLE channel is picked
+        # (push/email/discord). Force + only sms/in_app overrides nothing.
+        force_effective = force_delivery and bool(
+            set(channels) & set(audience_service.FORCEABLE_CHANNELS))
         schedule_raw = (data.get('scheduled_send_time') or '').strip()
 
         if not title or not message:
@@ -122,7 +135,7 @@ def composer_send():
             return jsonify({'success': False, 'error': 'Pick at least one channel.'}), 400
         if audience_type not in audience_service.AUDIENCE_TYPES:
             return jsonify({'success': False, 'error': 'Unknown audience type'}), 400
-        if audience_type != 'all_active' and not audience_ids:
+        if audience_type not in audience_service.NO_ID_AUDIENCE_TYPES and not audience_ids:
             return jsonify({'success': False, 'error': 'Pick at least one audience target.'}), 400
 
         # The audience is re-resolved at send time; this count is a sanity check
@@ -168,6 +181,7 @@ def composer_send():
             audience_description=audience_service.describe(db.session, audience_type, audience_ids),
             action_url=action_url,
             priority=priority,
+            force_delivery=force_delivery,
             status='scheduled',
             scheduled_send_time=scheduled_utc,
             total_recipients=len(user_ids),
@@ -207,6 +221,7 @@ def composer_send():
             resource_id=str(msg.id),
             new_value=(f'"{title}" via {"/".join(channels)} to {msg.audience_description} '
                        f'({len(user_ids)} members)'
+                       + (' [FORCED past opt-outs]' if force_effective else '')
                        + (f', scheduled {schedule_raw} PST' if schedule_raw else ', immediate')),
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent'),

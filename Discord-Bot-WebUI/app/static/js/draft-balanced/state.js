@@ -11,8 +11,11 @@
  */
 
 export const METRICS = ['intensity', 'on_ball_skill', 'spirit', 'knowledge_movement'];
+// Display order matches the legacy "spreadsheet of doom" (OBS, I / S, K/M) so
+// draft-night muscle memory carries over.
+export const DISPLAY_ORDER = ['on_ball_skill', 'intensity', 'spirit', 'knowledge_movement'];
 export const METRIC_SHORT = {
-    intensity: 'Int', on_ball_skill: 'Skl', spirit: 'Spr', knowledge_movement: 'Knw',
+    intensity: 'I', on_ball_skill: 'OBS', spirit: 'S', knowledge_movement: 'K/M',
 };
 
 export const state = {
@@ -76,6 +79,8 @@ export function teamTotals(team) {
         size: players.length,
         coachCount: team.roster.length - players.length,
         unratedCount: players.filter(p => !isRated(p)).length,
+        newCount: players.filter(p => p.is_new).length,
+        gkCount: players.filter(p => p.wants_gk).length,
         genders,
     };
 }
@@ -125,6 +130,8 @@ export function applyDrafted(playerId, teamId) {
         }
     }
     if (!player) return false;   // unknown player — resync will reconcile
+    // Drafted (by any surface) means no longer multi-selectable.
+    state.selectedIds.delete(Number(playerId));
     player.team_id = team.id;
     player.team_name = team.name;
     team.roster.push(player);

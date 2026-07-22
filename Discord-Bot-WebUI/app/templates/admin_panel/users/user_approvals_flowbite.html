@@ -74,6 +74,25 @@
     </button>
   {% endcall %}
 
+  <!-- ===== Explainer: what each decision on this page actually does ===== -->
+  <details class="rounded-xl border border-sky-200 dark:border-sky-500/30 bg-sky-50/60 dark:bg-sky-500/5 px-4 py-3 group">
+    <summary class="flex items-center gap-2 cursor-pointer select-none text-sm font-semibold text-sky-900 dark:text-sky-200">
+      <i class="ti ti-info-circle" aria-hidden="true"></i>
+      <span>How approval works</span>
+      <span class="ml-auto text-xs text-sky-700/70 dark:text-sky-300/70 group-open:hidden">show</span>
+      <span class="ml-auto text-xs text-sky-700/70 dark:text-sky-300/70 hidden group-open:inline">hide</span>
+    </summary>
+    <div class="mt-2 text-sm text-sky-900/90 dark:text-sky-100/80 space-y-1.5">
+      <p>This queue holds people who have registered but need a decision. Approving picks one of three outcomes:</p>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><strong>Full league</strong> (Classic / Premier / ECS FC) — they become an approved member of that league. For Classic/Premier they still must <em>pay</em> for the season before they count as active; ECS FC activates immediately. Put them on a specific team afterward from <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="underline">All Users → edit</a>.</li>
+        <li><strong>Substitute</strong> — approved and <strong>enrolled in that league's sub pool</strong> so they can be called for matches. (Not rostered on a team.)</li>
+        <li><strong>Waitlist</strong> — a holding lane. They are <strong>not approved to play</strong> yet; they wait until a spot opens (e.g. an injury) and then get pulled off into a team or the sub pool. Waitlisted people leave this queue and appear on the <a href="{{ url_for('admin_panel.user_waitlist') }}" class="underline">Waitlist</a> page.</li>
+      </ul>
+      <p class="text-xs text-sky-800/70 dark:text-sky-200/60">Approval (allowed in a league), payment (paid for the season), and placement (on a team / in the sub pool) are separate — someone can be approved but unpaid and unplaced. The chips in each person's detail modal show exactly where they stand.</p>
+    </div>
+  </details>
+
   <!-- ===== KPI band: bullet-style tiles with progress + target captions (real data) ===== -->
   <section aria-labelledby="kpiHead">
     <h2 id="kpiHead" class="sr-only">Approval metrics</h2>
@@ -400,6 +419,63 @@
   </section>
   {% endif %}
 
+  <!-- ===== Needs account: claimed/linked profiles stranded without a login ===== -->
+  {% if limbo_profiles %}
+  <section class="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50/50 dark:bg-amber-500/5 overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-amber-200 dark:border-amber-500/30">
+      <h2 class="font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+        <i class="ti ti-alert-triangle text-amber-500" aria-hidden="true"></i>
+        <span>Needs Account</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ limbo_profiles|length }}</span>
+      </h2>
+      <span class="text-[11px] text-gray-500 dark:text-gray-400 font-mono hidden sm:inline">claimed/linked to a player with no login · create an account to route them</span>
+    </div>
+    <ul class="divide-y divide-amber-200 dark:divide-amber-500/20" role="list">
+      {% for qp in limbo_profiles %}
+      <li class="flex items-start gap-3 sm:gap-4 px-4 sm:px-5 py-3">
+        {% if qp.profile_picture_url %}
+        <img src="{{ qp.profile_picture_url }}" alt="{{ qp.player_name }}"
+             class="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover shrink-0 ring-1 ring-amber-200 dark:ring-amber-500/30">
+        {% else %}
+        <span class="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 bg-amber-100 text-amber-500 dark:bg-amber-500/10">
+          <i class="ti ti-user text-lg" aria-hidden="true"></i>
+        </span>
+        {% endif %}
+
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span class="font-semibold text-gray-900 dark:text-white truncate">{{ qp.player_name }}</span>
+            <span class="text-[11px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ qp.status }}</span>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">
+            {{ qp.created_at.strftime('%Y-%m-%d') if qp.created_at else '' }}
+            {%- if qp.claimed_by_player %} · linked player #{{ qp.claimed_by_player.id }} ({{ qp.claimed_by_player.name }}){% else %} · linked player missing{% endif -%}
+            {%- if qp.email %} · {{ qp.email }}{% endif -%}
+          </p>
+          {% if not qp.claimed_by_player %}
+          <p class="mt-1.5 text-xs text-red-700 dark:text-red-300 inline-flex items-center gap-1">
+            <i class="ti ti-unlink" aria-hidden="true"></i> Linked player no longer exists — re-link or delete this profile.
+          </p>
+          {% endif %}
+        </div>
+
+        {% if qp.claimed_by_player %}
+        <button type="button" data-action="create-account" data-profile-id="{{ qp.id }}"
+                class="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green/90 transition-colors">
+          <i class="ti ti-user-plus" aria-hidden="true"></i><span class="hidden sm:inline">Create account</span>
+        </button>
+        {% else %}
+        <a href="{{ url_for('admin_panel.quick_profiles_management') }}"
+           class="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <i class="ti ti-settings" aria-hidden="true"></i><span class="hidden sm:inline">Manage</span>
+        </a>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
   <!-- ===== Two-up: Recently processed (activity feed) + Audit log ===== -->
   {% if recent_actions or audit_logs %}
   <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 items-start">
@@ -488,8 +564,13 @@
               <option value="sub-premier">Premier Substitute</option>
               <option value="sub-ecs-fc">ECS FC Substitute</option>
           </optgroup>
+          <optgroup label="Waitlist (holding lane — not yet approved)">
+              <option value="waitlist-classic">Classic Waitlist</option>
+              <option value="waitlist-premier">Premier Waitlist</option>
+              <option value="waitlist-ecs-fc">ECS FC Waitlist</option>
+          </optgroup>
       </select>
-      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Substitute roles are for mid-season signups.</p>
+      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Full/sub roles place them in the league now. Waitlist parks them in a per-league holding lane until a spot opens.</p>
   </div>
   <div>
       <label for="approvalNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes (optional)</label>
@@ -803,8 +884,13 @@
             <option value="sub-premier">Premier Substitute</option>
             <option value="sub-ecs-fc">ECS FC Substitute</option>
         </optgroup>
+        <optgroup label="Waitlist (holding lane — not yet approved)">
+            <option value="waitlist-classic">Classic Waitlist</option>
+            <option value="waitlist-premier">Premier Waitlist</option>
+            <option value="waitlist-ecs-fc">ECS FC Waitlist</option>
+        </optgroup>
     </select>
-    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Substitute roles are for mid-season signups.</p>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Full/sub roles place them in the league now. Waitlist parks them in a per-league holding lane until a spot opens.</p>
 </div>
 <div>
     <label for="approvalNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes (optional)</label>
@@ -885,6 +971,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 break;
             }
+            case 'create-account': {
+                // Mint (or re-queue) an account for a stranded claimed/linked profile
+                // so the prospect appears in the normal approvals queue.
+                const profileId = target.dataset.profileId;
+                if (!profileId) break;
+                const swalTheme = {confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'};
+                Swal.fire(Object.assign({
+                    title: 'Create account?',
+                    text: 'Creates a pending account for this prospect so you can approve and route them.',
+                    icon: 'question', showCancelButton: true, confirmButtonText: 'Create'
+                }, swalTheme)).then(function(res) {
+                    if (!res.isConfirmed) return;
+                    target.disabled = true;
+                    fetch(`{{ url_for('admin_panel.create_account_for_quick_profile', profile_id=0) }}`.replace('/0/', '/' + profileId + '/'), {
+                        method: 'POST', headers: {'X-CSRFToken': csrfToken}
+                    })
+                    .then(r => r.json())
+                    .then(function(data) {
+                        if (data.success) {
+                            Swal.fire(Object.assign({title: 'Done', text: data.message, icon: 'success'}, swalTheme)).then(() => location.reload());
+                        } else {
+                            target.disabled = false;
+                            Swal.fire(Object.assign({title: 'Error', text: data.error || 'Failed to create account.', icon: 'error'}, swalTheme));
+                        }
+                    })
+                    .catch(function() {
+                        target.disabled = false;
+                        Swal.fire(Object.assign({title: 'Error', text: 'Request failed.', icon: 'error'}, swalTheme));
+                    });
+                });
+                break;
+            }
         }
     });
 
@@ -905,6 +1023,46 @@ document.addEventListener('DOMContentLoaded', function() {
             + '<dd class="text-sm font-medium text-gray-900 dark:text-white text-right break-all">' + esc(value) + '</dd>'
             + '</div>';
     }
+    // Birth -> death lifecycle: four independent axes rendered as color chips so an
+    // admin sees exactly where a person sits before deciding. Approval, waitlist,
+    // payment/active, and placement are separate tracks (someone can be
+    // "approved for Pub, unpaid, unplaced" indefinitely).
+    function chip(label, tone) {
+        const tones = {
+            green: 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300',
+            amber: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+            red: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+            gray: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+        };
+        return '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ' + (tones[tone] || tones.gray) + '">' + esc(label) + '</span>';
+    }
+    function titleize(s) { return String(s || '').replace(/-/g, ' ').replace(/\b\w/g, function(c){ return c.toUpperCase(); }); }
+    function lifecycleStrip(u) {
+        const p = u.player || {};
+        const chips = [];
+        // Approval axis (waitlist takes visual priority — it's a distinct decision).
+        if (u.on_waitlist) {
+            chips.push(chip((u.waitlist_league ? titleize(u.waitlist_league) + ' ' : '') + 'Waitlist', 'amber'));
+        } else if (u.approval_status === 'approved') {
+            chips.push(chip('Approved' + (u.approval_league ? ' · ' + titleize(u.approval_league) : ''), 'green'));
+        } else if (u.approval_status === 'denied') {
+            chips.push(chip('Denied', 'red'));
+        } else {
+            chips.push(chip('Pending approval', 'gray'));
+        }
+        // Payment / active-this-season axis.
+        if (u.player) {
+            chips.push(p.is_current_player ? chip('Active this season', 'green') : chip('Not active / unpaid', 'gray'));
+            // Placement axis (any roster membership, primary or secondary).
+            const onTeam = p.team_id || (Array.isArray(p.team_ids) && p.team_ids.length > 0);
+            if (onTeam) chips.push(chip('On a team', 'green'));
+            else if (p.is_sub) chips.push(chip('Substitute', 'amber'));
+            else chips.push(chip('Unplaced', 'gray'));
+        } else {
+            chips.push(chip('No player profile', 'gray'));
+        }
+        return '<div class="mb-3 flex flex-wrap gap-1.5">' + chips.join('') + '</div>';
+    }
     function loadPlayerDetails(userId) {
         const content = document.getElementById('playerDetailsContent');
         const profileLink = document.getElementById('profileLink');
@@ -918,7 +1076,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!data.success) throw new Error(data.error || 'Failed to load user details');
                 const u = data.user;
                 const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.real_name || u.username;
-                let html = '<dl class="divide-y-0">';
+                let html = lifecycleStrip(u);
+                html += '<dl class="divide-y-0">';
                 html += detailRow('Name', fullName);
                 html += detailRow('Username', u.username);
                 html += detailRow('Email', u.email);

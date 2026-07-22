@@ -69,7 +69,7 @@ def build_attention_queue(user):
     # 1) Pending approvals (admins only — sensitive)
     if is_full_admin:
         try:
-            n = User.query.filter_by(approval_status='pending').count()
+            n = User.count_pending_approvals(db.session)  # excludes waitlisted; matches approvals page
             add('approvals', 'Pending approvals', n, 'warning', safe_url('admin_panel.user_approvals'))
         except Exception as e:
             logger.warning(f"attention/approvals: {e}")
@@ -269,7 +269,7 @@ def dashboard():
             # NOT is_approved — a denied user keeps is_approved=False, so is_approved
             # would lump denied users in with pending ones and overcount this KPI vs.
             # the attention queue and the Approvals page (both use approval_status).
-            pending_approvals = User.query.filter_by(approval_status='pending').count()
+            pending_approvals = User.count_pending_approvals(db.session)
         except Exception as e:
             logger.warning(f"Error getting pending approvals: {e}")
             pending_approvals = 0
@@ -1044,7 +1044,7 @@ def quick_generate_reports():
             report_data = {
                 'total_users': User.query.count(),
                 'active_users': User.query.filter_by(is_active=True).count(),
-                'pending_approvals': User.query.filter_by(approval_status='pending').count(),
+                'pending_approvals': User.count_pending_approvals(db.session),
                 'total_settings': AdminConfig.query.count(),
                 'enabled_settings': AdminConfig.query.filter_by(is_enabled=True).count(),
                 'recent_activity': AdminAuditLog.query.filter(

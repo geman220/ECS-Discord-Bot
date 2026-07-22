@@ -149,6 +149,11 @@ class User(UserMixin, db.Model):
     # Waitlist tracking
     waitlist_joined_at = db.Column(db.DateTime, nullable=True)
     waitlist_priority = db.Column(db.String(20), nullable=True, default=None)  # 'high', 'medium', 'normal', or None (auto-calculated)
+    # Which league lane they are waiting for: 'classic', 'premier', 'ecs-fc'
+    # (None = unspecified / general waitlist). Lets the waitlist page segment
+    # per-league and lets approval route them off the RIGHT waitlist. Distinct
+    # from preferred_league (the onboarding hint) — this is the decided lane.
+    waitlist_league = db.Column(db.String(50), nullable=True)
 
     # Approval relationships
     approved_by_user = db.relationship('User', remote_side=[id], backref='approved_users')
@@ -197,6 +202,26 @@ class User(UserMixin, db.Model):
         """Verify a provided 2FA token."""
         totp = pyotp.TOTP(self.totp_secret)
         return totp.verify(token)
+
+    @staticmethod
+    def pending_approval_criteria():
+        """WHERE-criteria for users AWAITING AN APPROVAL DECISION.
+
+        Single source of truth so every "pending approvals" counter, badge, and
+        list stays in agreement. A user parked on the waitlist is approval_status
+        'pending' AND holds the pl-waitlist role — they are a decided, parked case
+        that lives on the waitlist page, NOT the approvals queue, so they are
+        excluded here. Splat into a query: ``.filter(*User.pending_approval_criteria())``.
+        """
+        return (User.approval_status == 'pending',
+                ~User.roles.any(Role.name == 'pl-waitlist'))
+
+    @staticmethod
+    def count_pending_approvals(session):
+        """Count of users awaiting an approval decision (waitlisted excluded)."""
+        return session.query(func.count(User.id)).filter(
+            *User.pending_approval_criteria()
+        ).scalar() or 0
 
     def set_password(self, password):
         from app.utils.auth_helpers import secure_hash_password

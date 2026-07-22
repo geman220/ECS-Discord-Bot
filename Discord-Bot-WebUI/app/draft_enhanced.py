@@ -1199,7 +1199,9 @@ def draft_league(league_name: str):
         # to the legacy page below — the balanced payload embeds averaged final
         # scores, which follow the blindness contract
         # (classic_draft_service.SCORE_ACCESS_ROLES).
-        if AdminConfig.get_setting('classic_balanced_draft_enabled', False) \
+        # Defaults ON — the balanced board IS the Classic draft; the toggle
+        # remains only as a break-glass rollback to the legacy UI.
+        if AdminConfig.get_setting('classic_balanced_draft_enabled', True) \
                 and viewer_can_access_balanced_draft(g.db_session, current_user.id):
             state = get_board_state(g.db_session)
             # Warn the operator if a leftover clocked DraftSession would

@@ -143,6 +143,29 @@ class TestBlindEnforcement:
         assert resp.get_json()['error'] == 'WINDOW_CLOSED'
 
 
+class TestBoardScoutingNotes:
+    def test_notes_gated_and_round_trip(self, client, db, app, settings):
+        session = db.session
+        season, league, player = _classic_setup(session)
+        coach = _user_with_roles(session, 'Classic Coach')
+        plain = UserFactory()
+        session.flush()
+
+        AuthTestHelper.create_authenticated_session(client, plain)
+        assert client.get(f'/classic-board/players/{player.id}/notes').status_code in (302, 403)
+
+        AuthTestHelper.create_authenticated_session(client, coach)
+        resp = client.get(f'/classic-board/players/{player.id}/notes')
+        assert resp.status_code == 200
+        assert resp.get_json()['success'] is True   # non-NAD -> empty thread, not an error
+
+        resp = client.post(f'/classic-board/players/{player.id}/notes',
+                           json={'content': 'strong left foot'})
+        assert resp.status_code == 201
+        resp = client.post(f'/classic-board/players/{player.id}/notes', json={'content': '  '})
+        assert resp.status_code == 400
+
+
 class TestAdminOverrideEndpoint:
     def test_override_set_and_clear(self, client, db, app, settings, monkeypatch):
         from app.models.admin_config import AdminAuditLog

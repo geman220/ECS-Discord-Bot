@@ -478,10 +478,15 @@ def bulk_process_waitlist():
                     user.roles.remove(waitlist_role)
 
                     if action == 'move_to_pending':
-                        # Add unverified role and set to pending
-                        if unverified_role and unverified_role not in user.roles:
-                            user.roles.append(unverified_role)
-                        user.approval_status = 'pending'
+                        # Never downgrade an already-approved player — adding
+                        # pl-unverified + resetting to 'pending' makes the Discord
+                        # role calculator strip their league/team roles. Approved
+                        # players are just taken off the waitlist; only still-
+                        # unapproved users move into the pending/unverified queue.
+                        if user.approval_status != 'approved':
+                            if unverified_role and unverified_role not in user.roles:
+                                user.roles.append(unverified_role)
+                            user.approval_status = 'pending'
                     elif action == 'remove_from_waitlist':
                         # Just remove from waitlist without adding to pending
                         pass

@@ -29,13 +29,19 @@ class ComposedMessage(db.Model):
 
     # Audience: type + ids resolved at SEND time (not at compose time), so a
     # scheduled message picks up roster changes.
-    # audience_type: all_active | team | league | role | users
+    # audience_type: all_active | active_this_season | team | league | role | users
     audience_type = db.Column(db.String(20), nullable=False)
     audience_ids = db.Column(db.JSON, nullable=True)  # team/league ids, role names, or user ids
     audience_description = db.Column(db.String(300), nullable=True)
 
     action_url = db.Column(db.String(500), nullable=True)
     priority = db.Column(db.String(10), nullable=False, default='normal')  # normal | high
+
+    # Force delivery: push the selected forceable channels (push/email/discord)
+    # past each member's per-channel opt-out. SMS is never forced (TCPA). Stored
+    # so a SCHEDULED message forces at send time too. Requires
+    # sql_add_composed_message_force_delivery.sql.
+    force_delivery = db.Column(db.Boolean, nullable=False, default=False, server_default='false')
 
     # scheduled | sending | sent | partially_sent | failed | cancelled
     status = db.Column(db.String(20), nullable=False, default='scheduled', index=True)
@@ -60,6 +66,7 @@ class ComposedMessage(db.Model):
             'channels': self.channels,
             'audience_type': self.audience_type,
             'audience_description': self.audience_description,
+            'force_delivery': self.force_delivery,
             'status': self.status,
             'scheduled_send_time': self.scheduled_send_time.isoformat() if self.scheduled_send_time else None,
             'total_recipients': self.total_recipients,

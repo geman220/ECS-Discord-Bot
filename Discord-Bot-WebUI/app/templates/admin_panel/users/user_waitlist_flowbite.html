@@ -32,6 +32,25 @@
   </button>
 {% endcall %}
 
+<!-- ===== Explainer: what the waitlist is and what actions here do ===== -->
+<details class="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/5 px-4 py-3 group mb-4">
+  <summary class="flex items-center gap-2 cursor-pointer select-none text-sm font-semibold text-amber-900 dark:text-amber-200">
+    <i class="ti ti-info-circle" aria-hidden="true"></i>
+    <span>How the waitlist works</span>
+    <span class="ml-auto text-xs text-amber-700/70 dark:text-amber-300/70 group-open:hidden">show</span>
+    <span class="ml-auto text-xs text-amber-700/70 dark:text-amber-300/70 hidden group-open:inline">hide</span>
+  </summary>
+  <div class="mt-2 text-sm text-amber-900/90 dark:text-amber-100/80 space-y-1.5">
+    <p>The waitlist is a <strong>reserve lane</strong>. People here have registered but are <strong>not approved to play in a league</strong> — they wait until a spot opens (e.g. an injury) so you can pull one in.</p>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong>Approve &amp; Assign League</strong> — takes them OFF the waitlist and INTO a league (as a member) or the <strong>sub pool</strong> (as a substitute). This is how you pull someone in.</li>
+      <li>The same dropdown's <strong>Waitlist</strong> options just move them to a different lane (e.g. Classic → Premier waitlist) without approving them.</li>
+      <li><strong>Remove from Waitlist</strong> — takes them off the reserve entirely and returns them to the pending approvals queue for a fresh decision.</li>
+      <li>Being on the waitlist doesn't stop you inviting them to a practice — it only means they aren't rostered or approved yet.</li>
+    </ul>
+  </div>
+</details>
+
 {# derive the queue's oldest-wait + preference mix from REAL waitlist rows (no fabrication) #}
 {% set ns = namespace(oldest=None, no_pref=0, sub_open=0, no_discord=0) %}
 {% for u in waitlist_users %}
@@ -144,6 +163,9 @@
             </td>
             <td class="px-4 py-3 align-middle hidden lg:table-cell">
               <div class="flex flex-col items-start gap-1">
+                {% if user.waitlist_league %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-ecs-green/10 text-ecs-green ring-1 ring-ecs-green/30" title="Waitlist lane chosen by an admin (the decided lane, vs the player's preference below)"><i class="ti ti-list-check text-[12px]" aria-hidden="true"></i>{{ user.waitlist_league.replace('-', ' ').title() }} lane</span>
+                {% endif %}
                 {% if user.preferred_league == 'not_sure' %}
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30" title="Player picked &quot;Not sure yet&quot; — an admin should help them choose a league"><i class="ti ti-help-circle text-[12px]" aria-hidden="true"></i>Needs league guidance</span>
                 {% elif user.preferred_league == 'pub_league_classic' %}
@@ -669,8 +691,13 @@
             <option value="sub-premier">Premier Substitute</option>
             <option value="sub-ecs-fc">ECS FC Substitute</option>
         </optgroup>
+        <optgroup label="Move to a different waitlist">
+            <option value="waitlist-classic">Classic Waitlist</option>
+            <option value="waitlist-premier">Premier Waitlist</option>
+            <option value="waitlist-ecs-fc">ECS FC Waitlist</option>
+        </optgroup>
     </select>
-    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">This will sync roles to Discord automatically.</p>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Full/sub roles approve them off the waitlist into the league. The waitlist options just move them to a different lane. Roles sync to Discord automatically.</p>
 </div>
 <div>
     <label for="approvalNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes (optional)</label>

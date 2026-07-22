@@ -105,6 +105,97 @@ def cleanup_old_sub_assignments(self, session):
 
 
 @celery_task
+def expire_stale_substitute_pools(self, session, inactive_days=120):
+    """Deactivate substitute-pool memberships that have gone stale.
+
+    Keeps the "active sub pool" from filling up with people who signed up once and
+    were never used again (or lingered across seasons). A membership is stale when
+    it is still active but its most recent signal — last_active_at, else
+    joined_pool_at, else created_at — is older than ``inactive_days``.
+
+    Conservative on purpose: it only flips the pool row's ``is_active`` to False
+    (the source of truth the sub-matcher filters on, so a deactivated person stops
+    being offered matches) and drops ``player.is_sub`` when they have no active
+    pools left. It does NOT strip Discord/Flask sub roles automatically — that
+    destructive step is left to the admin "stale subs" review list, where a human
+    confirms. Covers both the unified SubstitutePool and the legacy EcsFcSubPool.
+    """
+    from datetime import datetime, timedelta
+    from sqlalchemy import func as sqlfunc
+    from app.models.substitutes import SubstitutePool, EcsFcSubPool, log_pool_action
+    from app.models import Player
+
+    cutoff = datetime.utcnow() - timedelta(days=inactive_days)
+    affected_player_ids = set()
+    deactivated = 0
+
+    try:
+        pl_stale = session.query(SubstitutePool).filter(
+            SubstitutePool.is_active == True,  # noqa: E712
+            sqlfunc.coalesce(
+                SubstitutePool.last_active_at,
+                SubstitutePool.joined_pool_at,
+                SubstitutePool.created_at,
+            ) < cutoff
+        ).all()
+        for pool in pl_stale:
+            pool.is_active = False
+            affected_player_ids.add(pool.player_id)
+            deactivated += 1
+            try:
+                log_pool_action(
+                    player_id=pool.player_id, league_id=pool.league_id, action='REMOVED',
+                    notes=f"Auto-expired from {pool.league_type} sub pool "
+                          f"(inactive > {inactive_days}d)",
+                    performed_by=None, pool_id=pool.id, session=session,
+                )
+            except Exception as e:
+                logger.warning(f"Pool history log skipped for player {pool.player_id}: {e}")
+
+        ecs_stale = session.query(EcsFcSubPool).filter(
+            EcsFcSubPool.is_active == True,  # noqa: E712
+            sqlfunc.coalesce(
+                EcsFcSubPool.last_active_at,
+                EcsFcSubPool.joined_pool_at,
+            ) < cutoff
+        ).all()
+        for pool in ecs_stale:
+            pool.is_active = False
+            affected_player_ids.add(pool.player_id)
+            deactivated += 1
+
+        session.flush()
+
+        # Drop the player-level is_sub flag for anyone with no active pools left.
+        cleared_is_sub = 0
+        for pid in affected_player_ids:
+            has_active_pl = session.query(SubstitutePool.id).filter(
+                SubstitutePool.player_id == pid, SubstitutePool.is_active == True  # noqa: E712
+            ).first()
+            has_active_ecs = session.query(EcsFcSubPool.id).filter(
+                EcsFcSubPool.player_id == pid, EcsFcSubPool.is_active == True  # noqa: E712
+            ).first()
+            if not has_active_pl and not has_active_ecs:
+                player = session.query(Player).get(pid)
+                if player and player.is_sub:
+                    player.is_sub = False
+                    cleared_is_sub += 1
+
+        logger.info(f"Sub pool hygiene: deactivated {deactivated} stale membership(s) "
+                    f"across {len(affected_player_ids)} player(s); cleared is_sub on {cleared_is_sub}")
+        return {
+            "status": "success",
+            "deactivated": deactivated,
+            "players_affected": len(affected_player_ids),
+            "is_sub_cleared": cleared_is_sub,
+            "inactive_days": inactive_days,
+        }
+    except Exception as e:
+        logger.error(f"Error expiring stale substitute pools: {e}", exc_info=True)
+        return {"status": "error", "message": str(e)}
+
+
+@celery_task
 def cleanup_old_scheduled_messages(self, session):
     """
     Clean up old scheduled messages to prevent processing of invalid references.

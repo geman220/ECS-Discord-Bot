@@ -211,8 +211,9 @@ def get_user_analytics():
         ).count()
         growth_rate = round(((new_users_30d - prev_30d_count) / max(prev_30d_count, 1)) * 100, 1)
 
-        # Approval counts
-        pending = User.query.filter_by(approval_status='pending').count()
+        # Approval counts. "pending" = awaiting a decision (waitlisted excluded, via
+        # the shared helper) so this card matches the approvals page and nav badge.
+        pending = User.count_pending_approvals(db.session)
         approved = User.query.filter_by(approval_status='approved').count()
         denied = User.query.filter_by(approval_status='denied').count()
         total_decided = approved + denied

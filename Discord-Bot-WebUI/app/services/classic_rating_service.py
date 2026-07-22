@@ -98,7 +98,7 @@ def get_rating_config():
     return {
         'weights': weights,
         'window_open': bool(AdminConfig.get_setting('classic_ratings_window_open', False)),
-        'balanced_draft_enabled': bool(AdminConfig.get_setting('classic_balanced_draft_enabled', False)),
+        'balanced_draft_enabled': bool(AdminConfig.get_setting('classic_balanced_draft_enabled', True)),
         'max_metric_gap': _dec('classic_draft_max_metric_gap', '3'),
         'unrated_default': _dec('classic_draft_unrated_default', '3.0'),
         'suggestion_count': int(AdminConfig.get_setting('classic_draft_suggestion_count', 10) or 10),
@@ -546,44 +546,54 @@ def get_rating_progress(session, season_id):
 
 
 def get_season_trends(session):
-    """Historic analytics across ALL seasons that have ratings. ADMIN ONLY.
+    """Historic analytics across ALL seasons with rating data. ADMIN ONLY.
+
+    Charts FINAL scores (override -> else coach average) so seasons whose data
+    arrived as admin overrides (e.g. the 2026 spreadsheet backfill, which has
+    no per-coach rows) trend exactly like coach-rated seasons.
 
     Returns {'seasons': [{'season_id', 'name', 'averages': {m: float|None},
                           'composite': float|None, 'player_count', 'rating_count'}]}
     ordered chronologically — powers the "is Intensity creeping up" chart.
     """
     weights = get_rating_config()['weights']
-    rows = (
-        session.query(
-            PlayerSeasonRating.season_id,
-            Season.name,
-            Season.start_date,
-            *[func.avg(getattr(PlayerSeasonRating, m)).label(m) for m in METRICS],
-            func.count(func.distinct(PlayerSeasonRating.player_id)).label('player_count'),
-            func.count(PlayerSeasonRating.id).label('rating_count'),
-        )
-        .join(Season, Season.id == PlayerSeasonRating.season_id)
-        .filter(PlayerSeasonRating.league_type == LEAGUE_TYPE)
-        .group_by(PlayerSeasonRating.season_id, Season.name, Season.start_date)
-        .order_by(Season.start_date.asc(), PlayerSeasonRating.season_id.asc())
-        .all()
+    rating_seasons = {sid for (sid,) in session.query(PlayerSeasonRating.season_id)
+                      .filter_by(league_type=LEAGUE_TYPE).distinct().all()}
+    override_seasons = {sid for (sid,) in session.query(PlayerRatingOverride.season_id)
+                        .filter_by(league_type=LEAGUE_TYPE).distinct().all()}
+    season_ids = rating_seasons | override_seasons
+    if not season_ids:
+        return {'seasons': []}
+
+    rating_counts = dict(
+        session.query(PlayerSeasonRating.season_id, func.count(PlayerSeasonRating.id))
+        .filter_by(league_type=LEAGUE_TYPE)
+        .group_by(PlayerSeasonRating.season_id).all()
     )
+    season_rows = (
+        session.query(Season).filter(Season.id.in_(season_ids))
+        .order_by(Season.start_date.asc(), Season.id.asc()).all()
+    )
+
     seasons = []
-    for row in rows:
+    for season in season_rows:
+        finals = get_final_scores(session, season.id)
         averages = {}
-        finals = {}
+        metric_avgs = {}
         for m in METRICS:
-            v = getattr(row, m)
-            finals[m] = Decimal(v) if v is not None else None
-            averages[m] = float(quantize2(finals[m])) if finals[m] is not None else None
-        composite = compute_composite(finals, weights)
+            values = [f['metrics'][m]['value'] for f in finals.values()
+                      if f['metrics'][m]['value'] is not None]
+            avg = (sum(values) / len(values)) if values else None
+            metric_avgs[m] = avg
+            averages[m] = float(quantize2(avg)) if avg is not None else None
+        composite = compute_composite(metric_avgs, weights)
         seasons.append({
-            'season_id': row.season_id,
-            'name': row.name,
+            'season_id': season.id,
+            'name': season.name,
             'averages': averages,
             'composite': float(composite) if composite is not None else None,
-            'player_count': row.player_count,
-            'rating_count': row.rating_count,
+            'player_count': len(finals),
+            'rating_count': rating_counts.get(season.id, 0),
         })
     return {'seasons': seasons}
 

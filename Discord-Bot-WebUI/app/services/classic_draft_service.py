@@ -346,6 +346,7 @@ def suggest_players(pool, rosters, team_id, config):
             'player_id': p['id'],
             'name': p['name'],
             'avatar_url': p.get('avatar_url'),
+            'profile_picture_url': p.get('profile_picture_url'),
             'gender': derive_gender(p),
             'is_rated': bool((p.get('ratings') or {}).get('is_rated')),
             'composite': float(s['composite']) if (p.get('ratings') or {}).get('composite') is not None else None,

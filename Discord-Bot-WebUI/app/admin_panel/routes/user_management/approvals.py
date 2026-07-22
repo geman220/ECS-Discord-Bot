@@ -70,8 +70,11 @@ def user_approvals():
         elif status_filter == 'all':
             pass  # No filter, show all
         else:
-            # Default to pending
-            query = query.filter(User.approval_status == 'pending')
+            # Default to pending — but EXCLUDE users parked on the waitlist (they
+            # are 'pending' + hold the pl-waitlist role and live on the waitlist
+            # page, not this needs-a-decision queue). One shared criteria helper so
+            # this list, the count badge, and every other pending counter agree.
+            query = query.filter(*User.pending_approval_criteria())
             status_filter = 'pending'
 
         # Apply league filter
@@ -113,9 +116,10 @@ def user_approvals():
             logger.error(f"Error loading recent actions: {str(e)}")
             recent_actions = []
 
-        # Count statistics
+        # Count statistics. pending_count mirrors the pending LIST (waitlisted users
+        # excluded) so the badge matches what the admin actually sees to act on.
         stats = {
-            'pending_count': db.session.query(func.count(User.id)).filter(User.approval_status == 'pending').scalar(),
+            'pending_count': User.count_pending_approvals(db.session),
             'total_approved': db.session.query(func.count(User.id)).filter(User.approval_status == 'approved').scalar(),
             'total_denied': db.session.query(func.count(User.id)).filter(User.approval_status == 'denied').scalar()
         }
@@ -150,6 +154,33 @@ def user_approvals():
                 logger.error(f"Error loading field quick profiles: {str(e)}")
                 field_profiles = []
 
+        # Stranded claimed/linked profiles: a profile that WAS claimed or linked but
+        # whose player has no User account (a legacy-roster orphan, user_id IS NULL)
+        # or whose player row is missing entirely. These never reach the pending
+        # queue because every list here is User-driven, so they silently vanished —
+        # exactly how walk-in prospects fell into limbo. Surface them with a
+        # "Create account" action that mints/re-queues an account so they flow into
+        # the normal approvals list. New links/claims can't land here anymore
+        # (link/claim now ensure an account), so this only clears the backlog.
+        limbo_profiles = []
+        if status_filter in ('pending', 'all'):
+            try:
+                from app.models import Player
+                limbo_profiles = db.session.query(QuickProfile).options(
+                    joinedload(QuickProfile.claimed_by_player)
+                ).outerjoin(
+                    Player, Player.id == QuickProfile.claimed_by_player_id
+                ).filter(
+                    QuickProfile.status.in_([
+                        QuickProfileStatus.CLAIMED.value,
+                        QuickProfileStatus.LINKED.value,
+                    ]),
+                    or_(Player.id.is_(None), Player.user_id.is_(None))
+                ).order_by(QuickProfile.created_at.desc()).limit(100).all()
+            except Exception as e:
+                logger.error(f"Error loading stranded quick profiles: {str(e)}")
+                limbo_profiles = []
+
         # Waiting-room review notes (coach/admin fit notes) for the prospects on
         # this page — pending players and field/quick profiles share one note system.
         # Loaded in two grouped queries and keyed for the template so admins can read
@@ -183,6 +214,7 @@ def user_approvals():
             recent_actions=recent_actions,
             audit_logs=audit_logs,
             field_profiles=field_profiles,
+            limbo_profiles=limbo_profiles,
             notes_by_player=notes_by_player,
             notes_by_quick_profile=notes_by_quick_profile,
             stats=stats,
@@ -197,18 +229,136 @@ def user_approvals():
         return redirect(url_for('admin_panel.users_comprehensive'))
 
 
+# Approval "outcome" vocabulary. The six league/sub types below place a person
+# INTO a league (as member or sub). The three waitlist-* types park them on a
+# per-league holding lane instead. approve_user validates against the union.
+SUB_LEAGUE_DISPLAY = {
+    'sub-classic': 'Classic',
+    'sub-premier': 'Premier',
+    'sub-ecs-fc': 'ECS FC',
+}
+WAITLIST_LEAGUE_MAP = {
+    'waitlist-classic': 'classic',
+    'waitlist-premier': 'premier',
+    'waitlist-ecs-fc': 'ecs-fc',
+}
+
+
+def _enroll_in_substitute_pool(session, player, league_display: str, approver_id: int):
+    """Enroll a player in the substitute pool for a league (current season).
+
+    SubstitutePool is authoritative and has ONE row per player (player_id unique),
+    so we upsert by player_id and set the league_type — never blind-insert (that
+    would hit the unique constraint for a player who already has a pool row in a
+    different division). ECS FC additionally mirrors into the legacy EcsFcSubPool
+    table, which the integrity checker requires to stay in sync. The Discord 'X Sub'
+    role is granted by apply_approval's role_mapping; the deferred sync there
+    propagates it — we don't touch roles here. Season is implicit (is_active=True),
+    the pool has no season_id.
+    """
+    from app.models.substitutes import SubstitutePool, EcsFcSubPool
+    now = datetime.utcnow()
+
+    existing = session.query(SubstitutePool).filter_by(player_id=player.id).first()
+    if existing:
+        existing.league_type = league_display
+        existing.is_active = True
+        existing.approved_by = approver_id
+        existing.approved_at = now
+    else:
+        session.add(SubstitutePool(
+            player_id=player.id,
+            league_type=league_display,
+            is_active=True,
+            approved_by=approver_id,
+            approved_at=now,
+        ))
+
+    if league_display == 'ECS FC':
+        ecs = session.query(EcsFcSubPool).filter_by(player_id=player.id).first()
+        if ecs:
+            ecs.is_active = True
+        else:
+            session.add(EcsFcSubPool(player_id=player.id, is_active=True))
+
+    player.is_sub = True
+    logger.info(f"Enrolled player {player.id} in {league_display} substitute pool")
+
+
+def _apply_waitlist(user, league: str, approver_id: int, notes=None):
+    """Park a reviewed prospect on the per-league waitlist (a holding lane).
+
+    Waitlist is NOT approval: is_approved stays False. We deliberately keep
+    approval_status='pending' (NOT a new 'waitlist' value) because the ENTIRE
+    waitlist system — the waitlist page query, remove-from-waitlist, the integrity
+    G15 fixer, deny_user — keys off the pl-waitlist ROLE and assumes waitlisted
+    users are 'pending'. A distinct status silently strands them on every one of
+    those paths. The "parked, not in the pending queue" separation is instead done
+    by EXCLUDING pl-waitlist role-holders from the approvals pending list (see
+    user_approvals). Any league/sub roles and active pool rows are cleared so a
+    waitlisted person is never simultaneously an active sub/member.
+    """
+    # Strip league + sub + unverified roles; add pl-waitlist.
+    strip_roles = ['pl-unverified', 'pl-classic', 'pl-premier', 'pl-ecs-fc',
+                   'Classic Sub', 'Premier Sub', 'ECS FC Sub']
+    for rname in strip_roles:
+        r = db.session.query(Role).filter_by(name=rname).first()
+        if r and r in user.roles:
+            user.roles.remove(r)
+    waitlist_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
+    if waitlist_role and waitlist_role not in user.roles:
+        user.roles.append(waitlist_role)
+
+    user.approval_status = 'pending'
+    user.is_approved = False
+    user.approval_league = None
+    if user.waitlist_joined_at is None:
+        user.waitlist_joined_at = datetime.utcnow()
+    user.waitlist_league = league
+    if notes is not None:
+        user.approval_notes = notes
+
+    # A waitlisted person is not an active sub — deactivate any pool rows.
+    if user.player:
+        from app.models.substitutes import SubstitutePool, EcsFcSubPool
+        for row in db.session.query(SubstitutePool).filter_by(player_id=user.player.id).all():
+            row.is_active = False
+        for row in db.session.query(EcsFcSubPool).filter_by(player_id=user.player.id).all():
+            row.is_active = False
+        user.player.is_current_player = False
+
+    db.session.add(user)
+    db.session.flush()
+
+    if user.player and user.player.discord_id:
+        defer_discord_sync(user.player.id, only_add=False)
+        logger.info(f"Queued Discord role sync for waitlisted user {user.id}")
+
+
 def apply_approval(user, league_type: str, approver_id: int, notes=None):
     """Core approval mutation: role mapping, approval fields, current-season league
-    assignment, and deferred Discord sync. Caller owns locking, league_type
-    validation, auditing, and the transaction (uses db.session throughout).
+    assignment, substitute-pool enrollment, and deferred Discord sync. Caller owns
+    locking, league_type validation, auditing, and the transaction (uses db.session
+    throughout).
+
+    Handles three outcome families:
+      * league member (classic / premier / ecs-fc)
+      * substitute (sub-classic / sub-premier / sub-ecs-fc) — also enrolls in the pool
+      * waitlist (waitlist-classic / waitlist-premier / waitlist-ecs-fc) — holding lane
 
     Shared by the approve_user route and the integrity dashboard's reconcile
     actions (G1 pending-rostered, G2 approval drift, G3 missing league role) —
     "re-run approval" means exactly this block, so keeping one copy prevents the
-    two paths from drifting.
+    two paths from drifting. (Integrity paths only ever pass the six league/sub
+    types, never waitlist-*.)
 
     Raises ValueError if the mapped Role row does not exist.
     """
+    # Waitlist routing is a separate lane, not an approval — handle and return.
+    if league_type in WAITLIST_LEAGUE_MAP:
+        _apply_waitlist(user, WAITLIST_LEAGUE_MAP[league_type], approver_id, notes)
+        return
+
     role_mapping = {
         'classic': 'pl-classic',
         'premier': 'pl-premier',
@@ -233,14 +383,18 @@ def apply_approval(user, league_type: str, approver_id: int, notes=None):
     if waitlist_role and waitlist_role in user.roles:
         user.roles.remove(waitlist_role)
 
-    # Remove any existing league roles before adding new one (prevent role accumulation)
-    existing_league_roles = ['pl-premier', 'pl-classic', 'pl-ecs-fc']
-    for league_role_name in existing_league_roles:
-        if league_role_name != new_role_name:  # Don't remove the one we're about to add
-            existing_role = db.session.query(Role).filter_by(name=league_role_name).first()
+    # Remove any existing league/sub roles before adding the new one — prevents role
+    # accumulation AND cross-division sub leaks. The live sub matcher keys off the
+    # 'X Sub' role name (not the pool's league_type), so a stale 'Premier Sub' left
+    # on a player being approved as 'Classic Sub' would still surface them as an
+    # active Premier sub. Strip every league/sub role except the one we're granting.
+    for role_name in ['pl-premier', 'pl-classic', 'pl-ecs-fc',
+                      'Classic Sub', 'Premier Sub', 'ECS FC Sub']:
+        if role_name != new_role_name:  # Don't remove the one we're about to add
+            existing_role = db.session.query(Role).filter_by(name=role_name).first()
             if existing_role and existing_role in user.roles:
                 user.roles.remove(existing_role)
-                logger.info(f"Removed old league role {league_role_name} from user {user.id}")
+                logger.info(f"Removed old role {role_name} from user {user.id}")
 
     # Add the new approved role
     if new_role not in user.roles:
@@ -255,8 +409,9 @@ def apply_approval(user, league_type: str, approver_id: int, notes=None):
     if notes is not None:
         user.approval_notes = notes
 
-    # Clear waitlist timestamp - user now has a spot
+    # Clear waitlist state - user now has a spot (leaving the holding lane)
     user.waitlist_joined_at = None
+    user.waitlist_league = None
 
     # Assign player to current season league based on league_type
     if user.player and league_type:
@@ -299,6 +454,26 @@ def apply_approval(user, league_type: str, approver_id: int, notes=None):
             else:
                 logger.warning(f"Could not find current season league for type '{league_type}'")
 
+    if user.player:
+        if league_type in SUB_LEAGUE_DISPLAY:
+            # Substitute approvals must actually enroll the player in the pool —
+            # granting the 'X Sub' role alone left them a sub in name only, never
+            # surfacing in sub-request matching. Subs have no season pass, so they
+            # are active immediately; set is_current_player here (NOT only inside the
+            # current-league branch above) so enrollment isn't a silent no-op when no
+            # current-season league row is found — the matcher filters is_current_player.
+            user.player.is_current_player = True
+            _enroll_in_substitute_pool(db.session, user.player, SUB_LEAGUE_DISPLAY[league_type], approver_id)
+        else:
+            # Full-league member: they are not a sub. Deactivate any lingering pool
+            # rows so an approved member never also surfaces as an active substitute.
+            from app.models.substitutes import SubstitutePool, EcsFcSubPool
+            for row in db.session.query(SubstitutePool).filter_by(player_id=user.player.id, is_active=True).all():
+                row.is_active = False
+            for row in db.session.query(EcsFcSubPool).filter_by(player_id=user.player.id, is_active=True).all():
+                row.is_active = False
+            user.player.is_sub = False
+
     db.session.add(user)
     db.session.flush()
 
@@ -337,9 +512,18 @@ def approve_user(user_id: int):
             league_type = request.form.get('league_type')
             notes = request.form.get('notes', '')
 
-            valid_league_types = ['classic', 'premier', 'ecs-fc', 'sub-classic', 'sub-premier', 'sub-ecs-fc']
+            valid_league_types = (['classic', 'premier', 'ecs-fc',
+                                   'sub-classic', 'sub-premier', 'sub-ecs-fc']
+                                  + list(WAITLIST_LEAGUE_MAP.keys()))
             if not league_type or league_type not in valid_league_types:
                 return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+
+            is_waitlist = league_type in WAITLIST_LEAGUE_MAP
+
+            # Capture the real prior state for the audit trail (a waitlist→waitlist
+            # move starts from 'waitlist:<lane>', not a bare 'pending').
+            prior_status = (f'waitlist:{user.waitlist_league}'
+                            if has_waitlist_role else (user.approval_status or 'pending'))
 
             try:
                 apply_approval(user, league_type, approver_id=current_user_safe.id, notes=notes)
@@ -349,25 +533,34 @@ def approve_user(user_id: int):
             # Log the action
             AdminAuditLog.log_action(
                 user_id=current_user_safe.id,
-                action='approve_user',
+                action=('waitlist_user' if is_waitlist else 'approve_user'),
                 resource_type='user_approval',
                 resource_id=str(user_id),
-                old_value='pending',
-                new_value=f'approved:{league_type}',
+                old_value=prior_status,
+                new_value=(f'waitlist:{WAITLIST_LEAGUE_MAP[league_type]}'
+                           if is_waitlist else f'approved:{league_type}'),
                 ip_address=request.remote_addr,
                 user_agent=request.headers.get('User-Agent')
             )
 
-            logger.info(f"User {user.id} approved for {league_type} league by {current_user_safe.id}")
+            if is_waitlist:
+                league_label = WAITLIST_LEAGUE_MAP[league_type].replace('-', ' ').title()
+                message = f'User {user.username} placed on the {league_label} waitlist'
+                logger.info(f"User {user.id} waitlisted for {league_type} by {current_user_safe.id}")
+            else:
+                message = f'User {user.username} approved for {league_type.title()} league'
+                logger.info(f"User {user.id} approved for {league_type} league by {current_user_safe.id}")
 
             # Prepare response data before exiting context
             response_data = {
                 'success': True,
-                'message': f'User {user.username} approved for {league_type.title()} league',
+                'message': message,
                 'user_id': user.id,
                 'league_type': league_type,
+                'waitlisted': is_waitlist,
                 'approved_by': current_user_safe.username,
-                'approved_at': user.approved_at.isoformat()
+                # approved_at is unset for waitlist routing (not an approval).
+                'approved_at': user.approved_at.isoformat() if user.approved_at else None,
             }
 
         # Discord sync and cache clears dispatch automatically after the
@@ -524,8 +717,10 @@ def process_user_approval():
         user_id = request.form.get('user_id')
 
         if action == 'approve_all':
-            # Approve all pending users for classic league (default)
-            pending_users = db.session.query(User).filter_by(approval_status='pending').all()
+            # Approve all pending users — but NOT those parked on the waitlist
+            # (pending + pl-waitlist role). Sweeping them in would approve them
+            # with no league assigned and yank them off the waitlist unintentionally.
+            pending_users = db.session.query(User).filter(*User.pending_approval_criteria()).all()
             approved_count = 0
 
             for user in pending_users:
@@ -650,7 +845,12 @@ def user_details_api(user_id):
             'approval_league': user.approval_league,
             'approval_notes': user.approval_notes,
             'is_approved': user.is_approved,
-            'is_active': user.is_active
+            'is_active': user.is_active,
+            # Lifecycle axes (birth -> death): where this person sits on each
+            # independent track, so the modal can render an at-a-glance strip.
+            'on_waitlist': any(r.name == 'pl-waitlist' for r in user.roles),
+            'waitlist_league': user.waitlist_league,
+            'waitlist_joined_at': user.waitlist_joined_at.isoformat() if user.waitlist_joined_at else None,
         }
 
         # Add profile information if available
@@ -706,6 +906,7 @@ def user_details_api(user_id):
                 'team_ids': all_team_ids,
                 'ecs_fc_team_ids': ecs_fc_team_ids,
                 'is_current_player': user.player.is_current_player,
+                'is_sub': user.player.is_sub,
                 'discord_id': user.player.discord_id,
                 'jersey_size': user.player.jersey_size,
                 'phone': user.player.phone,

@@ -237,6 +237,28 @@ class TestBlindnessAndAggregation:
         assert stored.to_dict()['intensity'] == 2.75
 
 
+class TestSeasonTrends:
+    def test_override_only_season_appears_in_trends(self, db, app, settings, audit_calls):
+        """The 2026 backfill wrote overrides with zero coach ratings — trends
+        must still chart that season."""
+        session = db.session
+        season, league = _classic_league(session)
+        admin = UserFactory()
+        player = _make_player(session, league)
+        for metric, value in (('intensity', 2), ('on_ball_skill', 4),
+                              ('spirit', 4), ('knowledge_movement', 4)):
+            svc.set_override(session, season.id, player.id, metric, value, admin.id)
+
+        trends = svc.get_season_trends(session)
+        assert len(trends['seasons']) == 1
+        entry = trends['seasons'][0]
+        assert entry['season_id'] == season.id
+        assert entry['rating_count'] == 0          # no coach ratings at all
+        assert entry['player_count'] == 1
+        assert entry['averages']['intensity'] == 2.0
+        assert entry['composite'] is not None
+
+
 class TestSeasonRollover:
     def test_new_current_season_starts_blank_and_history_intact(self, db, app, settings):
         session = db.session

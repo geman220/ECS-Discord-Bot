@@ -17,6 +17,12 @@
                 <i class="ti ti-star text-ecs-green shrink-0"></i><span class="truncate">Rate Classic Players</span>
             </h1>
             {% if season_name %}<span class="text-xs text-gray-500 dark:text-gray-400">{{ season_name }}</span>{% endif %}
+            {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
+            <a href="{{ url_for('admin_panel.classic_ratings_dashboard') }}"
+               class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="ti ti-chart-bar text-sm"></i>View compiled results
+            </a>
+            {% endif %}
             <span id="rate-save-status" class="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400" data-state="idle">
                 <i class="ti ti-circle-check text-sm"></i><span>Ready</span>
             </span>
@@ -80,8 +86,9 @@
                              {{ 'bg-ecs-green/10 text-ecs-green' if complete else 'border-2 border-gray-300 dark:border-gray-600 text-transparent' }}">
                     <i class="ti ti-check text-sm"></i>
                 </span>
-                <img class="w-8 h-8 rounded-full object-cover shrink-0 {{ '' if p.avatar_url else 'hidden' }}"
-                     {% if p.avatar_url %}src="{{ p.avatar_url }}"{% endif %} alt="" loading="lazy"
+                <img class="w-8 h-8 rounded-full object-cover shrink-0 cursor-zoom-in {{ '' if p.avatar_url else 'hidden' }}"
+                     {% if p.avatar_url %}src="{{ p.avatar_url }}"{% endif %} alt="{{ p.name }}" loading="lazy"
+                     data-peek-src="{{ p.profile_picture_url or p.avatar_url or '' }}" data-peek-name="{{ p.name }}"
                      onerror="this.classList.add('hidden')">
                 <span class="min-w-0 flex-1">
                     <span class="flex items-center gap-2 flex-wrap">
@@ -107,8 +114,10 @@
             <div class="rate-panel hidden border-t border-gray-200 dark:border-gray-700 px-3 sm:px-4 py-4 space-y-5">
                 <!-- Player context -->
                 <div class="flex items-start gap-3">
-                    <img class="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 {{ '' if p.avatar_url else 'hidden' }}"
-                         {% if p.avatar_url %}src="{{ p.avatar_url }}"{% endif %} alt="" loading="lazy" onerror="this.classList.add('hidden')">
+                    <img class="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 cursor-zoom-in {{ '' if p.avatar_url else 'hidden' }}"
+                         {% if p.avatar_url %}src="{{ p.avatar_url }}"{% endif %} alt="{{ p.name }}" loading="lazy"
+                         data-peek-src="{{ p.profile_picture_url or p.avatar_url or '' }}" data-peek-name="{{ p.name }}"
+                         onerror="this.classList.add('hidden')">
                     <div class="min-w-0 flex-1 text-xs text-gray-600 dark:text-gray-300 space-y-1">
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ p.name }}</span>

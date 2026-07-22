@@ -208,6 +208,13 @@
                           title="View details" aria-label="View details">
                     <i class="ti ti-eye" aria-hidden="true"></i>
                   </button>
+                  {% if profile.status == 'expired' %}
+                  <button type="button" onclick="extendProfile({{ profile.id }}, '{{ profile.player_name }}')"
+                          class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          title="Re-issue code &amp; extend 30 days" aria-label="Re-issue code and extend">
+                    <i class="ti ti-refresh-dot" aria-hidden="true"></i>
+                  </button>
+                  {% endif %}
                   {% endif %}
                 </div>
               </td>
@@ -295,6 +302,12 @@
                     class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
               <i class="ti ti-eye" aria-hidden="true"></i>View
             </button>
+            {% if profile.status == 'expired' %}
+            <button type="button" onclick="extendProfile({{ profile.id }}, '{{ profile.player_name }}')"
+                    class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-refresh-dot" aria-hidden="true"></i>Re-issue
+            </button>
+            {% endif %}
             {% endif %}
           </div>
         </div>
@@ -1364,6 +1377,33 @@ async function deleteProfile(profileId, profileName) {
     }
 }
 
+// Re-issue an expired profile's claim code and push the expiry out 30 days,
+// so a lapsed walk-in can still claim without re-entering their details.
+async function extendProfile(profileId, profileName) {
+    if (!confirm(`Re-issue a new claim code for "${profileName}" and extend for 30 days?`)) {
+        return;
+    }
+    try {
+        const response = await fetch(`/admin-panel/quick-profiles/${profileId}/extend`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ regenerate_code: true, days: 30 })
+        });
+        const data = await response.json();
+        if (data.success) {
+            showToast('New code ' + (data.claim_code || '') + ' — profile extended', 'success');
+            window.location.reload();
+        } else {
+            showToast(data.error || 'Failed to extend profile', 'error');
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+    }
+}
+
 // View profile details
 async function viewProfile(profileId) {
     try {
@@ -1428,7 +1468,7 @@ async function viewProfile(profileId) {
                 document.getElementById('details-linked-name').textContent = p.linked_player.name;
                 const linkedDate = p.claimed_at || p.linked_at;
                 document.getElementById('details-linked-date').textContent = linkedDate ? 'Linked ' + new Date(linkedDate).toLocaleDateString() : '';
-                document.getElementById('details-linked-link').href = `/players/${p.linked_player.id}`;
+                document.getElementById('details-linked-link').href = `/players/profile/${p.linked_player.id}`;
             } else {
                 document.getElementById('details-linked-container').classList.add('hidden');
             }

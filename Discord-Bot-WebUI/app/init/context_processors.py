@@ -61,7 +61,16 @@ def build_nav_sections(user_roles, admin_settings):
             url = url_for(endpoint_name, **(args or {})) if endpoint_name else None
             active = False
             if endpoint_name:
-                active = (active_path in path) if active_path is not None else (endpoint == endpoint_name)
+                if active_path is not None:
+                    active = active_path in path
+                elif args:
+                    # Parameterized routes (e.g. draft_enhanced.draft_league for
+                    # classic/premier/ecs_fc) share one endpoint — endpoint
+                    # equality would light ALL variants at once. Match the
+                    # concrete URL instead.
+                    active = (url == path)
+                else:
+                    active = (endpoint == endpoint_name)
             if children:
                 active = active or any(c['active'] for c in children)
             return {
@@ -86,23 +95,30 @@ def build_nav_sections(user_roles, admin_settings):
         if has_any('Pub League Coach', 'Premier Coach', 'Classic Coach',
                    'Pub League Admin', 'Global Admin'):
             main_items.append(item('NAD Board', 'ti-user-plus', 'nad_board.index'))
-        # Classic Board + rating queue — same reasoning as the NAD board: coach
-        # tools live in the normal shell, not the admin panel. Ratings are
-        # Classic-Coach-only (admins may open the read-only view).
-        if has_any('Pub League Coach', 'Classic Coach', 'Pub League Admin', 'Global Admin'):
-            main_items.append(item('Classic Board', 'ti-clipboard-data', 'classic_board.index'))
-        if has_any('Classic Coach', 'Pub League Admin', 'Global Admin'):
-            main_items.append(item('Rate Players', 'ti-star', 'classic_board.rate'))
         if authenticated:
             main_items.append(item('Help Topics', 'ti-help-circle', 'help.index'))
         if main_items:
             sections.append({'title': 'Main', 'items': main_items})
 
+        # --- Classic --- (board + blind rating queue + the balanced draft —
+        # the whole Classic workflow in one section, normal shell, no admin
+        # chrome; the NAD-board reasoning applies).
+        classic_items = []
+        if has_any('Pub League Coach', 'Classic Coach', 'Pub League Admin', 'Global Admin'):
+            classic_items.append(item('Classic Board', 'ti-clipboard-data', 'classic_board.index'))
+        if has_any('Classic Coach', 'Pub League Admin', 'Global Admin'):
+            classic_items.append(item('Rate Players', 'ti-star', 'classic_board.rate'))
+            classic_items.append(item('Classic Draft', 'ti-scale', 'draft_enhanced.draft_league',
+                                      args={'league_name': 'classic'}))
+        if classic_items:
+            sections.append({'title': 'Classic', 'items': classic_items})
+
         # --- ECS FC League ---
         league_items = []
         if can_view_draft and (admin_settings.get('drafts_navigation_enabled', True) or is_admin):
+            # Classic lives in its own sidebar section (balanced draft);
+            # this dropdown keeps the turn-based drafts only.
             draft_children = [
-                item('Classic Division', 'ti-point', 'draft_enhanced.draft_league', args={'league_name': 'classic'}),
                 item('Premier Division', 'ti-point', 'draft_enhanced.draft_league', args={'league_name': 'premier'}),
                 item('ECS FC Division', 'ti-point', 'draft_enhanced.draft_league', args={'league_name': 'ecs_fc'}),
             ]
@@ -245,9 +261,12 @@ def _register_waitlist_offer_processor(app):
             if getattr(user, 'waitlist_joined_at', None):
                 return dict(waitlist_offer=None)
 
-            # Only for players who aren't active this season (didn't pay in time).
+            # Only for players who aren't IN the season yet — same gate as the
+            # waitlist join guard (not active/paid AND not on a current-season
+            # roster), so the banner never offers something that'll be blocked.
+            from app.auth.waitlist import is_actively_playing
             player = getattr(user, 'player', None)
-            if not player or getattr(player, 'is_current_player', False):
+            if not player or is_actively_playing(user):
                 return dict(waitlist_offer=None)
 
             return dict(waitlist_offer=True)
@@ -750,9 +769,11 @@ def _register_nav_counts_processor(app):
             if session_db is None:
                 return empty
 
-            pending = session_db.query(func.count(User.id)).filter(
-                User.approval_status == 'pending'
-            ).scalar() or 0
+            # "Pending" here means awaiting a DECISION — waitlisted users (pending +
+            # pl-waitlist role) are parked on the waitlist page, not this queue, so
+            # the shared helper excludes them. Keeps this badge equal to the count on
+            # the approvals page it links to.
+            pending = User.count_pending_approvals(session_db)
             waitlist = session_db.query(func.count(func.distinct(User.id))).select_from(
                 User
             ).join(User.roles).filter(Role.name == 'pl-waitlist').scalar() or 0

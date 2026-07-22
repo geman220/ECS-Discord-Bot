@@ -100,11 +100,13 @@
             <label for="cm-audience-type" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Audience</label>
             <select id="cm-audience-type" class="{{ IFIELD }}">
               <option value="all_active" selected>Everyone (active members)</option>
+              <option value="active_this_season">Active players (this season)</option>
               <option value="league">A league / division</option>
               <option value="team">A team</option>
               <option value="role">A role</option>
               <option value="users">Specific people</option>
             </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">“Active players (this season)” is only members flagged as playing this season — narrower than “Everyone,” which includes alumni, subs, and staff.</p>
           </div>
 
           <div id="cm-picker-league" class="hidden">
@@ -167,13 +169,21 @@
             <input type="datetime-local" id="cm-schedule" class="{{ IFIELD }} font-mono">
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave blank to send immediately.</p>
           </div>
+          <!-- Force delivery override -->
+          <label class="flex items-start gap-2.5 p-3 rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 cursor-pointer">
+            <input type="checkbox" id="cm-force-delivery" class="mt-0.5 rounded border-amber-400 dark:border-amber-500 text-amber-600 focus:ring-amber-500">
+            <span class="min-w-0">
+              <span class="flex items-center gap-1.5 text-sm font-semibold text-amber-800 dark:text-amber-300"><i class="ti ti-alert-triangle"></i>Force delivery (override opt-outs)</span>
+              <span class="block text-xs text-amber-700 dark:text-amber-400/90 mt-0.5">Send on the selected Push / Email / Discord channels even to members who turned that channel off. Use only for essential notices. SMS can never be forced — verified, consented numbers only.</span>
+            </span>
+          </label>
           <button type="button" id="cm-send-btn"
                   class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-send"></i> <span id="cm-send-label">Send Message</span>
           </button>
           <p class="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
             <i class="ti ti-shield-check mt-0.5 shrink-0 text-ecs-green"></i>
-            <span>Every send respects each member's notification preferences. SMS only goes to verified numbers that opted in.</span>
+            <span id="cm-privacy-note">Every send respects each member's notification preferences. SMS only goes to verified numbers that opted in.</span>
           </p>
         </div>
       </section>
@@ -314,6 +324,25 @@ document.addEventListener('DOMContentLoaded', function () {
     msgEl.addEventListener('input', refreshPreview);
     refreshPreview();
 
+    // ---- channels + force override -----------------------------------------
+    const forceEl = document.getElementById('cm-force-delivery');
+    const FORCEABLE = ['push', 'email', 'discord'];
+    function selectedChannels() {
+        return Array.from(document.querySelectorAll('.cm-channel:checked')).map(c => c.value);
+    }
+    // Re-preview whenever channels or the force toggle change — forced counts
+    // depend on which channels are selected.
+    document.querySelectorAll('.cm-channel').forEach(c => c.addEventListener('change', refreshReach));
+    forceEl.addEventListener('change', function () {
+        const note = document.getElementById('cm-privacy-note');
+        if (this.checked) {
+            note.innerHTML = '<strong class="text-amber-700 dark:text-amber-400">Force is on:</strong> selected Push / Email / Discord channels ignore member opt-outs. SMS still only goes to verified, consented numbers.';
+        } else {
+            note.textContent = "Every send respects each member's notification preferences. SMS only goes to verified numbers that opted in.";
+        }
+        refreshReach();
+    });
+
     // ---- audience pickers --------------------------------------------------
     const audienceType = document.getElementById('cm-audience-type');
     const pickers = { league: 'cm-picker-league', team: 'cm-picker-team', role: 'cm-picker-role', users: 'cm-picker-users' };
@@ -390,7 +419,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 const resp = await fetch('{{ url_for('admin_panel.composer_preview') }}', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-                    body: JSON.stringify({ audience_type: audienceType.value, audience_ids: audienceIds() })
+                    body: JSON.stringify({
+                        audience_type: audienceType.value,
+                        audience_ids: audienceIds(),
+                        channels: selectedChannels(),
+                        force_delivery: forceEl.checked,
+                    })
                 });
                 const data = await resp.json();
                 if (seq !== reachSeq) return;  // a newer preview superseded this one
@@ -435,7 +469,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ---- send --------------------------------------------------------------
     document.getElementById('cm-send-btn').addEventListener('click', async function () {
         const btn = this;
-        const channels = Array.from(document.querySelectorAll('.cm-channel:checked')).map(c => c.value);
+        const channels = selectedChannels();
         const payload = {
             title: titleEl.value.trim(),
             message: msgEl.value.trim(),
@@ -444,6 +478,7 @@ document.addEventListener('DOMContentLoaded', function () {
             audience_ids: audienceIds(),
             action_url: document.getElementById('cm-action-url').value.trim(),
             priority: document.getElementById('cm-priority').value,
+            force_delivery: forceEl.checked,
             scheduled_send_time: scheduleEl.value,
         };
         if (!payload.title || !payload.message) {
@@ -457,13 +492,15 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
         const total = document.getElementById('cm-reach-total').textContent;
+        const forcedNow = forceEl.checked && channels.some(c => FORCEABLE.includes(c));
         const confirm = await Swal.fire({
             title: scheduleEl.value ? 'Schedule this message?' : 'Send this message?',
             html: `<strong>${escapeHtml(payload.title)}</strong><br>` +
                   `to <strong>${escapeHtml(document.getElementById('cm-reach-desc').textContent)}</strong> (${escapeHtml(total)} members)<br>` +
                   `via ${channels.map(escapeHtml).join(', ')}` +
-                  (scheduleEl.value ? `<br>at <strong>${escapeHtml(scheduleEl.value.replace('T', ' '))} PST</strong>` : ''),
-            icon: 'question', showCancelButton: true,
+                  (scheduleEl.value ? `<br>at <strong>${escapeHtml(scheduleEl.value.replace('T', ' '))} PST</strong>` : '') +
+                  (forcedNow ? `<br><span style="color:#b45309"><strong>⚠ Force delivery is ON</strong> — this overrides member opt-outs on ${escapeHtml(channels.filter(c => FORCEABLE.includes(c)).join(', '))}.</span>` : ''),
+            icon: forcedNow ? 'warning' : 'question', showCancelButton: true,
             confirmButtonText: scheduleEl.value ? 'Schedule' : 'Send',
             confirmButtonColor: '#1a472a',
             background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'

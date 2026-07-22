@@ -4,7 +4,8 @@
 {% block page_title %}Classic Board{% endblock %}
 
 {% block main_content %}
-<div id="classic-board-root" class="max-w-[1500px] w-full mx-auto px-3 sm:px-4 py-4 space-y-4 sm:space-y-5">
+<div id="classic-board-root" class="max-w-[1500px] w-full mx-auto px-3 sm:px-4 py-4 space-y-4 sm:space-y-5"
+     data-notes-url-template="{{ url_for('classic_board.get_notes', player_id=999999) }}">
 
     <!-- Header -->
     <div class="min-w-0">
@@ -53,6 +54,24 @@
         <select id="cb-position" data-on-change="classic-board-filter" class="py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
             <option value="">All positions</option>
         </select>
+        <select id="cb-attendance" data-on-change="classic-board-filter" class="py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+            <option value="">Attendance: any</option>
+            <option value="90">≥ 90%</option>
+            <option value="80">≥ 80%</option>
+            <option value="60">≥ 60%</option>
+            <option value="lt60">&lt; 60%</option>
+            <option value="none">No data</option>
+        </select>
+        {% if show_scores %}
+        <select id="cb-rated" data-on-change="classic-board-filter" class="py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+            <option value="">Ratings: any</option>
+            <option value="rated">Rated</option>
+            <option value="unrated">Unrated</option>
+            <option value="c4">Composite ≥ 4</option>
+            <option value="c3">Composite ≥ 3</option>
+            <option value="clt3">Composite &lt; 3</option>
+        </select>
+        {% endif %}
         <select id="cb-sort" data-on-change="classic-board-filter" class="py-2 pl-3 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
             <option value="name-asc">Name (A–Z)</option>
             <option value="name-desc">Name (Z–A)</option>
@@ -80,15 +99,17 @@
              data-coach="{{ '1' if p.is_coach else '0' }}"
              data-assigned="{{ '1' if p.team_id else '0' }}"
              data-gk="{{ '1' if p.wants_gk else '0' }}"
-             data-attendance="{{ p.attendance_rate if p.attendance_rate is not none else -1 }}"
+             data-attendance="{{ p.attendance_rate if p.has_attendance_data and p.attendance_rate is not none else -1 }}"
+             data-rated="{{ '1' if show_scores and p.ratings and p.ratings.is_rated else '0' }}"
              data-goals="{{ p.career_goals }}"
              data-assists="{{ p.career_assists }}"
              data-composite="{{ p.ratings.composite if show_scores and p.ratings and p.ratings.composite is not none else -1 }}"
              data-positions="{{ all_positions|join('|')|lower }}">
             <div class="flex items-start gap-3">
                 <div class="relative shrink-0">
-                    <img class="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 {{ '' if p.avatar_url else 'hidden' }}"
+                    <img class="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 cursor-zoom-in {{ '' if p.avatar_url else 'hidden' }}"
                          {% if p.avatar_url %}src="{{ p.avatar_url }}"{% endif %} alt="{{ p.name }}" loading="lazy"
+                         data-peek-src="{{ p.profile_picture_url or p.avatar_url or '' }}" data-peek-name="{{ p.name }}"
                          onerror="this.classList.add('hidden'); this.parentElement.querySelector('.cb-initials').classList.remove('hidden');">
                     <div class="cb-initials w-14 h-14 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center text-lg font-semibold {{ 'hidden' if p.avatar_url else '' }}">{{ p.name[:1]|upper }}</div>
                 </div>
@@ -112,6 +133,12 @@
                         {% endif %}
                         {% if p.wants_gk %}
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300" title="GK: {{ p.gk_willingness or 'Willing' }}"><i class="ti ti-hand-stop text-xs"></i>GK</span>
+                        {% endif %}
+                        {% if p.is_nad %}
+                            <button type="button" data-action="classic-board-notes" data-player-id="{{ p.id }}" data-player-name="{{ p.name }}"
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40">
+                                <i class="ti ti-notes text-xs"></i>Notes{% if p.note_count %} ({{ p.note_count }}){% endif %}
+                            </button>
                         {% endif %}
                     </div>
                 </div>
@@ -182,5 +209,30 @@
         {% endfor %}
     </div>
     {% endif %}
+</div>
+
+<!-- Scouting notes modal (shared PlayerAdminNote thread, NADs only) -->
+<div id="cb-notes-modal" tabindex="-1" aria-hidden="true"
+     class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-lg max-h-full">
+        <div class="relative bg-white rounded-xl shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 rounded-t">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white">Scouting notes — <span id="cb-notes-player"></span></h3>
+                <button type="button" data-action="classic-board-notes-close" class="text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg p-1.5"><i class="ti ti-x"></i></button>
+            </div>
+            <div class="p-4 space-y-3">
+                <div id="cb-notes-list" class="max-h-72 overflow-y-auto space-y-2 text-sm">
+                    <div class="text-xs text-gray-400 text-center py-4"><i class="ti ti-loader-2 animate-spin"></i> Loading…</div>
+                </div>
+                <div class="flex items-start gap-2 pt-2 border-t dark:border-gray-700">
+                    <textarea id="cb-notes-input" rows="2" placeholder="Add a scouting note…"
+                              class="flex-1 py-1.5 px-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-ecs-green focus:border-ecs-green"></textarea>
+                    <button type="button" data-action="classic-board-note-add"
+                            class="px-3 py-2 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 shrink-0">Add</button>
+                </div>
+                <p class="text-[11px] text-gray-400">Shared with the NAD board and the mobile Waiting Room — one thread everywhere.</p>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -83,6 +83,18 @@ def send_composed_message(self, session, message_id):
         channels = list(msg.channels or [])
         throttle = bool(THROTTLED_CHANNELS.intersection(channels))
 
+        # Force delivery: for the selected forceable channels, push past each
+        # member's per-channel opt-out. SMS is never forced (the orchestrator
+        # still enforces the verified-phone/consent gate under force_sms), and
+        # a channel that wasn't selected stays None so it's simply not attempted.
+        force_kwargs = {}
+        if getattr(msg, 'force_delivery', False):
+            force_kwargs = {
+                'force_push': True if 'push' in channels else None,
+                'force_email': True if 'email' in channels else None,
+                'force_discord': True if 'discord' in channels else None,
+            }
+
         totals = {}
         for start in range(0, len(user_ids), CHUNK_SIZE):
             chunk = user_ids[start:start + CHUNK_SIZE]
@@ -95,6 +107,7 @@ def send_composed_message(self, session, message_id):
                 tiered=False,
                 priority=msg.priority or 'normal',
                 action_url=msg.action_url or None,
+                **force_kwargs,
             )
             part = orchestrator.send(payload)
             totals = _merge_results(totals, part)

@@ -285,11 +285,11 @@ def users_comprehensive():
             'total_users': User.query.count(),
             'active_users': User.query.filter(User.is_active == True).count(),
             'approved_users': User.query.filter(User.is_approved == True).count(),
-            # Pending = awaiting a decision. Use approval_status, not is_approved:
-            # denied users keep is_approved=False and would otherwise inflate this.
-            'pending_approval': User.query.filter(
-                User.approval_status == 'pending'
-            ).count(),
+            # Pending = awaiting a decision. Uses the shared helper: approval_status
+            # 'pending' AND not on the waitlist (denied users keep is_approved=False
+            # so we key off approval_status, and waitlisted users are parked, not
+            # awaiting a decision here).
+            'pending_approval': User.count_pending_approvals(db.session),
             'recent_registrations': User.query.filter(
                 User.created_at >= thirty_days_ago
             ).count(),

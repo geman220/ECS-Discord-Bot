@@ -174,6 +174,23 @@ def substitute_pool_detail(league_type):
         on_break_pools = [p for p in all_pools if not p.is_active and p.approved_at]
         pending_pools = [p for p in all_pools if p.approved_at is None]
 
+        # Staleness: how long since each ACTIVE member was last used. The weekly
+        # hygiene task auto-expires past STALE_SUB_INACTIVE_DAYS; here we surface
+        # who is approaching/over that line so an admin can review sooner. Sort the
+        # active list stalest-first so the people to look at are at the top.
+        from datetime import datetime as _dt
+        STALE_SUB_INACTIVE_DAYS = 120
+        _now = _dt.utcnow()
+
+        def _last_signal(p):
+            return p.last_active_at or p.joined_pool_at or p.created_at or _now
+
+        for p in active_pools:
+            p.days_inactive = (_now - _last_signal(p)).days
+            p.is_stale = p.days_inactive >= STALE_SUB_INACTIVE_DAYS
+        active_pools.sort(key=lambda p: p.days_inactive, reverse=True)
+        stale_count = sum(1 for p in active_pools if p.is_stale)
+
         # Players eligible to be added (have the role) and not already in the pool
         eligible_players = get_eligible_players(league_type)
         in_pool_player_ids = {pool.player_id for pool in all_pools}
@@ -201,6 +218,7 @@ def substitute_pool_detail(league_type):
             'total_eligible': len(eligible_players),
             'total_requests_sent': sum(pool.requests_received for pool in active_pools),
             'total_matches_played': sum(pool.matches_played for pool in active_pools),
+            'total_stale': stale_count,
         }
 
         return render_template(
@@ -212,7 +230,8 @@ def substitute_pool_detail(league_type):
             pending_pools=pending_pools,
             available_players=available_players,
             recent_activity=recent_activity,
-            stats=stats
+            stats=stats,
+            stale_threshold_days=STALE_SUB_INACTIVE_DAYS,
         )
 
     except ImportError as ie:

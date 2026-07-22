@@ -39,9 +39,9 @@ def inject_admin_nav_context():
         from sqlalchemy import func
         from app.core import db
         from app.models.core import User, Role
-        ctx['nav_pending_approvals'] = db.session.query(func.count(User.id)).filter(
-            User.approval_status == 'pending'
-        ).scalar() or 0
+        # Excludes waitlisted users (see User.count_pending_approvals) so this
+        # fallback badge matches the approvals page and the primary nav badge.
+        ctx['nav_pending_approvals'] = User.count_pending_approvals(db.session)
         ctx['nav_waitlist_count'] = db.session.query(User).join(User.roles).filter(
             Role.name == 'pl-waitlist'
         ).count()

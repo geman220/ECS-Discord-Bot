@@ -132,7 +132,21 @@ def _build_send_volume_series(windows):
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def push_notifications():
-    """Push notifications management page."""
+    """Push notifications management page.
+
+    Resilience note: this page is a stack of independent widgets (history, KPI
+    band, campaign analytics, dropdown data). A failure in any ONE of them —
+    schema drift on a single table, a poisoned/aborted transaction from an
+    earlier query, a Redis blip in AdminConfig — must NOT take the whole page
+    down. Each section is wrapped and rolls the session back on failure so the
+    next section can still run; the page renders with whatever loaded and logs
+    the specific section that broke. Only a template-render failure falls
+    through to the redirect.
+    """
+    # --- Notification history + KPI counts -----------------------------------
+    notification_history = []
+    total_subscribers = active_subscribers = notifications_sent_today = 0
+    new_subscribers_week = unsubscribed_count = 0
     try:
         notification_history = Notification.query.filter_by(
             notification_type='push'
@@ -157,54 +171,71 @@ def push_notifications():
         ).count()
 
         unsubscribed_count = UserFCMToken.query.filter_by(is_active=False).count()
-        total_notifications = Notification.query.filter_by(notification_type='push').count()
-        # Real delivery/click rates aggregated from campaign analytics (no estimates).
-        # delivery_rate = delivered/sent, click_rate = clicked/delivered; 'N/A' when
-        # there is nothing sent yet rather than a fabricated percentage.
-        # Wrapped defensively: a missing/mismatched campaigns table must degrade
-        # to N/A rates, not take down the whole page.
-        try:
-            from app.models.push_campaigns import PushNotificationCampaign
-            from sqlalchemy import func as _func
-            _sent, _delivered, _clicked = db.session.query(
-                _func.coalesce(_func.sum(PushNotificationCampaign.sent_count), 0),
-                _func.coalesce(_func.sum(PushNotificationCampaign.delivered_count), 0),
-                _func.coalesce(_func.sum(PushNotificationCampaign.click_count), 0),
-            ).first() or (0, 0, 0)
-        except Exception as analytics_err:
-            logger.warning(f"Campaign analytics unavailable, showing N/A rates: {analytics_err}")
-            db.session.rollback()
-            _sent, _delivered, _clicked = 0, 0, 0
-        delivery_rate = f"{round(100 * _delivered / _sent)}%" if _sent else 'N/A'
-        click_rate = f"{round(100 * _clicked / _delivered)}%" if _delivered else 'N/A'
+    except Exception as stats_err:
+        logger.exception(f"Push page: subscriber/history stats unavailable: {stats_err}")
+        db.session.rollback()
 
+    # --- Real delivery/click rates from campaign analytics (no estimates) -----
+    # delivery_rate = delivered/sent, click_rate = clicked/delivered; 'N/A' when
+    # there is nothing sent yet rather than a fabricated percentage.
+    try:
+        from app.models.push_campaigns import PushNotificationCampaign
+        from sqlalchemy import func as _func
+        _sent, _delivered, _clicked = db.session.query(
+            _func.coalesce(_func.sum(PushNotificationCampaign.sent_count), 0),
+            _func.coalesce(_func.sum(PushNotificationCampaign.delivered_count), 0),
+            _func.coalesce(_func.sum(PushNotificationCampaign.click_count), 0),
+        ).first() or (0, 0, 0)
+    except Exception as analytics_err:
+        logger.warning(f"Campaign analytics unavailable, showing N/A rates: {analytics_err}")
+        db.session.rollback()
+        _sent, _delivered, _clicked = 0, 0, 0
+    delivery_rate = f"{round(100 * _delivered / _sent)}%" if _sent else 'N/A'
+    click_rate = f"{round(100 * _clicked / _delivered)}%" if _delivered else 'N/A'
+
+    # --- Dropdown data (teams / leagues / roles) -----------------------------
+    teams = leagues = roles = []
+    try:
         from app.models import Team, League, Role
         teams = Team.query.filter_by(is_active=True).order_by(Team.name).all()
         leagues = League.query.filter_by(is_active=True).order_by(League.name).all()
         roles = Role.query.order_by(Role.name).all()
+    except Exception as dd_err:
+        logger.exception(f"Push page: target dropdown data unavailable: {dd_err}")
+        db.session.rollback()
 
-        try:
-            from app.models import NotificationGroup
-            notification_groups = NotificationGroup.query.filter_by(is_active=True).order_by(NotificationGroup.name).all()
-        except Exception:
-            notification_groups = []
+    # --- Saved audience groups (optional table) ------------------------------
+    try:
+        from app.models import NotificationGroup
+        notification_groups = NotificationGroup.query.filter_by(is_active=True).order_by(NotificationGroup.name).all()
+    except Exception as ng_err:
+        logger.warning(f"Push page: saved audience groups unavailable: {ng_err}")
+        db.session.rollback()
+        notification_groups = []
 
+    # --- Enabled flag (Redis/DB-cached; must never break the read path) -------
+    try:
         from app.models.admin_config import AdminConfig
         # mobile_push_notifications is the key the app actually reads via
         # /app_config; the old push_notifications_enabled flag gated nothing.
         push_notifications_enabled = AdminConfig.get_setting('mobile_push_notifications', True)
+    except Exception as cfg_err:
+        logger.warning(f"Push page: mobile_push_notifications flag unavailable, defaulting on: {cfg_err}")
+        db.session.rollback()
+        push_notifications_enabled = True
 
-        stats = {
-            'total_subscribers': total_subscribers,
-            'notifications_sent_today': notifications_sent_today,
-            'delivery_rate': delivery_rate,
-            'click_rate': click_rate,
-            'active_subscribers': active_subscribers,
-            'new_subscribers_week': new_subscribers_week,
-            'unsubscribed_count': unsubscribed_count,
-            'push_notifications_enabled': push_notifications_enabled
-        }
+    stats = {
+        'total_subscribers': total_subscribers,
+        'notifications_sent_today': notifications_sent_today,
+        'delivery_rate': delivery_rate,
+        'click_rate': click_rate,
+        'active_subscribers': active_subscribers,
+        'new_subscribers_week': new_subscribers_week,
+        'unsubscribed_count': unsubscribed_count,
+        'push_notifications_enabled': push_notifications_enabled
+    }
 
+    try:
         return render_template('admin_panel/push_notifications_flowbite.html',
                              notification_history=notification_history,
                              teams=teams,
@@ -213,7 +244,7 @@ def push_notifications():
                              notification_groups=notification_groups,
                              **stats)
     except Exception as e:
-        logger.exception(f"Error loading push notifications page: {e}")
+        logger.exception(f"Error rendering push notifications page: {e}")
         flash('The Push Notifications page failed to load. The error has been logged — check the server log for details.', 'error')
         return redirect(url_for('admin_panel.communication_hub'))
 

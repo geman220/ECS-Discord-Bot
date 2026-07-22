@@ -201,7 +201,14 @@
                     {{ pool.player.name[0] if pool.player else '?' }}
                   </div>
                   <div class="min-w-0">
-                    <div class="font-medium text-gray-900 dark:text-white truncate">{{ pool.player.name if pool.player else 'Unknown' }}</div>
+                    <div class="flex items-center gap-2">
+                      <span class="font-medium text-gray-900 dark:text-white truncate">{{ pool.player.name if pool.player else 'Unknown' }}</span>
+                      {% if pool.is_stale %}
+                      <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400" title="No sub activity in {{ pool.days_inactive }} days (threshold {{ stale_threshold_days }}d). Consider removing — the weekly hygiene task will auto-expire them.">
+                        <i class="ti ti-clock-exclamation text-[11px]" aria-hidden="true"></i>Stale · {{ pool.days_inactive }}d
+                      </span>
+                      {% endif %}
+                    </div>
                     <div class="flex gap-1.5 mt-1">
                       {% if pool.player.phone %}<i class="ti ti-phone text-green-500 text-xs" title="Phone"></i>{% endif %}
                       {% if pool.player.discord_id %}<i class="ti ti-brand-discord text-blue-500 text-xs" title="Discord"></i>{% endif %}

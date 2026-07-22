@@ -14,10 +14,12 @@ import logging
 
 from sqlalchemy import func
 
+from sqlalchemy import func as sa_func
+
 from app.attendance_service import AttendanceService
 from app.constants.positions import label_for, parse_positions, POSITION_LABELS
 from app.models import (
-    Player, PlayerCareerStats, PlayerTeamSeason, Team, player_teams,
+    Player, PlayerAdminNote, PlayerCareerStats, PlayerTeamSeason, Team, player_teams,
 )
 from app.services import classic_rating_service as rating_service
 
@@ -116,6 +118,25 @@ def compute_classic_board(session, *, include_scores=True):
 
     finals = rating_service.get_final_scores(session, season_id) if include_scores else {}
 
+    # NADs keep their scouting-note thread visible here too (same
+    # PlayerAdminNote thread as the NAD board; hidden after graduation by the
+    # existing service policy).
+    nad_ids = set()
+    note_counts = {}
+    try:
+        from app.services.nad_board_service import nad_player_id_set
+        nad_ids = nad_player_id_set(session) & set(player_ids)
+        if nad_ids:
+            rows = (
+                session.query(PlayerAdminNote.player_id, sa_func.count(PlayerAdminNote.id))
+                .filter(PlayerAdminNote.player_id.in_(nad_ids))
+                .group_by(PlayerAdminNote.player_id)
+                .all()
+            )
+            note_counts = {pid: count for pid, count in rows}
+    except Exception as e:
+        logger.warning(f"classic board NAD/notes load failed: {e}")
+
     out_players = []
     for p in all_players:
         att = attendance.get(p.id) or {}
@@ -140,6 +161,8 @@ def compute_classic_board(session, *, include_scores=True):
             'career_assists': career.get(p.id, {}).get('assists', 0),
             'team_id': team_by_player.get(p.id, {}).get('team_id'),
             'team_name': team_by_player.get(p.id, {}).get('team_name'),
+            'is_nad': p.id in nad_ids,
+            'note_count': note_counts.get(p.id, 0),
         }
         if include_scores and p.id not in coach_player_ids:
             score = finals.get(p.id)

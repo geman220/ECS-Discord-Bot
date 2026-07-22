@@ -112,6 +112,43 @@ def rate():
         return redirect(url_for('main.index'))
 
 
+# ==================== Scouting notes (NADs — shared PlayerAdminNote thread) ==
+# Same thread the NAD board / mobile Waiting Room use, so review happens in one
+# place. The service hides the thread once a player is no longer a NAD.
+
+@classic_board_bp.route('/players/<int:player_id>/notes', methods=['GET'])
+@login_required
+@role_required(BOARD_ROLES)
+@transactional
+def get_notes(player_id):
+    """List the shared scouting notes for a NAD on the Classic board."""
+    from app.services.mobile.player_admin_service import PlayerAdminService
+    service = PlayerAdminService(g.db_session)
+    result = service.get_player_admin_notes(player_id, limit=100, offset=0)
+    if not result.success:
+        return jsonify({'success': False, 'message': result.message}), 404
+    return jsonify({'success': True, **result.data}), 200
+
+
+@classic_board_bp.route('/players/<int:player_id>/notes', methods=['POST'])
+@login_required
+@role_required(BOARD_ROLES)
+@transactional
+def create_note(player_id):
+    """Add a scouting note from the Classic board."""
+    from app.services.mobile.player_admin_service import PlayerAdminService
+    data = request.get_json(silent=True) or {}
+    content = (data.get('content') or '').strip()
+    if not content:
+        return jsonify({'success': False, 'message': 'Note content is required'}), 400
+    service = PlayerAdminService(g.db_session)
+    result = service.create_admin_note(player_id, current_user.id, content)
+    if not result.success:
+        status = 404 if result.error_code == 'PLAYER_NOT_FOUND' else 400
+        return jsonify({'success': False, 'message': result.message}), status
+    return jsonify({'success': True, **result.data}), 201
+
+
 @classic_board_bp.route('/rate/<int:player_id>', methods=['POST'])
 @login_required
 @role_required(['Classic Coach'])
