@@ -31,4 +31,5 @@ def register_user_management_routes():
         comprehensive,
         duplicates,
         coach_engagement,
+        member_hub,
     )

@@ -247,8 +247,8 @@ def _register_waitlist_offer_processor(app):
             if not (user and user.is_authenticated):
                 return dict(waitlist_offer=None)
 
-            from app.models.admin_config import AdminConfig
-            if not AdminConfig.get_setting('waitlist_registration_enabled', True):
+            from app.services.season_phase_service import is_waitlist_open
+            if not is_waitlist_open():
                 return dict(waitlist_offer=None)
 
             # Only approved members are offered this — unapproved signups already

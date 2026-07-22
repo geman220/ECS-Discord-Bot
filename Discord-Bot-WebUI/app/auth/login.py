@@ -60,7 +60,8 @@ def login_entry_flags():
     from app.models.admin_config import AdminConfig
     try:
         registration_open = bool(AdminConfig.get_setting('registration_enabled', True))
-        waitlist_enabled = bool(AdminConfig.get_setting('waitlist_registration_enabled', True))
+        from app.services.season_phase_service import is_waitlist_open
+        waitlist_enabled = is_waitlist_open()
     except Exception:
         registration_open, waitlist_enabled = True, True
     return {

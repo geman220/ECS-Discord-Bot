@@ -26,12 +26,36 @@
 
 {# Derived metrics from REAL provided data only (no fabricated values). #}
 {% set _online = (bot_status == 'online') %}
+{% set _mappable_names = discord_mappable_names or [] %}
 {% set _mapped = flask_roles|selectattr('discord_role_id')|list if flask_roles else [] %}
 {% set _total_roles = flask_roles|length if flask_roles else 0 %}
 {% set _mapped_count = _mapped|length %}
-{% set _unmapped_count = _total_roles - _mapped_count %}
-{% set _coverage = ((_mapped_count / _total_roles) * 100) | round | int if _total_roles else 0 %}
+{# Roles that SHOULD have a Discord counterpart but don't yet = the real to-do. #}
+{% set _needs_mapping = flask_roles|rejectattr('discord_role_id')|selectattr('name', 'in', _mappable_names)|list if flask_roles else [] %}
+{% set _needs_count = _needs_mapping|length %}
+{# App-only permission roles that intentionally have no Discord counterpart. #}
+{% set _app_only_count = _total_roles - _mapped_count - _needs_count %}
+{# Coverage is measured against mappable roles, not app-only ones. #}
+{% set _mappable_total = _mapped_count + _needs_count %}
+{% set _coverage = ((_mapped_count / _mappable_total) * 100) | round | int if _mappable_total else 100 %}
 {% set _discord_count = discord_roles|length if discord_roles else 0 %}
+
+{# Three-way mapping status badge: Mapped / Needs mapping / App-only. #}
+{% macro map_badge(role, compact=false) %}
+    {% if role.discord_role_id %}
+    <span class="{{ 'shrink-0 ' if compact else '' }}inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+        <i class="ti ti-check" aria-hidden="true"></i>Mapped
+    </span>
+    {% elif role.name in _mappable_names %}
+    <span class="{{ 'shrink-0 ' if compact else '' }}inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400" title="Has a Discord counterpart but isn't mapped yet — use Auto-Map">
+        <i class="ti ti-alert-triangle" aria-hidden="true"></i>Needs mapping
+    </span>
+    {% else %}
+    <span class="{{ 'shrink-0 ' if compact else '' }}inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="App-only permission role — no Discord equivalent (this is expected)">
+        <i class="ti ti-shield-lock" aria-hidden="true"></i>App-only
+    </span>
+    {% endif %}
+{% endmacro %}
 
 {# --- Page header with the ONE primary job front and center --- #}
 {% call kit.page_header("Discord Role Mapping", subtitle="Discord · Access Control") %}
@@ -42,6 +66,10 @@
     <button type="button" data-action="create-discord-role"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-plus" aria-hidden="true"></i><span class="hidden sm:inline">Create Role</span>
+    </button>
+    <button type="button" data-action="auto-map-roles"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg border border-ecs-green/40 dark:border-ecs-green/40 bg-ecs-green/5 dark:bg-ecs-green/10 text-ecs-green dark:text-green-400 text-sm font-semibold hover:bg-ecs-green/10 dark:hover:bg-ecs-green/20 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-wand" aria-hidden="true"></i><span class="hidden sm:inline">Auto-Map</span>
     </button>
     <button type="button" data-action="sync-all-roles"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
@@ -90,7 +118,7 @@
                 <i class="ti ti-shield-half text-ecs-green shrink-0" aria-hidden="true"></i>
             </div>
             <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{{ _total_roles }}</div>
-            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">app permission roles</p>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">{{ _app_only_count }} app-only · {{ _mappable_total }} Discord-linked</p>
         </div>
         <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
             <div class="flex items-center justify-between">
@@ -105,11 +133,11 @@
         </div>
         <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Unmapped</span>
-                <i class="ti ti-unlink {{ 'text-amber-600 dark:text-amber-400' if _unmapped_count else 'text-gray-400 dark:text-gray-500' }} shrink-0" aria-hidden="true"></i>
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Needs mapping</span>
+                <i class="ti ti-unlink {{ 'text-amber-600 dark:text-amber-400' if _needs_count else 'text-gray-400 dark:text-gray-500' }} shrink-0" aria-hidden="true"></i>
             </div>
-            <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold {{ 'text-amber-600 dark:text-amber-400' if _unmapped_count else 'text-gray-900 dark:text-white' }}">{{ _unmapped_count }}</div>
-            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">{{ 'awaiting a Discord role' if _unmapped_count else 'all roles mapped' }}</p>
+            <div class="mt-1 font-mono text-2xl sm:text-3xl font-bold {{ 'text-amber-600 dark:text-amber-400' if _needs_count else 'text-gray-900 dark:text-white' }}">{{ _needs_count }}</div>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-mono">{{ 'have a Discord role, not linked' if _needs_count else 'all Discord-linked roles mapped' }}</p>
         </div>
         <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5">
             <div class="flex items-center justify-between">
@@ -175,10 +203,8 @@
                     </button>
                 </td>
                 <td class="px-3 py-3 hidden md:table-cell">
+                    {{ map_badge(role) }}
                     {% if role.discord_role_id %}
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-                        <i class="ti ti-check" aria-hidden="true"></i>Mapped
-                    </span>
                     {% if role.last_synced_at %}
                     <div class="mt-1.5">
                         <span class="block text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Last sync</span>
@@ -187,10 +213,6 @@
                     {% else %}
                     <div class="mt-1.5 text-xs text-amber-600 dark:text-amber-400 font-mono">Never synced</div>
                     {% endif %}
-                    {% else %}
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                        <i class="ti ti-minus" aria-hidden="true"></i>Not Mapped
-                    </span>
                     {% endif %}
                 </td>
                 <td class="px-3 py-3">
@@ -229,15 +251,7 @@
                         {% endif %}
                     </div>
                 </div>
-                {% if role.discord_role_id %}
-                <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
-                    <i class="ti ti-check" aria-hidden="true"></i>Mapped
-                </span>
-                {% else %}
-                <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                    <i class="ti ti-minus" aria-hidden="true"></i>Not Mapped
-                </span>
-                {% endif %}
+                {{ map_badge(role, compact=true) }}
             </div>
             <select class="discord-role-select input-ecs h-10 text-sm w-full"
                     data-role-id="{{ role.id }}"
@@ -417,19 +431,11 @@
                         </button>
                     </td>
                     <td class="px-4 py-3 hidden md:table-cell">
-                        {% if role.discord_role_id %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                            <i class="ti ti-check mr-1"></i>Mapped
-                        </span>
-                        {% if role.last_synced_at %}
+                        {{ map_badge(role) }}
+                        {% if role.discord_role_id and role.last_synced_at %}
                         <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Last sync: {{ role.last_synced_at.strftime('%Y-%m-%d %H:%M') if role.last_synced_at else 'Never' }}
+                            Last sync: {{ role.last_synced_at.strftime('%Y-%m-%d %H:%M') }}
                         </div>
-                        {% endif %}
-                        {% else %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                            <i class="ti ti-minus mr-1"></i>Not Mapped
-                        </span>
                         {% endif %}
                     </td>
                     <td class="px-4 py-3">
@@ -784,6 +790,138 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             });
             window.location.reload();
+        }
+    });
+
+    // Auto-map Flask roles to live Discord roles
+    function escapeHtml(str) {
+        return String(str ?? '').replace(/[&<>"']/g, s => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[s]));
+    }
+
+    function renderAutoMapPreview(result) {
+        const rows = result.proposals.map(p => {
+            let discordCell, statusBadge;
+            if (p.matched) {
+                const members = (p.member_count != null) ? ` <span class="text-gray-400">(${p.member_count})</span>` : '';
+                discordCell = `<span class="font-mono text-xs text-gray-900 dark:text-white">${escapeHtml(p.discord_role_name)}</span>${members}`;
+                statusBadge = p.already_mapped
+                    ? '<span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">No change</span>'
+                    : '<span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Will map</span>';
+            } else {
+                discordCell = `<span class="text-xs text-gray-400 dark:text-gray-500">${escapeHtml(p.reason)}</span>`;
+                statusBadge = '<span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">Skip</span>';
+            }
+            return `<tr class="border-b dark:border-gray-700">
+                <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">${escapeHtml(p.role_name)}</td>
+                <td class="px-3 py-2">${discordCell}</td>
+                <td class="px-3 py-2 text-right">${statusBadge}</td>
+            </tr>`;
+        }).join('');
+
+        return `
+            <div class="text-left">
+                <div class="grid grid-cols-3 gap-2 mb-3 text-center">
+                    <div class="p-2 rounded-lg bg-green-50 dark:bg-green-900/30">
+                        <div class="text-lg font-bold text-green-600 dark:text-green-400">${result.matched}</div>
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400">Matched</div>
+                    </div>
+                    <div class="p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                        <div class="text-lg font-bold text-gray-600 dark:text-gray-300">${result.app_only}</div>
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400">App-only</div>
+                    </div>
+                    <div class="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30">
+                        <div class="text-lg font-bold text-amber-600 dark:text-amber-400">${result.unmatched}</div>
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400">Not on server</div>
+                    </div>
+                </div>
+                <div class="max-h-72 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <table class="w-full text-sm">
+                        <thead class="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
+                            <tr>
+                                <th class="px-3 py-2 text-left">Flask Role</th>
+                                <th class="px-3 py-2 text-left">Discord Role</th>
+                                <th class="px-3 py-2 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </div>`;
+    }
+
+    document.querySelector('[data-action="auto-map-roles"]')?.addEventListener('click', async function() {
+        Swal.fire({
+            title: 'Scanning Discord…',
+            text: 'Fetching live roles and matching them to Flask roles.',
+            allowOutsideClick: false,
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827',
+            didOpen: () => Swal.showLoading()
+        });
+
+        let preview;
+        try {
+            const response = await fetch('{{ url_for("admin_panel.auto_map_role_mapping") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ apply: false })
+            });
+            preview = await response.json();
+        } catch (error) {
+            Swal.fire({ icon: 'error', title: 'Network Error', text: 'Please try again.',
+                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            return;
+        }
+
+        if (!preview.success) {
+            Swal.fire({ icon: 'error', title: 'Cannot Auto-Map', text: preview.error || 'Failed to fetch Discord roles.',
+                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            return;
+        }
+
+        const changeCount = preview.proposals.filter(p => p.matched && p.changed).length;
+        const confirm = await Swal.fire({
+            title: 'Auto-Map Preview',
+            html: renderAutoMapPreview(preview),
+            width: 640,
+            showCancelButton: true,
+            confirmButtonText: changeCount > 0 ? `Apply ${changeCount} mapping${changeCount === 1 ? '' : 's'}` : 'Nothing to apply',
+            confirmButtonColor: '#1a472a',
+            cancelButtonText: 'Close',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827',
+            preConfirm: () => {
+                if (changeCount === 0) return {};
+                return fetch('{{ url_for("admin_panel.auto_map_role_mapping") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ apply: true })
+                }).then(r => r.json()).catch(() => {
+                    Swal.showValidationMessage('Network error applying mappings. Please try again.');
+                    return false;
+                });
+            },
+            didOpen: () => {
+                if (changeCount === 0) {
+                    Swal.getConfirmButton().setAttribute('disabled', 'disabled');
+                }
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        });
+
+        if (confirm.isConfirmed && changeCount > 0) {
+            const applied = confirm.value;
+            if (applied && applied.success) {
+                await Swal.fire({ icon: 'success', title: 'Roles Mapped!',
+                    text: `Applied ${applied.applied} mapping${applied.applied === 1 ? '' : 's'}.`,
+                    background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                window.location.reload();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: (applied && applied.error) || 'Failed to apply mappings.',
+                    background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            }
         }
     });
 

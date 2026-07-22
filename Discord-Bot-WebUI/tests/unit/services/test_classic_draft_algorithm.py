@@ -58,14 +58,15 @@ def flat(pid, value):
 
 class TestGenderDerivation:
     def test_pronoun_heuristics(self):
+        # Binary male / not-male: only he/him reads as M, everything else is N.
         assert svc.derive_gender(player(1, pronouns='he/him')) == 'M'
-        assert svc.derive_gender(player(2, pronouns='she/her')) == 'F'
-        assert svc.derive_gender(player(3, pronouns='they/them')) == 'X'
-        assert svc.derive_gender(player(4, pronouns=None)) == 'X'
+        assert svc.derive_gender(player(2, pronouns='she/her')) == 'N'
+        assert svc.derive_gender(player(3, pronouns='they/them')) == 'N'
+        assert svc.derive_gender(player(4, pronouns=None)) == 'N'
 
     def test_override_beats_pronouns(self):
-        assert svc.derive_gender(player(1, pronouns='he/him', gender='F')) == 'F'
-        assert svc.derive_gender(player(2, pronouns='she/her', gender='X')) == 'X'
+        assert svc.derive_gender(player(1, pronouns='he/him', gender='N')) == 'N'
+        assert svc.derive_gender(player(2, pronouns='she/her', gender='M')) == 'M'
 
 
 class TestTotalsAndGaps:
@@ -176,7 +177,7 @@ class TestSuggestions:
 
     def test_gender_term_prefers_underrepresented(self):
         config = make_config(suggestion_count=10)
-        # League is 50/50; team 1 is all-M -> F candidates get the +1 term.
+        # League is 50/50; team 1 is all-M -> N candidates get the +1 term.
         rosters = {1: [flat(1, 3) | {'pronouns': 'he/him'},
                        flat(2, 3) | {'pronouns': 'he/him'}],
                    2: [flat(3, 3) | {'pronouns': 'she/her'},
@@ -199,10 +200,10 @@ class TestSuggestions:
         config = make_config(suggestion_count=10)
         rosters = {1: [flat(1, 3) | {'pronouns': 'he/him'}],
                    2: [flat(2, 3) | {'pronouns': 'she/her'}]}
-        # Pronouns say he/him but the admin flagged F.
-        pool = [flat(11, 3) | {'pronouns': 'he/him', 'balance_gender': 'F'}]
+        # Pronouns say he/him but the admin flagged N.
+        pool = [flat(11, 3) | {'pronouns': 'he/him', 'balance_gender': 'N'}]
         suggestions = svc.suggest_players(pool, rosters, 1, config)
-        assert suggestions[0]['gender'] == 'F'
+        assert suggestions[0]['gender'] == 'N'
         assert suggestions[0]['components']['gender'] == 1.0
 
     def test_gk_bonus_when_team_lacks_gk(self):

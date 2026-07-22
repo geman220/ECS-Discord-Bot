@@ -420,4 +420,13 @@ def apply_fix(code, action, user_id, player_id, params, admin_id) -> str:
     fixer = FIXERS.get((code, action))
     if not fixer:
         raise ValueError(f'Unknown fix {code}/{action}')
-    return fixer(user_id, player_id, params, admin_id)
+    result = fixer(user_id, player_id, params, admin_id)
+    # Phase-0 dual-write: any integrity fix that changed roster/pool/coach/approval state
+    # should re-sync the spine so the repair tools don't themselves drift it.
+    if player_id:
+        try:
+            from app.services.league_membership_sync import resync_player_memberships
+            resync_player_memberships(db.session, player_id)
+        except Exception as _lm_err:
+            logger.warning(f"league_membership sync skipped after integrity fix for player {player_id}: {_lm_err}")
+    return result

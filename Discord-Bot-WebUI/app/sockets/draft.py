@@ -506,6 +506,15 @@ def handle_draft_player_enhanced(data):
                         advanced_clock = True
             # Transaction 2 committed automatically - lock + connection released
 
+            # Phase-0 dual-write: mirror placement into the league_membership spine POST-COMMIT
+            # (outside the FOR UPDATE lock) so it never lengthens the pick's critical section.
+            try:
+                from app.services.league_membership_sync import resync_player_memberships
+                with managed_session() as _lm_session:
+                    resync_player_memberships(_lm_session, player_id)
+            except Exception as _lm_err:
+                logger.warning(f"league_membership sync skipped for player {player_id}: {_lm_err}")
+
             # Ping the next team's coaches AFTER the lock is released (the .delay() is a
             # broker call — keep it out of the FOR UPDATE txn). ds is detached but its
             # advanced column attrs are loaded, so this read is safe.
@@ -924,6 +933,13 @@ def handle_remove_player_enhanced(data):
                     print(f"⚠️ Failed to remove draft history: {str(e)}")
                     logger.error(f"Failed to remove draft history: {str(e)}")
                     # Don't fail the entire operation if draft history removal fails
+
+                # Phase-0 dual-write: mirror the removal into the league_membership spine.
+                try:
+                    from app.services.league_membership_sync import resync_player_memberships
+                    resync_player_memberships(session, player_id)
+                except Exception as _lm_err:
+                    logger.warning(f"league_membership sync skipped for player {player_id}: {_lm_err}")
 
                 # Get the exact same enhanced player data that's used during initial page load
                 from app.draft_enhanced import DraftService

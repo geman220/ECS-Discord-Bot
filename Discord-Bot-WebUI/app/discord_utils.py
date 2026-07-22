@@ -1091,14 +1091,40 @@ async def delete_team_channel(session: Session, team: Team) -> Dict[str, Any]:
 # Player Role Updating & Sync
 # ---------------------------
 
-async def update_player_roles_async_only(player_data: Dict[str, Any], force_update: bool = False) -> Dict[str, Any]:
+# Protected-role allowlist (registration-lifecycle overhaul, Phase 4 safety net).
+# A FULL RECONCILE (update_player_roles_async_only with force_update=True) may ONLY
+# remove low-harm churn roles: substitute roles (…-SUB) and the pending/unverified role.
+# It must NEVER strip a player/team/division/coach/referee role, regardless of what any
+# desired-set calculator computes — a wrongly-omitted role in the expected set would
+# otherwise cause the league-wide Pub League role wipes that calculator drift has caused
+# (a huge manual cleanup). Genuine departures (leaving a team, losing a role) are handled
+# by the TARGETED remove_player_roles_task / explicit removals, NOT by this reconcile.
+_RECONCILE_REMOVABLE_EXACT = {'ECS-FC-PL-UNVERIFIED'}
+
+
+def _is_reconcile_removable(role_name: str) -> bool:
+    """True only for roles a full reconcile is allowed to strip (sub + unverified)."""
+    up = (role_name or '').strip().upper()
+    if up in _RECONCILE_REMOVABLE_EXACT:
+        return True
+    return up.endswith('-SUB')
+
+
+async def update_player_roles_async_only(player_data: Dict[str, Any], force_update: bool = False,
+                                         enforce_allowlist: bool = True) -> Dict[str, Any]:
     """
     Update a player's Discord roles without database session (async-only version).
-    
+
     Args:
         player_data: Dictionary containing player information
         force_update: If True, remove roles not in the expected set
-        
+        enforce_allowlist: If True (default), the protected-role allowlist guards the
+            computed removal set so a DRIFT-driven reconcile can only strip sub/unverified
+            roles (never team/division/coach/referee). Pass False ONLY from a TARGETED
+            caller that supplies an explicit, intentional removal list (e.g.
+            _execute_remove_roles_async) — there the removal set is exactly what the caller
+            chose, so it must execute in full (draft-remove team roles, deny offboarding).
+
     Returns:
         Dict[str, Any]: Result indicating success, and lists of roles added/removed
     """
@@ -1161,7 +1187,22 @@ async def update_player_roles_async_only(player_data: Dict[str, Any], force_upda
             else:
                 to_remove = []
                 logger.info(f"Force update disabled - no roles will be removed")
-            
+
+            # PROTECTED-ROLE ALLOWLIST (safety net): a DRIFT-driven reconcile may ONLY strip
+            # low-harm churn roles (sub / unverified). Team/division/coach/referee roles are
+            # NEVER removed here even if omitted from expected_roles — that prevents the
+            # league-wide Pub League role wipes that calculator drift caused. Skipped when
+            # enforce_allowlist=False (a targeted caller supplied an explicit removal list).
+            if to_remove and enforce_allowlist:
+                _protected = [r for r in to_remove if not _is_reconcile_removable(r)]
+                if _protected:
+                    logger.warning(
+                        f"Protected-role allowlist BLOCKED removal of {_protected} for "
+                        f"{player_data.get('name')} (only sub/unverified are reconcile-removable)"
+                    )
+                to_remove = [r for r in to_remove if _is_reconcile_removable(r)]
+                logger.info(f"Roles to remove after protected-allowlist filter: {to_remove}")
+
             # Execute role changes via Discord API
             roles_added = []
             roles_removed = []
@@ -1269,10 +1310,26 @@ async def update_player_roles(session: Session, player: Player, force_update: bo
                          if normalize_name(r) in managed_normalized and normalize_name(r) not in expected_normalized]
             else:
                 to_remove = [r for r in current_roles
-                         if normalize_name(r) in managed_normalized 
-                         and normalize_name(r) not in expected_normalized 
+                         if normalize_name(r) in managed_normalized
+                         and normalize_name(r) not in expected_normalized
                          and (not "COACH" in r.upper() or not player.is_coach)]
-                
+
+            # PROTECTED-ROLE ALLOWLIST for this single-player reconcile: protect team-player
+            # / division / referee roles from drift-driven stripping (prevents the PL role
+            # wipes calculator drift caused), but keep COACH roles removable so an intentional
+            # coach demotion (is_coach=False on a profile edit — the non-force branch above
+            # only lists a coach role for removal when the player is no longer a coach) still
+            # removes the Discord coach role. Sub/unverified stay removable too.
+            if to_remove:
+                def _removable_here(r):
+                    return _is_reconcile_removable(r) or 'COACH' in (r or '').upper()
+                _protected = [r for r in to_remove if not _removable_here(r)]
+                if _protected:
+                    logger.warning(
+                        f"Protected-role allowlist BLOCKED removal of {_protected} for {player.name}"
+                    )
+                to_remove = [r for r in to_remove if _removable_here(r)]
+
             logger.info(f"Roles to add: {to_add}")
             logger.info(f"Roles to remove: {to_remove}")
 

@@ -2563,6 +2563,63 @@ def get_my_pool_status():
         }), 200
 
 
+@mobile_api_v2.route('/substitutes/pool/reconfirm', methods=['POST'])
+@jwt_required()
+def reconfirm_substitute_availability():
+    """One-tap "I'm still available to sub" — flips the caller's RESTING (approved but
+    on-break) sub pools back to Active, re-entering the contact rotation. The app-side
+    twin of the Discord re-confirm button and the season carry-forward re-opt-in.
+
+    Optional body: {"league_type": "Classic"|"Premier"|"ECS FC"} to reconfirm one lane;
+    omit to reconfirm all. Never self-approves a pending (never-approved) membership.
+    """
+    from app.models.substitutes import SubstitutePool, EcsFcSubPool
+    current_user_id = int(get_jwt_identity())
+    data = request.get_json(silent=True) or {}
+    lane = data.get('league_type')
+
+    with managed_session() as session:
+        player = get_player_from_user(session, current_user_id)
+        if not player:
+            return jsonify({"msg": "Player profile not found"}), 404
+
+        q = session.query(SubstitutePool).filter(
+            SubstitutePool.player_id == player.id,
+            SubstitutePool.approved_at.isnot(None),   # only approved subs may reactivate
+            SubstitutePool.is_active.is_(False),      # only resting ones
+        )
+        if lane:
+            q = q.filter(SubstitutePool.league_type == lane)
+
+        reconfirmed = []
+        for row in q.all():
+            row.is_active = True
+            row.last_active_at = datetime.utcnow()
+            reconfirmed.append({"league_type": row.league_type, "status": "active"})
+
+        # Mirror the legacy ECS FC pool (kept in sync with substitute_pools).
+        if not lane or 'ecs' in lane.lower():
+            for ep in session.query(EcsFcSubPool).filter(
+                EcsFcSubPool.player_id == player.id, EcsFcSubPool.is_active.is_(False)
+            ).all():
+                ep.is_active = True
+                if hasattr(ep, 'last_active_at'):
+                    ep.last_active_at = datetime.utcnow()
+
+        # Phase-0 dual-write: reflect the active/resting change in the spine.
+        try:
+            from app.services.league_membership_sync import resync_player_memberships
+            resync_player_memberships(session, player.id)
+        except Exception as _lm_err:
+            logger.warning(f"league_membership sync skipped for player {player.id}: {_lm_err}")
+
+        session.commit()
+
+        if not reconfirmed:
+            return jsonify({"success": False, "msg": "No resting sub pool to reconfirm"}), 409
+        return jsonify({"success": True, "reconfirmed": reconfirmed}), 200
+
+
 @mobile_api_v2.route('/substitutes/pool/my-status', methods=['PUT'])
 @jwt_required()
 def update_my_pool_status():

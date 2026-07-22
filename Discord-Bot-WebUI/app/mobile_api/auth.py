@@ -601,6 +601,15 @@ def get_user_profile():
             "last_login": user.last_login.isoformat() if user.last_login else None,
         }
 
+        # Additive (non-breaking): season phase per league_type, for in-app
+        # "waitlist open" / "registration open" states. See season_phase_service.
+        try:
+            from app.services.season_phase_service import season_phase_map
+            response_data["season_phase"] = season_phase_map()
+        except Exception as _phase_err:
+            logger.warning(f"[MOBILE_API] season_phase lookup skipped: {_phase_err}")
+            response_data["season_phase"] = {"pub_league": None, "ecs_fc": None}
+
         # Determine user capabilities for client-side enforcement
         user_roles = [role.name for role in user.roles]
         is_admin = any(r in ['Global Admin', 'Pub League Admin'] for r in user_roles)

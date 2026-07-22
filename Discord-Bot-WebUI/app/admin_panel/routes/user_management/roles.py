@@ -289,6 +289,14 @@ def assign_user_roles():
                 except Exception as e:
                     logger.error(f"Failed to remove Pub League Coach status for user {user.id}: {e}")
 
+            # Phase-0 dual-write: mirror the role set (+ coach-status) into the spine.
+            if user.player:
+                try:
+                    from app.services.league_membership_sync import resync_player_memberships
+                    resync_player_memberships(db.session, user.player.id)
+                except Exception as _lm_err:
+                    logger.warning(f"league_membership sync skipped for user {user.id}: {_lm_err}")
+
             # Queue Discord role sync for AFTER transaction commits
             if user.player and user.player.discord_id:
                 defer_discord_sync(user.player.id, only_add=False)
@@ -505,6 +513,14 @@ def assign_user_role():
             if user.player and user.player.discord_id:
                 defer_discord_sync(user.player.id, only_add=False)
                 logger.info(f"Queued Discord role sync for user {user.id} after role {action}")
+
+            # Phase-0 dual-write: reflect the role change in the league_membership spine.
+            if user.player:
+                try:
+                    from app.services.league_membership_sync import resync_player_memberships
+                    resync_player_memberships(db.session, user.player.id)
+                except Exception as _lm_err:
+                    logger.warning(f"league_membership sync skipped for user {user.id}: {_lm_err}")
 
             # Bust the 60s Redis user-auth cache so the change takes effect on the
             # user's NEXT request instead of "access denied until the TTL expires"

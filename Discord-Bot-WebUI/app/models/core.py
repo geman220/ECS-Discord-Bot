@@ -16,7 +16,7 @@ import pyotp
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import extract
+from sqlalchemy import extract, func
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import joinedload
 from app.core import db
@@ -47,6 +47,9 @@ class League(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=False)
+    # DB has this column but the model wasn't mapping it, so League.query.filter_by(is_active=...)
+    # (e.g. the push-notifications page) raised "League has no property is_active". Map it.
+    is_active = db.Column(db.Boolean, default=True)
     season = db.relationship('Season', back_populates='leagues')
     teams = db.relationship('Team', back_populates='league', lazy='joined')
     players = db.relationship(
@@ -364,6 +367,13 @@ class Season(db.Model):
     is_current = db.Column(db.Boolean, default=False, nullable=False)
     start_date = db.Column(db.Date, nullable=True)
     end_date = db.Column(db.Date, nullable=True)
+    # Lifecycle phase (see registration-lifecycle-overhaul plan). Phase 1 wires it to
+    # the WAITLIST gate (is_waitlist_open). Registration + sub auto-rest gating
+    # (is_registration_open / is_auto_rest_active) are ready in season_phase_service but
+    # are wired to their flows in a later phase. is_current is per league_type, so phase
+    # is too — Pub League and ECS FC phase independently. Discord teardown is NOT tied to
+    # 'offseason'; it happens only at the explicit rollover process.
+    phase = db.Column(db.String(16), nullable=False, default='offseason')  # preseason|in_season|break|offseason
 
     @hybrid_property
     def year(self):
@@ -390,6 +400,7 @@ class Season(db.Model):
             'name': self.name,
             'league_type': self.league_type,
             'is_current': self.is_current,
+            'phase': self.phase,
             'start_date': self.start_date.isoformat() if self.start_date else None,
             'end_date': self.end_date.isoformat() if self.end_date else None,
         }

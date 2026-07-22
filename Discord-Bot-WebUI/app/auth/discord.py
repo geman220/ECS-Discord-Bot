@@ -381,7 +381,17 @@ def discord_callback():
                     if waitlist_role not in user.roles:
                         user.roles.append(waitlist_role)
                         user.waitlist_joined_at = datetime.utcnow()
+                        # Populate the waitlist lane so per-league waitlist + the spine work.
+                        if not user.waitlist_league:
+                            user.waitlist_league = user.preferred_league
                         db_session.flush()
+                        # Phase-0 dual-write: mirror this waitlist join into the spine.
+                        try:
+                            from app.services.league_membership_sync import resync_player_memberships
+                            if user.player:
+                                resync_player_memberships(db_session, user.player.id)
+                        except Exception as _lm_err:
+                            logger.warning(f"league_membership sync skipped for waitlist user {user.id}: {_lm_err}")
                         logger.info(f"User {user.id} added to waitlist")
                         show_success('You have been added to the waitlist! You will be notified when spots become available.')
                     else:

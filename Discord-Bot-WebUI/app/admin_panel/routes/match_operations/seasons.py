@@ -32,6 +32,41 @@ def seasons():
     return redirect(url_for('admin_panel.league_management_seasons', **request.args), code=302)
 
 
+@admin_panel_bp.route('/match-operations/seasons/<int:season_id>/set-phase', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def set_season_phase_route(season_id):
+    """Set a season's lifecycle phase (preseason / in_season / break / offseason).
+
+    Phase drives the waitlist, registration, and sub auto-rest gates. ECS FC is
+    pinned in_season and exempt from auto-flips, but an admin may still set it here.
+    Discord teardown is NEVER triggered by a phase change — that is the separate
+    rollover process.
+    """
+    from app.services.season_phase_service import set_season_phase, VALID_PHASES
+
+    phase = (request.form.get('phase') or (request.get_json(silent=True) or {}).get('phase') or '').strip()
+    if phase not in VALID_PHASES:
+        return jsonify({'success': False, 'message': f'Invalid phase (expected one of {list(VALID_PHASES)})'}), 400
+
+    try:
+        season = set_season_phase(db.session, season_id, phase)
+    except ValueError as e:
+        return jsonify({'success': False, 'message': str(e)}), 404
+
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='set_season_phase',
+        resource_type='season',
+        resource_id=str(season_id),
+        new_value=f'{season.league_type} season {season.name} -> phase={phase}',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent'),
+    )
+    return jsonify({'success': True, 'message': f'Phase set to {phase}', 'phase': phase})
+
+
 @admin_panel_bp.route('/match-operations/seasons/create', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])

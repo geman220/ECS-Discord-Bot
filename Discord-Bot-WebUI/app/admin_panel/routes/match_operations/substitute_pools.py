@@ -334,6 +334,13 @@ def add_player_to_pool(league_type):
             if player.discord_id:
                 discord_queue.add_role_sync(player.id, only_add=False)
 
+            # Phase-0 dual-write: mirror pool add/reactivate into the league_membership spine.
+            try:
+                from app.services.league_membership_sync import resync_player_memberships
+                resync_player_memberships(db.session, player_id)
+            except Exception as _lm_err:
+                logger.warning(f"league_membership sync skipped for player {player_id}: {_lm_err}")
+
             # Commit the transaction
             db.session.commit()
 
@@ -440,6 +447,13 @@ def remove_player_from_pool(league_type):
             if player.discord_id:
                 discord_queue.add_role_sync(player.id, only_add=False)
 
+            # Phase-0 dual-write: mirror pool removal into the league_membership spine.
+            try:
+                from app.services.league_membership_sync import resync_player_memberships
+                resync_player_memberships(db.session, player_id)
+            except Exception as _lm_err:
+                logger.warning(f"league_membership sync skipped for player {player_id}: {_lm_err}")
+
             # Commit the transaction
             db.session.commit()
 
@@ -505,6 +519,13 @@ def approve_pool_member(league_type):
         user_agent=request.headers.get('User-Agent')
     )
 
+    # Phase-0 dual-write: mirror pool approval into the league_membership spine.
+    try:
+        from app.services.league_membership_sync import resync_player_memberships
+        resync_player_memberships(db.session, player_id)
+    except Exception as _lm_err:
+        logger.warning(f"league_membership sync skipped for player {player_id}: {_lm_err}")
+
     return jsonify({
         'success': True,
         'message': f"{pool_entry.player.name if pool_entry.player else 'Player'} approved"
@@ -555,6 +576,13 @@ def set_pool_member_active(league_type):
         ip_address=request.remote_addr,
         user_agent=request.headers.get('User-Agent')
     )
+
+    # Phase-0 dual-write: mirror the active/on-break toggle into the league_membership spine.
+    try:
+        from app.services.league_membership_sync import resync_player_memberships
+        resync_player_memberships(db.session, player_id)
+    except Exception as _lm_err:
+        logger.warning(f"league_membership sync skipped for player {player_id}: {_lm_err}")
 
     label = 'activated' if target else 'marked on-break'
     return jsonify({

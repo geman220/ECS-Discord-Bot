@@ -82,7 +82,8 @@ def _cta_state(league=None):
     values (pub_league_classic / pub_league_premier).
     """
     try:
-        waitlist_open = bool(AdminConfig.get_setting('waitlist_registration_enabled', True))
+        from app.services.season_phase_service import is_waitlist_open
+        waitlist_open = is_waitlist_open()
     except Exception:
         waitlist_open = True
 

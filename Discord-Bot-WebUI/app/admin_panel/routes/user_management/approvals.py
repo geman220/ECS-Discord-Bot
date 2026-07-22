@@ -30,6 +30,7 @@ from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal
 from app.utils.deferred_cache import defer_clear_league_cache
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 from app.utils.user_helpers import safe_current_user
+from app.services.league_membership_sync import resync_player_memberships
 
 logger = logging.getLogger(__name__)
 
@@ -330,6 +331,10 @@ def _apply_waitlist(user, league: str, approver_id: int, notes=None):
     db.session.add(user)
     db.session.flush()
 
+    # Phase-0 dual-write: mirror this transition into the league_membership spine.
+    if user.player:
+        resync_player_memberships(db.session, user.player.id)
+
     if user.player and user.player.discord_id:
         defer_discord_sync(user.player.id, only_add=False)
         logger.info(f"Queued Discord role sync for waitlisted user {user.id}")
@@ -476,6 +481,10 @@ def apply_approval(user, league_type: str, approver_id: int, notes=None):
 
     db.session.add(user)
     db.session.flush()
+
+    # Phase-0 dual-write: mirror this approval (league / sub) into the spine.
+    if user.player:
+        resync_player_memberships(db.session, user.player.id)
 
     # Queue Discord role sync for AFTER transaction commits
     if user.player and user.player.discord_id:
@@ -644,6 +653,11 @@ def deny_user(user_id: int):
 
             db.session.add(user)
             db.session.flush()
+
+            # Phase-0 dual-write: reflect the denial in the league_membership spine
+            # (retires the person's current-season rows) so the Member Hub is accurate.
+            if user.player:
+                resync_player_memberships(db.session, user.player.id)
 
             # Queue Discord role removal for AFTER transaction commits
             if user.player and user.player.discord_id:

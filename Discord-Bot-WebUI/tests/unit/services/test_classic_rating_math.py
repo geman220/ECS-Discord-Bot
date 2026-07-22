@@ -95,23 +95,37 @@ class TestComposite:
     def test_hand_computed_composite(self):
         finals = {'intensity': Decimal('4.00'), 'on_ball_skill': Decimal('3.00'),
                   'spirit': Decimal('2.00'), 'knowledge_movement': Decimal('5.00')}
-        # 0.4*4 + 0.3*3 + 0.2*2 + 0.1*5 = 1.6 + 0.9 + 0.4 + 0.5 = 3.40
-        assert svc.compute_composite(finals, self.WEIGHTS) == Decimal('3.40')
+        # Spirit inverts (6 - 2 = 4): 0.4*4 + 0.3*3 + 0.2*4 + 0.1*5
+        #                          = 1.6 + 0.9 + 0.8 + 0.5 = 3.80
+        assert svc.compute_composite(finals, self.WEIGHTS) == Decimal('3.80')
 
     def test_missing_metric_yields_none(self):
         finals = {'intensity': Decimal('4'), 'on_ball_skill': None,
                   'spirit': Decimal('2'), 'knowledge_movement': Decimal('5')}
         assert svc.compute_composite(finals, self.WEIGHTS) is None
 
-    def test_composite_within_min_max_bounds(self):
+    def test_composite_stays_in_scale_bounds(self):
+        # Inverting spirit keeps its contribution on the same 1..5 scale, so the
+        # composite still lands in [1, 5] for any valid ratings.
         finals = {'intensity': Decimal('1.25'), 'on_ball_skill': Decimal('4.75'),
-                  'spirit': Decimal('3.00'), 'knowledge_movement': Decimal('2.50')}
+                  'spirit': Decimal('5.00'), 'knowledge_movement': Decimal('2.50')}
         composite = svc.compute_composite(finals, self.WEIGHTS)
-        assert min(finals.values()) <= composite <= max(finals.values())
+        assert Decimal('1.00') <= composite <= Decimal('5.00')
 
-    def test_uniform_scores_identity(self):
+    def test_spirit_inversion_low_spirit_raises_composite(self):
+        # Two players identical except spirit; the low-spirit one must score
+        # HIGHER (needs addressing/picking earlier).
+        base = {'intensity': Decimal('3.00'), 'on_ball_skill': Decimal('3.00'),
+                'knowledge_movement': Decimal('3.00')}
+        low = svc.compute_composite({**base, 'spirit': Decimal('1.00')}, self.WEIGHTS)
+        high = svc.compute_composite({**base, 'spirit': Decimal('5.00')}, self.WEIGHTS)
+        assert low > high
+
+    def test_uniform_scores_reflect_spirit_inversion(self):
+        # Uniform 3.25: three metrics contribute 3.25, spirit contributes
+        # 6 - 3.25 = 2.75. 0.8*3.25 + 0.2*2.75 = 2.60 + 0.55 = 3.15.
         finals = {m: Decimal('3.25') for m in svc.METRICS}
-        assert svc.compute_composite(finals, self.WEIGHTS) == Decimal('3.25')
+        assert svc.compute_composite(finals, self.WEIGHTS) == Decimal('3.15')
 
     def test_rounding_half_up_at_boundary(self):
         assert svc.quantize2(Decimal('3.005')) == Decimal('3.01')

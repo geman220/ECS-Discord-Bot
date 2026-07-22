@@ -92,7 +92,7 @@
                         <th class="px-2 py-2 text-right hidden md:table-cell">K/M</th>
                         <th class="px-2 py-2 text-right">Comp</th>
                         <th class="px-2 py-2 text-right hidden md:table-cell">Raters</th>
-                        <th class="px-2 py-2 text-center hidden sm:table-cell">M/F</th>
+                        <th class="px-2 py-2 text-center hidden sm:table-cell">M/N</th>
                         <th class="px-2 py-2 text-center">⚑</th>
                         <th class="px-2 py-2"></th>
                     </tr>
@@ -132,8 +132,7 @@
                                     class="py-1 pl-2 pr-6 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200">
                                 <option value="" {{ 'selected' if not p.balance_gender }}>auto</option>
                                 <option value="M" {{ 'selected' if p.balance_gender == 'M' }}>M</option>
-                                <option value="F" {{ 'selected' if p.balance_gender == 'F' }}>F</option>
-                                <option value="X" {{ 'selected' if p.balance_gender == 'X' }}>X</option>
+                                <option value="N" {{ 'selected' if p.balance_gender == 'N' }}>N</option>
                             </select>
                         </td>
                         <td class="px-2 py-2 text-center cr-flag">{% if p.has_override %}<span class="inline-block w-2 h-2 rounded-full bg-amber-400" title="Has admin override"></span>{% endif %}</td>
@@ -297,7 +296,7 @@
                     <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 mt-5">
                         <input type="checkbox" name="gender_balance_enabled" {{ 'checked' if config.gender_balance_enabled }}
                                class="w-4 h-4 rounded text-ecs-green focus:ring-ecs-green">
-                        Factor M/F balance
+                        Factor M/N balance
                     </label>
                     <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 col-span-2">
                         <input type="checkbox" name="balanced_draft_enabled" {{ 'checked' if config.balanced_draft_enabled }}

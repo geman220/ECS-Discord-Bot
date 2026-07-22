@@ -974,6 +974,15 @@ def edit_user_comprehensive(user_id):
                             user.roles.append(role_to_add)
                             logger.info(f"Auto-added role {required_role} to user {user.id}")
 
+            # Phase-0 dual-write: reflect these edits (approval / roles / team / is_current)
+            # in the league_membership spine so the Member Hub stays accurate.
+            if user.player:
+                try:
+                    from app.services.league_membership_sync import resync_player_memberships
+                    resync_player_memberships(db.session, user.player.id)
+                except Exception as _lm_err:
+                    logger.warning(f"league_membership sync skipped for user {user.id}: {_lm_err}")
+
             # Queue Discord role sync for AFTER transaction commits
             if user.player and user.player.discord_id:
                 defer_discord_sync(user.player.id, only_add=False)

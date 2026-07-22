@@ -313,6 +313,7 @@
             <div id="userActionsDropdown{{ user.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600 text-left">
               <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                 <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="edit-user" data-user-id="{{ user.id }}"><i class="ti ti-edit mr-2" aria-hidden="true"></i>Edit User</a></li>
+                <li><a href="{{ url_for('admin_panel.member_hub', user_id=user.id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-ecs-green dark:text-ecs-green"><i class="ti ti-id-badge-2 mr-2" aria-hidden="true"></i>Member Hub</a></li>
                 {% if user.player %}
                 <li><a href="{{ url_for('players.player_profile', player_id=user.player.id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"><i class="ti ti-user mr-2" aria-hidden="true"></i>View Profile</a></li>
                 {% endif %}
@@ -376,6 +377,7 @@
             <div id="userActionsDropdownM{{ user.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600">
               <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                 <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="edit-user" data-user-id="{{ user.id }}"><i class="ti ti-edit mr-2" aria-hidden="true"></i>Edit User</a></li>
+                <li><a href="{{ url_for('admin_panel.member_hub', user_id=user.id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-ecs-green dark:text-ecs-green"><i class="ti ti-id-badge-2 mr-2" aria-hidden="true"></i>Member Hub</a></li>
                 {% if user.player %}
                 <li><a href="{{ url_for('players.player_profile', player_id=user.player.id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"><i class="ti ti-user mr-2" aria-hidden="true"></i>View Profile</a></li>
                 {% endif %}

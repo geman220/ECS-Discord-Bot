@@ -167,6 +167,14 @@ def remove_from_waitlist(user_id: int):
             # Update user record
             user.updated_at = datetime.utcnow()
 
+            # Phase-0 dual-write: retire the waitlist row in the league_membership spine.
+            if user.player:
+                try:
+                    from app.services.league_membership_sync import resync_player_memberships
+                    resync_player_memberships(db.session, user.player.id)
+                except Exception as _lm_err:
+                    logger.warning(f"league_membership sync skipped for user {user.id}: {_lm_err}")
+
             # Log the action
             AdminAuditLog.log_action(
                 user_id=current_user_safe.id,

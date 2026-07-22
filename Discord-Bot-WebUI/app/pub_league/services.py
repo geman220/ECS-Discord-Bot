@@ -498,6 +498,13 @@ class PlayerActivationService:
         else:
             logger.warning(f"Could not find current season league for division '{division}'")
 
+        # Phase-0 dual-write: mirror pass activation into the league_membership spine.
+        try:
+            from app.services.league_membership_sync import resync_player_memberships
+            resync_player_memberships(session, player.id)
+        except Exception as _lm_err:
+            logger.warning(f"league_membership sync skipped for player {player.id}: {_lm_err}")
+
         session.commit()
 
         # 4. Sync roles (only if user exists and is approved). BEST-EFFORT: the

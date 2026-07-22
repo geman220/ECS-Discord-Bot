@@ -181,6 +181,13 @@ def expire_stale_substitute_pools(self, session, inactive_days=120):
                     player.is_sub = False
                     cleared_is_sub += 1
 
+        # Phase-0 dual-write: reflect the deactivations in the league_membership spine
+        # (their sub rows go active->resting) for each affected player.
+        if affected_player_ids:
+            from app.services.league_membership_sync import resync_player_memberships
+            for _pid in affected_player_ids:
+                resync_player_memberships(session, _pid)
+
         logger.info(f"Sub pool hygiene: deactivated {deactivated} stale membership(s) "
                     f"across {len(affected_player_ids)} player(s); cleared is_sub on {cleared_is_sub}")
         return {
@@ -192,6 +199,26 @@ def expire_stale_substitute_pools(self, session, inactive_days=120):
         }
     except Exception as e:
         logger.error(f"Error expiring stale substitute pools: {e}", exc_info=True)
+        return {"status": "error", "message": str(e)}
+
+
+@celery_task
+def advance_season_phases(self, session):
+    """Auto-advance the current Pub League season's lifecycle phase on schedule.
+
+    preseason -> in_season once start_date is reached; in_season -> offseason once
+    end_date has passed. ECS FC is exempt (pinned in_season, no rollover). Discord
+    channels/roles are NEVER torn down here — that is the separate manual rollover
+    process; this only flips the phase flag. See season_phase_service.auto_advance_phases.
+    """
+    try:
+        from app.services.season_phase_service import auto_advance_phases
+        changes = auto_advance_phases(session)
+        if changes:
+            logger.info("Season phase auto-advance: %s", "; ".join(changes))
+        return {"status": "success", "changes": changes}
+    except Exception as e:
+        logger.error(f"Error advancing season phases: {e}", exc_info=True)
         return {"status": "error", "message": str(e)}
 
 

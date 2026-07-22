@@ -624,3 +624,146 @@ def fetch_discord_roles_sync() -> List[Dict[str, Any]]:
         asyncio.set_event_loop(loop)
 
     return loop.run_until_complete(service.fetch_discord_roles())
+
+
+# -----------------------------------------------------------------------------
+# Auto-mapping: Flask Role -> live Discord role
+# -----------------------------------------------------------------------------
+
+# Canonical Flask Role.name -> intended Discord role name(s), in priority order.
+# These are lifted directly from the live role calculators that actually assign
+# Discord roles today (app/discord_utils.py:get_expected_roles and the expected-
+# role builder in app/tasks/tasks_discord.py). Keep this in sync with those if
+# the Discord role vocabulary ever changes.
+#
+# Flask roles NOT listed here are intentionally app-only permission roles
+# (Global Admin, Pub League Admin, Discord Admin, Pub League Coach, ECS FC Admin,
+# Pub League Manager, pl-waitlist, etc.) — they have no Discord counterpart and
+# are correctly left unmapped.
+CANONICAL_DISCORD_ROLE_MAP: Dict[str, List[str]] = {
+    'pl-premier':     ['ECS-FC-PL-PREMIER'],
+    'pl-classic':     ['ECS-FC-PL-CLASSIC'],
+    'pl-ecs-fc':      ['ECS-FC-PL-ECS-FC', 'ECS-FC-LEAGUE'],
+    'pl-unverified':  ['ECS-FC-PL-UNVERIFIED'],
+    'Premier Coach':  ['ECS-FC-PL-PREMIER-COACH'],
+    'Classic Coach':  ['ECS-FC-PL-CLASSIC-COACH'],
+    'ECS FC Coach':   ['ECS-FC-PL-ECS-FC-COACH'],
+    'Premier Sub':    ['ECS-FC-PL-PREMIER-SUB'],
+    'Classic Sub':    ['ECS-FC-PL-CLASSIC-SUB'],
+    'ECS FC Sub':     ['ECS-FC-LEAGUE-SUB'],
+    'Pub League Ref': ['Referee'],
+}
+
+
+def _normalize_role_name(name: str) -> str:
+    """Normalize a role name for case/separator-insensitive matching.
+
+    Mirrors app/discord_utils.normalize_name so matches line up with how the
+    live calculators name Discord roles: UPPER, spaces/underscores -> hyphens.
+    """
+    if not name:
+        return ''
+    return name.strip().upper().replace(' ', '-').replace('_', '-')
+
+
+def auto_map_flask_roles(session, discord_roles: List[Dict[str, Any]],
+                         apply: bool = False) -> Dict[str, Any]:
+    """Match Flask roles to live Discord roles and (optionally) persist the mapping.
+
+    Args:
+        session: SQLAlchemy session (g.db_session).
+        discord_roles: live Discord roles from fetch_discord_roles_sync().
+        apply: when True, write discord_role_id/name/last_synced_at onto matched
+               Role rows; when False, only compute the proposed mapping.
+
+    Returns:
+        {
+          'success': bool,
+          'proposals': [ {role_id, role_name, matched, already_mapped, changed,
+                          discord_role_id, discord_role_name, member_count,
+                          reason} ],
+          'matched': int, 'applied': int, 'app_only': int, 'unmatched': int,
+        }
+    """
+    # Live Discord roles indexed by normalized name for lookup.
+    live_by_norm: Dict[str, Dict[str, Any]] = {}
+    for dr in discord_roles or []:
+        norm = _normalize_role_name(dr.get('name', ''))
+        if norm and norm not in live_by_norm:
+            live_by_norm[norm] = dr
+
+    roles = session.query(Role).order_by(Role.name).all()
+
+    proposals: List[Dict[str, Any]] = []
+    matched = applied = app_only = unmatched = 0
+
+    for role in roles:
+        # Determine candidate Discord role names for this Flask role. Roles not
+        # in the canonical table are app-only permission roles with no Discord
+        # counterpart — we do NOT attempt to match them, even if a live Discord
+        # role happens to share their name, so a coincidental name collision can
+        # never silently map (and later auto-push) a powerful admin role.
+        candidates = CANONICAL_DISCORD_ROLE_MAP.get(role.name)
+        is_app_only = candidates is None
+
+        match = None
+        if not is_app_only:
+            for cand in candidates:
+                match = live_by_norm.get(_normalize_role_name(cand))
+                if match:
+                    break
+
+        current_id = role.discord_role_id or None
+
+        if match:
+            new_id = str(match.get('id'))
+            new_name = match.get('name')
+            already_mapped = current_id == new_id
+            changed = not already_mapped
+            matched += 1
+
+            if apply and changed:
+                role.discord_role_id = new_id
+                role.discord_role_name = new_name
+                role.last_synced_at = datetime.utcnow()
+                applied += 1
+
+            proposals.append({
+                'role_id': role.id,
+                'role_name': role.name,
+                'matched': True,
+                'already_mapped': already_mapped,
+                'changed': changed,
+                'discord_role_id': new_id,
+                'discord_role_name': new_name,
+                'member_count': match.get('member_count', 0),
+                'reason': 'already mapped' if already_mapped else 'matched by name',
+            })
+        else:
+            if is_app_only:
+                app_only += 1
+                reason = 'app-only permission role (no Discord equivalent)'
+            else:
+                unmatched += 1
+                reason = 'expected Discord role not found on server'
+
+            proposals.append({
+                'role_id': role.id,
+                'role_name': role.name,
+                'matched': False,
+                'already_mapped': False,
+                'changed': False,
+                'discord_role_id': current_id,
+                'discord_role_name': role.discord_role_name,
+                'member_count': None,
+                'reason': reason,
+            })
+
+    return {
+        'success': True,
+        'proposals': proposals,
+        'matched': matched,
+        'applied': applied,
+        'app_only': app_only,
+        'unmatched': unmatched,
+    }

@@ -401,7 +401,10 @@ def _queue_discord_role_removals(role_removals: list) -> int:
                 discord_ids.append(str(did))
 
         if discord_ids:
-            process_discord_role_updates.delay(discord_ids)
+            # enforce_allowlist=False: rollover is an INTENDED bulk clear of old team/coach
+            # roles. Without it the drift-guard allowlist (which protects those roles from a
+            # normal reconcile) would leave last season's team roles stale on every player.
+            process_discord_role_updates.delay(discord_ids, enforce_allowlist=False)
             queued = len(discord_ids)
             logger.info(f"Queued 1 batched Discord role reconcile for {queued} players (rollover cleanup)")
 
@@ -597,7 +600,11 @@ def create_pub_league_season(session, season_name: str) -> Optional[Season]:
     new_season = Season(
         name=season_name,
         league_type='Pub League',
-        is_current=True
+        is_current=True,
+        # A new season opens in PRESEASON (drafted-but-pre-match). Without this the column
+        # defaults to 'offseason', which closes the waitlist + registration gates
+        # (is_waitlist_open / is_registration_open) after every rollover.
+        phase='preseason'
     )
     session.add(new_season)
     session.flush()
@@ -640,6 +647,26 @@ def create_pub_league_season(session, season_name: str) -> Optional[Season]:
             )
 
         rollover_league(session, old_season, new_season)
+
+        # Carry last season's subs forward into the new season as resting + needs_reconfirm.
+        # league_membership is season-scoped, so without this the new season has NO sub rows;
+        # returning subs re-opt-in (Discord button / mobile reconfirm) to go active again.
+        try:
+            from app.services.league_membership_sync import carry_forward_subs
+            carry_forward_subs(session, old_season.id, new_season.id)
+        except Exception as _cf_err:
+            logger.warning(f"carry_forward_subs skipped during rollover: {_cf_err}")
+
+        # Waitlist is a point-in-time, per-season list — clear it at the boundary and route
+        # everyone off it: unapproved -> approval queue (approval_status='pending'), approved
+        # -> normal inactive pool (they re-activate when the new-season pass is linked). The
+        # new season opens with an EMPTY waitlist that refills once its pass sells out.
+        # (Pub League only — the ECS FC rollover path below is intentionally NOT cleared.)
+        try:
+            from app.services.season_phase_service import clear_and_route_waitlist
+            clear_and_route_waitlist(session, reason='rollover')
+        except Exception as _wl_err:
+            logger.warning(f"clear_and_route_waitlist skipped during rollover: {_wl_err}")
     else:
         # No old current season found - still need to commit the new season/leagues
         logger.warning("No current Pub League season found for rollover")
@@ -756,7 +783,9 @@ def create_ecs_fc_season(session, season_name: str) -> Optional[Season]:
     new_season = Season(
         name=season_name,
         league_type='ECS FC',
-        is_current=True
+        is_current=True,
+        # ECS FC is pinned in_season and exempt from the Pub League phase lifecycle.
+        phase='in_season'
     )
     session.add(new_season)
     session.flush()
@@ -767,6 +796,15 @@ def create_ecs_fc_season(session, season_name: str) -> Optional[Season]:
     if old_season:
         old_season.is_current = False
         rollover_league(session, old_season, new_season)
+
+        # Carry last season's subs forward into the new season as resting + needs_reconfirm.
+        # league_membership is season-scoped, so without this the new season has NO sub rows;
+        # returning subs re-opt-in (Discord button / mobile reconfirm) to go active again.
+        try:
+            from app.services.league_membership_sync import carry_forward_subs
+            carry_forward_subs(session, old_season.id, new_season.id)
+        except Exception as _cf_err:
+            logger.warning(f"carry_forward_subs skipped during rollover: {_cf_err}")
     else:
         # No old current season found - still need to commit the new season/leagues
         logger.warning("No current ECS FC season found for rollover")

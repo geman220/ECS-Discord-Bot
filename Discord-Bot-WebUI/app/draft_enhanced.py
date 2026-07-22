@@ -1957,6 +1957,16 @@ def api_draft_player():
 
         session.commit()
 
+        # Phase-0 dual-write: mirror this HTTP-fallback placement into the spine POST-COMMIT
+        # in a fresh session (outside the FOR UPDATE lock), mirroring the socket/mobile picks.
+        try:
+            from app.core.session_manager import managed_session
+            from app.services.league_membership_sync import resync_player_memberships
+            with managed_session() as _lm_session:
+                resync_player_memberships(_lm_session, player_id)
+        except Exception as _lm_err:
+            logger.warning(f"league_membership sync skipped for player {player_id}: {_lm_err}")
+
         # Post-commit: drop the per-league caches. Without this, the mobile
         # pool cache (available_mobile, 1h TTL) keeps serving the drafted
         # player to every phone whenever the web board falls back to HTTP picks.

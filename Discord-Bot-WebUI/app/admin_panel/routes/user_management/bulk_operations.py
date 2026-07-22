@@ -227,6 +227,14 @@ def bulk_approve_users():
                                 user.player.is_current_player = True
                                 logger.info(f"Bulk approval: assigned player {user.player.id} to league {current_league.id}")
 
+                    # Phase-0 dual-write: mirror the bulk approval into the spine.
+                    if user.player:
+                        try:
+                            from app.services.league_membership_sync import resync_player_memberships
+                            resync_player_memberships(db.session, user.player.id)
+                        except Exception as _lm_err:
+                            logger.warning(f"league_membership sync skipped for user {user_id}: {_lm_err}")
+
                     # Commit this user's changes
                     db.session.commit()
 
@@ -362,6 +370,14 @@ def bulk_assign_roles():
                             if role in user.roles:
                                 user.roles.remove(role)
 
+                    # Phase-0 dual-write: mirror the bulk role change into the spine.
+                    if user.player:
+                        try:
+                            from app.services.league_membership_sync import resync_player_memberships
+                            resync_player_memberships(db.session, user.player.id)
+                        except Exception as _lm_err:
+                            logger.warning(f"league_membership sync skipped for user {user_id}: {_lm_err}")
+
                     # Commit this user's changes
                     db.session.commit()
 
@@ -492,6 +508,14 @@ def bulk_process_waitlist():
                         pass
 
                     user.updated_at = datetime.utcnow()
+
+                    # Phase-0 dual-write: mirror the waitlist processing into the spine.
+                    if user.player:
+                        try:
+                            from app.services.league_membership_sync import resync_player_memberships
+                            resync_player_memberships(db.session, user.player.id)
+                        except Exception as _lm_err:
+                            logger.warning(f"league_membership sync skipped for user {user_id}: {_lm_err}")
 
                     # Commit this user's changes
                     db.session.commit()

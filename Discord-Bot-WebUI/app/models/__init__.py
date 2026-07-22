@@ -27,6 +27,10 @@ from .players import (
     player_league, player_teams
 )
 
+from .league_membership import (
+    LeagueMembership
+)
+
 from .matches import (
     Schedule, Match, Availability, TemporarySubAssignment,
     AutoScheduleConfig, ScheduleTemplate, WeekConfiguration, SeasonConfiguration

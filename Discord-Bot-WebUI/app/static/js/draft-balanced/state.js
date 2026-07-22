@@ -72,8 +72,8 @@ export function teamTotals(team) {
             avg: rated.length ? rated.reduce((a, b) => a + b, 0) / rated.length : null,
         };
     });
-    const genders = { M: 0, F: 0, X: 0 };
-    players.forEach(p => { genders[p.gender || 'X'] = (genders[p.gender || 'X'] || 0) + 1; });
+    const genders = { M: 0, N: 0 };
+    players.forEach(p => { genders[p.gender || 'N'] = (genders[p.gender || 'N'] || 0) + 1; });
     return {
         metrics: totals,
         size: players.length,

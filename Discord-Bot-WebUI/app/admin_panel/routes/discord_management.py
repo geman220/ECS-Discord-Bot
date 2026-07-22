@@ -946,12 +946,19 @@ def discord_stats_api():
 def discord_role_mapping():
     """Role mapping page - map Flask roles to Discord roles."""
     from app.models import Role
-    from app.services.discord_role_sync_service import fetch_discord_roles_sync
+    from app.services.discord_role_sync_service import (
+        fetch_discord_roles_sync, CANONICAL_DISCORD_ROLE_MAP
+    )
 
     session = g.db_session
 
     # Get all Flask roles
     flask_roles = session.query(Role).order_by(Role.name).all()
+
+    # Flask role names that are EXPECTED to have a Discord counterpart. Any role
+    # not in this set is an app-only permission role and should not read as a
+    # broken/unmapped to-do in the UI.
+    discord_mappable_names = list(CANONICAL_DISCORD_ROLE_MAP.keys())
 
     # Get Discord roles from bot API via sync service
     discord_roles = []
@@ -972,6 +979,7 @@ def discord_role_mapping():
         'admin_panel/discord/role_mapping_flowbite.html',
         flask_roles=flask_roles,
         discord_roles=discord_roles,
+        discord_mappable_names=discord_mappable_names,
         bot_status=bot_status,
         guild_name=guild_name
     )
@@ -1017,6 +1025,70 @@ def update_role_mapping():
         'success': True,
         'message': f'Role "{role.name}" mapped to Discord role "{discord_role_name}"'
     })
+
+
+@admin_panel_bp.route('/discord/role-mapping/auto-map', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def auto_map_role_mapping():
+    """Auto-fill Flask->Discord role mappings from live Discord roles.
+
+    Fetches the live Discord role list from the bot and matches each Flask role
+    to its Discord counterpart by name (using the canonical mapping table).
+    POST body {apply: false} returns a dry-run preview; {apply: true} persists.
+
+    Note: intentionally NOT @transactional. The Discord fetch is a multi-second
+    blocking HTTP call to the bot; we must do it BEFORE opening any DB
+    transaction, then commit the (short) write phase explicitly. Wrapping the
+    whole view in a transaction would hold a PgBouncer slot across the HTTP call
+    and re-issue the HTTP request on the decorator's retry loop.
+    """
+    from app.services.discord_role_sync_service import (
+        fetch_discord_roles_sync, auto_map_flask_roles
+    )
+
+    session = g.db_session
+    data = request.json or {}
+    apply = bool(data.get('apply', False))
+
+    # --- HTTP phase: fetch live Discord roles BEFORE touching the DB. ---
+    try:
+        discord_roles = fetch_discord_roles_sync()
+    except Exception as e:
+        logger.warning(f"Auto-map could not fetch Discord roles: {e}")
+        discord_roles = []
+
+    if not discord_roles:
+        return jsonify({
+            'success': False,
+            'error': 'Discord bot is offline or returned no roles. Cannot auto-map.'
+        }), 503
+
+    # --- DB phase: match and (optionally) persist, then commit explicitly. ---
+    try:
+        result = auto_map_flask_roles(session, discord_roles, apply=apply)
+        if apply:
+            session.commit()
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Auto-map failed during DB phase: {e}")
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
+
+    if apply:
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='auto_map_role_mapping',
+            resource_type='role',
+            resource_id='*',
+            new_value=(f"Auto-mapped {result.get('applied', 0)} roles "
+                       f"({result.get('matched', 0)} matched, "
+                       f"{result.get('app_only', 0)} app-only, "
+                       f"{result.get('unmatched', 0)} unmatched)"),
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+    return jsonify(result)
 
 
 @admin_panel_bp.route('/discord/role-mapping/sync', methods=['POST'])

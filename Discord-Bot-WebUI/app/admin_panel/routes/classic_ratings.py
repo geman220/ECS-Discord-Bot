@@ -254,11 +254,11 @@ def classic_ratings_metrics():
 @login_required
 @role_required(ADMIN_ROLES)
 def classic_ratings_gender(player_id):
-    """Set/clear a player's draft-balance gender override (M/F/X or null)."""
+    """Set/clear a player's draft-balance gender override (M/N or null)."""
     data = request.get_json(silent=True) or {}
     value = data.get('balance_gender')
-    if value not in (None, 'M', 'F', 'X'):
-        return jsonify({'success': False, 'message': 'balance_gender must be M, F, X, or null'}), 400
+    if value not in (None, 'M', 'N'):
+        return jsonify({'success': False, 'message': 'balance_gender must be M, N, or null'}), 400
     session = g.db_session
     player = session.query(Player).get(player_id)
     if player is None:

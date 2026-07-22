@@ -99,6 +99,13 @@ def approve_pool_member(league_type, player_id):
                 session=session
             )
 
+            # Phase-0 dual-write: mirror pool approval into the league_membership spine.
+            try:
+                from app.services.league_membership_sync import resync_player_memberships
+                resync_player_memberships(session, player_id)
+            except Exception as _lm_err:
+                logger.warning(f"league_membership sync skipped for player {player_id}: {_lm_err}")
+
             session.commit()
 
             return jsonify({
@@ -163,6 +170,13 @@ def remove_pool_member(league_type, player_id):
                 pool_id=pool_entry.id,
                 session=session
             )
+
+            # Phase-0 dual-write: mirror pool removal into the league_membership spine.
+            try:
+                from app.services.league_membership_sync import resync_player_memberships
+                resync_player_memberships(session, player_id)
+            except Exception as _lm_err:
+                logger.warning(f"league_membership sync skipped for player {player_id}: {_lm_err}")
 
             session.commit()
 
@@ -250,6 +264,13 @@ def toggle_pool_member_active(league_type, player_id):
                 pool_id=pool_entry.id,
                 session=session,
             )
+
+            # Phase-0 dual-write: mirror the active/rest toggle into the league_membership spine.
+            try:
+                from app.services.league_membership_sync import resync_player_memberships
+                resync_player_memberships(session, player_id)
+            except Exception as _lm_err:
+                logger.warning(f"league_membership sync skipped for player {player_id}: {_lm_err}")
 
             session.commit()
 

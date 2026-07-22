@@ -383,30 +383,36 @@ def get_eligible_players(league_type, positions=None, gender=None, session=None)
 
 
 def get_active_substitutes(league_type, session=None, gender_filter=None):
-    """Get all active substitutes for a league type."""
+    """Get all active substitutes for a league type.
+
+    Parallel-run (registration-lifecycle overhaul): by DEFAULT this runs the PROVEN LEGACY
+    pool query (flag `cutover_subs_read_from_spine` defaults FALSE during burn-in — see
+    cutover_flags.subs_read_from_spine for why). When the flag is turned ON, the ACTIVE SET
+    (who is contactable) is instead confirmed against the new `league_membership` spine
+    (role='sub', status='active'), while the returned rows stay `SubstitutePool` objects so
+    callers keep their contact prefs / channel opt-outs. Both stay in sync via the dual-write,
+    so the two paths return the same people while everything is healthy; flip the flag once
+    you've confirmed that.
+    """
     if session is None:
         session = db.session
-    
+
     # Map league types to role names
     role_mapping = {
         'ECS FC': 'ECS FC Sub',
-        'Classic': 'Classic Sub', 
+        'Classic': 'Classic Sub',
         'Premier': 'Premier Sub'
     }
-    
+
     required_role = role_mapping.get(league_type)
     if not required_role:
         return []
-    
-    # Find all active substitute pool entries for players with the required role
+
     from app.models import Player, User, Role
     from sqlalchemy.orm import joinedload
-    
-    # First, try to get existing SubstitutePool entries.
-    # Only include "Active in Pool" members per the tri-state model:
-    # is_active=True AND approved_at IS NOT NULL. Members in
-    # "Pending Approval" (approved_at IS NULL) or "On Break"
-    # (is_active=False) are excluded from broadcasts.
+
+    # Base legacy query: "Active in Pool" tri-state members (is_active + approved_at),
+    # who are current + approved and hold the league sub role.
     existing_pools = session.query(SubstitutePool).options(
         joinedload(SubstitutePool.player).joinedload(Player.user).joinedload(User.roles)
     ).join(Player).join(User).join(User.roles).filter(
@@ -416,6 +422,48 @@ def get_active_substitutes(league_type, session=None, gender_filter=None):
         Player.is_current_player == True,
         User.is_approved == True
     )
+
+    # NEW SYSTEM (default): let the spine decide the active set. We keep returning
+    # SubstitutePool rows (for contact prefs) but restrict to players the spine marks
+    # as active subs in this lane for the current season. Failback: flag off -> skip.
+    import logging
+    _log = logging.getLogger(__name__)
+    try:
+        from app.services.cutover_flags import subs_read_from_spine
+        if subs_read_from_spine():
+            from app.models import LeagueMembership, Season
+            lane = {'ECS FC': 'ecs_fc', 'Classic': 'classic', 'Premier': 'premier'}.get(league_type)
+            program = 'ECS FC' if lane == 'ecs_fc' else 'Pub League'
+            # order_by so a duplicate is_current picks deterministically (highest id =
+            # newest), matching league_membership_sync._current_season_ids.
+            season_row = session.query(Season.id).filter(
+                Season.is_current == True, Season.league_type == program
+            ).order_by(Season.id.desc()).first()
+            if lane and season_row:
+                active_pids = [pid for (pid,) in session.query(LeagueMembership.player_id).filter(
+                    LeagueMembership.season_id == season_row[0],
+                    LeagueMembership.league_type == lane,
+                    LeagueMembership.role == 'sub',
+                    LeagueMembership.status == 'active',
+                ).all()]
+                if active_pids:
+                    # Spine is authoritative for membership; the pool row still supplies prefs.
+                    existing_pools = existing_pools.filter(SubstitutePool.player_id.in_(active_pids))
+                else:
+                    # No active subs in the spine for this lane/season. Could be legitimate
+                    # (all resting) OR an un-synced gap. Fall back to the legacy pool set
+                    # rather than muting ALL sub requests: when it's legitimately empty the
+                    # legacy set is empty too (dual-write keeps is_active in sync), so this is
+                    # safe both ways and never silently contacts nobody due to a spine gap.
+                    _log.info("Spine active-sub set empty for %s; using legacy pool set", league_type)
+    except Exception:
+        # Any spine hiccup -> fall back to the pure legacy query. Roll back first so a
+        # DB-level spine error can't leave the transaction poisoned for the legacy read.
+        try:
+            session.rollback()
+        except Exception:
+            pass
+        _log.warning("Sub active-set spine read failed; using legacy pool query", exc_info=True)
 
     # Apply gender filter if specified
     if gender_filter:

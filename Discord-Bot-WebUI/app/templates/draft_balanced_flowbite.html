@@ -11,7 +11,7 @@
      data-is-admin="{{ '1' if viewer_is_admin | default(false) else '0' }}"
      data-my-teams="{{ (viewer_team_ids or [])|join(',') }}">
 
-    <!-- Header band: live pill + balance chips + progress + M/F -->
+    <!-- Header band: live pill + balance chips + progress + M/N -->
     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-2">
         <div class="flex items-center gap-3 flex-wrap">
             <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2 min-w-0">
@@ -106,7 +106,7 @@
                                 </select>
                                 <select id="db-f-gender" data-on-change="balanced-filter" class="py-1 pl-2 pr-6 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
                                     <option value="">Gender: any</option>
-                                    <option value="M">M</option><option value="F">F</option><option value="X">X/unknown</option>
+                                    <option value="M">M</option><option value="N">N</option>
                                 </select>
                                 <select id="db-f-status" data-on-change="balanced-filter" class="py-1 pl-2 pr-6 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
                                     <option value="">Any status</option>

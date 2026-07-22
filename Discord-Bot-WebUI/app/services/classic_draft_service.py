@@ -81,20 +81,24 @@ def viewer_can_access_balanced_draft(session, user_id):
 
 
 def derive_gender(player_entry):
-    """'M' | 'F' | 'X' from the admin override, else the pronouns heuristic
-    (ecs_fc_routes precedent: 'he' -> M, 'she' -> F, anything else -> X).
+    """'M' | 'N' from the admin override, else the pronouns heuristic.
+
+    Binary male / not-male (N covers female, non-binary, and unknown) so the
+    draft balances men against everyone else: he/him -> M, she/her -> N,
+    they/them -> N, anything unknown -> N. `has_she` is checked first because
+    'she/her' contains the substring 'he/' and would otherwise read as male.
     Accepts a board-payload dict."""
     override = player_entry.get('balance_gender')
-    if override in ('M', 'F', 'X'):
+    if override in ('M', 'N'):
         return override
     pronouns = (player_entry.get('pronouns') or '').lower()
     has_he = 'he/' in pronouns or pronouns.startswith('he') or '/him' in pronouns
     has_she = 'she' in pronouns
     if has_she:
-        return 'F'
+        return 'N'
     if has_he:
         return 'M'
-    return 'X'
+    return 'N'
 
 
 def position_groups(player_entry):
@@ -150,7 +154,7 @@ def compute_team_totals(rosters, config):
                 'total': total,
                 'avg': (sum(rated_values) / len(rated_values)) if rated_values else None,
             }
-        genders = {'M': 0, 'F': 0, 'X': 0}
+        genders = {'M': 0, 'N': 0}
         for p in players:
             genders[derive_gender(p)] += 1
         out[team_id] = {
@@ -267,8 +271,8 @@ def suggest_players(pool, rosters, team_id, config):
     pool_and_rostered = [p for p in pool if not p.get('is_coach')] + \
         [p for r in rosters.values() for p in r if not p.get('is_coach')]
     total_m = sum(1 for p in pool_and_rostered if derive_gender(p) == 'M')
-    total_f = sum(1 for p in pool_and_rostered if derive_gender(p) == 'F')
-    league_f_share = (Decimal(total_f) / Decimal(total_m + total_f)) if (total_m + total_f) else Decimal(0)
+    total_n = sum(1 for p in pool_and_rostered if derive_gender(p) == 'N')
+    league_n_share = (Decimal(total_n) / Decimal(total_m + total_n)) if (total_m + total_n) else Decimal(0)
 
     scored = []
     for candidate in pool:
@@ -293,14 +297,14 @@ def suggest_players(pool, rosters, team_id, config):
         # relative to the league-wide share, -0.5 when overrepresented, else 0.
         gender = Decimal(0)
         candidate_gender = derive_gender(candidate)
-        if config['gender_balance_enabled'] and candidate_gender in ('M', 'F'):
-            team_players = target['genders']['M'] + target['genders']['F']
+        if config['gender_balance_enabled'] and candidate_gender in ('M', 'N'):
+            team_players = target['genders']['M'] + target['genders']['N']
             if team_players == 0:
                 gender = Decimal(0)
             else:
-                team_f_share = Decimal(target['genders']['F']) / Decimal(team_players)
-                share = team_f_share if candidate_gender == 'F' else Decimal(1) - team_f_share
-                league_share = league_f_share if candidate_gender == 'F' else Decimal(1) - league_f_share
+                team_n_share = Decimal(target['genders']['N']) / Decimal(team_players)
+                share = team_n_share if candidate_gender == 'N' else Decimal(1) - team_n_share
+                league_share = league_n_share if candidate_gender == 'N' else Decimal(1) - league_n_share
                 if share < league_share:
                     gender = Decimal(1)
                 elif share > league_share:

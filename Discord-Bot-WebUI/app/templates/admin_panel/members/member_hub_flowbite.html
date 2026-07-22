@@ -1,0 +1,490 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}{{ m.player.name if m.player else m.user.username }}{% endblock %}
+{% block panel_description %}Member Hub — the whole person on one screen{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+  <div class="flex items-center">
+    <i class="ti ti-chevron-right w-4 h-4 text-gray-400" aria-hidden="true"></i>
+    <a href="{{ url_for('admin_panel.members_worklist') }}" class="ms-1 text-sm text-gray-500 hover:text-ecs-green dark:text-gray-400">Members</a>
+  </div>
+</li>
+<li aria-current="page">
+  <div class="flex items-center">
+    <i class="ti ti-chevron-right w-4 h-4 text-gray-400" aria-hidden="true"></i>
+    <span class="ms-1 text-sm font-medium text-gray-700 dark:text-gray-300">{{ m.player.name if m.player else m.user.username }}</span>
+  </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% set approval = m.user.approval_status %}
+<div class="space-y-4">
+
+  <!-- ===== Header ===== -->
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-start gap-4 flex-wrap">
+      <img src="{{ (m.player.profile_picture_url if m.player and m.player.profile_picture_url else '/static/img/default_player.png') }}"
+           alt="" class="w-16 h-16 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 shrink-0">
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-2 flex-wrap">
+          <h1 class="text-xl font-bold text-gray-900 dark:text-white truncate">{{ m.player.name if m.player else m.user.username }}</h1>
+          {% if approval == 'approved' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-circle-check text-[12px]"></i>Approved</span>
+          {% elif approval == 'denied' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"><i class="ti ti-circle-x text-[12px]"></i>Denied</span>
+          {% elif m.waitlist %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock text-[12px]"></i>Waitlisted</span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-clock text-[12px]"></i>Pending</span>
+          {% endif %}
+          {% if not m.user.is_active %}
+          <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300">Disabled</span>
+          {% endif %}
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+          @{{ m.user.username }}{% if m.user.email %} · {{ m.user.email }}{% endif %}
+        </p>
+        {% if m.player and m.player.discord_id %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+          <i class="ti ti-brand-discord text-[14px] text-indigo-500"></i>{{ m.player.discord_id }}
+          {% if m.player.discord_in_server %}<span class="text-green-600 dark:text-green-400">· in server</span>
+          {% elif m.player.discord_in_server is not none %}<span class="text-amber-600 dark:text-amber-400">· not in server</span>{% endif %}
+        </p>
+        {% endif %}
+      </div>
+      <div class="flex items-center gap-2">
+        {% if approval != 'approved' %}
+        <a href="{{ url_for('admin_panel.user_approvals') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">
+          <i class="ti ti-user-check text-[16px]"></i>Review approval
+        </a>
+        {% endif %}
+        <a href="{{ url_for('admin_panel.users_comprehensive') }}?q={{ m.user.username | urlencode }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+          <i class="ti ti-edit text-[16px]"></i>Manage
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+    <!-- ===== Memberships (the core card) ===== -->
+    <section class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-id-badge-2 text-ecs-green"></i>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Memberships · this season</h2>
+      </div>
+      <div class="p-4 sm:p-5">
+        {% if m.current_memberships %}
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm min-w-[30rem]">
+            <thead>
+              <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                <th class="py-1.5 pe-3">League</th><th class="py-1.5 pe-3">Role</th>
+                <th class="py-1.5 pe-3">Status</th><th class="py-1.5">Team</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in m.current_memberships %}
+              <tr class="border-t border-gray-100 dark:border-gray-700/60">
+                <td class="py-2 pe-3 font-medium text-gray-900 dark:text-white">{{ c.lane_label }}</td>
+                <td class="py-2 pe-3">
+                  {% set rc = {'player':'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300','coach':'bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300','sub':'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300','waitlist':'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300'} %}
+                  <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded {{ rc.get(c.role, 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300') }}">{{ c.role }}</span>
+                </td>
+                <td class="py-2 pe-3 text-gray-700 dark:text-gray-300">
+                  {{ c.status }}{% if c.needs_reconfirm %} <span class="text-amber-600 dark:text-amber-400">· re-confirm</span>{% endif %}
+                </td>
+                <td class="py-2 text-gray-700 dark:text-gray-300">{{ c.team_name or '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500 dark:text-gray-400">No memberships this season{% if m.user.is_approved %} — approved but not yet placed on the waitlist, a sub pool, or a team.{% endif %}</p>
+        {% endif %}
+
+        {% if m.past_memberships %}
+        <details class="mt-4">
+          <summary class="text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer hover:text-ecs-green">Past seasons ({{ m.past_memberships | length }})</summary>
+          <div class="mt-2 space-y-1">
+            {% for c in m.past_memberships %}
+            <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+              <span class="font-mono">{{ c.season_name }}</span> · {{ c.lane_label }} · {{ c.role }} ({{ c.status }}){% if c.team_name %} · {{ c.team_name }}{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </details>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- ===== Roles & team (folded-in user management) ===== -->
+    <section class="lg:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-shield-cog text-ecs-green"></i>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Roles &amp; team</h2>
+        <a href="{{ url_for('admin_panel.users_comprehensive') }}?q={{ m.user.username | urlencode }}" class="ms-auto text-xs text-gray-400 hover:text-ecs-green">Full editor &rarr;</a>
+      </div>
+      <div class="p-4 sm:p-5 space-y-4">
+        {% if m.player %}
+        {% if hub_teams %}
+        <div>
+          <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Current teams</p>
+          <div class="space-y-1.5">
+            {% for c in hub_teams %}
+            <div class="flex items-center justify-between gap-3 text-sm">
+              <span class="text-gray-900 dark:text-white">{{ c.team_name }}
+                <span class="text-xs text-gray-400">· {{ c.lane_label }}</span>
+                {% if c.team_id == primary_team_id %}<span class="ms-1 text-[10px] font-semibold px-1 rounded bg-ecs-green/15 text-ecs-green">PRIMARY</span>{% endif %}
+              </span>
+              <div class="flex items-center gap-1.5">
+                {% if c.team_id != primary_team_id %}
+                <button data-action-place data-place-action="primary" data-team="{{ c.team_id }}"
+                        data-url="{{ url_for('admin_panel.member_place', user_id=m.user.id) }}"
+                        class="text-[11px] px-2 py-0.5 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Make primary</button>
+                {% endif %}
+                <button data-action-place data-place-action="remove" data-team="{{ c.team_id }}"
+                        data-url="{{ url_for('admin_panel.member_place', user_id=m.user.id) }}"
+                        class="text-[11px] px-2 py-0.5 rounded border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Remove</button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        <div>
+          <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Place on a team</p>
+          <div class="flex items-center gap-2 flex-wrap">
+            <select data-place-team class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1.5 pe-8 max-w-[16rem]">
+              <option value="">Select a team&hellip;</option>
+              {% for lg in leagues %}
+              <optgroup label="{{ lg.name }}">
+                {% for t in lg.teams %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
+              </optgroup>
+              {% endfor %}
+            </select>
+            <label class="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300"><input type="checkbox" data-place-coach class="rounded border-gray-300 dark:border-gray-600"> as coach</label>
+            <button data-action-place data-place-action="add"
+                    data-url="{{ url_for('admin_panel.member_place', user_id=m.user.id) }}"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-plus"></i>Place</button>
+          </div>
+        </div>
+        {% endif %}
+        <div>
+          <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Roles</p>
+          <div class="flex flex-wrap gap-1.5">
+            {% for r in all_roles %}
+            <button data-action-role data-role-id="{{ r.id }}" data-has="{{ '1' if r.id in user_role_ids else '0' }}"
+                    data-url="{{ url_for('admin_panel.assign_user_role') }}" data-uid="{{ m.user.id }}"
+                    class="text-[11px] px-2 py-1 rounded border transition
+                    {% if r.id in user_role_ids %}bg-ecs-green/10 border-ecs-green/40 text-ecs-green{% else %}border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %}">
+              {% if r.id in user_role_ids %}<i class="ti ti-check text-[10px]"></i> {% endif %}{{ r.name }}
+            </button>
+            {% endfor %}
+          </div>
+          <p class="text-[10px] text-gray-400 mt-1.5">Click a role to add or remove it (syncs Discord + the membership spine).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Approval & account ===== -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-shield-check text-ecs-green"></i>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Approval &amp; account</h2>
+      </div>
+      <dl class="p-4 sm:p-5 space-y-2 text-sm">
+        <div class="flex justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">Status</dt><dd class="font-medium text-gray-900 dark:text-white">{{ approval }}</dd></div>
+        <div class="flex justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">Approved league</dt><dd class="text-gray-700 dark:text-gray-300">{{ m.user.approval_league or '—' }}</dd></div>
+        <div class="flex justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">Approved at</dt><dd class="text-gray-700 dark:text-gray-300">{{ m.user.approved_at[:10] if m.user.approved_at else '—' }}</dd></div>
+        <div class="flex justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">Account</dt><dd class="text-gray-700 dark:text-gray-300">{{ 'active' if m.user.is_active else 'disabled' }}</dd></div>
+        {% if m.user.approval_notes %}<div class="pt-1"><dt class="text-gray-500 dark:text-gray-400">Notes</dt><dd class="text-gray-700 dark:text-gray-300 mt-0.5">{{ m.user.approval_notes }}</dd></div>{% endif %}
+      </dl>
+      <div class="px-4 sm:px-5 pb-3">
+        {% if m.user.is_active %}
+        <button data-action-active data-active="false" data-url="{{ url_for('admin_panel.deactivate_user_comprehensive', user_id=m.user.id) }}"
+                class="text-xs px-3 py-1.5 rounded-lg border border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-500/10"><i class="ti ti-user-off"></i> Disable account</button>
+        {% else %}
+        <button data-action-active data-active="true" data-url="{{ url_for('admin_panel.activate_user_comprehensive', user_id=m.user.id) }}"
+                class="text-xs px-3 py-1.5 rounded-lg border border-ecs-green/40 text-ecs-green hover:bg-ecs-green/10"><i class="ti ti-user-check"></i> Enable account</button>
+        {% endif %}
+      </div>
+      {% if approval == 'pending' %}
+      <div class="px-4 sm:px-5 pb-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <div class="flex items-center gap-2 flex-wrap">
+          <select data-approve-league class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1.5 pe-8">
+            <optgroup label="League member">
+              <option value="classic">Classic</option><option value="premier">Premier</option><option value="ecs-fc">ECS FC</option>
+            </optgroup>
+            <optgroup label="Substitute">
+              <option value="sub-classic">Classic Sub</option><option value="sub-premier">Premier Sub</option><option value="sub-ecs-fc">ECS FC Sub</option>
+            </optgroup>
+            <optgroup label="Waitlist">
+              <option value="waitlist-classic">Waitlist · Classic</option><option value="waitlist-premier">Waitlist · Premier</option><option value="waitlist-ecs-fc">Waitlist · ECS FC</option>
+            </optgroup>
+          </select>
+          <button data-action-approve data-url="{{ url_for('admin_panel.approve_user', user_id=m.user.id) }}"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-check"></i>Approve</button>
+          <button data-action-deny data-url="{{ url_for('admin_panel.deny_user', user_id=m.user.id) }}"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10"><i class="ti ti-x"></i>Deny</button>
+        </div>
+        <p class="text-[11px] text-gray-400 mt-1.5">Approving to a league/sub also creates the membership row and syncs Discord roles.</p>
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- ===== Sub status ===== -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-arrows-exchange text-ecs-green"></i>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Substitute</h2>
+      </div>
+      <div class="p-4 sm:p-5 text-sm">
+        {% set subs = m.current_memberships | selectattr('role', 'equalto', 'sub') | list %}
+        {% if subs %}
+        <div class="space-y-1.5">
+          {% for s in subs %}
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-gray-900 dark:text-white font-medium">{{ s.lane_label }}</span>
+            <div class="flex items-center gap-2">
+              <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded
+                {% if s.status == 'active' %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300
+                {% elif s.status == 'resting' %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300
+                {% else %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300{% endif %}">{{ s.status }}</span>
+              {% if s.status == 'active' %}
+              <button data-action-sub data-active="false" data-player="{{ m.player.id }}"
+                      data-url="{{ url_for('admin_panel.set_pool_member_active', league_type=s.lane_label) }}"
+                      class="text-[11px] px-2 py-0.5 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Rest</button>
+              {% elif s.status == 'resting' %}
+              <button data-action-sub data-active="true" data-player="{{ m.player.id }}"
+                      data-url="{{ url_for('admin_panel.set_pool_member_active', league_type=s.lane_label) }}"
+                      class="text-[11px] px-2 py-0.5 rounded border border-ecs-green/40 text-ecs-green hover:bg-ecs-green/10">Wake</button>
+              {% endif %}
+              {% if s.status == 'pending' %}
+              <button data-action-subpool data-subpool-action="approve" data-player="{{ m.player.id }}"
+                      data-url="{{ url_for('admin_panel.approve_pool_member', league_type=s.lane_label) }}"
+                      class="text-[11px] px-2 py-0.5 rounded border border-ecs-green/40 text-ecs-green hover:bg-ecs-green/10">Approve</button>
+              <button data-action-subreject data-lane="{{ s.lane_label }}"
+                      data-url="{{ url_for('admin_panel.member_sub_reject', user_id=m.user.id) }}"
+                      class="text-[11px] px-2 py-0.5 rounded border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Reject</button>
+              {% endif %}
+              {% if s.status == 'active' %}
+              {# remove_player_from_pool only handles ACTIVE members (deactivates + strips the sub role) #}
+              <button data-action-subpool data-subpool-action="remove" data-player="{{ m.player.id }}"
+                      data-url="{{ url_for('admin_panel.remove_player_from_pool', league_type=s.lane_label) }}"
+                      class="text-[11px] px-2 py-0.5 rounded border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Remove</button>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <a href="{{ url_for('admin_panel.substitute_pools', context='pub-league') }}" class="inline-flex items-center gap-1 text-xs text-ecs-green hover:underline mt-3"><i class="ti ti-external-link text-[13px]"></i>Manage in Sub Ops</a>
+        {% else %}
+        <p class="text-gray-500 dark:text-gray-400">Not in any substitute pool this season.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- ===== Payment ===== -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-receipt text-ecs-green"></i>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Payment</h2>
+      </div>
+      <div class="p-4 sm:p-5 text-sm">
+        {% set players = m.current_memberships | selectattr('role', 'equalto', 'player') | list %}
+        {% if players %}
+        <div class="space-y-1.5">
+          {% for p in players %}
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-gray-900 dark:text-white font-medium">{{ p.lane_label }}</span>
+            {% if p.league_type == 'ecs_fc' %}
+            <span class="text-xs text-gray-500 dark:text-gray-400">activated by approval</span>
+            {% elif p.paid_at %}
+            <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">paid</span>
+            {% else %}
+            {# Pub League pass payment isn't tracked in the spine yet (paid_at unset), so show the
+               membership status rather than a misleading "unpaid" — a rostered player has a pass. #}
+            <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ p.status or 'registered' }}</span>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 dark:text-gray-400">No player membership this season.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- ===== Origin / lineage ===== -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+        <i class="ti ti-history text-ecs-green"></i>
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Origin</h2>
+      </div>
+      <div class="p-4 sm:p-5 text-sm">
+        {% if m.quick_profile %}
+        <p class="text-gray-700 dark:text-gray-300">Claimed from a quick profile
+          <span class="font-mono text-xs text-gray-500 dark:text-gray-400">({{ m.quick_profile.claim_code }}, {{ m.quick_profile.status }})</span>.</p>
+        {% else %}
+        <p class="text-gray-500 dark:text-gray-400">Standard signup (no quick-profile origin).</p>
+        {% endif %}
+        {% if m.waitlist %}
+        <p class="text-gray-700 dark:text-gray-300 mt-2">On the <strong>{{ m.waitlist.lane_label or m.waitlist.lane or 'Undecided' }}</strong> waitlist ({{ m.waitlist.status }}).</p>
+        <div class="flex items-center gap-2 mt-2 flex-wrap">
+          <select data-waitlist-priority aria-label="Waitlist priority" class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1 pe-8">
+            <option value="auto">Auto priority</option><option value="high">High</option><option value="medium">Medium</option><option value="normal">Normal</option>
+          </select>
+          <button data-action-waitlist data-waitlist-action="priority" data-url="{{ url_for('admin_panel.update_waitlist_priority', user_id=m.user.id) }}"
+                  class="text-[11px] px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Set priority</button>
+          <button data-action-waitlist data-waitlist-action="remove" data-url="{{ url_for('admin_panel.remove_from_waitlist', user_id=m.user.id) }}"
+                  class="text-[11px] px-2 py-1 rounded border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Remove from waitlist</button>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+// Member Hub inline actions — POST to the SAME proven endpoints the legacy pages use
+// (locking, audit, spine dual-write, Discord sync all handled server-side), then reload.
+document.addEventListener('DOMContentLoaded', function () {
+  var meta = document.querySelector('meta[name="csrf-token"]');
+  var csrf = meta ? meta.getAttribute('content') : '';
+  function toast(ok, msg) {
+    if (window.Swal) window.Swal.fire({ toast: true, position: 'top-end', timer: 2600, showConfirmButton: false, icon: ok ? 'success' : 'error', title: msg });
+  }
+  function reloadSoon() { setTimeout(function () { window.location.reload(); }, 850); }
+  function postForm(url, bodyStr, btn, okReload) {
+    btn.disabled = true;
+    return fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/x-www-form-urlencoded' }, body: bodyStr })
+      .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
+      .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success && okReload) reloadSoon(); })
+      .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+  }
+
+  var approveBtn = document.querySelector('[data-action-approve]');
+  if (approveBtn) approveBtn.addEventListener('click', function () {
+    var sel = document.querySelector('[data-approve-league]');
+    var lt = sel ? sel.value : '';
+    var label = sel && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : lt;
+    if (!window.confirm('Approve this person as "' + label + '"? This assigns roles and syncs Discord.')) return;
+    postForm(approveBtn.getAttribute('data-url'), 'league_type=' + encodeURIComponent(lt), approveBtn, true);
+  });
+
+  var denyBtn = document.querySelector('[data-action-deny]');
+  if (denyBtn) denyBtn.addEventListener('click', function () {
+    if (!window.confirm('Deny this person? They will be removed from the intake queue.')) return;
+    postForm(denyBtn.getAttribute('data-url'), '', denyBtn, true);
+  });
+
+  document.querySelectorAll('[data-action-sub]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      btn.disabled = true;
+      var payload = { player_id: parseInt(btn.getAttribute('data-player'), 10), is_active: btn.getAttribute('data-active') === 'true' };
+      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
+        .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
+        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+    });
+  });
+
+  // Role add/remove (form-encoded to the shared assign-role endpoint)
+  document.querySelectorAll('[data-action-role]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var has = btn.getAttribute('data-has') === '1';
+      var body = 'user_id=' + encodeURIComponent(btn.getAttribute('data-uid'))
+               + '&role_id=' + encodeURIComponent(btn.getAttribute('data-role-id'))
+               + '&action=' + (has ? 'remove' : 'add');
+      postForm(btn.getAttribute('data-url'), body, btn, true);
+    });
+  });
+
+  // Team place / remove (JSON to the targeted member_place endpoint)
+  document.querySelectorAll('[data-action-place]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var act = btn.getAttribute('data-place-action');
+      var teamId, isCoach = false;
+      if (act === 'remove' || act === 'primary') {
+        teamId = btn.getAttribute('data-team');
+        if (act === 'remove' && !window.confirm('Remove this player from the team?')) return;
+      } else {
+        var sel = document.querySelector('[data-place-team]');
+        teamId = sel ? sel.value : '';
+        if (!teamId) { toast(false, 'Pick a team first'); return; }
+        var cb = document.querySelector('[data-place-coach]');
+        isCoach = cb ? cb.checked : false;
+      }
+      btn.disabled = true;
+      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: act, team_id: parseInt(teamId, 10), is_coach: isCoach }) })
+        .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
+        .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
+        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+    });
+  });
+
+  // Account enable / disable
+  document.querySelectorAll('[data-action-active]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var enabling = btn.getAttribute('data-active') === 'true';
+      if (!window.confirm(enabling ? 'Enable this account?' : 'Disable this account?')) return;
+      postForm(btn.getAttribute('data-url'), '', btn, true);
+    });
+  });
+
+  // Remove from sub pool (JSON player_id to the league's remove-player endpoint)
+  document.querySelectorAll('[data-action-subpool]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var spact = btn.getAttribute('data-subpool-action');
+      if (spact === 'remove' && !window.confirm('Remove this player from the sub pool?')) return;
+      if (spact === 'reject' && !window.confirm('Reject this sub-pool signup?')) return;
+      btn.disabled = true;
+      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ player_id: parseInt(btn.getAttribute('data-player'), 10) }) })
+        .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
+        .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
+        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+    });
+  });
+
+  // Reject a pending sub signup (delete the pending pool row + strip the sub role)
+  document.querySelectorAll('[data-action-subreject]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (!window.confirm('Reject this pending sub signup? It will be removed.')) return;
+      btn.disabled = true;
+      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ league_type: btn.getAttribute('data-lane') }) })
+        .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
+        .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
+        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+    });
+  });
+
+  // Waitlist actions (set priority / remove from waitlist)
+  document.querySelectorAll('[data-action-waitlist]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var act = btn.getAttribute('data-waitlist-action');
+      var payload = {};
+      if (act === 'priority') {
+        var sel = document.querySelector('[data-waitlist-priority]');
+        payload = { priority: sel ? sel.value : 'auto' };
+      } else if (act === 'remove') {
+        if (!window.confirm('Remove this person from the waitlist?')) return;
+        payload = { reason: 'Removed via Member Hub' };
+      }
+      btn.disabled = true;
+      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
+        .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
+        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+    });
+  });
+});
+</script>
+{% endblock %}

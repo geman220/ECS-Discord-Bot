@@ -891,6 +891,13 @@ def draft_player(league_name: str):
         draft_clock.queue_on_clock_push(ds)  # ping the NEXT team's coaches
     with managed_session() as s2:
         mark_player_for_discord_update(s2, player_id)
+        # Phase-0 dual-write: mirror placement into the league_membership spine POST-COMMIT
+        # (outside the FOR UPDATE lock) so it never lengthens the pick's critical section.
+        try:
+            from app.services.league_membership_sync import resync_player_memberships
+            resync_player_memberships(s2, player_id)
+        except Exception as _lm_err:
+            logger.warning(f"Mobile league_membership sync skipped for player {player_id}: {_lm_err}")
     # only_add=True normally (additive), but flip to a full reconcile when a stale
     # sub role was just removed so the ECS-FC-PL-*-SUB Discord role is actually stripped.
     from app.services.sub_status_service import sub_status_removed, sub_removal_notice
@@ -1024,6 +1031,13 @@ def remove_player_from_team(league_name: str, player_id: int):
             )
         except Exception as e:
             logger.error(f"Failed to remove draft pick record: {e}")
+
+        # Phase-0 dual-write: mirror the removal into the league_membership spine.
+        try:
+            from app.services.league_membership_sync import resync_player_memberships
+            resync_player_memberships(session, player_id)
+        except Exception as _lm_err:
+            logger.warning(f"Mobile league_membership sync skipped for player {player_id}: {_lm_err}")
 
         session.commit()
 

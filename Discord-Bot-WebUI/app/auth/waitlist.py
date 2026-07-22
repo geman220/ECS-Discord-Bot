@@ -24,6 +24,7 @@ from app.utils.db_utils import transactional
 from app.utils.user_helpers import safe_current_user
 from app.utils.log_sanitizer import get_safe_session_keys, mask_code
 from app.auth_helpers import update_last_login
+from app.services.season_phase_service import is_waitlist_open
 from app.players_helpers import save_cropped_profile_picture
 from app.duplicate_prevention import (
     check_pre_registration_duplicates,
@@ -136,8 +137,8 @@ def waitlist_register():
     """
     from app.models.admin_config import AdminConfig
 
-    # Check if waitlist registration is enabled
-    if not AdminConfig.get_setting('waitlist_registration_enabled', True):
+    # Check if the waitlist is open (season phase + admin override toggle)
+    if not is_waitlist_open():
         show_error('Waitlist registration is currently disabled.')
         return redirect(url_for('main.index'))
 
@@ -176,7 +177,19 @@ def waitlist_register():
                 if db_user:
                     db_user.roles.append(waitlist_role)
                     db_user.waitlist_joined_at = datetime.utcnow()
+                    # Populate the waitlist lane so the person appears in the right
+                    # per-league waitlist (and the league_membership spine gets a lane).
+                    if not db_user.waitlist_league:
+                        db_user.waitlist_league = db_user.preferred_league
                 db_session.flush()
+
+                # Phase-0 dual-write: mirror this waitlist join into the spine.
+                if db_user and db_user.player:
+                    try:
+                        from app.services.league_membership_sync import resync_player_memberships
+                        resync_player_memberships(db_session, db_user.player.id)
+                    except Exception as _lm_err:
+                        logger.warning(f"league_membership sync skipped for waitlist user {db_user.id}: {_lm_err}")
 
                 show_success('You have been added to the waitlist! You will be notified when spots become available.')
                 return redirect(url_for('main.index'))
@@ -279,8 +292,8 @@ def waitlist_discord_login():
     """
     from app.models.admin_config import AdminConfig
 
-    # Check if waitlist registration is enabled
-    if not AdminConfig.get_setting('waitlist_registration_enabled', True):
+    # Check if the waitlist is open (season phase + admin override toggle)
+    if not is_waitlist_open():
         show_error('Waitlist registration is currently disabled.')
         return redirect(url_for('main.index'))
 
@@ -339,8 +352,8 @@ def waitlist_discord_register():
     """
     from app.models.admin_config import AdminConfig
 
-    # Check if waitlist registration is enabled
-    if not AdminConfig.get_setting('waitlist_registration_enabled', True):
+    # Check if the waitlist is open (season phase + admin override toggle)
+    if not is_waitlist_open():
         show_error('Waitlist registration is currently disabled.')
         return redirect(url_for('main.index'))
 
@@ -414,8 +427,8 @@ def waitlist_register_with_discord():
         show_info('Registration is currently closed. Please check back later.')
         return redirect(url_for('auth.login'))
 
-    # Check if waitlist registration is enabled
-    if not AdminConfig.get_setting('waitlist_registration_enabled', True):
+    # Check if the waitlist is open (season phase + admin override toggle)
+    if not is_waitlist_open():
         show_error('Waitlist registration is currently disabled.')
         return redirect(url_for('main.index'))
 
@@ -517,6 +530,14 @@ def _handle_existing_user_waitlist(db_session, existing_user, discord_id, discor
     # Get form data for player profile
     _update_player_profile(db_session, existing_user, discord_id, discord_email, discord_username, is_new_user=False)
 
+    # Phase-0 dual-write: mirror this waitlist join into the spine.
+    try:
+        from app.services.league_membership_sync import resync_player_memberships
+        if existing_user.player:
+            resync_player_memberships(db_session, existing_user.player.id)
+    except Exception as _lm_err:
+        logger.warning(f"league_membership sync skipped for waitlist user {existing_user.id}: {_lm_err}")
+
     # Log the user in
     login_user(existing_user, remember=True)
     update_last_login(existing_user)
@@ -617,6 +638,7 @@ def _handle_new_user_waitlist(db_session, discord_email, discord_id, discord_use
         is_approved=False,
         approval_status='pending',
         preferred_league=preferred_league,
+        waitlist_league=preferred_league,  # populate the lane so per-league waitlist + spine work
         has_completed_onboarding=True,
         has_skipped_profile_creation=False,
         has_completed_tour=False,
@@ -629,6 +651,14 @@ def _handle_new_user_waitlist(db_session, discord_email, discord_id, discord_use
 
     # Create player profile
     _update_player_profile(db_session, new_user, discord_id, discord_email, discord_username, is_new_user=True)
+
+    # Phase-0 dual-write: create the waitlist membership row now that the player exists.
+    try:
+        from app.services.league_membership_sync import resync_player_memberships
+        if new_user.player:
+            resync_player_memberships(db_session, new_user.player.id)
+    except Exception as _lm_err:
+        logger.warning(f"league_membership sync skipped for new waitlist user {new_user.id}: {_lm_err}")
 
     # Log the user in
     login_user(new_user, remember=True)
@@ -716,6 +746,10 @@ def _update_player_profile(db_session, user, discord_id, discord_email, discord_
 
     # Update user preferences
     user.preferred_league = preferred_league
+    # Populate the waitlist lane for unapproved users being waitlisted (approved
+    # players are guarded below and must never be re-lane'd into the queue).
+    if not user.is_approved:
+        user.waitlist_league = preferred_league
     # Never downgrade an already-approved player back into the approval queue —
     # that 'pending' reset is exactly what strips their league/team roles. New
     # users and still-unapproved existing users go into (or stay in) 'pending'.

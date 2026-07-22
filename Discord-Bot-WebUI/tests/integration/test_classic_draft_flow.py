@@ -207,14 +207,14 @@ class TestScoreBlindnessOnDraftSurfaces:
         session = db.session
         season, league, teams = _setup_league(session)
         player = _player(session, league)
-        player.balance_gender = 'F'
+        player.balance_gender = 'N'
         session.flush()
         coach = _coach_user(session)
         AuthTestHelper.create_authenticated_session(client, coach)
         body = client.get('/classic-draft/state.json').get_json()
         entry = next(p for p in body['pool'] if p['id'] == player.id)
         assert 'balance_gender' not in entry
-        assert entry['gender'] == 'F'   # derived value still present
+        assert entry['gender'] == 'N'   # derived value still present
 
 
 class TestXssHardening:

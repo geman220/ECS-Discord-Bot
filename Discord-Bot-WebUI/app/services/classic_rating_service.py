@@ -37,6 +37,20 @@ METRIC_LABELS = {
 }
 DEFAULT_WEIGHTS = {'intensity': 40, 'on_ball_skill': 30, 'spirit': 20, 'knowledge_movement': 10}
 
+# Metrics whose composite contribution is inverted (6 - value on the 1..5
+# scale) so that a LOW rating raises the composite. Spirit: a low-spirit player
+# is a liability that needs addressing earlier in the draft, so low spirit ->
+# high composite -> surfaced/picked sooner. The displayed per-metric value and
+# the per-metric team totals stay the raw rating; only the composite inverts.
+COMPOSITE_INVERTED_METRICS = frozenset({'spirit'})
+
+
+def _composite_value(metric, value):
+    """Metric value as it feeds the weighted composite (spirit inverts)."""
+    if metric in COMPOSITE_INVERTED_METRICS:
+        return Decimal(6) - value
+    return value
+
 LEAGUE_TYPE = 'Classic'
 RATER_ROLE = 'Classic Coach'
 
@@ -394,14 +408,16 @@ def _invalidate_final_scores_memo(season_id):
 
 def compute_composite(finals, weights):
     """Weighted composite of the four FINAL metric values; None unless all four
-    are present. `finals` maps metric -> Decimal|None."""
+    are present. `finals` maps metric -> Decimal|None. Spirit is inverted
+    (6 - value) so low spirit raises the composite — see
+    COMPOSITE_INVERTED_METRICS."""
     if any(finals.get(m) is None for m in METRICS):
         return None
     # Divide by the actual weight sum, not literal 100 — normalized weights can
     # carry repeating-decimal dust (e.g. 100/110), and this keeps the composite
     # exact for any weight set.
     total_weight = sum(weights[m] for m in METRICS)
-    total = sum(weights[m] * finals[m] for m in METRICS) / total_weight
+    total = sum(weights[m] * _composite_value(m, finals[m]) for m in METRICS) / total_weight
     return quantize2(total)
 
 

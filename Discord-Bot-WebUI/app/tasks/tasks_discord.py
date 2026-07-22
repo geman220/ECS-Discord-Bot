@@ -384,7 +384,9 @@ async def _execute_player_role_update_async(data):
     
     # Perform the async Discord operations
     from app.discord_utils import update_player_roles_async_only
-    result = await update_player_roles_async_only(player_data, force_update=data.get('force_update', False))
+    result = await update_player_roles_async_only(
+        player_data, force_update=data.get('force_update', False),
+        enforce_allowlist=data.get('enforce_allowlist', True))
     
     # Return result with data needed for database update
     return {
@@ -507,7 +509,8 @@ async def _update_player_discord_roles_async(session, player_id: int) -> Dict[st
         return {'success': False, 'message': 'Discord API error', 'error': str(e)}
 
 
-def _extract_batch_role_update_data(session, discord_ids: List[str] = None, only_add: bool = False):
+def _extract_batch_role_update_data(session, discord_ids: List[str] = None, only_add: bool = False,
+                                    enforce_allowlist: bool = True):
     """Extract player data for batch Discord role updates using optimized batch processing.
 
     only_add=True downgrades the batch from a full reconcile (add + remove) to
@@ -515,6 +518,11 @@ def _extract_batch_role_update_data(session, discord_ids: List[str] = None, only
     missing roles, not revoke; a reconcile there means one bad expected-role
     calculation strips the whole roster's Discord access. Removal callers
     (rollover cleanup, sub-pool removal, nightly sync) keep the default reconcile.
+
+    enforce_allowlist=False lets an INTENDED bulk removal (season rollover clearing old
+    team/coach roles) strip roles the drift-guard allowlist normally protects. Safe for
+    rollover because the batch uses one authoritative calculator and a rolled-over player's
+    expected set is minimal. Default True everywhere else keeps the wipe protection.
     """
     try:
         if not discord_ids:
@@ -539,6 +547,9 @@ def _extract_batch_role_update_data(session, discord_ids: List[str] = None, only
         if only_add:
             for pdata in players_data:
                 pdata['force_update'] = False
+        if not enforce_allowlist:
+            for pdata in players_data:
+                pdata['enforce_allowlist'] = False
 
         logger.info(
             f"Extracted batch role update data for {len(players_data)} players from "
@@ -616,7 +627,8 @@ def _update_players_after_batch_role_sync(session, result):
     queue='discord'
 )
 async def process_discord_role_updates(self, session, discord_ids: List[str] = None,
-                                       only_add: bool = False) -> Dict[str, Any]:
+                                       only_add: bool = False,
+                                       enforce_allowlist: bool = True) -> Dict[str, Any]:
     """
     Process Discord role updates for multiple players using two-phase pattern.
 
@@ -624,8 +636,12 @@ async def process_discord_role_updates(self, session, discord_ids: List[str] = N
         session: Database session (used only in phase 1).
         discord_ids: List of Discord IDs to process.
         only_add: If True, only grant missing roles and never revoke. Use for
-            repair/"assign" callers. Default False = full reconcile (add + remove),
-            which is what rollover cleanup and the nightly sync need.
+            repair/"assign" callers. Default False = full reconcile (add + remove).
+        enforce_allowlist: Default True keeps the drift-guard allowlist (a reconcile can
+            only strip sub/unverified roles). Pass False ONLY for an intended bulk removal
+            like SEASON ROLLOVER clearing old team/coach roles — safe there because a
+            rolled-over player's expected set is minimal and one authoritative calculator
+            is used, so there's no inter-calculator drift to cause a wipe.
 
     Returns:
         A summary dictionary with counts and details of the processed results.
@@ -1430,9 +1446,13 @@ async def _execute_remove_roles_async(data):
         'app_managed_roles': roles_to_remove  # Only these specific roles
     }
 
-    # Execute role removal using existing function
+    # Execute role removal using existing function. enforce_allowlist=False: this is a
+    # TARGETED removal — roles_to_remove is an explicit, intentional list the caller built
+    # (draft-remove of a team's roles, or deny/deactivate offboarding of division/coach/
+    # referee roles), NOT a drift-driven reconcile. It must execute in full, so the
+    # protected-role allowlist (which only guards drift reconciles) is bypassed here.
     from app.discord_utils import update_player_roles_async_only
-    result = await update_player_roles_async_only(player_data, force_update=True)
+    result = await update_player_roles_async_only(player_data, force_update=True, enforce_allowlist=False)
 
     return {
         'success': result.get('success', False),

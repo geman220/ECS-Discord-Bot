@@ -319,6 +319,14 @@ class CeleryConfig:
             'schedule': crontab(hour=2, minute=0),
             'options': {'queue': 'celery'},
         },
+        'advance-season-phases': {
+            # Auto-flip the current Pub League season phase (preseason->in_season at
+            # start_date, in_season->offseason after end_date). ECS FC exempt. Never
+            # tears down Discord. Daily, early morning.
+            'task': 'app.tasks.tasks_maintenance.advance_season_phases',
+            'schedule': crontab(hour=6, minute=15),
+            'options': {'queue': 'celery'},
+        },
         'cleanup-presence-set': {
             'task': 'app.tasks.tasks_maintenance.cleanup_presence_set',
             'schedule': crontab(minute='*/5'),

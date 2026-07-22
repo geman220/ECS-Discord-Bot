@@ -1,0 +1,121 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Members{% endblock %}
+{% block panel_description %}Intake worklist — approvals, waitlist, and quick profiles in one place{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+  <div class="flex items-center">
+    <i class="ti ti-chevron-right w-4 h-4 text-gray-400" aria-hidden="true"></i>
+    <span class="ms-1 text-sm text-gray-500 dark:text-gray-400">Users</span>
+  </div>
+</li>
+<li aria-current="page">
+  <div class="flex items-center">
+    <i class="ti ti-chevron-right w-4 h-4 text-gray-400" aria-hidden="true"></i>
+    <span class="ms-1 text-sm font-medium text-gray-700 dark:text-gray-300">Members</span>
+  </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% macro tablink(key, label, count, icon) %}
+<a href="{{ url_for('admin_panel.members_worklist', tab=key) }}"
+   class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px
+   {% if tab == key %}border-ecs-green text-ecs-green{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300{% endif %}">
+  <i class="ti {{ icon }}"></i>{{ label }}
+  {% if count %}<span class="inline-flex items-center justify-center px-1.5 min-w-[1.25rem] h-5 text-[11px] font-semibold rounded-full {% if tab == key %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ count }}</span>{% endif %}
+</a>
+{% endmacro %}
+
+<div class="space-y-4">
+
+  <!-- Legacy fallback bar -->
+  <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-3 py-2 flex items-center gap-2 flex-wrap text-xs">
+    <span class="text-gray-500 dark:text-gray-400 font-medium"><i class="ti ti-history me-1"></i>Classic pages (fallback):</span>
+    <a class="text-ecs-green hover:underline" href="{{ url_for('admin_panel.user_approvals') }}">Approvals</a>
+    <span class="text-gray-300 dark:text-gray-600">·</span>
+    <a class="text-ecs-green hover:underline" href="{{ url_for('admin_panel.user_waitlist') }}">Waitlist</a>
+    <span class="text-gray-300 dark:text-gray-600">·</span>
+    <a class="text-ecs-green hover:underline" href="{{ url_for('admin_panel.quick_profiles_management') }}">Quick Profiles</a>
+    <span class="text-gray-300 dark:text-gray-600">·</span>
+    <a class="text-ecs-green hover:underline" href="{{ url_for('admin_panel.duplicate_registrations') }}">Duplicates</a>
+    <span class="text-gray-300 dark:text-gray-600">·</span>
+    <a class="text-ecs-green hover:underline" href="{{ url_for('admin_panel.users_comprehensive') }}">All Users</a>
+  </div>
+
+  <!-- Tabs -->
+  <div class="border-b border-gray-200 dark:border-gray-700 flex items-center gap-1 overflow-x-auto">
+    {{ tablink('pending', 'Pending Approval', counts.pending, 'ti-user-question') }}
+    {{ tablink('waitlist', 'Waitlist', counts.waitlist, 'ti-clock') }}
+    {{ tablink('quick', 'Quick Profiles', counts.quick, 'ti-id') }}
+  </div>
+
+  <!-- Search -->
+  {% if tab in ('pending', 'waitlist') %}
+  <form method="get" class="flex items-center gap-2">
+    <input type="hidden" name="tab" value="{{ tab }}">
+    <input type="search" name="search" value="{{ search }}" placeholder="Search username…"
+           class="w-full max-w-xs text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200">
+    <button type="submit" class="px-3 py-2 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">Search</button>
+    {% if search %}<a href="{{ url_for('admin_panel.members_worklist', tab=tab) }}" class="text-sm text-gray-500 hover:text-ecs-green">Clear</a>{% endif %}
+  </form>
+  {% endif %}
+
+  <!-- List -->
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    {% if tab == 'quick' %}
+      {% if profiles %}
+      <div class="overflow-x-auto"><table class="w-full text-sm min-w-[34rem]">
+        <thead><tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
+          <th class="px-4 py-2">Name</th><th class="px-4 py-2 hidden sm:table-cell">Claim code</th><th class="px-4 py-2 hidden md:table-cell">Created</th><th class="px-4 py-2 text-end">Manage</th></tr></thead>
+        <tbody>
+        {% for p in profiles %}
+          <tr class="border-b border-gray-50 dark:border-gray-700/50">
+            <td class="px-4 py-2.5 font-medium text-gray-900 dark:text-white">{{ p.player_name }}</td>
+            <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ p.claim_code }}</td>
+            <td class="px-4 py-2.5 text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '—' }}</td>
+            <td class="px-4 py-2.5 text-end"><a href="{{ url_for('admin_panel.quick_profiles_management') }}" class="text-ecs-green hover:underline text-xs"><i class="ti ti-external-link"></i> Open</a></td>
+          </tr>
+        {% endfor %}
+        </tbody></table></div>
+      {% else %}<div class="p-8 text-center text-sm text-gray-500 dark:text-gray-400">No pending quick profiles.</div>{% endif %}
+
+    {% else %}
+      {% if users %}
+      <div class="overflow-x-auto"><table class="w-full text-sm min-w-[34rem]">
+        <thead><tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
+          <th class="px-4 py-2">Person</th><th class="px-4 py-2 hidden sm:table-cell">Status</th>
+          <th class="px-4 py-2 hidden md:table-cell">{{ 'Joined waitlist' if tab == 'waitlist' else 'Registered' }}</th>
+          <th class="px-4 py-2 text-end">Member Hub</th></tr></thead>
+        <tbody>
+        {% for u in users %}
+          <tr class="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
+            <td class="px-4 py-2.5">
+              <div class="font-medium text-gray-900 dark:text-white">{{ u.player.name if u.player else u.username }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">@{{ u.username }}</div>
+            </td>
+            <td class="px-4 py-2.5 hidden sm:table-cell">
+              {% if tab == 'waitlist' %}
+                <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">{{ u.waitlist_league or 'no lane' }}</span>
+              {% else %}
+                <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ u.approval_status }}</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-gray-500 dark:text-gray-400 hidden md:table-cell">
+              {% set d = u.waitlist_joined_at if tab == 'waitlist' else u.created_at %}
+              {{ d.strftime('%Y-%m-%d') if d else '—' }}
+            </td>
+            <td class="px-4 py-2.5 text-end">
+              <a href="{{ url_for('admin_panel.member_hub', user_id=u.id) }}" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">
+                <i class="ti ti-id-badge-2"></i> Open
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody></table></div>
+      {% else %}<div class="p-8 text-center text-sm text-gray-500 dark:text-gray-400">Nothing here right now.</div>{% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -22,7 +22,7 @@ function fmt(value, digits = 2) {
 
 function genderGlyph(gender) {
     if (gender === 'M') return '<span class="text-sky-500 font-mono text-[10px]">M</span>';
-    if (gender === 'F') return '<span class="text-pink-500 font-mono text-[10px]">F</span>';
+    if (gender === 'N') return '<span class="text-pink-500 font-mono text-[10px]">N</span>';
     return '<span class="text-gray-400 font-mono text-[10px]">·</span>';
 }
 
@@ -113,11 +113,11 @@ export function renderHeader() {
     const progress = document.getElementById('db-progress');
     if (progress) progress.textContent = `Drafted ${draftedCount()}/${totalPlayers()}`;
 
-    const genders = { M: 0, F: 0 };
+    const genders = { M: 0, N: 0 };
     state.teams.forEach(t => t.roster.forEach(p => { if (!p.is_coach && genders[p.gender] !== undefined) genders[p.gender] += 1; }));
     state.pool.forEach(p => { if (!p.is_coach && genders[p.gender] !== undefined) genders[p.gender] += 1; });
     const genderEl = document.getElementById('db-league-genders');
-    if (genderEl) genderEl.textContent = `League ${genders.M}M · ${genders.F}F`;
+    if (genderEl) genderEl.textContent = `League ${genders.M}M · ${genders.N}N`;
 }
 
 // ---------------------------------------------------------------------------
@@ -223,7 +223,7 @@ export function renderTeams() {
                 </span>
                 <span class="mt-0.5 flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 flex-wrap">
                     <span>${totals.size} players</span>
-                    <span class="font-mono">${totals.genders.M}M · ${totals.genders.F}F</span>
+                    <span class="font-mono">${totals.genders.M}M · ${totals.genders.N}N</span>
                     <span class="font-mono" title="Returning · New · willing GKs">Ret ${totals.size - totals.newCount} · New ${totals.newCount} · GK ${totals.gkCount}</span>
                     ${totals.unratedCount ? `<span class="text-gray-400">${totals.unratedCount} unrated</span>` : ''}
                 </span>
@@ -259,7 +259,7 @@ function passesFilters(player) {
             .filter(Boolean).map(p => p.toLowerCase());
         if (!all.some(p => p.includes(f.position))) return false;
     }
-    if (f.gender && (player.gender || 'X') !== f.gender) return false;
+    if (f.gender && (player.gender || 'N') !== f.gender) return false;
     if (f.status === 'new' && !player.is_new) return false;
     if (f.status === 'returning' && player.is_new) return false;
     if (f.status === 'gk' && !player.wants_gk) return false;
@@ -433,13 +433,13 @@ export function renderMatrix() {
         </tr>`;
     }).join('');
     const genderCells = perTeam.map(({ totals }) =>
-        `<td class="px-2 py-1.5 text-right font-mono">${totals.genders.M}M/${totals.genders.F}F</td>`).join('');
+        `<td class="px-2 py-1.5 text-right font-mono">${totals.genders.M}M/${totals.genders.N}N</td>`).join('');
 
     container.innerHTML = `
         <table class="w-full">
             <thead><tr class="text-gray-400"><th class="px-2 py-1.5 text-left font-medium">Metric</th>${headers}<th class="px-2 py-1.5 text-right font-medium">Gap ≤ ${esc(state.config.max_metric_gap)}</th></tr></thead>
             <tbody>${rows}
-                <tr class="border-t border-gray-200 dark:border-gray-600"><td class="px-2 py-1.5 text-gray-500 dark:text-gray-400">M/F</td>${genderCells}<td></td></tr>
+                <tr class="border-t border-gray-200 dark:border-gray-600"><td class="px-2 py-1.5 text-gray-500 dark:text-gray-400">M/N</td>${genderCells}<td></td></tr>
             </tbody>
         </table>`;
 }
